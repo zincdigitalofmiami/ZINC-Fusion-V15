@@ -1,0 +1,5 @@
+# Indicator Components
+# - SignalStrengthBar (0-100)
+# - CompositeSignalDisplay
+# - RegimeBadge (categorical status)
+# - TrendArrow

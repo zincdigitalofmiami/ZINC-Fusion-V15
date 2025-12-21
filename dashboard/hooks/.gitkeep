@@ -1,0 +1,5 @@
+# Data Fetching Hooks
+# - useBucketData(bucket: string)
+# - useForecastData(horizon: string)
+# - useRealtimeUpdates()
+# - useHistoricalRange(start, end)
