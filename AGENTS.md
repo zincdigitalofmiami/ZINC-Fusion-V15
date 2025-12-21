@@ -67,10 +67,8 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 - **CI:** GitHub Actions in `.github/workflows/`
 - **ML tracking (spec-level):** MLflow is described in notebooks/README, but may not be wired into the Python assets yet.
 
-### Dagster Cloud
-This repository is operated using **Dagster local** by default. Do not introduce, remove, or refactor Dagster Cloud deployment/config without explicit user direction.
-
-If `dagster_cloud.yaml` exists, treat it as **legacy/reference-only** unless the user explicitly asks to use or update Dagster Cloud.
+### Dagster Local
+This repository is operated using **Dagster local** by default. Do not introduce hosted deployment configuration unless the user explicitly requests it.
 
 ### Frontend / Vercel
 This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
@@ -141,7 +139,7 @@ Before implementing, confirm:
 Stop and ask the user when:
 - A required file/config is missing (e.g., a dashboard repo/path, credentials)
 - The schema in DuckDB contradicts the notebooks/README
-- The request implies external systems (Vercel/Dagster Cloud/MLflow server) without concrete repo paths, settings, and explicit confirmation
+- The request implies external systems (Vercel/MLflow server/etc.) without concrete repo paths, settings, and explicit confirmation
 
 ## Assistant Startup Prompt (Generic)
 
