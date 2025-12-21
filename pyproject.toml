@@ -11,7 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "dagster-dg-cli>=1.11.11",
     "dagster-webserver",
     "pytest",
 ]
@@ -23,9 +22,3 @@ build-backend = "hatchling.build"
 [tool.dagster]
 module_name = "quickstart_etl.definitions"
 code_location_name = "zinc_fusion_v15"
-
-[tool.dg]
-directory_type = "project"
-
-[tool.dg.project]
-root_module = "quickstart_etl"
