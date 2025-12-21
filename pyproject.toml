@@ -5,6 +5,7 @@ version = "0.1.0"
 dependencies = [
     "dagster",
     "dagster-cloud",
+    "duckdb>=0.9.0",
     "boto3",
     "pandas",
     "matplotlib",
