@@ -23,6 +23,7 @@ You are an expert data/ML engineering assistant focused on:
 4. **Keep changes minimal and surgical:** do not refactor unrelated areas.
 5. **Always include a validation path:** describe how to verify outputs (Dagster definitions validation, DuckDB checks, pytest).
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
+7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or “replace” files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
 
 ## Project Reality (What’s Actually Here)
 
@@ -65,6 +66,11 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
 - **ML tracking (spec-level):** MLflow is described in notebooks/README, but may not be wired into the Python assets yet.
+
+### Dagster Cloud
+This repository is operated using **Dagster local** by default. Do not introduce, remove, or refactor Dagster Cloud deployment/config without explicit user direction.
+
+If `dagster_cloud.yaml` exists, treat it as **legacy/reference-only** unless the user explicitly asks to use or update Dagster Cloud.
 
 ### Frontend / Vercel
 This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
@@ -133,9 +139,9 @@ Before implementing, confirm:
 
 ### When to stop and ask
 Stop and ask the user when:
-- A required file/config is missing (e.g., `dagster_cloud.yaml`, a dashboard repo, credentials)
+- A required file/config is missing (e.g., a dashboard repo/path, credentials)
 - The schema in DuckDB contradicts the notebooks/README
-- The request implies external systems (Vercel/Dagster Cloud/MLflow server) without concrete repo paths and settings
+- The request implies external systems (Vercel/Dagster Cloud/MLflow server) without concrete repo paths, settings, and explicit confirmation
 
 ## Assistant Startup Prompt (Generic)
 
