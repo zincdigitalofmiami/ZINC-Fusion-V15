@@ -1,63 +1,115 @@
 import base64
 import json
 import os
+import urllib.error
+import urllib.request
 from io import BytesIO
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import requests
 from dagster import AssetExecutionContext, MaterializeResult, MetadataValue, asset
 
 
-@asset(group_name="hackernews", compute_kind="HackerNews API")
-def topstory_ids() -> None:
+def _http_get_json(url: str, *, timeout_seconds: float = 30.0):
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "zinc-fusion-v15/quickstart_etl (Dagster asset)"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            payload = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError(f"Failed to fetch URL: {url}") from exc
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid JSON from URL: {url}") from exc
+
+
+@asset(
+    group_name="examples_hackernews",
+    compute_kind="HTTP",
+    description="Example asset (not used by ZINC Fusion). Fetches top story IDs from the HackerNews API.",
+)
+def topstory_ids() -> MaterializeResult:
     """Get up to 100 top stories from the HackerNews topstories endpoint.
 
     API Docs: https://github.com/HackerNews/API#new-top-and-best-stories
     """
     newstories_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
-    top_new_story_ids = requests.get(newstories_url).json()[:100]
+    top_new_story_ids = _http_get_json(newstories_url)[:100]
 
     os.makedirs("data", exist_ok=True)
-    with open("data/topstory_ids.json", "w") as f:
+    output_path = "data/topstory_ids.json"
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(top_new_story_ids, f)
 
+    return MaterializeResult(
+        metadata={
+            "count": len(top_new_story_ids),
+            "path": MetadataValue.path(output_path),
+        }
+    )
 
-@asset(deps=[topstory_ids], group_name="hackernews", compute_kind="HackerNews API")
+
+@asset(
+    deps=[topstory_ids],
+    group_name="examples_hackernews",
+    compute_kind="HTTP",
+    description="Example asset (not used by ZINC Fusion). Fetches top story payloads by ID.",
+)
 def topstories(context: AssetExecutionContext) -> MaterializeResult:
     """Get items based on story ids from the HackerNews items endpoint. It may take 30 seconds to fetch all 100 items.
 
     API Docs: https://github.com/HackerNews/API#items
     """
-    with open("data/topstory_ids.json") as f:
+    os.makedirs("data", exist_ok=True)
+    with open("data/topstory_ids.json", encoding="utf-8") as f:
         topstory_ids = json.load(f)
 
     results = []
     for item_id in topstory_ids:
-        item = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{item_id}.json").json()
+        item = _http_get_json(
+            f"https://hacker-news.firebaseio.com/v0/item/{item_id}.json"
+        )
         results.append(item)
 
         if len(results) % 20 == 0:
             context.log.info(f"Got {len(results)} items so far.")
 
     df = pd.DataFrame(results)
-    df.to_csv("data/topstories.csv")
+    output_path = "data/topstories.csv"
+    df.to_csv(output_path, index=False)
 
     return MaterializeResult(
         metadata={
             "num_records": len(df),  # Metadata can be any key-value pair
             "preview": MetadataValue.md(str(df.head().to_markdown())),
+            "path": MetadataValue.path(output_path),
             # The `MetadataValue` class has useful static methods to build Metadata
         }
     )
 
 
-@asset(deps=[topstories], group_name="hackernews", compute_kind="Plot")
+@asset(
+    deps=[topstories],
+    group_name="examples_hackernews",
+    compute_kind="Plot",
+    description="Example asset (not used by ZINC Fusion). Builds a simple frequency plot from HackerNews titles.",
+)
 def most_frequent_words(context: AssetExecutionContext) -> MaterializeResult:
     """Get the top 25 most frequent words in the titles of the top 100 HackerNews stories."""
     stopwords = ["a", "the", "an", "of", "to", "in", "for", "and", "with", "on", "is"]
 
-    topstories = pd.read_csv("data/topstories.csv")
+    os.makedirs("data", exist_ok=True)
+    input_path = "data/topstories.csv"
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"Missing input file {input_path}. Materialize `topstories` first."
+        )
+
+    topstories = pd.read_csv(input_path)
 
     # loop through the titles and count the frequency of each word
     word_counts = {}
