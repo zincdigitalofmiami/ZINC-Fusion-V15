@@ -28,9 +28,9 @@ daily_refresh_schedule = ScheduleDefinition(
             create_feature_tables,
             create_training_tables,
             create_forecast_tables,
-        ]
+        ],
     ),
-    cron_schedule="0 0 * * *"  # Daily at midnight UTC
+    cron_schedule="0 0 * * *",  # Daily at midnight UTC
 )
 
 # ZINC Fusion V15 assets
