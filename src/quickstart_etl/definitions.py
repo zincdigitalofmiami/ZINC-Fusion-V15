@@ -4,50 +4,58 @@ from dagster import (
     Definitions,
     ScheduleDefinition,
     define_asset_job,
-    graph_asset,
     link_code_references_to_git,
-    op,
     with_source_code_references,
 )
 from dagster._core.definitions.metadata.source_code import AnchorBasedFilePathMapping
 
-from .defs.assets import most_frequent_words, topstories, topstory_ids
+# ZINC Fusion V15 Assets
+from .defs.zinc_fusion_assets import (
+    create_schemas,
+    create_raw_tables,
+    create_feature_tables,
+    create_training_tables,
+    create_forecast_tables,
+)
 
+# Daily pipeline schedule
 daily_refresh_schedule = ScheduleDefinition(
-    job=define_asset_job(name="all_assets_job"), cron_schedule="0 0 * * *"
+    job=define_asset_job(
+        name="zinc_fusion_v15_pipeline",
+        selection=[
+            create_schemas,
+            create_raw_tables,
+            create_feature_tables,
+            create_training_tables,
+            create_forecast_tables,
+        ]
+    ),
+    cron_schedule="0 0 * * *"  # Daily at midnight UTC
 )
 
+# ZINC Fusion V15 assets
+zinc_fusion_assets = [
+    create_schemas,
+    create_raw_tables,
+    create_feature_tables,
+    create_training_tables,
+    create_forecast_tables,
+]
 
-@op
-def foo_op():
-    return 5
+# Add source code references
+zinc_fusion_assets = with_source_code_references(zinc_fusion_assets)
 
-
-@graph_asset
-def my_asset():
-    return foo_op()
-
-
-my_assets = with_source_code_references(
-    [
-        my_asset,
-        topstory_ids,
-        topstories,
-        most_frequent_words,
-    ]
-)
-
-my_assets = link_code_references_to_git(
-    assets_defs=my_assets,
-    git_url="https://github.com/dagster-io/dagster/",
-    git_branch="master",
+zinc_fusion_assets = link_code_references_to_git(
+    assets_defs=zinc_fusion_assets,
+    git_url="https://github.com/zincdigitalofmiami/ZINC-Fusion-V15/",
+    git_branch="main",
     file_path_mapping=AnchorBasedFilePathMapping(
         local_file_anchor=Path(__file__).parent,
-        file_anchor_path_in_repository="examples/quickstart_etl/src/quickstart_etl/",
+        file_anchor_path_in_repository="src/quickstart_etl/",
     ),
 )
 
 defs = Definitions(
-    assets=my_assets,
+    assets=zinc_fusion_assets,
     schedules=[daily_refresh_schedule],
 )
