@@ -6,6 +6,22 @@ __pycache__/
 
 # Dagster local runtime homes (do not commit)
 .tmp_dagster_home_*/
+.tmp/
+
+# MLflow artifacts and database (local runtime only)
+mlruns/
+mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+
+# Data directories (generated at runtime)
+data/
+*.db
+*.duckdb
+
+# Generated documentation
+*.docx
+*.pdf
 
 # Dashboard (frontend) artifacts (if/when implemented)
 dashboard/node_modules/
@@ -13,3 +29,6 @@ dashboard/.next/
 dashboard/out/
 dashboard/dist/
 .vercel/
+
+# VS Code workspace settings (user-specific)
+.vscode/
