@@ -147,7 +147,7 @@ def create_raw_tables(
 
 @asset(
     group_name="zinc_fusion_features",
-    description="Creates Big-8 bucket feature tables for specialized training",
+    description="Creates Big-10 bucket feature tables for specialized training",
     deps=[create_raw_tables],
 )
 def create_feature_tables(
@@ -168,7 +168,7 @@ def create_feature_tables(
         "volatility",
     ]
 
-    context.log.info(f"Creating Big-8 feature bucket tables")
+    context.log.info(f"Creating Big-10 feature bucket tables")
 
     for bucket in big8_buckets:
         conn.execute(f"""
@@ -217,7 +217,7 @@ def create_training_tables(
         )
     """)
 
-    # Big-8 specialist tables
+    # Big-10 specialist tables
     big8_models = [
         "crush",
         "china",
