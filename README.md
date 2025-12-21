@@ -1,69 +1,94 @@
-# Dagster starter kit
+# ZINC Fusion V15 - Soybean Oil Procurement Forecasting
 
-This example is a starter kit for building a daily ETL pipeline. At a high level, this project shows how to ingest data from external sources, explore and transform the data, and materialize outputs that help visualize the data.
+**Institutional-grade quantitative forecasting system for US Oil Solutions**
+
+This project implements a multi-layer ensemble ML pipeline for predicting ZL (Soybean Oil) futures prices across multiple time horizons (1W, 1M, 3M, 6M), enabling strategic procurement decisions for bulk soybean oil purchasing.
 
 _New to Dagster? Learn what Dagster is [in Concepts](https://docs.dagster.io/concepts) or [in the hands-on Tutorials](https://docs.dagster.io/tutorial)._
 
-This guide covers:
+## Table of Contents
 
-- [Dagster starter kit](#dagster-starter-kit)
-  - [Introduction](#introduction)
-  - [Getting started](#getting-started)
-    - [Option 1: Deploying it on Dagster Cloud](#option-1-deploying-it-on-dagster-cloud)
-    - [Option 2: Running it locally](#option-2-running-it-locally)
-  - [Step 1: Materializing assets](#step-1-materializing-assets)
-  - [Step 2: Viewing and monitoring assets](#step-2-viewing-and-monitoring-assets)
-  - [Step 3: Scheduling a daily job](#step-3-scheduling-a-daily-job)
-  - [Learning more](#learning-more)
-    - [Changing the code locally](#changing-the-code-locally)
-    - [Using environment variables and secrets](#using-environment-variables-and-secrets)
-    - [Adding new Python dependencies](#adding-new-python-dependencies)
-    - [Testing](#testing)
+- [Introduction](#introduction)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Data Pipeline](#data-pipeline)
+- [Model Training](#model-training)
+- [Development](#development)
+- [Testing](#testing)
 
 ## Introduction
 
-This starter kit includes:
+**ZINC Fusion V15** is a 4-layer hierarchical ensemble forecasting system:
 
-- Basics of creating, connecting, and testing [assets](https://docs.dagster.io/concepts/assets/software-defined-assets) in Dagster.
-- Convenient ways to organize and monitor assets, e.g. [grouping assets](https://docs.dagster.io/concepts/assets/software-defined-assets#grouping-assets), [recording asset metadata](https://docs.dagster.io/concepts/metadata-tags/asset-metadata), etc.
-- A [schedule](https://docs.dagster.io/concepts/partitions-schedules-sensors/schedules) defined to run a job that generates assets daily.
-- [Scaffolded project layout](https://docs.dagster.io/getting-started/create-new-project) that helps you to quickly get started with everything set up.
+- **L0 Layer**: 9 base models (1 Core TimeSeriesPredictor + 8 Specialist TabularPredictors)
+- **L1 Layer**: Meta-learner combining OOF predictions from L0 models
+- **L2 Layer**: Ensemble fusion producing probabilistic forecasts (P10-P90)
+- **L3 Layer**: Monte Carlo simulation for risk metrics (VaR, CVaR)
 
-In this project, we're building an analytical pipeline that explores popular topics on HackerNews.
+### Key Features
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/homepage.png" />
-</p>
+- **Big-8 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy+Biofuel, Palm Oil, Volatility
+- **AutoGluon 1.4**: State-of-the-art ML framework with Mitra, TabPFNv2, TabICL models
+- **DuckDB Storage**: Local SQL database for all data (raw, features, training, forecasts)
+- **Dagster Orchestration**: Daily data ingestion from 10+ APIs (FRED, EIA, EPA, USDA, CFTC, Yahoo Finance)
+- **MLflow Tracking**: Experiment tracking and model registry
 
-This project:
+### Business Impact
 
-- Fetches data from [HackerNews](https://github.com/HackerNews/API) APIs.
-- Transforms the collected data using [Pandas](http://pandas.pydata.org/pandas-docs/stable/).
-- Creates a [word cloud](https://github.com/amueller/word_cloud) based on trending HackerNews stories to visualize popular topics on HackerNews.
+- **Client**: US Oil Solutions (Las Vegas, NV)
+- **Product**: Bulk soybean oil for restaurant/casino fryers
+- **Proven Results**: $250K cost avoidance achieved through strategic timing
+- **Decision Support**: WHEN to lock in futures, HOW MUCH to buy
 
-## Getting started
+## Architecture
 
-### Option 1: Deploying it on Dagster Cloud
-
-The easiest way to spin up your Dagster project is to use [Dagster Cloud Serverless](https://docs.dagster.io/dagster-cloud/deployment/serverless). It provides out-of-the-box CI/CD and native branching that make development and deployment easy.
-
-Check out [Dagster Cloud](https://dagster.io/cloud) to get started.
-
-### Option 2: Running it locally
-
-Bootstrap your own Dagster project with this example:
-
-```bash
-dagster project from-example --name my-dagster-project --example quickstart_etl
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    L3: RISK LAYER                           │
+│  Monte Carlo Simulation → VaR/CVaR → Procurement Signals   │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│              L2: ENSEMBLE LAYER (Production)                │
+│    Weighted Fusion → Probabilistic Forecasts (P10-P90)     │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│           L1: META-LEARNER (Stacking Layer)                 │
+│  TabularPredictor combining OOF predictions from L0 models  │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│              L0: BASE MODELS (9 Predictors)                 │
+│  • 1 Core (TimeSeriesPredictor) - ZL price action          │
+│  • 8 Specialists (TabularPredictor) - Big-8 Buckets        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-First, install your Dagster code as a Python package. By using the `--editable` flag, pip will install in ["editable mode"](https://pip.pypa.io/en/latest/topics/local-project-installs/#editable-installs) so that as you develop, local code changes will automatically apply. Check out [Dagster Installation](https://docs.dagster.io/getting-started/install) for more information.
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10-3.14
+- [uv](https://docs.astral.sh/uv/) package manager (recommended)
+
+### Installation
 
 ```bash
-pip install -e ".[dev]"
+# Clone the repository
+git clone https://github.com/zincdigitalofmiami/ZINC-Fusion-V15.git
+cd ZINC-Fusion-V15
+
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+uv pip install -e ".[dev]"
 ```
 
-Then, start the Dagster UI web server:
+### Running Dagster
+
+Start the Dagster UI web server:
 
 ```bash
 dagster dev
@@ -71,158 +96,193 @@ dagster dev
 
 Open http://localhost:3000 with your browser to see the project.
 
-## Step 1: Materializing assets
+### Database Setup
 
-With the starter project loaded in your browser, click the icon in the top-left corner of the page to expand the navigation. You'll see both jobs and assets listed in the left nav.
+The DuckDB database is automatically created at `data/zinc_fusion_v15.db` when you first materialize assets.
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-1-1-left-nav.png" />
-</p>
+## Data Pipeline
 
-Click on the `hackernews` asset group to view the HackerNews assets and their relationship.
+### Available Assets
 
-An asset is a software object that models a data asset, which can be a file in your filesystem, a table in a database, or a data report. The assets in the `hackernews` asset group ingest the current trending 500 HackerNews stories and plots a word cloud out of the collected stories to visualize the popular topics on HackerNews. You'll see three assets with different tags:
+The ZINC Fusion V15 pipeline includes the following Dagster assets in the `zinc_fusion_schema` group:
 
-- `hackernews_topstory_ids` fetches a list of top story ids from a HackerNews endpoint.
-- `hackernews_topstories` takes the list of ids and pulls the story details from HackerNews based on the ids.
-- `hackernews_stories_word_cloud` visualizes the trending topics in a word cloud.
+| Asset | Description |
+|-------|-------------|
+| `create_schemas` | Creates 6 DuckDB schemas (raw, features, training, forecasts, monitoring, metadata) |
+| `create_raw_tables` | Creates raw data tables for market, economic, agricultural, weather, trade, sentiment data |
+| `create_feature_tables` | Creates Big-8 bucket feature tables (daily-aligned) |
+| `create_training_tables` | Creates training matrices for Core + 8 Specialists |
+| `create_forecast_tables` | Creates forecast output tables (L0→L1→L2→L3) |
 
-Dagster visualizes upstream and downstream dependencies vertically. Assets below other assets connected by arrows implies a dependency relationship. So we can tell from the UI that the asset `hackernews_topstories` depends on `hackernews_topstory_ids` (i.e. `hackernews_topstories` takes `hackernews_topstory_ids`'s output as an input) and `hackernews_stories_word_cloud` depends on `hackernews_topstories`.
+All assets are defined in [`src/quickstart_etl/defs/zinc_fusion_assets.py`](./src/quickstart_etl/defs/zinc_fusion_assets.py).
 
-All three assets are defined [in `src/quickstart_etl/defs/assets.py`](./src/quickstart_etl/defs/assets.py). Typically, you'll define assets by annotating ordinary Python functions with the [`@asset`](https://docs.dagster.io/concepts/assets/software-defined-assets#a-basic-software-defined-asset) decorator.
+### Materializing Assets
 
-This project also comes with ways to better organize the assets:
+1. Navigate to http://localhost:3000 in your browser
+2. Click on the **Assets** tab in the left navigation
+3. Select the `zinc_fusion_schema` asset group
+4. Click **Materialize all** to create the database schema
 
-- **Labeling/tagging.** You'll find the assets are tagged with different [labels/badges], such as `HackerNews API` and `Plot`. This is defined in code via the `compute_kind` argument to the `@asset` decorator. It can be any string value that represents the kind of computation that produces the asset and will be displayed in the UI as a badge on the asset. This can help us quickly understand the data logic from a bird's eye view.
-- **Grouping assets**. We've also assigned all three assets to the group `hackernews`, which is accomplished by providing the `group_name` argument to the `@asset` decorator. Grouping assets can help keep assets organized as your project grows. Learn about asset grouping [here](https://docs.dagster.io/concepts/assets/software-defined-assets#assigning-assets-to-groups).
-- **Adding descriptions.** In the asset graph, the UI also shows the description of each asset. You can specify the description of an asset in the `description` argument to `@asset`. When the argument is not provided and the decorated function has a docstring, Dagster will use the docstring as the description. In this example, the UI is using the docstrings as the descriptions.
+This will create the complete DuckDB database structure with all 50+ tables ready for data ingestion.
 
-Now that we've got a basic understanding of Dagster assets, let's materialize them.
+### Asset Organization
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-1-2-materialize-all.png" />
-</p>
+- **Grouping**: All assets are grouped under `zinc_fusion_schema` for easy navigation
+- **Compute Kind**: Each asset is labeled with `DuckDB` to indicate the storage backend
+- **Dependencies**: Assets have clear upstream/downstream relationships (schemas → raw tables → feature tables → training tables → forecast tables)
 
-Click **Materialize all** to kick off a Dagster run which will pull info from the external APIs and move the data through assets.
+## Model Training
 
-As you iterate, some assets may become outdated. To refresh them, you can select a subset of assets to run instead of re-running the entire pipeline. This allows us to avoid unnecessary re-runs of expensive computations, only re-materializing the assets that need to be updated. If assets take a long time to run or interact with APIs with restrictive rate limits, selectively re-materializing assets will come in handy.
+### Training Workflow
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-1-3-view-run.png" />
-</p>
+The ZINC Fusion V15 training workflow follows a strict sequence:
 
-You'll see an indicator pop up with the launched run ID. Click **View** to monitor the run in real-time. This will open a new tab in your browser:
+1. **Prepare Training Data**: Load features from DuckDB into training matrices
+2. **Train L0 Models**:
+   - Train 8 Specialist TabularPredictors (one per Big-8 bucket)
+   - Train 1 Core TimeSeriesPredictor
+   - Extract OOF predictions **before** `refit_full`
+3. **Build Meta-Ensemble**: Join all OOF predictions into meta-ensemble tables
+4. **Train L1 Meta-Learner**: Train on combined OOF predictions
+5. **Production Inference**: Generate daily forecasts (L0 → L1 → L2 → L3)
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-1-4-compute-logs.png" />
-</p>
+### AutoGluon Configuration
 
-The process will run for a bit. While it's running, you should see the real-time compute logs printed in the UI. _(It may take 1-2 minutes to fetch all top 500 stories from HackerNews in the `hackernews_topstories` step)._
+```python
+# L0 Specialist (TabularPredictor)
+from autogluon.tabular import TabularPredictor
 
-## Step 2: Viewing and monitoring assets
+predictor = TabularPredictor(
+    label='target_return_Xd',
+    problem_type='quantile',
+    eval_metric='pinball_loss',
+    quantile_levels=[0.1, 0.5, 0.9],
+).fit(
+    train_data=bucket_df,
+    presets='extreme_quality',  # Mitra, TabPFNv2, TabICL
+    time_limit=7200,  # 2 hours per bucket
+)
 
-When you materialize an asset, the object returned by your asset function is saved. Dagster makes it easy to save these results to disk, to blob storage, to a database, or to any other system. In this example the assets are saved to the file system. In addition to the asset materialization, your asset functions can also generate metadata that is directly visible in Dagster. To view the materialization details and metadata, click on the "ASSET_MATERIALIZATION" event. In this example, the `hackernews_stories_word_cloud` asset materializes a plot that is saved to disk, but we also add the plot as metadata to make it visible in Dagster.
+# Extract OOF predictions
+oof_preds = predictor.predict_proba_oof()
+```
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-2-5-asset-in-logs.png" />
-</p>
+See [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) for the complete training specification.
 
-Click **Show Markdown**. You'll see a word cloud of the top 500 HackerNews story titles generated by the `hackernews_topstories_word_cloud` asset:
+## Scheduling
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-2-6-hackernews_word_cloud.png" />
-</p>
+### Daily Data Refresh
 
-The metadata is recorded in the `hackernews_topstories_word_cloud` asset [in `src/quickstart_etl/defs/assets.py`](./src/quickstart_etl/defs/assets.py). Dagster supports attaching arbitrary [metadata](https://docs.dagster.io/_apidocs/ops#dagster.MetadataValue) to asset materializations. This metadata is also be displayed on the **Activity** tab of the **Asset Details** page in the UI or in the **Asset Lineage** view after selecting an asset. From the compute logs of a run, you can click the **View Asset** to go to the **Asset Details** page.
+The project includes a daily schedule (`daily_refresh_schedule`) defined in [`src/quickstart_etl/definitions.py`](./src/quickstart_etl/definitions.py) that runs at 6:00 AM EST to:
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-2-7-view-assets.png" />
-</p>
+1. Ingest fresh data from all APIs (FRED, EIA, EPA, USDA, CFTC, Yahoo Finance)
+2. Update feature tables with latest market data
+3. Generate new forecasts for all time horizons (1W, 1M, 3M, 6M)
 
-This metadata would be useful for monitoring and maintaining the asset as you iterate. Similarly, we've also recorded some metadata in the `hackernews_topstories` asset. You can filter the compute logs by typing the asset name (e.g. `hackernews_topstories`) or the event type (e.g. `type:ASSET_MATERIALIZATION`) in the **Log Filter** input box:
+### Enabling the Schedule
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-2-8-filter.png" />
-</p>
+1. Navigate to the **Schedules** tab in the Dagster UI
+2. Find `daily_refresh_schedule`
+3. Toggle the switch to **ON**
 
-In the results, you'll see that the `hackernews_topstories` asset has two metadata entries: `num_records` and `preview`. Both are defined [in `src/quickstart_etl/defs/assets.py`](./src/quickstart_etl/defs/assets.py), in which we record the first five rows of the output Pandas DataFrame in the `preview` metadata entry using the Markdown type. This could help debug and keep your assets easily monitored. Click **Show Markdown** to view a preview of the output data frame:
+The schedule will now run automatically every day at 6:00 AM EST.
 
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-2-9-preview.png" />
-</p>
+## Development
 
-Note: You'll find a `path` metadata attached to every asset. This is because assets are, by default, materialized to pickle files on your local filesystem. In most projects, your assets will be materialized to a production system and you can fully customize the I/O using [I/O managers](https://docs.dagster.io/concepts/io-management/io-managers).
+### Local Development Workflow
 
-## Step 3: Scheduling a daily job
+1. Make code changes in `src/quickstart_etl/`
+2. Click **Reload definitions** in the Dagster UI (top-right corner)
+3. Test changes by materializing affected assets
+4. Commit changes to Git
 
-Finally, let's refresh our plots every day so we can monitor popular topics over time. To do so, we can use [schedules](https://docs.dagster.io/concepts/partitions-schedules-sensors/schedules#schedules).
+### Project Structure
 
-We've defined a daily schedule and job in [`src/quickstart_etl/definitions.py`](./src/quickstart_etl/definitions.py) for all assets that are defined in the [`src/quickstart_etl/defs/`](./src/quickstart_etl/defs) module.
+```
+ZINC-Fusion-V15/
+├── src/
+│   └── quickstart_etl/
+│       ├── definitions.py          # Dagster definitions, schedules
+│       └── defs/
+│           ├── zinc_fusion_assets.py  # Schema creation assets
+│           └── assets.py           # (Legacy HackerNews example)
+├── data/
+│   ├── zinc_fusion_v15.db         # DuckDB database (auto-created)
+│   └── parquet/                   # Parquet cache (optional)
+├── models/
+│   └── autogluon/                 # Trained model artifacts
+├── mlruns/                        # MLflow experiment tracking
+├── QUANT_V15_Complete.ipynb       # Complete system specification
+├── pyproject.toml                 # Python dependencies
+└── README.md                      # This file
+```
 
-Now, let's turn on the daily schedule within Dagster.
+### Environment Variables
 
-1. In the left nav, it indicates the `all_assets_job` has a schedule associated with it but it's currently off. Clicking "all_assets_job" in the left nav will bring you to the job definition page.
-2. Mouse over the schedule indicator on the top of the page to navigate to the individual schedule page for more info about the schedule.
-
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-3-1-schedule-off.png" />
-</p>
-
-You can now turn on the schedule switch to set up the daily job we defined in [src/quickstart_etl/definitions.py](./src/quickstart_etl/definitions.py).
-
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/step-3-2-schedule-on.png" />
-</p>
-
-<br />
-<br />
-
-Congratulations 🎉 You now have a daily job running in production!
-
----
-
-## Learning more
-
-### Changing the code locally
-
-When developing pipelines locally, be sure to click the **Reload definition** button in the Dagster UI after you change the code. This ensures that Dagster picks up the latest changes you made.
-
-You can reload the code using the **Deployment** page:
-
-<details><summary>👈 Expand to view the screenshot</summary>
-
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/more-reload-code.png" />
-</p>
-
-</details>
-
-Or from the left nav or on each job page:
-
-<details><summary>👈 Expand to view the screenshot</summary>
-
-<p align="center">
-    <img height="500" src="https://raw.githubusercontent.com/dagster-io/dagster/master/docs/static/images/quickstarts/basic/more-reload-left-nav.png" />
-</p>
-
-</details>
-
-### Using environment variables and secrets
-
-Environment variables, which are key-value pairs configured outside your source code, allow you to dynamically modify application behavior depending on environment.
-
-Using environment variables, you can define various configuration options for your Dagster application and securely set up secrets. For example, instead of hard-coding database credentials - which is bad practice and cumbersome for development - you can use environment variables to supply user details. This allows you to parameterize your pipeline without modifying code or insecurely storing sensitive data.
-
-Check out [Using environment variables and secrets](https://docs.dagster.io/guides/dagster/using-environment-variables-and-secrets) for more info and examples.
-
-### Adding new Python dependencies
-
-You can specify new Python dependencies in `setup.py`.
-
-### Testing
-
-Tests are in the `tests` directory and you can run tests using `pytest`:
+API keys and credentials should be stored in environment variables:
 
 ```bash
-pytest tests
+# Create .env file (not committed to Git)
+export FRED_API_KEY="your_fred_api_key"
+export EIA_API_KEY="your_eia_api_key"
+export EPA_API_KEY="your_epa_api_key"
+# ... other API keys
 ```
+
+Load environment variables before running Dagster:
+
+```bash
+source .env
+dagster dev
+```
+
+See [Using environment variables and secrets](https://docs.dagster.io/guides/dagster/using-environment-variables-and-secrets) for more info.
+
+### Adding Dependencies
+
+Add new Python dependencies to `pyproject.toml`:
+
+```toml
+[project]
+dependencies = [
+    "dagster",
+    "duckdb>=0.9.0",
+    "pandas",
+    "your-new-package",
+]
+```
+
+Then reinstall:
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+## Testing
+
+Run tests using pytest:
+
+```bash
+pytest tests/ -v
+```
+
+Run Dagster definition validation:
+
+```bash
+dagster definitions validate -m quickstart_etl.definitions
+```
+
+## Documentation
+
+- **System Specification**: [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) - Complete DDL and implementation guide
+- **Dagster Docs**: [https://docs.dagster.io](https://docs.dagster.io)
+- **AutoGluon Docs**: [https://auto.gluon.ai](https://auto.gluon.ai)
+- **DuckDB Docs**: [https://duckdb.org](https://duckdb.org)
+
+## License
+
+Proprietary - US Oil Solutions / ZINC Digital of Miami
+
+## Contact
+
+For questions or support, contact the ZINC Fusion development team.

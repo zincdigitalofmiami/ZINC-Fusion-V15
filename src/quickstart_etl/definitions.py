@@ -1,13 +1,8 @@
-from pathlib import Path
-
 from dagster import (
     Definitions,
     ScheduleDefinition,
     define_asset_job,
-    link_code_references_to_git,
-    with_source_code_references,
 )
-from dagster._core.definitions.metadata.source_code import AnchorBasedFilePathMapping
 
 # ZINC Fusion V15 Assets
 from .defs.zinc_fusion_assets import (
@@ -16,21 +11,37 @@ from .defs.zinc_fusion_assets import (
     create_feature_tables,
     create_training_tables,
     create_forecast_tables,
+    DuckDBResource,
 )
 
-# Daily pipeline schedule
+# Default job (used by tests and local runs)
+all_assets_job = define_asset_job(
+    name="all_assets_job",
+    selection=[
+        create_schemas,
+        create_raw_tables,
+        create_feature_tables,
+        create_training_tables,
+        create_forecast_tables,
+    ],
+)
+
+# Named pipeline job (kept stable for schedules/ops)
+zinc_fusion_v15_pipeline_job = define_asset_job(
+    name="zinc_fusion_v15_pipeline",
+    selection=[
+        create_schemas,
+        create_raw_tables,
+        create_feature_tables,
+        create_training_tables,
+        create_forecast_tables,
+    ],
+)
+
+# Daily pipeline schedule (6:00 AM EST = 11:00 AM UTC)
 daily_refresh_schedule = ScheduleDefinition(
-    job=define_asset_job(
-        name="zinc_fusion_v15_pipeline",
-        selection=[
-            create_schemas,
-            create_raw_tables,
-            create_feature_tables,
-            create_training_tables,
-            create_forecast_tables,
-        ],
-    ),
-    cron_schedule="0 0 * * *",  # Daily at midnight UTC
+    job=zinc_fusion_v15_pipeline_job,
+    cron_schedule="0 11 * * *",  # Daily at 6:00 AM EST (11:00 AM UTC)
 )
 
 # ZINC Fusion V15 assets
@@ -42,20 +53,11 @@ zinc_fusion_assets = [
     create_forecast_tables,
 ]
 
-# Add source code references
-zinc_fusion_assets = with_source_code_references(zinc_fusion_assets)
-
-zinc_fusion_assets = link_code_references_to_git(
-    assets_defs=zinc_fusion_assets,
-    git_url="https://github.com/zincdigitalofmiami/ZINC-Fusion-V15/",
-    git_branch="main",
-    file_path_mapping=AnchorBasedFilePathMapping(
-        local_file_anchor=Path(__file__).parent,
-        file_anchor_path_in_repository="src/quickstart_etl/",
-    ),
-)
-
 defs = Definitions(
     assets=zinc_fusion_assets,
+    jobs=[all_assets_job, zinc_fusion_v15_pipeline_job],
     schedules=[daily_refresh_schedule],
+    resources={
+        "duckdb_resource": DuckDBResource(database_path="data/zinc_fusion_v15.db")
+    },
 )

@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Dagster local runtime homes (do not commit)
+.tmp_dagster_home_*/
