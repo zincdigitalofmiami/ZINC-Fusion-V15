@@ -6,3 +6,10 @@ __pycache__/
 
 # Dagster local runtime homes (do not commit)
 .tmp_dagster_home_*/
+
+# Dashboard (frontend) artifacts (if/when implemented)
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+dashboard/dist/
+.vercel/

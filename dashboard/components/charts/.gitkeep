@@ -1,0 +1,5 @@
+# Chart Components
+# - TimeSeriesChart (with Bollinger/percentile band support)
+# - CandlestickChart
+# - SparklineChart
+# - CorrelationHeatmap

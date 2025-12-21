@@ -1,0 +1,5 @@
+# Gauge Components
+# - ProbabilityGauge (0-100% semi-circular)
+# - FearGreedMeter
+# - ConfidenceBar
+# - PercentileRank
