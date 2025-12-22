@@ -126,9 +126,18 @@ class DataQualityError(Exception):
 
 class DataQualityGatekeeper:
     """
-    Validates data quality before ingestion into DuckDB.
+    Ultra-badass data quality gatekeeper for production-grade ZINC-FUSION-V15
 
-    Acts as a gatekeeper to prevent bad data from entering the pipeline.
+    This class validates incoming data for:
+    - Schema integrity and consistency
+    - Primary key uniqueness and validity
+    - Date range continuity and coverage
+    - Null value analysis with configurable thresholds
+    - Type casting and format validation
+    - Duplicate detection and removal recommendations
+
+    Built for institutional-grade commodity forecasting with zero tolerance
+    for data quality issues that could impact trading decisions.
     """
 
     def __init__(self, strict_mode: bool = True):
@@ -561,6 +570,10 @@ def validate_ml_matrix(file_path: str | Path) -> ValidationReport:
         date_column="as_of_date",
         max_null_pct=0.3,  # Training data should be fairly complete
     )
+
+
+# Additional alias for Dagster asset imports
+DataQualityValidator = DataQualityGatekeeper
 
 
 # ============================================================
