@@ -1,0 +1,283 @@
+================================================================================
+ZINC-FUSION-V15 COMPLETE DATA LIST
+================================================================================
+
+TOTAL: 115 tables across 10 schemas
+
+
+================================================================================
+SCHEMA: ARCHIVE (18 tables)
+================================================================================
+✅  cftc_cot_1w                                               4,506 rows    22 cols
+✅  complete_daily_1d                                         4,828 rows   413 cols
+✅  daily_matrix_1d_backup_20251224                           4,018 rows   202 cols
+✅  daily_ml_matrix_zl_1d                                     4,018 rows    86 cols
+✅  daily_ml_matrix_zl_v15_1d                                 4,018 rows   135 cols
+✅  eia_biofuels_1w                                              10 rows     7 cols
+✅  epa_rin_prices_1d                                           208 rows     6 cols
+✅  fred_economic_1d                                        342,551 rows     5 cols
+✅  fred_macro_extended_1d                                   28,839 rows    16 cols
+✅  intraday_volatility_1h                                    4,828 rows    17 cols
+✅  staging_daily_returns_1d                                123,281 rows    11 cols
+✅  staging_fred_macro_clean_1d                              28,839 rows    16 cols
+✅  staging_market_daily_1d                                   4,828 rows    16 cols
+✅  staging_ohlcv_daily_1d                                  108,458 rows    11 cols
+✅  technical_indicators_1d                                 140,144 rows    39 cols
+✅  usda_export_sales_1w                                      6,412 rows     8 cols
+✅  usda_wasde_1m                                             4,320 rows     8 cols
+✅  weather_noaa_1d                                         215,320 rows    11 cols
+
+================================================================================
+SCHEMA: FEATURES (11 tables)
+================================================================================
+✅  daily_matrix_1d                                           4,018 rows   202 cols
+⚪  driver_factors_1d                                             0 rows     5 cols
+⚪  driver_factors_1h                                             0 rows     5 cols
+✅  driver_scores_1d                                         47,469 rows     4 cols
+⚪  driver_scores_1h                                              0 rows     4 cols
+✅  fred_wide_1d                                             27,099 rows    64 cols
+⚪  neural_states_1d                                              0 rows     4 cols
+⚪  shap_driver_1d                                                0 rows     8 cols
+⚪  shap_raw_1d                                                   0 rows     5 cols
+⚪  volatility_1d                                                 0 rows     5 cols
+⚪  volatility_1h                                                 0 rows     4 cols
+
+================================================================================
+SCHEMA: FORECASTS (12 tables)
+================================================================================
+⚪  explanations_1d                                               0 rows     4 cols
+⚪  forecast_quantiles_1d                                         0 rows     7 cols
+⚪  predictions_1d                                                0 rows     6 cols
+⚪  probability_bands_1d                                          0 rows    11 cols
+⚪  probability_narratives_1d                                     0 rows     8 cols
+⚪  procurement_actions_1d                                        0 rows     5 cols
+⚪  risk_metrics_1d                                               0 rows     7 cols
+⚪  scenarios_1d                                                  0 rows     6 cols
+⚪  value_timing_windows_1d                                       0 rows    10 cols
+⚪  zl_components_1d                                              0 rows     7 cols
+⚪  zl_forecasts_1d                                               0 rows    10 cols
+⚪  zl_predictions_1d                                             0 rows    10 cols
+
+================================================================================
+SCHEMA: GOLD (4 tables)
+================================================================================
+⚪  driver_insights_1d                                            0 rows    12 cols
+⚪  forecast_summary_1d                                           0 rows     9 cols
+⚪  risk_analytics_1d                                             0 rows     8 cols
+⚪  specialist_performance_summary_1d                             0 rows     7 cols
+
+================================================================================
+SCHEMA: METADATA (1 tables)
+================================================================================
+✅  bucket_config_static                                         10 rows     6 cols
+
+================================================================================
+SCHEMA: MONITORING (6 tables)
+================================================================================
+✅  data_quality_1d                                               1 rows     6 cols
+⚪  drift_1d                                                      0 rows     4 cols
+⚪  model_performance_1d                                          0 rows    11 cols
+⚪  risk_analytics_1d                                             0 rows     8 cols
+⚪  run_telemetry_event                                           0 rows     7 cols
+⚪  vw_forecast_band_width_1d                                     0 rows     8 cols
+
+================================================================================
+SCHEMA: RAW (12 tables)
+================================================================================
+⚪  cftc_cot_1w                                                   0 rows     5 cols
+⚪  eia_observations_1d                                           0 rows     3 cols
+⚪  epa_rin_prices_1d                                             0 rows     3 cols
+⚪  fred_observations_1d                                          0 rows     3 cols
+⚪  fx_spot_1d                                                    0 rows     3 cols
+⚪  fx_spot_1h                                                    0 rows     3 cols
+✅  market_futures_1d                                       290,174 rows     9 cols
+✅  market_futures_1h                                     4,967,276 rows     9 cols
+⚪  news_articles_event                                           0 rows     6 cols
+⚪  trade_flows_1d                                                0 rows     5 cols
+⚪  weather_observations_1d                                       0 rows     4 cols
+⚪  weather_observations_1h                                       0 rows     4 cols
+
+================================================================================
+SCHEMA: SPECIALIST (11 tables)
+================================================================================
+⚪  climate_normals_static                                        0 rows     4 cols
+✅  drivers_static                                               15 rows     4 cols
+⚪  exogenous_factors_static                                      0 rows     4 cols
+⚪  market_calendar_static                                        0 rows     4 cols
+✅  neural_driver_ownership_static                               22 rows     6 cols
+⚪  region_weather_weights_static                                 0 rows     3 cols
+⚪  symbols_static                                                0 rows     5 cols
+⚪  unit_conversions_static                                       0 rows     3 cols
+⚪  weather_locations_static                                      0 rows     5 cols
+⚪  weather_stations_static                                       0 rows     6 cols
+⚪  weather_variables_static                                      0 rows     4 cols
+
+================================================================================
+SCHEMA: TRAINING (35 tables)
+================================================================================
+⚪  core_features_1d                                              0 rows    11 cols
+✅  core_matrix_full_1d                                       4,828 rows   434 cols
+✅  daily_ml_matrix_zl_v15_1d                                 4,018 rows   135 cols
+⚪  dataset_snapshots_event                                       0 rows     6 cols
+✅  ensemble_weights_1d                                           5 rows     8 cols
+⚪  labels_1d                                                     0 rows     4 cols
+✅  matrix_1d                                                 4,018 rows   135 cols
+⚪  meta_ensemble_126d_1d                                         0 rows    33 cols
+⚪  meta_ensemble_21d_1d                                          0 rows    33 cols
+⚪  meta_ensemble_5d_1d                                           0 rows    33 cols
+⚪  meta_ensemble_63d_1d                                          0 rows    33 cols
+⚪  meta_inputs_1d                                                0 rows     4 cols
+⚪  oof_core_zl_1d                                                0 rows     8 cols
+⚪  oof_predictions_1d                                            0 rows     5 cols
+⚪  oof_specialist_biofuel_1d                                     0 rows     6 cols
+⚪  oof_specialist_china_1d                                       0 rows     8 cols
+⚪  oof_specialist_crush_1d                                       0 rows     8 cols
+⚪  oof_specialist_energy_1d                                      0 rows     8 cols
+⚪  oof_specialist_fed_1d                                         0 rows     8 cols
+⚪  oof_specialist_fx_1d                                          0 rows     8 cols
+⚪  oof_specialist_palm_1d                                        0 rows     8 cols
+⚪  oof_specialist_substitutes_1d                                 0 rows     8 cols
+⚪  oof_specialist_tariff_1d                                      0 rows     8 cols
+⚪  oof_specialist_volatility_1d                                  0 rows     8 cols
+✅  oof_specialists_1d                                       19,656 rows     9 cols
+⚪  specialist_biofuel_1d                                         0 rows    14 cols
+✅  specialist_china_1d                                      16,072 rows    17 cols
+✅  specialist_crush_1d                                      16,072 rows    16 cols
+✅  specialist_energy_1d                                     16,072 rows    19 cols
+✅  specialist_fed_1d                                        16,072 rows    13 cols
+✅  specialist_fx_1d                                         16,072 rows    15 cols
+✅  specialist_palm_1d                                       16,072 rows    31 cols
+⚪  specialist_substitutes_1d                                     0 rows     9 cols
+✅  specialist_tariff_1d                                     16,072 rows    13 cols
+✅  specialist_volatility_1d                                 16,072 rows    16 cols
+
+================================================================================
+SCHEMA: WEATHER (5 tables)
+================================================================================
+⚪  argentina_north_1d                                            0 rows     7 cols
+⚪  argentina_pampas_1d                                           0 rows     7 cols
+⚪  brazil_cerrado_1d                                             0 rows     7 cols
+⚪  brazil_south_1d                                               0 rows     7 cols
+⚪  us_cornbelt_1d                                                0 rows     8 cols
+
+
+================================================================================
+KEY DATA BREAKDOWNS
+================================================================================
+
+=== RAW.MARKET_FUTURES_1D - 81 SYMBOLS ===
+
+10Y        1,346 rows    2021-08-16 to 2025-12-15
+2YY        1,113 rows    2021-08-16 to 2025-11-26
+30Y          776 rows    2021-08-16 to 2025-12-12
+5YY          438 rows    2021-08-16 to 2025-11-11
+6A         4,809 rows    2010-06-07 to 2025-12-15
+6B         4,815 rows    2010-06-07 to 2025-12-15
+6C         4,810 rows    2010-06-07 to 2025-12-15
+6E         4,815 rows    2010-06-07 to 2025-12-15
+6J         4,814 rows    2010-06-07 to 2025-12-15
+6L         4,165 rows    2010-06-14 to 2025-12-15
+6M         4,773 rows    2010-06-07 to 2025-12-15
+6N         4,804 rows    2010-06-07 to 2025-12-15
+6R         3,052 rows    2010-06-09 to 2025-07-07
+6S         4,802 rows    2010-06-07 to 2025-12-15
+6Z         3,987 rows    2010-06-07 to 2025-12-15
+ALI        1,863 rows    2014-05-06 to 2025-12-15
+BTC        2,484 rows    2017-12-17 to 2025-12-15
+BZ         4,616 rows    2010-06-07 to 2025-12-15
+CL         4,819 rows    2010-06-07 to 2025-12-15
+CPO          139 rows    2010-06-07 to 2014-05-25
+DC         4,502 rows    2010-06-07 to 2025-12-15
+DY         2,935 rows    2010-06-07 to 2025-12-15
+EMD        4,798 rows    2010-06-07 to 2025-12-15
+ES         4,815 rows    2010-06-07 to 2025-12-15
+ETH        1,507 rows    2021-02-07 to 2025-12-15
+GC         4,813 rows    2010-06-07 to 2025-12-15
+GE         4,026 rows    2010-06-07 to 2023-06-19
+GF         3,902 rows    2010-06-07 to 2025-12-15
+HE         3,903 rows    2010-06-07 to 2025-12-15
+HG         4,812 rows    2010-06-07 to 2025-12-15
+HO         4,819 rows    2010-06-07 to 2025-12-15
+KE         3,015 rows    2013-12-16 to 2025-12-15
+LBR          813 rows    2022-08-08 to 2025-12-15
+LE         3,902 rows    2010-06-07 to 2025-12-15
+M2K        2,056 rows    2019-05-05 to 2025-12-15
+M6A        4,798 rows    2010-06-07 to 2025-12-15
+M6B        4,782 rows    2010-06-07 to 2025-12-15
+M6E        4,814 rows    2010-06-07 to 2025-12-15
+MBT        1,435 rows    2021-05-02 to 2025-12-15
+MCL        1,380 rows    2016-09-29 to 2025-12-15
+MES        2,056 rows    2019-05-05 to 2025-12-15
+MET        1,248 rows    2021-12-05 to 2025-12-15
+MGC        4,700 rows    2010-10-03 to 2025-12-15
+MNQ        2,056 rows    2019-05-05 to 2025-12-15
+MYM        2,055 rows    2019-05-05 to 2025-12-15
+NG         4,818 rows    2010-06-07 to 2025-12-15
+NIY        4,768 rows    2010-06-07 to 2025-12-15
+NQ         4,815 rows    2010-06-07 to 2025-12-15
+PA         4,774 rows    2010-06-07 to 2025-12-15
+PL         4,793 rows    2010-06-07 to 2025-12-15
+QG         4,813 rows    2010-06-07 to 2025-12-15
+QH           993 rows    2010-06-09 to 2025-12-09
+QI         4,655 rows    2010-06-07 to 2025-12-15
+QM         4,813 rows    2010-06-07 to 2025-12-15
+QO         4,792 rows    2010-06-07 to 2025-12-15
+QU           782 rows    2010-06-17 to 2025-12-10
+RB         4,819 rows    2010-06-07 to 2025-12-15
+RTY        2,622 rows    2017-07-09 to 2025-12-15
+SB             1 rows    2020-02-24 to 2020-02-24
+SI         4,807 rows    2010-06-07 to 2025-12-15
+SR1        2,157 rows    2018-05-06 to 2025-12-15
+SR3        2,127 rows    2018-05-06 to 2025-12-15
+TN         3,347 rows    2010-10-25 to 2025-12-15
+TT           775 rows    2010-06-07 to 2020-12-30
+UB         4,768 rows    2010-06-07 to 2025-12-15
+XC         4,014 rows    2010-06-07 to 2025-12-15
+XK         4,012 rows    2010-06-07 to 2025-12-15
+XW         4,014 rows    2010-06-07 to 2025-12-15
+YM         4,814 rows    2010-06-07 to 2025-12-15
+ZB         4,818 rows    2010-06-07 to 2025-12-15
+ZC         4,018 rows    2010-06-07 to 2025-12-15
+ZF         4,815 rows    2010-06-07 to 2025-12-15
+ZL         4,018 rows    2010-06-07 to 2025-12-15
+ZM         4,017 rows    2010-06-07 to 2025-12-15
+ZN         4,819 rows    2010-06-07 to 2025-12-15
+ZO         4,008 rows    2010-06-07 to 2025-12-15
+ZQ         4,531 rows    2010-06-07 to 2025-12-15
+ZR         4,007 rows    2010-06-07 to 2025-12-15
+ZS         4,018 rows    2010-06-07 to 2025-12-15
+ZT         4,812 rows    2010-06-07 to 2025-12-15
+ZW         4,018 rows    2010-06-07 to 2025-12-15
+
+
+=== ARCHIVE.CFTC_COT_1W - 16 SYMBOLS ===
+
+CL       308 reports    2020-01-07 to 2025-11-25
+GC       308 reports    2020-01-07 to 2025-11-25
+GF       308 reports    2020-01-07 to 2025-11-25
+HE       308 reports    2020-01-07 to 2025-11-25
+HO       198 reports    2022-02-15 to 2025-11-25
+LE       308 reports    2020-01-07 to 2025-11-25
+NG       109 reports    2020-01-07 to 2022-02-01
+PA       308 reports    2020-01-07 to 2025-11-25
+PL       308 reports    2020-01-07 to 2025-11-25
+SI       308 reports    2020-01-07 to 2025-11-25
+ZC       308 reports    2020-01-07 to 2025-11-25
+ZL       308 reports    2020-01-07 to 2025-11-25
+ZM       308 reports    2020-01-07 to 2025-11-25
+ZO       195 reports    2020-01-07 to 2025-11-25
+ZR       308 reports    2020-01-07 to 2025-11-25
+ZS       308 reports    2020-01-07 to 2025-11-25
+
+
+=== ARCHIVE.FRED_ECONOMIC_1D - TOP 30 SERIES ===
+
+Traceback (most recent call last):
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/complete_list.py", line 74, in <module>
+    fred = conn.execute("""
+           ^^^^^^^^^^^^^^^^
+_duckdb.BinderException: Binder Error: Referenced column "date" not found in FROM clause!
+Candidate bindings: "value"
+
+LINE 3:            MIN(date)::VARCHAR as start,
+                       ^

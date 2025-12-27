@@ -1,4 +1,0 @@
-locations:
-- code_source:
-    module_name: quickstart_etl.definitions_new
-  location_name: zinc_fusion_v15
