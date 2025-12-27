@@ -1,0 +1,11 @@
+table,rows,start,end
+raw.market_futures_1d,385994,1990-01-01,2025-12-15
+raw.market_futures_1h,4967276,2010-06-07 00:00:00,2025-12-15 23:00:00
+raw.fred_observations_1d,342551,1871-01-01,2025-12-15
+raw.fx_spot_1d,139617,1981-01-02,2025-12-12
+raw.weather_observations_1d,1058584,2005-01-01,2025-12-20
+features.driver_scores_1d,47469,2010-06-07,2025-12-15
+training.core_matrix_full_1d,6372,2000-10-23 00:00:00,2025-12-15 00:00:00
+training.oof_core_zl_1d,19416,2000-10-23,2025-12-15
+training.oof_specialist_combined_1d,22932,2010-06-07,2022-12-30
+forecasts.forecast_quantiles_1d,0,,

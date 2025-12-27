@@ -1,5 +1,0 @@
-# Medallion Lakehouse Architecture
-
-The medallion architecture is a data design pattern used to organize data into quality‑based layers.  Databricks describes it as a “series of data layers that denote the quality of data stored in the lakehouse”【872581463529754†L37-L46】, typically labelled **Bronze** (raw), **Silver** (validated) and **Gold** (curated).  As data flows from Bronze to Gold it is incrementally cleaned, deduplicated and enriched【872581463529754†L48-L59】.  Bronze acts as the append‑only landing zone and single source of truth, Silver tables apply validation, type casting and normalization【872581463529754†L121-L169】, and Gold tables provide business‑ready aggregates and views【872581463529754†L110-L119】.
-
-In ZINC Fusion, **Dagster** pipelines implement this progression.  Ingestion jobs load raw files or streams to the Bronze layer.  Validation, deduplication and schema enforcement tasks produce Silver tables, and final analytical models and dashboards rely on curated Gold tables.  The medallion pattern allows incremental processing and ensures that downstream consumers always see validated data of known quality.

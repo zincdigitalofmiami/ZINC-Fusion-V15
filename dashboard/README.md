@@ -361,7 +361,7 @@ Each bucket page should follow this structure:
 ## Data Flow
 
 ```
-DuckDB (zinc_fusion_v15.db)
+DuckDB (fusion.db)
     │
     ▼
 specialist_buckets.py (Feature Computation)

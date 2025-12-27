@@ -10,9 +10,6 @@ __pycache__/
 
 # MLflow artifacts and database (local runtime only)
 mlruns/
-mlflow.db
-mlflow.db-shm
-mlflow.db-wal
 
 # Data directories (generated at runtime)
 data/
@@ -29,6 +26,12 @@ dashboard/.next/
 dashboard/out/
 dashboard/dist/
 .vercel/
+
+# Client (Next.js) artifacts
+client/node_modules/
+client/.next/
+client/out/
+client/dist/
 
 # VS Code workspace settings (user-specific)
 .vscode/

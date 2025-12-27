@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fusion | Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --bg-card-hover: #22222e;
+            --border-color: #2a2a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #3b82f6 50%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.green { background: var(--accent-green); }
+        .status-dot.blue { background: var(--accent-blue); }
+        .status-dot.orange { background: var(--accent-orange); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .card-icon.blue { background: rgba(59, 130, 246, 0.2); }
+        .card-icon.green { background: rgba(16, 185, 129, 0.2); }
+        .card-icon.orange { background: rgba(245, 158, 11, 0.2); }
+        .card-icon.purple { background: rgba(139, 92, 246, 0.2); }
+        .card-icon.red { background: rgba(239, 68, 68, 0.2); }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .card-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--accent-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .card-link:hover {
+            background: #2563eb;
+            transform: translateX(4px);
+        }
+        
+        .card-link svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .section-badge {
+            background: var(--accent-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        /* Specialist Grid */
+        .specialist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .specialist-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .specialist-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-purple);
+            transform: translateY(-2px);
+        }
+        
+        .specialist-icon {
+            font-size: 1.8rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+        
+        .specialist-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .specialist-info span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Pipeline Section */
+        .pipeline-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 30px 20px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            margin-top: 40px;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+        
+        .pipeline-stage {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .pipeline-stage.active {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .pipeline-arrow {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        
+        /* Env Info */
+        .env-info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        
+        .env-info h4 {
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .env-var {
+            color: var(--text-secondary);
+            margin: 4px 0;
+        }
+        
+        .env-var code {
+            color: var(--accent-green);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+        
+        .footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">🔥</div>
+            <h1 class="title">FUSION</h1>
+            <p class="subtitle">Commodity Procurement Forecasting • Soybean Oil (ZL)</p>
+            
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot green"></span>
+                    <span>MLflow Tracking</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot blue"></span>
+                    <span>Dagster Orchestration</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot orange"></span>
+                    <span>DuckDB Storage</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Services -->
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                <div class="card-icon blue">📊</div>
+                <h2 class="card-title">MLflow</h2>
+            </div>
+            <p class="card-description">Experiment tracking, model registry, and artifact management. View all training runs, compare metrics, and manage model versions.</p>
+            <a href="http://localhost:5050/#/models" class="card-link" target="_blank">
+                Open Models
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            </a>
+            <div style="margin-top: 10px;">
+                <a href="http://localhost:5050/#/experiments" class="muted" target="_blank" style="text-decoration:none;color:var(--text-secondary);">
+                    View Runs (Experiments)
+                </a>
+            </div>
+        </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon green">⚙️</div>
+                    <h2 class="card-title">Dagster</h2>
+                </div>
+                <p class="card-description">Pipeline orchestration and asset management. View DAGs, materialize assets, monitor jobs, and manage schedules.</p>
+                <a href="http://localhost:3000" class="card-link" target="_blank">
+                    Open Dagster
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Driver Specialists -->
+        <section style="margin-top: 40px;">
+            <div class="section-header">
+                <h2 class="section-title">🔬 Economic Drivers</h2>
+                <span class="section-badge">10 Specialists</span>
+            </div>
+            
+            <div class="specialist-grid">
+        <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+            <div class="specialist-icon">🌾</div>
+            <div class="specialist-info">
+                <h3>Crush</h3>
+                <span>Soybean crush margins</span>
+            </div>
+        </a>
+                
+        <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+            <div class="specialist-icon">🇨🇳</div>
+            <div class="specialist-info">
+                <h3>China</h3>
+                <span>Demand signals</span>
+            </div>
+        </a>
+                
+        <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+            <div class="specialist-icon">💱</div>
+            <div class="specialist-info">
+                <h3>FX</h3>
+                <span>Currency factors</span>
+            </div>
+        </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">🏦</div>
+                    <div class="specialist-info">
+                        <h3>Fed</h3>
+                        <span>Monetary policy</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">📜</div>
+                    <div class="specialist-info">
+                        <h3>Tariff</h3>
+                        <span>Trade policy</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">⚡</div>
+                    <div class="specialist-info">
+                        <h3>Energy</h3>
+                        <span>Energy markets</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">🌿</div>
+                    <div class="specialist-info">
+                        <h3>Biofuel</h3>
+                        <span>RINs & biodiesel</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">🌴</div>
+                    <div class="specialist-info">
+                        <h3>Palm</h3>
+                        <span>Substitute oils</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">📈</div>
+                    <div class="specialist-info">
+                        <h3>Volatility</h3>
+                        <span>Market regime</span>
+                    </div>
+                </a>
+                
+                <a href="http://localhost:5050/#/models" class="specialist-card" target="_blank">
+                    <div class="specialist-icon">🔄</div>
+                    <div class="specialist-info">
+                        <h3>Substitutes</h3>
+                        <span>Alternative oils</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+        
+        <!-- Neural Drivers -->
+        <section style="margin-top: 40px;">
+            <div class="section-header">
+                <h2 class="section-title">🧠 Neural Drivers</h2>
+                <span class="section-badge">5 Specialists</span>
+            </div>
+            
+            <div class="specialist-grid">
+                <div class="specialist-card">
+                    <div class="specialist-icon">📊</div>
+                    <div class="specialist-info">
+                        <h3>Neural Trend</h3>
+                        <span>Trend detection</span>
+                    </div>
+                </div>
+                
+                <div class="specialist-card">
+                    <div class="specialist-icon">🎯</div>
+                    <div class="specialist-info">
+                        <h3>Neural Regime</h3>
+                        <span>Regime classification</span>
+                    </div>
+                </div>
+                
+                <div class="specialist-card">
+                    <div class="specialist-icon">🌊</div>
+                    <div class="specialist-info">
+                        <h3>Neural Flow</h3>
+                        <span>Order flow analysis</span>
+                    </div>
+                </div>
+                
+                <div class="specialist-card">
+                    <div class="specialist-icon">💭</div>
+                    <div class="specialist-info">
+                        <h3>Neural Sentiment</h3>
+                        <span>Market sentiment</span>
+                    </div>
+                </div>
+                
+                <div class="specialist-card">
+                    <div class="specialist-icon">📉</div>
+                    <div class="specialist-info">
+                        <h3>Neural Residual</h3>
+                        <span>Error correction</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Pipeline Flow -->
+        <div class="pipeline-flow">
+            <div class="pipeline-stage">L0 Specialists</div>
+            <span class="pipeline-arrow">→</span>
+            <div class="pipeline-stage">L1 Meta-Learner</div>
+            <span class="pipeline-arrow">→</span>
+            <div class="pipeline-stage">L2 Fusion</div>
+            <span class="pipeline-arrow">→</span>
+            <div class="pipeline-stage active">L3 Risk Engine</div>
+            <span class="pipeline-arrow">→</span>
+            <div class="pipeline-stage">Forecasts</div>
+        </div>
+        
+        <!-- Env Info -->
+        <div class="env-info">
+            <h4>📦 Canonical Environment</h4>
+            <div class="env-var"><code>FUSION_DB_PATH</code> = data/fusion.db</div>
+            <div class="env-var"><code>FUSION_MODEL_DIR</code> = models</div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Fusion • US Oil Solutions • Soybean Oil Procurement Forecasting</p>
+        </footer>
+    </div>
+</body>
+</html>

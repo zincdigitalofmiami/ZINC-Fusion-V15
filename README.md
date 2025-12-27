@@ -13,8 +13,6 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 - **Enhanced variables**: Temperature (max/min/avg), precipitation (rain/snow), wind (speed/gusts), coordinates
 - **Geographic coverage**: Iowa, Illinois, Indiana, Minnesota, Nebraska, Missouri, Brazil (MT/MS/MG/PR/RS/SP), Argentina (BA/CO/SF/ER/CH/FO/SE)
 
-_New to Dagster? Learn what Dagster is [in Concepts](https://docs.dagster.io/concepts) or [in the hands-on Tutorials](https://docs.dagster.io/tutorial)._
-
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -37,10 +35,7 @@ _New to Dagster? Learn what Dagster is [in Concepts](https://docs.dagster.io/con
 ### Key Features
 
 - **Big-10 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy+Biofuel, Palm Oil, Volatility
-- **AutoGluon 1.4**: State-of-the-art ML framework with Mitra, TabPFNv2, TabICL models
 - **DuckDB Storage**: Local SQL database for all data (raw, features, training, forecasts)
-- **Dagster Orchestration**: Daily data ingestion from 10+ APIs (FRED, EIA, EPA, USDA, CFTC, Yahoo Finance)
-- **MLflow Tracking**: Experiment tracking and model registry
 
 ### Business Impact
 
@@ -95,50 +90,21 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv pip install -e ".[dev]"
 ```
 
-### Running Dagster
+### Running the API
 
-Start the Dagster UI web server:
+Start the FastAPI server:
 
 ```bash
-dagster dev
+python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000
 ```
-
-Open http://localhost:3000 with your browser to see the project.
 
 ### Database Setup
 
-The DuckDB database is automatically created at `data/zinc_fusion_v15.db` when you first materialize assets.
+The DuckDB database is automatically created at `data/fusion.db` when you first materialize assets.
 
 ## Data Pipeline
 
-### Available Assets
-
-The ZINC Fusion V15 pipeline includes the following Dagster assets in the `zinc_fusion_schema` group:
-
-| Asset | Description |
-|-------|-------------|
-| `create_schemas` | Creates 6 DuckDB schemas (raw, features, training, forecasts, monitoring, metadata) |
-| `create_raw_tables` | Creates raw data tables for market, economic, agricultural, weather, trade, sentiment data |
-| `create_feature_tables` | Creates Big-10 bucket feature tables (daily-aligned) |
-| `create_training_tables` | Creates training matrices for Core + 8 Specialists |
-| `create_forecast_tables` | Creates forecast output tables (L0→L1→L2→L3) |
-
-All assets are defined in [`src/quickstart_etl/defs/zinc_fusion_assets.py`](./src/quickstart_etl/defs/zinc_fusion_assets.py).
-
-### Materializing Assets
-
-1. Navigate to http://localhost:3000 in your browser
-2. Click on the **Assets** tab in the left navigation
-3. Select the `zinc_fusion_schema` asset group
-4. Click **Materialize all** to create the database schema
-
-This will create the complete DuckDB database structure with all 50+ tables ready for data ingestion.
-
-### Asset Organization
-
-- **Grouping**: All assets are grouped under `zinc_fusion_schema` for easy navigation
-- **Compute Kind**: Each asset is labeled with `DuckDB` to indicate the storage backend
-- **Dependencies**: Assets have clear upstream/downstream relationships (schemas → raw tables → feature tables → training tables → forecast tables)
+Data lives in DuckDB at `data/fusion.db` and is accessed via the API.
 
 ## Model Training
 
@@ -146,81 +112,44 @@ This will create the complete DuckDB database structure with all 50+ tables read
 
 The ZINC Fusion V15 training workflow follows a strict sequence:
 
-1. **Prepare Training Data**: Load features from DuckDB into training matrices
-2. **Train L0 Models**:
-   - Train 8 Specialist TabularPredictors (one per Big-10 bucket)
-   - Train 1 Core TimeSeriesPredictor
-   - Extract OOF predictions **before** `refit_full`
-3. **Build Meta-Ensemble**: Join all OOF predictions into meta-ensemble tables
-4. **Train L1 Meta-Learner**: Train on combined OOF predictions
-5. **Production Inference**: Generate daily forecasts (L0 → L1 → L2 → L3)
-
-### AutoGluon Configuration
-
-```python
-# L0 Specialist (TabularPredictor)
-from autogluon.tabular import TabularPredictor
-
-predictor = TabularPredictor(
-    label='target_return_Xd',
-    problem_type='quantile',
-    eval_metric='pinball_loss',
-    quantile_levels=[0.1, 0.5, 0.9],
-).fit(
-    train_data=bucket_df,
-    presets='extreme_quality',  # Mitra, TabPFNv2, TabICL
-    time_limit=7200,  # 2 hours per bucket
-)
-
-# Extract OOF predictions
-oof_preds = predictor.predict_proba_oof()
-```
+1. **Canonical Features (Gold)**: Use `features.driver_scores_1d` as the canonical feature matrix.
+2. **Train L0 Specialists (Per-Bucket)**:
+    - Train each of the 10 specialist buckets with its own unique model family (independent pipelines).
+    - Extract OOF predictions per bucket (before any refit_full).
+    - Apply per‑bucket bagging to reduce variance.
+3. **Join & Stack**: Horizontally stack all specialist OOF/bagged outputs.
+4. **Train L1 Meta‑Learner**: Stacking model over specialist outputs.
+5. **L2 Fusion**: Probabilistic fusion with uncertainty quantification (quantiles).
+6. **L3 Risk**: Monte Carlo VaR/CVaR and risk metrics.
 
 See [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) for the complete training specification.
 
+Canonical Feature Table
+- The canonical features table is `features.driver_scores_1d` which provides normalized 0-100 scores for all 10 specialist drivers.
+- Training tables follow the pattern `training.specialist_{bucket}_1d` where bucket is one of: crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes.
+
 ## Scheduling
 
-### Daily Data Refresh
-
-The project includes a daily schedule (`daily_refresh_schedule`) defined in [`src/quickstart_etl/definitions.py`](./src/quickstart_etl/definitions.py) that runs at 6:00 AM EST to:
-
-1. Ingest fresh data from all APIs (FRED, EIA, EPA, USDA, CFTC, Yahoo Finance)
-2. Update feature tables with latest market data
-3. Generate new forecasts for all time horizons (1W, 1M, 3M, 6M)
-
-### Enabling the Schedule
-
-1. Navigate to the **Schedules** tab in the Dagster UI
-2. Find `daily_refresh_schedule`
-3. Toggle the switch to **ON**
-
-The schedule will now run automatically every day at 6:00 AM EST.
+Scheduling/orchestration has been removed from this repository.
 
 ## Development
 
 ### Local Development Workflow
 
-1. Make code changes in `src/quickstart_etl/`
-2. Click **Reload definitions** in the Dagster UI (top-right corner)
-3. Test changes by materializing affected assets
-4. Commit changes to Git
+1. Make code changes in `src/fusion/`
+2. Restart the API server
+3. Commit changes to Git
 
 ### Project Structure
 
 ```
 ZINC-Fusion-V15/
 ├── src/
-│   └── quickstart_etl/
-│       ├── definitions.py          # Dagster definitions, schedules
-│       └── defs/
-│           ├── zinc_fusion_assets.py  # Schema creation assets
-│           └── assets.py           # (Legacy HackerNews example)
+│   └── fusion/
+│       ├── api/                    # FastAPI service
 ├── data/
-│   ├── zinc_fusion_v15.db         # DuckDB database (auto-created)
+│   ├── fusion.db                  # DuckDB database (auto-created)
 │   └── parquet/                   # Parquet cache (optional)
-├── models/
-│   └── autogluon/                 # Trained model artifacts
-├── mlruns/                        # MLflow experiment tracking
 ├── QUANT_V15_Complete.ipynb       # Complete system specification
 ├── pyproject.toml                 # Python dependencies
 └── README.md                      # This file
@@ -238,34 +167,36 @@ export EPA_API_KEY="your_epa_api_key"
 # ... other API keys
 ```
 
-Load environment variables before running Dagster:
+Load environment variables before running the API:
 
 ```bash
 source .env
-dagster dev
+python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000
 ```
 
-See [Using environment variables and secrets](https://docs.dagster.io/guides/dagster/using-environment-variables-and-secrets) for more info.
+## Deployment (No MotherDuck)
+
+This repo supports a split deployment:
+
+- **UI**: deploy `client/` to Vercel (repo root has `vercel.json` to build `client/`).
+- **Backend**: run FastAPI on a host with persistent storage (DuckDB is a local file).
+
+### Backend (Docker Compose)
+
+- Start services: `docker compose up -d --build`
+- FastAPI base URL: `http://<host>:8000` (or `http://<host>:8080/api/...` if you use the Nginx proxy)
+
+Environment variables to set on the host:
+- `FUSION_DB_PATH` (default in containers: `/app/data/fusion.db`)
+- `FUSION_CORS_ORIGINS` (comma-separated; include your Vercel domain, e.g. `https://<your-app>.vercel.app`)
+
+### UI (Vercel)
+
+Set `FUSION_API_BASE` in Vercel Environment Variables to your FastAPI base URL (e.g. `https://api.yourdomain.com`).
 
 ### Adding Dependencies
 
-Add new Python dependencies to `pyproject.toml`:
-
-```toml
-[project]
-dependencies = [
-    "dagster",
-    "duckdb>=0.9.0",
-    "pandas",
-    "your-new-package",
-]
-```
-
-Then reinstall:
-
-```bash
-uv pip install -e ".[dev]"
-```
+Dependency management is repo-specific; see existing project config.
 
 ## Testing
 
@@ -275,17 +206,9 @@ Run tests using pytest:
 pytest tests/ -v
 ```
 
-Run Dagster definition validation:
-
-```bash
-dagster definitions validate -m quickstart_etl.definitions
-```
-
 ## Documentation
 
 - **System Specification**: [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) - Complete DDL and implementation guide
-- **Dagster Docs**: [https://docs.dagster.io](https://docs.dagster.io)
-- **AutoGluon Docs**: [https://auto.gluon.ai](https://auto.gluon.ai)
 - **DuckDB Docs**: [https://duckdb.org](https://duckdb.org)
 
 ## License

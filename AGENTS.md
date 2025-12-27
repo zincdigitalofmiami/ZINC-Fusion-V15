@@ -25,30 +25,245 @@ You are an expert data/ML engineering assistant focused on:
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
 7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or “replace” files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
 
+## Operating Principles (Agents)
+
+These are the “how we operate” rules for assistants/agents working in this repo.
+
+- **Verify-first, then assert:** no “Phase-0 ready” / “done” claims without checking the live repo + `data/fusion.db` state.
+- **No silent schema changes:** any new schema/table/column requires an explicit declaration and user approval.
+- **Fail loudly:** scripts should error on missing tables/columns; avoid implicit DDL creation during training unless it’s explicitly the contract.
+- **No decision semantics:** never encode “buy/sell/act now” logic; this remains an intelligence system, not execution.
+- **Minimal diffs:** fix the root cause, avoid unrelated refactors, keep patches small and reversible.
+- **Always provide a validation path:** prefer targeted DuckDB checks and `pytest` in `.venv` (system Python may not match project deps).
+---
+
+## DuckDB Remote Viewing (Read-only)
+
+Goal: allow multiple machines to browse/query `data/fusion.db` over HTTP without sharing the DuckDB file.
+
+- **Server:** `src/fusion/api/server.py` exposes a token-protected, read-only DB explorer API (`/api/db/*`) plus a simple UI at `/db`.
+- **Auth:** set `FUSION_API_TOKEN` on the machine hosting the DB; clients must send it as `X-API-Token`.
+
+Run locally (recommended to use the project venv):
+
+- `export FUSION_DB_PATH="data/fusion.db"`
+- `export FUSION_API_TOKEN="change-me"`
+- `.venv/bin/python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000`
+
+Then open:
+
+- `http://<host-ip>:8000/db`
+
+Notes:
+
+- The explorer only allows `SELECT`/`WITH` queries and enforces a row limit.
+- DuckDB is file-based; safe multi-machine **editing** requires a dedicated write service or a hosted solution (out of scope unless explicitly approved).
+
+## Local Dashboards (Docker)
+
+This repo includes a local Docker stack for consistent “one command” startup of dashboards.
+
+- Start: `docker compose up -d --build`
+- Stop: `docker compose down`
+- Landing page: `http://localhost:8080`
+  - Dagster: `http://localhost:3000`
+  - MLflow: `http://localhost:5050`
+  - API: `http://localhost:8000` (DuckDB explorer UI at `http://localhost:8080/db`)
+
+Defaults:
+
+- `FUSION_DB_PATH` inside containers: `/app/data/fusion.db` (mounted from `./data/fusion.db`)
+- `FUSION_API_TOKEN` default: `change-me` (override in your shell or `.env` used by Docker Compose)
+
+## Operational Contracts (Locked)
+
+These rules exist to prevent drift. If a rule needs to change, stop and get explicit approval before implementing.
+
+### Data Domains (7)
+
+Domains are an organizational convention for raw ingestion + table naming. Not every domain is populated yet.
+
+| Domain | Schema Target | Existing Tables (examples) |
+|--------|---------------|----------------------------|
+| market | `raw.market_*` | `raw.market_futures_1d`, `raw.market_futures_1h` |
+| economic | `raw.fred_*` | `raw.fred_observations_1d` |
+| agriculture | `raw.usda_*` | (not yet implemented in DuckDB) |
+| energy | `raw.eia_*` / `raw.epa_*` | `raw.eia_observations_1d`, `raw.epa_rin_prices_1d` |
+| weather | `raw.weather_*` | `raw.weather_observations_1d`, `raw.weather_observations_1h` |
+| positioning | `raw.cftc_*` | `raw.cftc_cot_1w` |
+| news | `raw.news_*` | `raw.news_articles_event` |
+
+### Archive Policy
+
+- Archive during migration only.
+- Delete after 14 days only after row-count validation confirms the migrated table is correct.
+- Archive tables live in `archive.*` (no extra schemas).
+
+### Staging Rule
+
+- `data/yahoo_staging/` is staging-only (filesystem).
+- End state lives in DuckDB `raw.market_*` tables.
+- Do not create `brz`/`slv`/`gld` (guardrails will fail).
+
+### Naming Contracts
+
+| Rule | Required | Forbidden |
+|------|----------|-----------|
+| Grain suffix | `_1h`, `_1d`, `_1w`, `_event`, `_static` | time-series fact tables with no suffix |
+| Table naming | `raw.market_futures_1d` | table names containing `ohlc` / `ohlcv` |
+| Horizons (DuckDB keys) | integer `5`, `21`, `63`, `126` | string horizons like `"1w"`, `"1m"` in table keys |
+| Quantile columns | `p10`, `p50`, `p90` | ad-hoc quantile names (`q10`, `pred_p10`, etc.) |
+| OOF table family | `training.oof_core_zl_1d`, `training.oof_specialist_*_1d`, `training.oof_specialist_combined_1d` | `training.oof_big10_*` (legacy), `training.oof_specialists_1d` (plural) |
+
+### FRED Routing (Specialist Ownership)
+
+- FRED is landed in long format (`raw.fred_observations_*`) and routed downstream by `series_id`.
+- The explicit mapping lives in `src/fusion/ingestion/router.py` (`FRED_SERIES_BUCKETS` / `get_fred_bucket`).
+- When adding or changing ownership for a series, update the mapping and keep tests green (`tests/test_fred_routing.py`).
+
+### Allowed Schemas (11 only)
+
+`raw`, `silver`, `gold`, `features`, `training`, `forecasts`, `monitoring`, `specialist`, `weather`, `metadata`, `archive`
+
+### MLflow/DuckDB Linkage
+
+Every training run must persist these fields back to DuckDB (either in OOF tables or a `metadata.*` table):
+
+- `run_id`
+- `model_version`
+- `trained_at`
+
+### Artifact Location (Locked)
+
+- All model artifacts must be written under `models/`.
+- Do not write new artifacts to `AutogluonModels/` (legacy only).
+
+## Agent Change Authority & Governance
+
+**Core Principle:** *"Build aggressively. Never redefine reality."*
+
+### ✅ What Agents ARE Allowed to Change
+
+#### Code (Primary Authority)
+Agents may freely:
+- Add new Python files
+- Modify existing Python modules
+- Refactor functions and classes
+- Improve performance
+- Add logging, validation, and assertions
+- Implement training configurations
+- Add tests
+- Remove dead or unused code
+
+**Rule:** Code is mutable by default, unless explicitly frozen.
+
+#### Scripts & Glue Logic
+Agents may:
+- Add training scripts
+- Add evaluation scripts
+- Add export utilities
+- Add parsing and summarization layers
+- Add CLI helpers
+
+**Constraints:** Must not invent business logic. Must not cross schema boundaries.
+
+#### Documentation
+Agents may:
+- Create README files
+- Update architecture documentation
+- Generate governance documents
+- Explain model behavior
+- Add inline comments
+
+**Rule:** Documentation is always safe to modify.
+
+---
+
+### ⚠️ What Agents MAY Change — Only With Declaration
+
+These surfaces are high-risk. Agents may touch them only after stating intent and receiving approval.
+
+#### Database Schemas
+Agents must:
+1. Declare exactly what table or column changes are proposed
+2. Explain why the change is required
+3. Obtain explicit approval before execution
+
+**Rule:** No silent schema changes. Ever.
+
+#### Feature Definitions
+Agents must not:
+- Invent new features
+- Rename drivers
+- Collapse or merge categories
+
+Unless:
+- The change is explicitly requested
+- The feature contract is updated
+
+**Rule:** Features represent domain truth, not AI discretion.
+
+#### Training Targets & Horizons
+Agents may not:
+- Change labels
+- Change forecast horizons
+- Change problem framing
+
+Unless explicitly authorized by the user.
+
+---
+
+### ❌ What Agents Are NEVER Allowed to Change (Hard Locks)
+
+#### Decision Semantics
+Agents must never:
+- Add "buy / sell / act now" logic
+- Encode recommendations
+- Introduce execution logic
+- Convert probabilities into commands
+
+**Rule:** This system provides procurement intelligence, not trading or execution.
+
+#### Business Meaning
+Agents do not decide:
+- What a feature means
+- Why a driver matters
+- Which regime is "correct"
+
+They may explain, never redefine.
+
+#### Hidden Tooling
+Agents may not:
+- Add new services
+- Introduce new infrastructure
+- Add libraries or frameworks without approval
+- Change orchestration tools
+
+**Rule:** All work remains inside the approved stack.
+
+---
+
+### Required Behavior When Mutating Anything
+
+Before changing anything beyond internal code, the agent must:
+
+1. **State intent:** "I am going to modify X for reason Y"
+2. **Define scope:** Files affected, tables touched, outputs impacted
+3. **Declare reversibility:** Can this change be reverted cleanly?
+4. **Pause if boundary-crossing:** Schemas, Features, Targets, Decisions
+
+**Rule:** No declaration → no change.
+
+---
 ## Project Reality (What’s Actually Here)
 
 ### Primary entry points
-- Dagster project module: `src/quickstart_etl/definitions.py`
-- Primary assets (DuckDB DDL setup): `src/quickstart_etl/defs/zinc_fusion_assets.py`
+- FastAPI server: `src/fusion/api/server.py`
 - Notebooks (spec / canonical DDL + training guidance):
   - `QUANT_V15_Complete.ipynb`
   - `CBI_V15_CANONICAL_Dagster_Pipeline.ipynb`
 
-### Dagster wiring (current)
-- Schedule: `daily_refresh_schedule` in `src/quickstart_etl/definitions.py` runs at `0 11 * * *` (Dagster cron is UTC; intended 6:00 AM Eastern).
-- Asset job name: `zinc_fusion_v15_pipeline`
-- DuckDB resource: `duckdb_resource` points at `data/zinc_fusion_v15.db`
-- Code location: configured in `pyproject.toml` under `[tool.dagster]` (`module_name = "quickstart_etl.definitions"`)
-
-### What the Dagster assets currently do
-`src/quickstart_etl/defs/zinc_fusion_assets.py` materializes **schemas and empty tables** in a local DuckDB database:
-- Schemas: `raw`, `features`, `training`, `forecasts`, `monitoring`, `metadata`
-- Table groups: market/economic raw tables, Big‑8 feature bucket tables, training tables, forecast tables
-
-This repo does **not** currently contain full ingestion implementations for the 10+ APIs mentioned in the README; treat the notebooks as the specification and the Python assets as the initial scaffold.
-
-### Example/tutorial assets
-`src/quickstart_etl/defs/assets.py` contains a HackerNews tutorial asset set that performs network calls and writes local files under `data/`. It is not wired into `src/quickstart_etl/definitions.py` by default.
+This repo does **not** currently contain full ingestion implementations for the 10+ APIs mentioned in the README; treat the notebooks as the specification.
 
 ## Business Context (Why This Exists)
 
@@ -61,7 +276,7 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 ## Technology Stack (Source of Truth)
 
 - **Orchestration:** Dagster
-- **Storage:** DuckDB (local file) at `data/zinc_fusion_v15.db` (created on first materialization)
+- **Storage:** DuckDB (local file) at `data/fusion.db` (created on first materialization)
 - **Python packaging:** `pyproject.toml` + `uv`
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
@@ -73,7 +288,7 @@ This repository is operated using **Dagster local** by default. Do not introduce
 ### Frontend / Vercel
 This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
 
-## Big‑8 Bucket Taxonomy (Project Terms)
+## Specialist Taxonomy (Canonical 10)
 
 Specialists are organized around these buckets (names should remain consistent across code, tables, and docs):
 1. `crush`
@@ -81,9 +296,11 @@ Specialists are organized around these buckets (names should remain consistent a
 3. `fx`
 4. `fed`
 5. `tariff`
-6. `energy_biofuel`
-7. `palm_oil`
-8. `volatility`
+6. `energy`
+7. `biofuel`
+8. `palm`
+9. `volatility`
+10. `substitutes`
 
 ## How To Run (Local)
 
@@ -91,41 +308,62 @@ Install dependencies:
 - `uv pip install -e ".[dev]"`
 
 Environment variables (recommended):
-- Put secrets in a local `.env` file (do not commit it), then load it before running Dagster.
+- Put secrets in a local `.env` file (do not commit it), then load it before running the API.
 
-Run Dagster:
-- `dagster dev`
-
-Validate Dagster definitions:
-- `dagster definitions validate -m quickstart_etl.definitions`
+Run API:
+- `.venv/bin/python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000`
 
 Run tests:
 - `pytest -q`
 
 ## CI Expectations
 
-GitHub Actions runs:
-- `pytest tests/ -v`
-- `dagster definitions validate -m quickstart_etl.definitions`
-- Optional quality checks: `ruff check src/ tests/` and `black --check src/ tests/` (configured to not fail the workflow)
+CI is repo-specific; keep checks aligned to the current codebase.
 
 ## Known Drift / Sharp Edges
 
-- `tests/test_defs.py` currently asserts a job named `all_assets_job`, but `src/quickstart_etl/definitions.py` defines an asset job named `zinc_fusion_v15_pipeline`. If tests fail, reconcile the expected job name or adjust the test to match the current Dagster definitions.
+
+## Core OOF Training (Troubleshooting Notes)
+
+These notes exist to help agents/operators quickly unblock the L0→L1 pipeline by generating core out-of-fold (OOF) quantile predictions in DuckDB.
+
+### What “Core OOF” means here
+
+- **Target table:** `training.oof_core_zl_1d` (DuckDB)
+- **Expected columns:** `as_of_date`, `horizon_steps`, `p10`, `p50`, `p90`, `model_version`, `run_id`, `trained_at`
+- **Source features:** `training.core_matrix_full_1d`
+- **Target columns (current DB reality):** `target_ret_5d`, `target_ret_21d`, `target_ret_63d`, `target_ret_126d`
+
+### Run core OOF (standalone, recommended for iteration)
+
+- Script: `scripts/train_core_oof.py`
+- Example (single horizon): `python3 scripts/train_core_oof.py --horizons 5 --presets medium_quality --time-limit 3600 --num-bag-folds 8 --num-stack-levels 0`
+- Example (tiny smoke run): `python3 scripts/train_core_oof.py --horizons 126 --time-limit 120 --num-bag-folds 2 --num-stack-levels 0 --max-rows 300`
+
+### Common issues and fixes
+
+- **Ray/GCS failures on macOS:** core script defaults to disabling Ray (sets `AUTOGLUON_DISABLE_RAY=1`). If you see Ray-related errors, ensure your run environment isn’t overriding this.
+- **Quantile crossing (p10 > p50 or p50 > p90):** can happen with independent quantile models. The core script now enforces monotonic quantiles per row before insert. If legacy rows already exist, fix in-place with:
+  - `python3 scripts/enforce_monotonic_quantiles.py --horizons 5 21 63 126`
+- **MAPE for returns:** raw MAPE can explode when actual returns are near 0. Prefer MAE + quantile coverage diagnostics for early sanity checks.
+
+### Validate after training
+
+- Validator: `scripts/validate_core_oof.py`
+- Run: `python3 scripts/validate_core_oof.py`
+- Checks: row counts + date coverage, null counts, quantile ordering violations, recent model metadata, MAE/MAPE (with epsilon), empirical P10/P90 coverage.
 
 ## Workspace Hygiene (Generated Artifacts)
 
-- DuckDB database: `data/zinc_fusion_v15.db` is generated at runtime; treat it as a build artifact unless the user explicitly wants it versioned.
-- Dagster home directories (example: `.tmp_dagster_home_*`) are local runtime artifacts and should not be relied on as committed configuration.
-- Notebook outputs, model artifacts, and MLflow runs may create directories like `models/`, `mlruns/`, and `data/parquet/` (as described in `README.md`); create and track them only when the user explicitly wants them checked in.
+- DuckDB database: `data/fusion.db` is generated at runtime; treat it as a build artifact unless the user explicitly wants it versioned.
+- Runtime artifacts under `.tmp/` are local and should not be relied on as committed configuration.
+- Notebook outputs and model artifacts may create directories like `models/` and `data/parquet/` (as described in `README.md`); create and track them only when the user explicitly wants them checked in.
 
 ## Planning & Execution Rules
 
 ### Verify before building
 Before implementing, confirm:
-- What assets/jobs exist in `src/quickstart_etl/definitions.py`
 - What tables exist in DuckDB (query the file in `data/`)
-- What CI expects (`.github/workflows/`)
 
 ### Plan template (preferred)
 - **Phase 0: Validate current state** (schemas, table existence, tests/CI)
