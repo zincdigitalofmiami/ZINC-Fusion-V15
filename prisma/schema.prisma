@@ -1,0 +1,417 @@
+// ZINC-FUSION-V15 Prisma Schema
+// Status: Production Schema - Unified Tables (Option A)
+// Database: Prisma Postgres (Vercel-hosted)
+//
+// NON-NEGOTIABLES:
+// - One database of record
+// - Explicit segmentation by role and bucket
+// - No parallel truths
+// - Append-only forecast history
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("POSTGRES_URL")
+}
+
+// =============================================================================
+// RAW LAYER (Immutable, append-only)
+// =============================================================================
+
+model RawMarketFutures {
+  id        Int      @id @default(autoincrement())
+  symbol    String
+  asOfDate  DateTime @map("as_of_date")
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Int?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate])
+  @@index([symbol])
+  @@index([asOfDate])
+  @@map("raw_market_futures")
+}
+
+model RawFredObservations {
+  id        Int      @id @default(autoincrement())
+  seriesId  String   @map("series_id")
+  asOfDate  DateTime @map("as_of_date")
+  value     Float?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([seriesId, asOfDate])
+  @@index([seriesId])
+  @@index([asOfDate])
+  @@map("raw_fred_observations")
+}
+
+model RawFxSpot {
+  id        Int      @id @default(autoincrement())
+  pair      String   // e.g., "EURUSD", "BRLUSD"
+  asOfDate  DateTime @map("as_of_date")
+  rate      Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([pair, asOfDate])
+  @@index([pair])
+  @@index([asOfDate])
+  @@map("raw_fx_spot")
+}
+
+model RawWeatherObservations {
+  id          Int      @id @default(autoincrement())
+  stationId   String   @map("station_id")
+  asOfDate    DateTime @map("as_of_date")
+  tempMax     Float?   @map("temp_max")
+  tempMin     Float?   @map("temp_min")
+  precip      Float?
+  humidity    Float?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([stationId, asOfDate])
+  @@index([stationId])
+  @@index([asOfDate])
+  @@map("raw_weather_observations")
+}
+
+model RawEpaRinPrices {
+  id        Int      @id @default(autoincrement())
+  rinType   String   @map("rin_type") // D4, D6, etc.
+  asOfDate  DateTime @map("as_of_date")
+  price     Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([rinType, asOfDate])
+  @@index([rinType])
+  @@index([asOfDate])
+  @@map("raw_epa_rin_prices")
+}
+
+model RawCftcCot {
+  id                Int      @id @default(autoincrement())
+  contractCode      String   @map("contract_code")
+  asOfDate          DateTime @map("as_of_date")
+  commercialLong    Int?     @map("commercial_long")
+  commercialShort   Int?     @map("commercial_short")
+  nonCommercialLong Int?     @map("non_commercial_long")
+  nonCommercialShort Int?    @map("non_commercial_short")
+  openInterest      Int?     @map("open_interest")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([contractCode, asOfDate])
+  @@index([contractCode])
+  @@index([asOfDate])
+  @@map("raw_cftc_cot")
+}
+
+// =============================================================================
+// TRAINING LAYER (Unified with bucket column)
+// =============================================================================
+
+// Canonical CV splits - single source of truth for all training
+model CvFolds {
+  id       Int      @id @default(autoincrement())
+  asOfDate DateTime @map("as_of_date")
+  horizon  Int      // 5, 21, 63, 126
+  foldId   Int      @map("fold_id")
+  isTrain  Boolean  @map("is_train")
+  isVal    Boolean  @map("is_val")
+
+  @@unique([asOfDate, horizon, foldId])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("cv_folds")
+}
+
+// Unified specialist features - one table, bucket column
+model SpecialistFeatures {
+  id       Int      @id @default(autoincrement())
+  bucket   String   // crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes
+  asOfDate DateTime @map("as_of_date")
+  features Json     // Flexible feature storage per bucket
+
+  @@unique([bucket, asOfDate])
+  @@index([bucket])
+  @@index([asOfDate])
+  @@map("specialist_features")
+}
+
+// Core feature matrix (price history + small macro pack only)
+model CoreFeatures {
+  id       Int      @id @default(autoincrement())
+  asOfDate DateTime @map("as_of_date")
+  features Json     // Limited to: price history, VIX, DXY, 10Y, front-month ZL trend/vol
+
+  @@unique([asOfDate])
+  @@index([asOfDate])
+  @@map("core_features")
+}
+
+// Unified OOF predictions - core and all specialists in one table
+model OofPredictions {
+  id           Int      @id @default(autoincrement())
+  source       String   // 'core' or bucket name (crush, china, etc.)
+  asOfDate     DateTime @map("as_of_date")
+  horizon      Int      // 5, 21, 63, 126
+  foldId       Int      @map("fold_id")
+  p10          Float
+  p50          Float
+  p90          Float
+  modelVersion String   @map("model_version")
+  trainedAt    DateTime @map("trained_at")
+
+  @@unique([source, asOfDate, horizon, foldId])
+  @@index([source])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("oof_predictions")
+}
+
+// LASSO coefficients for interpretability
+model LassoCoefficients {
+  id           Int      @id @default(autoincrement())
+  bucket       String
+  horizon      Int
+  featureName  String   @map("feature_name")
+  coefficient  Float
+  isActive     Boolean  @map("is_active") // coefficient != 0
+  modelVersion String   @map("model_version")
+  trainedAt    DateTime @map("trained_at")
+
+  @@unique([bucket, horizon, featureName, modelVersion])
+  @@index([bucket])
+  @@index([horizon])
+  @@index([isActive])
+  @@map("lasso_coefficients")
+}
+
+// Meta ensemble - blends OOF predictions only (never raw features)
+model MetaEnsemble {
+  id            Int      @id @default(autoincrement())
+  asOfDate      DateTime @map("as_of_date")
+  horizon       Int
+  coreWeight    Float    @map("core_weight")
+  bucketWeights Json     @map("bucket_weights") // {crush: 0.15, china: 0.12, ...}
+  p10           Float
+  p50           Float
+  p90           Float
+  modelVersion  String   @map("model_version")
+  trainedAt     DateTime @map("trained_at")
+
+  @@unique([asOfDate, horizon])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("meta_ensemble")
+}
+
+// =============================================================================
+// FORECAST LAYER (Chart-Ready, Append-Only)
+// =============================================================================
+
+// Final quantile predictions - APPEND ONLY, never overwrite
+model ForecastQuantiles {
+  id         Int      @id @default(autoincrement())
+  symbol     String
+  asOfDate   DateTime @map("as_of_date")
+  horizon    Int
+  p10        Float
+  p50        Float
+  p90        Float
+  probUp     Float    @map("prob_up")
+  regime     String?  // bull, bear, sideways
+  confidence Float?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizon])
+  @@index([symbol])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("forecast_quantiles")
+}
+
+// Driver scores - bucket contributions to forecast
+model DriverScores {
+  id           Int      @id @default(autoincrement())
+  symbol       String
+  asOfDate     DateTime @map("as_of_date")
+  bucket       String
+  score        Float    // -1 to +1 normalized
+  contribution Float    // weight in final forecast
+  direction    String   // bullish, bearish, neutral
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, bucket])
+  @@index([symbol])
+  @@index([bucket])
+  @@index([asOfDate])
+  @@map("driver_scores")
+}
+
+// Chart overlays for visual annotations
+model ChartOverlays {
+  id          Int       @id @default(autoincrement())
+  symbol      String
+  overlayType String    @map("overlay_type") // regime_band, volatility_expansion, policy_stress, driver_spike, scenario_fork
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  label       String
+  color       String?
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([symbol])
+  @@index([overlayType])
+  @@index([startDate])
+  @@map("chart_overlays")
+}
+
+// Procurement actions - trading recommendations
+model ProcurementActions {
+  id         Int      @id @default(autoincrement())
+  symbol     String
+  asOfDate   DateTime @map("as_of_date")
+  action     String   // buy, sell, hold
+  confidence Float
+  rationale  String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate])
+  @@index([symbol])
+  @@index([asOfDate])
+  @@map("procurement_actions")
+}
+
+// Value timing windows for optimal entry points
+model ValueTimingWindows {
+  id                     Int      @id @default(autoincrement())
+  symbol                 String
+  asOfDate               DateTime @map("as_of_date")
+  horizonDays            Int      @map("horizon_days")
+  tailProximity          Float    @map("tail_proximity")
+  probabilityLift        Float    @map("probability_lift")
+  confidenceAdjustedLift Float    @map("confidence_adjusted_lift")
+  regimeDampening        Float?   @map("regime_dampening")
+  windowStartWeek        Int?     @map("window_start_week")
+  windowEndWeek          Int?     @map("window_end_week")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizonDays])
+  @@index([symbol])
+  @@index([horizonDays])
+  @@index([asOfDate])
+  @@map("value_timing_windows")
+}
+
+// Specialist drivers mapping
+model SpecialistDrivers {
+  id          Int     @id @default(autoincrement())
+  driverId    String  @unique @map("driver_id")
+  description String
+
+  @@map("specialist_drivers")
+}
+
+// Risk metrics from Monte Carlo
+model RiskMetrics {
+  id         Int      @id @default(autoincrement())
+  symbol     String
+  asOfDate   DateTime @map("as_of_date")
+  horizon    Int
+  var95      Float    @map("var_95")  // Value at Risk 95%
+  cvar95     Float    @map("cvar_95") // Conditional VaR 95%
+  var99      Float    @map("var_99")
+  cvar99     Float    @map("cvar_99")
+  skewness   Float?
+  kurtosis   Float?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizon])
+  @@index([symbol])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("risk_metrics")
+}
+
+// Monte Carlo simulation history
+model MonteCarloRuns {
+  id            Int      @id @default(autoincrement())
+  symbol        String
+  asOfDate      DateTime @map("as_of_date")
+  horizon       Int
+  numSims       Int      @map("num_sims")
+  percentiles   Json     // {p5: x, p10: x, p25: x, p50: x, p75: x, p90: x, p95: x}
+  correlations  Json?    // Shock correlations used
+  modelVersion  String   @map("model_version")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizon, modelVersion])
+  @@index([symbol])
+  @@index([horizon])
+  @@index([asOfDate])
+  @@map("monte_carlo_runs")
+}
+
+// =============================================================================
+// METADATA LAYER
+// =============================================================================
+
+// Model registry - tracks all trained models
+model ModelRegistry {
+  id           Int      @id @default(autoincrement())
+  modelId      String   @unique @map("model_id")
+  source       String   // core, specialist bucket name, meta
+  horizon      Int
+  version      String
+  trainedAt    DateTime @map("trained_at")
+  metrics      Json     // {mae: x, rmse: x, coverage_p10: x, coverage_p90: x, brier: x}
+  artifactPath String   @map("artifact_path")
+  foldId       Int?     @map("fold_id") // Which fold this was trained on
+  isActive     Boolean  @default(true) @map("is_active")
+
+  @@index([source])
+  @@index([horizon])
+  @@index([isActive])
+  @@map("model_registry")
+}
+
+// Data quality monitoring
+model DataQualityLog {
+  id          Int      @id @default(autoincrement())
+  tableName   String   @map("table_name")
+  checkDate   DateTime @map("check_date")
+  rowCount    Int      @map("row_count")
+  nullCount   Int      @map("null_count")
+  latestDate  DateTime @map("latest_date")
+  oldestDate  DateTime @map("oldest_date")
+  issues      Json?    // Any detected issues
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([tableName])
+  @@index([checkDate])
+  @@map("data_quality_log")
+}
+
+// Training run log - tracks pipeline executions
+model TrainingRunLog {
+  id           Int      @id @default(autoincrement())
+  runId        String   @unique @map("run_id")
+  horizon      Int
+  phase        String   // core, specialist, meta, monte_carlo
+  status       String   // started, completed, failed
+  startedAt    DateTime @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  errorMessage String?  @map("error_message")
+  metrics      Json?
+
+  @@index([horizon])
+  @@index([phase])
+  @@index([status])
+  @@map("training_run_log")
+}

@@ -9,12 +9,19 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-import duckdb
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from fusion.config import FUSION_DB_PATH
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
+from fusion.api.db import fetch_rows, get_backend, get_query_builder, DatabaseConnection
+
+# Import duckdb only for legacy endpoints that need direct access
+try:
+    import duckdb
+    HAS_DUCKDB = True
+except ImportError:
+    HAS_DUCKDB = False
 
 app = FastAPI(title="Fusion API", version="0.1.0")
 
@@ -44,19 +51,12 @@ def _serialize_value(value: Any) -> Any:
     return value
 
 
+# Use the unified database abstraction layer
 def _fetch_rows(query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
-    conn = duckdb.connect(FUSION_DB_PATH, read_only=True)
-    try:
-        cursor = conn.execute(query, params or [])
-        columns = [col[0] for col in cursor.description]
-        rows = cursor.fetchall()
-    finally:
-        conn.close()
-
-    return [
-        {columns[idx]: _serialize_value(value) for idx, value in enumerate(row)}
-        for row in rows
-    ]
+    """Fetch rows using the unified database abstraction layer."""
+    qb = get_query_builder()
+    translated_query = qb.query(query)
+    return fetch_rows(translated_query, params)
 
 
 def _require_db_token(x_api_token: Optional[str] = Header(default=None)) -> None:
@@ -137,27 +137,58 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
 
 
 def _table_exists(schema: str, table: str) -> bool:
-    rows = _fetch_rows(
-        """
-        SELECT 1
-        FROM information_schema.tables
-        WHERE table_schema = ? AND table_name = ?
-        LIMIT 1
-        """,
-        [schema, table],
-    )
+    """Check if a table exists. Works for both DuckDB and Postgres."""
+    backend = get_backend()
+    if backend == "postgres":
+        # For Postgres, we use flat table names - check if the translated table exists
+        qb = get_query_builder()
+        pg_table = qb.table(f"{schema}.{table}")
+        rows = _fetch_rows(
+            """
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_name = ?
+            LIMIT 1
+            """,
+            [pg_table],
+        )
+    else:
+        # DuckDB uses schema.table
+        rows = _fetch_rows(
+            """
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = ? AND table_name = ?
+            LIMIT 1
+            """,
+            [schema, table],
+        )
     return bool(rows)
 
 
 def _first_existing_column(schema: str, table: str, candidates: list[str]) -> str | None:
-    cols = _fetch_rows(
-        """
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = ? AND table_name = ?
-        """,
-        [schema, table],
-    )
+    """Find first existing column from candidates. Works for both DuckDB and Postgres."""
+    backend = get_backend()
+    if backend == "postgres":
+        qb = get_query_builder()
+        pg_table = qb.table(f"{schema}.{table}")
+        cols = _fetch_rows(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = ?
+            """,
+            [pg_table],
+        )
+    else:
+        cols = _fetch_rows(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = ? AND table_name = ?
+            """,
+            [schema, table],
+        )
     existing = {c["column_name"] for c in cols}
     for c in candidates:
         if c in existing:
@@ -207,6 +238,7 @@ def overview_models() -> Dict[str, Any]:
     This endpoint is intentionally limited to safe summary queries and does not expose
     arbitrary SQL execution.
     """
+    backend = get_backend()
     specialists = [
         "crush",
         "china",
@@ -220,9 +252,21 @@ def overview_models() -> Dict[str, Any]:
         "substitutes",
     ]
 
-    # Core OOF
+    # Core OOF - Postgres uses unified oof_predictions table
     core = {"exists": False, "by_horizon": []}
-    if _table_exists("training", "oof_core_zl_1d"):
+    if backend == "postgres":
+        core["exists"] = True
+        core["by_horizon"] = _fetch_rows(
+            """
+            SELECT horizon, COUNT(*)::bigint as rows,
+                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+            FROM oof_predictions
+            WHERE source = 'core'
+            GROUP BY horizon
+            ORDER BY horizon
+            """
+        )
+    elif _table_exists("training", "oof_core_zl_1d"):
         core["exists"] = True
         horizon_col = _first_existing_column(
             "training", "oof_core_zl_1d", ["horizon_steps", "horizon_days"]
@@ -246,24 +290,55 @@ def overview_models() -> Dict[str, Any]:
                 """
             )
 
-    # Specialist OOF evidence tables
+    # Specialist OOF evidence tables - Postgres uses unified oof_predictions with source column
     specialist_rows = []
-    for s in specialists:
-        table = f"oof_specialist_{s}_1d"
-        if _table_exists("training", table):
-            row = _fetch_rows(
-                f"""
-                SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.{table}
-                """
-            )[0]
-        else:
-            row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
-        specialist_rows.append(row)
+    if backend == "postgres":
+        # Query unified table for all specialists at once
+        specialist_data = _fetch_rows(
+            """
+            SELECT source as specialist, COUNT(*)::bigint as rows,
+                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+            FROM oof_predictions
+            WHERE source != 'core'
+            GROUP BY source
+            """
+        )
+        specialist_map = {r["specialist"]: r for r in specialist_data}
+        for s in specialists:
+            if s in specialist_map:
+                specialist_rows.append(specialist_map[s])
+            else:
+                specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
+    else:
+        for s in specialists:
+            table = f"oof_specialist_{s}_1d"
+            if _table_exists("training", table):
+                row = _fetch_rows(
+                    f"""
+                    SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
+                           MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+                    FROM training.{table}
+                    """
+                )[0]
+            else:
+                row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
+            specialist_rows.append(row)
 
     combined = {"exists": False, "rows": 0, "start_date": None, "end_date": None}
-    if _table_exists("training", "oof_specialist_combined_1d"):
+    if backend == "postgres":
+        # In Postgres, "combined" is just the total of all specialists in oof_predictions
+        combined_data = _fetch_rows(
+            """
+            SELECT COUNT(*)::bigint as rows,
+                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+            FROM oof_predictions
+            WHERE source != 'core'
+            """
+        )
+        if combined_data and combined_data[0]["rows"] > 0:
+            combined["exists"] = True
+            combined.update(combined_data[0])
+    elif _table_exists("training", "oof_specialist_combined_1d"):
         combined["exists"] = True
         combined.update(
             _fetch_rows(
@@ -275,8 +350,12 @@ def overview_models() -> Dict[str, Any]:
             )[0]
         )
 
+    # Raw data statistics - handle Postgres table structure
     market_1h = {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
-    if _table_exists("raw", "market_futures_1h"):
+    if backend == "postgres":
+        # Postgres doesn't have market_futures_1h separately - skip for now
+        pass
+    elif _table_exists("raw", "market_futures_1h"):
         market_1h_date_col = _first_existing_column("raw", "market_futures_1h", ["as_of_date", "ts_event", "timestamp"])
         if market_1h_date_col:
             market_1h = _fetch_rows(
@@ -297,63 +376,110 @@ def overview_models() -> Dict[str, Any]:
                 """
             )[0]
 
-    raw_data: dict[str, Any] = {
-        "fred": _fetch_rows(
-            """
-            SELECT COUNT(*)::BIGINT as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                   COUNT(DISTINCT series_id)::BIGINT as series
-            FROM raw.fred_observations_1d
-            """
-        )[0]
-        if _table_exists("raw", "fred_observations_1d")
-        else {"rows": 0, "start_date": None, "end_date": None, "series": 0},
-        "fx_spot": _fetch_rows(
-            """
-            SELECT COUNT(*)::BIGINT as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                   COUNT(DISTINCT symbol)::BIGINT as symbols
-            FROM raw.fx_spot_1d
-            """
-        )[0]
-        if _table_exists("raw", "fx_spot_1d")
-        else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
-        "market_futures_1d": _fetch_rows(
-            """
-            SELECT COUNT(*)::BIGINT as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                   COUNT(DISTINCT symbol)::BIGINT as symbols
-            FROM raw.market_futures_1d
-            """
-        )[0]
-        if _table_exists("raw", "market_futures_1d")
-        else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
-        "market_futures_1h": market_1h,
-        "epa_rin_prices_1d": _fetch_rows(
-            """
-            SELECT COUNT(*)::BIGINT as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                   COUNT(DISTINCT rin_type)::BIGINT as rin_types
-            FROM raw.epa_rin_prices_1d
-            """
-        )[0]
-        if _table_exists("raw", "epa_rin_prices_1d")
-        else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0},
-        "weather_observations_1d": _fetch_rows(
-            """
-            SELECT COUNT(*)::BIGINT as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                   COUNT(DISTINCT station_id)::BIGINT as stations,
-                   COUNT(DISTINCT variable_id)::BIGINT as variables
-            FROM raw.weather_observations_1d
-            """
-        )[0]
-        if _table_exists("raw", "weather_observations_1d")
-        else {"rows": 0, "start_date": None, "end_date": None, "stations": 0, "variables": 0},
-    }
+    if backend == "postgres":
+        # Postgres uses flat table names
+        raw_data: dict[str, Any] = {
+            "fred": _fetch_rows(
+                """
+                SELECT COUNT(*)::bigint as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT series_id)::bigint as series
+                FROM raw_fred_observations
+                """
+            )[0],
+            "fx_spot": _fetch_rows(
+                """
+                SELECT COUNT(*)::bigint as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT pair)::bigint as symbols
+                FROM raw_fx_spot
+                """
+            )[0],
+            "market_futures_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::bigint as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT symbol)::bigint as symbols
+                FROM raw_market_futures
+                """
+            )[0],
+            "market_futures_1h": market_1h,
+            "epa_rin_prices_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::bigint as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT rin_type)::bigint as rin_types
+                FROM raw_epa_rin_prices
+                """
+            )[0],
+            "weather_observations_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::bigint as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT station_id)::bigint as stations
+                FROM raw_weather_observations
+                """
+            )[0] if _table_exists("raw", "weather_observations_1d") else {"rows": 0, "start_date": None, "end_date": None, "stations": 0},
+        }
+    else:
+        raw_data = {
+            "fred": _fetch_rows(
+                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT series_id)::BIGINT as series
+                FROM raw.fred_observations_1d
+                """
+            )[0]
+            if _table_exists("raw", "fred_observations_1d")
+            else {"rows": 0, "start_date": None, "end_date": None, "series": 0},
+            "fx_spot": _fetch_rows(
+                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT symbol)::BIGINT as symbols
+                FROM raw.fx_spot_1d
+                """
+            )[0]
+            if _table_exists("raw", "fx_spot_1d")
+            else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
+            "market_futures_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT symbol)::BIGINT as symbols
+                FROM raw.market_futures_1d
+                """
+            )[0]
+            if _table_exists("raw", "market_futures_1d")
+            else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
+            "market_futures_1h": market_1h,
+            "epa_rin_prices_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
+                FROM raw.epa_rin_prices_1d
+                """
+            )[0]
+            if _table_exists("raw", "epa_rin_prices_1d")
+            else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0},
+            "weather_observations_1d": _fetch_rows(
+                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       COUNT(DISTINCT station_id)::BIGINT as stations,
+                       COUNT(DISTINCT variable_id)::BIGINT as variables
+                FROM raw.weather_observations_1d
+                """
+            )[0]
+            if _table_exists("raw", "weather_observations_1d")
+            else {"rows": 0, "start_date": None, "end_date": None, "stations": 0, "variables": 0},
+        }
 
     archive_snapshot: list[dict[str, Any]] = []
-    if _table_exists("archive", "fred_economic_1d"):
+    # Postgres doesn't have archive schema - skip for now
+    if backend != "postgres" and _table_exists("archive", "fred_economic_1d"):
         tables = _fetch_rows(
             """
             SELECT table_name
@@ -439,15 +565,28 @@ def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: Optional[List[int]] = Query(None),
 ) -> Dict[str, Any]:
-    rows = _fetch_rows(
-        """
-        SELECT as_of_date, horizon_days, p10, p50, p90
-        FROM forecasts.forecast_quantiles_1d
-        WHERE symbol = ?
-        ORDER BY as_of_date ASC
-        """,
-        [symbol],
-    )
+    backend = get_backend()
+    if backend == "postgres":
+        # Postgres uses 'horizon' column instead of 'horizon_days'
+        rows = _fetch_rows(
+            """
+            SELECT as_of_date, horizon as horizon_days, p10, p50, p90
+            FROM forecast_quantiles
+            WHERE symbol = ?
+            ORDER BY as_of_date ASC
+            """,
+            [symbol],
+        )
+    else:
+        rows = _fetch_rows(
+            """
+            SELECT as_of_date, horizon_days, p10, p50, p90
+            FROM forecasts.forecast_quantiles_1d
+            WHERE symbol = ?
+            ORDER BY as_of_date ASC
+            """,
+            [symbol],
+        )
 
     if horizon_days:
         rows = [row for row in rows if row["horizon_days"] in horizon_days]
@@ -460,15 +599,28 @@ def forecast_bands(
     symbol: str = "ZL",
     horizon_days: Optional[List[int]] = Query(None),
 ) -> Dict[str, Any]:
-    rows = _fetch_rows(
-        """
-        SELECT as_of_date, horizon_days, p10, p50, p90
-        FROM forecasts.probability_bands_1d
-        WHERE symbol = ?
-        ORDER BY as_of_date ASC
-        """,
-        [symbol],
-    )
+    backend = get_backend()
+    if backend == "postgres":
+        # Postgres uses same forecast_quantiles table for bands
+        rows = _fetch_rows(
+            """
+            SELECT as_of_date, horizon as horizon_days, p10, p50, p90
+            FROM forecast_quantiles
+            WHERE symbol = ?
+            ORDER BY as_of_date ASC
+            """,
+            [symbol],
+        )
+    else:
+        rows = _fetch_rows(
+            """
+            SELECT as_of_date, horizon_days, p10, p50, p90
+            FROM forecasts.probability_bands_1d
+            WHERE symbol = ?
+            ORDER BY as_of_date ASC
+            """,
+            [symbol],
+        )
 
     if horizon_days:
         rows = [row for row in rows if row["horizon_days"] in horizon_days]
@@ -596,14 +748,23 @@ def db_explorer() -> str:
 
 @app.get("/api/db/info")
 def db_info(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
-    return {
-        "db_path": FUSION_DB_PATH,
-        "duckdb_version": duckdb.__version__,
-    }
+    backend = get_backend()
+    info: Dict[str, Any] = {"backend": backend}
+    if backend == "duckdb" and HAS_DUCKDB:
+        info["db_path"] = FUSION_DB_PATH
+        info["duckdb_version"] = duckdb.__version__
+    elif backend == "postgres":
+        info["database"] = "Prisma Postgres"
+    return info
 
 
 @app.get("/api/db/schemas")
 def db_schemas(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
+    backend = get_backend()
+    if backend == "postgres":
+        # Postgres uses flat namespace - return virtual schema list
+        return {"schemas": ["raw", "training", "forecasts", "features", "specialist"]}
+
     rows = _fetch_rows(
         """
         SELECT schema_name
@@ -683,21 +844,38 @@ def db_query(
         raise HTTPException(status_code=400, detail="limit must be <= 5000")
 
     started = time.perf_counter()
-    conn = duckdb.connect(FUSION_DB_PATH, read_only=True)
-    try:
-        cursor = conn.execute(f"SELECT * FROM ({sql}) AS q LIMIT ?", [limit])
-        columns = [col[0] for col in cursor.description]
-        rows = cursor.fetchall()
-    finally:
-        conn.close()
+    backend = get_backend()
+
+    # Translate the query for the current backend
+    qb = get_query_builder()
+    translated_sql = qb.query(sql)
+
+    if backend == "postgres":
+        # Postgres uses %s placeholders and different LIMIT syntax
+        limited_sql = f"SELECT * FROM ({translated_sql}) AS q LIMIT %s"
+        rows = fetch_rows(limited_sql, [limit])
+        columns = list(rows[0].keys()) if rows else []
+    else:
+        # DuckDB path
+        if not HAS_DUCKDB:
+            raise HTTPException(status_code=500, detail="DuckDB not available")
+        conn = duckdb.connect(FUSION_DB_PATH, read_only=True)
+        try:
+            cursor = conn.execute(f"SELECT * FROM ({translated_sql}) AS q LIMIT ?", [limit])
+            columns = [col[0] for col in cursor.description]
+            raw_rows = cursor.fetchall()
+            rows = [
+                {columns[idx]: _serialize_value(value) for idx, value in enumerate(row)}
+                for row in raw_rows
+            ]
+        finally:
+            conn.close()
+
     elapsed_ms = int((time.perf_counter() - started) * 1000)
 
     return {
         "columns": columns,
-        "rows": [
-            {columns[idx]: _serialize_value(value) for idx, value in enumerate(row)}
-            for row in rows
-        ],
+        "rows": rows,
         "row_count": len(rows),
         "limit": limit,
         "elapsed_ms": elapsed_ms,
@@ -814,27 +992,51 @@ def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> Dict[str, Any]:
 
 @app.get("/api/drivers/latest")
 def drivers_latest(symbol: str = "ZL") -> Dict[str, Any]:
-    rows = _fetch_rows(
-        """
-        WITH latest AS (
-            SELECT MAX(as_of_date) AS as_of_date
-            FROM features.driver_scores_1d
-            WHERE symbol = ?
+    backend = get_backend()
+    if backend == "postgres":
+        # Postgres uses bucket column instead of driver_id
+        rows = _fetch_rows(
+            """
+            WITH latest AS (
+                SELECT MAX(as_of_date) AS as_of_date
+                FROM driver_scores
+                WHERE symbol = ?
+            )
+            SELECT
+                s.as_of_date,
+                s.symbol,
+                s.bucket as driver_id,
+                s.direction as description,
+                s.score
+            FROM driver_scores s
+            JOIN latest l ON s.as_of_date = l.as_of_date
+            WHERE s.symbol = ?
+            ORDER BY s.bucket
+            """,
+            [symbol, symbol],
         )
-        SELECT
-            s.as_of_date,
-            s.symbol,
-            s.driver_id,
-            d.description,
-            s.score
-        FROM features.driver_scores_1d s
-        JOIN latest l ON s.as_of_date = l.as_of_date
-        LEFT JOIN specialist.drivers d ON d.driver_id = s.driver_id
-        WHERE s.symbol = ?
-        ORDER BY s.driver_id
-        """,
-        [symbol, symbol],
-    )
+    else:
+        rows = _fetch_rows(
+            """
+            WITH latest AS (
+                SELECT MAX(as_of_date) AS as_of_date
+                FROM features.driver_scores_1d
+                WHERE symbol = ?
+            )
+            SELECT
+                s.as_of_date,
+                s.symbol,
+                s.driver_id,
+                d.description,
+                s.score
+            FROM features.driver_scores_1d s
+            JOIN latest l ON s.as_of_date = l.as_of_date
+            LEFT JOIN specialist.drivers d ON d.driver_id = s.driver_id
+            WHERE s.symbol = ?
+            ORDER BY s.driver_id
+            """,
+            [symbol, symbol],
+        )
     as_of_date = rows[0]["as_of_date"] if rows else None
     return {"symbol": symbol, "as_of_date": as_of_date, "drivers": rows}
 
@@ -845,20 +1047,38 @@ def drivers_series(
     driver_id: str = Query(..., min_length=1),
     limit: int = Query(2000, ge=1, le=10000),
 ) -> Dict[str, Any]:
-    rows = _fetch_rows(
-        """
-        SELECT as_of_date, score
-        FROM (
+    backend = get_backend()
+    if backend == "postgres":
+        # Postgres uses bucket column
+        rows = _fetch_rows(
+            """
             SELECT as_of_date, score
-            FROM features.driver_scores_1d
-            WHERE symbol = ? AND driver_id = ?
-            ORDER BY as_of_date DESC
-            LIMIT ?
-        ) t
-        ORDER BY as_of_date ASC
-        """,
-        [symbol, driver_id, limit],
-    )
+            FROM (
+                SELECT as_of_date, score
+                FROM driver_scores
+                WHERE symbol = ? AND bucket = ?
+                ORDER BY as_of_date DESC
+                LIMIT ?
+            ) t
+            ORDER BY as_of_date ASC
+            """,
+            [symbol, driver_id, limit],
+        )
+    else:
+        rows = _fetch_rows(
+            """
+            SELECT as_of_date, score
+            FROM (
+                SELECT as_of_date, score
+                FROM features.driver_scores_1d
+                WHERE symbol = ? AND driver_id = ?
+                ORDER BY as_of_date DESC
+                LIMIT ?
+            ) t
+            ORDER BY as_of_date ASC
+            """,
+            [symbol, driver_id, limit],
+        )
     series = [
         {"time": row["as_of_date"], "value": row["score"]}
         for row in rows
