@@ -184,10 +184,12 @@ This repo supports a split deployment:
 ### Backend (Docker Compose)
 
 - Start services: `docker compose up -d --build`
-- FastAPI base URL: `http://<host>:8000` (or `http://<host>:8080/api/...` if you use the Nginx proxy)
+- FastAPI base URL: `http://<host>:8000`
+- DuckDB explorer UI (read-only): `http://<host>:8000/db` (requires `FUSION_API_TOKEN`)
 
 Environment variables to set on the host:
-- `FUSION_DB_PATH` (default in containers: `/app/data/fusion.db`)
+- `FUSION_API_TOKEN` (required; clients send it as `X-API-Token`)
+- `FUSION_DB_PATH` (container default: `/app/data/fusion.db`)
 - `FUSION_CORS_ORIGINS` (comma-separated; include your Vercel domain, e.g. `https://<your-app>.vercel.app`)
 
 ### UI (Vercel)

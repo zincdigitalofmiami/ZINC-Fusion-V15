@@ -35,3 +35,21 @@ client/dist/
 
 # VS Code workspace settings (user-specific)
 .vscode/
+.vercel
+
+# Environment files with secrets
+.env.vercel
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# AutoGluon model artifacts (large, regenerated)
+AutogluonModels/
+
+# Logs (regenerated)
+logs/
+
+# Models directory (large artifacts)
+models/

@@ -1,0 +1,16 @@
+services:
+  fusion-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      FUSION_DB_PATH: /app/data/fusion.db
+      # Required for /db and /api/db/* endpoints (clients send X-API-Token)
+      FUSION_API_TOKEN: ${FUSION_API_TOKEN:?set FUSION_API_TOKEN}
+      # Optional, comma-separated origins (e.g. http://localhost:3000)
+      FUSION_CORS_ORIGINS: ${FUSION_CORS_ORIGINS:-}
+    volumes:
+      - ./data:/app/data:ro
+    ports:
+      - "8000:8000"
+

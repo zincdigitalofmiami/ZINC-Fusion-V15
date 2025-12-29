@@ -23,7 +23,6 @@ FUSION_DB_PATH = os.environ.get("FUSION_DB_PATH", "data/fusion.db")
 FUSION_MODEL_DIR = os.environ.get("FUSION_MODEL_DIR", "models")
 
 
-
 # =============================================================================
 # PATH HELPERS
 # =============================================================================
@@ -39,25 +38,23 @@ def get_model_dir() -> Path:
     return Path(FUSION_MODEL_DIR).resolve()
 
 
-
-
 # =============================================================================
 # SCHEMAS (Canonical - Medallion Architecture)
 # =============================================================================
 
 # Schema Architecture (Medallion)
 SCHEMAS = [
-    "raw",          # Bronze: Raw ingestion
-    "silver",       # Silver: Validated, cleansed
-    "gold",         # Gold: Business aggregates
-    "features",     # Feature engineering
-    "training",     # Model training (specialists, oof, meta)
-    "forecasts",    # Predictions
-    "monitoring",   # Performance tracking
-    "specialist",   # Specialist metadata
-    "weather",      # Weather data source
-    "metadata",     # System metadata
-    "archive"       # Legacy tables
+    "raw",  # Bronze: Raw ingestion
+    "silver",  # Silver: Validated, cleansed
+    "gold",  # Gold: Business aggregates
+    "features",  # Feature engineering
+    "training",  # Model training (specialists, oof, meta)
+    "forecasts",  # Predictions
+    "monitoring",  # Performance tracking
+    "specialist",  # Specialist metadata
+    "weather",  # Weather data source
+    "metadata",  # System metadata
+    "archive",  # Legacy tables
 ]
 
 
@@ -74,9 +71,9 @@ ECONOMIC_DRIVERS = [
     "fx",
     "fed",
     "tariff",
-    "energy",      # SEPARATE from biofuel
-    "biofuel",     # SEPARATE from energy
-    "palm",        # Normalized (not palm_oil)
+    "energy",  # SEPARATE from biofuel
+    "biofuel",  # SEPARATE from energy
+    "palm",  # Normalized (not palm_oil)
     "volatility",
     "substitutes",
 ]

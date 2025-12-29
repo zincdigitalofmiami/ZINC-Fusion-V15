@@ -1,0 +1,18 @@
+.git
+.venv
+__pycache__/
+.pytest_cache/
+.tmp/
+.DS_Store
+
+# Large local artifacts (do not bake into images)
+models/
+logs/
+data/
+
+# Client build artifacts
+client/node_modules/
+client/.next/
+client/out/
+client/dist/
+
