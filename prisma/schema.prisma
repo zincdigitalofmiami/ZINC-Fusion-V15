@@ -415,3 +415,97 @@ model TrainingRunLog {
   @@index([status])
   @@map("training_run_log")
 }
+
+// =============================================================================
+// OPTIONS LAYER (Greeks & Volatility Surface)
+// =============================================================================
+
+// Individual options contracts with Greeks
+model OptionsGreeks {
+  id               Int      @id @default(autoincrement())
+  ticker           String   // Option ticker (e.g., O:ZL250117C00045000)
+  underlying       String   // Underlying symbol (ZL, ZS, ZM, CL)
+  asOfDate         DateTime @map("as_of_date")
+  expirationDate   DateTime @map("expiration_date")
+  strikePrice      Float    @map("strike_price")
+  optionType       String   @map("option_type") // C or P
+  open             Float?
+  high             Float?
+  low              Float?
+  close            Float?
+  volume           BigInt?
+  openInterest     BigInt?  @map("open_interest")
+  impliedVol       Float?   @map("implied_volatility")
+  delta            Float?
+  gamma            Float?
+  theta            Float?
+  vega             Float?
+  daysToExpiry     Int      @map("days_to_expiry")
+  moneyness        String   // ITM, ATM, OTM
+  expiryBucket     String   @map("expiry_bucket") // 1M, 3M, 6M
+  underlyingPrice  Float?   @map("underlying_price")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@unique([ticker, asOfDate])
+  @@index([underlying])
+  @@index([asOfDate])
+  @@index([expiryBucket])
+  @@index([moneyness])
+  @@map("options_greeks")
+}
+
+// Aggregated options features by underlying/expiry (daily)
+model OptionsFeatures {
+  id                    Int      @id @default(autoincrement())
+  underlying            String
+  asOfDate              DateTime @map("as_of_date")
+  expiryBucket          String   @map("expiry_bucket") // 1M, 3M, 6M
+  // IV metrics
+  ivAtmCall             Float?   @map("iv_atm_call")
+  ivAtmPut              Float?   @map("iv_atm_put")
+  ivSkew                Float?   @map("iv_skew") // OTM put IV - OTM call IV
+  ivTermStructure       Float?   @map("iv_term_structure") // 3M IV / 1M IV
+  ivPercentile30d       Float?   @map("iv_percentile_30d")
+  ivRank                Float?   @map("iv_rank") // IV percentile vs 1y history
+  // Greek aggregates
+  deltaWeightedOiCall   Float?   @map("delta_weighted_oi_call")
+  deltaWeightedOiPut    Float?   @map("delta_weighted_oi_put")
+  gammaExposure         Float?   @map("gamma_exposure")
+  netGamma              Float?   @map("net_gamma")
+  vegaExposure          Float?   @map("vega_exposure")
+  thetaDecay            Float?   @map("theta_decay")
+  // Volume/OI metrics
+  putCallRatioVolume    Float?   @map("put_call_ratio_volume")
+  putCallRatioOi        Float?   @map("put_call_ratio_oi")
+  totalVolume           BigInt?  @map("total_volume")
+  totalOpenInterest     BigInt?  @map("total_open_interest")
+  // Derived signals
+  skewZscore            Float?   @map("skew_zscore")
+  gammaFlipLevel        Float?   @map("gamma_flip_level")
+  maxPainStrike         Float?   @map("max_pain_strike")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@unique([underlying, asOfDate, expiryBucket])
+  @@index([underlying])
+  @@index([asOfDate])
+  @@index([expiryBucket])
+  @@map("options_features")
+}
+
+// Volatility surface snapshots
+model VolatilitySurface {
+  id              Int      @id @default(autoincrement())
+  underlying      String
+  asOfDate        DateTime @map("as_of_date")
+  surfaceData     Json     @map("surface_data") // {moneyness: {expiry: iv}}
+  atmVol          Float    @map("atm_vol")
+  skew25d         Float?   @map("skew_25d") // 25 delta put - 25 delta call
+  butterfly25d    Float?   @map("butterfly_25d")
+  termSlope       Float?   @map("term_slope") // slope of ATM vol term structure
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([underlying, asOfDate])
+  @@index([underlying])
+  @@index([asOfDate])
+  @@map("volatility_surface")
+}
