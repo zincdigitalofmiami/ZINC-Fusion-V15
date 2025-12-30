@@ -35,7 +35,8 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 ### Key Features
 
 - **Big-10 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy+Biofuel, Palm Oil, Volatility
-- **DuckDB Storage**: Local SQL database for all data (raw, features, training, forecasts)
+- **Prisma Postgres**: Cloud-hosted authoritative database for all training and operations
+- **Databento Integration**: Real-time and historical market data from CME Globex
 
 ### Business Impact
 
@@ -100,11 +101,26 @@ python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000
 
 ### Database Setup
 
-The DuckDB database is automatically created at `data/fusion.db` when you first materialize assets.
+**Prisma Postgres** is the authoritative database. Connection via `DATABASE_URL` in `.env`.
+
+```bash
+# Pull current schema
+npx prisma db pull
+
+# Generate client
+npx prisma generate
+```
+
+Note: `data/fusion.db` (DuckDB) exists as a read-only archive for historical data extraction only.
 
 ## Data Pipeline
 
-Data lives in DuckDB at `data/fusion.db` and is accessed via the API.
+All data operations use Prisma Postgres. Key tables:
+- `raw_market_futures` - ZL, ZS, ZM, CL futures OHLCV
+- `raw_fred_observations` - Economic indicators
+- `raw_weather_observations` - Weather data from key growing regions
+- `driver_scores` - Normalized specialist driver scores
+- `oof_predictions` - Out-of-fold predictions for stacking
 
 ## Model Training
 
@@ -147,58 +163,51 @@ ZINC-Fusion-V15/
 ├── src/
 │   └── fusion/
 │       ├── api/                    # FastAPI service
+├── prisma/
+│   └── schema.prisma              # Prisma schema (authoritative)
+├── scripts/
+│   ├── train_*.py                 # Training scripts
+│   └── ingest_*.py                # Data ingestion scripts
 ├── data/
-│   ├── fusion.db                  # DuckDB database (auto-created)
-│   └── parquet/                   # Parquet cache (optional)
-├── QUANT_V15_Complete.ipynb       # Complete system specification
+│   └── fusion.db                  # DuckDB archive (read-only)
+├── models/                        # Trained model artifacts
 ├── pyproject.toml                 # Python dependencies
 └── README.md                      # This file
 ```
 
 ### Environment Variables
 
-API keys and credentials should be stored in environment variables:
+Required environment variables in `.env`:
 
 ```bash
-# Create .env file (not committed to Git)
-export FRED_API_KEY="your_fred_api_key"
-export EIA_API_KEY="your_eia_api_key"
-export EPA_API_KEY="your_epa_api_key"
-# ... other API keys
+# Database (REQUIRED)
+DATABASE_URL="postgres://..."      # Prisma Postgres connection
+
+# Market Data
+DATABENTO_API_KEY="db-..."         # Databento API key
+
+# Economic Data
+FRED_API_KEY="your_fred_api_key"   # FRED API key
 ```
 
-Load environment variables before running the API:
+Load environment variables before running:
 
 ```bash
 source .env
 python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000
 ```
 
-## Deployment (No MotherDuck)
+## Deployment
 
-This repo supports a split deployment:
-
-- **UI**: deploy `client/` to Vercel (repo root has `vercel.json` to build `client/`).
-- **Backend**: run FastAPI on a host with persistent storage (DuckDB is a local file).
-
-### Backend (Docker Compose)
-
-- Start services: `docker compose up -d --build`
-- FastAPI base URL: `http://<host>:8000`
-- DuckDB explorer UI (read-only): `http://<host>:8000/db` (requires `FUSION_API_TOKEN`)
-
-Environment variables to set on the host:
-- `FUSION_API_TOKEN` (required; clients send it as `X-API-Token`)
-- `FUSION_DB_PATH` (container default: `/app/data/fusion.db`)
-- `FUSION_CORS_ORIGINS` (comma-separated; include your Vercel domain, e.g. `https://<your-app>.vercel.app`)
-
-### UI (Vercel)
-
-Set `FUSION_API_BASE` in Vercel Environment Variables to your FastAPI base URL (e.g. `https://api.yourdomain.com`).
+- **Database**: Prisma Postgres (cloud-hosted, no local setup required)
+- **Backend**: FastAPI server connecting to Prisma
+- **UI**: Optional Vercel deployment
 
 ### Adding Dependencies
 
-Dependency management is repo-specific; see existing project config.
+```bash
+uv pip install -e ".[dev]"
+```
 
 ## Testing
 
@@ -210,8 +219,10 @@ pytest tests/ -v
 
 ## Documentation
 
-- **System Specification**: [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) - Complete DDL and implementation guide
-- **DuckDB Docs**: [https://duckdb.org](https://duckdb.org)
+- **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
+- **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants
+- **Prisma Docs**: [https://www.prisma.io/docs](https://www.prisma.io/docs)
+- **Databento Docs**: [https://databento.com/docs](https://databento.com/docs)
 
 ## License
 

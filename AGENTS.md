@@ -6,11 +6,35 @@ This file is the operational and architectural guide for any automated assistant
 
 You are an expert data/ML engineering assistant focused on:
 - Commodity procurement forecasting and decision support (soybean oil / ZL)
-- Dagster orchestration and asset design
-- DuckDB schema design and reproducible pipelines
 - Time-series feature engineering and forecast evaluation
+- Training L0 specialists and L1/L2 ensemble models
+- Prisma Postgres database operations
 
-**Scope boundary:** stay within the current repository’s documented stack and structure. If a requested change implies missing components (data sources, schemas, configs, credentials, or a frontend app), stop and ask for clarification instead of guessing.
+**Scope boundary:** stay within the current repository's documented stack and structure. If a requested change implies missing components (data sources, schemas, configs, credentials, or a frontend app), stop and ask for clarification instead of guessing.
+
+## Database Architecture (CRITICAL)
+
+### Prisma Postgres = Authoritative Database
+- **All training, inference, and operations use Prisma Postgres**
+- Connection: `DATABASE_URL` in `.env`
+- This is the production database for all ML pipelines
+
+### DuckDB = Archive Only
+- **DuckDB (`data/fusion.db`) is READ-ONLY archive**
+- Use ONLY for one-time historical data extraction
+- Do NOT train models against DuckDB
+- Do NOT write new data to DuckDB
+- Do NOT reference DuckDB in new training pipelines
+
+### Migration Status (Dec 2025)
+Data successfully migrated to Prisma:
+- `raw_weather_observations` (215K rows)
+- `raw_cftc_cot` (6K rows)
+- `driver_scores` (47K rows)
+- `raw_fred_observations` (386K rows)
+- `raw_fx_spot` (139K rows)
+- `raw_market_futures` (385K rows)
+- Plus: training tables, forecast tables, specialist tables
 
 ## Non‑Negotiables
 
@@ -18,62 +42,40 @@ You are an expert data/ML engineering assistant focused on:
 2. **No mock/synthetic data in pipeline work** unless the user explicitly requests synthetic fixtures for testing.
 3. **Prepare before changing anything:**
    - Read the relevant docs and code first.
-   - Verify what exists (schemas, assets, jobs, tests, CI).
+   - Verify what exists (schemas, tables, tests, CI).
    - Identify dependencies and validation steps before implementing.
 4. **Keep changes minimal and surgical:** do not refactor unrelated areas.
-5. **Always include a validation path:** describe how to verify outputs (Dagster definitions validation, DuckDB checks, pytest).
+5. **Always include a validation path:** describe how to verify outputs (Prisma queries, pytest).
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
-7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or “replace” files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
+7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or "replace" files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
+8. **Prisma-first:** All new training, queries, and data operations target Prisma Postgres, not DuckDB.
 
 ## Operating Principles (Agents)
 
-These are the “how we operate” rules for assistants/agents working in this repo.
+These are the "how we operate" rules for assistants/agents working in this repo.
 
-- **Verify-first, then assert:** no “Phase-0 ready” / “done” claims without checking the live repo + `data/fusion.db` state.
+- **Verify-first, then assert:** no "Phase-0 ready" / "done" claims without checking the live Prisma database state.
 - **No silent schema changes:** any new schema/table/column requires an explicit declaration and user approval.
-- **Fail loudly:** scripts should error on missing tables/columns; avoid implicit DDL creation during training unless it’s explicitly the contract.
-- **No decision semantics:** never encode “buy/sell/act now” logic; this remains an intelligence system, not execution.
+- **Fail loudly:** scripts should error on missing tables/columns; avoid implicit DDL creation during training unless it's explicitly the contract.
+- **No decision semantics:** never encode "buy/sell/act now" logic; this remains an intelligence system, not execution.
 - **Minimal diffs:** fix the root cause, avoid unrelated refactors, keep patches small and reversible.
-- **Always provide a validation path:** prefer targeted DuckDB checks and `pytest` in `.venv` (system Python may not match project deps).
----
+- **Always provide a validation path:** prefer targeted Prisma queries and `pytest` in `.venv` (system Python may not match project deps).
+- **DuckDB is archive:** Never write to or train against DuckDB. It exists only for historical data extraction.
 
-## DuckDB Remote Viewing (Read-only)
+## Local Development
 
-Goal: allow multiple machines to browse/query `data/fusion.db` over HTTP without sharing the DuckDB file.
+### API Server
 
-- **Server:** `src/fusion/api/server.py` exposes a token-protected, read-only DB explorer API (`/api/db/*`) plus a simple UI at `/db`.
-- **Auth:** set `FUSION_API_TOKEN` on the machine hosting the DB; clients must send it as `X-API-Token`.
+```bash
+.venv/bin/python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000
+```
 
-Run locally (recommended to use the project venv):
+### Environment Variables
 
-- `export FUSION_DB_PATH="data/fusion.db"`
-- `export FUSION_API_TOKEN="change-me"`
-- `.venv/bin/python -m uvicorn fusion.api.server:app --host 0.0.0.0 --port 8000`
-
-Then open:
-
-- `http://<host-ip>:8000/db`
-
-Notes:
-
-- The explorer only allows `SELECT`/`WITH` queries and enforces a row limit.
-- DuckDB is file-based; safe multi-machine **editing** requires a dedicated write service or a hosted solution (out of scope unless explicitly approved).
-
-## Local Dashboards (Docker)
-
-This repo includes a local Docker stack for consistent “one command” startup of dashboards.
-
-- Start: `docker compose up -d --build`
-- Stop: `docker compose down`
-- Landing page: `http://localhost:8080`
-  - Dagster: `http://localhost:3000`
-  - MLflow: `http://localhost:5050`
-  - API: `http://localhost:8000` (DuckDB explorer UI at `http://localhost:8080/db`)
-
-Defaults:
-
-- `FUSION_DB_PATH` inside containers: `/app/data/fusion.db` (mounted from `./data/fusion.db`)
-- `FUSION_API_TOKEN` default: `change-me` (override in your shell or `.env` used by Docker Compose)
+Required in `.env`:
+- `DATABASE_URL` - Prisma Postgres connection string
+- `DATABENTO_API_KEY` - For market data ingestion
+- `FRED_API_KEY` - For economic data
 
 ## Operational Contracts (Locked)
 
@@ -255,15 +257,24 @@ Before changing anything beyond internal code, the agent must:
 **Rule:** No declaration → no change.
 
 ---
-## Project Reality (What’s Actually Here)
+## Project Reality (What's Actually Here)
 
 ### Primary entry points
 - FastAPI server: `src/fusion/api/server.py`
-- Notebooks (spec / canonical DDL + training guidance):
-  - `QUANT_V15_Complete.ipynb`
-  - `CBI_V15_CANONICAL_Dagster_Pipeline.ipynb`
+- Prisma schema: `prisma/schema.prisma`
+- Training scripts: `scripts/train_*.py`
+- Ingestion scripts: `scripts/ingest_*.py`
 
-This repo does **not** currently contain full ingestion implementations for the 10+ APIs mentioned in the README; treat the notebooks as the specification.
+### Database Access
+```python
+# Prisma Postgres (AUTHORITATIVE - use for all operations)
+import psycopg2
+conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+
+# DuckDB (ARCHIVE ONLY - read-only historical extraction)
+import duckdb
+conn = duckdb.connect("data/fusion.db", read_only=True)
+```
 
 ## Business Context (Why This Exists)
 
@@ -275,15 +286,13 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 
 ## Technology Stack (Source of Truth)
 
-- **Orchestration:** Dagster
-- **Storage:** DuckDB (local file) at `data/fusion.db` (created on first materialization)
+- **Primary Database:** Prisma Postgres (cloud-hosted, authoritative)
+- **Archive Database:** DuckDB (local file at `data/fusion.db`, read-only historical)
 - **Python packaging:** `pyproject.toml` + `uv`
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
-- **ML tracking (spec-level):** MLflow is described in notebooks/README, but may not be wired into the Python assets yet.
-
-### Dagster Local
-This repository is operated using **Dagster local** by default. Do not introduce hosted deployment configuration unless the user explicitly requests it.
+- **ML tracking:** MLflow (optional, for experiment tracking)
+- **Market Data:** Databento API (GLBX.MDP3 dataset)
 
 ### Frontend / Vercel
 This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
