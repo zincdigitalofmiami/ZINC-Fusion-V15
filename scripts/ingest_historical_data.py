@@ -29,32 +29,37 @@ from dotenv import load_dotenv
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
-# Historical data paths
-HIST_DATA_PATH = Path("/Volumes/Satechi Hub/Historical Data")
+# Historical data paths - use env var, no hardcoded paths
+HIST_DATA_PATH = Path(os.getenv("HISTORICAL_DATA_PATH", ""))
+if not HIST_DATA_PATH or not HIST_DATA_PATH.exists():
+    logger.warning(
+        "HISTORICAL_DATA_PATH not set or doesn't exist. "
+        "Set HISTORICAL_DATA_PATH env var to run ingestion."
+    )
 
 # Data source mappings
 DATA_SOURCES = {
-    'usda_export_sales': {
-        'parquet': HIST_DATA_PATH / "All Other/raw/usda_export_sales.parquet",
-        'table': 'usda_export_sales',
+    "usda_export_sales": {
+        "parquet": HIST_DATA_PATH / "All Other/raw/usda_export_sales.parquet",
+        "table": "usda_export_sales",
     },
-    'cftc_cot': {
-        'parquet': HIST_DATA_PATH / "All Other/raw/cftc_cot.parquet",
-        'table': 'cftc_cot',
+    "cftc_cot": {
+        "parquet": HIST_DATA_PATH / "All Other/raw/cftc_cot.parquet",
+        "table": "cftc_cot",
     },
-    'databento_extended': {
-        'parquet': HIST_DATA_PATH / "Databricks Historical Databento/raw/databento_futures_ohlcv_1d_full_2010_plus.parquet",
-        'table': 'raw_market_futures',
-        'merge': True,  # Merge with existing data
+    "databento_extended": {
+        "parquet": HIST_DATA_PATH
+        / "Databricks Historical Databento/raw/databento_futures_ohlcv_1d_full_2010_plus.parquet",
+        "table": "raw_market_futures",
+        "merge": True,  # Merge with existing data
     },
 }
 
@@ -70,7 +75,8 @@ def get_postgres_connection():
 def create_usda_table(conn):
     """Create USDA export sales table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS usda_export_sales (
                 id SERIAL PRIMARY KEY,
                 report_date DATE NOT NULL,
@@ -83,9 +89,14 @@ def create_usda_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(report_date, commodity, destination_country)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_usda_date ON usda_export_sales(report_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_usda_commodity ON usda_export_sales(commodity)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_usda_date ON usda_export_sales(report_date)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_usda_commodity ON usda_export_sales(commodity)"
+        )
     conn.commit()
     logger.info("  Created usda_export_sales table")
 
@@ -93,7 +104,8 @@ def create_usda_table(conn):
 def create_cftc_table(conn):
     """Create CFTC COT table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS cftc_cot (
                 id SERIAL PRIMARY KEY,
                 report_date DATE NOT NULL,
@@ -120,7 +132,8 @@ def create_cftc_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(report_date, symbol)
             )
-        """)
+        """
+        )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_cftc_date ON cftc_cot(report_date)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_cftc_symbol ON cftc_cot(symbol)")
     conn.commit()
@@ -148,16 +161,22 @@ def load_usda_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['report_date'],
-            row['commodity'],
-            row.get('destination_country', 'Unknown'),
-            float(row['net_sales_mt']) if pd.notna(row['net_sales_mt']) else None,
-            float(row['exports_mt']) if pd.notna(row['exports_mt']) else None,
-            float(row['outstanding_sales_mt']) if pd.notna(row['outstanding_sales_mt']) else None,
-            row.get('source', 'usda'),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["report_date"],
+                row["commodity"],
+                row.get("destination_country", "Unknown"),
+                float(row["net_sales_mt"]) if pd.notna(row["net_sales_mt"]) else None,
+                float(row["exports_mt"]) if pd.notna(row["exports_mt"]) else None,
+                (
+                    float(row["outstanding_sales_mt"])
+                    if pd.notna(row["outstanding_sales_mt"])
+                    else None
+                ),
+                row.get("source", "usda"),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -200,30 +219,32 @@ def load_cftc_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['report_date'],
-            row['symbol'],
-            safe_int(row.get('open_interest')),
-            safe_int(row.get('prod_merc_long')),
-            safe_int(row.get('prod_merc_short')),
-            safe_int(row.get('swap_long')),
-            safe_int(row.get('swap_short')),
-            safe_int(row.get('managed_money_long')),
-            safe_int(row.get('managed_money_short')),
-            safe_int(row.get('other_rept_long')),
-            safe_int(row.get('other_rept_short')),
-            safe_int(row.get('nonrept_long')),
-            safe_int(row.get('nonrept_short')),
-            safe_int(row.get('prod_merc_net')),
-            safe_int(row.get('swap_net')),
-            safe_int(row.get('managed_money_net')),
-            safe_int(row.get('other_rept_net')),
-            safe_int(row.get('nonrept_net')),
-            safe_float(row.get('managed_money_net_pct_oi')),
-            safe_float(row.get('prod_merc_net_pct_oi')),
-            row.get('source', 'cftc'),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["report_date"],
+                row["symbol"],
+                safe_int(row.get("open_interest")),
+                safe_int(row.get("prod_merc_long")),
+                safe_int(row.get("prod_merc_short")),
+                safe_int(row.get("swap_long")),
+                safe_int(row.get("swap_short")),
+                safe_int(row.get("managed_money_long")),
+                safe_int(row.get("managed_money_short")),
+                safe_int(row.get("other_rept_long")),
+                safe_int(row.get("other_rept_short")),
+                safe_int(row.get("nonrept_long")),
+                safe_int(row.get("nonrept_short")),
+                safe_int(row.get("prod_merc_net")),
+                safe_int(row.get("swap_net")),
+                safe_int(row.get("managed_money_net")),
+                safe_int(row.get("other_rept_net")),
+                safe_int(row.get("nonrept_net")),
+                safe_float(row.get("managed_money_net_pct_oi")),
+                safe_float(row.get("prod_merc_net_pct_oi")),
+                row.get("source", "cftc"),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -247,16 +268,18 @@ def load_extended_futures(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['symbol'],
-            row['as_of_date'],
-            float(row['open']) if pd.notna(row['open']) else None,
-            float(row['high']) if pd.notna(row['high']) else None,
-            float(row['low']) if pd.notna(row['low']) else None,
-            float(row['close']) if pd.notna(row['close']) else None,
-            int(row['volume']) if pd.notna(row['volume']) else None,
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["symbol"],
+                row["as_of_date"],
+                float(row["open"]) if pd.notna(row["open"]) else None,
+                float(row["high"]) if pd.notna(row["high"]) else None,
+                float(row["low"]) if pd.notna(row["low"]) else None,
+                float(row["close"]) if pd.notna(row["close"]) else None,
+                int(row["volume"]) if pd.notna(row["volume"]) else None,
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -277,7 +300,7 @@ def ingest_all(dry_run: bool = False):
     try:
         # 1. USDA Export Sales
         logger.info("\n--- USDA Export Sales ---")
-        usda_path = DATA_SOURCES['usda_export_sales']['parquet']
+        usda_path = DATA_SOURCES["usda_export_sales"]["parquet"]
         if usda_path.exists():
             df = pd.read_parquet(usda_path)
             logger.info(f"  Loaded {len(df):,} rows from parquet")
@@ -292,7 +315,7 @@ def ingest_all(dry_run: bool = False):
 
         # 2. CFTC COT
         logger.info("\n--- CFTC COT Positioning ---")
-        cftc_path = DATA_SOURCES['cftc_cot']['parquet']
+        cftc_path = DATA_SOURCES["cftc_cot"]["parquet"]
         if cftc_path.exists():
             df = pd.read_parquet(cftc_path)
             logger.info(f"  Loaded {len(df):,} rows from parquet")
@@ -307,7 +330,7 @@ def ingest_all(dry_run: bool = False):
 
         # 3. Extended Futures (merge with existing)
         logger.info("\n--- Extended Futures Data ---")
-        futures_path = DATA_SOURCES['databento_extended']['parquet']
+        futures_path = DATA_SOURCES["databento_extended"]["parquet"]
         if futures_path.exists():
             df = pd.read_parquet(futures_path)
             logger.info(f"  Loaded {len(df):,} rows from parquet")
@@ -322,7 +345,7 @@ def ingest_all(dry_run: bool = False):
         if not dry_run:
             logger.info("\n--- Verification ---")
             with conn.cursor() as cur:
-                for table in ['usda_export_sales', 'cftc_cot', 'raw_market_futures']:
+                for table in ["usda_export_sales", "cftc_cot", "raw_market_futures"]:
                     try:
                         cur.execute(f"SELECT COUNT(*) FROM {table}")
                         count = cur.fetchone()[0]
@@ -341,7 +364,9 @@ def ingest_all(dry_run: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest historical data into Postgres")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without inserting")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
 
     args = parser.parse_args()
     ingest_all(dry_run=args.dry_run)

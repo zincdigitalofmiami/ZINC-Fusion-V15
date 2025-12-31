@@ -53,3 +53,4 @@ logs/
 
 # Models directory (large artifacts)
 models/
+.env

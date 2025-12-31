@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Meta-Ensemble Training Script (L1 Layer)
+ZINC-FUSION-V15: Meta-Ensemble Training Script (L4 Layer)
 
-Trains the L1 meta-ensemble that combines core + 10 specialist OOF predictions
-into final quantile forecasts.
+Trains the L4 meta-ensemble that combines core + 10 specialist OOF predictions
+into final quantile forecasts with dissent features for disagreement detection.
 
 NON-NEGOTIABLES:
 - Meta layer ONLY sees OOF predictions (no raw features)
@@ -11,6 +11,7 @@ NON-NEGOTIABLES:
 - Weights are learned via LASSO for interpretability
 - Core and specialists are equal voters
 - No data leakage: OOF predictions only
+- Dissent features capture specialist disagreement
 
 AUTOGLUON GOVERNANCE (from doctrine):
 - high_quality preset (stability > marginal accuracy)
@@ -20,11 +21,13 @@ AUTOGLUON GOVERNANCE (from doctrine):
 - time_limit bounded
 - LASSO + LightGBM (linear + tree for robustness)
 
-Architecture:
-- L1 Meta-Ensemble: LASSO + LightGBM
-- Inputs: core_p50 + 10 specialist_p50 values (11 inputs)
+Architecture (L4):
+- L4 Meta-Ensemble: LASSO + LightGBM
+- Base Inputs (11): core_p50 + 10 specialist_p50 values
+- Dissent Features (3): specialist_std, specialist_range, core_vs_mean
+- Total Inputs: 14 features
 - Outputs: calibrated P10, P50, P90 quantiles
-- Optional: tiny stability pack (≤5 covariates like VIX, regime flag)
+- Saves: dissent_index to analytics for downstream L5 consumption
 
 Usage:
     python scripts/train_meta_ensemble.py --horizon 63 --dry-run
@@ -96,6 +99,83 @@ class MetaEnsembleResult:
     trained_at: datetime
 
 
+def add_dissent_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add dissent features to the meta-ensemble input DataFrame.
+
+    Dissent Features (from L4 Architecture spec):
+    - specialist_std: Standard deviation across specialists (agreement measure)
+    - specialist_range: Max - Min of specialist predictions (spread of views)
+    - core_vs_mean: Core divergence from specialist consensus
+
+    Args:
+        df: DataFrame with columns like core_p50, crush_p50, china_p50, etc.
+
+    Returns:
+        DataFrame with added dissent feature columns
+    """
+    # Identify specialist columns (exclude core)
+    specialist_cols = [col for col in df.columns
+                       if col.endswith('_p50') and not col.startswith('core')]
+
+    if not specialist_cols:
+        logger.warning("  No specialist columns found for dissent features")
+        return df
+
+    # Extract specialist predictions as a matrix
+    specialist_matrix = df[specialist_cols].values
+
+    # 1. Specialist standard deviation (agreement measure)
+    # Lower = more consensus, Higher = more disagreement
+    df['specialist_std'] = np.std(specialist_matrix, axis=1)
+
+    # 2. Specialist range (max - min)
+    # Captures the full spread of views
+    df['specialist_range'] = np.max(specialist_matrix, axis=1) - np.min(specialist_matrix, axis=1)
+
+    # 3. Core vs specialist mean
+    # Positive = core more bullish than consensus
+    # Negative = core more bearish than consensus
+    specialist_mean = np.mean(specialist_matrix, axis=1)
+    if 'core_p50' in df.columns:
+        df['core_vs_mean'] = df['core_p50'].values - specialist_mean
+    else:
+        df['core_vs_mean'] = 0.0
+
+    logger.info(f"  Added dissent features: specialist_std, specialist_range, core_vs_mean")
+    logger.info(f"    specialist_std range: [{df['specialist_std'].min():.4f}, {df['specialist_std'].max():.4f}]")
+    logger.info(f"    specialist_range: [{df['specialist_range'].min():.4f}, {df['specialist_range'].max():.4f}]")
+
+    return df
+
+
+def calculate_dissent_index(df: pd.DataFrame) -> pd.Series:
+    """Calculate dissent index for each observation.
+
+    Dissent index = specialist_std / (abs(core_p50) + epsilon)
+
+    Interpretation:
+    - 0: Perfect consensus
+    - 0.1-0.3: Low disagreement
+    - 0.3-0.5: Moderate disagreement
+    - >0.5: High disagreement
+
+    Returns:
+        Series of dissent index values
+    """
+    epsilon = 1e-6
+
+    if 'specialist_std' not in df.columns:
+        return pd.Series(0.0, index=df.index)
+
+    if 'core_p50' in df.columns:
+        dissent = df['specialist_std'] / (df['core_p50'].abs() + epsilon)
+    else:
+        dissent = df['specialist_std'] / (df['specialist_std'].mean() + epsilon)
+
+    # Cap at 1.0 for interpretability
+    return dissent.clip(upper=1.0)
+
+
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
     database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
@@ -117,10 +197,10 @@ def load_oof_predictions(conn, horizon: int) -> pd.DataFrame:
     with conn.cursor() as cur:
         # Get all OOF predictions
         cur.execute("""
-            SELECT source, as_of_date, p10, p50, p90
-            FROM oof_predictions
+            SELECT specialist, as_of_date, pred_p10, pred_p50, pred_p90
+            FROM "model"."oof_predictions"
             WHERE horizon = %s
-            ORDER BY source, as_of_date
+            ORDER BY specialist, as_of_date
         """, (horizon,))
 
         rows = cur.fetchall()
@@ -130,7 +210,7 @@ def load_oof_predictions(conn, horizon: int) -> pd.DataFrame:
 
     # Create DataFrame
     df = pd.DataFrame(rows, columns=['source', 'as_of_date', 'p10', 'p50', 'p90'])
-    logger.info(f"  Loaded {len(df):,} OOF predictions from {df['source'].nunique()} sources")
+    logger.info(f"  Loaded {len(df):,} OOF predictions from {df['source'].nunique()} specialists")
 
     # Pivot to wide format
     pivot_df = df.pivot(index='as_of_date', columns='source', values='p50')
@@ -149,7 +229,7 @@ def load_actual_returns(conn, horizon: int) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, close
-            FROM raw_market_futures
+            FROM "raw"."market_futures_1d"
             WHERE symbol = 'ZL'
             ORDER BY as_of_date
         """)
@@ -171,7 +251,7 @@ def load_cv_folds(conn, horizon: int) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, fold_id, is_train, is_val
-            FROM cv_folds
+            FROM "model"."cv_folds"
             WHERE horizon = %s
             ORDER BY fold_id, as_of_date
         """, (horizon,))
@@ -194,8 +274,13 @@ def prepare_meta_data(
 ) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.Series]:
     """Prepare train/val splits for meta-ensemble training.
 
+    Adds dissent features to capture specialist disagreement:
+    - specialist_std: Agreement measure
+    - specialist_range: Spread of views
+    - core_vs_mean: Core divergence from consensus
+
     Returns:
-    - X_train: Features for training
+    - X_train: Features for training (14 total: 11 base + 3 dissent)
     - y_train: Target for training
     - X_val: Features for validation
     - y_val: Target for validation
@@ -209,8 +294,15 @@ def prepare_meta_data(
     # Merge OOF predictions with actual returns
     merged = oof_df.merge(returns_df, on='as_of_date', how='inner')
 
-    # Feature columns (all *_p50 columns)
-    feature_cols = [col for col in merged.columns if col.endswith('_p50')]
+    # Add dissent features BEFORE splitting
+    merged = add_dissent_features(merged)
+
+    # Feature columns: all *_p50 columns + dissent features
+    base_cols = [col for col in merged.columns if col.endswith('_p50')]
+    dissent_cols = ['specialist_std', 'specialist_range', 'core_vs_mean']
+    feature_cols = base_cols + [c for c in dissent_cols if c in merged.columns]
+
+    logger.info(f"  Total features: {len(feature_cols)} (base: {len(base_cols)}, dissent: {len(feature_cols) - len(base_cols)})")
 
     # Split by fold
     train_mask = merged['as_of_date'].isin(train_dates)
@@ -377,7 +469,7 @@ def save_meta_predictions(
     trained_at = datetime.now()
 
     insert_query = """
-        INSERT INTO meta_ensemble (as_of_date, horizon, p10, p50, p90, model_version, trained_at)
+        INSERT INTO "model"."meta_ensemble" (as_of_date, horizon, p10, p50, p90, model_version, trained_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (as_of_date, horizon)
         DO UPDATE SET p10 = EXCLUDED.p10, p50 = EXCLUDED.p50, p90 = EXCLUDED.p90,
@@ -411,15 +503,15 @@ def save_meta_weights(
     trained_at = datetime.now()
 
     insert_query = """
-        INSERT INTO meta_weights (source, horizon, weight, model_version, trained_at)
-        VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (source, horizon, model_version)
+        INSERT INTO "model"."meta_weights" (specialist, horizon, weight, trained_at)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (specialist, horizon)
         DO UPDATE SET weight = EXCLUDED.weight, trained_at = EXCLUDED.trained_at
     """
 
     batch = [
-        (source, horizon, float(weight), model_version, trained_at)
-        for source, weight in weights.items()
+        (specialist, horizon, float(weight), trained_at)
+        for specialist, weight in weights.items()
     ]
 
     with conn.cursor() as cur:
@@ -429,17 +521,123 @@ def save_meta_weights(
     logger.info(f"  Saved {len(batch)} meta weights")
 
 
+def save_dissent_metrics(
+    conn,
+    oof_df: pd.DataFrame,
+    horizon: int,
+    model_version: str
+):
+    """Save dissent metrics to analytics schema for L5 consumption.
+
+    Creates analytics.dissent_metrics table with:
+    - as_of_date
+    - horizon
+    - dissent_index (normalized 0-1)
+    - specialist_std
+    - specialist_range
+    - core_vs_mean
+    - most_bullish (specialist name)
+    - most_bearish (specialist name)
+    """
+    logger.info("  Saving dissent metrics to analytics.dissent_metrics")
+
+    # Ensure table exists
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS "analytics"."dissent_metrics" (
+                id SERIAL PRIMARY KEY,
+                as_of_date DATE NOT NULL,
+                horizon INTEGER NOT NULL,
+                dissent_index DOUBLE PRECISION NOT NULL,
+                specialist_std DOUBLE PRECISION,
+                specialist_range DOUBLE PRECISION,
+                core_vs_mean DOUBLE PRECISION,
+                most_bullish VARCHAR(50),
+                most_bearish VARCHAR(50),
+                model_version VARCHAR(100),
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(as_of_date, horizon)
+            )
+        """)
+        conn.commit()
+
+    # Get specialist columns for bullish/bearish detection
+    specialist_cols = [col for col in oof_df.columns
+                       if col.endswith('_p50') and not col.startswith('core')]
+
+    batch = []
+    for _, row in oof_df.iterrows():
+        as_of_date = row['as_of_date']
+
+        # Get dissent values
+        specialist_std = float(row.get('specialist_std', 0))
+        specialist_range = float(row.get('specialist_range', 0))
+        core_vs_mean = float(row.get('core_vs_mean', 0))
+
+        # Calculate dissent index
+        core_p50 = float(row.get('core_p50', 0))
+        dissent_index = specialist_std / (abs(core_p50) + 1e-6)
+        dissent_index = min(dissent_index, 1.0)
+
+        # Find most bullish/bearish specialists
+        specialist_preds = {col.replace('_p50', ''): float(row[col])
+                          for col in specialist_cols if col in row}
+
+        if specialist_preds:
+            most_bullish = max(specialist_preds, key=specialist_preds.get)
+            most_bearish = min(specialist_preds, key=specialist_preds.get)
+        else:
+            most_bullish = None
+            most_bearish = None
+
+        batch.append((
+            as_of_date,
+            horizon,
+            dissent_index,
+            specialist_std,
+            specialist_range,
+            core_vs_mean,
+            most_bullish,
+            most_bearish,
+            model_version,
+            datetime.now(),
+        ))
+
+    insert_query = """
+        INSERT INTO "analytics"."dissent_metrics"
+        (as_of_date, horizon, dissent_index, specialist_std, specialist_range,
+         core_vs_mean, most_bullish, most_bearish, model_version, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (as_of_date, horizon)
+        DO UPDATE SET
+            dissent_index = EXCLUDED.dissent_index,
+            specialist_std = EXCLUDED.specialist_std,
+            specialist_range = EXCLUDED.specialist_range,
+            core_vs_mean = EXCLUDED.core_vs_mean,
+            most_bullish = EXCLUDED.most_bullish,
+            most_bearish = EXCLUDED.most_bearish,
+            model_version = EXCLUDED.model_version,
+            created_at = EXCLUDED.created_at
+    """
+
+    with conn.cursor() as cur:
+        execute_batch(cur, insert_query, batch, page_size=1000)
+    conn.commit()
+
+    logger.info(f"  Saved {len(batch)} dissent metrics")
+
+
 def validate_source_coverage(conn, horizon: int) -> bool:
     """Validate that all required sources have OOF predictions."""
     logger.info("Validating source coverage...")
 
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT source, COUNT(*)
-            FROM oof_predictions
+            SELECT specialist, COUNT(*)
+            FROM "model"."oof_predictions"
             WHERE horizon = %s
-            GROUP BY source
-            ORDER BY source
+            GROUP BY specialist
+            ORDER BY specialist
         """, (horizon,))
 
         rows = cur.fetchall()
@@ -474,6 +672,16 @@ def train_meta_ensemble(
     try:
         # Validate all sources are present
         if not validate_source_coverage(conn, horizon):
+            if dry_run:
+                logger.info("[DRY RUN] Upstream OOF predictions not available yet")
+                logger.info("[DRY RUN] Would train meta-ensemble once L2/L3 are trained")
+                return MetaEnsembleResult(
+                    horizon=horizon,
+                    model_version="dry_run",
+                    weights={},
+                    metrics={},
+                    trained_at=datetime.now()
+                )
             raise ValueError("Source validation failed")
 
         # Load data
@@ -560,6 +768,11 @@ def train_meta_ensemble(
             for source, weight in sorted_weights:
                 logger.info(f"  {source:15} : {weight:+.4f}")
 
+        # Save dissent metrics to analytics for L5 consumption
+        # Need to recompute with dissent features on the full OOF dataset
+        oof_with_dissent = add_dissent_features(oof_df.copy())
+        save_dissent_metrics(conn, oof_with_dissent, horizon, model_version)
+
         # Average metrics
         avg_metrics = {}
         if all_metrics:
@@ -567,7 +780,7 @@ def train_meta_ensemble(
                 avg_metrics[key] = np.mean([m[key] for m in all_metrics])
             logger.info(f"\nAverage metrics: MAE={avg_metrics['MAE']:.6f}, RMSE={avg_metrics['RMSE']:.6f}")
 
-        logger.info(f"\n✅ Completed meta-ensemble training @ {horizon}d")
+        logger.info(f"\n✅ Completed L4 meta-ensemble training @ {horizon}d")
 
         return MetaEnsembleResult(
             horizon=horizon,
@@ -615,7 +828,11 @@ def main():
     logger.info("META-ENSEMBLE TRAINING SUMMARY")
     logger.info("=" * 60)
     for result in results:
-        logger.info(f"  {result.horizon}d: MAE={result.metrics.get('MAE', 'N/A'):.6f}")
+        mae = result.metrics.get('MAE')
+        if mae is not None:
+            logger.info(f"  {result.horizon}d: MAE={mae:.6f}")
+        else:
+            logger.info(f"  {result.horizon}d: (dry run - no metrics)")
     logger.info("=" * 60)
 
 

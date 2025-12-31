@@ -1,5 +1,0 @@
-# Utility Functions
-# - formatters.ts (numbers, dates, percentages)
-# - colors.ts (signal color mapping)
-# - calculations.ts (client-side computations)
-# - types.ts (TypeScript interfaces)

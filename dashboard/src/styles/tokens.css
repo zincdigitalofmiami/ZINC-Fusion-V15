@@ -1,0 +1,100 @@
+/**
+ * ZINC-FUSION Design Tokens
+ * Institutional / Cinematic / High-Definition Market Intelligence
+ * 
+ * These are global and immutable.
+ * No additional colors allowed without approval.
+ */
+
+:root {
+  /* ═══════════════════════════════════════════════════════════════
+     BACKGROUNDS
+     Deep charcoal / near-black foundation
+     ═══════════════════════════════════════════════════════════════ */
+  --bg-main: #0B0F14;
+  --bg-panel: #111827;
+  --bg-card: #0F172A;
+  --bg-elevated: #1E293B;
+
+  /* ═══════════════════════════════════════════════════════════════
+     TEXT
+     High legibility, institutional hierarchy
+     ═══════════════════════════════════════════════════════════════ */
+  --text-primary: #E5E7EB;
+  --text-secondary: #AEB6C1;
+  --text-muted: #6B7280;
+  --text-faint: #4B5563;
+
+  /* ═══════════════════════════════════════════════════════════════
+     SEMANTIC SIGNALS
+     Muted, low saturation — never pure RGB, never bright
+     ═══════════════════════════════════════════════════════════════ */
+  --signal-green: #4ADE80;
+  --signal-green-muted: rgba(74, 222, 128, 0.35);
+  --signal-yellow: #FACC15;
+  --signal-yellow-muted: rgba(250, 204, 21, 0.35);
+  --signal-red: #F87171;
+  --signal-red-muted: rgba(248, 113, 113, 0.35);
+
+  /* ═══════════════════════════════════════════════════════════════
+     LINES & BORDERS
+     Subtle elevations, not boxes
+     ═══════════════════════════════════════════════════════════════ */
+  --grid-faint: rgba(255, 255, 255, 0.06);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+
+  /* ═══════════════════════════════════════════════════════════════
+     CHART COLORS
+     Price line, probability bands, crosshair
+     ═══════════════════════════════════════════════════════════════ */
+  --chart-bg: #0B0F14;
+  --chart-price-line: #E5E7EB;
+  --chart-p50-line: #C7CCD4;
+  --chart-band-fill: rgba(120, 160, 200, 0.12);
+  --chart-band-line: rgba(120, 160, 200, 0.15);
+  --chart-crosshair: rgba(255, 255, 255, 0.08);
+  --chart-marker: rgba(255, 255, 255, 0.15);
+
+  /* ═══════════════════════════════════════════════════════════════
+     MOTION
+     Minimal, purpose-driven, slow controlled transitions
+     ═══════════════════════════════════════════════════════════════ */
+  --transition-fast: 120ms ease-out;
+  --transition-slow: 240ms ease-in-out;
+  --transition-fade: 150ms ease;
+
+  /* ═══════════════════════════════════════════════════════════════
+     TYPOGRAPHY
+     Clean, institutional sans-serif
+     ═══════════════════════════════════════════════════════════════ */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+
+  /* ═══════════════════════════════════════════════════════════════
+     SPACING
+     Consistent rhythm
+     ═══════════════════════════════════════════════════════════════ */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+
+  /* ═══════════════════════════════════════════════════════════════
+     RADIUS
+     Subtle, not playful
+     ═══════════════════════════════════════════════════════════════ */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}

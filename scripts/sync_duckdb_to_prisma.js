@@ -3,11 +3,18 @@
  * Protects our hard-won historical data by pushing to cloud
  */
 
-const { PrismaClient } = require('@prisma/client');
-const duckdb = require('duckdb');
-const path = require('path');
+import 'dotenv/config';
+import { PrismaClient } from '../prisma/generated/prisma/client.js';
+import { PrismaPg } from '@prisma/adapter-pg';
+import duckdb from 'duckdb';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const prisma = new PrismaClient();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 const DB_PATH = path.join(__dirname, '..', 'data', 'fusion.db');
 
 // Batch size for inserts

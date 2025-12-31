@@ -1172,21 +1172,33 @@ if __name__ == "__main__":
     print("🚀 ZINC Fusion V15 Technical Indicators Module")
     print("=" * 60)
 
-    # Test with existing Databento data
-    parquet_path = (
-        "/Volumes/Satechi Hub/CBI-V15/data/parquet/zf_raw/zf_databento_ohlcv_1d.parquet"
-    )
+    # Test with existing data from Prisma Postgres
+    import psycopg2
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        print("❌ DATABASE_URL not set")
+        sys.exit(1)
 
     try:
-        df = pq.read_table(parquet_path).to_pandas()
-        print(f"✅ Loaded {len(df):,} rows from {parquet_path}")
+        conn = psycopg2.connect(database_url)
+        df = pd.read_sql(
+            """
+            SELECT as_of_date as trade_date, symbol, open, high, low, close, volume
+            FROM raw.market_futures_1d
+            WHERE symbol = 'ZL'
+            ORDER BY as_of_date
+        """,
+            conn,
+        )
+        conn.close()
+        print(f"✅ Loaded {len(df):,} rows from Prisma Cloud (ZL)")
 
-        # Filter to ZL (soybean oil)
-        if "symbol" in df.columns:
-            zl_df = df[df["symbol"].str.contains("ZL", case=False, na=False)].copy()
-            print(f"   → Filtered to ZL: {len(zl_df):,} rows")
-        else:
-            zl_df = df.copy()
+        # Use df directly (already filtered to ZL)
+        zl_df = df.copy()
 
         # Rename columns if needed
         if "trade_date" in zl_df.columns:

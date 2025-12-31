@@ -1,5 +1,0 @@
-# Dashboard Configuration
-# - buckets.ts (bucket metadata, colors, labels)
-# - charts.ts (default chart options)
-# - api.ts (API endpoints)
-# - thresholds.ts (signal thresholds, alert levels)

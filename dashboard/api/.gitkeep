@@ -1,5 +1,0 @@
-# API Route Handlers
-# - /buckets/[bucket].ts - Bucket data endpoint
-# - /forecast/[horizon].ts - Forecast data endpoint
-# - /signals/composite.ts - All bucket signals
-# - /health.ts - API health check
