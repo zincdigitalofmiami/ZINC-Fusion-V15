@@ -35,67 +35,73 @@ from dotenv import load_dotenv
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
-# Historical data base path
-HIST_DATA_PATH = Path("/Volumes/Satechi Hub/Historical Data")
+# Historical data base path - use env var, no hardcoded paths
+HIST_DATA_PATH = Path(os.getenv("HISTORICAL_DATA_PATH", ""))
+if not HIST_DATA_PATH or str(HIST_DATA_PATH) == "":
+    logger.warning(
+        "HISTORICAL_DATA_PATH not set. Set it to run ingestion from local files.\n"
+        "Example: export HISTORICAL_DATA_PATH='/Volumes/Satechi Hub/Historical Data'"
+    )
+    HIST_DATA_PATH = Path("/tmp/historical_data")  # Placeholder for import to work
+
 MOTHERDUCK_RAW = HIST_DATA_PATH / "MotherDuck/raw"
 DATABRICKS_RAW = HIST_DATA_PATH / "Databricks Historical Databento/raw"
 
 # Data sources configuration
 DATA_SOURCES = {
-    'futures': {
-        'files': [
+    "futures": {
+        "files": [
             MOTHERDUCK_RAW / "databento_futures_ohlcv_1d.parquet",
             DATABRICKS_RAW / "databento_futures_ohlcv_1d_full_2010_plus.parquet",
         ],
-        'table': 'raw_market_futures',
-        'priority': 1,
+        "table": "raw_market_futures",
+        "priority": 1,
     },
-    'fred': {
-        'files': [MOTHERDUCK_RAW / "fred_economic.parquet"],
-        'table': 'raw_fred_observations',
-        'priority': 1,
+    "fred": {
+        "files": [MOTHERDUCK_RAW / "fred_economic.parquet"],
+        "table": "raw_fred_observations",
+        "priority": 1,
     },
-    'cftc': {
-        'files': [
+    "cftc": {
+        "files": [
             MOTHERDUCK_RAW / "cftc_cot.parquet",
             MOTHERDUCK_RAW / "cftc_cot_tff.parquet",
         ],
-        'table': 'cftc_cot',
-        'priority': 2,
+        "table": "cftc_cot",
+        "priority": 2,
     },
-    'usda_exports': {
-        'files': [MOTHERDUCK_RAW / "usda_export_sales.parquet"],
-        'table': 'usda_export_sales',
-        'priority': 2,
+    "usda_exports": {
+        "files": [MOTHERDUCK_RAW / "usda_export_sales.parquet"],
+        "table": "usda_export_sales",
+        "priority": 2,
     },
-    'usda_wasde': {
-        'files': [MOTHERDUCK_RAW / "usda_wasde.parquet"],
-        'table': 'usda_wasde',
-        'priority': 2,
+    "usda_wasde": {
+        "files": [MOTHERDUCK_RAW / "usda_wasde.parquet"],
+        "table": "usda_wasde",
+        "priority": 2,
     },
-    'weather': {
-        'files': [MOTHERDUCK_RAW / "weather_noaa.parquet"],
-        'table': 'weather_noaa',
-        'priority': 3,
+    "weather": {
+        "files": [MOTHERDUCK_RAW / "weather_noaa.parquet"],
+        "table": "weather_noaa",
+        "priority": 3,
     },
-    'options': {
-        'files': [MOTHERDUCK_RAW / "databento_options_ohlcv_1d.parquet"],
-        'table': 'raw_options_futures',
-        'priority': 3,
+    "options": {
+        "files": [MOTHERDUCK_RAW / "databento_options_ohlcv_1d.parquet"],
+        "table": "raw_options_futures",
+        "priority": 3,
     },
-    'fred_metadata': {
-        'files': [MOTHERDUCK_RAW / "fred_series_metadata.parquet"],
-        'table': 'fred_series_metadata',
-        'priority': 3,
+    "fred_metadata": {
+        "files": [MOTHERDUCK_RAW / "fred_series_metadata.parquet"],
+        "table": "fred_series_metadata",
+        "priority": 3,
     },
 }
 
@@ -139,10 +145,12 @@ def safe_str(val, max_len: int = 255):
 # TABLE CREATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def create_futures_table(conn):
     """Create raw_market_futures table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS raw_market_futures (
                 id SERIAL PRIMARY KEY,
                 symbol VARCHAR(20) NOT NULL,
@@ -156,9 +164,14 @@ def create_futures_table(conn):
                 created_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(symbol, as_of_date)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_futures_symbol ON raw_market_futures(symbol)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_futures_date ON raw_market_futures(as_of_date)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_futures_symbol ON raw_market_futures(symbol)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_futures_date ON raw_market_futures(as_of_date)"
+        )
     conn.commit()
     logger.info("  Created raw_market_futures table")
 
@@ -166,7 +179,8 @@ def create_futures_table(conn):
 def create_fred_table(conn):
     """Create raw_fred_observations table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS raw_fred_observations (
                 id SERIAL PRIMARY KEY,
                 series_id VARCHAR(50) NOT NULL,
@@ -176,9 +190,14 @@ def create_fred_table(conn):
                 created_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(series_id, as_of_date)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_fred_series ON raw_fred_observations(series_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_fred_date ON raw_fred_observations(as_of_date)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_fred_series ON raw_fred_observations(series_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_fred_date ON raw_fred_observations(as_of_date)"
+        )
     conn.commit()
     logger.info("  Created raw_fred_observations table")
 
@@ -186,7 +205,8 @@ def create_fred_table(conn):
 def create_cftc_table(conn):
     """Create cftc_cot table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS cftc_cot (
                 id SERIAL PRIMARY KEY,
                 report_date DATE NOT NULL,
@@ -213,7 +233,8 @@ def create_cftc_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(report_date, symbol)
             )
-        """)
+        """
+        )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_cftc_date ON cftc_cot(report_date)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_cftc_symbol ON cftc_cot(symbol)")
     conn.commit()
@@ -223,7 +244,8 @@ def create_cftc_table(conn):
 def create_usda_exports_table(conn):
     """Create usda_export_sales table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS usda_export_sales (
                 id SERIAL PRIMARY KEY,
                 report_date DATE NOT NULL,
@@ -236,9 +258,14 @@ def create_usda_exports_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(report_date, commodity, destination_country)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_usda_exports_date ON usda_export_sales(report_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_usda_exports_commodity ON usda_export_sales(commodity)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_usda_exports_date ON usda_export_sales(report_date)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_usda_exports_commodity ON usda_export_sales(commodity)"
+        )
     conn.commit()
     logger.info("  Created usda_export_sales table")
 
@@ -246,7 +273,8 @@ def create_usda_exports_table(conn):
 def create_usda_wasde_table(conn):
     """Create usda_wasde table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS usda_wasde (
                 id SERIAL PRIMARY KEY,
                 report_date DATE NOT NULL,
@@ -259,9 +287,14 @@ def create_usda_wasde_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(report_date, commodity, country, metric)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_wasde_date ON usda_wasde(report_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_wasde_commodity ON usda_wasde(commodity)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_wasde_date ON usda_wasde(report_date)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_wasde_commodity ON usda_wasde(commodity)"
+        )
     conn.commit()
     logger.info("  Created usda_wasde table")
 
@@ -269,7 +302,8 @@ def create_usda_wasde_table(conn):
 def create_weather_table(conn):
     """Create weather_noaa table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS weather_noaa (
                 id SERIAL PRIMARY KEY,
                 station_id VARCHAR(50) NOT NULL,
@@ -283,9 +317,14 @@ def create_weather_table(conn):
                 ingested_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(station_id, as_of_date)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_weather_date ON weather_noaa(as_of_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_weather_region ON weather_noaa(region)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_weather_date ON weather_noaa(as_of_date)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_weather_region ON weather_noaa(region)"
+        )
     conn.commit()
     logger.info("  Created weather_noaa table")
 
@@ -293,7 +332,8 @@ def create_weather_table(conn):
 def create_options_table(conn):
     """Create raw_options_futures table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS raw_options_futures (
                 id SERIAL PRIMARY KEY,
                 symbol VARCHAR(50) NOT NULL,
@@ -310,9 +350,14 @@ def create_options_table(conn):
                 created_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(symbol, as_of_date)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_options_symbol ON raw_options_futures(symbol)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_options_date ON raw_options_futures(as_of_date)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_options_symbol ON raw_options_futures(symbol)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_options_date ON raw_options_futures(as_of_date)"
+        )
     conn.commit()
     logger.info("  Created raw_options_futures table")
 
@@ -320,7 +365,8 @@ def create_options_table(conn):
 def create_fred_metadata_table(conn):
     """Create fred_series_metadata table."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS fred_series_metadata (
                 id SERIAL PRIMARY KEY,
                 series_id VARCHAR(50) NOT NULL UNIQUE,
@@ -335,7 +381,8 @@ def create_fred_metadata_table(conn):
                 notes TEXT,
                 created_at TIMESTAMP DEFAULT NOW()
             )
-        """)
+        """
+        )
     conn.commit()
     logger.info("  Created fred_series_metadata table")
 
@@ -343,6 +390,7 @@ def create_fred_metadata_table(conn):
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA LOADING
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def load_futures_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
     """Load futures OHLCV data."""
@@ -366,22 +414,24 @@ def load_futures_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     # Normalize column names
     df = df.copy()
-    if 'date' in df.columns and 'as_of_date' not in df.columns:
-        df['as_of_date'] = df['date']
+    if "date" in df.columns and "as_of_date" not in df.columns:
+        df["as_of_date"] = df["date"]
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            safe_str(row['symbol'], 20),
-            row['as_of_date'],
-            safe_float(row.get('open')),
-            safe_float(row.get('high')),
-            safe_float(row.get('low')),
-            safe_float(row.get('close')),
-            safe_int(row.get('volume')),
-            safe_int(row.get('open_interest')),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                safe_str(row["symbol"], 20),
+                row["as_of_date"],
+                safe_float(row.get("open")),
+                safe_float(row.get("high")),
+                safe_float(row.get("low")),
+                safe_float(row.get("close")),
+                safe_int(row.get("volume")),
+                safe_int(row.get("open_interest")),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=5000)
@@ -408,18 +458,20 @@ def load_fred_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     # Normalize column names
     df = df.copy()
-    if 'date' in df.columns and 'as_of_date' not in df.columns:
-        df['as_of_date'] = df['date']
+    if "date" in df.columns and "as_of_date" not in df.columns:
+        df["as_of_date"] = df["date"]
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            safe_str(row['series_id'], 50),
-            row['as_of_date'],
-            safe_float(row.get('value')),
-            safe_str(row.get('source', 'fred'), 50),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                safe_str(row["series_id"], 50),
+                row["as_of_date"],
+                safe_float(row.get("value")),
+                safe_str(row.get("source", "fred"), 50),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=5000)
@@ -451,30 +503,32 @@ def load_cftc_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['report_date'],
-            safe_str(row['symbol'], 20),
-            safe_int(row.get('open_interest')),
-            safe_int(row.get('prod_merc_long')),
-            safe_int(row.get('prod_merc_short')),
-            safe_int(row.get('swap_long')),
-            safe_int(row.get('swap_short')),
-            safe_int(row.get('managed_money_long')),
-            safe_int(row.get('managed_money_short')),
-            safe_int(row.get('other_rept_long')),
-            safe_int(row.get('other_rept_short')),
-            safe_int(row.get('nonrept_long')),
-            safe_int(row.get('nonrept_short')),
-            safe_int(row.get('prod_merc_net')),
-            safe_int(row.get('swap_net')),
-            safe_int(row.get('managed_money_net')),
-            safe_int(row.get('other_rept_net')),
-            safe_int(row.get('nonrept_net')),
-            safe_float(row.get('managed_money_net_pct_oi')),
-            safe_float(row.get('prod_merc_net_pct_oi')),
-            safe_str(row.get('source', 'cftc'), 50),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["report_date"],
+                safe_str(row["symbol"], 20),
+                safe_int(row.get("open_interest")),
+                safe_int(row.get("prod_merc_long")),
+                safe_int(row.get("prod_merc_short")),
+                safe_int(row.get("swap_long")),
+                safe_int(row.get("swap_short")),
+                safe_int(row.get("managed_money_long")),
+                safe_int(row.get("managed_money_short")),
+                safe_int(row.get("other_rept_long")),
+                safe_int(row.get("other_rept_short")),
+                safe_int(row.get("nonrept_long")),
+                safe_int(row.get("nonrept_short")),
+                safe_int(row.get("prod_merc_net")),
+                safe_int(row.get("swap_net")),
+                safe_int(row.get("managed_money_net")),
+                safe_int(row.get("other_rept_net")),
+                safe_int(row.get("nonrept_net")),
+                safe_float(row.get("managed_money_net_pct_oi")),
+                safe_float(row.get("prod_merc_net_pct_oi")),
+                safe_str(row.get("source", "cftc"), 50),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -503,16 +557,18 @@ def load_usda_exports_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['report_date'],
-            safe_str(row['commodity'], 100),
-            safe_str(row.get('destination_country', 'Unknown'), 100),
-            safe_float(row.get('net_sales_mt')),
-            safe_float(row.get('exports_mt')),
-            safe_float(row.get('outstanding_sales_mt')),
-            safe_str(row.get('source', 'usda'), 50),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["report_date"],
+                safe_str(row["commodity"], 100),
+                safe_str(row.get("destination_country", "Unknown"), 100),
+                safe_float(row.get("net_sales_mt")),
+                safe_float(row.get("exports_mt")),
+                safe_float(row.get("outstanding_sales_mt")),
+                safe_str(row.get("source", "usda"), 50),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -539,16 +595,18 @@ def load_usda_wasde_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            row['report_date'],
-            safe_str(row['commodity'], 100),
-            safe_str(row.get('country', 'World'), 100),
-            safe_str(row.get('metric'), 200),
-            safe_float(row.get('value')),
-            safe_str(row.get('unit'), 50),
-            safe_str(row.get('source', 'usda'), 50),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                row["report_date"],
+                safe_str(row["commodity"], 100),
+                safe_str(row.get("country", "World"), 100),
+                safe_str(row.get("metric"), 200),
+                safe_float(row.get("value")),
+                safe_str(row.get("unit"), 50),
+                safe_str(row.get("source", "usda"), 50),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -578,22 +636,24 @@ def load_weather_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     # Normalize column names
     df = df.copy()
-    if 'date' in df.columns and 'as_of_date' not in df.columns:
-        df['as_of_date'] = df['date']
+    if "date" in df.columns and "as_of_date" not in df.columns:
+        df["as_of_date"] = df["date"]
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            safe_str(row['station_id'], 50),
-            row['as_of_date'],
-            safe_float(row.get('tavg_c')),
-            safe_float(row.get('tmin_c')),
-            safe_float(row.get('tmax_c')),
-            safe_float(row.get('prcp_mm')),
-            safe_float(row.get('snow_mm')),
-            safe_str(row.get('region'), 100),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                safe_str(row["station_id"], 50),
+                row["as_of_date"],
+                safe_float(row.get("tavg_c")),
+                safe_float(row.get("tmin_c")),
+                safe_float(row.get("tmax_c")),
+                safe_float(row.get("prcp_mm")),
+                safe_float(row.get("snow_mm")),
+                safe_str(row.get("region"), 100),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -623,22 +683,24 @@ def load_options_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
     """
 
     df = df.copy()
-    if 'date' in df.columns and 'as_of_date' not in df.columns:
-        df['as_of_date'] = df['date']
+    if "date" in df.columns and "as_of_date" not in df.columns:
+        df["as_of_date"] = df["date"]
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            safe_str(row['symbol'], 50),
-            row['as_of_date'],
-            safe_float(row.get('open')),
-            safe_float(row.get('high')),
-            safe_float(row.get('low')),
-            safe_float(row.get('close')),
-            safe_int(row.get('volume')),
-            safe_int(row.get('open_interest')),
-            datetime.now()
-        ))
+        batch.append(
+            (
+                safe_str(row["symbol"], 50),
+                row["as_of_date"],
+                safe_float(row.get("open")),
+                safe_float(row.get("high")),
+                safe_float(row.get("low")),
+                safe_float(row.get("close")),
+                safe_int(row.get("volume")),
+                safe_int(row.get("open_interest")),
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=5000)
@@ -667,19 +729,21 @@ def load_fred_metadata(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     batch = []
     for _, row in df.iterrows():
-        batch.append((
-            safe_str(row['series_id'], 50),
-            safe_str(row.get('title'), 500),
-            row.get('observation_start'),
-            row.get('observation_end'),
-            safe_str(row.get('frequency'), 50),
-            safe_str(row.get('units'), 200),
-            safe_str(row.get('seasonal_adjustment'), 100),
-            row.get('last_updated'),
-            safe_str(row.get('source'), 200),
-            str(row.get('notes'))[:5000] if row.get('notes') else None,
-            datetime.now()
-        ))
+        batch.append(
+            (
+                safe_str(row["series_id"], 50),
+                safe_str(row.get("title"), 500),
+                row.get("observation_start"),
+                row.get("observation_end"),
+                safe_str(row.get("frequency"), 50),
+                safe_str(row.get("units"), 200),
+                safe_str(row.get("seasonal_adjustment"), 100),
+                row.get("last_updated"),
+                safe_str(row.get("source"), 200),
+                str(row.get("notes"))[:5000] if row.get("notes") else None,
+                datetime.now(),
+            )
+        )
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -693,14 +757,14 @@ def load_fred_metadata(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 LOADERS = {
-    'futures': (create_futures_table, load_futures_data),
-    'fred': (create_fred_table, load_fred_data),
-    'cftc': (create_cftc_table, load_cftc_data),
-    'usda_exports': (create_usda_exports_table, load_usda_exports_data),
-    'usda_wasde': (create_usda_wasde_table, load_usda_wasde_data),
-    'weather': (create_weather_table, load_weather_data),
-    'options': (create_options_table, load_options_data),
-    'fred_metadata': (create_fred_metadata_table, load_fred_metadata),
+    "futures": (create_futures_table, load_futures_data),
+    "fred": (create_fred_table, load_fred_data),
+    "cftc": (create_cftc_table, load_cftc_data),
+    "usda_exports": (create_usda_exports_table, load_usda_exports_data),
+    "usda_wasde": (create_usda_wasde_table, load_usda_wasde_data),
+    "weather": (create_weather_table, load_weather_data),
+    "options": (create_options_table, load_options_data),
+    "fred_metadata": (create_fred_metadata_table, load_fred_metadata),
 }
 
 
@@ -708,17 +772,17 @@ def ingest_source(conn, source_name: str, dry_run: bool = False) -> Dict:
     """Ingest a single data source."""
     if source_name not in DATA_SOURCES:
         logger.error(f"Unknown source: {source_name}")
-        return {'status': 'error', 'message': f'Unknown source: {source_name}'}
+        return {"status": "error", "message": f"Unknown source: {source_name}"}
 
     config = DATA_SOURCES[source_name]
     create_fn, load_fn = LOADERS[source_name]
 
     result = {
-        'source': source_name,
-        'table': config['table'],
-        'files_processed': 0,
-        'rows_loaded': 0,
-        'status': 'pending'
+        "source": source_name,
+        "table": config["table"],
+        "files_processed": 0,
+        "rows_loaded": 0,
+        "status": "pending",
     }
 
     try:
@@ -727,7 +791,7 @@ def ingest_source(conn, source_name: str, dry_run: bool = False) -> Dict:
             create_fn(conn)
 
         # Load each file
-        for file_path in config['files']:
+        for file_path in config["files"]:
             if not file_path.exists():
                 logger.warning(f"  File not found: {file_path}")
                 continue
@@ -737,20 +801,20 @@ def ingest_source(conn, source_name: str, dry_run: bool = False) -> Dict:
             logger.info(f"    Read {len(df):,} rows")
 
             # Normalize date columns
-            for col in ['date', 'as_of_date', 'report_date']:
+            for col in ["date", "as_of_date", "report_date"]:
                 if col in df.columns:
                     df[col] = pd.to_datetime(df[col]).dt.date
 
             rows = load_fn(conn, df, dry_run)
-            result['files_processed'] += 1
-            result['rows_loaded'] += rows if rows else len(df)
+            result["files_processed"] += 1
+            result["rows_loaded"] += rows if rows else len(df)
 
-        result['status'] = 'success'
+        result["status"] = "success"
 
     except Exception as e:
         logger.error(f"  Error loading {source_name}: {e}")
-        result['status'] = 'error'
-        result['message'] = str(e)
+        result["status"] = "error"
+        result["message"] = str(e)
         conn.rollback()
 
     return result
@@ -770,7 +834,9 @@ def ingest_all(sources: Optional[List[str]] = None, dry_run: bool = False):
         source_list = sources
     else:
         # Sort by priority
-        source_list = sorted(DATA_SOURCES.keys(), key=lambda x: DATA_SOURCES[x]['priority'])
+        source_list = sorted(
+            DATA_SOURCES.keys(), key=lambda x: DATA_SOURCES[x]["priority"]
+        )
 
     results = []
 
@@ -780,7 +846,9 @@ def ingest_all(sources: Optional[List[str]] = None, dry_run: bool = False):
             result = ingest_source(conn, source_name, dry_run)
             results.append(result)
             logger.info(f"  Status: {result['status']}")
-            logger.info(f"  Files: {result['files_processed']}, Rows: {result['rows_loaded']:,}")
+            logger.info(
+                f"  Files: {result['files_processed']}, Rows: {result['rows_loaded']:,}"
+            )
 
         # Verification
         if not dry_run:
@@ -790,17 +858,27 @@ def ingest_all(sources: Optional[List[str]] = None, dry_run: bool = False):
 
             with conn.cursor() as cur:
                 for source_name in source_list:
-                    table = DATA_SOURCES[source_name]['table']
+                    table = DATA_SOURCES[source_name]["table"]
                     try:
                         cur.execute(f"SELECT COUNT(*) FROM {table}")
                         count = cur.fetchone()[0]
 
                         # Get date range
-                        date_col = 'as_of_date' if 'futures' in table or 'fred' in table or 'weather' in table else 'report_date'
-                        cur.execute(f"SELECT MIN({date_col}), MAX({date_col}) FROM {table}")
+                        date_col = (
+                            "as_of_date"
+                            if "futures" in table
+                            or "fred" in table
+                            or "weather" in table
+                            else "report_date"
+                        )
+                        cur.execute(
+                            f"SELECT MIN({date_col}), MAX({date_col}) FROM {table}"
+                        )
                         min_date, max_date = cur.fetchone()
 
-                        logger.info(f"  {table}: {count:,} rows ({min_date} to {max_date})")
+                        logger.info(
+                            f"  {table}: {count:,} rows ({min_date} to {max_date})"
+                        )
                     except Exception as e:
                         logger.error(f"  {table}: {e}")
                         conn.rollback()
@@ -810,8 +888,8 @@ def ingest_all(sources: Optional[List[str]] = None, dry_run: bool = False):
         logger.info("=" * 70)
 
         # Summary
-        total_rows = sum(r['rows_loaded'] for r in results)
-        success_count = sum(1 for r in results if r['status'] == 'success')
+        total_rows = sum(r["rows_loaded"] for r in results)
+        success_count = sum(1 for r in results if r["status"] == "success")
         logger.info(f"Sources: {success_count}/{len(results)} successful")
         logger.info(f"Total rows: {total_rows:,}")
 
@@ -820,9 +898,17 @@ def ingest_all(sources: Optional[List[str]] = None, dry_run: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ingest all historical data into Postgres")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without inserting")
-    parser.add_argument("--source", type=str, help="Specific source to ingest (futures, fred, cftc, usda_exports, usda_wasde, weather, options, fred_metadata)")
+    parser = argparse.ArgumentParser(
+        description="Ingest all historical data into Postgres"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        help="Specific source to ingest (futures, fred, cftc, usda_exports, usda_wasde, weather, options, fred_metadata)",
+    )
 
     args = parser.parse_args()
 

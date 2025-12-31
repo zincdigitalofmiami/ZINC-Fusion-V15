@@ -1,0 +1,131 @@
+2025-12-31 10:45:48,956 - INFO - ============================================================
+2025-12-31 10:45:48,956 - INFO - TRAINING CORE MODEL (CHRONOS-2 + AUTOGLUON 1.5) @ 5d
+2025-12-31 10:45:48,956 - INFO - Mode: full
+2025-12-31 10:45:48,956 - INFO - ============================================================
+2025-12-31 10:45:49,228 - INFO - Running pre-flight data check...
+2025-12-31 10:45:49,802 - INFO -   Hourly data: 4,967,276 rows, 84 symbols
+2025-12-31 10:45:49,844 - INFO -   FRED data: 27,113 rows
+2025-12-31 10:45:49,844 - INFO -   ✅ Pre-flight check passed
+2025-12-31 10:45:50,860 - INFO - ============================================================
+2025-12-31 10:45:50,860 - INFO - LOADING ALL DATA FROM PRISMA
+2025-12-31 10:45:50,860 - INFO - ============================================================
+2025-12-31 10:45:50,860 - INFO - 1. Loading hourly market futures...
+2025-12-31 10:46:23,433 - INFO -    Loaded 4,967,276 rows, 84 symbols
+2025-12-31 10:46:23,434 - INFO - 2. Loading FRED economic data...
+2025-12-31 10:46:24,099 - INFO -    Loaded 27,113 rows, 90 features
+2025-12-31 10:46:24,099 - INFO - 3. Loading NOAA weather data...
+2025-12-31 10:46:24,451 - INFO -    Loaded 7,659 daily aggregates, 10 weather features
+2025-12-31 10:46:24,451 - INFO - 4. Loading spot FX data...
+2025-12-31 10:46:25,175 - INFO -    Loaded 11,260 dates, 30 FX pairs
+2025-12-31 10:46:25,175 - INFO - 5. Loading CFTC COT positioning...
+2025-12-31 10:46:25,232 - INFO -    Loaded 830 dates, 20 COT features
+2025-12-31 10:46:25,232 - INFO - 6. Loading USDA export sales...
+2025-12-31 10:46:25,275 - INFO -    Loaded 311 dates, 5 USDA export features
+2025-12-31 10:46:25,275 - INFO - 7. Loading USDA WASDE fundamentals...
+2025-12-31 10:46:25,314 - INFO -    Loaded 72 dates, 5 WASDE features
+2025-12-31 10:46:25,314 - INFO - 8. Loading EPA RIN prices...
+2025-12-31 10:46:25,354 - INFO -    Loaded 52 dates, 4 RIN prices
+2025-12-31 10:46:25,354 - INFO - 9. Loading news sentiment...
+2025-12-31 10:46:25,399 - INFO -    Loaded 260 dates, 5 news sentiment features
+2025-12-31 10:46:25,399 - INFO - ============================================================
+2025-12-31 10:46:25,400 - INFO - JOINING ALL FEATURES TO HOURLY BASE
+2025-12-31 10:46:25,400 - INFO - ============================================================
+2025-12-31 10:46:25,400 - INFO -   Base: 4,967,276 hourly rows
+2025-12-31 10:46:26,287 - INFO -   + FRED: 90 features
+2025-12-31 10:46:28,010 - INFO -   + Weather: 10 features
+2025-12-31 10:46:30,446 - INFO -   + Spot FX: 30 features
+2025-12-31 10:46:34,050 - INFO -   + CFTC COT: 20 features
+2025-12-31 10:46:38,357 - INFO -   + USDA Exports: 5 features
+2025-12-31 10:46:43,051 - INFO -   + USDA WASDE: 5 features
+2025-12-31 10:46:48,019 - INFO -   + EPA RINs: 4 features
+2025-12-31 10:46:53,225 - INFO -   + News: 5 features
+2025-12-31 10:46:58,728 - INFO -   Forward-filling all features per symbol...
+2025-12-31 10:47:20,338 - INFO - ============================================================
+2025-12-31 10:47:20,414 - INFO - FINAL DATASET: 4,967,276 rows, 84 symbols, 174 features
+2025-12-31 10:47:20,414 - INFO - ============================================================
+2025-12-31 10:47:22,858 - INFO - Training AutoGluon TimeSeriesPredictor for 5d horizon
+2025-12-31 10:47:22,858 - INFO -   Mode: full
+2025-12-31 10:47:22,866 - INFO -   Dataset: 4,967,276 rows, 84 series
+2025-12-31 10:47:22,866 - INFO -   Time limit: 240 minutes
+2025-12-31 10:47:22,866 - INFO -   Preset: best_quality
+2025-12-31 10:47:22,866 - INFO -   Models: Full AutoML ensemble (DeepAR, PatchTST, Chronos-2, etc.)
+Warning: path already exists! This predictor may overwrite an existing predictor! path="/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d"
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/predictor.py:197: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  offset = pd.tseries.frequencies.to_offset(self.freq)
+Frequency 'H' stored as 'h'
+Beginning AutoGluon training... Time limit = 14400s
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.1.0: Mon Oct 20 19:34:05 PDT 2025; root:xnu-12377.41.6~2/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Count:          WARNING: Exception was raised when calculating GPU count (AssertionError)
+Memory Avail:       17.00 GB / 24.00 GB (70.8%)
+Disk Space Avail:   819.78 GB / 931.32 GB (88.0%)
+===================================================
+Setting presets to: best_quality
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'freq': 'h',
+ 'hyperparameters': 'default',
+ 'known_covariates_names': [],
+ 'num_val_windows': 'auto',
+ 'prediction_length': 5,
+ 'quantile_levels': [0.1, 0.5, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 'auto',
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 14400,
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'h'.
+Provided train_data has 9549629 rows (NaN fraction=48.0%), 84 time series. Median time series length is 136100 (min=29408, max=136104). 
+Automatically setting num_val_windows=(3,) based on dataset properties
+Automatically setting refit_every_n_windows=2 based on num_val_windows
+
+Provided data contains following columns:
+	target: 'target'
+	past_covariates:
+		categorical:        ['open_interest']
+		continuous (float): ['open', 'high', 'low', 'volume', 'APU000074714', 'BAMLH0A0HYM2', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['SP500_HISTORICAL', 'fx_DEXHKUS', 'fx_DEXJPUS', 'fx_DEXKOUS', 'fx_DEXNOUS', 'fx_DEXSFUS', 'fx_DEXSIUS', 'fx_DEXSZUS', 'fx_DEXTAUS', 'fx_DEXTHUS', 'fx_DEXUSAL', 'fx_DEXUSUK', 'news_bearish_count']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2025-12-31 10:52:05
+Models that will be trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'Chronos2', 'Chronos2SmallFineTuned', 'AutoETS', 'ChronosWithRegressor[bolt_small]', 'TemporalFusionTransformer', 'DeepAR']
+Training timeseries model SeasonalNaive. Training for up to 1368.0s of the 14280.1s of remaining time.
+	-29.9945      = Validation score (-MASE)
+	63.65   s     = Training runtime
+	0.17    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. Training for up to 1512.9s of the 14216.1s of remaining time.
+	-32.5370      = Validation score (-MASE)
+	144.31  s     = Training runtime
+	12.71   s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. Training for up to 1682.4s of the 14059.0s of remaining time.
+	-44.0506      = Validation score (-MASE)
+	175.49  s     = Training runtime
+	14.79   s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. Training for up to 1895.5s of the 13868.5s of remaining time.
+	-28.8385      = Validation score (-MASE)
+	116.92  s     = Training runtime
+	12.63   s     = Validation (prediction) runtime
+Training timeseries model Chronos2. Training for up to 2189.8s of the 13738.8s of remaining time.
+	Time limit exceeded... Skipping Chronos2.
+Training timeseries model Chronos2SmallFineTuned. Training for up to 2184.5s of the 11522.6s of remaining time.
+2025-12-31 11:38:37,366 - INFO - Using LoRA. Number of trainable parameters: 411264, total parameters: 28345888.

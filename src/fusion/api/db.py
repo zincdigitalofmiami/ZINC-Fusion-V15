@@ -1,25 +1,16 @@
 """
 Database abstraction layer for ZINC-FUSION-V15.
 
-Supports both DuckDB (legacy) and Prisma Postgres (production).
-The active backend is determined by environment variables.
+AUTHORITATIVE: Prisma Postgres is the ONLY production database.
+DuckDB (data/fusion.db) is ARCHIVE ONLY - do not use for training or operations.
 
-NON-NEGOTIABLE: Postgres is the source of truth when available.
+NON-NEGOTIABLE: Postgres is the source of truth. Period.
 """
 
 import os
-import json
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
-from contextlib import contextmanager
-
-# Try to import both backends
-try:
-    import duckdb
-    HAS_DUCKDB = True
-except ImportError:
-    HAS_DUCKDB = False
 
 try:
     import psycopg2
@@ -30,39 +21,36 @@ except ImportError:
 
 
 def _get_postgres_url() -> Optional[str]:
-    """Get Postgres connection URL from environment."""
-    return os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    """Get Postgres connection URL from environment or .env file."""
+    url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    if url:
+        return url
 
-
-def _get_duckdb_path() -> Optional[str]:
-    """Get DuckDB path from environment or default."""
-    from fusion.config import FUSION_DB_PATH
-    return FUSION_DB_PATH if os.path.exists(FUSION_DB_PATH) else None
+    # Try loading from .env file
+    from pathlib import Path
+    env_path = Path(__file__).parent.parent.parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                if line.startswith("DATABASE_URL="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
 
 
 def get_backend() -> str:
     """
     Determine which database backend to use.
 
-    Priority:
-    1. FUSION_DB_BACKEND env var (explicit override)
-    2. Postgres if DATABASE_URL is set
-    3. DuckDB if fusion.db exists
-    4. Error if neither available
+    ALWAYS returns 'postgres' - DuckDB is deprecated for all operations.
     """
-    explicit = os.getenv("FUSION_DB_BACKEND", "").lower()
-    if explicit in ("postgres", "postgresql", "pg"):
-        return "postgres"
-    if explicit in ("duckdb", "duck"):
-        return "duckdb"
-
-    # Auto-detect
-    if _get_postgres_url() and HAS_POSTGRES:
-        return "postgres"
-    if _get_duckdb_path() and HAS_DUCKDB:
-        return "duckdb"
-
-    raise RuntimeError("No database backend available. Set DATABASE_URL or ensure fusion.db exists.")
+    if not _get_postgres_url():
+        raise RuntimeError(
+            "DATABASE_URL not set. Prisma Postgres is required. "
+            "Set DATABASE_URL in environment or .env file."
+        )
+    if not HAS_POSTGRES:
+        raise RuntimeError("psycopg2 not installed. Run: pip install psycopg2-binary")
+    return "postgres"
 
 
 def _serialize_value(value: Any) -> Any:
@@ -77,20 +65,18 @@ def _serialize_value(value: Any) -> Any:
 
 
 class DatabaseConnection:
-    """Unified database connection wrapper."""
+    """Prisma Postgres connection wrapper."""
 
     def __init__(self):
-        self.backend = get_backend()
+        self.backend = "postgres"
         self._conn = None
 
     def connect(self):
-        """Establish connection to the database."""
-        if self.backend == "postgres":
-            url = _get_postgres_url()
-            self._conn = psycopg2.connect(url)
-        else:
-            path = _get_duckdb_path()
-            self._conn = duckdb.connect(path, read_only=True)
+        """Establish connection to Prisma Postgres."""
+        url = _get_postgres_url()
+        if not url:
+            raise RuntimeError("DATABASE_URL not set")
+        self._conn = psycopg2.connect(url)
         return self
 
     def close(self):
@@ -107,10 +93,7 @@ class DatabaseConnection:
 
     def execute(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
         """Execute a query and return results as list of dicts."""
-        if self.backend == "postgres":
-            return self._execute_postgres(query, params)
-        else:
-            return self._execute_duckdb(query, params)
+        return self._execute_postgres(query, params)
 
     def _execute_postgres(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
         """Execute query on Postgres."""
@@ -127,36 +110,32 @@ class DatabaseConnection:
                 ]
             return []
 
-    def _execute_duckdb(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
-        """Execute query on DuckDB."""
-        cursor = self._conn.execute(query, params or [])
-        if cursor.description:
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-            return [
-                {columns[idx]: _serialize_value(value) for idx, value in enumerate(row)}
-                for row in rows
-            ]
-        return []
-
 
 def fetch_rows(query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
     """
     Execute a query and return results.
 
     This is the main entry point for database queries.
-    Automatically handles connection management and backend selection.
+    Automatically handles connection management.
     """
     with DatabaseConnection() as db:
         return db.execute(query, params)
 
 
-# Table name mappings: DuckDB schema.table -> Postgres table
-# Postgres uses flat namespace, DuckDB uses schema.table
+def get_connection():
+    """Get a raw psycopg2 connection to Prisma Postgres."""
+    url = _get_postgres_url()
+    if not url:
+        raise RuntimeError("DATABASE_URL not set")
+    return psycopg2.connect(url)
+
+
+# Legacy table name mappings (for backward compatibility with old code)
+# These map DuckDB-style schema.table names to Postgres flat names
 TABLE_MAP = {
     # Raw layer
     "raw.market_futures_1d": "raw_market_futures",
-    "raw.market_futures_1h": "raw_market_futures",  # Same table, different granularity in DuckDB
+    "raw.market_futures_1h": "raw_market_futures",
     "raw.fred_observations_1d": "raw_fred_observations",
     "raw.fx_spot_1d": "raw_fx_spot",
     "raw.weather_observations_1d": "raw_weather_observations",
@@ -170,38 +149,6 @@ TABLE_MAP = {
     "training.cv_folds": "cv_folds",
     "training.specialist_features": "specialist_features",
     "training.oof_specialist_combined_1d": "oof_predictions",
-    # Individual specialist OOF tables map to unified oof_predictions
-    "training.oof_specialist_crush_1d": "oof_predictions",
-    "training.oof_specialist_china_1d": "oof_predictions",
-    "training.oof_specialist_fx_1d": "oof_predictions",
-    "training.oof_specialist_fed_1d": "oof_predictions",
-    "training.oof_specialist_tariff_1d": "oof_predictions",
-    "training.oof_specialist_energy_1d": "oof_predictions",
-    "training.oof_specialist_biofuel_1d": "oof_predictions",
-    "training.oof_specialist_palm_1d": "oof_predictions",
-    "training.oof_specialist_volatility_1d": "oof_predictions",
-    "training.oof_specialist_substitutes_1d": "oof_predictions",
-    # Specialist feature tables map to unified specialist_features
-    "training.specialist_crush_1d": "specialist_features",
-    "training.specialist_china_1d": "specialist_features",
-    "training.specialist_fx_1d": "specialist_features",
-    "training.specialist_fed_1d": "specialist_features",
-    "training.specialist_tariff_1d": "specialist_features",
-    "training.specialist_energy_1d": "specialist_features",
-    "training.specialist_biofuel_1d": "specialist_features",
-    "training.specialist_palm_1d": "specialist_features",
-    "training.specialist_volatility_1d": "specialist_features",
-    "training.specialist_substitutes_1d": "specialist_features",
-    # Forecast layer
-    "forecasts.forecast_quantiles_1d": "forecast_quantiles",
-    "forecasts.procurement_actions_1d": "procurement_actions",
-    "forecasts.probability_bands_1d": "forecast_quantiles",
-    "forecasts.risk_metrics": "risk_metrics",
-    "forecasts.value_timing_windows_1d": "value_timing_windows",
-    "forecasts.zl_autogluon_5d": "forecast_quantiles",
-    "forecasts.zl_autogluon_21d": "forecast_quantiles",
-    "forecasts.zl_autogluon_63d": "forecast_quantiles",
-    "forecasts.zl_autogluon_126d": "forecast_quantiles",
     # Features
     "features.driver_scores_1d": "driver_scores",
     # Specialist
@@ -211,32 +158,31 @@ TABLE_MAP = {
 }
 
 
-def translate_table(table_ref: str, backend: str) -> str:
+def translate_table(table_ref: str, backend: str = "postgres") -> str:
     """
-    Translate table reference for the target backend.
+    Translate legacy DuckDB table reference to Postgres table name.
 
-    DuckDB uses: schema.table_name
-    Postgres uses: table_name (flat namespace)
+    Args:
+        table_ref: DuckDB-style table reference (e.g., 'raw.market_futures_1d')
+        backend: Always 'postgres' (parameter kept for backward compatibility)
+
+    Returns:
+        Postgres table name (e.g., 'raw_market_futures')
     """
-    if backend == "postgres":
-        return TABLE_MAP.get(table_ref, table_ref.split(".")[-1])
-    return table_ref
+    return TABLE_MAP.get(table_ref, table_ref.split(".")[-1].replace("_1d", "").replace("_1h", "").replace("_1w", ""))
 
 
-def translate_query(query: str, backend: str) -> str:
+def translate_query(query: str, backend: str = "postgres") -> str:
     """
-    Translate a query for the target backend.
+    Translate a query with legacy DuckDB table names to Postgres.
 
-    Handles:
-    - Table name translation
-    - Type casting differences
-    - Function differences
-    - Column name differences
+    Args:
+        query: SQL query with potential DuckDB-style table references
+        backend: Always 'postgres' (parameter kept for backward compatibility)
+
+    Returns:
+        Query with Postgres table names
     """
-    if backend == "duckdb":
-        return query  # DuckDB queries are the source format
-
-    # Postgres translations
     result = query
 
     # Replace table references
@@ -247,7 +193,6 @@ def translate_query(query: str, backend: str) -> str:
     result = result.replace("::BIGINT", "::bigint")
 
     # Column name translations for Postgres schema differences
-    # raw_fx_spot uses 'pair' instead of 'symbol'
     if "raw_fx_spot" in result:
         result = result.replace("COUNT(DISTINCT symbol)", "COUNT(DISTINCT pair)")
         result = result.replace("symbol,", "pair,")
@@ -257,21 +202,20 @@ def translate_query(query: str, backend: str) -> str:
 
 
 class QueryBuilder:
-    """Helper for building backend-agnostic queries."""
+    """Helper for building queries (always targets Postgres)."""
 
     def __init__(self):
-        self.backend = get_backend()
+        self.backend = "postgres"
 
     def table(self, table_ref: str) -> str:
-        """Get the correct table name for this backend."""
+        """Get the correct table name (translates legacy DuckDB names)."""
         return translate_table(table_ref, self.backend)
 
     def query(self, sql: str) -> str:
-        """Translate a query for this backend."""
+        """Translate a query (translates legacy DuckDB table names)."""
         return translate_query(sql, self.backend)
 
 
-# Convenience function for simple queries
 def get_query_builder() -> QueryBuilder:
-    """Get a query builder for the current backend."""
+    """Get a query builder."""
     return QueryBuilder()

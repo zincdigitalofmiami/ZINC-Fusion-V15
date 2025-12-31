@@ -81,7 +81,11 @@ HORIZONS = [5, 21, 63, 126]
 
 # Training config
 QUANTILES = [0.1, 0.5, 0.9]
-TIME_LIMIT_PER_FOLD = 300  # 5 minutes per fold
+TIME_LIMITS = {
+    "ultrafast": 60,   # 1 minute per fold
+    "quick": 300,      # 5 minutes per fold
+    "full": 600,       # 10 minutes per fold
+}
 NUM_FOLDS = 5
 
 
@@ -113,7 +117,7 @@ def load_specialist_features(conn, bucket: str) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, features
-            FROM specialist_features
+            FROM "training"."specialist_features"
             WHERE bucket = %s
             ORDER BY as_of_date
         """, (bucket,))
@@ -147,7 +151,7 @@ def load_market_data(conn) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, close
-            FROM raw_market_futures
+            FROM "raw"."market_futures_1d"
             WHERE symbol = 'ZL'
             ORDER BY as_of_date
         """)
@@ -167,7 +171,7 @@ def load_cv_folds(conn, horizon: int) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, fold_id, is_train, is_val
-            FROM cv_folds
+            FROM "model"."cv_folds"
             WHERE horizon = %s
             ORDER BY as_of_date, fold_id
         """, (horizon,))
@@ -238,7 +242,8 @@ def train_fold(
     horizon: int,
     fold_id: int,
     model_dir: Path,
-    time_limit: int = TIME_LIMIT_PER_FOLD
+    time_limit: int = 300,
+    mode: str = "quick"
 ) -> Tuple[Any, Dict[str, float], Dict[str, float]]:
     """
     Train AutoGluon TabularPredictor with LASSO as first-class voter.
@@ -303,7 +308,7 @@ def train_fold(
         tuning_data=val_data,
         hyperparameters=hyperparameters,
         time_limit=time_limit,
-        presets="medium_quality",
+        presets="best_quality",
         # Keep all models for ensemble
         keep_only_best=False,
         # Enable quantile regression if available
@@ -409,16 +414,16 @@ def save_oof_predictions(conn, oof_df: pd.DataFrame, model_version: str, dry_run
     trained_at = datetime.now()
 
     insert_query = """
-        INSERT INTO oof_predictions (source, as_of_date, horizon, fold_id, p10, p50, p90, model_version, trained_at)
+        INSERT INTO "model"."oof_predictions" (specialist, as_of_date, horizon, fold_id, pred_p10, pred_p50, pred_p90, model_version, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (source, as_of_date, horizon, fold_id)
-        DO UPDATE SET p10 = EXCLUDED.p10, p50 = EXCLUDED.p50, p90 = EXCLUDED.p90,
-                      model_version = EXCLUDED.model_version, trained_at = EXCLUDED.trained_at
+        ON CONFLICT (specialist, as_of_date, horizon, fold_id)
+        DO UPDATE SET pred_p10 = EXCLUDED.pred_p10, pred_p50 = EXCLUDED.pred_p50, pred_p90 = EXCLUDED.pred_p90,
+                      model_version = EXCLUDED.model_version, created_at = EXCLUDED.created_at
     """
 
     batch = [
         (row["source"], row["as_of_date"], row["horizon"], row["fold_id"],
-         row["p10"], row["p50"], row["p90"], model_version, trained_at)
+         float(row["p10"]), float(row["p50"]), float(row["p90"]), model_version, trained_at)
         for _, row in oof_df.iterrows()
     ]
 
@@ -449,7 +454,7 @@ def save_lasso_coefficients(
     trained_at = datetime.now()
 
     insert_query = """
-        INSERT INTO lasso_coefficients (bucket, horizon, feature_name, coefficient, is_active, model_version, trained_at)
+        INSERT INTO "model"."lasso_coefficients" (bucket, horizon, feature_name, coefficient, is_active, model_version, trained_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (bucket, horizon, feature_name, model_version)
         DO UPDATE SET coefficient = EXCLUDED.coefficient, is_active = EXCLUDED.is_active, trained_at = EXCLUDED.trained_at
@@ -471,11 +476,14 @@ def save_lasso_coefficients(
 def train_specialist(
     bucket: str,
     horizon: int,
-    dry_run: bool = False
+    dry_run: bool = False,
+    mode: str = "quick"
 ) -> List[TrainingResult]:
     """Train a specialist for all folds."""
+    time_limit = TIME_LIMITS.get(mode, 300)
+
     logger.info("=" * 60)
-    logger.info(f"TRAINING SPECIALIST: {bucket.upper()} @ {horizon}d")
+    logger.info(f"TRAINING SPECIALIST: {bucket.upper()} @ {horizon}d ({mode} mode, {time_limit}s/fold)")
     logger.info("=" * 60)
 
     conn = get_postgres_connection()
@@ -519,7 +527,8 @@ def train_specialist(
             # Train
             predictor, lasso_coefs, metrics = train_fold(
                 X_train, y_train, X_val, y_val,
-                bucket, horizon, fold_id, model_dir
+                bucket, horizon, fold_id, model_dir,
+                time_limit=time_limit, mode=mode
             )
 
             # Generate OOF predictions (val_dates is already aligned with X_val/y_val)
@@ -567,17 +576,17 @@ def train_specialist(
     return results
 
 
-def train_all_specialists(horizon: int, dry_run: bool = False):
+def train_all_specialists(horizon: int, dry_run: bool = False, mode: str = "quick"):
     """Train all specialist buckets for a given horizon."""
     logger.info("=" * 60)
-    logger.info(f"TRAINING ALL SPECIALISTS @ {horizon}d")
+    logger.info(f"TRAINING ALL SPECIALISTS @ {horizon}d ({mode} mode)")
     logger.info("=" * 60)
 
     all_results = {}
 
     for bucket in SPECIALIST_BUCKETS:
         try:
-            results = train_specialist(bucket, horizon, dry_run)
+            results = train_specialist(bucket, horizon, dry_run, mode=mode)
             all_results[bucket] = {"status": "success", "results": results}
         except Exception as e:
             logger.error(f"Failed to train {bucket}: {e}")
@@ -601,15 +610,18 @@ def main():
                         help=f"Bucket to train ({', '.join(SPECIALIST_BUCKETS)}, or 'all')")
     parser.add_argument("--horizon", type=int, default=63, choices=HORIZONS,
                         help="Forecast horizon in days")
+    parser.add_argument("--mode", type=str, choices=["ultrafast", "quick", "full"],
+                        default="quick",
+                        help="Training mode: 'ultrafast' (1min/fold), 'quick' (5min/fold), 'full' (10min/fold)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Preview without training")
 
     args = parser.parse_args()
 
     if args.bucket == "all":
-        train_all_specialists(args.horizon, args.dry_run)
+        train_all_specialists(args.horizon, args.dry_run, mode=args.mode)
     elif args.bucket in SPECIALIST_BUCKETS:
-        train_specialist(args.bucket, args.horizon, args.dry_run)
+        train_specialist(args.bucket, args.horizon, args.dry_run, mode=args.mode)
     else:
         logger.error(f"Unknown bucket: {args.bucket}")
         logger.error(f"Valid buckets: {', '.join(SPECIALIST_BUCKETS)}, or 'all'")

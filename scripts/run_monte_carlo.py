@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Monte Carlo Risk Engine
+ZINC-FUSION-V15: L5-A Monte Carlo Risk Engine
 
 Runs Monte Carlo simulation using calibrated quantile distributions from
-the meta-ensemble to generate risk metrics (VaR, CVaR, scenario analysis).
+the L4 meta-ensemble to generate risk metrics, probability distributions,
+and path statistics for visualization.
 
 NON-NEGOTIABLES:
-- Monte Carlo consumes distributions ONLY (no point estimates + noise)
+- Monte Carlo consumes L4 distributions ONLY (no point estimates + noise)
 - Input is calibrated P10/P50/P90 quantiles from meta_ensemble
-- Generates value-at-risk (VaR), conditional VaR (CVaR)
-- Produces scenario analysis for tail events
+- Asymmetric volatility respecting quantile geometry
+- Regime-adjusted volatility multipliers
+- No user sliders or controls - deterministic from inputs
+- Generates VaR, CVaR, full probability distributions
 
-Architecture:
-- Input: P10, P50, P90 from meta_ensemble (assumed logistic distribution)
-- Simulation: 10,000 paths per horizon
-- Output: VaR, CVaR, probability metrics, scenario flags
+Architecture (L5-A):
+- Input: P10/P50/P90 from meta_ensemble + vol_regime
+- Process: Asymmetric path simulation with regime adjustment
+- Output: monte_carlo_runs, probability_distributions, risk_metrics
+- Visuals: Path percentiles for pinball/density rendering
 
 Usage:
     python scripts/run_monte_carlo.py --horizon 63 --dry-run
@@ -29,6 +33,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
+from psycopg2.extras import Json
 from dataclasses import dataclass
 
 import numpy as np
@@ -55,7 +60,17 @@ HORIZONS = [5, 21, 63, 126]
 # Monte Carlo parameters
 N_SIMULATIONS = 10000
 VAR_LEVELS = [0.01, 0.05, 0.10]  # 1%, 5%, 10% VaR
+PERCENTILES = [1, 5, 10, 25, 50, 75, 90, 95, 99]
 RANDOM_SEED = 42
+
+# Regime volatility multipliers (from L5-A spec)
+REGIME_MULTIPLIERS = {
+    'high': 1.5,
+    'elevated': 1.25,
+    'normal': 1.0,
+    'low': 0.7,
+    'suppressed': 0.5,
+}
 
 
 @dataclass
@@ -89,7 +104,7 @@ def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, p10, p50, p90
-            FROM meta_ensemble
+            FROM "model"."meta_ensemble"
             WHERE horizon = %s
             ORDER BY as_of_date DESC
             LIMIT 1000
@@ -98,12 +113,116 @@ def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
         rows = cur.fetchall()
 
     if not rows:
-        raise ValueError(f"No meta-ensemble predictions found for horizon={horizon}")
+        return None  # Let caller handle gracefully
 
     df = pd.DataFrame(rows, columns=['as_of_date', 'p10', 'p50', 'p90'])
     logger.info(f"  Loaded {len(df):,} predictions")
 
     return df
+
+
+def load_current_regime(conn, as_of_date: Optional[datetime] = None) -> str:
+    """Load the current volatility regime from vol_regimes table."""
+    with conn.cursor() as cur:
+        if as_of_date:
+            cur.execute("""
+                SELECT regime
+                FROM "analytics"."vol_regimes"
+                WHERE as_of_date <= %s
+                ORDER BY as_of_date DESC
+                LIMIT 1
+            """, (as_of_date,))
+        else:
+            cur.execute("""
+                SELECT regime
+                FROM "analytics"."vol_regimes"
+                ORDER BY as_of_date DESC
+                LIMIT 1
+            """)
+
+        row = cur.fetchone()
+
+    if row:
+        regime = row[0].lower() if row[0] else 'normal'
+        return regime
+    else:
+        return 'normal'
+
+
+def simulate_paths_asymmetric(
+    p10: float,
+    p50: float,
+    p90: float,
+    horizon: int,
+    vol_regime: str = 'normal',
+    n_sims: int = N_SIMULATIONS
+) -> np.ndarray:
+    """
+    Simulate price paths using asymmetric diffusion (L5-A spec).
+
+    The quantile spread (P90-P10) defines the uncertainty envelope.
+    Asymmetry between upper and lower tails is preserved.
+
+    Args:
+        p10: 10th percentile forecast (floor)
+        p50: 50th percentile forecast (median)
+        p90: 90th percentile forecast (ceiling)
+        horizon: Forecast horizon in days
+        vol_regime: Current volatility regime
+        n_sims: Number of simulations
+
+    Returns:
+        Array of shape (n_sims, horizon+1) with simulated paths
+    """
+    np.random.seed(RANDOM_SEED)
+
+    # Extract implied volatilities from quantile spread
+    # Using inverse normal CDF: P10 = mu - 1.28*sigma, P90 = mu + 1.28*sigma
+    z_90 = stats.norm.ppf(0.90)  # ≈ 1.28
+
+    # Asymmetric volatilities (total spread over horizon)
+    sigma_down = (p50 - p10) / abs(stats.norm.ppf(0.10))  # Downside vol
+    sigma_up = (p90 - p50) / z_90                          # Upside vol
+
+    # Regime adjustment
+    vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
+    sigma_down *= vol_mult
+    sigma_up *= vol_mult
+
+    # Convert to daily volatility
+    daily_sigma_down = sigma_down / np.sqrt(horizon)
+    daily_sigma_up = sigma_up / np.sqrt(horizon)
+
+    # Initialize paths
+    paths = np.zeros((n_sims, horizon + 1))
+    paths[:, 0] = p50  # Start at median forecast
+
+    # Generate shocks
+    shocks = np.random.normal(0, 1, (n_sims, horizon))
+
+    # Apply asymmetric diffusion
+    for t in range(horizon):
+        current_prices = paths[:, t]
+
+        # Asymmetric volatility based on shock direction
+        vol = np.where(shocks[:, t] > 0, daily_sigma_up, daily_sigma_down)
+
+        # Price change (multiplicative for returns)
+        returns = shocks[:, t] * vol
+        paths[:, t + 1] = current_prices * (1 + returns)
+
+    return paths
+
+
+def compute_path_percentiles(paths: np.ndarray) -> Dict:
+    """Compute percentiles at each timestep for visualization."""
+    n_sims, n_steps = paths.shape
+
+    path_percentiles = {}
+    for p in PERCENTILES:
+        path_percentiles[p] = [float(np.percentile(paths[:, t], p)) for t in range(n_steps)]
+
+    return path_percentiles
 
 
 def fit_distribution(p10: float, p50: float, p90: float) -> Tuple[float, float]:
@@ -272,13 +391,73 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
     return len(batch)
 
 
+def save_path_percentiles(conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, model_version: str):
+    """Save path percentiles to probability_distributions table."""
+    with conn.cursor() as cur:
+        # Clear existing
+        cur.execute("""
+            DELETE FROM "model"."probability_distributions"
+            WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
+        """, (as_of_date, horizon))
+
+        # Insert percentiles
+        batch = []
+        for percentile, values in path_percentiles.items():
+            # Store terminal value
+            batch.append((
+                'ZL',
+                as_of_date,
+                horizon,
+                float(percentile),
+                values[-1],  # Terminal value
+                model_version,
+                datetime.now(),
+            ))
+
+        execute_batch(cur, """
+            INSERT INTO "model"."probability_distributions"
+            (symbol, as_of_date, horizon, percentile, value, model_version, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, batch)
+
+    conn.commit()
+
+
+def save_monte_carlo_run(conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, n_sims: int, model_version: str):
+    """Save Monte Carlo run summary to monte_carlo_runs table."""
+    with conn.cursor() as cur:
+        # Clear existing
+        cur.execute("""
+            DELETE FROM "model"."monte_carlo_runs"
+            WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
+        """, (as_of_date, horizon))
+
+        # Insert summary with full path data for visualization
+        cur.execute("""
+            INSERT INTO "model"."monte_carlo_runs"
+            (symbol, as_of_date, horizon, num_sims, percentiles, model_version, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            'ZL',
+            as_of_date,
+            horizon,
+            n_sims,
+            Json(path_percentiles),
+            model_version,
+            datetime.now(),
+        ))
+
+    conn.commit()
+
+
 def run_monte_carlo(horizon: int, dry_run: bool = False) -> List[RiskMetrics]:
-    """Run Monte Carlo simulation for a given horizon."""
+    """Run Monte Carlo simulation for a given horizon (L5-A)."""
     logger.info("=" * 60)
-    logger.info(f"MONTE CARLO SIMULATION @ {horizon}d")
+    logger.info(f"L5-A MONTE CARLO SIMULATION @ {horizon}d")
     logger.info("=" * 60)
     logger.info(f"  N_SIMULATIONS: {N_SIMULATIONS:,}")
-    logger.info(f"  VAR_LEVELS: {VAR_LEVELS}")
+    logger.info(f"  Asymmetric diffusion: ENABLED")
+    logger.info(f"  Regime adjustment: ENABLED")
 
     conn = get_postgres_connection()
 
@@ -286,25 +465,54 @@ def run_monte_carlo(horizon: int, dry_run: bool = False) -> List[RiskMetrics]:
         # Load meta-ensemble predictions
         predictions_df = load_meta_predictions(conn, horizon)
 
+        if predictions_df is None:
+            if dry_run:
+                logger.info("[DRY RUN] No upstream meta-ensemble predictions available yet")
+                logger.info("[DRY RUN] Would run Monte Carlo once L4 is trained")
+                return
+            raise ValueError(f"No meta-ensemble predictions found for horizon={horizon}")
+
+        # Load current regime
+        regime = load_current_regime(conn)
+        logger.info(f"  Current regime: {regime} (multiplier: {REGIME_MULTIPLIERS.get(regime, 1.0)})")
+
         all_metrics = []
+        model_version = f"mc_l5a_{horizon}d_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        for _, row in predictions_df.iterrows():
+        for idx, row in predictions_df.iterrows():
             as_of_date = row['as_of_date']
-            p10, p50, p90 = row['p10'], row['p50'], row['p90']
+            p10, p50, p90 = float(row['p10']), float(row['p50']), float(row['p90'])
 
-            # Fit distribution to quantiles
-            mu, s = fit_distribution(p10, p50, p90)
+            # L5-A: Asymmetric path simulation
+            paths = simulate_paths_asymmetric(
+                p10=p10,
+                p50=p50,
+                p90=p90,
+                horizon=horizon,
+                vol_regime=regime,
+                n_sims=N_SIMULATIONS,
+            )
 
-            # Run simulation
-            simulated_returns = run_simulation(mu, s)
+            # Compute terminal returns for risk metrics
+            terminal_returns = (paths[:, -1] - paths[:, 0]) / paths[:, 0]
 
             # Calculate risk metrics
-            metrics = calculate_risk_metrics(simulated_returns, as_of_date, horizon)
+            metrics = calculate_risk_metrics(terminal_returns, as_of_date, horizon)
             all_metrics.append(metrics)
+
+            # Compute path percentiles for visualization (only for latest)
+            if idx == 0:
+                path_percentiles = compute_path_percentiles(paths)
+
+                if not dry_run:
+                    save_path_percentiles(conn, as_of_date, horizon, path_percentiles, model_version)
+                    save_monte_carlo_run(conn, as_of_date, horizon, path_percentiles, N_SIMULATIONS, model_version)
 
         # Log summary
         latest_metrics = all_metrics[0]
-        logger.info(f"\nLatest risk metrics ({latest_metrics.as_of_date.date()}):")
+        logger.info(f"\n{'='*40}")
+        logger.info(f"LATEST RISK METRICS ({latest_metrics.as_of_date.date()})")
+        logger.info(f"{'='*40}")
         logger.info(f"  VaR 1%:  {latest_metrics.var_01:+.2%}")
         logger.info(f"  VaR 5%:  {latest_metrics.var_05:+.2%}")
         logger.info(f"  VaR 10%: {latest_metrics.var_10:+.2%}")
@@ -321,9 +529,11 @@ def run_monte_carlo(horizon: int, dry_run: bool = False) -> List[RiskMetrics]:
 
         # Save to database
         saved = save_risk_metrics(conn, all_metrics)
-        logger.info(f"\n  Saved {saved:,} risk metrics")
+        logger.info(f"\n  Saved {saved:,} risk metrics to analytics.risk_metrics")
 
-        logger.info(f"\n✅ Completed Monte Carlo @ {horizon}d")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d")
+        logger.info(f"{'='*60}")
 
         return all_metrics
 
