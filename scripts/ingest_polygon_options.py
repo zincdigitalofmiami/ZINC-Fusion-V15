@@ -6,170 +6,108 @@ Pulls ZL, ZS, ZM, CL options with full Greeks for ZINC-FUSION-V15.
 
 Features:
 - Contract metadata from /v3/reference/options/contracts
-- Historical OHLCV from /v2/aggs/ticker/...
-- Current Greeks snapshot from /v1/snapshot/options/...
-- Stores to both DuckDB (archive) and Prisma (authoritative)
+- Current Greeks snapshot from /v3/snapshot/options/...
+- Stores directly to Prisma Postgres (options_greeks, options_features)
 
 Author: ZINC-FUSION-V15
 Date: 2025-12-29
+Updated: 2025-12-31 - Removed DuckDB, Prisma-only
 """
 
 import os
 import sys
 import time
+import logging
+import argparse
 import requests
 from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import Optional, List, Dict, Any
-import json
+from typing import Optional, List, Dict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import duckdb
 import psycopg2
+from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Load environment
 load_dotenv()
 
+# Environment validation
 POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
-DUCKDB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "fusion.db")
+
+if not POLYGON_API_KEY:
+    logger.error("POLYGON_API_KEY not set in environment")
+    sys.exit(1)
+
+if not DATABASE_URL:
+    logger.error("DATABASE_URL not set in environment")
+    sys.exit(1)
 
 # Configuration
 UNDERLYINGS = ["ZL", "ZS", "ZM", "CL"]  # Soy oil, Soybeans, Soy meal, Crude
 EXPIRY_BUCKETS = [30, 90, 180]  # 1M, 3M, 6M in days
 STRIKE_RANGE_PCT = 0.15  # ±15% from spot
 BATCH_SIZE = 100
-RATE_LIMIT_DELAY = 0.25  # 4 requests/second for free tier
+RATE_LIMIT_DELAY = 1.0  # Be conservative with rate limits
+
 
 class PolygonOptionsIngester:
-    """Ingest options data from Polygon.io with Greeks."""
+    """Ingest options data from Polygon.io with Greeks - Prisma only."""
 
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
         self.api_key = POLYGON_API_KEY
         self.base_url = "https://api.polygon.io"
         self.session = requests.Session()
-        self.session.headers.update({"Authorization": f"Bearer {self.api_key}"})
+        self.dry_run = dry_run
 
-        # Initialize DB connections
-        self.duck = duckdb.connect(DUCKDB_PATH)
-        self.pg = psycopg2.connect(DATABASE_URL) if DATABASE_URL else None
-
-        self._ensure_schema()
-
-    def _ensure_schema(self):
-        """Create options tables if they don't exist."""
-        # DuckDB schema
-        self.duck.execute("""
-            CREATE SCHEMA IF NOT EXISTS options;
-        """)
-
-        # Options contracts metadata
-        self.duck.execute("""
-            CREATE TABLE IF NOT EXISTS options.contracts (
-                ticker VARCHAR PRIMARY KEY,
-                underlying_ticker VARCHAR,
-                contract_type VARCHAR,  -- call/put
-                expiration_date DATE,
-                strike_price DECIMAL(12,4),
-                shares_per_contract INTEGER,
-                primary_exchange VARCHAR,
-                cfi VARCHAR,
-                exercise_style VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-
-        # Options daily OHLCV with Greeks
-        self.duck.execute("""
-            CREATE TABLE IF NOT EXISTS options.daily_greeks (
-                ticker VARCHAR,
-                underlying VARCHAR,
-                as_of_date DATE,
-                expiration_date DATE,
-                strike_price DECIMAL(12,4),
-                option_type VARCHAR,  -- C/P
-                open DECIMAL(10,4),
-                high DECIMAL(10,4),
-                low DECIMAL(10,4),
-                close DECIMAL(10,4),
-                volume BIGINT,
-                open_interest BIGINT,
-                implied_volatility DECIMAL(8,6),
-                delta DECIMAL(8,6),
-                gamma DECIMAL(8,6),
-                theta DECIMAL(8,6),
-                vega DECIMAL(8,6),
-                days_to_expiry INTEGER,
-                moneyness VARCHAR,  -- ITM, ATM, OTM
-                expiry_bucket VARCHAR,  -- 1M, 3M, 6M
-                underlying_price DECIMAL(10,4),
-                source VARCHAR DEFAULT 'polygon',
-                ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (ticker, as_of_date)
-            );
-        """)
-
-        # Aggregated options features (daily)
-        self.duck.execute("""
-            CREATE TABLE IF NOT EXISTS options.features_daily (
-                underlying VARCHAR,
-                as_of_date DATE,
-                expiry_bucket VARCHAR,  -- 1M, 3M, 6M
-                -- IV metrics
-                iv_atm_call DECIMAL(8,6),
-                iv_atm_put DECIMAL(8,6),
-                iv_skew DECIMAL(8,6),  -- OTM put IV - OTM call IV
-                iv_term_structure DECIMAL(8,6),  -- 3M IV / 1M IV
-                iv_percentile_30d DECIMAL(5,2),
-                -- Greek aggregates
-                delta_weighted_oi_call DECIMAL(18,4),
-                delta_weighted_oi_put DECIMAL(18,4),
-                gamma_exposure DECIMAL(18,4),
-                net_gamma DECIMAL(18,4),
-                vega_exposure DECIMAL(18,4),
-                -- Volume/OI metrics
-                put_call_ratio_volume DECIMAL(8,4),
-                put_call_ratio_oi DECIMAL(8,4),
-                total_volume BIGINT,
-                total_open_interest BIGINT,
-                -- Derived signals
-                skew_zscore DECIMAL(6,4),
-                gamma_flip_level DECIMAL(10,4),
-                max_pain_strike DECIMAL(10,4),
-                PRIMARY KEY (underlying, as_of_date, expiry_bucket)
-            );
-        """)
-
-        self.duck.commit()
-        print("DuckDB options schema ready")
+        # Initialize Postgres connection
+        self.pg = psycopg2.connect(DATABASE_URL)
+        logger.info("Connected to Prisma Postgres")
 
     def _rate_limit(self):
         """Respect API rate limits."""
         time.sleep(RATE_LIMIT_DELAY)
 
-    def _get(self, endpoint: str, params: Dict = None) -> Optional[Dict]:
-        """Make GET request to Polygon API."""
+    def _get(self, endpoint: str, params: Dict = None, retries: int = 3) -> Optional[Dict]:
+        """Make GET request to Polygon API with retry logic."""
         url = f"{self.base_url}{endpoint}"
         if params is None:
             params = {}
         params["apiKey"] = self.api_key
 
-        try:
-            self._rate_limit()
-            resp = self.session.get(url, params=params, timeout=30)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.exceptions.RequestException as e:
-            print(f"API error: {e}")
-            return None
+        for attempt in range(retries):
+            try:
+                self._rate_limit()
+                resp = self.session.get(url, params=params, timeout=30)
+
+                if resp.status_code == 429:
+                    # Rate limited - exponential backoff
+                    wait_time = (2 ** attempt) * 5
+                    logger.warning(f"Rate limited, waiting {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+
+                resp.raise_for_status()
+                return resp.json()
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"API error (attempt {attempt + 1}/{retries}): {e}")
+                if attempt < retries - 1:
+                    time.sleep(2 ** attempt)
+
+        return None
 
     def get_underlying_price(self, symbol: str) -> Optional[float]:
         """Get current/latest price for underlying futures."""
-        # Map to Polygon futures ticker format
-        # ZL -> ZL (soybean oil), ZS -> ZS (soybeans), etc.
         endpoint = f"/v2/aggs/ticker/{symbol}/prev"
         data = self._get(endpoint)
 
@@ -180,12 +118,7 @@ class PolygonOptionsIngester:
     def get_options_contracts(self, underlying: str,
                               expiry_min: datetime = None,
                               expiry_max: datetime = None) -> List[Dict]:
-        """
-        Get options contracts for an underlying.
-
-        Polygon options tickers format: O:{UNDERLYING}{YYMMDD}{C/P}{STRIKE}
-        Example: O:ZL250117C00045000 = ZL Jan 17 2025 $45.00 Call
-        """
+        """Get options contracts for an underlying."""
         if expiry_min is None:
             expiry_min = datetime.now()
         if expiry_max is None:
@@ -213,9 +146,8 @@ class PolygonOptionsIngester:
                 break
 
             contracts.extend(data["results"])
-            print(f"  Fetched {len(contracts)} {underlying} contracts...")
+            logger.info(f"  Fetched {len(contracts)} {underlying} contracts...")
 
-            # Check for next page
             if data.get("next_url"):
                 cursor = data["next_url"].split("cursor=")[-1].split("&")[0]
             else:
@@ -227,7 +159,8 @@ class PolygonOptionsIngester:
                                    spot_price: float) -> List[Dict]:
         """Filter contracts to ±15% strike range around spot."""
         if not spot_price:
-            return contracts
+            logger.warning("No spot price available, returning empty list")
+            return []
 
         min_strike = spot_price * (1 - STRIKE_RANGE_PCT)
         max_strike = spot_price * (1 + STRIKE_RANGE_PCT)
@@ -237,17 +170,12 @@ class PolygonOptionsIngester:
             if min_strike <= c.get("strike_price", 0) <= max_strike
         ]
 
-        print(f"  Filtered to {len(filtered)} contracts in strike range "
+        logger.info(f"  Filtered to {len(filtered)} contracts in strike range "
               f"${min_strike:.2f} - ${max_strike:.2f}")
         return filtered
 
     def get_options_snapshot(self, underlying: str) -> List[Dict]:
-        """
-        Get current options snapshot with Greeks.
-
-        Uses /v3/snapshot/options/{underlyingAsset}
-        Returns: Greeks, IV, prices, OI for all active contracts
-        """
+        """Get current options snapshot with Greeks."""
         endpoint = f"/v3/snapshot/options/{underlying}"
         params = {"limit": 250}
 
@@ -260,10 +188,9 @@ class PolygonOptionsIngester:
                 break
 
             all_results.extend(data["results"])
-            print(f"  Snapshot: {len(all_results)} {underlying} options...")
+            logger.info(f"  Snapshot: {len(all_results)} {underlying} options...")
 
             if data.get("next_url"):
-                # Extract cursor from next_url
                 next_url = data["next_url"]
                 if "cursor=" in next_url:
                     params["cursor"] = next_url.split("cursor=")[-1].split("&")[0]
@@ -273,23 +200,6 @@ class PolygonOptionsIngester:
                 break
 
         return all_results
-
-    def get_options_aggs(self, ticker: str,
-                         from_date: datetime,
-                         to_date: datetime) -> List[Dict]:
-        """
-        Get historical OHLCV for an options contract.
-
-        Note: Historical Greeks not available via aggs - need snapshot.
-        """
-        endpoint = f"/v2/aggs/ticker/{ticker}/range/1/day/{from_date.strftime('%Y-%m-%d')}/{to_date.strftime('%Y-%m-%d')}"
-        params = {"adjusted": "true", "limit": 50000}
-
-        data = self._get(endpoint, params)
-
-        if data and "results" in data:
-            return data["results"]
-        return []
 
     def classify_moneyness(self, strike: float, spot: float,
                            option_type: str) -> str:
@@ -316,16 +226,20 @@ class PolygonOptionsIngester:
         else:
             return "6M"
 
-    def store_snapshot_data(self, underlying: str,
-                           snapshot_data: List[Dict],
-                           spot_price: float):
-        """Store options snapshot with Greeks to DuckDB."""
+    def store_options_greeks(self, underlying: str,
+                             snapshot_data: List[Dict],
+                             spot_price: float) -> int:
+        """Store options snapshot with Greeks directly to Prisma."""
         if not snapshot_data:
-            print(f"  No snapshot data for {underlying}")
+            logger.info(f"  No snapshot data for {underlying}")
+            return 0
+
+        if self.dry_run:
+            logger.info(f"  [DRY RUN] Would insert {len(snapshot_data)} options")
             return 0
 
         today = datetime.now().date()
-        rows_inserted = 0
+        rows_to_insert = []
 
         for opt in snapshot_data:
             try:
@@ -354,16 +268,7 @@ class PolygonOptionsIngester:
                 moneyness = self.classify_moneyness(strike, spot_price, opt_type)
                 expiry_bucket = self.classify_expiry_bucket(days_to_expiry)
 
-                # Insert/update
-                self.duck.execute("""
-                    INSERT OR REPLACE INTO options.daily_greeks (
-                        ticker, underlying, as_of_date, expiration_date,
-                        strike_price, option_type, open, high, low, close,
-                        volume, open_interest, implied_volatility,
-                        delta, gamma, theta, vega, days_to_expiry,
-                        moneyness, expiry_bucket, underlying_price
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, [
+                rows_to_insert.append((
                     ticker,
                     underlying,
                     today,
@@ -385,29 +290,61 @@ class PolygonOptionsIngester:
                     moneyness,
                     expiry_bucket,
                     spot_price
-                ])
-                rows_inserted += 1
+                ))
 
             except Exception as e:
-                print(f"    Error storing {opt.get('details', {}).get('ticker')}: {e}")
+                logger.error(f"    Error processing {opt.get('details', {}).get('ticker')}: {e}")
                 continue
 
-        self.duck.commit()
-        return rows_inserted
+        # Batch insert to Prisma
+        if rows_to_insert:
+            cur = self.pg.cursor()
+            try:
+                execute_batch(cur, """
+                    INSERT INTO options_greeks (
+                        ticker, underlying, as_of_date, expiration_date,
+                        strike_price, option_type, open, high, low, close,
+                        volume, open_interest, implied_volatility,
+                        delta, gamma, theta, vega, days_to_expiry,
+                        moneyness, expiry_bucket, underlying_price
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                              %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (ticker, as_of_date) DO UPDATE SET
+                        implied_volatility = EXCLUDED.implied_volatility,
+                        delta = EXCLUDED.delta,
+                        gamma = EXCLUDED.gamma,
+                        theta = EXCLUDED.theta,
+                        vega = EXCLUDED.vega,
+                        open_interest = EXCLUDED.open_interest,
+                        volume = EXCLUDED.volume,
+                        open = EXCLUDED.open,
+                        high = EXCLUDED.high,
+                        low = EXCLUDED.low,
+                        close = EXCLUDED.close,
+                        underlying_price = EXCLUDED.underlying_price
+                """, rows_to_insert, page_size=BATCH_SIZE)
+                self.pg.commit()
+                cur.close()
+            except Exception as e:
+                logger.error(f"Error inserting options_greeks: {e}")
+                self.pg.rollback()
+                cur.close()
+                return 0
 
-    def compute_daily_features(self, underlying: str, as_of_date: datetime.date):
-        """
-        Compute aggregated options features for a given date.
+        return len(rows_to_insert)
 
-        Features by expiry bucket:
-        - IV skew, term structure
-        - Delta-weighted OI
-        - Gamma exposure
-        - Put/call ratios
-        """
+    def compute_and_store_features(self, underlying: str, as_of_date) -> int:
+        """Compute aggregated options features and store to Prisma."""
+        if self.dry_run:
+            logger.info(f"  [DRY RUN] Would compute features for {underlying}")
+            return 0
+
+        cur = self.pg.cursor()
+        features_stored = 0
+
         for bucket in ["1M", "3M", "6M"]:
-            # Get options for this bucket
-            data = self.duck.execute("""
+            # Get options for this bucket from Prisma
+            cur.execute("""
                 SELECT
                     option_type,
                     moneyness,
@@ -421,12 +358,14 @@ class PolygonOptionsIngester:
                     theta,
                     vega,
                     underlying_price
-                FROM options.daily_greeks
-                WHERE underlying = ?
-                  AND as_of_date = ?
-                  AND expiry_bucket = ?
+                FROM options_greeks
+                WHERE underlying = %s
+                  AND as_of_date = %s
+                  AND expiry_bucket = %s
                   AND implied_volatility IS NOT NULL
-            """, [underlying, as_of_date, bucket]).fetchall()
+            """, [underlying, as_of_date, bucket])
+
+            data = cur.fetchall()
 
             if not data:
                 continue
@@ -470,191 +409,122 @@ class PolygonOptionsIngester:
             pc_ratio_vol = put_vol / call_vol if call_vol > 0 else None
             pc_ratio_oi = put_oi / call_oi if call_oi > 0 else None
 
-            # Store features
-            self.duck.execute("""
-                INSERT OR REPLACE INTO options.features_daily (
-                    underlying, as_of_date, expiry_bucket,
+            # Store features to Prisma
+            try:
+                cur.execute("""
+                    INSERT INTO options_features (
+                        underlying, as_of_date, expiry_bucket,
+                        iv_atm_call, iv_atm_put, iv_skew,
+                        delta_weighted_oi_call, delta_weighted_oi_put,
+                        gamma_exposure, put_call_ratio_volume, put_call_ratio_oi,
+                        total_volume, total_open_interest
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (underlying, as_of_date, expiry_bucket) DO UPDATE SET
+                        iv_atm_call = EXCLUDED.iv_atm_call,
+                        iv_atm_put = EXCLUDED.iv_atm_put,
+                        iv_skew = EXCLUDED.iv_skew,
+                        delta_weighted_oi_call = EXCLUDED.delta_weighted_oi_call,
+                        delta_weighted_oi_put = EXCLUDED.delta_weighted_oi_put,
+                        gamma_exposure = EXCLUDED.gamma_exposure,
+                        put_call_ratio_volume = EXCLUDED.put_call_ratio_volume,
+                        put_call_ratio_oi = EXCLUDED.put_call_ratio_oi,
+                        total_volume = EXCLUDED.total_volume,
+                        total_open_interest = EXCLUDED.total_open_interest
+                """, [
+                    underlying, as_of_date, bucket,
                     iv_atm_call, iv_atm_put, iv_skew,
-                    delta_weighted_oi_call, delta_weighted_oi_put,
-                    gamma_exposure, put_call_ratio_volume, put_call_ratio_oi,
-                    total_volume, total_open_interest
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [
-                underlying, as_of_date, bucket,
-                iv_atm_call, iv_atm_put, iv_skew,
-                delta_oi_call, delta_oi_put, gamma_exp,
-                pc_ratio_vol, pc_ratio_oi,
-                call_vol + put_vol, call_oi + put_oi
-            ])
+                    delta_oi_call, delta_oi_put, gamma_exp,
+                    pc_ratio_vol, pc_ratio_oi,
+                    call_vol + put_vol, call_oi + put_oi
+                ])
+                features_stored += 1
+            except Exception as e:
+                logger.error(f"Error storing features for {underlying}/{bucket}: {e}")
 
-        self.duck.commit()
+        self.pg.commit()
+        cur.close()
+        return features_stored
 
-    def ingest_underlying(self, underlying: str):
+    def ingest_underlying(self, underlying: str) -> tuple:
         """Full ingestion for one underlying."""
-        print(f"\n{'='*60}")
-        print(f"Ingesting {underlying} options...")
-        print(f"{'='*60}")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Ingesting {underlying} options...")
+        logger.info(f"{'='*60}")
 
         # Get spot price
         spot = self.get_underlying_price(underlying)
         if spot:
-            print(f"  Spot price: ${spot:.4f}")
+            logger.info(f"  Spot price: ${spot:.4f}")
         else:
-            print(f"  Warning: Could not get spot price for {underlying}")
+            logger.warning(f"  Could not get spot price for {underlying}, skipping")
+            return 0, 0
 
-        # Get contracts metadata
-        print(f"\n  Fetching contracts...")
+        # Get contracts metadata (for logging only)
+        logger.info(f"\n  Fetching contracts...")
         contracts = self.get_options_contracts(underlying)
-        print(f"  Found {len(contracts)} total contracts")
+        logger.info(f"  Found {len(contracts)} total contracts")
 
-        if spot and contracts:
+        if contracts:
             contracts = self.filter_contracts_by_strike(contracts, spot)
 
-        # Store contract metadata
-        for c in contracts:
-            try:
-                self.duck.execute("""
-                    INSERT OR REPLACE INTO options.contracts (
-                        ticker, underlying_ticker, contract_type,
-                        expiration_date, strike_price, shares_per_contract,
-                        primary_exchange, cfi, exercise_style
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, [
-                    c.get("ticker"),
-                    c.get("underlying_ticker"),
-                    c.get("contract_type"),
-                    c.get("expiration_date"),
-                    c.get("strike_price"),
-                    c.get("shares_per_contract"),
-                    c.get("primary_exchange"),
-                    c.get("cfi"),
-                    c.get("exercise_style")
-                ])
-            except Exception as e:
-                pass
-        self.duck.commit()
-
         # Get current snapshot with Greeks
-        print(f"\n  Fetching options snapshot with Greeks...")
+        logger.info(f"\n  Fetching options snapshot with Greeks...")
         snapshot = self.get_options_snapshot(underlying)
 
         if snapshot:
-            rows = self.store_snapshot_data(underlying, snapshot, spot)
-            print(f"  Stored {rows} options with Greeks")
+            rows = self.store_options_greeks(underlying, snapshot, spot)
+            logger.info(f"  Stored {rows} options with Greeks to Prisma")
 
             # Compute daily features
-            print(f"  Computing aggregated features...")
-            self.compute_daily_features(underlying, datetime.now().date())
+            logger.info(f"  Computing aggregated features...")
+            features = self.compute_and_store_features(underlying, datetime.now().date())
+            logger.info(f"  Stored {features} feature records to Prisma")
         else:
-            print(f"  No snapshot data available")
+            logger.warning(f"  No snapshot data available")
+            rows = 0
 
         return len(contracts), len(snapshot) if snapshot else 0
 
-    def sync_to_prisma(self):
-        """Sync options data to Prisma Postgres."""
-        if not self.pg:
-            print("No Prisma connection, skipping sync")
-            return
-
-        print("\n" + "="*60)
-        print("Syncing to Prisma...")
-        print("="*60)
-
+    def verify_data(self):
+        """Verify data in Prisma after ingestion."""
         cur = self.pg.cursor()
 
-        # Check if options_greeks table exists, create if not
+        logger.info("\n" + "="*60)
+        logger.info("VERIFICATION")
+        logger.info("="*60)
+
+        # Count options_greeks
+        cur.execute("SELECT COUNT(*) FROM options_greeks WHERE as_of_date = %s",
+                    [datetime.now().date()])
+        greeks_count = cur.fetchone()[0]
+        logger.info(f"  options_greeks (today): {greeks_count} rows")
+
+        # Count options_features
+        cur.execute("SELECT COUNT(*) FROM options_features WHERE as_of_date = %s",
+                    [datetime.now().date()])
+        features_count = cur.fetchone()[0]
+        logger.info(f"  options_features (today): {features_count} rows")
+
+        # Breakdown by underlying
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS options_greeks (
-                id SERIAL PRIMARY KEY,
-                ticker VARCHAR(50),
-                underlying VARCHAR(10),
-                as_of_date DATE,
-                expiration_date DATE,
-                strike_price DECIMAL(12,4),
-                option_type VARCHAR(1),
-                open DECIMAL(10,4),
-                high DECIMAL(10,4),
-                low DECIMAL(10,4),
-                close DECIMAL(10,4),
-                volume BIGINT,
-                open_interest BIGINT,
-                implied_volatility DECIMAL(8,6),
-                delta DECIMAL(8,6),
-                gamma DECIMAL(8,6),
-                theta DECIMAL(8,6),
-                vega DECIMAL(8,6),
-                days_to_expiry INTEGER,
-                moneyness VARCHAR(10),
-                expiry_bucket VARCHAR(5),
-                underlying_price DECIMAL(10,4),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(ticker, as_of_date)
-            );
-            CREATE INDEX IF NOT EXISTS idx_options_greeks_underlying ON options_greeks(underlying);
-            CREATE INDEX IF NOT EXISTS idx_options_greeks_date ON options_greeks(as_of_date);
-        """)
-        self.pg.commit()
+            SELECT underlying, COUNT(*)
+            FROM options_greeks
+            WHERE as_of_date = %s
+            GROUP BY underlying
+        """, [datetime.now().date()])
+        for row in cur.fetchall():
+            logger.info(f"    {row[0]}: {row[1]} options")
 
-        # Fetch from DuckDB
-        rows = self.duck.execute("""
-            SELECT ticker, underlying, as_of_date, expiration_date,
-                   strike_price, option_type, open, high, low, close,
-                   volume, open_interest, implied_volatility,
-                   delta, gamma, theta, vega, days_to_expiry,
-                   moneyness, expiry_bucket, underlying_price
-            FROM options.daily_greeks
-            ORDER BY as_of_date, underlying, ticker
-        """).fetchall()
-
-        print(f"  Syncing {len(rows)} options records...")
-
-        # Batch insert
-        inserted = 0
-        for i in range(0, len(rows), BATCH_SIZE):
-            batch = rows[i:i+BATCH_SIZE]
-
-            for row in batch:
-                try:
-                    cur.execute("""
-                        INSERT INTO options_greeks (
-                            ticker, underlying, as_of_date, expiration_date,
-                            strike_price, option_type, open, high, low, close,
-                            volume, open_interest, implied_volatility,
-                            delta, gamma, theta, vega, days_to_expiry,
-                            moneyness, expiry_bucket, underlying_price
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (ticker, as_of_date) DO UPDATE SET
-                            implied_volatility = EXCLUDED.implied_volatility,
-                            delta = EXCLUDED.delta,
-                            gamma = EXCLUDED.gamma,
-                            theta = EXCLUDED.theta,
-                            vega = EXCLUDED.vega,
-                            open_interest = EXCLUDED.open_interest
-                    """, row)
-                    inserted += 1
-                except Exception as e:
-                    print(f"    Error: {e}")
-
-            self.pg.commit()
-
-            if inserted % 500 == 0:
-                print(f"    Progress: {inserted}/{len(rows)}")
-
-        print(f"  Synced {inserted} records to Prisma")
         cur.close()
 
     def run(self):
         """Run full ingestion for all underlyings."""
-        print("="*60)
-        print("POLYGON OPTIONS INGESTION")
-        print(f"Time: {datetime.now().isoformat()}")
-        print(f"Underlyings: {UNDERLYINGS}")
-        print("="*60)
-
-        if not self.api_key:
-            print("ERROR: POLYGON_API_KEY not set!")
-            return
+        logger.info("="*60)
+        logger.info("POLYGON OPTIONS INGESTION (Prisma-only)")
+        logger.info(f"Time: {datetime.now().isoformat()}")
+        logger.info(f"Underlyings: {UNDERLYINGS}")
+        logger.info(f"Dry run: {self.dry_run}")
+        logger.info("="*60)
 
         total_contracts = 0
         total_options = 0
@@ -664,30 +534,39 @@ class PolygonOptionsIngester:
             total_contracts += contracts
             total_options += options
 
-        # Sync to Prisma
-        self.sync_to_prisma()
+        # Verify
+        if not self.dry_run:
+            self.verify_data()
 
         # Summary
-        print("\n" + "="*60)
-        print("INGESTION COMPLETE")
-        print("="*60)
-        print(f"Total contracts: {total_contracts}")
-        print(f"Total options with Greeks: {total_options}")
+        logger.info("\n" + "="*60)
+        logger.info("INGESTION COMPLETE")
+        logger.info("="*60)
+        logger.info(f"Total contracts processed: {total_contracts}")
+        logger.info(f"Total options with Greeks: {total_options}")
 
-        # Verify
-        count = self.duck.execute("SELECT COUNT(*) FROM options.daily_greeks").fetchone()[0]
-        print(f"DuckDB options.daily_greeks: {count} rows")
-
-        features_count = self.duck.execute("SELECT COUNT(*) FROM options.features_daily").fetchone()[0]
-        print(f"DuckDB options.features_daily: {features_count} rows")
-
-        self.duck.close()
-        if self.pg:
-            self.pg.close()
+        self.pg.close()
 
 
 def main():
-    ingester = PolygonOptionsIngester()
+    parser = argparse.ArgumentParser(description="Ingest Polygon options to Prisma")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Fetch data but don't insert")
+    parser.add_argument("--underlying", type=str,
+                        help="Single underlying to ingest (ZL, ZS, ZM, CL)")
+
+    args = parser.parse_args()
+
+    ingester = PolygonOptionsIngester(dry_run=args.dry_run)
+
+    if args.underlying:
+        if args.underlying not in UNDERLYINGS:
+            logger.error(f"Unknown underlying: {args.underlying}")
+            sys.exit(1)
+        # Override to single underlying
+        global UNDERLYINGS
+        UNDERLYINGS = [args.underlying]
+
     ingester.run()
 
 
