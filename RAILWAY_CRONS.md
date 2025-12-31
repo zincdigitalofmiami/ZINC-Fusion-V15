@@ -22,7 +22,20 @@ Create these services in your Railway project, all pointing to this GitHub repo.
 
 ---
 
-### 2. Polygon Options (Daily)
+### 2. News Ingestion (Every 4 hours)
+
+| Setting | Value |
+|---------|-------|
+| **Service Name** | `cron-news` |
+| **Start Command** | `pip install -r requirements.txt && python scripts/ingest_news.py` |
+| **Cron Schedule** | `0 */4 * * *` |
+
+**Purpose**: Fetch commodity news from Yahoo Finance (primary) and Polygon (backup).
+**Timing**: Every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+
+---
+
+### 3. Polygon Options (Daily)
 
 | Setting | Value |
 |---------|-------|
@@ -35,7 +48,7 @@ Create these services in your Railway project, all pointing to this GitHub repo.
 
 ---
 
-### 3. FRED Economic Data (Daily)
+### 4. FRED Economic Data (Daily)
 
 | Setting | Value |
 |---------|-------|
@@ -48,7 +61,7 @@ Create these services in your Railway project, all pointing to this GitHub repo.
 
 ---
 
-### 4. NOAA Weather (Daily)
+### 5. NOAA Weather (Daily)
 
 | Setting | Value |
 |---------|-------|
@@ -61,7 +74,7 @@ Create these services in your Railway project, all pointing to this GitHub repo.
 
 ---
 
-### 5. USDA Data (Weekly)
+### 6. USDA Data (Weekly)
 
 | Setting | Value |
 |---------|-------|
@@ -111,6 +124,7 @@ All times are UTC.
 | Expression | Meaning |
 |------------|---------|
 | `*/15 * * * *` | Every 15 minutes |
+| `0 */4 * * *` | Every 4 hours |
 | `0 0 * * 2-6` | Midnight UTC, Tue-Sat (7pm ET Mon-Fri) |
 | `0 11 * * 1-5` | 11am UTC, Mon-Fri (6am ET) |
 | `0 13 * * *` | 1pm UTC daily (8am ET) |
