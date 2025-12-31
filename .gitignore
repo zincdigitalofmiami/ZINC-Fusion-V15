@@ -38,6 +38,7 @@ client/dist/
 .vercel
 
 # Environment files with secrets
+.env
 .env.vercel
 .env.local
 .env.production
