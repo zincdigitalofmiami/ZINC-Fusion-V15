@@ -1,8 +1,33 @@
 #!/usr/bin/env python3
-"""Pull ALL FRED series for missing specialists into DuckDB."""
+"""
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
+
+USE INSTEAD:
+    python scripts/pull_fred_to_postgres.py
+
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+"""
+
+import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. All ingestion uses Prisma Postgres.")
+print("")
+print("USE INSTEAD:")
+print("    python scripts/pull_fred_to_postgres.py")
+print("")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
 
 import os
-import sys
 import duckdb
 from datetime import datetime
 

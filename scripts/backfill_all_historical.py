@@ -1,6 +1,40 @@
 #!/usr/bin/env python3
 """
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
+
+USE INSTEAD:
+    # For FRED: python scripts/pull_fred_to_postgres.py
+    # For Weather: python scripts/backfill_noaa_weather.py
+    # For other sources: Use individual Prisma-based ingestion scripts
+
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+
+Original description:
 ZINC-FUSION-V15: Comprehensive Historical Data Backfill
+"""
+
+import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. All ingestion uses Prisma Postgres.")
+print("")
+print("USE INSTEAD:")
+print("    python scripts/pull_fred_to_postgres.py  (FRED data)")
+print("    python scripts/backfill_noaa_weather.py  (Weather data)")
+print("")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
+
+"""
+ZINC-FUSION-V15: Comprehensive Historical Data Backfill (DEPRECATED)
 
 This script backfills ALL historical data sources with proper schema mapping to:
 1. Raw layer tables (append-only, immutable)

@@ -1,22 +1,35 @@
 #!/usr/bin/env python3
 """
-Databento Options Ingestion Pipeline
-=====================================
-Pulls ZL, ZS, ZM, CL options from GLBX.MDP3 with full Greeks calculation.
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
 
-Workflow:
-1. Pull definition schema for ALL_SYMBOLS to get options metadata
-2. Filter for Options on Futures (OOF) for target underlyings
-3. Pull ohlcv-1d for options
-4. Calculate Greeks using Black-76 model
-5. Store to DuckDB and Prisma
+USE INSTEAD:
+    # Options data should be ingested via Prisma-only pipeline
+    # See scripts/ingest_options_prisma.py (to be created)
 
-Author: ZINC-FUSION-V15
-Date: 2025-12-29
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+
+Original description:
+Databento Options Ingestion Pipeline - Pulls ZL, ZS, ZM, CL options from GLBX.MDP3
 """
 
-import os
 import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. All ingestion uses Prisma Postgres.")
+print("")
+print("This script needs to be rewritten to use Prisma only.")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
+
+import os
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple
 import math
