@@ -297,19 +297,22 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 ### Frontend / Vercel
 This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
 
-## Specialist Taxonomy (Canonical 10)
+## Specialist Taxonomy (Big 11)
 
 Specialists are organized around these buckets (names should remain consistent across code, tables, and docs):
-1. `crush`
-2. `china`
-3. `fx`
-4. `fed`
-5. `tariff`
-6. `energy`
-7. `biofuel`
-8. `palm`
-9. `volatility`
-10. `substitutes`
+1. `crush` (28-35% variance)
+2. `china` (16-22% variance)
+3. `fx` (3-5% variance)
+4. `fed` (2-4% variance)
+5. `tariff` (3-5% variance)
+6. `energy` (10-14% variance)
+7. `biofuel` (6-10% variance)
+8. `palm` (8-12% variance)
+9. `volatility` (2-3% variance)
+10. `substitutes` (4-6% variance)
+11. `trump` (5-10% variance, regime-dependent)
+
+**Data Sources Reference**: See `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md` for complete URL/API registry.
 
 ## How To Run (Local)
 
