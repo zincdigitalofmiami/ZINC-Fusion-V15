@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
 """
-Polygon.io Options Ingestion Pipeline
-=====================================
-Pulls ZL, ZS, ZM, CL options with full Greeks for ZINC-FUSION-V15.
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
 
-Features:
-- Contract metadata from /v3/reference/options/contracts
-- Historical OHLCV from /v2/aggs/ticker/...
-- Current Greeks snapshot from /v1/snapshot/options/...
-- Stores to both DuckDB (archive) and Prisma (authoritative)
+USE INSTEAD:
+    # Options data should be ingested via Prisma-only pipeline
+    # See scripts/ingest_options_prisma.py (to be created)
 
-Author: ZINC-FUSION-V15
-Date: 2025-12-29
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+
+Original description:
+Polygon.io Options Ingestion Pipeline - Pulls ZL, ZS, ZM, CL options with full Greeks
 """
 
-import os
 import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. All ingestion uses Prisma Postgres.")
+print("")
+print("This script needs to be rewritten to use Prisma only.")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
+
+import os
 import time
 import requests
 from datetime import datetime, timedelta

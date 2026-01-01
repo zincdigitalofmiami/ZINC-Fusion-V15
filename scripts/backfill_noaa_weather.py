@@ -240,8 +240,11 @@ def fetch_station_data(
     """
     headers = {'token': token}
 
-    # Data elements we want
-    datatypes = ['TMAX', 'TMIN', 'TAVG', 'PRCP', 'SNOW', 'AWND']
+    # Data elements we want - expanded for granular weather (Top 10)
+    datatypes = [
+        'TMAX', 'TMIN', 'TAVG', 'PRCP', 'SNOW', 'AWND',  # Existing 6
+        'SNWD', 'EVAP', 'RHAV', 'WSFG'  # New 4: snow depth, evap, humidity, gust
+    ]
 
     all_records = []
     offset = 1
@@ -373,10 +376,11 @@ def load_weather_data(
         return len(df)
 
     insert_query = """
-        INSERT INTO weather_noaa
+        INSERT INTO "raw"."weather_noaa_1d"
         (station_id, as_of_date, tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm, awnd_ms,
+         snwd_mm, evap_mm, rhav_pct, wsfg_ms,
          region, country, specialist_bucket, ingested_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (station_id, as_of_date)
         DO UPDATE SET
             tavg_c = EXCLUDED.tavg_c,
@@ -384,26 +388,43 @@ def load_weather_data(
             tmax_c = EXCLUDED.tmax_c,
             prcp_mm = EXCLUDED.prcp_mm,
             snow_mm = EXCLUDED.snow_mm,
-            awnd_ms = EXCLUDED.awnd_ms
+            awnd_ms = EXCLUDED.awnd_ms,
+            snwd_mm = EXCLUDED.snwd_mm,
+            evap_mm = EXCLUDED.evap_mm,
+            rhav_pct = EXCLUDED.rhav_pct,
+            wsfg_ms = EXCLUDED.wsfg_ms
     """
 
-    def safe_float(val):
+    # NOAA scale factors - different elements have different scales
+    NOAA_SCALE = {
+        'TMAX': 0.1, 'TMIN': 0.1, 'TAVG': 0.1,  # tenths of °C → °C
+        'PRCP': 0.1, 'EVAP': 0.1,               # tenths of mm → mm
+        'AWND': 0.1, 'WSFG': 0.1,               # tenths of m/s → m/s
+        'SNOW': 1.0, 'SNWD': 1.0,               # already in mm
+        'RHAV': 1.0,                             # percent (no scale)
+    }
+
+    def safe_float(val, element_code='default'):
         if pd.isna(val):
             return None
-        # NOAA reports in tenths, convert to actual units
-        return float(val) / 10.0
+        scale = NOAA_SCALE.get(element_code, 0.1)
+        return float(val) * scale
 
     batch = []
     for _, row in df.iterrows():
         batch.append((
             station_info['id'],
             row['date'],
-            safe_float(row.get('TAVG')),
-            safe_float(row.get('TMIN')),
-            safe_float(row.get('TMAX')),
-            safe_float(row.get('PRCP')),
-            float(row.get('SNOW', 0)) if pd.notna(row.get('SNOW')) else None,  # Snow already in mm
-            safe_float(row.get('AWND')),
+            safe_float(row.get('TAVG'), 'TAVG'),
+            safe_float(row.get('TMIN'), 'TMIN'),
+            safe_float(row.get('TMAX'), 'TMAX'),
+            safe_float(row.get('PRCP'), 'PRCP'),
+            safe_float(row.get('SNOW'), 'SNOW'),
+            safe_float(row.get('AWND'), 'AWND'),
+            safe_float(row.get('SNWD'), 'SNWD'),
+            safe_float(row.get('EVAP'), 'EVAP'),
+            safe_float(row.get('RHAV'), 'RHAV'),
+            safe_float(row.get('WSFG'), 'WSFG'),
             station_info['region'],
             station_info['country'],
             specialist_bucket,

@@ -1,4 +1,34 @@
 #!/usr/bin/env python3
+"""
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
+
+USE INSTEAD:
+    # Benchmarking should read from Prisma Postgres
+    # This script needs to be rewritten to use Prisma
+
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+
+Original description:
+Benchmark forecast accuracy (rolling backtest) - Reads ZL prices and runs backtests
+"""
+
+import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. Benchmarking should use Prisma Postgres.")
+print("")
+print("This script needs to be rewritten to use Prisma.")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
+
 """Benchmark forecast accuracy (rolling backtest).
 
 Goal

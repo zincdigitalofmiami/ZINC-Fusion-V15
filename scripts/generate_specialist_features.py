@@ -355,11 +355,12 @@ def load_rin_data(conn) -> pd.DataFrame:
 
 
 def load_weather_data(conn) -> pd.DataFrame:
-    """Load NOAA weather data aggregated by date."""
+    """Load NOAA weather data aggregated by date with expanded variables."""
     logger.info("Loading weather data...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date,
+                -- Core temperature & precipitation (existing)
                 AVG(tavg_c) as weather_tavg_global,
                 AVG(prcp_mm) as weather_prcp_global,
                 AVG(CASE WHEN country = 'Brazil' THEN tavg_c END) as weather_tavg_brazil,
@@ -367,18 +368,59 @@ def load_weather_data(conn) -> pd.DataFrame:
                 AVG(CASE WHEN country = 'United States' THEN tavg_c END) as weather_tavg_us,
                 AVG(CASE WHEN country = 'United States' THEN prcp_mm END) as weather_prcp_us,
                 AVG(CASE WHEN country = 'Argentina' THEN tavg_c END) as weather_tavg_argentina,
-                AVG(CASE WHEN country = 'Argentina' THEN prcp_mm END) as weather_prcp_argentina
+                AVG(CASE WHEN country = 'Argentina' THEN prcp_mm END) as weather_prcp_argentina,
+                -- NEW: Expanded weather variables (global aggregates)
+                AVG(rhav_pct) as weather_humidity_global,
+                AVG(snwd_mm) as weather_snow_depth_global,
+                MAX(wsfg_ms) as weather_max_gust_global,
+                AVG(evap_mm) as weather_evap_global,
+                -- NEW: Regional humidity
+                AVG(CASE WHEN country = 'United States' THEN rhav_pct END) as weather_humidity_us,
+                AVG(CASE WHEN country = 'Brazil' THEN rhav_pct END) as weather_humidity_brazil
             FROM "raw"."weather_noaa_1d"
             GROUP BY as_of_date
             ORDER BY as_of_date
         """)
         rows = cur.fetchall()
-    df = pd.DataFrame(rows, columns=["as_of_date", "weather_tavg_global", "weather_prcp_global",
-                                       "weather_tavg_brazil", "weather_prcp_brazil",
-                                       "weather_tavg_us", "weather_prcp_us",
-                                       "weather_tavg_argentina", "weather_prcp_argentina"])
+
+    columns = [
+        "as_of_date", "weather_tavg_global", "weather_prcp_global",
+        "weather_tavg_brazil", "weather_prcp_brazil",
+        "weather_tavg_us", "weather_prcp_us",
+        "weather_tavg_argentina", "weather_prcp_argentina",
+        # New columns
+        "weather_humidity_global", "weather_snow_depth_global",
+        "weather_max_gust_global", "weather_evap_global",
+        "weather_humidity_us", "weather_humidity_brazil"
+    ]
+    df = pd.DataFrame(rows, columns=columns)
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
-    logger.info(f"  Loaded {len(df):,} dates")
+    logger.info(f"  Loaded {len(df):,} dates with {len(columns)-1} weather features")
+    return df
+
+
+def add_weather_staleness(df: pd.DataFrame, time_col: str = 'as_of_date') -> pd.DataFrame:
+    """
+    Add *_age_days columns for sparse weather variables.
+    Tracks days since last fresh (non-null) observation.
+    Must be called BEFORE forward-fill.
+    """
+    sparse_cols = [
+        'weather_humidity_global', 'weather_evap_global',
+        'weather_snow_depth_global', 'weather_max_gust_global'
+    ]
+
+    t = pd.to_datetime(df[time_col])
+
+    for col in sparse_cols:
+        if col not in df.columns:
+            continue
+
+        fresh = df[col].notna()
+        last_fresh_time = t.where(fresh).ffill()
+        age = (t - last_fresh_time).dt.total_seconds() / 86400.0
+        df[f'{col}_age_days'] = age.fillna(0.0)
+
     return df
 
 
@@ -719,6 +761,12 @@ def generate_bucket_features(
     # These are binary and continuous features that capture Trump/policy-specific dynamics
     zl_df = add_trump_regime_features(zl_df)
     logger.info(f"    + Trump/policy regime: added")
+
+    # ==========================================================================
+    # ADD STALENESS COLUMNS (before forward-fill)
+    # ==========================================================================
+    zl_df = add_weather_staleness(zl_df, time_col="as_of_date")
+    logger.info(f"    + Weather staleness: added age columns for sparse vars")
 
     # ==========================================================================
     # FORWARD-FILL AND CLEAN

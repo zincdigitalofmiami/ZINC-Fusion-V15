@@ -8,7 +8,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List
 
-import duckdb
+# DuckDB is legacy/optional - only used for get_policy_sentiment
+try:
+    import duckdb
+    HAS_DUCKDB = True
+except ImportError:
+    HAS_DUCKDB = False
 
 from fusion.config import FUSION_DB_PATH
 
@@ -642,6 +647,10 @@ def analyze_articles(articles: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def get_policy_sentiment(limit: int = 30) -> List[Dict[str, Any]]:
+    """Legacy function - reads from DuckDB archive if available."""
+    if not HAS_DUCKDB:
+        # DuckDB not available - return empty (this data should be migrated to Prisma)
+        return []
     conn = duckdb.connect(FUSION_DB_PATH, read_only=True)
     try:
         exists = (

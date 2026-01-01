@@ -639,17 +639,24 @@ model weather_noaa {
   tmax_c            Float?
   prcp_mm           Float?
   snow_mm           Float?
-  region            String?   @db.VarChar(100)
-  ingested_at       DateTime? @default(now()) @db.Timestamp(6)
   awnd_ms           Float?
-  specialist_bucket String?   @db.VarChar(50)
+  // NEW columns for expanded weather variables
+  snwd_mm           Float?    // Snow depth (mm)
+  evap_mm           Float?    // Evaporation (mm)
+  rhav_pct          Float?    // Relative humidity avg (%)
+  wsfg_ms           Float?    // Peak wind gust (m/s)
+  // Metadata
+  region            String?   @db.VarChar(100)
   country           String?   @db.VarChar(50)
+  specialist_bucket String?   @db.VarChar(50)
+  ingested_at       DateTime? @default(now()) @db.Timestamp(6)
 
   @@unique([station_id, as_of_date])
   @@index([specialist_bucket], map: "idx_weather_bucket")
   @@index([as_of_date], map: "idx_weather_date")
   @@index([region], map: "idx_weather_region")
-  @@schema("public")
+  @@map("weather_noaa_1d")
+  @@schema("raw")
 }
 
 model dashboard_metrics {
