@@ -1,15 +1,37 @@
 #!/usr/bin/env python3
 """
+!!! DEPRECATED - DO NOT USE !!!
+================================
+This script uses DuckDB which is ARCHIVE ONLY.
+
+USE INSTEAD:
+    python scripts/train_core_chronos.py --horizon 5 --mode quick
+
+This script is kept for historical reference only.
+It will raise an error if you try to run it.
+
+Original description:
 ZINC-FUSION AutoGluon Training Script
 =====================================
 Reads from DuckDB → Trains TimeSeriesPredictor → Writes quantiles back
-
-Usage:
-    python scripts/train_autogluon.py
-
-Requirements:
-    pip install autogluon.timeseries duckdb pandas
 """
+
+import sys
+print("=" * 70)
+print("ERROR: This script is DEPRECATED!")
+print("=" * 70)
+print("")
+print("DuckDB is ARCHIVE ONLY. All training uses Prisma Postgres.")
+print("")
+print("USE INSTEAD:")
+print("    python scripts/train_core_chronos.py --horizon 5 --mode quick")
+print("    python scripts/train_core_chronos.py --horizon 21 --mode full")
+print("")
+print("See CLAUDE.md for the data architecture policy.")
+print("=" * 70)
+sys.exit(1)
+
+# --- ORIGINAL CODE BELOW (disabled) ---
 
 import os
 import sys

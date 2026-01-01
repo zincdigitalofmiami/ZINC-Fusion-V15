@@ -313,11 +313,14 @@ def fetch_station_data(
 
 
 def create_weather_table(conn):
-    """Create/update weather_noaa table with proper schema."""
+    """Create/update weather_noaa table with proper schema in raw schema."""
     with conn.cursor() as cur:
+        # Ensure raw schema exists and use it
+        cur.execute("CREATE SCHEMA IF NOT EXISTS raw")
+        cur.execute("SET search_path TO raw")
         # Add new columns if needed
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS weather_noaa (
+            CREATE TABLE IF NOT EXISTS raw.weather_noaa_1d (
                 id SERIAL PRIMARY KEY,
                 station_id VARCHAR(50) NOT NULL,
                 as_of_date DATE NOT NULL,

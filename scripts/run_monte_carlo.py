@@ -43,6 +43,18 @@ from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
 from scipy import stats
 
+# Add project root to path for imports
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# GARCH volatility forecasting
+from src.fusion.forecasting.volatility import (
+    fit_garch,
+    forecast_volatility,
+    garch_volatility_for_monte_carlo,
+    calculate_risk_metrics,
+)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -119,6 +131,33 @@ def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
     logger.info(f"  Loaded {len(df):,} predictions")
 
     return df
+
+
+def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
+    """Load historical ZL returns for GARCH calibration."""
+    logger.info(f"Loading {lookback_days} days of ZL returns for GARCH...")
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT as_of_date, close
+            FROM "raw"."market_futures_1d"
+            WHERE symbol = 'ZL'
+            ORDER BY as_of_date DESC
+            LIMIT %s
+        """, (lookback_days + 1,))
+
+        rows = cur.fetchall()
+
+    if len(rows) < 100:
+        logger.warning(f"Only {len(rows)} days of data - GARCH may be unstable")
+        return None
+
+    df = pd.DataFrame(rows, columns=['as_of_date', 'close'])
+    df = df.sort_values('as_of_date')
+    returns = df['close'].pct_change().dropna().values
+
+    logger.info(f"  Loaded {len(returns)} daily returns")
+    return returns
 
 
 def load_current_regime(conn, as_of_date: Optional[datetime] = None) -> str:
@@ -208,6 +247,73 @@ def simulate_paths_asymmetric(
         vol = np.where(shocks[:, t] > 0, daily_sigma_up, daily_sigma_down)
 
         # Price change (multiplicative for returns)
+        returns = shocks[:, t] * vol
+        paths[:, t + 1] = current_prices * (1 + returns)
+
+    return paths
+
+
+def simulate_paths_garch(
+    p10: float,
+    p50: float,
+    p90: float,
+    horizon: int,
+    historical_returns: np.ndarray,
+    vol_regime: str = 'normal',
+    n_sims: int = N_SIMULATIONS
+) -> np.ndarray:
+    """
+    Simulate price paths using GARCH volatility forecasting.
+
+    This is the ENHANCED simulation method that uses GJR-GARCH to forecast
+    volatility with proper clustering and asymmetry (leverage effect).
+
+    Args:
+        p10: 10th percentile forecast (floor)
+        p50: 50th percentile forecast (median)
+        p90: 90th percentile forecast (ceiling)
+        horizon: Forecast horizon in days
+        historical_returns: Historical return series for GARCH calibration
+        vol_regime: Current volatility regime
+        n_sims: Number of simulations
+
+    Returns:
+        Array of shape (n_sims, horizon+1) with simulated paths
+    """
+    np.random.seed(RANDOM_SEED)
+
+    # Fit GARCH model to historical returns
+    try:
+        garch_vol, upside_mult, downside_mult = garch_volatility_for_monte_carlo(
+            historical_returns, horizon=horizon, model_type='gjr-garch'
+        )
+        logger.info(f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}")
+    except Exception as e:
+        logger.warning(f"  GARCH fitting failed, falling back to asymmetric: {e}")
+        return simulate_paths_asymmetric(p10, p50, p90, horizon, vol_regime, n_sims)
+
+    # Regime adjustment on top of GARCH
+    vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
+
+    # Initialize paths
+    paths = np.zeros((n_sims, horizon + 1))
+    paths[:, 0] = p50  # Start at median forecast
+
+    # Generate shocks
+    shocks = np.random.standard_t(df=5, size=(n_sims, horizon))  # Fat-tailed shocks
+    shocks = shocks / np.std(shocks)  # Normalize to unit variance
+
+    # Apply GARCH-based diffusion
+    for t in range(horizon):
+        current_prices = paths[:, t]
+
+        # Daily volatility from GARCH forecast + regime adjustment
+        daily_vol = garch_vol[t] * vol_mult
+
+        # Asymmetric adjustment based on shock direction
+        vol = np.where(shocks[:, t] > 0, daily_vol * upside_mult, daily_vol * downside_mult)
+
+        # Price change (multiplicative)
         returns = shocks[:, t] * vol
         paths[:, t + 1] = current_prices * (1 + returns)
 
@@ -450,12 +556,19 @@ def save_monte_carlo_run(conn, as_of_date: datetime, horizon: int, path_percenti
     conn.commit()
 
 
-def run_monte_carlo(horizon: int, dry_run: bool = False) -> List[RiskMetrics]:
-    """Run Monte Carlo simulation for a given horizon (L5-A)."""
+def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True) -> List[RiskMetrics]:
+    """Run Monte Carlo simulation for a given horizon (L5-A).
+
+    Args:
+        horizon: Forecast horizon in days
+        dry_run: If True, validate without running
+        use_garch: If True, use GARCH volatility (recommended). Falls back to asymmetric if fails.
+    """
     logger.info("=" * 60)
     logger.info(f"L5-A MONTE CARLO SIMULATION @ {horizon}d")
     logger.info("=" * 60)
     logger.info(f"  N_SIMULATIONS: {N_SIMULATIONS:,}")
+    logger.info(f"  GARCH volatility: {'ENABLED' if use_garch else 'DISABLED'}")
     logger.info(f"  Asymmetric diffusion: ENABLED")
     logger.info(f"  Regime adjustment: ENABLED")
 
@@ -476,22 +589,41 @@ def run_monte_carlo(horizon: int, dry_run: bool = False) -> List[RiskMetrics]:
         regime = load_current_regime(conn)
         logger.info(f"  Current regime: {regime} (multiplier: {REGIME_MULTIPLIERS.get(regime, 1.0)})")
 
+        # Load historical returns for GARCH (if enabled)
+        historical_returns = None
+        if use_garch:
+            historical_returns = load_historical_returns(conn, lookback_days=500)
+            if historical_returns is None:
+                logger.warning("  Insufficient historical data, falling back to asymmetric diffusion")
+                use_garch = False
+
         all_metrics = []
-        model_version = f"mc_l5a_{horizon}d_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        model_version = f"mc_l5a_{horizon}d_{'garch' if use_garch else 'asym'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         for idx, row in predictions_df.iterrows():
             as_of_date = row['as_of_date']
             p10, p50, p90 = float(row['p10']), float(row['p50']), float(row['p90'])
 
-            # L5-A: Asymmetric path simulation
-            paths = simulate_paths_asymmetric(
-                p10=p10,
-                p50=p50,
-                p90=p90,
-                horizon=horizon,
-                vol_regime=regime,
-                n_sims=N_SIMULATIONS,
-            )
+            # L5-A: Path simulation (GARCH or asymmetric)
+            if use_garch and idx == 0:  # Only fit GARCH once for latest prediction
+                paths = simulate_paths_garch(
+                    p10=p10,
+                    p50=p50,
+                    p90=p90,
+                    horizon=horizon,
+                    historical_returns=historical_returns,
+                    vol_regime=regime,
+                    n_sims=N_SIMULATIONS,
+                )
+            else:
+                paths = simulate_paths_asymmetric(
+                    p10=p10,
+                    p50=p50,
+                    p90=p90,
+                    horizon=horizon,
+                    vol_regime=regime,
+                    n_sims=N_SIMULATIONS,
+                )
 
             # Compute terminal returns for risk metrics
             terminal_returns = (paths[:, -1] - paths[:, 0]) / paths[:, 0]

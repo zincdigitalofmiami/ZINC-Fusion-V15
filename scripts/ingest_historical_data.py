@@ -58,7 +58,7 @@ DATA_SOURCES = {
     "databento_extended": {
         "parquet": HIST_DATA_PATH
         / "Databricks Historical Databento/raw/databento_futures_ohlcv_1d_full_2010_plus.parquet",
-        "table": "raw_market_futures",
+        "table": "market_futures_1d",
         "merge": True,  # Merge with existing data
     },
 }
@@ -254,13 +254,13 @@ def load_cftc_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
 
 def load_extended_futures(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
-    """Merge extended futures data with existing raw_market_futures."""
+    """Merge extended futures data with existing market_futures_1d."""
     if dry_run:
         logger.info(f"  [DRY RUN] Would merge {len(df):,} futures rows")
         return 0
 
     insert_query = """
-        INSERT INTO raw_market_futures
+        INSERT INTO market_futures_1d
         (symbol, as_of_date, open, high, low, close, volume, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (symbol, as_of_date) DO NOTHING
@@ -345,7 +345,7 @@ def ingest_all(dry_run: bool = False):
         if not dry_run:
             logger.info("\n--- Verification ---")
             with conn.cursor() as cur:
-                for table in ["usda_export_sales", "cftc_cot", "raw_market_futures"]:
+                for table in ["usda_export_sales", "cftc_cot", "market_futures_1d"]:
                     try:
                         cur.execute(f"SELECT COUNT(*) FROM {table}")
                         count = cur.fetchone()[0]

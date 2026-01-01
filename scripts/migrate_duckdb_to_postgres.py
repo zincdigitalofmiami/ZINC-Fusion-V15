@@ -46,10 +46,11 @@ load_dotenv('.env.vercel')
 PROJECT_ROOT = Path(__file__).parent.parent
 DUCKDB_PATH = PROJECT_ROOT / "data" / "fusion.db"
 
-# Specialist buckets
+# Specialist buckets (11 specialists)
 SPECIALIST_BUCKETS = [
     "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes"
+    "energy", "biofuel", "palm", "volatility", "substitutes",
+    "trump_effect",  # 11th specialist: Trump/policy regime dynamics
 ]
 
 
@@ -105,7 +106,7 @@ def migrate_market_futures(duck_conn, pg_conn, dry_run: bool = False) -> Tuple[i
         return source_count, 0
 
     insert_query = """
-        INSERT INTO raw_market_futures (symbol, as_of_date, open, high, low, close, volume)
+        INSERT INTO market_futures_1d (symbol, as_of_date, open, high, low, close, volume)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (symbol, as_of_date) DO NOTHING
     """
@@ -148,7 +149,7 @@ def migrate_fred_observations(duck_conn, pg_conn, dry_run: bool = False) -> Tupl
         return source_count, 0
 
     insert_query = """
-        INSERT INTO raw_fred_observations (series_id, as_of_date, value)
+        INSERT INTO fred_observations_1d (series_id, as_of_date, value)
         VALUES (%s, %s, %s)
         ON CONFLICT (series_id, as_of_date) DO NOTHING
     """
@@ -191,7 +192,7 @@ def migrate_fx_spot(duck_conn, pg_conn, dry_run: bool = False) -> Tuple[int, int
         return source_count, 0
 
     insert_query = """
-        INSERT INTO raw_fx_spot (pair, as_of_date, rate)
+        INSERT INTO fx_spot_1d (pair, as_of_date, rate)
         VALUES (%s, %s, %s)
         ON CONFLICT (pair, as_of_date) DO NOTHING
     """
@@ -234,7 +235,7 @@ def migrate_epa_rin(duck_conn, pg_conn, dry_run: bool = False) -> Tuple[int, int
         return source_count, 0
 
     insert_query = """
-        INSERT INTO raw_epa_rin_prices (rin_type, as_of_date, price)
+        INSERT INTO epa_rin_prices_1d (rin_type, as_of_date, price)
         VALUES (%s, %s, %s)
         ON CONFLICT (rin_type, as_of_date) DO NOTHING
     """
@@ -378,10 +379,10 @@ def validate_migration(duck_conn, pg_conn) -> bool:
     all_valid = True
 
     checks = [
-        ("raw.market_futures_1d", "raw_market_futures", ""),
-        ("raw.fred_observations_1d", "raw_fred_observations", ""),
-        ("raw.fx_spot_1d", "raw_fx_spot", ""),
-        ("raw.epa_rin_prices_1d", "raw_epa_rin_prices", ""),
+        ("raw.market_futures_1d", "market_futures_1d", ""),
+        ("raw.fred_observations_1d", "fred_observations_1d", ""),
+        ("raw.fx_spot_1d", "fx_spot_1d", ""),
+        ("raw.epa_rin_prices_1d", "epa_rin_prices_1d", ""),
         ("training.oof_core_zl_1d", "oof_predictions", "source = 'core'"),
     ]
 
