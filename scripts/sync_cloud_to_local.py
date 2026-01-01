@@ -42,7 +42,7 @@ TRAINING_TABLES = {
     # Raw data for feature engineering
     "raw.market_futures_1d": {"key": "as_of_date", "incremental": True},
     "raw.market_futures_1h": {"key": "ts_event", "incremental": True},
-    "raw.fred_economic_wide_1d": {"key": "trade_date", "incremental": True},
+    "raw.fred_observations_1d": {"key": "as_of_date", "incremental": True},
     # Specialist tables for specialist model training
     "training.specialist_crush_1d": {"key": "as_of_date", "incremental": True},
     "training.specialist_crush_1h": {"key": "ts_event", "incremental": True},

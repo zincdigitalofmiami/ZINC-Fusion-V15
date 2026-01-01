@@ -248,7 +248,7 @@ def download_cftc_historical() -> pd.DataFrame:
 def transform_cftc_to_schema(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """
     Transform CFTC COT data into:
-    1. Raw table format (raw_cftc_cot)
+    1. Raw table format (cftc_cot_1w)
     2. Specialist feature format
 
     Returns:

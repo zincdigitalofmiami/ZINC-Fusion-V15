@@ -27,11 +27,31 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+import time
 import numpy as np
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+
+# Add project root to path for imports
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# ALL DATA POLICY ENFORCEMENT
+# ============================================================================
+# CRITICAL: This import enforces that ALL data sources are used.
+# Training WILL FAIL if any data source is missing.
+# DO NOT remove this import or bypass the enforcement.
+# ============================================================================
+from src.fusion.validation.all_data_policy import (
+    enforce_all_data_policy,
+    log_all_data_summary,
+)
+
+# MLflow Command Center - use relative import for scripts dir
+sys.path.insert(0, str(Path(__file__).parent))
+from mlflow_command_center import QuantMLCommandCenter
 
 # Setup logging
 logging.basicConfig(
@@ -43,8 +63,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 load_dotenv(".env.vercel")
 
-# Project paths
-PROJECT_ROOT = Path(__file__).parent.parent
+# Project paths (PROJECT_ROOT already defined above for imports)
 MODEL_PATH = PROJECT_ROOT / "models" / "core_chronos2"
 
 # Horizons
@@ -53,8 +72,43 @@ HORIZONS = [5, 21, 63, 126]
 # Quantile levels
 QUANTILE_LEVELS = [0.1, 0.5, 0.9]
 
+# =============================================================================
+# DATA ALIGNMENT STRATEGY:
+# 5d Core + Specialists (hourly): 2020+ with ALL sources
+# 21d/63d/126d Core + Specialists (daily): 2000+ with ALL sources (backfilled)
+# =============================================================================
+# Let AutoGluon handle sparse/missing data - it's designed for this.
+# FRED goes back to 1800s - include ALL of it.
+# If 2000+ ALL fails, fallback is 2000+ full-coverage only.
+CORE_START_DATE_5D = "2020-01-01"      # 5d uses 2020+ hourly
+CORE_START_DATE_DAILY = "2000-01-01"   # 21d/63d/126d use 2000+ daily
+
+# ALL sources included for ALL horizons:
+# - Market futures (all symbols)
+# - FRED economic (111 features, back to 1800s where available)
+# - Weather NOAA (from 2005)
+# - FX Spot (from 2000)
+# - CFTC COT (from 2010)
+# - EPA RIN (backfilled to 2010)
+# - USDA Exports (backfilled to 2000)
+# - USDA WASDE (backfilled to 2000)
+# - News (backfilled to 2000)
+#
+# =============================================================================
+# DATA FREQUENCY MAPPING:
+# =============================================================================
+# 1H (Hourly):  Symbol OHLCV (market hours only)
+# 1D (Daily):   FX Spot, RIN, FRED daily series, Weather, News
+# 1W (Weekly):  CFTC COT (Tuesday report), USDA Exports (Thursday)
+# 1M (Monthly): USDA WASDE (around 12th)
+#
+# TRAINING STRATEGY:
+# 5D MODEL:  Train on 1H base, forward-fill all 1D/1W/1M features
+# 21D/63D/126D MODEL: Train on 1D base, forward-fill 1W/1M features
+
 # Minimum data requirements
-MIN_ROWS = 1_000_000
+MIN_ROWS_1H = 50_000  # ~74K rows available from 2010
+MIN_ROWS_1D = 5_000   # ~6.5K rows available from 2000
 MIN_SYMBOLS = 50
 
 # Core covariates from FRED
@@ -73,9 +127,26 @@ def get_postgres_connection():
     return psycopg2.connect(database_url)
 
 
-def preflight_check(conn) -> bool:
-    """Verify data requirements before training."""
+def preflight_check(conn, horizon: int = 5) -> bool:
+    """Verify data requirements before training.
+
+    CRITICAL: This function enforces the ALL DATA policy.
+    Training WILL FAIL if any required data source is missing.
+    """
     logger.info("Running pre-flight data check...")
+
+    # =========================================================================
+    # ALL DATA POLICY ENFORCEMENT
+    # =========================================================================
+    # This validates that ALL required data sources are present.
+    # If ANY source is missing, training will NOT proceed.
+    # =========================================================================
+    try:
+        enforce_all_data_policy(conn, horizon=horizon, strict=True)
+        log_all_data_summary(conn, horizon=horizon)
+    except ValueError as e:
+        logger.error(f"ALL DATA POLICY VIOLATION: {e}")
+        return False
 
     with conn.cursor() as cur:
         # Check hourly data volume
@@ -90,9 +161,9 @@ def preflight_check(conn) -> bool:
 
         logger.info(f"  Hourly data: {total_rows:,} rows, {total_symbols} symbols")
 
-        if total_rows < MIN_ROWS:
+        if total_rows < MIN_ROWS_1H:
             logger.error(
-                f"  ❌ Insufficient rows: {total_rows:,} < {MIN_ROWS:,} required"
+                f"  ❌ Insufficient rows: {total_rows:,} < {MIN_ROWS_1H:,} required"
             )
             return False
 
@@ -102,70 +173,145 @@ def preflight_check(conn) -> bool:
             )
             return False
 
-        # Check FRED data
+        # Check FRED data (long format, needs 100K+ rows)
         cur.execute(
             """
-            SELECT COUNT(*) as rows
-            FROM "raw"."fred_economic_wide_1d"
+            SELECT COUNT(*) as rows, COUNT(DISTINCT series_id) as n_series
+            FROM "raw"."fred_observations_1d"
         """
         )
-        fred_rows = cur.fetchone()[0]
+        fred_rows, n_series = cur.fetchone()
 
-        logger.info(f"  FRED data: {fred_rows:,} rows")
+        logger.info(f"  FRED data: {fred_rows:,} rows, {n_series} series")
 
-        if fred_rows < 1000:
-            logger.error(f"  ❌ Insufficient FRED data: {fred_rows:,} rows")
+        if fred_rows < 100_000:
+            logger.error(f"  ❌ Insufficient FRED data: {fred_rows:,} rows (need 100K+)")
             return False
 
     logger.info("  ✅ Pre-flight check passed")
     return True
 
 
-def load_training_data(conn) -> pd.DataFrame:
-    """Load ALL training data from Prisma Postgres - EVERY TABLE."""
+def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
+    """
+    Load training data from Prisma Postgres with horizon-appropriate strategy.
+
+    Architecture:
+    - 5d horizon: Uses 1h data from 2020+ with ALL sources (including sparse)
+    - 21d/63d/126d horizons: Uses 1d data from 2000+ with ONLY full-coverage sources
+
+    All symbols are pivoted WIDE so each symbol's OHLCV becomes separate columns.
+    ZL is the target, other 83 symbols become covariates.
+    """
     from autogluon.timeseries import TimeSeriesDataFrame
 
     logger.info("=" * 60)
-    logger.info("LOADING ALL DATA FROM PRISMA")
+    logger.info("LOADING TRAINING DATA FROM PRISMA")
     logger.info("=" * 60)
 
-    # =========================================================================
-    # 1. BASE: Hourly market futures (4.97M rows)
-    # =========================================================================
-    logger.info("1. Loading hourly market futures...")
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT
-                symbol,
-                ts_event,
-                close as target,
-                open,
-                high,
-                low,
-                volume,
-                open_interest
-            FROM "raw"."market_futures_1h"
-            ORDER BY symbol, ts_event
-        """)
-        columns = [desc[0] for desc in cur.description]
-        rows = cur.fetchall()
-    df = pd.DataFrame(rows, columns=columns)
-    df["ts_event"] = pd.to_datetime(df["ts_event"])
-    df["trade_date"] = df["ts_event"].dt.date
-    logger.info(f"   Loaded {len(df):,} rows, {df['symbol'].nunique()} symbols")
+    # Determine frequency and date cutoff based on horizon
+    use_hourly = (horizon == 5)
+
+    if use_hourly:
+        start_date = CORE_START_DATE_5D
+        freq_label = "1h"
+    else:
+        start_date = CORE_START_DATE_DAILY
+        freq_label = "1d"
+
+    logger.info(f"Horizon: {horizon}d")
+    logger.info(f"Base frequency: {freq_label}")
+    logger.info(f"Start date: {start_date}")
+    logger.info(f"Strategy: ALL sources, forward-fill lower frequencies to base")
+    logger.info(f"  - Base: 1H symbols" if use_hourly else "  - Base: 1D symbols")
+    logger.info(f"  - Forward-fill: 1D (FX, RIN, FRED, Weather, News)")
+    logger.info(f"  - Forward-fill: 1W (COT, USDA Exports)")
+    logger.info(f"  - Forward-fill: 1M (WASDE)")
 
     # =========================================================================
-    # 2. FRED Economic Data (91 columns, 27K rows)
+    # 1. BASE: Market futures - PIVOT ALL SYMBOLS WIDE
     # =========================================================================
-    logger.info("2. Loading FRED economic data...")
-    with conn.cursor() as cur:
-        cur.execute('SELECT * FROM "raw"."fred_economic_wide_1d"')
-        fred_cols = [desc[0] for desc in cur.description]
-        fred_rows = cur.fetchall()
-    fred_df = pd.DataFrame(fred_rows, columns=fred_cols)
-    fred_df["trade_date"] = pd.to_datetime(fred_df["trade_date"]).dt.date
-    fred_features = [c for c in fred_cols if c != "trade_date"]
-    logger.info(f"   Loaded {len(fred_df):,} rows, {len(fred_features)} features")
+    if use_hourly:
+        logger.info(f"1. Loading hourly market futures >= {start_date}...")
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT symbol, ts_event, open, high, low, close, volume
+                FROM "raw"."market_futures_1h"
+                WHERE ts_event >= %s
+                ORDER BY ts_event, symbol
+            """, (start_date,))
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+        df_long = pd.DataFrame(rows, columns=columns)
+        df_long["ts_event"] = pd.to_datetime(df_long["ts_event"])
+        timestamp_col = "ts_event"
+    else:
+        logger.info(f"1. Loading daily market futures >= {start_date}...")
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
+                FROM "raw"."market_futures_1d"
+                WHERE as_of_date >= %s
+                ORDER BY as_of_date, symbol
+            """, (start_date,))
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+        df_long = pd.DataFrame(rows, columns=columns)
+        df_long["ts_event"] = pd.to_datetime(df_long["ts_event"])
+        timestamp_col = "ts_event"
+
+    n_symbols = df_long["symbol"].nunique()
+    logger.info(f"   Loaded {len(df_long):,} rows, {n_symbols} symbols")
+
+    # Pivot each OHLCV column wide by symbol
+    logger.info("   Pivoting symbols to wide format...")
+
+    # Create wide dataframe starting with timestamps from ZL
+    zl_data = df_long[df_long["symbol"] == "ZL"][["ts_event", "close"]].copy()
+    zl_data = zl_data.rename(columns={"close": "target"})
+    zl_data = zl_data.set_index("ts_event")
+
+    # Pivot each price column
+    for col in ["open", "high", "low", "close", "volume"]:
+        pivot = df_long.pivot(index="ts_event", columns="symbol", values=col)
+        pivot.columns = [f"{sym}_{col}" for sym in pivot.columns]
+        zl_data = zl_data.join(pivot, how="left")
+
+    df = zl_data.reset_index()
+    df["trade_date"] = df["ts_event"].dt.date
+
+    n_features = len([c for c in df.columns if c not in ["ts_event", "target", "trade_date"]])
+    logger.info(f"   Wide format: {len(df):,} rows, {n_features} symbol features")
+
+    # =========================================================================
+    # 2. FRED Economic Data (long format → pivot wide)
+    # =========================================================================
+    logger.info("2. Loading FRED economic data (long → pivot wide)...")
+    fred_long = pd.read_sql("""
+        SELECT as_of_date, series_id, value
+        FROM "raw"."fred_observations_1d"
+        ORDER BY as_of_date, series_id
+    """, conn)
+    logger.info(f"   Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
+
+    if fred_long.empty:
+        raise ValueError("FRED observations query returned 0 rows - check fred_observations_1d table")
+
+    # Pivot to wide format (each series becomes a column)
+    fred_df = (
+        fred_long.pivot(index="as_of_date", columns="series_id", values="value")
+        .sort_index()
+        .reset_index()
+    )
+    fred_df["trade_date"] = pd.to_datetime(fred_df["as_of_date"]).dt.date
+    fred_features = [c for c in fred_df.columns if c not in ("as_of_date", "trade_date")]
+
+    # Warn on high sparsity
+    missing_frac = fred_df[fred_features].isna().mean().mean()
+    if missing_frac > 0.50:
+        logger.warning(f"   ⚠️ FRED pivot has high missingness: {missing_frac:.1%}")
+
+    logger.info(f"   Wide format: {len(fred_df):,} rows, {len(fred_features)} FRED features")
 
     # =========================================================================
     # 3. WEATHER Data (215K rows) - aggregate by date for soy regions
@@ -185,7 +331,7 @@ def load_training_data(conn) -> pd.DataFrame:
                 AVG(CASE WHEN country = 'United States' THEN prcp_mm END) as weather_prcp_us,
                 AVG(CASE WHEN country = 'Argentina' THEN tavg_c END) as weather_tavg_argentina,
                 AVG(CASE WHEN country = 'Argentina' THEN prcp_mm END) as weather_prcp_argentina
-            FROM "raw"."weather_noaa"
+            FROM "raw"."weather_noaa_1d"
             GROUP BY as_of_date
             ORDER BY as_of_date
         """)
@@ -203,7 +349,7 @@ def load_training_data(conn) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT pair, as_of_date, rate
-            FROM "raw"."raw_fx_spot"
+            FROM "raw"."fx_spot_1d"
             ORDER BY as_of_date
         """)
         fx_rows = cur.fetchall()
@@ -229,7 +375,7 @@ def load_training_data(conn) -> pd.DataFrame:
                 managed_money_net_pct_oi as cot_mm_pct,
                 prod_merc_net as cot_prod_net,
                 prod_merc_net_pct_oi as cot_prod_pct
-            FROM "raw"."cftc_cot"
+            FROM "raw"."cftc_cot_1w"
             WHERE symbol IN ('ZL', 'ZS', 'ZM', 'CL')
             ORDER BY report_date, symbol
         """)
@@ -263,7 +409,7 @@ def load_training_data(conn) -> pd.DataFrame:
                 SUM(CASE WHEN commodity = 'Soybean Oil' THEN net_sales_mt END) as usda_zl_net_sales,
                 SUM(CASE WHEN commodity = 'Soybean Oil' THEN exports_mt END) as usda_zl_exports,
                 SUM(CASE WHEN commodity = 'Soybean Meal' THEN net_sales_mt END) as usda_zm_net_sales
-            FROM "raw"."usda_export_sales"
+            FROM "raw"."usda_export_sales_1w"
             GROUP BY report_date
             ORDER BY report_date
         """)
@@ -286,7 +432,7 @@ def load_training_data(conn) -> pd.DataFrame:
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'ending_stocks' THEN value END) as wasde_soy_stocks,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'production' THEN value END) as wasde_zl_production,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'exports' THEN value END) as wasde_zl_exports
-            FROM "raw"."usda_wasde"
+            FROM "raw"."usda_wasde_1m"
             GROUP BY report_date
             ORDER BY report_date
         """)
@@ -303,7 +449,7 @@ def load_training_data(conn) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT as_of_date, rin_type, price
-            FROM "raw"."raw_epa_rin_prices"
+            FROM "raw"."epa_rin_prices_1d"
             ORDER BY as_of_date
         """)
         rin_rows = cur.fetchall()
@@ -328,7 +474,7 @@ def load_training_data(conn) -> pd.DataFrame:
                 SUM(CASE WHEN zl_sentiment = 'bullish' THEN 1 ELSE 0 END) as news_bullish_count,
                 SUM(CASE WHEN zl_sentiment = 'bearish' THEN 1 ELSE 0 END) as news_bearish_count,
                 SUM(CASE WHEN is_trump_related THEN 1 ELSE 0 END) as news_trump_count
-            FROM "raw"."news_articles"
+            FROM "raw"."news_articles_1d"
             GROUP BY as_of_date
             ORDER BY as_of_date
         """)
@@ -339,14 +485,14 @@ def load_training_data(conn) -> pd.DataFrame:
     logger.info(f"   Loaded {len(news_df):,} dates, 5 news sentiment features")
 
     # =========================================================================
-    # JOIN ALL DATA TO BASE HOURLY DATA
+    # JOIN ALL DATA TO BASE (hourly for 5d, daily for 21d+)
     # =========================================================================
     logger.info("=" * 60)
-    logger.info("JOINING ALL FEATURES TO HOURLY BASE")
+    logger.info(f"JOINING ALL FEATURES TO {freq_label.upper()} BASE")
     logger.info("=" * 60)
 
-    # Start with base hourly data
-    logger.info(f"  Base: {len(df):,} hourly rows")
+    # Start with base data
+    logger.info(f"  Base: {len(df):,} {freq_label} rows")
 
     # Join FRED
     df = df.merge(fred_df, on="trade_date", how="left")
@@ -383,25 +529,40 @@ def load_training_data(conn) -> pd.DataFrame:
     # Drop trade_date helper column
     df = df.drop(columns=["trade_date"])
 
-    # Sort and forward-fill within each symbol
-    df = df.sort_values(["symbol", "ts_event"])
-    logger.info("  Forward-filling all features per symbol...")
-    df = df.set_index("symbol").groupby(level=0, group_keys=False).apply(lambda g: g.ffill()).reset_index()
+    # =========================================================================
+    # DATA IS ALREADY PIVOTED WIDE - no symbol column exists
+    # ZL close is "target", all other symbols are covariates (e.g., BTC_close)
+    # =========================================================================
 
-    # Drop rows with no target
+    # Sort by timestamp and forward-fill all features
+    df = df.sort_values("ts_event")
+    logger.info("  Forward-filling all features...")
+    df = df.ffill()
+
+    # Drop rows with no target (ZL close)
     df = df.dropna(subset=["target"])
 
-    # Count total features
-    feature_cols = [c for c in df.columns if c not in ["symbol", "ts_event", "target"]]
+    # Count total features (all symbol covariates + FRED + weather + FX + COT + USDA + RIN + news)
+    feature_cols = [c for c in df.columns if c not in ["ts_event", "target", "item_id"]]
+
+    # Add item_id for TimeSeriesDataFrame (single item = ZL)
+    df["item_id"] = "ZL"
 
     logger.info("=" * 60)
-    logger.info(f"FINAL DATASET: {len(df):,} rows, {df['symbol'].nunique()} symbols, {len(feature_cols)} features")
+    logger.info(f"FINAL DATASET: {len(df):,} ZL rows with {len(feature_cols)} covariate features")
+    logger.info(f"  Symbol covariates: {len([c for c in feature_cols if any(c.startswith(s+'_') for s in ['BTC','ES','CL','GC','ZS','ZW','ZC'])])}")
+    logger.info(f"  FRED features: {len([c for c in feature_cols if c in fred_features])}")
+    logger.info(f"  Other features: weather, FX, COT, USDA, RIN, news")
     logger.info("=" * 60)
 
-    # Convert to TimeSeriesDataFrame
+    # Convert to TimeSeriesDataFrame with single item_id
     ts_df = TimeSeriesDataFrame.from_data_frame(
-        df, id_column="symbol", timestamp_column="ts_event"
+        df, id_column="item_id", timestamp_column="ts_event"
     )
+
+    # Hardening: Verify we have exactly 1 item (ZL)
+    assert ts_df.num_items == 1, f"Expected 1 item_id, got {ts_df.num_items}"
+    logger.info(f"✓ TimeSeriesDataFrame: {ts_df.num_items} item, {len(ts_df):,} rows")
 
     return ts_df
 
@@ -410,17 +571,24 @@ def train_chronos2_model(ts_data, horizon: int, model_path: Path, mode: str = "q
     """Train with AutoGluon 1.5 TimeSeriesPredictor."""
     from autogluon.timeseries import TimeSeriesPredictor
 
-    # Time limits by mode
+    # Time limits by mode - increased for 9.5M row dataset
     time_limits = {
-        "ultrafast": 2400,   # 40 minutes (needed for large dataset + Chronos-2)
-        "quick": 3600,       # 1 hour
-        "full": 14400,       # 4 hours
+        "ultrafast": 3600,   # 1 hour - fast statistical models only
+        "quick": 7200,       # 2 hours - Chronos-2 needs more time on large data
+        "full": 14400,       # 4 hours - full AutoML ensemble
     }
-    time_limit = time_limits.get(mode, 3600)
+    time_limit = time_limits.get(mode, 7200)
     is_full = mode == "full"
+
+    # Determine frequency based on horizon
+    # 5d horizon uses hourly (1h) data, 21d/63d/126d use daily (1d) data
+    use_hourly = (horizon == 5)
+    freq = "h" if use_hourly else "D"
+    freq_label = "hourly" if use_hourly else "daily"
 
     logger.info(f"Training AutoGluon TimeSeriesPredictor for {horizon}d horizon")
     logger.info(f"  Mode: {mode}")
+    logger.info(f"  Frequency: {freq_label} ({freq})")
     logger.info(f"  Dataset: {len(ts_data):,} rows, {ts_data.num_items} series")
     logger.info(f"  Time limit: {time_limit // 60} minutes")
     logger.info(f"  Preset: best_quality")
@@ -439,7 +607,7 @@ def train_chronos2_model(ts_data, horizon: int, model_path: Path, mode: str = "q
         target="target",
         eval_metric="MASE",
         quantile_levels=QUANTILE_LEVELS,
-        freq="H",  # Hourly data
+        freq=freq,  # Hourly for 5d, Daily for 21d/63d/126d
         verbosity=2,
     )
 
@@ -450,16 +618,31 @@ def train_chronos2_model(ts_data, horizon: int, model_path: Path, mode: str = "q
         "presets": "best_quality",
     }
 
-    # Ultrafast mode: minimize validation overhead
+    # Ultrafast mode: fast statistical models only (no deep learning)
     if mode == "ultrafast":
-        fit_kwargs["num_val_windows"] = 1  # Single validation window for speed
+        fit_kwargs["num_val_windows"] = 1
         fit_kwargs["hyperparameters"] = {
-            "Chronos2": {"model_path": "autogluon/chronos-2"},
+            "SeasonalNaive": {},
+            "AutoETS": {},
+            "DynamicOptimizedTheta": {},
         }
-    # Quick mode: Chronos-2 only (using correct AutoGluon 1.5 key)
+    # Quick mode: Chronos-2 with LoRA fine-tuning + fast models
     elif not is_full:
         fit_kwargs["hyperparameters"] = {
-            "Chronos2": {"model_path": "autogluon/chronos-2"},
+            "Chronos2": {
+                "model_path": "autogluon/chronos-2",
+                "cross_learning": False,       # Explicit: single item_id
+                "fine_tune": True,
+                "fine_tune_mode": "lora",      # Stable fine-tuning
+                "fine_tune_lr": 1e-5,          # Conservative learning rate
+                "fine_tune_steps": 500,
+                "fine_tune_batch_size": 16,
+                "fine_tune_trainer_kwargs": {
+                    "max_grad_norm": 1.0,      # Gradient clipping for stability
+                    "warmup_ratio": 0.05,
+                },
+            },
+            "AutoETS": {},  # Fast fallback
         }
 
     # Train
@@ -558,13 +741,14 @@ def train_core_chronos2(horizon: int, mode: str = "quick", dry_run: bool = False
     conn = get_postgres_connection()
 
     try:
-        # Preflight check
-        if not preflight_check(conn):
-            logger.error("Preflight check failed - insufficient data for training")
+        # Preflight check with ALL DATA enforcement
+        if not preflight_check(conn, horizon=horizon):
+            logger.error("Preflight check failed - ALL DATA policy violation or insufficient data")
             sys.exit(1)
 
         # Load FULL training data from Prisma
-        ts_data = load_training_data(conn)
+        # 5d horizon uses 1h data, 21d/63d/126d use 1d data
+        ts_data = load_training_data(conn, horizon=horizon)
 
         model_version = f"chronos2_ag15_{mode}_h{horizon}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         model_path = MODEL_PATH / f"horizon_{horizon}d"
@@ -577,15 +761,35 @@ def train_core_chronos2(horizon: int, mode: str = "quick", dry_run: bool = False
             logger.info(f"[DRY RUN] Output: {model_path}")
             return
 
-        # Train model
-        predictor = train_chronos2_model(ts_data, horizon, model_path, mode=mode)
+        # Initialize MLflow Command Center
+        cmd = QuantMLCommandCenter()
 
-        # Save predictions
-        saved = save_predictions(conn, predictor, ts_data, horizon, model_version)
+        # Use new context manager with hierarchical experiments
+        with cmd.training_run("core", horizon=horizon, mode=mode,
+                             tags={"model_version": model_version}) as tracker:
 
-        logger.info(
-            f"\n✅ Completed {mode} training @ {horizon}d ({saved:,} predictions)"
-        )
+            # Log dataset with lineage
+            ts_df = ts_data.to_dataframe() if hasattr(ts_data, 'to_dataframe') else ts_data
+            tracker.log_dataset(
+                ts_df,
+                context="training",
+                name=f"core_h{horizon}d_training",
+                source="prisma://raw.market_futures_1h"
+            )
+
+            # Train model with timing
+            start_time = time.time()
+            predictor = train_chronos2_model(ts_data, horizon, model_path, mode=mode)
+            training_time = time.time() - start_time
+
+            # Log complete model with charts
+            tracker.log_model_complete(predictor, training_time, generate_charts=True)
+
+            # Save predictions to database
+            saved = save_predictions(conn, predictor, ts_data, horizon, model_version)
+            tracker.log_live_metric("predictions_saved", saved)
+
+            logger.info(f"\n✅ Completed {mode} training @ {horizon}d ({saved:,} predictions)")
 
     finally:
         conn.close()

@@ -62,12 +62,12 @@ DATA_SOURCES = {
             MOTHERDUCK_RAW / "databento_futures_ohlcv_1d.parquet",
             DATABRICKS_RAW / "databento_futures_ohlcv_1d_full_2010_plus.parquet",
         ],
-        "table": "raw_market_futures",
+        "table": "market_futures_1d",
         "priority": 1,
     },
     "fred": {
         "files": [MOTHERDUCK_RAW / "fred_economic.parquet"],
-        "table": "raw_fred_observations",
+        "table": "fred_observations_1d",
         "priority": 1,
     },
     "cftc": {
@@ -95,7 +95,7 @@ DATA_SOURCES = {
     },
     "options": {
         "files": [MOTHERDUCK_RAW / "databento_options_ohlcv_1d.parquet"],
-        "table": "raw_options_futures",
+        "table": "options_futures_1d",
         "priority": 3,
     },
     "fred_metadata": {
@@ -147,11 +147,11 @@ def safe_str(val, max_len: int = 255):
 
 
 def create_futures_table(conn):
-    """Create raw_market_futures table."""
+    """Create market_futures_1d table."""
     with conn.cursor() as cur:
         cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS raw_market_futures (
+            CREATE TABLE IF NOT EXISTS market_futures_1d (
                 id SERIAL PRIMARY KEY,
                 symbol VARCHAR(20) NOT NULL,
                 as_of_date DATE NOT NULL,
@@ -167,21 +167,21 @@ def create_futures_table(conn):
         """
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_futures_symbol ON raw_market_futures(symbol)"
+            "CREATE INDEX IF NOT EXISTS idx_futures_symbol ON market_futures_1d(symbol)"
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_futures_date ON raw_market_futures(as_of_date)"
+            "CREATE INDEX IF NOT EXISTS idx_futures_date ON market_futures_1d(as_of_date)"
         )
     conn.commit()
-    logger.info("  Created raw_market_futures table")
+    logger.info("  Created market_futures_1d table")
 
 
 def create_fred_table(conn):
-    """Create raw_fred_observations table."""
+    """Create fred_observations_1d table."""
     with conn.cursor() as cur:
         cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS raw_fred_observations (
+            CREATE TABLE IF NOT EXISTS fred_observations_1d (
                 id SERIAL PRIMARY KEY,
                 series_id VARCHAR(50) NOT NULL,
                 as_of_date DATE NOT NULL,
@@ -193,13 +193,13 @@ def create_fred_table(conn):
         """
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_fred_series ON raw_fred_observations(series_id)"
+            "CREATE INDEX IF NOT EXISTS idx_fred_series ON fred_observations_1d(series_id)"
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_fred_date ON raw_fred_observations(as_of_date)"
+            "CREATE INDEX IF NOT EXISTS idx_fred_date ON fred_observations_1d(as_of_date)"
         )
     conn.commit()
-    logger.info("  Created raw_fred_observations table")
+    logger.info("  Created fred_observations_1d table")
 
 
 def create_cftc_table(conn):
@@ -330,11 +330,11 @@ def create_weather_table(conn):
 
 
 def create_options_table(conn):
-    """Create raw_options_futures table."""
+    """Create options_futures_1d table."""
     with conn.cursor() as cur:
         cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS raw_options_futures (
+            CREATE TABLE IF NOT EXISTS options_futures_1d (
                 id SERIAL PRIMARY KEY,
                 symbol VARCHAR(50) NOT NULL,
                 as_of_date DATE NOT NULL,
@@ -353,13 +353,13 @@ def create_options_table(conn):
         """
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_options_symbol ON raw_options_futures(symbol)"
+            "CREATE INDEX IF NOT EXISTS idx_options_symbol ON options_futures_1d(symbol)"
         )
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_options_date ON raw_options_futures(as_of_date)"
+            "CREATE INDEX IF NOT EXISTS idx_options_date ON options_futures_1d(as_of_date)"
         )
     conn.commit()
-    logger.info("  Created raw_options_futures table")
+    logger.info("  Created options_futures_1d table")
 
 
 def create_fred_metadata_table(conn):
@@ -399,7 +399,7 @@ def load_futures_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
         return 0
 
     insert_query = """
-        INSERT INTO raw_market_futures
+        INSERT INTO market_futures_1d
         (symbol, as_of_date, open, high, low, close, volume, open_interest, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (symbol, as_of_date)
@@ -447,7 +447,7 @@ def load_fred_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
         return 0
 
     insert_query = """
-        INSERT INTO raw_fred_observations
+        INSERT INTO fred_observations_1d
         (series_id, as_of_date, value, source, created_at)
         VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (series_id, as_of_date)
@@ -669,7 +669,7 @@ def load_options_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
         return 0
 
     insert_query = """
-        INSERT INTO raw_options_futures
+        INSERT INTO options_futures_1d
         (symbol, as_of_date, open, high, low, close, volume, open_interest, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (symbol, as_of_date)

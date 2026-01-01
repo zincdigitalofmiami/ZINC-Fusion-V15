@@ -63,10 +63,11 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 # Horizons
 HORIZONS = [5, 21, 63, 126]
 
-# Specialist buckets
+# Specialist buckets (11 specialists)
 SPECIALIST_BUCKETS = [
     "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes"
+    "energy", "biofuel", "palm", "volatility", "substitutes",
+    "trump_effect",  # 11th specialist: Trump/policy regime dynamics
 ]
 
 

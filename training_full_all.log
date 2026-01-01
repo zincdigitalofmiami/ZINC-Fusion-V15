@@ -1,0 +1,688 @@
+2025-12-31 16:04:10,202 - INFO - ============================================================
+2025-12-31 16:04:10,202 - INFO - TRAINING CORE MODEL (CHRONOS-2 + AUTOGLUON 1.5) @ 5d
+2025-12-31 16:04:10,202 - INFO - Mode: full
+2025-12-31 16:04:10,202 - INFO - ============================================================
+2025-12-31 16:04:13,660 - INFO - Running pre-flight data check...
+2025-12-31 16:04:14,233 - INFO -   Hourly data: 4,967,276 rows, 84 symbols
+2025-12-31 16:04:14,272 - INFO -   FRED data: 27,115 rows
+2025-12-31 16:04:14,272 - INFO -   ✅ Pre-flight check passed
+2025-12-31 16:04:15,179 - INFO - ============================================================
+2025-12-31 16:04:15,179 - INFO - LOADING ALL DATA FROM PRISMA
+2025-12-31 16:04:15,179 - INFO - ============================================================
+2025-12-31 16:04:15,179 - INFO - 1. Loading hourly market futures...
+2025-12-31 16:04:44,772 - INFO -    Loaded 4,967,276 rows, 84 symbols
+2025-12-31 16:04:44,772 - INFO - 2. Loading FRED economic data...
+2025-12-31 16:04:45,091 - INFO -    Loaded 27,115 rows, 111 FRED features
+2025-12-31 16:04:45,092 - INFO - 3. Loading NOAA weather data...
+2025-12-31 16:04:45,379 - INFO -    Loaded 7,659 daily aggregates, 10 weather features
+2025-12-31 16:04:45,379 - INFO - 4. Loading spot FX data...
+2025-12-31 16:04:45,929 - INFO -    Loaded 11,260 dates, 30 FX pairs
+2025-12-31 16:04:45,929 - INFO - 5. Loading CFTC COT positioning...
+2025-12-31 16:04:46,022 - INFO -    Loaded 830 dates, 20 COT features
+2025-12-31 16:04:46,022 - INFO - 6. Loading USDA export sales...
+2025-12-31 16:04:46,068 - INFO -    Loaded 311 dates, 5 USDA export features
+2025-12-31 16:04:46,069 - INFO - 7. Loading USDA WASDE fundamentals...
+2025-12-31 16:04:46,109 - INFO -    Loaded 72 dates, 5 WASDE features
+2025-12-31 16:04:46,109 - INFO - 8. Loading EPA RIN prices...
+2025-12-31 16:04:46,225 - INFO -    Loaded 52 dates, 4 RIN prices
+2025-12-31 16:04:46,225 - INFO - 9. Loading news sentiment...
+2025-12-31 16:04:46,343 - INFO -    Loaded 260 dates, 5 news sentiment features
+2025-12-31 16:04:46,343 - INFO - ============================================================
+2025-12-31 16:04:46,344 - INFO - JOINING ALL FEATURES TO HOURLY BASE
+2025-12-31 16:04:46,346 - INFO - ============================================================
+2025-12-31 16:04:46,346 - INFO -   Base: 4,967,276 hourly rows
+2025-12-31 16:04:47,429 - INFO -   + FRED: 111 features
+2025-12-31 16:04:51,005 - INFO -   + Weather: 10 features
+2025-12-31 16:04:54,936 - INFO -   + Spot FX: 30 features
+2025-12-31 16:05:00,064 - INFO -   + CFTC COT: 20 features
+2025-12-31 16:05:05,670 - INFO -   + USDA Exports: 5 features
+2025-12-31 16:05:12,170 - INFO -   + USDA WASDE: 5 features
+2025-12-31 16:05:18,523 - INFO -   + EPA RINs: 4 features
+2025-12-31 16:05:25,412 - INFO -   + News: 5 features
+2025-12-31 16:05:33,755 - INFO -   Forward-filling all features per symbol...
+2025-12-31 16:06:01,361 - INFO - ============================================================
+2025-12-31 16:06:01,443 - INFO - FINAL DATASET: 4,967,276 rows, 84 symbols, 196 features
+2025-12-31 16:06:01,443 - INFO - ============================================================
+2025-12-31 16:06:05,453 - INFO - Connected to Railway MLflow: https://mlflow-tracking-production-1916.up.railway.app
+2025-12-31 16:06:05,477 - INFO - QuantMLCommandCenter initialized @ https://mlflow-tracking-production-1916.up.railway.app
+2025-12-31 16:06:07,024 - INFO - Started run: core_h5d_full_20251231_160606 (experiment: zinc-fusion/core/h5d)
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/mlflow/data/dataset_source_registry.py:148: UserWarning: Failed to determine whether UCVolumeDatasetSource can resolve source information for 'prisma://raw.market_futures_1h'. Exception: 
+  return _dataset_source_registry.resolve(
+2025-12-31 16:06:08,298 - WARNING - Could not log MLflow dataset: Could not find a source information resolver for the specified dataset source: prisma://raw.market_futures_1h.
+2025-12-31 16:06:08,937 - INFO - Logged training dataset: core_h5d_training (4,967,276 rows)
+2025-12-31 16:06:08,937 - INFO - Training AutoGluon TimeSeriesPredictor for 5d horizon
+2025-12-31 16:06:08,937 - INFO -   Mode: full
+2025-12-31 16:06:08,957 - INFO -   Dataset: 4,967,276 rows, 84 series
+2025-12-31 16:06:08,957 - INFO -   Time limit: 240 minutes
+2025-12-31 16:06:08,957 - INFO -   Preset: best_quality
+2025-12-31 16:06:08,957 - INFO -   Models: Full AutoML ensemble (DeepAR, PatchTST, Chronos-2, etc.)
+Warning: path already exists! This predictor may overwrite an existing predictor! path="/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d"
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/predictor.py:197: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  offset = pd.tseries.frequencies.to_offset(self.freq)
+Frequency 'H' stored as 'h'
+Beginning AutoGluon training... Time limit = 14400s
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.1.0: Mon Oct 20 19:34:05 PDT 2025; root:xnu-12377.41.6~2/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Count:          WARNING: Exception was raised when calculating GPU count (AssertionError)
+Memory Avail:       12.54 GB / 24.00 GB (52.3%)
+Disk Space Avail:   816.53 GB / 931.32 GB (87.7%)
+===================================================
+Setting presets to: best_quality
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'freq': 'h',
+ 'hyperparameters': 'default',
+ 'known_covariates_names': [],
+ 'num_val_windows': 'auto',
+ 'prediction_length': 5,
+ 'quantile_levels': [0.1, 0.5, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 'auto',
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 14400,
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'h'.
+Provided train_data has 9549629 rows (NaN fraction=48.0%), 84 time series. Median time series length is 136100 (min=29408, max=136104). 
+Automatically setting num_val_windows=(3,) based on dataset properties
+Automatically setting refit_every_n_windows=2 based on num_val_windows
+
+Provided data contains following columns:
+	target: 'target'
+	past_covariates:
+		categorical:        ['open_interest']
+		continuous (float): ['open', 'high', 'low', 'volume', 'APU000074714', 'BAMLH0A0HYM2', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['SP500_HISTORICAL', 'as_of_date', 'fx_DEXHKUS', 'fx_DEXJPUS', 'fx_DEXKOUS', 'fx_DEXNOUS', 'fx_DEXSFUS', 'fx_DEXSIUS', 'fx_DEXSZUS', 'fx_DEXTAUS', 'fx_DEXTHUS', 'fx_DEXUSAL', 'fx_DEXUSUK', 'news_bearish_count']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2025-12-31 16:12:22
+Models that will be trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'Chronos2', 'Chronos2SmallFineTuned', 'AutoETS', 'ChronosWithRegressor[bolt_small]', 'TemporalFusionTransformer', 'DeepAR']
+Training timeseries model SeasonalNaive. Training for up to 1361.5s of the 14215.0s of remaining time.
+	-29.9945      = Validation score (-MASE)
+	77.69   s     = Training runtime
+	0.21    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. Training for up to 1504.1s of the 14136.9s of remaining time.
+	-32.5370      = Validation score (-MASE)
+	170.34  s     = Training runtime
+	17.63   s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. Training for up to 1668.6s of the 13948.8s of remaining time.
+	-44.0506      = Validation score (-MASE)
+	198.57  s     = Training runtime
+	17.70   s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. Training for up to 1876.0s of the 13732.3s of remaining time.
+	-28.8385      = Validation score (-MASE)
+	154.23  s     = Training runtime
+	17.90   s     = Validation (prediction) runtime
+Training timeseries model Chronos2. Training for up to 2160.0s of the 13560.0s of remaining time.
+	Time limit exceeded... Skipping Chronos2.
+Training timeseries model Chronos2SmallFineTuned. Training for up to 2154.3s of the 11371.6s of remaining time.
+2025-12-31 17:00:25,453 - INFO - Using LoRA. Number of trainable parameters: 411264, total parameters: 28345888.
+2025-12-31 17:17:46,300 - INFO - Finetuned model saved to /Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d/models/Chronos2SmallFineTuned/W0/fine-tuned-ckpt
+	Time limit exceeded... Skipping Chronos2SmallFineTuned.
+Training timeseries model AutoETS. Training for up to 2149.4s of the 9197.5s of remaining time.
+	-6.9733       = Validation score (-MASE)
+	143.32  s     = Training runtime
+	19.67   s     = Validation (prediction) runtime
+Training timeseries model ChronosWithRegressor[bolt_small]. Training for up to 2811.4s of the 9034.2s of remaining time.
+	Skipping covariate_regressor since the dataset contains no known_covariates or static_features.
+	Skipping covariate_regressor since the dataset contains no known_covariates or static_features.
+	-29.4147      = Validation score (-MASE)
+	151.08  s     = Training runtime
+	3.61    s     = Validation (prediction) runtime
+Training timeseries model TemporalFusionTransformer. Training for up to 4139.7s of the 8879.4s of remaining time.
+	Warning: Exception caused TemporalFusionTransformer to fail during training... Skipping this model.
+Traceback (most recent call last):
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/trainer/trainer.py", line 353, in _train_and_save
+    model.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/abstract/abstract_timeseries_model.py", line 529, in fit
+    self._fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/multi_window/multi_window_model.py", line 141, in _fit
+    model.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/abstract/abstract_timeseries_model.py", line 529, in fit
+    self._fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/gluonts/abstract.py", line 426, in _fit
+    self.gts_predictor = estimator.train(
+                         ^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/estimator.py", line 246, in train
+    return self.train_model(
+           ^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/estimator.py", line 209, in train_model
+    trainer.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 560, in fit
+    call._call_and_handle_interrupt(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/call.py", line 49, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 598, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 991, in _run
+    call._call_callback_hooks(self, "on_fit_start")
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/call.py", line 228, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/callbacks/model_summary.py", line 64, in on_fit_start
+    model_summary = self._summary(trainer, pl_module)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/callbacks/model_summary.py", line 86, in _summary
+    return summarize(pl_module, max_depth=self._max_depth)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 515, in summarize
+    return ModelSummary(lightning_module, max_depth=max_depth)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 217, in __init__
+    self._layer_summary = self.summarize()
+                          ^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 301, in summarize
+    self._forward_example_input()
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 332, in _forward_example_input
+    model(**input_)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/lightning_module.py", line 63, in forward
+    return self.model(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1881, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1829, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/module.py", line 361, in forward
+    ) = self._preprocess(
+        ^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/module.py", line 311, in _preprocess
+    embs = self.past_feat_dynamic_embed(past_feat_dynamic_cat)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/layers.py", line 27, in forward
+    concat_features = super().forward(features=features)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/modules/feature.py", line 45, in forward
+    embed(cat_feature_slice.squeeze(-1))
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/sparse.py", line 192, in forward
+    return F.embedding(
+           ^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/functional.py", line 2542, in embedding
+    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: index_select(): self indexing axis dim should be positive
+
+Training timeseries model DeepAR. Training for up to 8099.6s of the 8699.6s of remaining time.
+	-5861.8359    = Validation score (-MASE)
+	355.39  s     = Training runtime
+	3.57    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. Training for up to 8297.3s.
+	Warning: Exception caused GreedyEnsemble to fail during training... Skipping this model.
+	
+Training complete. Models trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'AutoETS', 'ChronosWithRegressor[bolt_small]', 'DeepAR']
+Total runtime: 5949.45 s
+Best model: AutoETS
+Best model score: -6.9733
+2025-12-31 17:51:33,110 - INFO - 
+============================================================
+2025-12-31 17:51:33,110 - INFO - MODEL LEADERBOARD
+2025-12-31 17:51:33,110 - INFO - ============================================================
+2025-12-31 17:51:33,120 - INFO - 
+                              model    score_val  ...  fit_time_marginal  fit_order
+0                           AutoETS    -6.973298  ...         143.322513          5
+1             DynamicOptimizedTheta   -28.838505  ...         154.229180          4
+2  ChronosWithRegressor[bolt_small]   -29.414655  ...         151.083116          6
+3                     SeasonalNaive   -29.994540  ...          77.692456          1
+4                  RecursiveTabular   -32.537042  ...         170.344631          2
+5                     DirectTabular   -44.050616  ...         198.573317          3
+6                            DeepAR -5861.835944  ...         355.386200          7
+
+[7 rows x 5 columns]
+2025-12-31 17:51:33,120 - INFO - 
+Best model: AutoETS
+2025-12-31 17:51:35,309 - WARNING - Could not get leaderboard: INVALID_PARAMETER_VALUE: Invalid metric name: 'model/ChronosWithRegressor[bolt_small]/mase'. Names may only contain alphanumerics, underscores (_), dashes (-), periods (.), spaces ( ), and slashes (/).
+2025-12-31 17:51:38,219 - INFO - Logged model artifact: /Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_5d
+2025-12-31 17:51:38,409 - INFO - Logged complete model: AutoETS (MASE=-6.9733)
+2025-12-31 17:51:38,409 - INFO - Generating predictions
+data with frequency 'IRREG' has been resampled to frequency 'h'.
+Model not specified in predict, will default to the model with the best validation score: AutoETS
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: divide by zero encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: overflow encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: invalid value encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: divide by zero encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: overflow encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: invalid value encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: divide by zero encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: overflow encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: invalid value encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: divide by zero encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: overflow encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: invalid value encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: divide by zero encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: overflow encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: invalid value encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: divide by zero encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: overflow encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: invalid value encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: divide by zero encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: overflow encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: invalid value encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: divide by zero encountered in matmul
+  exp5 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: overflow encountered in matmul
+  exp5 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: invalid value encountered in matmul
+  exp5 = np.matmul(
+2025-12-31 17:58:51,648 - INFO -   Generated 420 predictions across 84 series
+2025-12-31 17:58:51,739 - INFO -   Cleared existing core predictions for 5d
+2025-12-31 17:58:52,359 - INFO -   Saved 420 predictions to model.oof_predictions
+2025-12-31 17:58:55,788 - INFO - 
+✅ Completed full training @ 5d (420 predictions)
+2025-12-31 17:58:56,943 - INFO - Ended run: 743e1d956ef841e9923abfbc4b3d3e66
+2025-12-31 17:58:58,066 - INFO - ============================================================
+2025-12-31 17:58:58,066 - INFO - TRAINING CORE MODEL (CHRONOS-2 + AUTOGLUON 1.5) @ 21d
+2025-12-31 17:58:58,066 - INFO - Mode: full
+2025-12-31 17:58:58,066 - INFO - ============================================================
+2025-12-31 17:58:58,600 - INFO - Running pre-flight data check...
+2025-12-31 17:58:59,177 - INFO -   Hourly data: 4,967,276 rows, 84 symbols
+2025-12-31 17:58:59,217 - INFO -   FRED data: 27,115 rows
+2025-12-31 17:58:59,217 - INFO -   ✅ Pre-flight check passed
+2025-12-31 17:58:59,217 - INFO - ============================================================
+2025-12-31 17:58:59,217 - INFO - LOADING ALL DATA FROM PRISMA
+2025-12-31 17:58:59,217 - INFO - ============================================================
+2025-12-31 17:58:59,217 - INFO - 1. Loading hourly market futures...
+2025-12-31 17:59:31,206 - INFO -    Loaded 4,967,276 rows, 84 symbols
+2025-12-31 17:59:31,207 - INFO - 2. Loading FRED economic data...
+2025-12-31 17:59:31,534 - INFO -    Loaded 27,115 rows, 111 FRED features
+2025-12-31 17:59:31,534 - INFO - 3. Loading NOAA weather data...
+2025-12-31 17:59:31,831 - INFO -    Loaded 7,659 daily aggregates, 10 weather features
+2025-12-31 17:59:31,831 - INFO - 4. Loading spot FX data...
+2025-12-31 17:59:32,470 - INFO -    Loaded 11,260 dates, 30 FX pairs
+2025-12-31 17:59:32,470 - INFO - 5. Loading CFTC COT positioning...
+2025-12-31 17:59:32,529 - INFO -    Loaded 830 dates, 20 COT features
+2025-12-31 17:59:32,529 - INFO - 6. Loading USDA export sales...
+2025-12-31 17:59:32,574 - INFO -    Loaded 311 dates, 5 USDA export features
+2025-12-31 17:59:32,574 - INFO - 7. Loading USDA WASDE fundamentals...
+2025-12-31 17:59:32,617 - INFO -    Loaded 72 dates, 5 WASDE features
+2025-12-31 17:59:32,617 - INFO - 8. Loading EPA RIN prices...
+2025-12-31 17:59:32,658 - INFO -    Loaded 52 dates, 4 RIN prices
+2025-12-31 17:59:32,658 - INFO - 9. Loading news sentiment...
+2025-12-31 17:59:32,714 - INFO -    Loaded 260 dates, 5 news sentiment features
+2025-12-31 17:59:32,715 - INFO - ============================================================
+2025-12-31 17:59:32,715 - INFO - JOINING ALL FEATURES TO HOURLY BASE
+2025-12-31 17:59:32,715 - INFO - ============================================================
+2025-12-31 17:59:32,715 - INFO -   Base: 4,967,276 hourly rows
+2025-12-31 17:59:34,219 - INFO -   + FRED: 111 features
+2025-12-31 17:59:40,286 - INFO -   + Weather: 10 features
+2025-12-31 17:59:47,548 - INFO -   + Spot FX: 30 features
+2025-12-31 17:59:56,586 - INFO -   + CFTC COT: 20 features
+2025-12-31 18:00:05,242 - INFO -   + USDA Exports: 5 features
+2025-12-31 18:00:14,894 - INFO -   + USDA WASDE: 5 features
+2025-12-31 18:00:24,653 - INFO -   + EPA RINs: 4 features
+2025-12-31 18:00:34,480 - INFO -   + News: 5 features
+2025-12-31 18:00:46,694 - INFO -   Forward-filling all features per symbol...
+2025-12-31 18:01:48,214 - INFO - ============================================================
+2025-12-31 18:01:48,328 - INFO - FINAL DATASET: 4,967,276 rows, 84 symbols, 196 features
+2025-12-31 18:01:48,328 - INFO - ============================================================
+2025-12-31 18:01:57,178 - INFO - Connected to Railway MLflow: https://mlflow-tracking-production-1916.up.railway.app
+2025-12-31 18:01:57,202 - INFO - QuantMLCommandCenter initialized @ https://mlflow-tracking-production-1916.up.railway.app
+2025-12-31 18:01:58,222 - INFO - Started run: core_h21d_full_20251231_180157 (experiment: zinc-fusion/core/h21d)
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/mlflow/data/dataset_source_registry.py:148: UserWarning: Failed to determine whether UCVolumeDatasetSource can resolve source information for 'prisma://raw.market_futures_1h'. Exception: 
+  return _dataset_source_registry.resolve(
+2025-12-31 18:01:59,905 - WARNING - Could not log MLflow dataset: Could not find a source information resolver for the specified dataset source: prisma://raw.market_futures_1h.
+2025-12-31 18:02:00,476 - INFO - Logged training dataset: core_h21d_training (4,967,276 rows)
+2025-12-31 18:02:00,477 - INFO - Training AutoGluon TimeSeriesPredictor for 21d horizon
+2025-12-31 18:02:00,477 - INFO -   Mode: full
+2025-12-31 18:02:00,485 - INFO -   Dataset: 4,967,276 rows, 84 series
+2025-12-31 18:02:00,485 - INFO -   Time limit: 240 minutes
+2025-12-31 18:02:00,485 - INFO -   Preset: best_quality
+2025-12-31 18:02:00,485 - INFO -   Models: Full AutoML ensemble (DeepAR, PatchTST, Chronos-2, etc.)
+Warning: path already exists! This predictor may overwrite an existing predictor! path="/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d"
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/predictor.py:197: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  offset = pd.tseries.frequencies.to_offset(self.freq)
+Frequency 'H' stored as 'h'
+Beginning AutoGluon training... Time limit = 14400s
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.1.0: Mon Oct 20 19:34:05 PDT 2025; root:xnu-12377.41.6~2/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Count:          WARNING: Exception was raised when calculating GPU count (AssertionError)
+Memory Avail:       12.44 GB / 24.00 GB (51.8%)
+Disk Space Avail:   822.99 GB / 931.32 GB (88.4%)
+===================================================
+Setting presets to: best_quality
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'freq': 'h',
+ 'hyperparameters': 'default',
+ 'known_covariates_names': [],
+ 'num_val_windows': 'auto',
+ 'prediction_length': 21,
+ 'quantile_levels': [0.1, 0.5, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 'auto',
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 14400,
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'h'.
+Provided train_data has 9549629 rows (NaN fraction=48.0%), 84 time series. Median time series length is 136100 (min=29408, max=136104). 
+Automatically setting num_val_windows=(3,) based on dataset properties
+Automatically setting refit_every_n_windows=2 based on num_val_windows
+
+Provided data contains following columns:
+	target: 'target'
+	past_covariates:
+		categorical:        ['open_interest']
+		continuous (float): ['open', 'high', 'low', 'volume', 'APU000074714', 'BAMLH0A0HYM2', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['SP500_HISTORICAL', 'as_of_date', 'fx_DEXHKUS', 'fx_DEXJPUS', 'fx_DEXKOUS', 'fx_DEXNOUS', 'fx_DEXSFUS', 'fx_DEXSIUS', 'fx_DEXSZUS', 'fx_DEXTAUS', 'fx_DEXTHUS', 'fx_DEXUSAL', 'fx_DEXUSUK', 'news_bearish_count']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2025-12-31 18:08:45
+Models that will be trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'Chronos2', 'Chronos2SmallFineTuned', 'AutoETS', 'ChronosWithRegressor[bolt_small]', 'TemporalFusionTransformer', 'DeepAR']
+Training timeseries model SeasonalNaive. Training for up to 1366.9s of the 14268.7s of remaining time.
+🏃 View run core_h5d_full_20251231_160606 at: https://mlflow-tracking-production-1916.up.railway.app/#/experiments/245958820594705911/runs/743e1d956ef841e9923abfbc4b3d3e66
+🧪 View experiment at: https://mlflow-tracking-production-1916.up.railway.app/#/experiments/245958820594705911
+	-624.5908     = Validation score (-MASE)
+	101.20  s     = Training runtime
+	0.23    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. Training for up to 1507.4s of the 14167.0s of remaining time.
+	-20.5533      = Validation score (-MASE)
+	337.44  s     = Training runtime
+	24.33   s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. Training for up to 1650.6s of the 13805.0s of remaining time.
+	-20.2348      = Validation score (-MASE)
+	237.45  s     = Training runtime
+	31.36   s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. Training for up to 1848.0s of the 13536.0s of remaining time.
+	-19.7853      = Validation score (-MASE)
+	201.64  s     = Training runtime
+	24.64   s     = Validation (prediction) runtime
+Training timeseries model Chronos2. Training for up to 2118.3s of the 13309.5s of remaining time.
+	Time limit exceeded... Skipping Chronos2.
+Training timeseries model Chronos2SmallFineTuned. Training for up to 2111.7s of the 11158.4s of remaining time.
+2025-12-31 19:01:17,366 - INFO - Using LoRA. Number of trainable parameters: 411264, total parameters: 28345888.
+2025-12-31 19:18:03,109 - INFO - Finetuned model saved to /Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d/models/Chronos2SmallFineTuned/W0/fine-tuned-ckpt
+	Time limit exceeded... Skipping Chronos2SmallFineTuned.
+Training timeseries model AutoETS. Training for up to 2106.8s of the 9027.0s of remaining time.
+	-19.7503      = Validation score (-MASE)
+	144.24  s     = Training runtime
+	18.78   s     = Validation (prediction) runtime
+Training timeseries model ChronosWithRegressor[bolt_small]. Training for up to 2754.6s of the 8863.9s of remaining time.
+	Skipping covariate_regressor since the dataset contains no known_covariates or static_features.
+	Skipping covariate_regressor since the dataset contains no known_covariates or static_features.
+	-20.0210      = Validation score (-MASE)
+	109.39  s     = Training runtime
+	4.21    s     = Validation (prediction) runtime
+Training timeseries model TemporalFusionTransformer. Training for up to 4075.0s of the 8750.1s of remaining time.
+	Warning: Exception caused TemporalFusionTransformer to fail during training... Skipping this model.
+Traceback (most recent call last):
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/trainer/trainer.py", line 353, in _train_and_save
+    model.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/abstract/abstract_timeseries_model.py", line 529, in fit
+    self._fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/multi_window/multi_window_model.py", line 141, in _fit
+    model.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/abstract/abstract_timeseries_model.py", line 529, in fit
+    self._fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/autogluon/timeseries/models/gluonts/abstract.py", line 426, in _fit
+    self.gts_predictor = estimator.train(
+                         ^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/estimator.py", line 246, in train
+    return self.train_model(
+           ^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/estimator.py", line 209, in train_model
+    trainer.fit(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 560, in fit
+    call._call_and_handle_interrupt(
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/call.py", line 49, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 598, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/trainer.py", line 991, in _run
+    call._call_callback_hooks(self, "on_fit_start")
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/trainer/call.py", line 228, in _call_callback_hooks
+    fn(trainer, trainer.lightning_module, *args, **kwargs)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/callbacks/model_summary.py", line 64, in on_fit_start
+    model_summary = self._summary(trainer, pl_module)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/callbacks/model_summary.py", line 86, in _summary
+    return summarize(pl_module, max_depth=self._max_depth)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 515, in summarize
+    return ModelSummary(lightning_module, max_depth=max_depth)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 217, in __init__
+    self._layer_summary = self.summarize()
+                          ^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 301, in summarize
+    self._forward_example_input()
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/lightning/pytorch/utilities/model_summary/model_summary.py", line 332, in _forward_example_input
+    model(**input_)
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/lightning_module.py", line 63, in forward
+    return self.model(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1881, in _call_impl
+    return inner()
+           ^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1829, in inner
+    result = forward_call(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/module.py", line 361, in forward
+    ) = self._preprocess(
+        ^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/module.py", line 311, in _preprocess
+    embs = self.past_feat_dynamic_embed(past_feat_dynamic_cat)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/model/tft/layers.py", line 27, in forward
+    concat_features = super().forward(features=features)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/gluonts/torch/modules/feature.py", line 45, in forward
+    embed(cat_feature_slice.squeeze(-1))
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/modules/sparse.py", line 192, in forward
+    return F.embedding(
+           ^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/torch/nn/functional.py", line 2542, in embedding
+    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: index_select(): self indexing axis dim should be positive
+
+Training timeseries model DeepAR. Training for up to 8003.4s of the 8603.4s of remaining time.
+	-758.9513     = Validation score (-MASE)
+	530.16  s     = Training runtime
+	4.05    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. Training for up to 8040.3s.
+	Ensemble weights: {'AutoETS': 0.89, 'ChronosWithRegressor[bolt_small]': 0.07, 'SeasonalNaive': 0.03}
+	-5.8968       = Validation score (-MASE)
+	28.10   s     = Training runtime
+	23.22   s     = Validation (prediction) runtime
+Training complete. Models trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'AutoETS', 'ChronosWithRegressor[bolt_small]', 'DeepAR', 'WeightedEnsemble']
+Total runtime: 6307.15 s
+Best model: WeightedEnsemble
+Best model score: -5.8968
+2025-12-31 19:53:53,490 - INFO - 
+============================================================
+2025-12-31 19:53:53,490 - INFO - MODEL LEADERBOARD
+2025-12-31 19:53:53,490 - INFO - ============================================================
+2025-12-31 19:53:53,493 - INFO - 
+                              model   score_val  ...  fit_time_marginal  fit_order
+0                  WeightedEnsemble   -5.896790  ...          28.104216          8
+1                           AutoETS  -19.750326  ...         144.236383          5
+2             DynamicOptimizedTheta  -19.785334  ...         201.639392          4
+3  ChronosWithRegressor[bolt_small]  -20.020953  ...         109.392139          6
+4                     DirectTabular  -20.234814  ...         237.451452          3
+5                  RecursiveTabular  -20.553317  ...         337.440580          2
+6                     SeasonalNaive -624.590847  ...         101.202773          1
+7                            DeepAR -758.951281  ...         530.158884          7
+
+[8 rows x 5 columns]
+2025-12-31 19:53:53,493 - INFO - 
+Best model: WeightedEnsemble
+2025-12-31 19:53:58,814 - WARNING - Could not get leaderboard: INVALID_PARAMETER_VALUE: Invalid metric name: 'model/ChronosWithRegressor[bolt_small]/mase'. Names may only contain alphanumerics, underscores (_), dashes (-), periods (.), spaces ( ), and slashes (/).
+2025-12-31 19:54:32,016 - INFO - Logged model artifact: /Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d
+2025-12-31 19:54:32,215 - INFO - Logged complete model: WeightedEnsemble (MASE=-5.8968)
+2025-12-31 19:54:32,215 - INFO - Generating predictions
+data with frequency 'IRREG' has been resampled to frequency 'h'.
+Model not specified in predict, will default to the model with the best validation score: WeightedEnsemble
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: divide by zero encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: overflow encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1018: RuntimeWarning: invalid value encountered in matmul
+  var[i] = (1 + sigma) * (H21 @ (Vh @ H21.T)).item() + sigma * mu[i] ** 2
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: divide by zero encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: overflow encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1020: RuntimeWarning: invalid value encountered in matmul
+  exp1 = np.matmul(F21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: divide by zero encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: overflow encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1021: RuntimeWarning: invalid value encountered in matmul
+  exp2 = np.matmul(F21, np.matmul(Vh, np.transpose(G21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: divide by zero encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: overflow encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1022: RuntimeWarning: invalid value encountered in matmul
+  exp3 = np.matmul(G21, np.matmul(Vh, np.transpose(F21)))
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: divide by zero encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: overflow encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1025: RuntimeWarning: invalid value encountered in matmul
+  np.matmul(Vh + (vecMh * vecMh.reshape(vecMh.shape[0], 1)), np.transpose(K)),
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: divide by zero encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: overflow encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1023: RuntimeWarning: invalid value encountered in matmul
+  exp4 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: divide by zero encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: overflow encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1029: RuntimeWarning: invalid value encountered in matmul
+  np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: divide by zero encountered in matmul
+  exp5 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: overflow encountered in matmul
+  exp5 = np.matmul(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/statsforecast/ets.py:1027: RuntimeWarning: invalid value encountered in matmul
+  exp5 = np.matmul(
+2025-12-31 20:00:30,546 - INFO -   Generated 1,764 predictions across 84 series
+2025-12-31 20:00:31,105 - ERROR - Run failed: SSL connection has been closed unexpectedly
+
+2025-12-31 20:00:31,489 - INFO - Ended run: 1b3ad11fee2d4a12b09722d3dbb33330
+2025-12-31 20:00:31,494 - ERROR - Failed to train core @ 21d: SSL connection has been closed unexpectedly
+
+🏃 View run core_h21d_full_20251231_180157 at: https://mlflow-tracking-production-1916.up.railway.app/#/experiments/705643010809327465/runs/1b3ad11fee2d4a12b09722d3dbb33330
+🧪 View experiment at: https://mlflow-tracking-production-1916.up.railway.app/#/experiments/705643010809327465
+Traceback (most recent call last):
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/scripts/train_core_chronos.py", line 667, in <module>
+    
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/scripts/train_core_chronos.py", line 656, in main
+    
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/scripts/train_core_chronos.py", line 613, in train_core_chronos2
+    # Columns match model.oof_predictions schema - use UPSERT to handle duplicates
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/scripts/train_core_chronos.py", line 502, in save_predictions
+    model_path.mkdir(parents=True, exist_ok=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: SSL connection has been closed unexpectedly
+

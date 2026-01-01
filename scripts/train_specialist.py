@@ -55,6 +55,22 @@ import psycopg2
 from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
 
+# Add project root to path for imports
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ALL DATA POLICY ENFORCEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+# CRITICAL: Specialists MUST use ALL data sources.
+# Each bucket gets 900+ features. AutoGluon determines relevance.
+# DO NOT cherry-pick features per bucket. That's AutoGluon's job.
+# ═══════════════════════════════════════════════════════════════════════════════
+from src.fusion.validation.all_data_policy import (
+    validate_specialist_features,
+    log_all_data_summary,
+)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -66,14 +82,14 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 load_dotenv('.env.vercel')
 
-# Project paths
-PROJECT_ROOT = Path(__file__).parent.parent
+# Project paths (PROJECT_ROOT already defined above for imports)
 MODEL_PATH = PROJECT_ROOT / "models" / "specialists"
 
-# Specialist buckets
+# Specialist buckets (11 specialists)
 SPECIALIST_BUCKETS = [
     "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes"
+    "energy", "biofuel", "palm", "volatility", "substitutes",
+    "trump_effect",  # 11th specialist: Trump/policy regime dynamics
 ]
 
 # Horizons
@@ -111,7 +127,11 @@ def get_postgres_connection():
 
 
 def load_specialist_features(conn, bucket: str) -> pd.DataFrame:
-    """Load specialist features from Postgres."""
+    """Load specialist features from Postgres.
+
+    CRITICAL: Validates that ALL DATA is present per the ALL DATA policy.
+    Each bucket must have 800+ features. If not, training will FAIL.
+    """
     logger.info(f"Loading features for bucket: {bucket}")
 
     with conn.cursor() as cur:
@@ -141,6 +161,15 @@ def load_specialist_features(conn, bucket: str) -> pd.DataFrame:
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
 
     logger.info(f"  Loaded {len(df):,} rows with {len(df.columns)-1} features")
+
+    # =========================================================================
+    # ALL DATA POLICY ENFORCEMENT
+    # =========================================================================
+    # Validate that specialist features have ALL data (800+ features).
+    # This will raise ValueError if feature count is too low.
+    # =========================================================================
+    validate_specialist_features(df, bucket, strict=True)
+
     return df
 
 

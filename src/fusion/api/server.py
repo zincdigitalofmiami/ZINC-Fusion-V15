@@ -384,7 +384,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT series_id)::bigint as series
-                FROM raw_fred_observations
+                FROM fred_observations_1d
                 """
             )[0],
             "fx_spot": _fetch_rows(
@@ -392,7 +392,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT pair)::bigint as symbols
-                FROM raw_fx_spot
+                FROM fx_spot_1d
                 """
             )[0],
             "market_futures_1d": _fetch_rows(
@@ -400,7 +400,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT symbol)::bigint as symbols
-                FROM raw_market_futures
+                FROM market_futures_1d
                 """
             )[0],
             "market_futures_1h": market_1h,
@@ -409,7 +409,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT rin_type)::bigint as rin_types
-                FROM raw_epa_rin_prices
+                FROM epa_rin_prices_1d
                 """
             )[0],
             "weather_observations_1d": _fetch_rows(
@@ -417,7 +417,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT station_id)::bigint as stations
-                FROM raw_weather_observations
+                FROM weather_noaa_1d
                 """
             )[0] if _table_exists("raw", "weather_observations_1d") else {"rows": 0, "start_date": None, "end_date": None, "stations": 0},
         }
@@ -635,7 +635,7 @@ def sentiment_news(
     articles = _fetch_rows(
         """
         SELECT article_id, published_at, source, title, content
-        FROM raw.news_articles
+        FROM raw.news_articles_1d
         ORDER BY published_at DESC
         LIMIT ?
         """,
@@ -890,7 +890,7 @@ def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
             CAST(published_at AS DATE) AS as_of_date,
             AVG(sentiment_score) AS sentiment_score,
             COUNT(*) AS article_count
-        FROM raw.news_articles
+        FROM raw.news_articles_1d
         WHERE sentiment_score IS NOT NULL
         GROUP BY 1
         ORDER BY as_of_date DESC
