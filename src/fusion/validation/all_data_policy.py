@@ -19,13 +19,12 @@ This policy is NON-NEGOTIABLE and applies to:
 - Meta-ensemble training (train_meta_ensemble.py)
 
 MINIMUM FEATURE REQUIREMENTS:
-- 5d horizon: 920+ features minimum (hourly base)
-- 21d/63d/126d horizons: 600+ features minimum (daily base)
+- All horizons: 600+ features minimum (daily base)
 
 If you're seeing fewer features than this, YOU ARE DOING IT WRONG.
 
 DATA SOURCES (ALL MUST BE USED):
-1. Market Futures (84 symbols hourly, 83 symbols daily) - ALL pivoted wide
+1. Market Futures (83 symbols daily) - ALL pivoted wide
 2. FRED Economic (111+ features) - ALL series
 3. Spot FX (30 pairs) - ALL pairs
 4. CFTC COT (4 contracts × 5 features = 20) - ALL positioning data
@@ -55,20 +54,21 @@ logger = logging.getLogger(__name__)
 
 # Minimum feature counts by horizon
 # These are ABSOLUTE MINIMUMS - actual counts should be higher
-MIN_FEATURES_5D = 920    # Hourly base: 84 symbols × 5 OHLCV + all covariates
-MIN_FEATURES_21D = 600   # Daily base: 83 symbols × 5 OHLCV + all covariates
+# All horizons use daily data: 83 symbols × 5 OHLCV + all covariates
+MIN_FEATURES_5D = 600
+MIN_FEATURES_21D = 600
 MIN_FEATURES_63D = 600
 MIN_FEATURES_126D = 600
 
 # Data source requirements
 REQUIRED_DATA_SOURCES = {
     # Table name -> (min_rows, description, date_column)
-    "market_futures_1h": (1_000_000, "Hourly futures (84 symbols)", "as_of_date"),
+    # NOTE: Hourly data removed - all training uses daily data only
     "market_futures_1d": (100_000, "Daily futures (83 symbols)", "as_of_date"),
     "fred_observations_1d": (100_000, "FRED economic (long format, 111+ series)", "as_of_date"),
     "weather_noaa_1d": (500, "NOAA weather (US/Brazil/Argentina)", "as_of_date"),
     "fx_spot_1d": (10_000, "Spot FX (30 pairs)", "as_of_date"),
-    "cftc_cot_1w": (500, "CFTC COT positioning", "as_of_date"),
+    "cftc_cot_1w": (500, "CFTC COT positioning", "report_date"),
     "usda_export_sales_1w": (100, "USDA export sales", "report_date"),
     "usda_wasde_1m": (50, "USDA WASDE", "report_date"),
     "epa_rin_prices_1d": (50, "EPA RIN prices", "as_of_date"),
@@ -315,13 +315,9 @@ def get_all_data_loading_query(horizon: int) -> str:
     Returns:
         SQL query string
     """
-    # Determine base table and frequency
-    if horizon == 5:
-        base_table = "market_futures_1h"
-        start_date = "2020-01-01"
-    else:
-        base_table = "market_futures_1d"
-        start_date = "2000-01-01"
+    # All horizons use daily data
+    base_table = "market_futures_1d"
+    start_date = "2000-01-01"
 
     # This is a template - actual implementation joins all sources
     query = f"""

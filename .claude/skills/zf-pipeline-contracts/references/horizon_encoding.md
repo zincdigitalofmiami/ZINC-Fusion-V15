@@ -30,7 +30,7 @@ SELECT as_of_date, realized_vol_1h FROM features.intraday_volatility;
 
 ## Storage Rules
 
-### In DuckDB (fusion.db)
+### In Database (Prisma Postgres)
 
 Always INTEGER for daily OOF/forecasts:
 

@@ -14,27 +14,11 @@ You are an expert data/ML engineering assistant focused on:
 
 ## Database Architecture (CRITICAL)
 
-### Prisma Postgres = Authoritative Database
+### Prisma Postgres = Production Database
 - **All training, inference, and operations use Prisma Postgres**
 - Connection: `DATABASE_URL` in `.env`
 - This is the production database for all ML pipelines
-
-### DuckDB = Archive Only
-- **DuckDB (`data/fusion.db`) is READ-ONLY archive**
-- Use ONLY for one-time historical data extraction
-- Do NOT train models against DuckDB
-- Do NOT write new data to DuckDB
-- Do NOT reference DuckDB in new training pipelines
-
-### Migration Status (Dec 2025)
-Data successfully migrated to Prisma:
-- `raw_weather_observations` (215K rows)
-- `raw_cftc_cot` (6K rows)
-- `driver_scores` (47K rows)
-- `raw_fred_observations` (386K rows)
-- `raw_fx_spot` (139K rows)
-- `raw_market_futures` (385K rows)
-- Plus: training tables, forecast tables, specialist tables
+- Deployed via Railway for dashboard/API access
 
 ## Non‑Negotiables
 
@@ -48,7 +32,6 @@ Data successfully migrated to Prisma:
 5. **Always include a validation path:** describe how to verify outputs (Prisma queries, pytest).
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
 7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or "replace" files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
-8. **Prisma-first:** All new training, queries, and data operations target Prisma Postgres, not DuckDB.
 
 ## Operating Principles (Agents)
 
@@ -60,7 +43,6 @@ These are the "how we operate" rules for assistants/agents working in this repo.
 - **No decision semantics:** never encode "buy/sell/act now" logic; this remains an intelligence system, not execution.
 - **Minimal diffs:** fix the root cause, avoid unrelated refactors, keep patches small and reversible.
 - **Always provide a validation path:** prefer targeted Prisma queries and `pytest` in `.venv` (system Python may not match project deps).
-- **DuckDB is archive:** Never write to or train against DuckDB. It exists only for historical data extraction.
 
 ## Local Development
 
@@ -89,7 +71,7 @@ Domains are an organizational convention for raw ingestion + table naming. Not e
 |--------|---------------|----------------------------|
 | market | `raw.market_*` | `raw.market_futures_1d`, `raw.market_futures_1h` |
 | economic | `raw.fred_*` | `raw.fred_observations_1d` |
-| agriculture | `raw.usda_*` | (not yet implemented in DuckDB) |
+| agriculture | `raw.usda_*` | `raw.usda_export_sales_1w`, `raw.usda_wasde_1m` |
 | energy | `raw.eia_*` / `raw.epa_*` | `raw.eia_observations_1d`, `raw.epa_rin_prices_1d` |
 | weather | `raw.weather_*` | `raw.weather_observations_1d`, `raw.weather_observations_1h` |
 | positioning | `raw.cftc_*` | `raw.cftc_cot_1w` |
@@ -104,7 +86,7 @@ Domains are an organizational convention for raw ingestion + table naming. Not e
 ### Staging Rule
 
 - `data/yahoo_staging/` is staging-only (filesystem).
-- End state lives in DuckDB `raw.market_*` tables.
+- End state lives in Prisma `raw.market_*` tables.
 - Do not create `brz`/`slv`/`gld` (guardrails will fail).
 
 ### Naming Contracts
@@ -113,9 +95,26 @@ Domains are an organizational convention for raw ingestion + table naming. Not e
 |------|----------|-----------|
 | Grain suffix | `_1h`, `_1d`, `_1w`, `_event`, `_static` | time-series fact tables with no suffix |
 | Table naming | `raw.market_futures_1d` | table names containing `ohlc` / `ohlcv` |
-| Horizons (DuckDB keys) | integer `5`, `21`, `63`, `126` | string horizons like `"1w"`, `"1m"` in table keys |
+| Horizons | integer `5`, `21`, `63`, `126` | string horizons like `"1w"`, `"1m"` in table keys |
 | Quantile columns | `p10`, `p50`, `p90` | ad-hoc quantile names (`q10`, `pred_p10`, etc.) |
 | OOF table family | `training.oof_core_zl_1d`, `training.oof_specialist_*_1d`, `training.oof_specialist_combined_1d` | `training.oof_big10_*` (legacy), `training.oof_specialists_1d` (plural) |
+
+### Data Availability by Horizon (Training Constraint)
+
+Not all data series have 25+ years of history. Training scripts MUST tier data by availability:
+
+| Tier | Data Window | Horizons | Example Series |
+|------|-------------|----------|----------------|
+| **Tier 1** | 2000+ | ALL (5d/21d/63d/126d) | ZL, VIXCLS, DGS10, FEDFUNDS, M2SL, OVXCLS |
+| **Tier 2** | Fundamentally Limited | Tactical only (5d/21d) | **SOFR** (created 2018), **VXGSCLS** (created 2020) |
+
+**Key Distinction:**
+- If data EXISTS historically but isn't in our DB → **BACKFILL IT** (M2SL has data from 1959, OVXCLS from 2007)
+- If data DIDN'T EXIST before a date → Use proxy for strategic (SOFR → FEDFUNDS, VXGSCLS → VIXCLS)
+
+**Backfill Priorities:** M2SL (64yr gap), OVXCLS (16yr gap), USDA WASDE (20yr gap)
+
+**Reference:** `.claude/skills/zf-pipeline-contracts/references/data_availability_by_horizon.md`
 
 ### FRED Routing (Specialist Ownership)
 
@@ -127,9 +126,9 @@ Domains are an organizational convention for raw ingestion + table naming. Not e
 
 `raw`, `silver`, `gold`, `features`, `training`, `forecasts`, `monitoring`, `specialist`, `weather`, `metadata`, `archive`
 
-### MLflow/DuckDB Linkage
+### MLflow/Prisma Linkage
 
-Every training run must persist these fields back to DuckDB (either in OOF tables or a `metadata.*` table):
+Every training run must persist these fields to Prisma (either in OOF tables or a `metadata.*` table):
 
 - `run_id`
 - `model_version`
@@ -267,13 +266,9 @@ Before changing anything beyond internal code, the agent must:
 
 ### Database Access
 ```python
-# Prisma Postgres (AUTHORITATIVE - use for all operations)
+# Prisma Postgres (use for all operations)
 import psycopg2
 conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-
-# DuckDB (ARCHIVE ONLY - read-only historical extraction)
-import duckdb
-conn = duckdb.connect("data/fusion.db", read_only=True)
 ```
 
 ## Business Context (Why This Exists)
@@ -286,16 +281,16 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 
 ## Technology Stack (Source of Truth)
 
-- **Primary Database:** Prisma Postgres (cloud-hosted, authoritative)
-- **Archive Database:** DuckDB (local file at `data/fusion.db`, read-only historical)
+- **Database:** Prisma Postgres (cloud-hosted via Railway)
+- **Deployment:** Railway (API, workers, dashboard)
 - **Python packaging:** `pyproject.toml` + `uv`
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
 - **ML tracking:** MLflow (optional, for experiment tracking)
 - **Market Data:** Databento API (GLBX.MDP3 dataset)
 
-### Frontend / Vercel
-This repository does not include a Vercel/Next.js app or `vercel.json`. If a dashboard exists, it likely lives in a separate repository or directory; ask for the location before making frontend or deployment changes.
+### Frontend / Railway
+The dashboard is deployed via Railway. The `dashboard/` folder contains the frontend app. API and workers are also deployed on Railway.
 
 ## Specialist Taxonomy (Big 11)
 
@@ -310,9 +305,60 @@ Specialists are organized around these buckets (names should remain consistent a
 8. `palm` (8-12% variance)
 9. `volatility` (2-3% variance)
 10. `substitutes` (4-6% variance)
-11. `trump` (5-10% variance, regime-dependent)
+11. `trump_effect` (5-10% variance, regime-dependent)
 
 **Data Sources Reference**: See `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md` for complete URL/API registry.
+
+### Trump Effect Specialist Details
+
+The `trump_effect` specialist is a hybrid bucket combining structured FRED data, market-implied probability proxies, and discrete event tracking.
+
+#### Data Sources
+
+| Source | Series/Tickers | Role |
+|--------|----------------|------|
+| **FRED (regime pressure)** | USEPUINDXD, USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV, CHNMAINLANDTPU, B235RC1Q027SBEA, IMPCH | Policy/trade uncertainty indices, tariff receipts, China trade flows |
+| **Yahoo (probability proxies)** | DJT, FXI, KWEB | Market-implied regime proxies (Trump-linked, China sensitivity) |
+| **URL Events (glass box)** | White House, Federal Register, Truth Social | Discrete executive/trade actions for narrative layer |
+
+#### EPU Regime Thresholds
+
+| Regime | EPU Level | Vol Multiplier |
+|--------|-----------|----------------|
+| `low` | < 75 | 0.7x |
+| `normal` | 75-125 | 1.0x |
+| `elevated` | 125-175 | 1.25x |
+| `high` | 175-250 | 1.5x |
+| `extreme` | > 250 | 2.0x |
+
+#### Feature Module
+
+- **Location**: `src/fusion/features/trump_effect.py`
+- **Key Functions**:
+  - `detect_epu_regime()` - Classify current EPU regime
+  - `calculate_event_intensity()` - Score shock/uncertainty/novelty
+  - `calculate_probability_proxies()` - DJT/FXI/KWEB derived metrics
+  - `calculate_trump_effect_risk_metrics()` - Sharpe, Sortino, VaR with regime conditioning
+  - `fit_trump_regime_garch()` - GJR-GARCH with EPU regime adjustment
+- **Main Class**: `TrumpEffectFeatureEngine` - Batch feature generation
+
+#### Topic Codes (Event Classification)
+
+```
+TARIFF_CHINA, TARIFF_OTHER, RFS_RVO, EPA_WAIVER, TAX,
+SANCTIONS, EXPORT_CONTROLS, TRADE_DEAL, EXECUTIVE_ACTION, TWEET_THREAT
+```
+
+#### Routing
+
+FRED series routed to `trump_effect` bucket via `router.py`:
+- `USEPUINDXD` - US Economic Policy Uncertainty (Daily)
+- `USEPUINDXM` - US Economic Policy Uncertainty (Monthly)
+- `EPUTRADE` - Trade Policy Uncertainty
+- `EMVTRADEPOLEMV` - Equity Market Volatility: Trade Policy
+- `CHNMAINLANDTPU` - China Trade Policy Uncertainty
+- `B235RC1Q027SBEA` - Customs Duties (tariff receipts)
+- `IMPCH` - US Imports from China
 
 ## How To Run (Local)
 
@@ -337,11 +383,11 @@ CI is repo-specific; keep checks aligned to the current codebase.
 
 ## Core OOF Training (Troubleshooting Notes)
 
-These notes exist to help agents/operators quickly unblock the L0→L1 pipeline by generating core out-of-fold (OOF) quantile predictions in DuckDB.
+These notes exist to help agents/operators quickly unblock the L0→L1 pipeline by generating core out-of-fold (OOF) quantile predictions.
 
-### What “Core OOF” means here
+### What "Core OOF" means here
 
-- **Target table:** `training.oof_core_zl_1d` (DuckDB)
+- **Target table:** `training.oof_core_zl_1d` (Prisma)
 - **Expected columns:** `as_of_date`, `horizon_steps`, `p10`, `p50`, `p90`, `model_version`, `run_id`, `trained_at`
 - **Source features:** `training.core_matrix_full_1d`
 - **Target columns (current DB reality):** `target_ret_5d`, `target_ret_21d`, `target_ret_63d`, `target_ret_126d`
@@ -367,7 +413,6 @@ These notes exist to help agents/operators quickly unblock the L0→L1 pipeline 
 
 ## Workspace Hygiene (Generated Artifacts)
 
-- DuckDB database: `data/fusion.db` is generated at runtime; treat it as a build artifact unless the user explicitly wants it versioned.
 - Runtime artifacts under `.tmp/` are local and should not be relied on as committed configuration.
 - Notebook outputs and model artifacts may create directories like `models/` and `data/parquet/` (as described in `README.md`); create and track them only when the user explicitly wants them checked in.
 
@@ -375,7 +420,7 @@ These notes exist to help agents/operators quickly unblock the L0→L1 pipeline 
 
 ### Verify before building
 Before implementing, confirm:
-- What tables exist in DuckDB (query the file in `data/`)
+- What tables exist in Prisma (query via DATABASE_URL)
 
 ### Plan template (preferred)
 - **Phase 0: Validate current state** (schemas, table existence, tests/CI)
@@ -388,8 +433,8 @@ Before implementing, confirm:
 ### When to stop and ask
 Stop and ask the user when:
 - A required file/config is missing (e.g., a dashboard repo/path, credentials)
-- The schema in DuckDB contradicts the notebooks/README
-- The request implies external systems (Vercel/MLflow server/etc.) without concrete repo paths, settings, and explicit confirmation
+- The schema in Prisma contradicts the notebooks/README
+- The request implies external systems (Railway/MLflow server/etc.) without concrete repo paths, settings, and explicit confirmation
 
 ## Assistant Startup Prompt (Generic)
 

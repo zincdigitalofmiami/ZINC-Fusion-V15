@@ -337,10 +337,10 @@ def train_fold(
         tuning_data=val_data,
         hyperparameters=hyperparameters,
         time_limit=time_limit,
-        presets="best_quality",
+        presets="high_quality",  # Use high_quality to avoid bagging issues with tuning_data
         # Keep all models for ensemble
         keep_only_best=False,
-        # Enable quantile regression if available
+        use_bag_holdout=True,  # Required when using tuning_data with bagged presets
     )
 
     # Get leaderboard

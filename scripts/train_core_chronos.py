@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Core Model Training with AutoGluon 1.5 TimeSeriesPredictor
+ZINC-FUSION-V15: STRATEGIC Core Model Training (63d, 126d)
 
-Trains the Core baseline model using AutoGluon 1.5 TimeSeriesPredictor.
-Uses FULL multi-symbol hourly data from Prisma Postgres.
+Trains the STRATEGIC Core models using AutoGluon 1.5 TimeSeriesPredictor.
+Uses FULL multi-symbol business daily data from Prisma Postgres.
+
+STRATEGIC = Full ensemble, maximum accuracy, longer training
+TACTICAL = Lighter training for operational forecasts (see train_core_tactical.py)
+
+Horizons:
+    63d  - Quarterly strategic
+    126d - 6-month strategic
 
 Modes:
-    quick - Chronos-2 only, 10 min (development)
-    full  - Full AutoML ensemble, 4 hours (production)
+    quick - Chronos-2 + TFT, 2 hours
+    full  - Full AutoML ensemble, 6 hours (production)
 
 Usage:
-    python scripts/train_core_chronos.py --horizon 21 --mode quick --dry-run
-    python scripts/train_core_chronos.py --horizon 21 --mode quick
-    python scripts/train_core_chronos.py --horizon 21 --mode full
-    python scripts/train_core_chronos.py --horizon all --mode full
+    python scripts/train_core_chronos.py --horizon 126 --mode full
+    python scripts/train_core_chronos.py --horizon 63 --mode full
 """
 
 import os
@@ -74,14 +79,12 @@ QUANTILE_LEVELS = [0.1, 0.5, 0.9]
 
 # =============================================================================
 # DATA ALIGNMENT STRATEGY:
-# 5d Core + Specialists (hourly): 2020+ with ALL sources
-# 21d/63d/126d Core + Specialists (daily): 2000+ with ALL sources (backfilled)
+# All horizons use DAILY data from 2000+ with ALL sources
 # =============================================================================
 # Let AutoGluon handle sparse/missing data - it's designed for this.
 # FRED goes back to 1800s - include ALL of it.
 # If 2000+ ALL fails, fallback is 2000+ full-coverage only.
-CORE_START_DATE_5D = "2020-01-01"      # 5d uses 2020+ hourly
-CORE_START_DATE_DAILY = "2000-01-01"   # 21d/63d/126d use 2000+ daily
+CORE_START_DATE = "2000-01-01"   # All horizons use 2000+ daily
 
 # ALL sources included for ALL horizons:
 # - Market futures (all symbols)
@@ -97,17 +100,15 @@ CORE_START_DATE_DAILY = "2000-01-01"   # 21d/63d/126d use 2000+ daily
 # =============================================================================
 # DATA FREQUENCY MAPPING:
 # =============================================================================
-# 1H (Hourly):  Symbol OHLCV (market hours only)
+# 1D (Daily):   Symbol OHLCV
 # 1D (Daily):   FX Spot, RIN, FRED daily series, Weather, News
 # 1W (Weekly):  CFTC COT (Tuesday report), USDA Exports (Thursday)
 # 1M (Monthly): USDA WASDE (around 12th)
 #
 # TRAINING STRATEGY:
-# 5D MODEL:  Train on 1H base, forward-fill all 1D/1W/1M features
-# 21D/63D/126D MODEL: Train on 1D base, forward-fill 1W/1M features
+# ALL MODELS: Train on 1D base, forward-fill 1W/1M features
 
 # Minimum data requirements
-MIN_ROWS_1H = 50_000  # ~74K rows available from 2010
 MIN_ROWS_1D = 5_000   # ~6.5K rows available from 2000
 MIN_SYMBOLS = 50
 
@@ -149,21 +150,21 @@ def preflight_check(conn, horizon: int = 5) -> bool:
         return False
 
     with conn.cursor() as cur:
-        # Check hourly data volume
+        # Check daily data volume
         cur.execute(
             """
             SELECT COUNT(*) as rows, COUNT(DISTINCT symbol) as symbols
-            FROM "raw"."market_futures_1h"
+            FROM "raw"."market_futures_1d"
         """
         )
         row = cur.fetchone()
         total_rows, total_symbols = row[0], row[1]
 
-        logger.info(f"  Hourly data: {total_rows:,} rows, {total_symbols} symbols")
+        logger.info(f"  Daily data: {total_rows:,} rows, {total_symbols} symbols")
 
-        if total_rows < MIN_ROWS_1H:
+        if total_rows < MIN_ROWS_1D:
             logger.error(
-                f"  ❌ Insufficient rows: {total_rows:,} < {MIN_ROWS_1H:,} required"
+                f"  ❌ Insufficient rows: {total_rows:,} < {MIN_ROWS_1D:,} required"
             )
             return False
 
@@ -194,11 +195,12 @@ def preflight_check(conn, horizon: int = 5) -> bool:
 
 def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     """
-    Load training data from Prisma Postgres with horizon-appropriate strategy.
+    Load training data from Prisma Postgres.
 
-    Architecture:
-    - 5d horizon: Uses 1h data from 2020+ with ALL sources (including sparse)
-    - 21d/63d/126d horizons: Uses 1d data from 2000+ with ONLY full-coverage sources
+    Architecture (UNIFIED DAILY):
+    - ALL horizons (5d/21d/63d/126d) use DAILY data from 2000+
+    - No hourly data - ensures training/prediction frequency match
+    - Volatility proxy features compensate for lost intraday signal
 
     All symbols are pivoted WIDE so each symbol's OHLCV becomes separate columns.
     ZL is the target, other 83 symbols become covariates.
@@ -209,56 +211,34 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     logger.info("LOADING TRAINING DATA FROM PRISMA")
     logger.info("=" * 60)
 
-    # Determine frequency and date cutoff based on horizon
-    use_hourly = (horizon == 5)
-
-    if use_hourly:
-        start_date = CORE_START_DATE_5D
-        freq_label = "1h"
-    else:
-        start_date = CORE_START_DATE_DAILY
-        freq_label = "1d"
+    # ALL horizons use daily data - unified pipeline
+    start_date = CORE_START_DATE
+    freq_label = "1d"
 
     logger.info(f"Horizon: {horizon}d")
-    logger.info(f"Base frequency: {freq_label}")
+    logger.info(f"Base frequency: {freq_label} (UNIFIED - all horizons use daily)")
     logger.info(f"Start date: {start_date}")
-    logger.info(f"Strategy: ALL sources, forward-fill lower frequencies to base")
-    logger.info(f"  - Base: 1H symbols" if use_hourly else "  - Base: 1D symbols")
+    logger.info(f"Strategy: Daily base + volatility proxies + merge_asof for lower frequencies")
+    logger.info(f"  - Base: 1D symbols with volatility proxy features")
     logger.info(f"  - Forward-fill: 1D (FX, RIN, FRED, Weather, News)")
     logger.info(f"  - Forward-fill: 1W (COT, USDA Exports)")
     logger.info(f"  - Forward-fill: 1M (WASDE)")
 
     # =========================================================================
-    # 1. BASE: Market futures - PIVOT ALL SYMBOLS WIDE
+    # 1. BASE: Market futures (DAILY) - PIVOT ALL SYMBOLS WIDE
     # =========================================================================
-    if use_hourly:
-        logger.info(f"1. Loading hourly market futures >= {start_date}...")
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT symbol, ts_event, open, high, low, close, volume
-                FROM "raw"."market_futures_1h"
-                WHERE ts_event >= %s
-                ORDER BY ts_event, symbol
-            """, (start_date,))
-            columns = [desc[0] for desc in cur.description]
-            rows = cur.fetchall()
-        df_long = pd.DataFrame(rows, columns=columns)
-        df_long["ts_event"] = pd.to_datetime(df_long["ts_event"])
-        timestamp_col = "ts_event"
-    else:
-        logger.info(f"1. Loading daily market futures >= {start_date}...")
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
-                FROM "raw"."market_futures_1d"
-                WHERE as_of_date >= %s
-                ORDER BY as_of_date, symbol
-            """, (start_date,))
-            columns = [desc[0] for desc in cur.description]
-            rows = cur.fetchall()
-        df_long = pd.DataFrame(rows, columns=columns)
-        df_long["ts_event"] = pd.to_datetime(df_long["ts_event"])
-        timestamp_col = "ts_event"
+    logger.info(f"1. Loading daily market futures >= {start_date}...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
+            FROM "raw"."market_futures_1d"
+            WHERE as_of_date >= %s
+            ORDER BY as_of_date, symbol
+        """, (start_date,))
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+    df_long = pd.DataFrame(rows, columns=columns)
+    df_long["ts_event"] = pd.to_datetime(df_long["ts_event"])
 
     n_symbols = df_long["symbol"].nunique()
     logger.info(f"   Loaded {len(df_long):,} rows, {n_symbols} symbols")
@@ -284,122 +264,393 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     logger.info(f"   Wide format: {len(df):,} rows, {n_features} symbol features")
 
     # =========================================================================
-    # 2. FRED Economic Data (long format → pivot wide)
+    # 1b. VOLATILITY PROXY FEATURES - Compensate for lost intraday signal
     # =========================================================================
-    logger.info("2. Loading FRED economic data (long → pivot wide)...")
+    # Since we're using daily data for all horizons (including 5d), we engineer
+    # features that capture intraday volatility patterns from OHLC data.
+    logger.info("   Engineering volatility proxy features...")
+
+    # Key symbols to create volatility proxies for
+    vol_symbols = ["ZL", "ZS", "ZM", "CL", "CPO", "ES", "GC"]  # Soy complex + energy + macro
+
+    vol_features_added = 0
+    for sym in vol_symbols:
+        open_col = f"{sym}_open"
+        high_col = f"{sym}_high"
+        low_col = f"{sym}_low"
+        close_col = f"{sym}_close"
+
+        # Check if symbol exists in data
+        if close_col not in df.columns:
+            continue
+
+        # 1. Daily Range: high - low (captures intraday volatility)
+        if high_col in df.columns and low_col in df.columns:
+            df[f"{sym}_daily_range"] = df[high_col] - df[low_col]
+            vol_features_added += 1
+
+        # 2. Daily Range Pct: (high - low) / close (normalized volatility)
+        if high_col in df.columns and low_col in df.columns:
+            df[f"{sym}_daily_range_pct"] = (df[high_col] - df[low_col]) / df[close_col].replace(0, np.nan)
+            vol_features_added += 1
+
+        # 3. Overnight Gap: open(t) - close(t-1) (off-hours news impact)
+        if open_col in df.columns:
+            df[f"{sym}_overnight_gap"] = df[open_col] - df[close_col].shift(1)
+            vol_features_added += 1
+
+        # 4. Overnight Gap Pct: gap / close(t-1) (normalized gap)
+        if open_col in df.columns:
+            prev_close = df[close_col].shift(1)
+            df[f"{sym}_overnight_gap_pct"] = (df[open_col] - prev_close) / prev_close.replace(0, np.nan)
+            vol_features_added += 1
+
+        # 5. Close Location: (close - low) / (high - low) (buyer/seller control)
+        if high_col in df.columns and low_col in df.columns:
+            daily_range = df[high_col] - df[low_col]
+            df[f"{sym}_close_location"] = (df[close_col] - df[low_col]) / daily_range.replace(0, np.nan)
+            vol_features_added += 1
+
+        # 6. Body Ratio: |close - open| / (high - low) (conviction of move)
+        if open_col in df.columns and high_col in df.columns and low_col in df.columns:
+            daily_range = df[high_col] - df[low_col]
+            df[f"{sym}_body_ratio"] = abs(df[close_col] - df[open_col]) / daily_range.replace(0, np.nan)
+            vol_features_added += 1
+
+    logger.info(f"   Added {vol_features_added} volatility proxy features for {len(vol_symbols)} symbols")
+
+    # =========================================================================
+    # 1c. ELITE TECHNICAL INDICATORS - 27 curated institutional-grade indicators
+    # =========================================================================
+    # Based on research of quant desks: Hurst, ConnorsRSI, Fisher Transform,
+    # McGinley Dynamic, TTM Squeeze, Schaff Trend Cycle, RVI, Elder Force Index,
+    # plus optimized MAs (KAMA, HMA, ALMA), RSI variants, MACD, CCI, volatility
+    # (Garman-Klass, Yang-Zhang), and volume flow (CMF, Volume Z-Score).
+    logger.info("   Computing elite technical indicators (27 curated)...")
+
+    try:
+        from src.fusion.features.elite_indicators import EliteIndicators
+
+        # Compute elite indicators for ZL (primary target)
+        elite = EliteIndicators(df, symbol="ZL")
+        df = elite.compute_all()
+
+        # Count elite indicators added
+        elite_cols = [c for c in df.columns if any(x in c for x in [
+            "hurst", "connors", "fisher", "mcginley", "ttm_squeeze", "schaff",
+            "rvi", "elder_force", "kama", "hma", "alma", "rsi_2", "rsi_14",
+            "cumulative_rsi", "macd", "cci", "atr_ratio", "garman", "yang_zhang",
+            "bb_percent", "cmf", "volume_zscore", "unusual_volume", "stc"
+        ])]
+        logger.info(f"   Added {len(elite_cols)} elite technical indicators for ZL")
+
+        # Also compute for key related symbols (ZS, CL) if time permits
+        for related_sym in ["ZS", "CL"]:
+            if f"{related_sym}_close" in df.columns:
+                try:
+                    elite_related = EliteIndicators(df, symbol=related_sym)
+                    # Just compute RSI and MACD for related symbols (avoid feature explosion)
+                    elite_related.add_rsi_variants()
+                    elite_related.add_macd_variants()
+                    df = elite_related.df
+
+                    related_cols = [c for c in df.columns if c.startswith(f"{related_sym.lower()}_")]
+                    logger.info(f"   Added {len(related_cols)} indicators for {related_sym}")
+                except Exception as e:
+                    logger.warning(f"   Could not compute indicators for {related_sym}: {e}")
+
+    except ImportError as e:
+        logger.warning(f"   Elite indicators module not available: {e}")
+    except Exception as e:
+        logger.warning(f"   Error computing elite indicators: {e}")
+
+    # =========================================================================
+    # 2. FRED Economic Data - MERGE_ASOF by frequency (no artificial NaNs)
+    # =========================================================================
+    # Instead of pivot → ffill (2.7M artificial NaNs), we:
+    # 1. Group series by native frequency (daily/weekly/monthly/quarterly)
+    # 2. Pivot each group at its native frequency
+    # 3. merge_asof to daily base with direction='backward' (last known value)
+    logger.info("2. Loading FRED economic data (merge_asof by frequency)...")
+
+    # Define frequency groups (150 series - includes DB series + future additions)
+    # Missing series are handled gracefully - only series present in DB are merged
+    #
+    # Daily: 59 series (>5000 observations typically)
+    FRED_DAILY = [
+        # Interest rates & spreads
+        "TEDRATE", "SOFR", "DGS10", "DGS2", "DGS1", "DGS5", "DGS7", "DGS20", "DGS30",
+        "DGS1MO", "DGS3MO", "DGS6MO", "T10Y2Y", "T10Y3M", "T10YIE",
+        "DFII5", "DFII7", "DFII10", "DFII20", "DFII30",
+        "DPRIME", "DFF", "DTB3", "DTB6", "DBAA", "DAAA",
+        "DFEDTARL", "DFEDTARU",  # Fed target rate bounds
+        # Credit spreads
+        "BAMLH0A0HYM2", "BAMLC0A0CM",
+        # FX rates (18 pairs)
+        "DEXCHUS", "DEXUSEU", "DEXJPUS", "DEXUSUK", "DEXCAUS", "DEXMXUS",
+        "DEXBZUS", "DEXINUS", "DEXMAUS", "DEXKOUS", "DEXSIUS", "DEXTHUS", "DEXHKUS",
+        "DEXSZUS", "DEXSFUS", "DEXTAUS", "DEXUSAL", "DEXNOUS",
+        # Dollar indices
+        "DTWEXBGS", "DTWEXAFEGS", "DTWEXEMEGS", "DTWEXM",
+        # Energy
+        "DCOILWTICO", "DCOILBRENTEU", "DHHNGSP", "DHOILNYH",
+        # Volatility & equity indices
+        "VIXCLS", "NASDAQCOM",
+        # Policy uncertainty
+        "USEPUINDXD",
+    ]
+    # Weekly: 14 series (1000-5000 observations typically)
+    FRED_WEEKLY = [
+        "GASREGW", "GASDESW",  # Gas prices
+        "ICSA", "CCSA",  # Unemployment claims
+        "NFCI", "STLFSI", "STLFSI4",  # Financial stress indices
+        "WALCL", "WRESBAL",  # Fed balance sheet
+        "MORTGAGE30US", "RRPONTSYD",  # Rates
+        "DDFUELUSGULF",  # Diesel fuel
+        "SP500", "SP500_HISTORICAL",  # S&P 500
+    ]
+    # Monthly: 67 series (200-1000 observations typically)
+    FRED_MONTHLY = [
+        # CPI / Inflation
+        "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE", "PCE", "CHNCPIALLMINMEI",
+        # PPI / Producer prices
+        "PPIACO", "WPSFD49207", "WPSFD49502", "WPUFD49116", "WPUFD49207", "WPUSI012011",
+        "WPU06140341", "WPU01830171", "WPU057303",
+        "PCU311224311224",  # Soybean oil processing PPI
+        # Consumer prices (specific)
+        "APU000074714",  # Fats and oils CPI
+        "CUSR0000SAF11", "CUSR0000SETA01", "CUSR0000SETA02", "CUSR0000SETB01", "CUSR0000SAH1",
+        # Employment
+        "UNRATE", "PAYEMS", "MANEMP", "AWHMAN", "CES0500000003", "JTSJOL",
+        # Money supply / Fed
+        "M2SL", "TOTRESNS", "BOGMBASE", "FEDFUNDS", "BUSLOANS",
+        # Industrial / manufacturing
+        "INDPRO", "DGORDER", "NEWORDER",
+        # Consumer
+        "RSAFS", "RSXFS", "DSPIC96", "UMCSENT", "MICH", "PSAVERT",
+        # Housing
+        "HOUST", "PERMIT", "CSUSHPISA",
+        # Trade
+        "BOPGSTB", "BOPGTB", "IEABC",
+        # China-specific
+        "CHNMAINLANDTPU", "MYAGM2CNM189N", "IMPCH",
+        "XTEXVA01CNM667S", "XTIMVA01CNM667S",  # China trade
+        # Commodity prices (IMF World Bank) - CRITICAL FOR ZL
+        "PSOILUSDM",   # Soybean Oil price (USD) - DIRECT ZL indicator
+        "PSOYBUSDM",   # Soybean price (USD) - Input cost
+        "PPOILUSDM",   # Palm Oil price - Key substitute
+        "PROILUSDM",   # Rapeseed Oil price - Substitute
+        "PSUNOUSDM",   # Sunflower Oil price - Substitute
+        "PCOPPUSDM",   # Copper price - Industrial demand proxy
+        "PMAIZMTUSDM", # Maize price - Competing crop
+        "PWHEAMTUSDM", # Wheat price - Competing crop
+        "PRICENPQUSDM", # Rice price - Food inflation proxy
+        "PNGASEUUSDM", # Natural Gas EU price - Energy costs
+        # Policy uncertainty
+        "USEPUINDXM", "EMVTRADEPOLEMV", "EPUTRADE",
+        # Volatility
+        "OVXCLS",  # Oil volatility index
+    ]
+    # Quarterly: 10 series (<200 observations typically)
+    FRED_QUARTERLY = [
+        "GDPC1", "GDP",  # GDP
+        "DRCCLACBS",  # Delinquency rates
+        "B235RC1Q027SBEA",  # Farm income
+        "CHNGDPNQDSMEI",  # China GDP
+        "EXPGS", "IMPGS",  # Trade
+        "WPU01830161",  # Farm PPI
+        "IR3TIB01CNM156N",  # China 3-month interbank rate
+        "PPIFGS",  # PPI finished goods (discontinued 2015)
+    ]
+
+    # Load all FRED data
     fred_long = pd.read_sql("""
         SELECT as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
         ORDER BY as_of_date, series_id
     """, conn)
+    fred_long["as_of_date"] = pd.to_datetime(fred_long["as_of_date"])
     logger.info(f"   Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
 
     if fred_long.empty:
         raise ValueError("FRED observations query returned 0 rows - check fred_observations_1d table")
 
-    # Pivot to wide format (each series becomes a column)
-    fred_df = (
-        fred_long.pivot(index="as_of_date", columns="series_id", values="value")
-        .sort_index()
-        .reset_index()
-    )
-    fred_df["trade_date"] = pd.to_datetime(fred_df["as_of_date"]).dt.date
+    # Get daily base dates from market data
+    daily_dates = pd.DataFrame({"as_of_date": pd.to_datetime(df["ts_event"].unique())}).sort_values("as_of_date")
+
+    def merge_fred_group(series_list: list, freq_name: str) -> pd.DataFrame:
+        """Pivot a frequency group and merge_asof to daily base."""
+        group_data = fred_long[fred_long["series_id"].isin(series_list)]
+        if group_data.empty:
+            return pd.DataFrame()
+
+        # Pivot at native frequency (no artificial NaNs)
+        pivoted = group_data.pivot_table(
+            index="as_of_date", columns="series_id", values="value", aggfunc="last"
+        ).sort_index().reset_index()
+
+        # merge_asof: for each daily date, get last known value (direction='backward')
+        merged = pd.merge_asof(
+            daily_dates.sort_values("as_of_date"),
+            pivoted.sort_values("as_of_date"),
+            on="as_of_date",
+            direction="backward"
+        )
+        actual_cols = [c for c in series_list if c in merged.columns]
+        logger.info(f"   {freq_name}: {len(actual_cols)} series merged via merge_asof")
+        return merged
+
+    # Merge each frequency group
+    fred_daily = merge_fred_group(FRED_DAILY, "Daily")
+    fred_weekly = merge_fred_group(FRED_WEEKLY, "Weekly")
+    fred_monthly = merge_fred_group(FRED_MONTHLY, "Monthly")
+    fred_quarterly = merge_fred_group(FRED_QUARTERLY, "Quarterly")
+
+    # Combine all FRED data
+    fred_df = daily_dates.copy()
+    for freq_df in [fred_daily, fred_weekly, fred_monthly, fred_quarterly]:
+        if not freq_df.empty:
+            # Drop as_of_date from freq_df to avoid duplication, then merge
+            other_cols = [c for c in freq_df.columns if c != "as_of_date"]
+            if other_cols:
+                fred_df = fred_df.merge(freq_df[["as_of_date"] + other_cols], on="as_of_date", how="left")
+
+    fred_df["trade_date"] = fred_df["as_of_date"].dt.date
     fred_features = [c for c in fred_df.columns if c not in ("as_of_date", "trade_date")]
 
-    # Warn on high sparsity
-    missing_frac = fred_df[fred_features].isna().mean().mean()
-    if missing_frac > 0.50:
-        logger.warning(f"   ⚠️ FRED pivot has high missingness: {missing_frac:.1%}")
-
-    logger.info(f"   Wide format: {len(fred_df):,} rows, {len(fred_features)} FRED features")
+    # Only bfill for leading NaNs (series that start later than base)
+    pre_fill_nans = fred_df[fred_features].isna().sum().sum()
+    fred_df[fred_features] = fred_df[fred_features].bfill()
+    post_fill_nans = fred_df[fred_features].isna().sum().sum()
+    logger.info(f"   Combined: {len(fred_df):,} rows, {len(fred_features)} FRED features")
+    logger.info(f"   Leading NaN bfill: {pre_fill_nans:,} → {post_fill_nans:,} (merge_asof approach)")
 
     # =========================================================================
-    # 3. WEATHER Data (215K rows) - aggregate by date for soy regions
+    # 3. WEATHER Data (215K rows) - pivot by station, ALL 10 weather variables
     # =========================================================================
-    logger.info("3. Loading NOAA weather data...")
+    logger.info("3. Loading NOAA weather data (pivoted by station)...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
+                station_id,
                 as_of_date,
-                AVG(tavg_c) as weather_tavg_global,
-                AVG(tmin_c) as weather_tmin_global,
-                AVG(tmax_c) as weather_tmax_global,
-                AVG(prcp_mm) as weather_prcp_global,
-                AVG(CASE WHEN country = 'Brazil' THEN tavg_c END) as weather_tavg_brazil,
-                AVG(CASE WHEN country = 'Brazil' THEN prcp_mm END) as weather_prcp_brazil,
-                AVG(CASE WHEN country = 'United States' THEN tavg_c END) as weather_tavg_us,
-                AVG(CASE WHEN country = 'United States' THEN prcp_mm END) as weather_prcp_us,
-                AVG(CASE WHEN country = 'Argentina' THEN tavg_c END) as weather_tavg_argentina,
-                AVG(CASE WHEN country = 'Argentina' THEN prcp_mm END) as weather_prcp_argentina
+                tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
+                awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms
             FROM "raw"."weather_noaa_1d"
-            GROUP BY as_of_date
-            ORDER BY as_of_date
+            ORDER BY as_of_date, station_id
         """)
         weather_cols = [desc[0] for desc in cur.description]
         weather_rows = cur.fetchall()
-    weather_df = pd.DataFrame(weather_rows, columns=weather_cols)
-    weather_df["trade_date"] = pd.to_datetime(weather_df["as_of_date"]).dt.date
-    weather_df = weather_df.drop(columns=["as_of_date"])
-    logger.info(f"   Loaded {len(weather_df):,} daily aggregates, 10 weather features")
+    weather_long = pd.DataFrame(weather_rows, columns=weather_cols)
+    weather_long["trade_date"] = pd.to_datetime(weather_long["as_of_date"]).dt.date
+
+    # Pivot: each station × variable becomes a column (57 stations × 10 vars = 570 features)
+    weather_vars = ["tavg_c", "tmin_c", "tmax_c", "prcp_mm", "snow_mm",
+                    "awnd_ms", "snwd_mm", "evap_mm", "rhav_pct", "wsfg_ms"]
+    weather_pivot_dfs = []
+    for var in weather_vars:
+        pivot = weather_long.pivot_table(
+            index="trade_date", columns="station_id", values=var, aggfunc="first"
+        )
+        pivot.columns = [f"weather_{var}_{c}" for c in pivot.columns]
+        weather_pivot_dfs.append(pivot)
+    weather_df = pd.concat(weather_pivot_dfs, axis=1).reset_index()
+    n_stations = weather_long["station_id"].nunique()
+
+    # Forward-fill weather data (some stations have gaps) - NO NULLs allowed
+    weather_features = [c for c in weather_df.columns if c != "trade_date"]
+    weather_df[weather_features] = weather_df[weather_features].ffill().bfill()
+    logger.info(f"   Loaded {len(weather_long):,} rows → {len(weather_df):,} dates, {len(weather_df.columns)-1} weather features ({n_stations} stations × {len(weather_vars)} vars, ffill+bfill applied)")
 
     # =========================================================================
-    # 4. SPOT FX Data (140K rows) - pivot to wide format
+    # 4. FX Data - Pull from FRED (complete history) instead of sparse fx_spot_1d
     # =========================================================================
-    logger.info("4. Loading spot FX data...")
+    # FRED has 18 DEX currency series with 6,500-13,800 rows each - complete history
+    # Critical pairs: DEXBZUS (Brazil), DEXCHUS (China), DEXMXUS (Mexico), DEXUSEU (Euro)
+    logger.info("4. Loading FX data from FRED (complete history)...")
+    fx_series = [
+        "DEXCAUS", "DEXMAUS", "DEXINUS", "DEXCHUS", "DEXMXUS", "DEXBZUS",
+        "DEXUSEU", "DEXUSUK", "DEXJPUS", "DEXNOUS", "DEXSFUS", "DEXUSAL",
+        "DEXSZUS", "DEXTHUS", "DEXHKUS", "DEXKOUS", "DEXSIUS", "DEXTAUS"
+    ]
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT pair, as_of_date, rate
-            FROM "raw"."fx_spot_1d"
-            ORDER BY as_of_date
-        """)
+            SELECT series_id, as_of_date, value
+            FROM "raw"."fred_observations_1d"
+            WHERE series_id IN %s
+            ORDER BY as_of_date, series_id
+        """, (tuple(fx_series),))
         fx_rows = cur.fetchall()
-    fx_df = pd.DataFrame(fx_rows, columns=["pair", "as_of_date", "rate"])
+    fx_df = pd.DataFrame(fx_rows, columns=["series_id", "as_of_date", "value"])
     fx_df["trade_date"] = pd.to_datetime(fx_df["as_of_date"]).dt.date
-    # Pivot: each FX pair becomes a column
-    fx_wide = fx_df.pivot_table(index="trade_date", columns="pair", values="rate", aggfunc="last")
+
+    # Pivot: each FX series becomes a column
+    fx_wide = fx_df.pivot_table(index="trade_date", columns="series_id", values="value", aggfunc="last")
     fx_wide.columns = [f"fx_{c}" for c in fx_wide.columns]
     fx_wide = fx_wide.reset_index()
-    logger.info(f"   Loaded {len(fx_wide):,} dates, {len(fx_wide.columns)-1} FX pairs")
+
+    # Fill gaps (ffill for weekends, bfill for leading NaNs) - NO NULLs allowed
+    fx_wide = fx_wide.ffill().bfill()
+    logger.info(f"   Loaded {len(fx_wide):,} dates, {len(fx_wide.columns)-1} FX pairs from FRED (zero NaN)")
 
     # =========================================================================
-    # 5. CFTC COT Positioning (6K rows) - ZL positioning signals
+    # 5. CFTC COT Positioning (WEEKLY) - merge_asof to daily base
     # =========================================================================
-    logger.info("5. Loading CFTC COT positioning...")
+    logger.info("5. Loading CFTC COT positioning (merge_asof weekly→daily)...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
                 report_date,
-                symbol as cot_symbol,
-                open_interest as cot_oi,
-                managed_money_net as cot_mm_net,
-                managed_money_net_pct_oi as cot_mm_pct,
-                prod_merc_net as cot_prod_net,
-                prod_merc_net_pct_oi as cot_prod_pct
+                symbol,
+                open_interest,
+                managed_money_net,
+                managed_money_net_pct_oi,
+                prod_merc_net,
+                prod_merc_net_pct_oi
             FROM "raw"."cftc_cot_1w"
-            WHERE symbol IN ('ZL', 'ZS', 'ZM', 'CL')
             ORDER BY report_date, symbol
         """)
         cot_rows = cur.fetchall()
-    cot_df = pd.DataFrame(cot_rows, columns=["report_date", "cot_symbol", "cot_oi", "cot_mm_net", "cot_mm_pct", "cot_prod_net", "cot_prod_pct"])
-    cot_df["trade_date"] = pd.to_datetime(cot_df["report_date"]).dt.date
-    # Pivot by symbol
-    cot_features = []
-    for sym in ["ZL", "ZS", "ZM", "CL"]:
-        sym_df = cot_df[cot_df["cot_symbol"] == sym].copy()
-        for col in ["cot_oi", "cot_mm_net", "cot_mm_pct", "cot_prod_net", "cot_prod_pct"]:
-            sym_df = sym_df.rename(columns={col: f"{col}_{sym}"})
-            cot_features.append(f"{col}_{sym}")
-        if sym == "ZL":
-            cot_wide = sym_df[["trade_date"] + [c for c in sym_df.columns if c.startswith("cot_") and c.endswith(f"_{sym}")]]
-        else:
-            sym_cols = ["trade_date"] + [c for c in sym_df.columns if c.startswith("cot_") and c.endswith(f"_{sym}")]
-            cot_wide = cot_wide.merge(sym_df[sym_cols], on="trade_date", how="outer")
-    logger.info(f"   Loaded {len(cot_wide):,} dates, {len(cot_features)} COT features")
+    cot_long = pd.DataFrame(cot_rows, columns=[
+        "report_date", "symbol", "open_interest", "managed_money_net",
+        "managed_money_net_pct_oi", "prod_merc_net", "prod_merc_net_pct_oi"
+    ])
+    cot_long["report_date"] = pd.to_datetime(cot_long["report_date"])
+
+    # Pivot at native weekly frequency
+    cot_metrics = ["open_interest", "managed_money_net", "managed_money_net_pct_oi",
+                   "prod_merc_net", "prod_merc_net_pct_oi"]
+    cot_pivot_dfs = []
+    for metric in cot_metrics:
+        pivot = cot_long.pivot_table(
+            index="report_date", columns="symbol", values=metric, aggfunc="first"
+        )
+        pivot.columns = [f"cot_{metric}_{c}" for c in pivot.columns]
+        cot_pivot_dfs.append(pivot)
+    cot_native = pd.concat(cot_pivot_dfs, axis=1).reset_index()
+    n_symbols = cot_long["symbol"].nunique()
+
+    # merge_asof: for each daily date, get last known COT report (direction='backward')
+    cot_wide = pd.merge_asof(
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
+        cot_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        on="trade_date",
+        direction="backward"
+    )
+    cot_features = [c for c in cot_wide.columns if c.startswith("cot_")]
+
+    # Only bfill for leading NaNs (before first COT report)
+    pre_nans = cot_wide[cot_features].isna().sum().sum()
+    cot_wide[cot_features] = cot_wide[cot_features].bfill()
+    post_nans = cot_wide[cot_features].isna().sum().sum()
+    cot_wide["trade_date"] = cot_wide["trade_date"].dt.date
+    logger.info(f"   Loaded {len(cot_long):,} weekly reports → {len(cot_wide):,} daily rows via merge_asof")
+    logger.info(f"   COT features: {len(cot_features)} ({n_symbols} symbols × {len(cot_metrics)} metrics), leading bfill: {pre_nans:,} → {post_nans:,}")
 
     # =========================================================================
-    # 6. USDA Export Sales (6K rows)
+    # 6. USDA Export Sales (WEEKLY) - merge_asof to daily base
     # =========================================================================
-    logger.info("6. Loading USDA export sales...")
+    logger.info("6. Loading USDA export sales (merge_asof weekly→daily)...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
@@ -414,15 +665,30 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             ORDER BY report_date
         """)
         usda_rows = cur.fetchall()
-    usda_df = pd.DataFrame(usda_rows, columns=["report_date", "usda_soy_net_sales", "usda_soy_exports", "usda_zl_net_sales", "usda_zl_exports", "usda_zm_net_sales"])
-    usda_df["trade_date"] = pd.to_datetime(usda_df["report_date"]).dt.date
-    usda_df = usda_df.drop(columns=["report_date"])
-    logger.info(f"   Loaded {len(usda_df):,} dates, 5 USDA export features")
+    usda_native = pd.DataFrame(usda_rows, columns=["report_date", "usda_soy_net_sales", "usda_soy_exports", "usda_zl_net_sales", "usda_zl_exports", "usda_zm_net_sales"])
+    usda_native["report_date"] = pd.to_datetime(usda_native["report_date"])
+
+    # merge_asof: for each daily date, get last known USDA report
+    usda_df = pd.merge_asof(
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
+        usda_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        on="trade_date",
+        direction="backward"
+    )
+    usda_features = [c for c in usda_df.columns if c.startswith("usda_")]
+
+    # Only bfill for leading NaNs
+    pre_nans = usda_df[usda_features].isna().sum().sum()
+    usda_df[usda_features] = usda_df[usda_features].bfill()
+    post_nans = usda_df[usda_features].isna().sum().sum()
+    usda_df["trade_date"] = usda_df["trade_date"].dt.date
+    logger.info(f"   Loaded {len(usda_native):,} weekly reports → {len(usda_df):,} daily rows via merge_asof")
+    logger.info(f"   USDA features: {len(usda_features)}, leading bfill: {pre_nans:,} → {post_nans:,}")
 
     # =========================================================================
-    # 7. USDA WASDE (4K rows) - fundamentals
+    # 7. USDA WASDE (MONTHLY) - merge_asof to daily base
     # =========================================================================
-    logger.info("7. Loading USDA WASDE fundamentals...")
+    logger.info("7. Loading USDA WASDE fundamentals (merge_asof monthly→daily)...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
@@ -437,10 +703,25 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             ORDER BY report_date
         """)
         wasde_rows = cur.fetchall()
-    wasde_df = pd.DataFrame(wasde_rows, columns=["report_date", "wasde_soy_production", "wasde_soy_exports", "wasde_soy_stocks", "wasde_zl_production", "wasde_zl_exports"])
-    wasde_df["trade_date"] = pd.to_datetime(wasde_df["report_date"]).dt.date
-    wasde_df = wasde_df.drop(columns=["report_date"])
-    logger.info(f"   Loaded {len(wasde_df):,} dates, 5 WASDE features")
+    wasde_native = pd.DataFrame(wasde_rows, columns=["report_date", "wasde_soy_production", "wasde_soy_exports", "wasde_soy_stocks", "wasde_zl_production", "wasde_zl_exports"])
+    wasde_native["report_date"] = pd.to_datetime(wasde_native["report_date"])
+
+    # merge_asof: for each daily date, get last known WASDE report
+    wasde_df = pd.merge_asof(
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
+        wasde_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        on="trade_date",
+        direction="backward"
+    )
+    wasde_features = [c for c in wasde_df.columns if c.startswith("wasde_")]
+
+    # Only bfill for leading NaNs
+    pre_nans = wasde_df[wasde_features].isna().sum().sum()
+    wasde_df[wasde_features] = wasde_df[wasde_features].bfill()
+    post_nans = wasde_df[wasde_features].isna().sum().sum()
+    wasde_df["trade_date"] = wasde_df["trade_date"].dt.date
+    logger.info(f"   Loaded {len(wasde_native):,} monthly reports → {len(wasde_df):,} daily rows via merge_asof")
+    logger.info(f"   WASDE features: {len(wasde_features)}, leading bfill: {pre_nans:,} → {post_nans:,}")
 
     # =========================================================================
     # 8. EPA RIN Prices (208 rows) - biofuel mandate pricing
@@ -459,33 +740,90 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     rin_wide = rin_df.pivot_table(index="trade_date", columns="rin_type", values="price", aggfunc="last")
     rin_wide.columns = [f"rin_{c}" for c in rin_wide.columns]
     rin_wide = rin_wide.reset_index()
-    logger.info(f"   Loaded {len(rin_wide):,} dates, {len(rin_wide.columns)-1} RIN prices")
+
+    # Forward-fill RIN prices (some gaps in reporting) - NO NULLs allowed
+    rin_features = [c for c in rin_wide.columns if c != "trade_date"]
+    rin_wide[rin_features] = rin_wide[rin_features].ffill().bfill()
+    logger.info(f"   Loaded {len(rin_wide):,} dates, {len(rin_wide.columns)-1} RIN prices (ffill+bfill applied)")
 
     # =========================================================================
-    # 9. NEWS Sentiment (288 rows) - aggregated daily sentiment
+    # 9. NEWS Sentiment - Compute REAL sentiment from headlines using classify_article()
     # =========================================================================
-    logger.info("9. Loading news sentiment...")
+    # The sentiment_score column is NULL - we compute it live from headlines
+    # using the rule-based classifier in src/fusion/api/news_sentiment.py
+    logger.info("9. Loading news articles and computing sentiment...")
+    from src.fusion.api.news_sentiment import classify_article
+
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
+                id,
                 as_of_date,
-                AVG(sentiment_score) as news_sentiment_avg,
-                COUNT(*) as news_article_count,
-                SUM(CASE WHEN zl_sentiment = 'bullish' THEN 1 ELSE 0 END) as news_bullish_count,
-                SUM(CASE WHEN zl_sentiment = 'bearish' THEN 1 ELSE 0 END) as news_bearish_count,
-                SUM(CASE WHEN is_trump_related THEN 1 ELSE 0 END) as news_trump_count
+                headline,
+                content,
+                source,
+                bucket_name,
+                zl_sentiment,
+                is_trump_related
             FROM "raw"."news_articles_1d"
-            GROUP BY as_of_date
             ORDER BY as_of_date
         """)
         news_rows = cur.fetchall()
-    news_df = pd.DataFrame(news_rows, columns=["as_of_date", "news_sentiment_avg", "news_article_count", "news_bullish_count", "news_bearish_count", "news_trump_count"])
-    news_df["trade_date"] = pd.to_datetime(news_df["as_of_date"]).dt.date
-    news_df = news_df.drop(columns=["as_of_date"])
-    logger.info(f"   Loaded {len(news_df):,} dates, 5 news sentiment features")
+
+    # Compute sentiment for each article using classify_article()
+    news_records = []
+    for row in news_rows:
+        article_id, as_of_date, headline, content, source_name, bucket_name, zl_sentiment, is_trump_related = row
+        # Build article dict for classifier
+        article = {
+            "id": article_id,
+            "title": headline or "",
+            "body": content or "",
+            "source": source_name or "",
+        }
+        result = classify_article(article)
+        news_records.append({
+            "as_of_date": as_of_date,
+            "headline": headline,
+            "impact_score": result["impact_score"],  # -1 to +1, computed from rules
+            "direction": result["overall_direction"],  # bullish/bearish/uncertain
+            "bucket_name": bucket_name,
+            "is_trump_related": is_trump_related,
+            "num_matches": len(result["matches"]),
+            "alert_buckets": result["alert_buckets"],
+        })
+
+    news_raw = pd.DataFrame(news_records)
+    news_raw["trade_date"] = pd.to_datetime(news_raw["as_of_date"]).dt.date
+
+    # Aggregate by date - multiple articles per day
+    news_agg = news_raw.groupby("trade_date").agg({
+        "impact_score": ["mean", "sum", "std", "min", "max"],  # Sentiment stats
+        "direction": lambda x: (x == "bullish").sum(),  # Count bullish
+        "is_trump_related": "sum",  # Trump article count
+        "num_matches": "sum",  # Total category matches (signal strength)
+        "headline": "count",  # Article count
+    })
+    news_agg.columns = [
+        "news_sentiment_mean", "news_sentiment_sum", "news_sentiment_std",
+        "news_sentiment_min", "news_sentiment_max",
+        "news_bullish_count", "news_trump_count", "news_signal_strength", "news_article_count"
+    ]
+    news_agg = news_agg.reset_index()
+
+    # Add bearish count
+    bearish_counts = news_raw[news_raw["direction"] == "bearish"].groupby("trade_date").size().reset_index(name="news_bearish_count")
+    news_df = news_agg.merge(bearish_counts, on="trade_date", how="left")
+    news_df["news_bearish_count"] = news_df["news_bearish_count"].fillna(0).astype(int)
+
+    # Fill NaN std (when only 1 article) with 0
+    news_df["news_sentiment_std"] = news_df["news_sentiment_std"].fillna(0)
+
+    logger.info(f"   Computed sentiment for {len(news_raw):,} articles → {len(news_df):,} dates")
+    logger.info(f"   Sentiment features: mean={news_df['news_sentiment_mean'].mean():.4f}, bullish={news_df['news_bullish_count'].sum()}, bearish={news_df['news_bearish_count'].sum()}")
 
     # =========================================================================
-    # JOIN ALL DATA TO BASE (hourly for 5d, daily for 21d+)
+    # JOIN ALL DATA TO DAILY BASE
     # =========================================================================
     logger.info("=" * 60)
     logger.info(f"JOINING ALL FEATURES TO {freq_label.upper()} BASE")
@@ -498,15 +836,21 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     df = df.merge(fred_df, on="trade_date", how="left")
     logger.info(f"  + FRED: {len(fred_features)} features")
 
-    # Join Weather
-    df = df.merge(weather_df, on="trade_date", how="left")
-    logger.info(f"  + Weather: 10 features")
+    # Join Weather (lagged by 1 day to avoid look-ahead bias)
+    # NOTE: Weather actuals are known at end of day, so we use t-1 weather for t predictions
+    weather_features = [c for c in weather_df.columns if c != "trade_date"]
+    weather_df_lagged = weather_df.copy()
+    weather_df_lagged["trade_date"] = pd.to_datetime(weather_df_lagged["trade_date"]) + pd.Timedelta(days=1)
+    weather_df_lagged["trade_date"] = weather_df_lagged["trade_date"].dt.date
+    df = df.merge(weather_df_lagged, on="trade_date", how="left")
+    logger.info(f"  + Weather: {len(weather_features)} features (lagged 1 day to avoid look-ahead)")
 
     # Join Spot FX
     df = df.merge(fx_wide, on="trade_date", how="left")
     logger.info(f"  + Spot FX: {len(fx_wide.columns)-1} features")
 
     # Join CFTC COT
+    cot_features = [c for c in cot_wide.columns if c != "trade_date"]
     df = df.merge(cot_wide, on="trade_date", how="left")
     logger.info(f"  + CFTC COT: {len(cot_features)} features")
 
@@ -524,7 +868,7 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
 
     # Join News
     df = df.merge(news_df, on="trade_date", how="left")
-    logger.info(f"  + News: 5 features")
+    logger.info(f"  + News: {len(news_df.columns)-1} features")
 
     # Drop trade_date helper column
     df = df.drop(columns=["trade_date"])
@@ -534,10 +878,42 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     # ZL close is "target", all other symbols are covariates (e.g., BTC_close)
     # =========================================================================
 
-    # Sort by timestamp and forward-fill all features
+    # Sort by timestamp and fill all NaNs - NO NULLs allowed
     df = df.sort_values("ts_event")
-    logger.info("  Forward-filling all features...")
-    df = df.ffill()
+    logger.info("  Filling all NaN values (forward-fill then backward-fill for leading NaNs)...")
+    df = df.ffill()  # Forward fill: carry last known value forward
+    df = df.bfill()  # Backward fill: fill leading NaNs with first valid value
+
+    # Log post-fill NaN rates by category
+    nan_rate_overall = df.isna().mean().mean()
+    logger.info(f"  POST-FILL NaN rate (overall): {nan_rate_overall:.1%}")
+
+    def nan_rate_for(prefix: str) -> float:
+        cols = [c for c in df.columns if c.startswith(prefix)]
+        return float(df[cols].isna().mean().mean()) if cols else 0.0
+
+    # Market symbols don't have a prefix - count by OHLCV suffix
+    market_cols = [c for c in df.columns if c.endswith(('_open', '_high', '_low', '_close', '_volume'))]
+    market_nan = df[market_cols].isna().mean().mean() if market_cols else 0.0
+    logger.info(f"    market: {market_nan:.1%}")
+    logger.info(f"    weather: {nan_rate_for('weather_'):.1%}")
+    logger.info(f"    cot: {nan_rate_for('cot_'):.1%}")
+    logger.info(f"    fx: {nan_rate_for('fx_'):.1%}")
+    logger.info(f"    usda: {nan_rate_for('usda_'):.1%}")
+    logger.info(f"    wasde: {nan_rate_for('wasde_'):.1%}")
+    logger.info(f"    rin: {nan_rate_for('rin_'):.1%}")
+    logger.info(f"    news: {nan_rate_for('news_'):.1%}")
+
+    # CRITICAL: Verify NO NaN values remain
+    remaining_nans = df.isna().sum().sum()
+    if remaining_nans > 0:
+        nan_cols = df.columns[df.isna().any()].tolist()
+        logger.error(f"  ❌ {remaining_nans} NaN values remain in columns: {nan_cols[:10]}...")
+        # Fill any stragglers with 0 (should not happen after ffill+bfill)
+        df = df.fillna(0)
+        logger.warning(f"  ⚠️ Filled {remaining_nans} remaining NaNs with 0")
+    else:
+        logger.info(f"  ✅ Zero NaN values - ALL DATA COMPLETE")
 
     # Drop rows with no target (ZL close)
     df = df.dropna(subset=["target"])
@@ -568,46 +944,60 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
 
 
 def train_chronos2_model(ts_data, horizon: int, model_path: Path, mode: str = "quick"):
-    """Train with AutoGluon 1.5 TimeSeriesPredictor."""
+    """
+    Train with AutoGluon 1.5 TimeSeriesPredictor.
+
+    KEY FEATURES:
+    - Weighted Quantile Loss (WQL): Optimizes for probabilistic forecasting
+    - Chronos-2 with Group Attention: Learns covariate relationships automatically
+      (e.g., crude oil spike → ZL price shift) without manual lag features
+    - TemporalFusionTransformer: Variable selection for interpretability
+
+    Group Attention (Chronos-2):
+    - Shares information across multiple time series within a group
+    - Naturally handles covariates (WASDE reports, crude oil, COT positioning)
+    - No need to manually engineer "WASDE_release_lag_3d" type features
+    """
     from autogluon.timeseries import TimeSeriesPredictor
 
-    # Time limits by mode - increased for 9.5M row dataset
+    # Time limits by mode - increased for large dataset with many covariates
     time_limits = {
         "ultrafast": 3600,   # 1 hour - fast statistical models only
         "quick": 7200,       # 2 hours - Chronos-2 needs more time on large data
-        "full": 14400,       # 4 hours - full AutoML ensemble
+        "full": 21600,       # 6 hours - full AutoML ensemble with TFT + Chronos-2
     }
     time_limit = time_limits.get(mode, 7200)
     is_full = mode == "full"
 
-    # Determine frequency based on horizon
-    # 5d horizon uses hourly (1h) data, 21d/63d/126d use daily (1d) data
-    use_hourly = (horizon == 5)
-    freq = "h" if use_hourly else "D"
-    freq_label = "hourly" if use_hourly else "daily"
+    # ALL horizons use business daily (futures markets closed weekends)
+    freq = "B"
+    freq_label = "business daily"
 
     logger.info(f"Training AutoGluon TimeSeriesPredictor for {horizon}d horizon")
     logger.info(f"  Mode: {mode}")
     logger.info(f"  Frequency: {freq_label} ({freq})")
     logger.info(f"  Dataset: {len(ts_data):,} rows, {ts_data.num_items} series")
     logger.info(f"  Time limit: {time_limit // 60} minutes")
-    logger.info(f"  Preset: best_quality")
+    logger.info(f"  Eval Metric: WQL (Weighted Quantile Loss) - probabilistic")
+    logger.info(f"  Quantiles: {QUANTILE_LEVELS}")
 
     if is_full:
-        logger.info(f"  Models: Full AutoML ensemble (DeepAR, PatchTST, Chronos-2, etc.)")
+        logger.info(f"  Models: Full ensemble (Chronos-2 + TFT + DeepAR + PatchTST + statistical)")
+        logger.info(f"  Features: Group attention for automatic covariate learning")
     else:
-        logger.info(f"  Models: Chronos-2 only ({mode} mode)")
+        logger.info(f"  Models: Chronos-2 + TFT ({mode} mode)")
 
     model_path.mkdir(parents=True, exist_ok=True)
 
-    # Configure TimeSeriesPredictor
+    # Configure TimeSeriesPredictor with WQL for probabilistic forecasting
+    # WQL = Weighted Quantile Loss - measures accuracy of quantile forecasts
     predictor = TimeSeriesPredictor(
         prediction_length=horizon,
         path=str(model_path),
         target="target",
-        eval_metric="MASE",
-        quantile_levels=QUANTILE_LEVELS,
-        freq=freq,  # Hourly for 5d, Daily for 21d/63d/126d
+        eval_metric="WQL",  # Weighted Quantile Loss - better for probabilistic forecasts
+        quantile_levels=QUANTILE_LEVELS,  # P10, P25, P50, P75, P90 for procurement decisions
+        freq=freq,
         verbosity=2,
     )
 
@@ -626,23 +1016,67 @@ def train_chronos2_model(ts_data, horizon: int, model_path: Path, mode: str = "q
             "AutoETS": {},
             "DynamicOptimizedTheta": {},
         }
-    # Quick mode: Chronos-2 with LoRA fine-tuning + fast models
+
+    # Quick mode: Chronos-2 + TFT for covariate learning
     elif not is_full:
         fit_kwargs["hyperparameters"] = {
+            # Chronos-2: Group attention for automatic covariate learning
+            # "Group attention shares information across multiple time series within a group,
+            #  which may represent sets of related series, variates of a multivariate series,
+            #  or targets and covariates in a forecasting task" - Amazon Research
             "Chronos2": {
-                "model_path": "autogluon/chronos-2",
-                "cross_learning": False,       # Explicit: single item_id
+                "model_path": "amazon/chronos-2",  # Use official Amazon model
                 "fine_tune": True,
-                "fine_tune_mode": "lora",      # Stable fine-tuning
-                "fine_tune_lr": 1e-5,          # Conservative learning rate
+                "fine_tune_mode": "lora",          # Efficient fine-tuning
+                "fine_tune_lr": 1e-5,
                 "fine_tune_steps": 500,
                 "fine_tune_batch_size": 16,
                 "fine_tune_trainer_kwargs": {
-                    "max_grad_norm": 1.0,      # Gradient clipping for stability
+                    "max_grad_norm": 1.0,
                     "warmup_ratio": 0.05,
                 },
             },
-            "AutoETS": {},  # Fast fallback
+            # TFT: Variable selection networks for interpretability
+            # "Variable selection networks select relevant input variables at each time step"
+            # Shows which covariates (WASDE, crude oil, COT) drive predictions
+            "TemporalFusionTransformer": {
+                "context_length": max(64, 2 * horizon),  # Look back at least 2x horizon
+            },
+            "AutoETS": {},  # Fast statistical fallback
+        }
+
+    # Full mode: Complete ensemble with all models
+    else:
+        fit_kwargs["hyperparameters"] = {
+            # Chronos-2 with group attention
+            "Chronos2": {
+                "model_path": "amazon/chronos-2",
+                "fine_tune": True,
+                "fine_tune_mode": "lora",
+                "fine_tune_lr": 1e-5,
+                "fine_tune_steps": 1000,  # More steps for full training
+                "fine_tune_batch_size": 32,
+            },
+            # TFT for variable selection / interpretability
+            "TemporalFusionTransformer": {
+                "context_length": max(128, 3 * horizon),
+                "hidden_size": 64,
+                "lstm_layers": 2,
+                "num_heads": 4,
+                "dropout_rate": 0.1,
+            },
+            # DeepAR for probabilistic forecasting
+            "DeepAR": {
+                "context_length": max(64, 2 * horizon),
+            },
+            # PatchTST for long-range dependencies
+            "PatchTST": {
+                "context_length": max(128, 3 * horizon),
+            },
+            # Statistical models for ensemble diversity
+            "AutoETS": {},
+            "AutoARIMA": {},
+            "DynamicOptimizedTheta": {},
         }
 
     # Train
@@ -747,11 +1181,13 @@ def train_core_chronos2(horizon: int, mode: str = "quick", dry_run: bool = False
             sys.exit(1)
 
         # Load FULL training data from Prisma
-        # 5d horizon uses 1h data, 21d/63d/126d use 1d data
+        # All horizons use daily data
         ts_data = load_training_data(conn, horizon=horizon)
 
-        model_version = f"chronos2_ag15_{mode}_h{horizon}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        model_path = MODEL_PATH / f"horizon_{horizon}d"
+        model_version = f"strategic_chronos2_ag15_{mode}_h{horizon}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # STRATEGIC models - all horizons save to strategic/ subfolder
+        model_path = MODEL_PATH / f"horizon_{horizon}d" / "strategic"
 
         if dry_run:
             logger.info(f"\n[DRY RUN] Would train model in {mode} mode")
@@ -774,7 +1210,7 @@ def train_core_chronos2(horizon: int, mode: str = "quick", dry_run: bool = False
                 ts_df,
                 context="training",
                 name=f"core_h{horizon}d_training",
-                source="prisma://raw.market_futures_1h"
+                source="prisma://raw.market_futures_1d"
             )
 
             # Train model with timing

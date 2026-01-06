@@ -1,0 +1,205 @@
+2026-01-01 18:49:21,446 - INFO - ============================================================
+2026-01-01 18:49:21,446 - INFO - TRAINING CORE MODEL (CHRONOS-2 + AUTOGLUON 1.5) @ 21d
+2026-01-01 18:49:21,446 - INFO - Mode: quick
+2026-01-01 18:49:21,446 - INFO - ============================================================
+2026-01-01 18:49:21,818 - INFO - Running pre-flight data check...
+2026-01-01 18:49:21,819 - INFO - ======================================================================
+2026-01-01 18:49:21,819 - INFO - ALL DATA POLICY ENFORCEMENT CHECK
+2026-01-01 18:49:21,819 - INFO - ======================================================================
+2026-01-01 18:49:21,819 - INFO - RULE: USE ALL DATASETS, ALL DATA, ALL THE TIME.
+2026-01-01 18:49:21,819 - INFO - ======================================================================
+2026-01-01 18:49:21,819 - INFO - 
+[1/3] Checking data source availability...
+2026-01-01 18:49:22,259 - INFO -   ✅ market_futures_1h: 4,967,276 rows - Hourly futures (84 symbols)
+2026-01-01 18:49:22,323 - INFO -   ✅ market_futures_1d: 396,602 rows - Daily futures (83 symbols)
+2026-01-01 18:49:22,411 - INFO -   ✅ fred_observations_1d: 420,847 rows - FRED economic (long format, 111+ series)
+2026-01-01 18:49:22,483 - INFO -   ✅ weather_noaa_1d: 215,320 rows - NOAA weather (US/Brazil/Argentina)
+2026-01-01 18:49:22,527 - INFO -   ✅ fx_spot_1d: 139,707 rows - Spot FX (30 pairs)
+2026-01-01 18:49:22,571 - INFO -   ✅ cftc_cot_1w: 18,151 rows - CFTC COT positioning
+2026-01-01 18:49:22,611 - INFO -   ✅ usda_export_sales_1w: 9,544 rows - USDA export sales
+2026-01-01 18:49:22,655 - INFO -   ✅ usda_wasde_1m: 18,660 rows - USDA WASDE
+2026-01-01 18:49:22,695 - INFO -   ✅ epa_rin_prices_1d: 3,332 rows - EPA RIN prices
+2026-01-01 18:49:22,731 - INFO -   ✅ news_articles_1d: 4,717 rows - News sentiment
+2026-01-01 18:49:22,732 - INFO - 
+  Sources loaded: 10/10
+2026-01-01 18:49:22,732 - INFO - 
+[2/3] Skipping feature validation (no DataFrame provided)
+2026-01-01 18:49:22,732 - INFO - [3/3] Skipping category validation (no DataFrame provided)
+2026-01-01 18:49:22,732 - INFO - 
+======================================================================
+2026-01-01 18:49:22,732 - INFO - ✅ ALL DATA POLICY: PASSED
+2026-01-01 18:49:22,732 - INFO - ======================================================================
+2026-01-01 18:49:22,733 - INFO - 
+======================================================================
+2026-01-01 18:49:22,733 - INFO - ALL DATA SUMMARY FOR TRAINING
+2026-01-01 18:49:22,733 - INFO - ======================================================================
+2026-01-01 18:49:22,733 - INFO - Horizon: 21d
+2026-01-01 18:49:22,733 - INFO - Policy: USE ALL DATASETS, ALL DATA, ALL THE TIME
+2026-01-01 18:49:22,733 - INFO - ----------------------------------------------------------------------
+2026-01-01 18:49:23,068 - INFO -   market_futures_1h: 4,967,276 rows (2010-06-07 00:00:00 to 2025-12-15 23:00:00)
+2026-01-01 18:49:23,138 - INFO -   market_futures_1d: 396,602 rows (1990-01-01 to 2025-12-29)
+2026-01-01 18:49:23,224 - INFO -   fred_observations_1d: 420,847 rows (1871-01-01 00:00:00 to 2025-12-31 00:00:00)
+2026-01-01 18:49:23,282 - INFO -   weather_noaa_1d: 215,320 rows (2005-01-01 to 2025-12-20)
+2026-01-01 18:49:23,330 - INFO -   fx_spot_1d: 139,707 rows (1981-01-02 00:00:00 to 2025-12-26 00:00:00)
+2026-01-01 18:49:23,368 - INFO -   cftc_cot_1w: 18,151 rows (2006-06-13 to 2025-12-23)
+2026-01-01 18:49:23,406 - INFO -   usda_export_sales_1w: 9,544 rows (2000-01-06 to 2025-12-11)
+2026-01-01 18:49:23,442 - INFO -   usda_wasde_1m: 18,660 rows (2000-02-12 to 2025-12-12)
+2026-01-01 18:49:23,482 - INFO -   epa_rin_prices_1d: 3,332 rows (2010-01-04 00:00:00 to 2025-12-15 00:00:00)
+2026-01-01 18:49:23,517 - INFO -   news_articles_1d: 4,717 rows (2000-01-03 to 2025-12-24)
+2026-01-01 18:49:23,517 - INFO - ======================================================================
+
+2026-01-01 18:49:23,848 - INFO -   Hourly data: 4,967,276 rows, 84 symbols
+2026-01-01 18:49:23,916 - INFO -   FRED data: 420,847 rows, 111 series
+2026-01-01 18:49:23,917 - INFO -   ✅ Pre-flight check passed
+2026-01-01 18:49:24,936 - INFO - ============================================================
+2026-01-01 18:49:24,936 - INFO - LOADING TRAINING DATA FROM PRISMA
+2026-01-01 18:49:24,936 - INFO - ============================================================
+2026-01-01 18:49:24,936 - INFO - Horizon: 21d
+2026-01-01 18:49:24,936 - INFO - Base frequency: 1d
+2026-01-01 18:49:24,936 - INFO - Start date: 2000-01-01
+2026-01-01 18:49:24,936 - INFO - Strategy: ALL sources, forward-fill lower frequencies to base
+2026-01-01 18:49:24,936 - INFO -   - Base: 1D symbols
+2026-01-01 18:49:24,936 - INFO -   - Forward-fill: 1D (FX, RIN, FRED, Weather, News)
+2026-01-01 18:49:24,936 - INFO -   - Forward-fill: 1W (COT, USDA Exports)
+2026-01-01 18:49:24,936 - INFO -   - Forward-fill: 1M (WASDE)
+2026-01-01 18:49:24,936 - INFO - 1. Loading daily market futures >= 2000-01-01...
+2026-01-01 18:49:26,656 - INFO -    Loaded 392,991 rows, 83 symbols
+2026-01-01 18:49:26,656 - INFO -    Pivoting symbols to wide format...
+2026-01-01 18:49:26,776 - INFO -    Wide format: 6,521 rows, 415 symbol features
+2026-01-01 18:49:26,776 - INFO - 2. Loading FRED economic data (long → pivot wide)...
+/Volumes/Satechi Hub/ZINC-FUSION-V15/scripts/train_core_chronos.py:308: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  fred_long = pd.read_sql("""
+2026-01-01 18:49:28,757 - INFO -    Long format: 420,847 rows, 111 series
+2026-01-01 18:49:28,798 - INFO -    Wide format: 27,115 rows, 111 FRED features
+2026-01-01 18:49:28,798 - INFO -    Grid sparsity: 86.0% (mixed frequencies - forward-filled at join)
+2026-01-01 18:49:28,798 - INFO - 3. Loading NOAA weather data (pivoted by station)...
+2026-01-01 18:49:31,758 - INFO -    Loaded 215,320 rows → 7,659 dates, 224 weather features (57 stations × 10 vars)
+2026-01-01 18:49:31,758 - INFO - 4. Loading spot FX data...
+2026-01-01 18:49:32,471 - INFO -    Loaded 11,260 dates, 30 FX pairs
+2026-01-01 18:49:32,471 - INFO - 5. Loading CFTC COT positioning (ALL symbols)...
+2026-01-01 18:49:32,633 - INFO -    Loaded 18,151 rows → 1,020 dates, 100 COT features (20 symbols × 5 metrics)
+2026-01-01 18:49:32,633 - INFO - 6. Loading USDA export sales...
+2026-01-01 18:49:32,681 - INFO -    Loaded 1,354 dates, 5 USDA export features
+2026-01-01 18:49:32,681 - INFO - 7. Loading USDA WASDE fundamentals...
+2026-01-01 18:49:32,733 - INFO -    Loaded 311 dates, 5 WASDE features
+2026-01-01 18:49:32,733 - INFO - 8. Loading EPA RIN prices...
+2026-01-01 18:49:32,789 - INFO -    Loaded 833 dates, 4 RIN prices
+2026-01-01 18:49:32,789 - INFO - 9. Loading news sentiment...
+2026-01-01 18:49:32,843 - INFO -    Loaded 4,688 dates, 5 news sentiment features
+2026-01-01 18:49:32,843 - INFO - ============================================================
+2026-01-01 18:49:32,843 - INFO - JOINING ALL FEATURES TO 1D BASE
+2026-01-01 18:49:32,843 - INFO - ============================================================
+2026-01-01 18:49:32,843 - INFO -   Base: 6,521 1d rows
+2026-01-01 18:49:32,851 - INFO -   + FRED: 111 features
+2026-01-01 18:49:32,859 - INFO -   + Weather: 224 features
+2026-01-01 18:49:32,868 - INFO -   + Spot FX: 30 features
+2026-01-01 18:49:32,878 - INFO -   + CFTC COT: 100 features
+2026-01-01 18:49:32,888 - INFO -   + USDA Exports: 5 features
+2026-01-01 18:49:32,897 - INFO -   + USDA WASDE: 5 features
+2026-01-01 18:49:32,906 - INFO -   + EPA RINs: 4 features
+2026-01-01 18:49:32,918 - INFO -   + News: 5 features
+2026-01-01 18:49:32,932 - INFO -   Forward-filling all features...
+2026-01-01 18:49:32,955 - INFO -   POST-FFILL NaN rate (overall): 31.6%
+2026-01-01 18:49:32,960 - INFO -     market: 29.2%
+2026-01-01 18:49:32,963 - INFO -     weather: 45.5%
+2026-01-01 18:49:32,965 - INFO -     cot: 31.0%
+2026-01-01 18:49:32,966 - INFO -     fx: 32.1%
+2026-01-01 18:49:32,966 - INFO -     usda: 76.9%
+2026-01-01 18:49:32,966 - INFO -     wasde: 77.3%
+2026-01-01 18:49:32,967 - INFO -     rin: 36.6%
+2026-01-01 18:49:32,967 - INFO -     news: 0.0%
+2026-01-01 18:49:32,974 - INFO - ============================================================
+2026-01-01 18:49:32,974 - INFO - FINAL DATASET: 6,521 ZL rows with 900 covariate features
+2026-01-01 18:49:32,974 - INFO -   Symbol covariates: 35
+2026-01-01 18:49:32,974 - INFO -   FRED features: 111
+2026-01-01 18:49:32,974 - INFO -   Other features: weather, FX, COT, USDA, RIN, news
+2026-01-01 18:49:32,974 - INFO - ============================================================
+2026-01-01 18:49:32,983 - INFO - ✓ TimeSeriesDataFrame: 1 item, 6,521 rows
+2026-01-01 18:49:34,447 - INFO - Connected to Railway MLflow: https://mlflow-tracking-production-1916.up.railway.app
+2026-01-01 18:49:34,451 - INFO - QuantMLCommandCenter initialized @ https://mlflow-tracking-production-1916.up.railway.app
+2026-01-01 18:49:35,575 - INFO - Started run: core_h21d_quick_20260101_184935 (experiment: zinc-fusion/core/h21d)
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/mlflow/data/dataset_source_registry.py:148: UserWarning: Failed to determine whether UCVolumeDatasetSource can resolve source information for 'prisma://raw.market_futures_1h'. Exception: 
+  return _dataset_source_registry.resolve(
+2026-01-01 18:49:35,616 - WARNING - Could not log MLflow dataset: Could not find a source information resolver for the specified dataset source: prisma://raw.market_futures_1h.
+2026-01-01 18:49:36,175 - INFO - Logged training dataset: core_h21d_training (6,521 rows)
+2026-01-01 18:49:36,177 - INFO - Training AutoGluon TimeSeriesPredictor for 21d horizon
+2026-01-01 18:49:36,177 - INFO -   Mode: quick
+2026-01-01 18:49:36,178 - INFO -   Frequency: daily (D)
+2026-01-01 18:49:36,180 - INFO -   Dataset: 6,521 rows, 1 series
+2026-01-01 18:49:36,180 - INFO -   Time limit: 120 minutes
+2026-01-01 18:49:36,180 - INFO -   Preset: best_quality
+2026-01-01 18:49:36,180 - INFO -   Models: Chronos-2 only (quick mode)
+Warning: path already exists! This predictor may overwrite an existing predictor! path="/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d"
+Beginning AutoGluon training... Time limit = 7200s
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_21d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.1.0: Mon Oct 20 19:34:05 PDT 2025; root:xnu-12377.41.6~2/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Count:          WARNING: Exception was raised when calculating GPU count (AssertionError)
+Memory Avail:       13.85 GB / 24.00 GB (57.7%)
+Disk Space Avail:   835.39 GB / 931.32 GB (89.7%)
+===================================================
+Setting presets to: best_quality
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'freq': 'D',
+ 'hyperparameters': {'AutoETS': {},
+                     'Chronos2': {'cross_learning': False,
+                                  'fine_tune': True,
+                                  'fine_tune_batch_size': 16,
+                                  'fine_tune_lr': 1e-05,
+                                  'fine_tune_mode': 'lora',
+                                  'fine_tune_steps': 500,
+                                  'fine_tune_trainer_kwargs': {'max_grad_norm': 1.0,
+                                                               'warmup_ratio': 0.05},
+                                  'model_path': 'autogluon/chronos-2'}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 'auto',
+ 'prediction_length': 21,
+ 'quantile_levels': [0.1, 0.5, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 'auto',
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 7200,
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'D'.
+Provided train_data has 9421 rows (NaN fraction=30.8%), 1 time series. Median time series length is 9421 (min=9421, max=9421). 
+Automatically setting num_val_windows=(5,) based on dataset properties
+Automatically setting refit_every_n_windows=2 based on num_val_windows
+
+Provided data contains following columns:
+	target: 'target'
+	past_covariates:
+		categorical:        []
+		continuous (float): ['10Y_open', '2YY_open', '30Y_open', '5YY_open', '6A_open', '6B_open', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['as_of_date', 'news_bearish_count', 'news_bullish_count', 'weather_snow_mm_OPENMETEO:AR_CR', 'weather_snow_mm_OPENMETEO:AR_ER', 'weather_snow_mm_OPENMETEO:AR_FO', 'weather_snow_mm_OPENMETEO:AR_SF', 'weather_snow_mm_OPENMETEO:BR_MG', 'weather_snow_mm_OPENMETEO:BR_PA', 'weather_snow_mm_OPENMETEO:BR_PR', 'weather_snow_mm_OPENMETEO:BR_RS']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-01-01 18:49:42
+Models that will be trained: ['Chronos2', 'AutoETS']
+Training timeseries model Chronos2. Training for up to 3298.9s of the 7197.8s of remaining time.
+2026-01-01 18:49:46,763 - INFO - Using LoRA. Number of trainable parameters: 1206912, total parameters: 120684576.
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/joblib/externals/loky/backend/resource_tracker.py:359: UserWarning: resource_tracker: There appear to be 18 leaked semlock objects to clean up at shutdown
+  warnings.warn(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/joblib/externals/loky/backend/resource_tracker.py:359: UserWarning: resource_tracker: There appear to be 1 leaked folder objects to clean up at shutdown
+  warnings.warn(
+/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/lib/python3.12/site-packages/joblib/externals/loky/backend/resource_tracker.py:375: UserWarning: resource_tracker: /var/folders/34/rlb825396rz7j7cqchw13jjm0000gn/T/joblib_memmapping_folder_16511_6c9ec793093b41b7bf07a2009d5e5b25_ae902522211c489988e51b7fe72c8b34: FileNotFoundError(2, 'No such file or directory')
+  warnings.warn(f"resource_tracker: {name}: {e!r}")

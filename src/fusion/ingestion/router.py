@@ -3,17 +3,18 @@ Specialist Bucket Router
 ========================
 AI-powered routing of data sources to specialist training buckets.
 
-The 10 Economic Drivers (Big-10):
-1. crush      - Soybean crush margins and processing economics
-2. china      - China import demand, trade flow behavior
-3. fx         - Foreign exchange impacts on global oil pricing
-4. fed        - Rates, liquidity, and monetary policy transmission
-5. tariff     - Tariffs, trade policy, and regulatory friction
-6. energy     - Crude, diesel, and energy complex spillover
-7. biofuel    - RFS, SAF, biodiesel incentives and demand
-8. palm       - Palm oil supply, pricing, and substitution effects
-9. volatility - Market stress, convexity, regime shifts
+The 11 Economic Drivers (Big-11):
+1. crush        - Soybean crush margins and processing economics
+2. china        - China import demand, trade flow behavior
+3. fx           - Foreign exchange impacts on global oil pricing
+4. fed          - Rates, liquidity, and monetary policy transmission
+5. tariff       - Tariffs, trade policy, and regulatory friction
+6. energy       - Crude, diesel, and energy complex spillover
+7. biofuel      - RFS, SAF, biodiesel incentives and demand
+8. palm         - Palm oil supply, pricing, and substitution effects
+9. volatility   - Market stress, convexity, regime shifts
 10. substitutes - Cross-oil substitution (canola, UCO, etc.)
+11. trump_effect - Trump/policy regime dynamics, trade war, EPA waivers
 """
 
 from typing import Dict, List, Set, Optional, Any
@@ -24,7 +25,7 @@ from ..taxonomy import ECONOMIC_DRIVERS, DRIVER_DESCRIPTIONS
 
 
 class SpecialistBucket(Enum):
-    """The 10 specialist buckets for soybean oil forecasting."""
+    """The 11 specialist buckets for soybean oil forecasting."""
 
     CRUSH = "crush"
     CHINA = "china"
@@ -36,6 +37,7 @@ class SpecialistBucket(Enum):
     PALM = "palm"
     VOLATILITY = "volatility"
     SUBSTITUTES = "substitutes"
+    TRUMP_EFFECT = "trump_effect"
 
 
 @dataclass
@@ -372,6 +374,41 @@ ROUTING_RULES: Dict[SpecialistBucket, RoutingRule] = {
         series_prefixes=["CANOLA", "RAPE", "SUN"],
         weight=0.8,
     ),
+    SpecialistBucket.TRUMP_EFFECT: RoutingRule(
+        bucket=SpecialistBucket.TRUMP_EFFECT,
+        patterns=[
+            r"trump",
+            r"executive.*order",
+            r"policy.*uncertainty",
+            r"trade.*war",
+            r"section.*301",
+            r"epa.*waiver",
+            r"rfs.*waiver",
+            r"mfp.*payment",
+            r"truth.*social",
+        ],
+        keywords={
+            "trump",
+            "trump_effect",
+            "executive_order",
+            "policy_uncertainty",
+            "trade_war",
+            "section_301",
+            "epa_waiver",
+            "rfs_waiver",
+            "mfp",
+            "market_facilitation",
+            "tweet",
+            "truth_social",
+            "whitehouse",
+            "ustr",
+            "tariff_threat",
+            "china_deal",
+            "phase_one",
+        },
+        series_prefixes=["USEPUINDXD", "EPUTRADE", "EMVTRADE", "CHNMAINLAND", "TPU"],
+        weight=1.4,  # High weight - regime-specific dynamics
+    ),
 }
 
 
@@ -571,6 +608,7 @@ class DataRouter:
             SpecialistBucket.PALM: "palm",
             SpecialistBucket.VOLATILITY: "volatility",
             SpecialistBucket.SUBSTITUTES: "substitutes",
+            SpecialistBucket.TRUMP_EFFECT: "trump_effect",
         }
         bucket_name = bucket_map.get(bucket, "volatility")
         return f"training.specialist_{bucket_name}_{grain}"
@@ -614,6 +652,14 @@ FRED_SERIES_BUCKETS: Dict[str, SpecialistBucket] = {
     "STLFSI4": SpecialistBucket.VOLATILITY,  # Financial Stress Index
     "BAMLH0A0HYM2": SpecialistBucket.VOLATILITY,  # HY OAS proxy for risk
     "OVXCLS": SpecialistBucket.VOLATILITY,  # Oil VIX
+    # TRUMP_EFFECT bucket (policy uncertainty + trade flow)
+    "USEPUINDXD": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Daily)
+    "USEPUINDXM": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Monthly)
+    "EPUTRADE": SpecialistBucket.TRUMP_EFFECT,  # Trade Policy Uncertainty
+    "EMVTRADEPOLEMV": SpecialistBucket.TRUMP_EFFECT,  # Equity Market Volatility: Trade Policy
+    "CHNMAINLANDTPU": SpecialistBucket.TRUMP_EFFECT,  # China Trade Policy Uncertainty
+    "B235RC1Q027SBEA": SpecialistBucket.TRUMP_EFFECT,  # Customs Duties (tariff receipts)
+    "IMPCH": SpecialistBucket.TRUMP_EFFECT,  # US Imports from China
 }
 
 

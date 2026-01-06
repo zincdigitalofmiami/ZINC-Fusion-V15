@@ -1,0 +1,11 @@
+# ZINC-FUSION Social Intel Worker Dependencies
+# Minimal footprint for scheduled job
+
+# Database
+psycopg2-binary>=2.9.9
+
+# HTTP
+requests>=2.31.0
+
+# Utilities
+python-dateutil>=2.8.2

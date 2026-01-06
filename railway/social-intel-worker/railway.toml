@@ -1,0 +1,29 @@
+# Railway Configuration for Social Intelligence Worker
+# https://docs.railway.app/reference/config-as-code
+#
+# This worker scrapes Twitter/X, Truth Social, Facebook, LinkedIn
+# for commodity-relevant social posts.
+#
+# THREE CRON SCHEDULES (use separate Railway services):
+#   - social-intel-high:       Every 5 minutes  */5 * * * *
+#   - social-intel-regulatory: Every 15 minutes */15 * * * *
+#   - social-intel-discovery:  Every 60 minutes 0 * * * *
+#
+# Or run all tiers in a single hourly job:
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+numReplicas = 1
+sleepApplication = false
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Default: Run all tiers hourly
+# For high-alpha sources, create a separate service with */5 schedule
+cronSchedule = "0 * * * *"
+
+[deploy.healthcheck]
+enabled = false

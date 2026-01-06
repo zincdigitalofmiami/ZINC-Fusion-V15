@@ -24,7 +24,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
        │             │             │             │                 │
        ▼             ▼             ▼             ▼                 ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              RAW LAYER (DuckDB)                              │
+│                              RAW LAYER (Prisma)                              │
 │  Immutable, append-only, full history preserved                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ raw.cftc_cot_1w         │ raw.market_futures_1d    │ raw.fred_observations_1d │
@@ -93,7 +93,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | Open Interest | volatility | `cot_oi_change_1w` | Weekly OI change signals activity |
 | Open Interest | volatility | `cot_oi_concentration` | Concentration of positions |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.cftc_cot_1w` (raw storage)
 - `training.specialist_china_1d` (features)
 - `training.specialist_tariff_1d` (features)
@@ -112,7 +112,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | China Imports | china | `usda_china_imports` | Chinese soybean demand |
 | Argentina/Brazil Exports | substitutes | `usda_sa_exports` | South American competition |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.usda_wasde_1m` (raw storage)
 - `training.specialist_crush_1d` (features)
 - `training.specialist_china_1d` (features)
@@ -130,8 +130,8 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | Export Cancellations | tariff | `usda_cancellations` | Trade friction indicator |
 | Outstanding Sales | tariff | `usda_outstanding_sales` | Forward commitments |
 
-**DuckDB Tables:**
-- `archive.usda_export_sales_1w` (raw storage)
+**Prisma Tables:**
+- `raw.usda_export_sales_1w` (raw storage)
 - `training.specialist_china_1d` (features)
 - `training.specialist_tariff_1d` (features)
 
@@ -147,7 +147,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | Biodiesel Production | biofuel | `eia_biodiesel_prod` | Renewable fuel output |
 | Renewable Diesel | biofuel | `eia_renewable_diesel` | Next-gen biofuel growth |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.eia_observations_1w` (raw storage)
 - `training.specialist_energy_1d` (features)
 - `training.specialist_biofuel_1d` (features)
@@ -163,7 +163,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | D4-D6 Spread | biofuel | `rin_d4_d6_spread` | Biodiesel premium |
 | RIN as % of Diesel | energy | `rin_compliance_cost` | Mandate cost burden |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.epa_rin_prices_1d` (raw storage)
 - `training.specialist_biofuel_1d` (features)
 - `training.specialist_energy_1d` (features)
@@ -183,7 +183,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | VIX | volatility | `vix` | Market fear gauge |
 | Trade Balance | tariff | `trade_balance` | US trade deficit |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.fred_observations_1d` (raw storage)
 - `training.specialist_fed_1d` (features)
 - `training.specialist_fx_1d` (features)
@@ -203,9 +203,8 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | Argentina Precip | substitutes | `weather_ar_precip_30d` | SA crop conditions |
 | Palm Belt (SE Asia) | palm | `weather_palm_precip` | Palm production conditions |
 
-**DuckDB Tables:**
-- `raw.weather_observations_1d` (raw storage)
-- `archive.weather_noaa_1d` (backup)
+**Prisma Tables:**
+- `raw.weather_noaa_1d` (raw storage)
 - `training.specialist_crush_1d` (features)
 - `training.specialist_substitutes_1d` (features)
 - `training.specialist_palm_1d` (features)
@@ -223,7 +222,7 @@ This document defines the complete data architecture for ZINC-FUSION-V15, mappin
 | HO (Heating Oil) | energy, biofuel | `ho_close` | Diesel/biodiesel linkage |
 | Palm (proxy) | palm, substitutes | `palm_close` | Substitute oil |
 
-**DuckDB Tables:**
+**Prisma Tables:**
 - `raw.market_futures_1d` (raw storage)
 - `raw.market_futures_1h` (intraday)
 - All specialist tables (derived features)

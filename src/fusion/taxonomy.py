@@ -10,10 +10,10 @@ LOCKED — DO NOT MODIFY WITHOUT EXPLICIT APPROVAL.
 from typing import Literal, get_args
 
 # =============================================================================
-# DRIVER TAXONOMY (15 TOTAL)
+# DRIVER TAXONOMY (16 TOTAL: 11 Economic + 5 Neural)
 # =============================================================================
 
-# Economic Drivers (10)
+# Economic Drivers (11)
 ECONOMIC_DRIVERS: tuple[str, ...] = (
     "crush",
     "china",
@@ -25,6 +25,7 @@ ECONOMIC_DRIVERS: tuple[str, ...] = (
     "palm",
     "volatility",
     "substitutes",
+    "trump_effect",
 )
 
 # Specialist alias (for backward compatibility with Big-8/10 naming)
@@ -39,7 +40,7 @@ NEURAL_DRIVERS: tuple[str, ...] = (
     "neural_residual",
 )
 
-# All Drivers (15)
+# All Drivers (16)
 ALL_DRIVERS: tuple[str, ...] = ECONOMIC_DRIVERS + NEURAL_DRIVERS
 
 # Type hints
@@ -54,6 +55,7 @@ EconomicDriverId = Literal[
     "palm",
     "volatility",
     "substitutes",
+    "trump_effect",
 ]
 NeuralDriverId = Literal[
     "neural_trend",
@@ -73,6 +75,7 @@ DriverId = Literal[
     "palm",
     "volatility",
     "substitutes",
+    "trump_effect",
     "neural_trend",
     "neural_regime",
     "neural_flow",
@@ -136,6 +139,7 @@ DRIVER_DESCRIPTIONS: dict[str, str] = {
     "palm": "Palm oil supply, pricing, and substitution effects",
     "volatility": "Market stress, convexity, regime shifts",
     "substitutes": "Cross-oil substitution (canola, UCO, etc.)",
+    "trump_effect": "Trump/policy regime dynamics, trade war, EPA waivers, tweet volatility",
     # Neural
     "neural_trend": "Learned price trend and momentum structure",
     "neural_regime": "Latent market regime classification",

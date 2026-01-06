@@ -111,8 +111,6 @@ npx prisma db pull
 npx prisma generate
 ```
 
-Note: `data/fusion.db` (DuckDB) exists as a read-only archive for historical data extraction only.
-
 ## Data Pipeline
 
 All data operations use Prisma Postgres. Key tables:
@@ -168,8 +166,6 @@ ZINC-Fusion-V15/
 ├── scripts/
 │   ├── train_*.py                 # Training scripts
 │   └── ingest_*.py                # Data ingestion scripts
-├── data/
-│   └── fusion.db                  # DuckDB archive (read-only)
 ├── models/                        # Trained model artifacts
 ├── pyproject.toml                 # Python dependencies
 └── README.md                      # This file

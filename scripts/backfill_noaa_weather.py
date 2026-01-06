@@ -346,15 +346,19 @@ def create_weather_table(conn):
             ('awnd_ms', 'DOUBLE PRECISION'),
             ('specialist_bucket', 'VARCHAR(50)'),
             ('country', 'VARCHAR(10)'),
+            ('snwd_mm', 'DOUBLE PRECISION'),
+            ('evap_mm', 'DOUBLE PRECISION'),
+            ('rhav_pct', 'DOUBLE PRECISION'),
+            ('wsfg_ms', 'DOUBLE PRECISION'),
         ]:
             try:
-                cur.execute(f"ALTER TABLE weather_noaa ADD COLUMN IF NOT EXISTS {col} {dtype}")
+                cur.execute(f'ALTER TABLE "raw"."weather_noaa_1d" ADD COLUMN IF NOT EXISTS {col} {dtype}')
             except:
-                pass
+                conn.rollback()
 
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_weather_date ON weather_noaa(as_of_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_weather_region ON weather_noaa(region)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_weather_bucket ON weather_noaa(specialist_bucket)")
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_date ON "raw"."weather_noaa_1d"(as_of_date)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_region ON "raw"."weather_noaa_1d"(region)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_bucket ON "raw"."weather_noaa_1d"(specialist_bucket)')
 
     conn.commit()
     logger.info("  Weather table ready")
@@ -534,15 +538,15 @@ def backfill_all(
         # Verification
         if not dry_run:
             with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*), MIN(as_of_date), MAX(as_of_date) FROM weather_noaa")
+                cur.execute('SELECT COUNT(*), MIN(as_of_date), MAX(as_of_date) FROM "raw"."weather_noaa_1d"')
                 count, min_date, max_date = cur.fetchone()
                 logger.info(f"\nDatabase: {count:,} rows ({min_date} to {max_date})")
 
-                cur.execute("""
+                cur.execute('''
                     SELECT specialist_bucket, COUNT(*), COUNT(DISTINCT station_id)
-                    FROM weather_noaa
+                    FROM "raw"."weather_noaa_1d"
                     GROUP BY specialist_bucket
-                """)
+                ''')
                 for bucket, count, stations in cur.fetchall():
                     logger.info(f"  {bucket}: {count:,} rows, {stations} stations")
 

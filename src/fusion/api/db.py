@@ -1,10 +1,8 @@
 """
 Database abstraction layer for ZINC-FUSION-V15.
 
-AUTHORITATIVE: Prisma Postgres is the ONLY production database.
-DuckDB (data/fusion.db) is ARCHIVE ONLY - do not use for training or operations.
-
-NON-NEGOTIABLE: Postgres is the source of truth. Period.
+Prisma Postgres is the ONLY production database.
+All training, inference, and operations use Prisma Postgres.
 """
 
 import os
@@ -15,6 +13,7 @@ from typing import Any, Dict, List, Optional
 try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
+
     HAS_POSTGRES = True
 except ImportError:
     HAS_POSTGRES = False
@@ -28,6 +27,7 @@ def _get_postgres_url() -> Optional[str]:
 
     # Try loading from .env file
     from pathlib import Path
+
     env_path = Path(__file__).parent.parent.parent.parent / ".env"
     if env_path.exists():
         with open(env_path) as f:
@@ -41,7 +41,7 @@ def get_backend() -> str:
     """
     Determine which database backend to use.
 
-    ALWAYS returns 'postgres' - DuckDB is deprecated for all operations.
+    Returns 'postgres' - Prisma Postgres is the only supported database.
     """
     if not _get_postgres_url():
         raise RuntimeError(
@@ -60,7 +60,7 @@ def _serialize_value(value: Any) -> Any:
     if isinstance(value, Decimal):
         return float(value)
     if isinstance(value, bytes):
-        return value.decode('utf-8', errors='replace')
+        return value.decode("utf-8", errors="replace")
     return value
 
 
@@ -91,11 +91,15 @@ class DatabaseConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def execute(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+    def execute(
+        self, query: str, params: Optional[List[Any]] = None
+    ) -> List[Dict[str, Any]]:
         """Execute a query and return results as list of dicts."""
         return self._execute_postgres(query, params)
 
-    def _execute_postgres(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+    def _execute_postgres(
+        self, query: str, params: Optional[List[Any]] = None
+    ) -> List[Dict[str, Any]]:
         """Execute query on Postgres."""
         # Convert ? placeholders to %s for psycopg2
         pg_query = query.replace("?", "%s")
@@ -137,27 +141,20 @@ TABLE_MAP = {
     # Raw layer (canonical tables) - fully quoted to preserve schema
     "raw.market_futures_1d": '"raw"."market_futures_1d"',
     "raw.market_futures_1h": '"raw"."market_futures_1h"',  # FIXED: never map 1h -> 1d
-
     "raw.fred_observations_1d": '"raw"."fred_observations_1d"',
     "raw.fred_series_metadata": '"raw"."fred_series_metadata"',
-
     "raw.fx_spot_1d": '"raw"."fx_spot_1d"',
-
     # Weather: preserve legacy alias
     "raw.weather_observations_1d": '"raw"."weather_noaa_1d"',  # legacy alias
-    "raw.weather_noaa_1d": '"raw"."weather_noaa_1d"',          # canonical
-
+    "raw.weather_noaa_1d": '"raw"."weather_noaa_1d"',  # canonical
     "raw.epa_rin_prices_1d": '"raw"."epa_rin_prices_1d"',
     "raw.cftc_cot_1w": '"raw"."cftc_cot_1w"',
     "raw.news_articles_1d": '"raw"."news_articles_1d"',
-
     "raw.usda_export_sales_1w": '"raw"."usda_export_sales_1w"',
     "raw.usda_wasde_1m": '"raw"."usda_wasde_1m"',
     "raw.options_futures_1d": '"raw"."options_futures_1d"',
-
     # REMOVED: raw.news_articles_event (table does not exist)
     # REMOVED: raw.fred_economic_wide_1d (deprecated; migrate call sites first)
-
     # Training / Model layer
     "training.oof_core_zl_1d": '"model"."oof_predictions"',
     "training.oof_specialist_combined_1d": '"model"."oof_predictions"',
@@ -165,7 +162,6 @@ TABLE_MAP = {
     "training.cv_folds": '"model"."cv_folds"',
     "training.specialist_features": '"training"."specialist_features"',
     "training.meta_ensemble": '"model"."meta_ensemble"',
-
     # Analytics layer
     "features.driver_scores_1d": '"analytics"."driver_scores"',
     "specialist.drivers": '"analytics"."specialist_drivers"',
@@ -174,10 +170,10 @@ TABLE_MAP = {
 
 def translate_table(table_ref: str, backend: str = "postgres") -> str:
     """
-    Translate legacy DuckDB table reference to Postgres schema-qualified name.
+    Translate table reference to Postgres schema-qualified name.
 
     Args:
-        table_ref: DuckDB-style table reference (e.g., 'raw.market_futures_1d')
+        table_ref: Table reference (e.g., 'raw.market_futures_1d')
         backend: Always 'postgres' (parameter kept for backward compatibility)
 
     Returns:
@@ -194,10 +190,10 @@ def translate_table(table_ref: str, backend: str = "postgres") -> str:
 
 def translate_query(query: str, backend: str = "postgres") -> str:
     """
-    Translate a query with legacy DuckDB table names to Postgres.
+    Translate a query with table references to Postgres format.
 
     Args:
-        query: SQL query with potential DuckDB-style table references
+        query: SQL query with table references
         backend: Always 'postgres' (parameter kept for backward compatibility)
 
     Returns:
@@ -209,7 +205,7 @@ def translate_query(query: str, backend: str = "postgres") -> str:
     for duck_table, pg_table in TABLE_MAP.items():
         result = result.replace(duck_table, pg_table)
 
-    # Replace DuckDB-specific syntax
+    # Replace syntax variations
     result = result.replace("::BIGINT", "::bigint")
 
     # Column name translations for Postgres schema differences
@@ -228,11 +224,11 @@ class QueryBuilder:
         self.backend = "postgres"
 
     def table(self, table_ref: str) -> str:
-        """Get the correct table name (translates legacy DuckDB names)."""
+        """Get the correct Postgres table name."""
         return translate_table(table_ref, self.backend)
 
     def query(self, sql: str) -> str:
-        """Translate a query (translates legacy DuckDB table names)."""
+        """Translate a query to Postgres format."""
         return translate_query(sql, self.backend)
 
 

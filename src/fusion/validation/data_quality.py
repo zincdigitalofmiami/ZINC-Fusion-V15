@@ -277,9 +277,11 @@ class DataQualityGatekeeper:
             ValidationResult(
                 check_name="not_empty",
                 passed=len(df) > 0,
-                message=f"DataFrame has {len(df):,} rows"
-                if len(df) > 0
-                else "DataFrame is empty!",
+                message=(
+                    f"DataFrame has {len(df):,} rows"
+                    if len(df) > 0
+                    else "DataFrame is empty!"
+                ),
                 severity="ERROR",
                 details={"row_count": len(df)},
             )
@@ -294,9 +296,11 @@ class DataQualityGatekeeper:
             ValidationResult(
                 check_name="required_columns",
                 passed=len(missing) == 0,
-                message=f"Missing columns: {missing}"
-                if missing
-                else "All required columns present",
+                message=(
+                    f"Missing columns: {missing}"
+                    if missing
+                    else "All required columns present"
+                ),
                 severity="ERROR",
                 details={"missing": missing, "required": required},
             )
@@ -329,16 +333,20 @@ class DataQualityGatekeeper:
             ValidationResult(
                 check_name="no_duplicates",
                 passed=dupe_count == 0,
-                message=f"Found {dupe_count:,} duplicate rows on {key_columns}"
-                if dupe_count > 0
-                else f"No duplicates on {key_columns}",
+                message=(
+                    f"Found {dupe_count:,} duplicate rows on {key_columns}"
+                    if dupe_count > 0
+                    else f"No duplicates on {key_columns}"
+                ),
                 severity="ERROR",
                 details={
                     "duplicate_count": int(dupe_count),
                     "key_columns": key_columns,
-                    "sample_duplicates": df[dupe_mask].head(5).to_dict("records")
-                    if dupe_count > 0
-                    else [],
+                    "sample_duplicates": (
+                        df[dupe_mask].head(5).to_dict("records")
+                        if dupe_count > 0
+                        else []
+                    ),
                 },
             )
         )
@@ -572,7 +580,7 @@ def validate_ml_matrix(file_path: str | Path) -> ValidationReport:
     )
 
 
-# Additional alias for Dagster asset imports
+# Alias for backward compatibility
 DataQualityValidator = DataQualityGatekeeper
 
 

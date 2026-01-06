@@ -12,20 +12,14 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from fusion.config import FUSION_DB_PATH
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
 from fusion.api.db import fetch_rows, get_backend, get_query_builder, DatabaseConnection
 
-# Import duckdb only for legacy endpoints that need direct access
-try:
-    import duckdb
-    HAS_DUCKDB = True
-except ImportError:
-    HAS_DUCKDB = False
-
 app = FastAPI(title="Fusion API", version="0.1.0")
 
-cors_origins = [o.strip() for o in os.environ.get("FUSION_CORS_ORIGINS", "").split(",") if o.strip()]
+cors_origins = [
+    o.strip() for o in os.environ.get("FUSION_CORS_ORIGINS", "").split(",") if o.strip()
+]
 if cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -79,9 +73,13 @@ def _validate_readonly_sql(sql: str) -> str:
     if ";" in lowered:
         raise HTTPException(status_code=400, detail="Semicolons are not allowed.")
     if not (lowered.startswith("select") or lowered.startswith("with")):
-        raise HTTPException(status_code=400, detail="Only SELECT/WITH queries are allowed.")
+        raise HTTPException(
+            status_code=400, detail="Only SELECT/WITH queries are allowed."
+        )
     if _SQL_WRITE_VERBS.search(lowered):
-        raise HTTPException(status_code=400, detail="Query contains a forbidden keyword.")
+        raise HTTPException(
+            status_code=400, detail="Query contains a forbidden keyword."
+        )
     return normalized
 
 
@@ -111,8 +109,12 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
 
     price = latest["close"] if latest else None
     prev_price = previous["close"] if previous else None
-    abs_change = (price - prev_price) if (price is not None and prev_price is not None) else None
-    pct_change = (abs_change / prev_price) if (abs_change is not None and prev_price) else None
+    abs_change = (
+        (price - prev_price) if (price is not None and prev_price is not None) else None
+    )
+    pct_change = (
+        (abs_change / prev_price) if (abs_change is not None and prev_price) else None
+    )
 
     action_rows = _fetch_rows(
         """
@@ -137,37 +139,25 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
 
 
 def _table_exists(schema: str, table: str) -> bool:
-    """Check if a table exists. Works for both DuckDB and Postgres."""
-    backend = get_backend()
-    if backend == "postgres":
-        # For Postgres, we use flat table names - check if the translated table exists
-        qb = get_query_builder()
-        pg_table = qb.table(f"{schema}.{table}")
-        rows = _fetch_rows(
-            """
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_name = ?
-            LIMIT 1
-            """,
-            [pg_table],
-        )
-    else:
-        # DuckDB uses schema.table
-        rows = _fetch_rows(
-            """
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_schema = ? AND table_name = ?
-            LIMIT 1
-            """,
-            [schema, table],
-        )
+    """Check if a table exists in Postgres."""
+    qb = get_query_builder()
+    pg_table = qb.table(f"{schema}.{table}")
+    rows = _fetch_rows(
+        """
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = ?
+        LIMIT 1
+        """,
+        [pg_table],
+    )
     return bool(rows)
 
 
-def _first_existing_column(schema: str, table: str, candidates: list[str]) -> str | None:
-    """Find first existing column from candidates. Works for both DuckDB and Postgres."""
+def _first_existing_column(
+    schema: str, table: str, candidates: list[str]
+) -> str | None:
+    """Find first existing column from candidates in Postgres."""
     backend = get_backend()
     if backend == "postgres":
         qb = get_query_builder()
@@ -308,7 +298,9 @@ def overview_models() -> Dict[str, Any]:
             if s in specialist_map:
                 specialist_rows.append(specialist_map[s])
             else:
-                specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
+                specialist_rows.append(
+                    {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
+                )
     else:
         for s in specialists:
             table = f"oof_specialist_{s}_1d"
@@ -356,7 +348,9 @@ def overview_models() -> Dict[str, Any]:
         # Postgres doesn't have market_futures_1h separately - skip for now
         pass
     elif _table_exists("raw", "market_futures_1h"):
-        market_1h_date_col = _first_existing_column("raw", "market_futures_1h", ["as_of_date", "ts_event", "timestamp"])
+        market_1h_date_col = _first_existing_column(
+            "raw", "market_futures_1h", ["as_of_date", "ts_event", "timestamp"]
+        )
         if market_1h_date_col:
             market_1h = _fetch_rows(
                 f"""
@@ -412,69 +406,89 @@ def overview_models() -> Dict[str, Any]:
                 FROM epa_rin_prices_1d
                 """
             )[0],
-            "weather_observations_1d": _fetch_rows(
-                """
+            "weather_observations_1d": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::bigint as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT station_id)::bigint as stations
                 FROM weather_noaa_1d
                 """
-            )[0] if _table_exists("raw", "weather_observations_1d") else {"rows": 0, "start_date": None, "end_date": None, "stations": 0},
+                )[0]
+                if _table_exists("raw", "weather_observations_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
+            ),
         }
     else:
         raw_data = {
-            "fred": _fetch_rows(
-                """
+            "fred": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT series_id)::BIGINT as series
                 FROM raw.fred_observations_1d
                 """
-            )[0]
-            if _table_exists("raw", "fred_observations_1d")
-            else {"rows": 0, "start_date": None, "end_date": None, "series": 0},
-            "fx_spot": _fetch_rows(
-                """
+                )[0]
+                if _table_exists("raw", "fred_observations_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "series": 0}
+            ),
+            "fx_spot": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT symbol)::BIGINT as symbols
                 FROM raw.fx_spot_1d
                 """
-            )[0]
-            if _table_exists("raw", "fx_spot_1d")
-            else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
-            "market_futures_1d": _fetch_rows(
-                """
+                )[0]
+                if _table_exists("raw", "fx_spot_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
+            ),
+            "market_futures_1d": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT symbol)::BIGINT as symbols
                 FROM raw.market_futures_1d
                 """
-            )[0]
-            if _table_exists("raw", "market_futures_1d")
-            else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0},
+                )[0]
+                if _table_exists("raw", "market_futures_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
+            ),
             "market_futures_1h": market_1h,
-            "epa_rin_prices_1d": _fetch_rows(
-                """
+            "epa_rin_prices_1d": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT rin_type)::BIGINT as rin_types
                 FROM raw.epa_rin_prices_1d
                 """
-            )[0]
-            if _table_exists("raw", "epa_rin_prices_1d")
-            else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0},
-            "weather_observations_1d": _fetch_rows(
-                """
+                )[0]
+                if _table_exists("raw", "epa_rin_prices_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0}
+            ),
+            "weather_observations_1d": (
+                _fetch_rows(
+                    """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
                        COUNT(DISTINCT station_id)::BIGINT as stations,
                        COUNT(DISTINCT variable_id)::BIGINT as variables
                 FROM raw.weather_observations_1d
                 """
-            )[0]
-            if _table_exists("raw", "weather_observations_1d")
-            else {"rows": 0, "start_date": None, "end_date": None, "stations": 0, "variables": 0},
+                )[0]
+                if _table_exists("raw", "weather_observations_1d")
+                else {
+                    "rows": 0,
+                    "start_date": None,
+                    "end_date": None,
+                    "stations": 0,
+                    "variables": 0,
+                }
+            ),
         }
 
     archive_snapshot: list[dict[str, Any]] = []
@@ -491,7 +505,9 @@ def overview_models() -> Dict[str, Any]:
         for t in tables:
             table = t["table_name"]
             # Best-effort: count + min/max using common date column names
-            date_col = _first_existing_column("archive", table, ["as_of_date", "date", "report_date", "published_at"])
+            date_col = _first_existing_column(
+                "archive", table, ["as_of_date", "date", "report_date", "published_at"]
+            )
             if date_col:
                 row = _fetch_rows(
                     f"""
@@ -663,7 +679,7 @@ def db_explorer() -> str:
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Fusion DuckDB Explorer (Read-only)</title>
+  <title>Fusion Database Explorer (Read-only)</title>
   <style>
     body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; margin: 24px; }
     code, pre, textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
@@ -677,7 +693,7 @@ def db_explorer() -> str:
   </style>
 </head>
 <body>
-  <h2>Fusion DuckDB Explorer (Read-only)</h2>
+  <h2>Fusion Database Explorer (Read-only)</h2>
   <p class="muted">This UI only allows <code>SELECT</code>/<code>WITH</code> queries and enforces a row limit.</p>
 
   <div class="row">
@@ -748,41 +764,13 @@ def db_explorer() -> str:
 
 @app.get("/api/db/info")
 def db_info(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
-    backend = get_backend()
-    info: Dict[str, Any] = {"backend": backend}
-    if backend == "duckdb" and HAS_DUCKDB:
-        info["db_path"] = FUSION_DB_PATH
-        info["duckdb_version"] = duckdb.__version__
-    elif backend == "postgres":
-        info["database"] = "Prisma Postgres"
-    return info
+    return {"backend": "postgres", "database": "Prisma Postgres"}
 
 
 @app.get("/api/db/schemas")
 def db_schemas(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Postgres uses flat namespace - return virtual schema list
-        return {"schemas": ["raw", "training", "forecasts", "features", "specialist"]}
-
-    rows = _fetch_rows(
-        """
-        SELECT schema_name
-        FROM information_schema.schemata
-        ORDER BY schema_name
-        """
-    )
-    # DuckDB returns internal schemas too (and some versions can repeat "main").
-    schemas = sorted({r["schema_name"] for r in rows})
-    internal = {"information_schema", "pg_catalog", "main"}
-    canonical = set(os.environ.get("FUSION_CANONICAL_SCHEMAS", "").split(",")) if os.environ.get("FUSION_CANONICAL_SCHEMAS") else None
-
-    if canonical:
-        filtered = [s for s in schemas if s in canonical]
-    else:
-        filtered = [s for s in schemas if s not in internal]
-
-    return {"schemas": filtered}
+    # Return canonical schema list for Prisma Postgres
+    return {"schemas": ["raw", "training", "forecasts", "features", "specialist"]}
 
 
 @app.get("/api/db/tables")
@@ -844,32 +832,15 @@ def db_query(
         raise HTTPException(status_code=400, detail="limit must be <= 5000")
 
     started = time.perf_counter()
-    backend = get_backend()
 
-    # Translate the query for the current backend
+    # Translate the query for Prisma Postgres
     qb = get_query_builder()
     translated_sql = qb.query(sql)
 
-    if backend == "postgres":
-        # Postgres uses %s placeholders and different LIMIT syntax
-        limited_sql = f"SELECT * FROM ({translated_sql}) AS q LIMIT %s"
-        rows = fetch_rows(limited_sql, [limit])
-        columns = list(rows[0].keys()) if rows else []
-    else:
-        # DuckDB path
-        if not HAS_DUCKDB:
-            raise HTTPException(status_code=500, detail="DuckDB not available")
-        conn = duckdb.connect(FUSION_DB_PATH, read_only=True)
-        try:
-            cursor = conn.execute(f"SELECT * FROM ({translated_sql}) AS q LIMIT ?", [limit])
-            columns = [col[0] for col in cursor.description]
-            raw_rows = cursor.fetchall()
-            rows = [
-                {columns[idx]: _serialize_value(value) for idx, value in enumerate(row)}
-                for row in raw_rows
-            ]
-        finally:
-            conn.close()
+    # Execute query against Prisma Postgres
+    limited_sql = f"SELECT * FROM ({translated_sql}) AS q LIMIT %s"
+    rows = fetch_rows(limited_sql, [limit])
+    columns = list(rows[0].keys()) if rows else []
 
     elapsed_ms = int((time.perf_counter() - started) * 1000)
 
@@ -914,7 +885,12 @@ def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
 @app.get("/api/legislation/news")
 def legislation_news(limit: int = Query(200, ge=1, le=2000)) -> Dict[str, Any]:
     analyzed = sentiment_news(limit=limit)
-    keep = {"US Regulatory Filings", "Legislation Changes", "Biofuel Mandates", "Tariff Updates"}
+    keep = {
+        "US Regulatory Filings",
+        "Legislation Changes",
+        "Biofuel Mandates",
+        "Tariff Updates",
+    }
     articles = []
     for article in analyzed.get("articles", []):
         buckets = set(article.get("alert_buckets") or [])
@@ -981,7 +957,7 @@ def strategy_risk(symbol: str = "ZL", horizon: Optional[str] = None) -> Dict[str
 def vegas_intel_status() -> Dict[str, Any]:
     return {
         "status": "not_implemented",
-        "reason": "No vegas-intel tables are present in this DuckDB file.",
+        "reason": "Vegas-intel tables not available.",
     }
 
 

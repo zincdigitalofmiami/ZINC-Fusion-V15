@@ -1,6 +1,6 @@
 # Schema Contracts
 
-Canonical table definitions for fusion.db. Any deviation = contract violation.
+Canonical table definitions for Prisma Postgres. Any deviation = contract violation.
 
 ## Schema Overview
 
