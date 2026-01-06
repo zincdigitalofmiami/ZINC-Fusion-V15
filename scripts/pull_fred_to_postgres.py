@@ -7,7 +7,6 @@ These series provide macro context for specialist models.
 
 NON-NEGOTIABLES (per CLAUDE.md):
 - All data goes to Prisma Postgres (DATABASE_URL)
-- Never write to DuckDB
 - Validate before asserting
 
 Usage:
@@ -30,19 +29,19 @@ from dotenv import load_dotenv
 
 # Fix SSL certificate verification for macOS
 import certifi
-os.environ['SSL_CERT_FILE'] = certifi.where()
-os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
+os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
 # Check for fredapi
 try:
@@ -77,30 +76,23 @@ MISSING_FRED_SERIES = {
     "CHNGDPNQDSMEI": "China Real GDP",
     "XTEXVA01CNM667S": "China Exports Value",
     "XTIMVA01CNM667S": "China Imports Value",
-
     # Freight/Shipping (for logistics costs)
     "FRGSHPUSM649NCIS": "Cass Freight Index: Shipments",
-
     # Agricultural PPIs (for substitute/crush spreads)
     "WPU0183": "PPI Oilseeds and Grains",
     "WPU01830141": "PPI Soybean Meal",
     "WPU01830142": "PPI Soybean Oil",
     "WPU01830161": "PPI Sunflower Oil",
     "WPU01830171": "PPI Canola Oil",
-
     # Trade Policy
     "EPUTRADE": "Economic Policy Uncertainty - Trade Policy",
-
     # Energy (for biofuel economics)
     "PNGASEUUSDM": "Natural Gas EU Price",
-
     # Additional FX (for trade-weighted calculations)
     "DEXINUS": "India Rupee per USD",
     "DEXMAUS": "Malaysia Ringgit per USD",
-
     # Agricultural Commodities (global prices)
     "PRICENPQUSDM": "Rice Global Price",
-
     # Financial Stress
     "STLFSI4": "St Louis Financial Stress Index",
 }
@@ -117,7 +109,8 @@ def get_postgres_connection():
 def ensure_fred_table_exists(conn):
     """Create fred_observations_1d table if it doesn't exist."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             CREATE TABLE IF NOT EXISTS fred_observations_1d (
                 id SERIAL PRIMARY KEY,
                 series_id VARCHAR(50) NOT NULL,
@@ -127,9 +120,14 @@ def ensure_fred_table_exists(conn):
                 created_at TIMESTAMP DEFAULT NOW(),
                 UNIQUE(series_id, as_of_date)
             )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_fred_series ON fred_observations_1d(series_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_fred_date ON fred_observations_1d(as_of_date)")
+        """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_fred_series ON fred_observations_1d(series_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_fred_date ON fred_observations_1d(as_of_date)"
+        )
     conn.commit()
     logger.info("Ensured fred_observations_1d table exists")
 
@@ -141,7 +139,9 @@ def get_existing_fred_series(conn) -> set:
         return {row[0] for row in cur.fetchall()}
 
 
-def pull_fred_series(fred, series_id: str, description: str, conn, dry_run: bool = False) -> int:
+def pull_fred_series(
+    fred, series_id: str, description: str, conn, dry_run: bool = False
+) -> int:
     """Pull a single FRED series and insert into Postgres.
 
     Returns number of rows inserted.
@@ -158,14 +158,12 @@ def pull_fred_series(fred, series_id: str, description: str, conn, dry_run: bool
         # Convert to list of tuples
         rows = []
         for date, value in data.items():
-            if value is not None and not (isinstance(value, float) and str(value) == 'nan'):
-                rows.append((
-                    series_id,
-                    date.date(),
-                    float(value),
-                    'fred_api',
-                    datetime.now()
-                ))
+            if value is not None and not (
+                isinstance(value, float) and str(value) == "nan"
+            ):
+                rows.append(
+                    (series_id, date.date(), float(value), "fred_api", datetime.now())
+                )
 
         if not rows:
             logger.warning(f"  No valid observations for {series_id}")
@@ -208,27 +206,36 @@ def verify_series(conn, series_ids: list):
 
     with conn.cursor() as cur:
         for series_id in series_ids:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT
                     COUNT(*) as rows,
                     MIN(as_of_date) as first_date,
                     MAX(as_of_date) as last_date
                 FROM fred_observations_1d
                 WHERE series_id = %s
-            """, (series_id,))
+            """,
+                (series_id,),
+            )
             result = cur.fetchone()
 
             if result[0] > 0:
-                logger.info(f"  {series_id}: {result[0]:,} rows ({result[1]} to {result[2]})")
+                logger.info(
+                    f"  {series_id}: {result[0]:,} rows ({result[1]} to {result[2]})"
+                )
             else:
                 logger.warning(f"  {series_id}: No data found")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Pull missing FRED series to Postgres")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without inserting")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
     parser.add_argument("--series", type=str, help="Pull specific series only")
-    parser.add_argument("--all-missing", action="store_true", help="Pull only series not yet in DB")
+    parser.add_argument(
+        "--all-missing", action="store_true", help="Pull only series not yet in DB"
+    )
 
     args = parser.parse_args()
 
@@ -254,12 +261,18 @@ def main():
             if args.series in MISSING_FRED_SERIES:
                 series_to_pull = {args.series: MISSING_FRED_SERIES[args.series]}
             else:
-                logger.warning(f"Series {args.series} not in missing list, pulling anyway")
+                logger.warning(
+                    f"Series {args.series} not in missing list, pulling anyway"
+                )
                 series_to_pull = {args.series: args.series}
         elif args.all_missing:
             existing = get_existing_fred_series(conn)
-            series_to_pull = {k: v for k, v in MISSING_FRED_SERIES.items() if k not in existing}
-            logger.info(f"Found {len(existing)} existing series, {len(series_to_pull)} missing")
+            series_to_pull = {
+                k: v for k, v in MISSING_FRED_SERIES.items() if k not in existing
+            }
+            logger.info(
+                f"Found {len(existing)} existing series, {len(series_to_pull)} missing"
+            )
         else:
             series_to_pull = MISSING_FRED_SERIES
 

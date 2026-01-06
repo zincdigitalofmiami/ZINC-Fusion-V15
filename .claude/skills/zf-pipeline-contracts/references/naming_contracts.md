@@ -9,8 +9,7 @@ Authoritative naming conventions for ZINC-Fusion-V15. Violation = restart.
 | Project name | ZINC-Fusion-V15 |
 | Repository | github.com/zincdigitalofmiami/ZINC-Fusion-V15 |
 | Local path | /Volumes/Satechi Hub/ZINC-FUSION-V15 |
-| Database file | fusion.db |
-| Database path | /Volumes/Satechi Hub/ZINC-FUSION-V15/data/fusion.db |
+| Database | Prisma Postgres via DATABASE_URL |
 
 ## Forbidden Aliases
 
@@ -21,7 +20,6 @@ Never use these—they indicate drift from legacy versions:
 | CBI-V15 | Legacy project codename |
 | CBI | Ambiguous abbreviation |
 | zinc_fusion | Underscore variant |
-| zinc_fusion_v15.db | Old database name |
 | Big-10, Big-8 | Legacy bucket terminology |
 | buckets | Ambiguous—use "Specialists" |
 
@@ -36,18 +34,6 @@ from fusion.autogluon_config import SPECIALIST_CONFIG, get_specialist_fit_kwargs
 # Incorrect
 from zinc_fusion.taxonomy import ...  # wrong module name
 from cbi.config import ...            # legacy name
-```
-
-## Dagster Package
-
-The Dagster package is intentionally named `quickstart_etl` (scaffold remnant). This is correct:
-
-```python
-# Correct
-from quickstart_etl.definitions import defs
-
-# Assets live in
-src/quickstart_etl/defs/
 ```
 
 ## Model Terminology

@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: ZINC-Fusion-Prisma
+    type: postgres
+    url: db.prisma.io:5432
+    user: d687a7ec267e124a21607a1e5dd9a89d60c9a122d219e499e32f3eee42a858c0
+    secureJsonData:
+      password: ${PRISMA_PASSWORD}
+    database: postgres
+    jsonData:
+      sslmode: require
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1700
+      timescaledb: false
+    isDefault: true
+    editable: true

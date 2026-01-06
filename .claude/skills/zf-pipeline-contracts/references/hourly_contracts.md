@@ -102,27 +102,6 @@ GROUP BY DATE_TRUNC('day', ts_event), specialist;
 | Hourly forecasts | Does not exist | Procurement decisions are daily |
 | Hourly horizon_steps | N/A | Hourly features aggregate to daily |
 
-## Dagster Asset Dependencies
-
-```python
-# Hourly ingestion runs every hour during market hours
-@asset(
-    group_name="raw_ingestion",
-    description="Hourly futures OHLCV",
-)
-def raw_market_futures_1h():
-    ...
-
-# Daily features depend on hourly data
-@asset(
-    group_name="feature_engineering",
-    deps=[raw_market_futures_1h],
-    description="Intraday volatility from 1H data",
-)
-def features_intraday_volatility():
-    ...
-```
-
 ## Validation Queries
 
 ```sql

@@ -1,6 +1,6 @@
 ---
 name: zf-pipeline-contracts
-description: Pipeline contract enforcement for ZINC-Fusion-V15 soybean oil forecasting system. Use when working on any ZINC-Fusion-V15 task involving schema definitions, training pipelines, L0 specialists, data ingestion, MLflow/Dagster configuration, or debugging contract drift. Triggers on mentions of fusion.db, specialist models, horizon encoding, quantile outputs, OOF predictions, or any ZINC-Fusion development work.
+description: Pipeline contract enforcement for ZINC-Fusion-V15 soybean oil forecasting system. Use when working on any ZINC-Fusion-V15 task involving schema definitions, training pipelines, L0 specialists, data ingestion, MLflow configuration, or debugging contract drift. Triggers on mentions of Prisma database, specialist models, horizon encoding, quantile outputs, OOF predictions, or any ZINC-Fusion development work.
 ---
 
 # ZF Pipeline Contracts
@@ -12,9 +12,8 @@ Enforce schema, drift prevention, and pipeline contracts across the L0→L1→L2
 | Item | Canonical | Never Use |
 |------|-----------|-----------|
 | Project | ZINC-Fusion-V15 | CBI-V15, CBI, zinc_fusion |
-| Database | fusion.db | zinc_fusion_v15.db, cbi.db |
+| Database | Prisma Postgres | - |
 | Python module | `fusion.*` | `zinc_fusion.*`, `cbi.*` |
-| Dagster package | `quickstart_etl` | (intentional scaffold name) |
 | Model term | "Specialists" | "Big-10", "buckets", "Big-8" |
 
 If you drift to legacy names, stop and correct immediately.

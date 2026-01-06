@@ -6,7 +6,7 @@ Primary governance lives in `AGENTS.md` and must be followed.
 ## What to do first (every session)
 
 - Read `AGENTS.md`.
-- Verify reality before claiming “done”: check the repo files on disk and (if relevant) `data/fusion.db`.
+- Verify reality before claiming "done": check the repo files on disk and Prisma database state.
 
 ## Hard constraints
 
@@ -17,7 +17,7 @@ Primary governance lives in `AGENTS.md` and must be followed.
 - Avoid new dependencies/services without explicit approval.
 
 ## Canonical entrypoints
-- DuckDB path: `data/fusion.db` (or `FUSION_DB_PATH`)
+- Database: Prisma Postgres via `DATABASE_URL`
 - FastAPI app: `fusion.api.server:app`
 
 ## Validation defaults

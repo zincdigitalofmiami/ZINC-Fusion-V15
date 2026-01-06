@@ -1,112 +1,48 @@
 generator client {
-  provider        = "prisma-client"
-  output          = "./generated/prisma"
-  previewFeatures = ["multiSchema"]
+  provider = "prisma-client-js"
+  output   = "./generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["public", "raw"]
+  schemas  = ["raw", "training", "model", "analytics", "ops"]
 }
 
-// === RAW SCHEMA TABLES ===
+// =============================================================================
+// RAW SCHEMA (13 tables) - Immutable ingestion layer
+// =============================================================================
 
-model MarketFuturesDaily {
-  asOfDate   DateTime @map("as_of_date") @db.Date
-  symbol     String
-  open       Float?
-  high       Float?
-  low        Float?
-  close      Float?
-  volume     BigInt?
-  source     String?
-  ingestedAt DateTime? @default(now()) @map("ingested_at")
+model CftcCot1w {
+  id                   Int       @id @default(autoincrement())
+  reportDate           DateTime  @map("report_date") @db.Date
+  symbol               String    @db.VarChar
+  openInterest         BigInt?   @map("open_interest")
+  prodMercLong         BigInt?   @map("prod_merc_long")
+  prodMercShort        BigInt?   @map("prod_merc_short")
+  swapLong             BigInt?   @map("swap_long")
+  swapShort            BigInt?   @map("swap_short")
+  managedMoneyLong     BigInt?   @map("managed_money_long")
+  managedMoneyShort    BigInt?   @map("managed_money_short")
+  otherReptLong        BigInt?   @map("other_rept_long")
+  otherReptShort       BigInt?   @map("other_rept_short")
+  nonreptLong          BigInt?   @map("nonrept_long")
+  nonreptShort         BigInt?   @map("nonrept_short")
+  prodMercNet          BigInt?   @map("prod_merc_net")
+  swapNet              BigInt?   @map("swap_net")
+  managedMoneyNet      BigInt?   @map("managed_money_net")
+  otherReptNet         BigInt?   @map("other_rept_net")
+  nonreptNet           BigInt?   @map("nonrept_net")
+  managedMoneyNetPctOi Float?    @map("managed_money_net_pct_oi")
+  prodMercNetPctOi     Float?    @map("prod_merc_net_pct_oi")
+  source               String?   @db.VarChar
+  ingestedAt           DateTime? @default(now()) @map("ingested_at")
 
-  @@id([asOfDate, symbol])
+  @@unique([reportDate, symbol])
+  @@map("cftc_cot_1w")
   @@schema("raw")
-  @@map("market_futures_1d")
 }
 
-model FredEconomicWide {
-  tradeDate DateTime @id @map("trade_date") @db.Date
-  // FRED series columns added via custom migration
-
-  @@schema("raw")
-  @@map("fred_economic_wide_1d")
-}
-
-// === PUBLIC SCHEMA TABLES ===
-
-model RawMarketFutures {
-  id            Int      @id @default(autoincrement())
-  symbol        String
-  asOfDate      DateTime @map("as_of_date")
-  open          Float
-  high          Float
-  low           Float
-  close         Float
-  volume        Int?
-  createdAt     DateTime @default(now()) @map("created_at")
-  open_interest BigInt?
-
-  @@unique([symbol, asOfDate])
-  @@index([symbol])
-  @@index([asOfDate])
-  @@index([asOfDate], map: "idx_futures_date")
-  @@index([symbol], map: "idx_futures_symbol")
-  @@schema("public")
-  @@map("raw_market_futures")
-}
-
-model RawFredObservations {
-  id        Int      @id @default(autoincrement())
-  seriesId  String   @map("series_id")
-  asOfDate  DateTime @map("as_of_date")
-  value     Float?
-  createdAt DateTime @default(now()) @map("created_at")
-  source    String?  @db.VarChar(50)
-
-  @@unique([seriesId, asOfDate])
-  @@index([seriesId])
-  @@index([asOfDate])
-  @@index([asOfDate], map: "idx_fred_date")
-  @@index([seriesId], map: "idx_fred_series")
-  @@schema("public")
-  @@map("raw_fred_observations")
-}
-
-model RawFxSpot {
-  id        Int      @id @default(autoincrement())
-  pair      String
-  asOfDate  DateTime @map("as_of_date")
-  rate      Float
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([pair, asOfDate])
-  @@index([pair])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("raw_fx_spot")
-}
-
-model RawWeatherObservations {
-  id        Int      @id @default(autoincrement())
-  stationId String   @map("station_id")
-  asOfDate  DateTime @map("as_of_date")
-  tempMax   Float?   @map("temp_max")
-  tempMin   Float?   @map("temp_min")
-  precip    Float?
-  humidity  Float?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([stationId, asOfDate])
-  @@index([stationId])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("raw_weather_observations")
-}
-
-model RawEpaRinPrices {
+model EpaRinPrices1d {
   id        Int      @id @default(autoincrement())
   rinType   String   @map("rin_type")
   asOfDate  DateTime @map("as_of_date")
@@ -114,29 +50,767 @@ model RawEpaRinPrices {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([rinType, asOfDate])
-  @@index([rinType])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("raw_epa_rin_prices")
+  @@map("epa_rin_prices_1d")
+  @@schema("raw")
 }
 
-model RawCftcCot {
-  id                 Int      @id @default(autoincrement())
-  contractCode       String   @map("contract_code")
-  asOfDate           DateTime @map("as_of_date")
-  commercialLong     Int?     @map("commercial_long")
-  commercialShort    Int?     @map("commercial_short")
-  nonCommercialLong  Int?     @map("non_commercial_long")
-  nonCommercialShort Int?     @map("non_commercial_short")
-  openInterest       Int?     @map("open_interest")
-  createdAt          DateTime @default(now()) @map("created_at")
+model FredObservations1d {
+  id        Int      @id @default(autoincrement())
+  seriesId  String   @map("series_id")
+  asOfDate  DateTime @map("as_of_date")
+  value     Float?
+  createdAt DateTime @default(now()) @map("created_at")
+  source    String?  @db.VarChar
 
-  @@unique([contractCode, asOfDate])
-  @@index([contractCode])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("raw_cftc_cot")
+  @@unique([seriesId, asOfDate])
+  @@map("fred_observations_1d")
+  @@schema("raw")
 }
+
+model FredSeriesMetadata {
+  id                 Int       @id @default(autoincrement())
+  seriesId           String    @unique @map("series_id") @db.VarChar
+  title              String?   @db.VarChar
+  observationStart   DateTime? @map("observation_start") @db.Date
+  observationEnd     DateTime? @map("observation_end") @db.Date
+  frequency          String?   @db.VarChar
+  units              String?   @db.VarChar
+  seasonalAdjustment String?   @map("seasonal_adjustment") @db.VarChar
+  lastUpdated        DateTime? @map("last_updated")
+  source             String?   @db.VarChar
+  notes              String?
+  createdAt          DateTime? @default(now()) @map("created_at")
+
+  @@map("fred_series_metadata")
+  @@schema("raw")
+}
+
+model FxSpot1d {
+  id        Int      @id @default(autoincrement())
+  pair      String
+  asOfDate  DateTime @map("as_of_date")
+  rate      Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([pair, asOfDate])
+  @@map("fx_spot_1d")
+  @@schema("raw")
+}
+
+model MarketFutures1d {
+  asOfDate   DateTime  @map("as_of_date") @db.Date
+  symbol     String
+  open       Float?
+  high       Float?
+  low        Float?
+  close      Float?
+  volume     BigInt?
+  source     String?
+  ingestedAt DateTime? @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@id([asOfDate, symbol])
+  @@map("market_futures_1d")
+  @@schema("raw")
+}
+
+model MarketFutures1h {
+  id           Int       @id @default(autoincrement())
+  symbol       String    @db.VarChar
+  tsEvent      DateTime  @map("ts_event")
+  open         Float?
+  high         Float?
+  low          Float?
+  close        Float?
+  volume       BigInt?
+  openInterest BigInt?   @map("open_interest")
+  source       String?   @db.VarChar
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, tsEvent])
+  @@map("market_futures_1h")
+  @@schema("raw")
+}
+
+model NewsArticles1d {
+  id             Int       @id @default(autoincrement())
+  articleId      String?   @map("article_id") @db.VarChar
+  asOfDate       DateTime? @map("as_of_date") @db.Date
+  publishedAt    DateTime? @map("published_at")
+  headline       String?
+  content        String?
+  url            String?
+  author         String?   @db.VarChar
+  bucketName     String?   @map("bucket_name") @db.VarChar
+  source         String?   @db.VarChar
+  sentimentScore Float?    @map("sentiment_score")
+  zlSentiment    String?   @map("zl_sentiment") @db.VarChar
+  isTrumpRelated Boolean?  @map("is_trump_related")
+  createdAt      DateTime? @default(now()) @map("created_at")
+  contentHash    String?   @map("content_hash") @db.VarChar
+  ingestedAt     DateTime? @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("news_articles_1d")
+  @@schema("raw")
+}
+
+model OptionsFutures1d {
+  id           Int       @id @default(autoincrement())
+  symbol       String    @db.VarChar
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  open         Float?
+  high         Float?
+  low          Float?
+  close        Float?
+  volume       BigInt?
+  openInterest BigInt?   @map("open_interest")
+  expiration   DateTime? @db.Date
+  strike       Float?
+  optionType   String?   @map("option_type") @db.VarChar
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate])
+  @@map("options_futures_1d")
+  @@schema("raw")
+}
+
+model UsdaExportSales1w {
+  id                 Int       @id @default(autoincrement())
+  reportDate         DateTime  @map("report_date") @db.Date
+  commodity          String    @db.VarChar
+  destinationCountry String?   @map("destination_country") @db.VarChar
+  netSalesMt         Float?    @map("net_sales_mt")
+  exportsMt          Float?    @map("exports_mt")
+  outstandingSalesMt Float?    @map("outstanding_sales_mt")
+  source             String?   @db.VarChar
+  ingestedAt         DateTime? @default(now()) @map("ingested_at")
+
+  @@unique([reportDate, commodity, destinationCountry])
+  @@map("usda_export_sales_1w")
+  @@schema("raw")
+}
+
+model UsdaWasde1m {
+  id         Int       @id @default(autoincrement())
+  reportDate DateTime  @map("report_date") @db.Date
+  commodity  String    @db.VarChar
+  country    String?   @db.VarChar
+  metric     String?   @db.VarChar
+  value      Float?
+  unit       String?   @db.VarChar
+  source     String?   @db.VarChar
+  ingestedAt DateTime? @default(now()) @map("ingested_at")
+
+  @@unique([reportDate, commodity, country, metric])
+  @@map("usda_wasde_1m")
+  @@schema("raw")
+}
+
+model WeatherNoaa1d {
+  id               Int       @id @default(autoincrement())
+  stationId        String    @map("station_id") @db.VarChar
+  asOfDate         DateTime  @map("as_of_date") @db.Date
+  tavgC            Float?    @map("tavg_c")
+  tminC            Float?    @map("tmin_c")
+  tmaxC            Float?    @map("tmax_c")
+  prcpMm           Float?    @map("prcp_mm")
+  snowMm           Float?    @map("snow_mm")
+  region           String?   @db.VarChar
+  ingestedAt       DateTime? @default(now()) @map("ingested_at")
+  awndMs           Float?    @map("awnd_ms")
+  specialistBucket String?   @map("specialist_bucket") @db.VarChar
+  country          String?   @db.VarChar
+  snwdMm           Float?    @map("snwd_mm")
+  evapMm           Float?    @map("evap_mm")
+  rhavPct          Float?    @map("rhav_pct")
+  wsfgMs           Float?    @map("wsfg_ms")
+
+  @@unique([stationId, asOfDate])
+  @@map("weather_noaa_1d")
+  @@schema("raw")
+}
+
+model YahooEquity1d {
+  id        Int       @id @default(autoincrement())
+  symbol    String    @db.VarChar
+  asOfDate  DateTime  @map("as_of_date") @db.Date
+  open      Float?
+  high      Float?
+  low       Float?
+  close     Float?
+  adjClose  Float?    @map("adj_close")
+  volume    BigInt?
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate])
+  @@map("yahoo_equity_1d")
+  @@schema("raw")
+}
+
+// =============================================================================
+// TRAINING SCHEMA (28 tables) - Feature engineering layer
+// =============================================================================
+
+model CoreFeatures {
+  id       Int      @id @default(autoincrement())
+  asOfDate DateTime @map("as_of_date")
+  features Json     @db.JsonB
+
+  @@unique([asOfDate])
+  @@map("core_features")
+  @@schema("training")
+}
+
+model OptionsFeatures {
+  id                 Int       @id @default(autoincrement())
+  underlying         String?   @db.VarChar
+  asOfDate           DateTime? @map("as_of_date") @db.Date
+  expiryBucket       String?   @map("expiry_bucket") @db.VarChar
+  ivAtmCall          Decimal?  @map("iv_atm_call")
+  ivAtmPut           Decimal?  @map("iv_atm_put")
+  ivSkew             Decimal?  @map("iv_skew")
+  ivTermStructure    Decimal?  @map("iv_term_structure")
+  ivPercentile30d    Decimal?  @map("iv_percentile_30d")
+  ivRank             Decimal?  @map("iv_rank")
+  deltaWeightedOiCall Decimal? @map("delta_weighted_oi_call")
+  deltaWeightedOiPut Decimal?  @map("delta_weighted_oi_put")
+  gammaExposure      Decimal?  @map("gamma_exposure")
+  netGamma           Decimal?  @map("net_gamma")
+  vegaExposure       Decimal?  @map("vega_exposure")
+  thetaDecay         Decimal?  @map("theta_decay")
+  putCallRatioVolume Decimal?  @map("put_call_ratio_volume")
+  putCallRatioOi     Decimal?  @map("put_call_ratio_oi")
+  totalVolume        BigInt?   @map("total_volume")
+  totalOpenInterest  BigInt?   @map("total_open_interest")
+  skewZscore         Decimal?  @map("skew_zscore")
+  gammaFlipLevel     Decimal?  @map("gamma_flip_level")
+  maxPainStrike      Decimal?  @map("max_pain_strike")
+  createdAt          DateTime? @default(now()) @map("created_at")
+
+  @@unique([underlying, asOfDate, expiryBucket])
+  @@map("options_features")
+  @@schema("training")
+}
+
+model OptionsGreeks {
+  id              Int       @id @default(autoincrement())
+  instrumentId    BigInt?   @map("instrument_id")
+  rawSymbol       String?   @map("raw_symbol") @db.VarChar
+  underlying      String?   @db.VarChar
+  asOfDate        DateTime? @map("as_of_date") @db.Date
+  expirationDate  DateTime? @map("expiration_date") @db.Date
+  strikePrice     Decimal?  @map("strike_price")
+  optionType      String?   @map("option_type") @db.VarChar
+  open            Decimal?
+  high            Decimal?
+  low             Decimal?
+  close           Decimal?
+  volume          BigInt?
+  openInterest    BigInt?   @map("open_interest")
+  underlyingPrice Decimal?  @map("underlying_price")
+  riskFreeRate    Decimal?  @map("risk_free_rate")
+  impliedVol      Decimal?  @map("implied_volatility")
+  delta           Decimal?
+  gamma           Decimal?
+  theta           Decimal?
+  vega            Decimal?
+  daysToExpiry    Int?      @map("days_to_expiry")
+  moneyness       String?   @db.VarChar
+  expiryBucket    String?   @map("expiry_bucket") @db.VarChar
+  createdAt       DateTime? @default(now()) @map("created_at")
+
+  @@unique([instrumentId, asOfDate])
+  @@map("options_greeks")
+  @@schema("training")
+}
+
+model RealizedVolatility {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar
+  asOfDate      DateTime  @map("as_of_date") @db.Date
+  windowDays    Int       @map("window_days")
+  realizedVol   Float     @map("realized_vol")
+  parkinsonVol  Float?    @map("parkinson_vol")
+  garmanKlassVol Float?   @map("garman_klass_vol")
+  yangZhangVol  Float?    @map("yang_zhang_vol")
+  annualized    Boolean?  @default(true)
+  createdAt     DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, windowDays])
+  @@map("realized_volatility")
+  @@schema("training")
+}
+
+model SpecialistFeatures {
+  id       Int      @id @default(autoincrement())
+  bucket   String
+  asOfDate DateTime @map("as_of_date")
+  features Json     @db.JsonB
+
+  @@unique([bucket, asOfDate])
+  @@map("specialist_features")
+  @@schema("training")
+}
+
+model VolatilitySurface {
+  id          Int       @id @default(autoincrement())
+  underlying  String?   @db.VarChar
+  asOfDate    DateTime? @map("as_of_date") @db.Date
+  surfaceData Json?     @map("surface_data") @db.JsonB
+  atmVol      Decimal?  @map("atm_vol")
+  skew25d     Decimal?  @map("skew_25d")
+  butterfly25d Decimal? @map("butterfly_25d")
+  termSlope   Decimal?  @map("term_slope")
+  createdAt   DateTime? @default(now()) @map("created_at")
+
+  @@unique([underlying, asOfDate])
+  @@map("volatility_surface")
+  @@schema("training")
+}
+
+// Specialist bucket tables (daily) - all share same structure
+model SpecialistBiofuel1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_biofuel_1d")
+  @@schema("training")
+}
+
+model SpecialistBiofuel1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_biofuel_1h")
+  @@schema("training")
+}
+
+model SpecialistChina1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_china_1d")
+  @@schema("training")
+}
+
+model SpecialistChina1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_china_1h")
+  @@schema("training")
+}
+
+model SpecialistCrush1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_crush_1d")
+  @@schema("training")
+}
+
+model SpecialistCrush1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_crush_1h")
+  @@schema("training")
+}
+
+model SpecialistEnergy1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_energy_1d")
+  @@schema("training")
+}
+
+model SpecialistEnergy1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_energy_1h")
+  @@schema("training")
+}
+
+model SpecialistFed1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_fed_1d")
+  @@schema("training")
+}
+
+model SpecialistFed1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_fed_1h")
+  @@schema("training")
+}
+
+model SpecialistFx1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_fx_1d")
+  @@schema("training")
+}
+
+model SpecialistFx1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_fx_1h")
+  @@schema("training")
+}
+
+model SpecialistPalm1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_palm_1d")
+  @@schema("training")
+}
+
+model SpecialistPalm1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_palm_1h")
+  @@schema("training")
+}
+
+model SpecialistSubstitutes1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_substitutes_1d")
+  @@schema("training")
+}
+
+model SpecialistSubstitutes1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_substitutes_1h")
+  @@schema("training")
+}
+
+model SpecialistTariff1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_tariff_1d")
+  @@schema("training")
+}
+
+model SpecialistTariff1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_tariff_1h")
+  @@schema("training")
+}
+
+model SpecialistTrumpEffect1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_trump_effect_1d")
+  @@schema("training")
+}
+
+model SpecialistTrumpEffect1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_trump_effect_1h")
+  @@schema("training")
+}
+
+model SpecialistVolatility1d {
+  symbol         String
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfDate])
+  @@map("specialist_volatility_1d")
+  @@schema("training")
+}
+
+model SpecialistVolatility1h {
+  symbol         String
+  asOfTime       DateTime  @map("as_of_time")
+  open           Decimal?
+  high           Decimal?
+  low            Decimal?
+  close          Decimal?
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month")
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @map("bucket_name")
+  granularity    String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([symbol, asOfTime])
+  @@map("specialist_volatility_1h")
+  @@schema("training")
+}
+
+// =============================================================================
+// MODEL SCHEMA (18 tables) - ML outputs layer
+// =============================================================================
 
 model CvFolds {
   id       Int      @id @default(autoincrement())
@@ -147,53 +821,90 @@ model CvFolds {
   isVal    Boolean  @map("is_val")
 
   @@unique([asOfDate, horizon, foldId])
-  @@index([horizon])
-  @@index([asOfDate])
-  @@schema("public")
   @@map("cv_folds")
+  @@schema("model")
 }
 
-model SpecialistFeatures {
-  id       Int      @id @default(autoincrement())
-  bucket   String
-  asOfDate DateTime @map("as_of_date")
-  features Json
+model DataQualityMetrics {
+  id              Int       @id @default(autoincrement())
+  asOfDate        DateTime  @map("as_of_date") @db.Date
+  source          String
+  lastUpdate      DateTime? @map("last_update") @db.Timestamptz
+  hoursSinceUpdate Decimal? @map("hours_since_update")
+  totalRows       Int?      @map("total_rows")
+  expectedRows    Int?      @map("expected_rows")
+  completenessPct Decimal?  @map("completeness_pct")
+  nullCount       Int?      @map("null_count")
+  nullPct         Decimal?  @map("null_pct")
+  isStale         Boolean?  @map("is_stale")
+  isIncomplete    Boolean?  @map("is_incomplete")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
-  @@unique([bucket, asOfDate])
-  @@index([bucket])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("specialist_features")
+  @@unique([asOfDate, source])
+  @@map("data_quality_metrics")
+  @@schema("model")
 }
 
-model CoreFeatures {
-  id       Int      @id @default(autoincrement())
-  asOfDate DateTime @unique @map("as_of_date")
-  features Json
-
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("core_features")
-}
-
-model OofPredictions {
-  id           Int      @id @default(autoincrement())
-  source       String
-  asOfDate     DateTime @map("as_of_date")
+model ForecastQuantiles {
+  id           Int       @id @default(autoincrement())
+  modelName    String    @map("model_name")
   horizon      Int
-  foldId       Int      @map("fold_id")
-  p10          Float
-  p50          Float
-  p90          Float
-  modelVersion String   @map("model_version")
-  trainedAt    DateTime @map("trained_at")
+  forecastDate DateTime  @map("forecast_date") @db.Date
+  targetDate   DateTime  @map("target_date") @db.Date
+  symbol       String?
+  p10          Decimal?
+  p50          Decimal?
+  p90          Decimal?
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
-  @@unique([source, asOfDate, horizon, foldId])
-  @@index([source])
-  @@index([horizon])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("oof_predictions")
+  @@unique([modelName, horizon, forecastDate])
+  @@map("forecast_quantiles")
+  @@schema("model")
+}
+
+model GarchForecasts {
+  id             Int       @id @default(autoincrement())
+  symbol         String    @db.VarChar
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  horizon        Int
+  conditionalVol Float     @map("conditional_vol")
+  annualizedVol  Float     @map("annualized_vol")
+  var01          Float?    @map("var_01")
+  var05          Float?    @map("var_05")
+  cvar05         Float?    @map("cvar_05")
+  volLower       Float?    @map("vol_lower")
+  volUpper       Float?    @map("vol_upper")
+  modelType      String?   @map("model_type") @db.VarChar
+  modelVersion   String?   @map("model_version") @db.VarChar
+  createdAt      DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizon, modelVersion])
+  @@map("garch_forecasts")
+  @@schema("model")
+}
+
+model GarchParameters {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar
+  modelType     String    @map("model_type") @db.VarChar
+  p             Int
+  q             Int
+  omega         Float
+  alpha         Json      @db.JsonB
+  beta          Json      @db.JsonB
+  gamma         Json?     @db.JsonB
+  distribution  String?   @db.VarChar
+  df            Float?
+  logLikelihood Float?    @map("log_likelihood")
+  aic           Float?
+  bic           Float?
+  modelVersion  String?   @map("model_version") @db.VarChar
+  trainedAt     DateTime? @map("trained_at")
+  createdAt     DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, modelType, p, q, modelVersion])
+  @@map("garch_parameters")
+  @@schema("model")
 }
 
 model LassoCoefficients {
@@ -207,67 +918,321 @@ model LassoCoefficients {
   trainedAt    DateTime @map("trained_at")
 
   @@unique([bucket, horizon, featureName, modelVersion])
-  @@index([bucket])
-  @@index([horizon])
-  @@index([isActive])
-  @@schema("public")
   @@map("lasso_coefficients")
+  @@schema("model")
 }
 
 model MetaEnsemble {
   id           Int      @id @default(autoincrement())
-  asOfDate     DateTime @map("as_of_date") @db.Timestamp(6)
+  asOfDate     DateTime @map("as_of_date")
   horizon      Int
   p10          Float
   p50          Float
   p90          Float
-  modelVersion String   @map("model_version") @db.VarChar(100)
-  trainedAt    DateTime @map("trained_at") @db.Timestamp(6)
+  modelVersion String   @map("model_version") @db.VarChar
+  trainedAt    DateTime @map("trained_at")
 
   @@unique([asOfDate, horizon])
-  @@index([horizon], map: "idx_meta_ensemble_horizon")
-  @@schema("public")
   @@map("meta_ensemble")
+  @@schema("model")
 }
 
-model ForecastQuantiles {
-  id         Int      @id @default(autoincrement())
-  symbol     String
-  asOfDate   DateTime @map("as_of_date")
-  horizon    Int
-  p10        Float
-  p50        Float
-  p90        Float
-  probUp     Float    @map("prob_up")
-  regime     String?
-  confidence Float?
-  createdAt  DateTime @default(now()) @map("created_at")
+model MetaWeights {
+  id                Int       @id @default(autoincrement())
+  horizon           Int
+  specialist        String
+  weight            Decimal?
+  featureImportance Decimal?  @map("feature_importance")
+  trainedAt         DateTime? @map("trained_at") @db.Timestamptz
 
-  @@unique([symbol, asOfDate, horizon])
-  @@index([symbol])
-  @@index([horizon])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("forecast_quantiles")
+  @@unique([horizon, specialist])
+  @@map("meta_weights")
+  @@schema("model")
 }
 
-model DriverScores {
+model ModelLeaderboard {
+  id              Int       @id @default(autoincrement())
+  runId           String    @map("run_id")
+  modelName       String    @map("model_name")
+  rank            Int?
+  scoreVal        Decimal?  @map("score_val")
+  scoreTest       Decimal?  @map("score_test")
+  fitTimeSeconds  Decimal?  @map("fit_time_seconds")
+  predTimeSeconds Decimal?  @map("pred_time_seconds")
+  modelPath       String?   @map("model_path")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([runId, modelName])
+  @@map("model_leaderboard")
+  @@schema("model")
+}
+
+model ModelRegistry {
+  id                  Int       @id @default(autoincrement())
+  modelId             String    @unique @map("model_id")
+  modelName           String    @map("model_name")
+  modelType           String    @map("model_type")
+  horizon             Int?
+  version             Int
+  trainedAt           DateTime  @map("trained_at") @db.Timestamptz
+  trainingMode        String?   @map("training_mode")
+  trainingTimeSeconds Decimal?  @map("training_time_seconds")
+  datasetRows         Int?      @map("dataset_rows")
+  datasetFeatures     Int?      @map("dataset_features")
+  datasetStartDate    DateTime? @map("dataset_start_date") @db.Date
+  datasetEndDate      DateTime? @map("dataset_end_date") @db.Date
+  mase                Decimal?
+  rmse                Decimal?
+  mae                 Decimal?
+  mape                Decimal?
+  pinballLossP10      Decimal?  @map("pinball_loss_p10")
+  pinballLossP50      Decimal?  @map("pinball_loss_p50")
+  pinballLossP90      Decimal?  @map("pinball_loss_p90")
+  coverage80          Decimal?  @map("coverage_80")
+  bestModel           String?   @map("best_model")
+  modelsTrained       Int?      @map("models_trained")
+  status              String
+  isChampion          Boolean?  @map("is_champion")
+  promotedAt          DateTime? @map("promoted_at") @db.Timestamptz
+  artifactPath        String?   @map("artifact_path")
+  mlflowRunId         String?   @map("mlflow_run_id")
+  tags                Json?     @db.JsonB
+  notes               String?
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime? @map("updated_at") @db.Timestamptz
+
+  @@map("model_registry")
+  @@schema("model")
+}
+
+model MonteCarloRuns {
   id           Int      @id @default(autoincrement())
   symbol       String
   asOfDate     DateTime @map("as_of_date")
-  bucket       String
-  score        Float
-  contribution Float
-  direction    String
+  horizon      Int
+  numSims      Int      @map("num_sims")
+  percentiles  Json     @db.JsonB
+  correlations Json?    @db.JsonB
+  modelVersion String   @map("model_version")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  @@unique([symbol, asOfDate, bucket])
-  @@index([symbol])
-  @@index([bucket])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("driver_scores")
+  @@unique([symbol, asOfDate, horizon, modelVersion])
+  @@map("monte_carlo_runs")
+  @@schema("model")
 }
+
+model OofPredictions {
+  id         Int       @id @default(autoincrement())
+  specialist String
+  horizon    Int
+  asOfDate   DateTime  @map("as_of_date") @db.Date
+  symbol     String?
+  predP10    Decimal?  @map("pred_p10")
+  predP50    Decimal?  @map("pred_p50")
+  predP90    Decimal?  @map("pred_p90")
+  actual     Decimal?
+  foldId     Int?      @map("fold_id")
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([specialist, horizon, asOfDate, foldId])
+  @@map("oof_predictions")
+  @@schema("model")
+}
+
+model PredictionAccuracy {
+  id             Int       @id @default(autoincrement())
+  modelId        String    @map("model_id")
+  horizon        Int
+  predictionDate DateTime  @map("prediction_date") @db.Date
+  targetDate     DateTime  @map("target_date") @db.Date
+  actual         Decimal?
+  predP10        Decimal?  @map("pred_p10")
+  predP50        Decimal?  @map("pred_p50")
+  predP90        Decimal?  @map("pred_p90")
+  error          Decimal?
+  absError       Decimal?  @map("abs_error")
+  pctError       Decimal?  @map("pct_error")
+  in80Band       Boolean?  @map("in_80_band")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([modelId, horizon, predictionDate])
+  @@map("prediction_accuracy")
+  @@schema("model")
+}
+
+model ProbabilityDistributions {
+  id           Int       @id @default(autoincrement())
+  symbol       String    @db.VarChar
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  horizon      Int
+  percentile   Float
+  value        Float
+  modelVersion String?   @map("model_version") @db.VarChar
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([symbol, asOfDate, horizon, percentile])
+  @@map("probability_distributions")
+  @@schema("model")
+}
+
+model RegimeProbabilities {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  regimeType   String    @map("regime_type") @db.VarChar
+  regimeName   String    @map("regime_name") @db.VarChar
+  probability  Float
+  confidence   Float?
+  drivers      Json?     @db.JsonB
+  modelVersion String?   @map("model_version") @db.VarChar
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([asOfDate, regimeType, regimeName])
+  @@map("regime_probabilities")
+  @@schema("model")
+}
+
+model ShapSummary {
+  id           Int       @id @default(autoincrement())
+  horizon      Int
+  featureName  String    @map("feature_name") @db.VarChar
+  meanAbsShap  Float     @map("mean_abs_shap")
+  stdShap      Float?    @map("std_shap")
+  rank         Int?
+  modelVersion String?   @map("model_version") @db.VarChar
+  trainedAt    DateTime? @map("trained_at")
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([horizon, featureName, modelVersion])
+  @@map("shap_summary")
+  @@schema("model")
+}
+
+model ShapValues {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  horizon      Int
+  featureName  String    @map("feature_name") @db.VarChar
+  shapValue    Float     @map("shap_value")
+  baseValue    Float?    @map("base_value")
+  prediction   Float?
+  modelVersion String?   @map("model_version") @db.VarChar
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([asOfDate, horizon, featureName, modelVersion])
+  @@map("shap_values")
+  @@schema("model")
+}
+
+model TrainingRuns {
+  id              Int       @id @default(autoincrement())
+  runId           String    @unique @map("run_id")
+  runName         String?   @map("run_name")
+  experimentName  String?   @map("experiment_name")
+  modelType       String    @map("model_type")
+  specialistName  String?   @map("specialist_name")
+  horizon         Int?
+  startedAt       DateTime  @map("started_at") @db.Timestamptz
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz
+  durationSeconds Decimal?  @map("duration_seconds")
+  status          String?
+  trainingMode    String?   @map("training_mode")
+  hyperparameters Json?     @db.JsonB
+  datasetName     String?   @map("dataset_name")
+  datasetRows     Int?      @map("dataset_rows")
+  datasetFeatures Int?      @map("dataset_features")
+  metrics         Json?     @db.JsonB
+  mase            Decimal?
+  errorMessage    String?   @map("error_message")
+  artifactPath    String?   @map("artifact_path")
+  logPath         String?   @map("log_path")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("training_runs")
+  @@schema("model")
+}
+
+// =============================================================================
+// MODEL CORE AUDIT (V15 Compliance Enforcement)
+// =============================================================================
+// Every Core training run must write exactly one audit row.
+// CI and release gates read from this table.
+// If this row says FAIL, the model does not exist operationally.
+
+model ModelCoreAudit {
+  id                       String   @id @default(uuid())
+
+  // Identity
+  trainingRunId            String   @unique @map("training_run_id")
+  horizon                  String   // "5d" | "21d" | "63d" | "126d"
+  reviewedAt               DateTime @default(now()) @map("reviewed_at")
+  reviewer                 String
+
+  // -------- HARD GATES --------
+
+  // Scope & CV
+  isCoreRun                Boolean  @map("is_core_run")
+  cvPurgedWalkForward      Boolean  @map("cv_purged_walk_forward")
+  asofAlignmentValid       Boolean  @map("asof_alignment_valid")
+
+  // Horizon allowlist
+  chronosBoltPresent       Boolean  @map("chronos_bolt_present")
+  chronos2Present          Boolean  @map("chronos2_present")
+  chronos2LoraPresent      Boolean  @map("chronos2_lora_present")
+  recursiveTabularPresent  Boolean  @map("recursive_tabular_present")
+
+  // Mandatory baselines
+  autoetsPresent           Boolean  @map("autoets_present")
+  thetaPresent             Boolean  @map("theta_present")
+  seasonalNaivePresent     Boolean  @map("seasonal_naive_present")
+
+  // Ensemble integrity
+  weightedEnsembleUsed     Boolean  @map("weighted_ensemble_used")
+  oofOnly                  Boolean  @map("oof_only")
+  maxSingleWeight          Float    @map("max_single_weight")
+  chronosWeightNonzero     Boolean  @map("chronos_weight_nonzero")
+  recursiveWeightZeroLong  Boolean  @map("recursive_weight_zero_long")
+
+  // Probabilistic contract
+  monteCarloRuns           Int      @map("monte_carlo_runs")
+  p10Present               Boolean  @map("p10_present")
+  p50Present               Boolean  @map("p50_present")
+  p90Present               Boolean  @map("p90_present")
+  stressWideningApplied    Boolean  @map("stress_widening_applied")
+
+  // Validation
+  rmseRecorded             Boolean  @map("rmse_recorded")
+  brierRecorded            Boolean  @map("brier_recorded")
+  p10CoverageOk            Boolean  @map("p10_coverage_ok")
+  p90CoverageOk            Boolean  @map("p90_coverage_ok")
+
+  // Registry & lineage
+  registryComplete         Boolean  @map("registry_complete")
+  ensembleEdgesRecorded    Boolean  @map("ensemble_edges_recorded")
+  resourcesLogged          Boolean  @map("resources_logged")
+  artifactIsolationSafe    Boolean  @map("artifact_isolation_safe")
+
+  // -------- BUSINESS GATE --------
+  narrativeReady           Boolean  @map("narrative_ready")
+  buySellLanguageAbsent    Boolean  @map("buy_sell_language_absent")
+  uncertaintyExplained     Boolean  @map("uncertainty_explained")
+  specialistDivergenceFlag Boolean  @map("specialist_divergence_flag")
+
+  // -------- FINAL VERDICT --------
+  hardGatePass             Boolean  @map("hard_gate_pass")
+  finalApproved            Boolean  @map("final_approved")
+
+  // Required on failure
+  failureReason            String?  @map("failure_reason")
+
+  @@index([horizon])
+  @@index([finalApproved])
+  @@map("model_core_audit")
+  @@schema("model")
+}
+
+// =============================================================================
+// ANALYTICS SCHEMA (12 tables) - Dashboard layer
+// =============================================================================
 
 model ChartOverlays {
   id          Int       @id @default(autoincrement())
@@ -277,14 +1242,68 @@ model ChartOverlays {
   endDate     DateTime? @map("end_date")
   label       String
   color       String?
-  metadata    Json?
+  metadata    Json?     @db.JsonB
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  @@index([symbol])
-  @@index([overlayType])
-  @@index([startDate])
-  @@schema("public")
   @@map("chart_overlays")
+  @@schema("analytics")
+}
+
+model DashboardMetrics {
+  id          Int       @id @default(autoincrement())
+  metricName  String    @map("metric_name")
+  metricValue Decimal?  @map("metric_value")
+  asOfDate    DateTime? @map("as_of_date") @db.Date
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([metricName, asOfDate])
+  @@map("dashboard_metrics")
+  @@schema("analytics")
+}
+
+model DataQualityLog {
+  id         Int      @id @default(autoincrement())
+  tableName  String   @map("table_name")
+  checkDate  DateTime @map("check_date")
+  rowCount   Int      @map("row_count")
+  nullCount  Int      @map("null_count")
+  latestDate DateTime @map("latest_date")
+  oldestDate DateTime @map("oldest_date")
+  issues     Json?    @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("data_quality_log")
+  @@schema("analytics")
+}
+
+model DriverScores {
+  id               Int       @id @default(autoincrement())
+  asOfDate         DateTime  @map("as_of_date") @db.Date
+  specialist       String
+  signal           Decimal?
+  direction        String?
+  confidence       Decimal?
+  shapContribution Decimal?  @map("shap_contribution")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([asOfDate, specialist])
+  @@map("driver_scores")
+  @@schema("analytics")
+}
+
+model MarketPosture {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  horizon      Int
+  posture      String?
+  confidence   Decimal?
+  regime       String?
+  tailRiskProb Decimal?  @map("tail_risk_prob")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([asOfDate, horizon])
+  @@map("market_posture")
+  @@schema("analytics")
 }
 
 model ProcurementActions {
@@ -297,10 +1316,72 @@ model ProcurementActions {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([symbol, asOfDate])
-  @@index([symbol])
-  @@index([asOfDate])
-  @@schema("public")
   @@map("procurement_actions")
+  @@schema("analytics")
+}
+
+model RiskMetrics {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date")
+  horizon      Int
+  var01        Float     @map("var_01")
+  var05        Float     @map("var_05")
+  var10        Float     @map("var_10")
+  cvar05       Float     @map("cvar_05")
+  probUp       Float     @map("prob_up")
+  probUp5pct   Float     @map("prob_up_5pct")
+  probDown5pct Float     @map("prob_down_5pct")
+  regime       String    @db.VarChar
+  tailRiskFlag Boolean   @map("tail_risk_flag")
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  @@unique([asOfDate, horizon])
+  @@map("risk_metrics")
+  @@schema("analytics")
+}
+
+model ScenarioAnalysis {
+  id               Int       @id @default(autoincrement())
+  scenarioId       String    @map("scenario_id") @db.VarChar
+  scenarioName     String    @map("scenario_name") @db.VarChar
+  asOfDate         DateTime  @map("as_of_date") @db.Date
+  horizon          Int
+  assumptions      Json      @db.JsonB
+  baseForecast     Float?    @map("base_forecast")
+  scenarioForecast Float?    @map("scenario_forecast")
+  impactPct        Float?    @map("impact_pct")
+  probability      Float?
+  confidence       String?   @db.VarChar
+  modelVersion     String?   @map("model_version") @db.VarChar
+  createdAt        DateTime? @default(now()) @map("created_at")
+
+  @@unique([scenarioId, asOfDate, horizon])
+  @@map("scenario_analysis")
+  @@schema("analytics")
+}
+
+model SpecialistDrivers {
+  id          Int    @id @default(autoincrement())
+  driverId    String @unique @map("driver_id")
+  description String
+
+  @@map("specialist_drivers")
+  @@schema("analytics")
+}
+
+model TrainingRunLog {
+  id           Int       @id @default(autoincrement())
+  runId        String    @unique @map("run_id")
+  horizon      Int
+  phase        String
+  status       String
+  startedAt    DateTime  @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  errorMessage String?   @map("error_message")
+  metrics      Json?     @db.JsonB
+
+  @@map("training_run_log")
+  @@schema("analytics")
 }
 
 model ValueTimingWindows {
@@ -317,527 +1398,57 @@ model ValueTimingWindows {
   createdAt              DateTime @default(now()) @map("created_at")
 
   @@unique([symbol, asOfDate, horizonDays])
-  @@index([symbol])
-  @@index([horizonDays])
-  @@index([asOfDate])
-  @@schema("public")
   @@map("value_timing_windows")
+  @@schema("analytics")
 }
 
-model SpecialistDrivers {
-  id          Int    @id @default(autoincrement())
-  driverId    String @unique @map("driver_id")
-  description String
-
-  @@schema("public")
-  @@map("specialist_drivers")
-}
-
-model RiskMetrics {
-  id             Int       @id @default(autoincrement())
-  asOfDate       DateTime  @map("as_of_date") @db.Timestamp(6)
-  horizon        Int
-  var_01         Float
-  var_05         Float
-  var_10         Float
-  cvar_05        Float
-  prob_up        Float
-  prob_up_5pct   Float
-  prob_down_5pct Float
-  regime         String    @db.VarChar(20)
-  tail_risk_flag Boolean
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  @@unique([asOfDate, horizon])
-  @@schema("public")
-  @@map("risk_metrics")
-}
-
-model MonteCarloRuns {
-  id           Int      @id @default(autoincrement())
-  symbol       String
-  asOfDate     DateTime @map("as_of_date")
-  horizon      Int
-  numSims      Int      @map("num_sims")
-  percentiles  Json
-  correlations Json?
-  modelVersion String   @map("model_version")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  @@unique([symbol, asOfDate, horizon, modelVersion])
-  @@index([symbol])
-  @@index([horizon])
-  @@index([asOfDate])
-  @@schema("public")
-  @@map("monte_carlo_runs")
-}
-
-model ModelRegistry {
-  id           Int      @id @default(autoincrement())
-  modelId      String   @unique @map("model_id")
-  source       String
-  horizon      Int
-  version      String
-  trainedAt    DateTime @map("trained_at")
-  metrics      Json
-  artifactPath String   @map("artifact_path")
-  foldId       Int?     @map("fold_id")
-  isActive     Boolean  @default(true) @map("is_active")
-
-  @@index([source])
-  @@index([horizon])
-  @@index([isActive])
-  @@schema("public")
-  @@map("model_registry")
-}
-
-model DataQualityLog {
-  id         Int      @id @default(autoincrement())
-  tableName  String   @map("table_name")
-  checkDate  DateTime @map("check_date")
-  rowCount   Int      @map("row_count")
-  nullCount  Int      @map("null_count")
-  latestDate DateTime @map("latest_date")
-  oldestDate DateTime @map("oldest_date")
-  issues     Json?
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@index([tableName])
-  @@index([checkDate])
-  @@schema("public")
-  @@map("data_quality_log")
-}
-
-model TrainingRunLog {
-  id           Int       @id @default(autoincrement())
-  runId        String    @unique @map("run_id")
-  horizon      Int
-  phase        String
-  status       String
-  startedAt    DateTime  @map("started_at")
-  completedAt  DateTime? @map("completed_at")
-  errorMessage String?   @map("error_message")
-  metrics      Json?
-
-  @@index([horizon])
-  @@index([phase])
-  @@index([status])
-  @@schema("public")
-  @@map("training_run_log")
-}
-
-model OptionsGreeks {
+model VolRegimes {
   id              Int       @id @default(autoincrement())
-  instrument_id   BigInt?
-  raw_symbol      String?   @db.VarChar(50)
-  underlying      String?   @db.VarChar(10)
-  asOfDate        DateTime? @map("as_of_date") @db.Date
-  expirationDate  DateTime? @map("expiration_date") @db.Date
-  strikePrice     Decimal?  @map("strike_price") @db.Decimal(12, 4)
-  optionType      String?   @map("option_type") @db.VarChar(1)
-  open            Decimal?  @db.Decimal(10, 4)
-  high            Decimal?  @db.Decimal(10, 4)
-  low             Decimal?  @db.Decimal(10, 4)
-  close           Decimal?  @db.Decimal(10, 4)
-  volume          BigInt?
-  openInterest    BigInt?   @map("open_interest")
-  underlyingPrice Decimal?  @map("underlying_price") @db.Decimal(10, 4)
-  risk_free_rate  Decimal?  @db.Decimal(8, 6)
-  impliedVol      Decimal?  @map("implied_volatility") @db.Decimal(8, 6)
-  delta           Decimal?  @db.Decimal(8, 6)
-  gamma           Decimal?  @db.Decimal(10, 8)
-  theta           Decimal?  @db.Decimal(10, 6)
-  vega            Decimal?  @db.Decimal(10, 6)
-  daysToExpiry    Int?      @map("days_to_expiry")
-  moneyness       String?   @db.VarChar(10)
-  expiryBucket    String?   @map("expiry_bucket") @db.VarChar(5)
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  symbol          String    @db.VarChar
+  asOfDate        DateTime  @map("as_of_date") @db.Date
+  regime          String    @db.VarChar
+  regimeProb      Float?    @map("regime_prob")
+  transitionProbs Json?     @map("transition_probs") @db.JsonB
+  smoothedProb    Float?    @map("smoothed_prob")
+  modelType       String?   @map("model_type") @db.VarChar
+  modelVersion    String?   @map("model_version") @db.VarChar
+  createdAt       DateTime? @default(now()) @map("created_at")
 
-  @@unique([instrument_id, asOfDate])
-  @@index([asOfDate], map: "idx_options_greeks_date")
-  @@index([expiryBucket], map: "idx_options_greeks_expiry")
-  @@index([moneyness], map: "idx_options_greeks_moneyness")
-  @@index([underlying], map: "idx_options_greeks_underlying")
-  @@schema("public")
-  @@map("options_greeks")
+  @@unique([symbol, asOfDate, modelVersion])
+  @@map("vol_regimes")
+  @@schema("analytics")
 }
 
-model OptionsFeatures {
-  id                  Int       @id @default(autoincrement())
-  underlying          String?   @db.VarChar(10)
-  asOfDate            DateTime? @map("as_of_date") @db.Date
-  expiryBucket        String?   @map("expiry_bucket") @db.VarChar(5)
-  ivAtmCall           Decimal?  @map("iv_atm_call") @db.Decimal(8, 6)
-  ivAtmPut            Decimal?  @map("iv_atm_put") @db.Decimal(8, 6)
-  ivSkew              Decimal?  @map("iv_skew") @db.Decimal(8, 6)
-  ivTermStructure     Decimal?  @map("iv_term_structure") @db.Decimal(8, 6)
-  ivPercentile30d     Decimal?  @map("iv_percentile_30d") @db.Decimal(5, 2)
-  ivRank              Decimal?  @map("iv_rank") @db.Decimal(5, 2)
-  deltaWeightedOiCall Decimal?  @map("delta_weighted_oi_call") @db.Decimal(18, 4)
-  deltaWeightedOiPut  Decimal?  @map("delta_weighted_oi_put") @db.Decimal(18, 4)
-  gammaExposure       Decimal?  @map("gamma_exposure") @db.Decimal(18, 4)
-  netGamma            Decimal?  @map("net_gamma") @db.Decimal(18, 4)
-  vegaExposure        Decimal?  @map("vega_exposure") @db.Decimal(18, 4)
-  thetaDecay          Decimal?  @map("theta_decay") @db.Decimal(18, 4)
-  putCallRatioVolume  Decimal?  @map("put_call_ratio_volume") @db.Decimal(8, 4)
-  putCallRatioOi      Decimal?  @map("put_call_ratio_oi") @db.Decimal(8, 4)
-  totalVolume         BigInt?   @map("total_volume")
-  totalOpenInterest   BigInt?   @map("total_open_interest")
-  skewZscore          Decimal?  @map("skew_zscore") @db.Decimal(6, 4)
-  gammaFlipLevel      Decimal?  @map("gamma_flip_level") @db.Decimal(10, 4)
-  maxPainStrike       Decimal?  @map("max_pain_strike") @db.Decimal(10, 4)
-  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+// =============================================================================
+// OPS SCHEMA (3 tables) - Operations layer
+// =============================================================================
 
-  @@unique([underlying, asOfDate, expiryBucket])
-  @@index([asOfDate], map: "idx_options_features_date")
-  @@index([underlying], map: "idx_options_features_underlying")
-  @@schema("public")
-  @@map("options_features")
-}
-
-model VolatilitySurface {
-  id           Int       @id @default(autoincrement())
-  underlying   String?   @db.VarChar(10)
-  asOfDate     DateTime? @map("as_of_date") @db.Date
-  surfaceData  Json?     @map("surface_data")
-  atmVol       Decimal?  @map("atm_vol") @db.Decimal(8, 6)
-  skew25d      Decimal?  @map("skew_25d") @db.Decimal(8, 6)
-  butterfly25d Decimal?  @map("butterfly_25d") @db.Decimal(8, 6)
-  termSlope    Decimal?  @map("term_slope") @db.Decimal(8, 6)
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-
-  @@unique([underlying, asOfDate])
-  @@index([asOfDate], map: "idx_vol_surface_date")
-  @@index([underlying], map: "idx_vol_surface_underlying")
-  @@schema("public")
-  @@map("volatility_surface")
-}
-
-model cftc_cot {
-  id                       Int       @id @default(autoincrement())
-  report_date              DateTime  @db.Date
-  symbol                   String    @db.VarChar(20)
-  open_interest            BigInt?
-  prod_merc_long           BigInt?
-  prod_merc_short          BigInt?
-  swap_long                BigInt?
-  swap_short               BigInt?
-  managed_money_long       BigInt?
-  managed_money_short      BigInt?
-  other_rept_long          BigInt?
-  other_rept_short         BigInt?
-  nonrept_long             BigInt?
-  nonrept_short            BigInt?
-  prod_merc_net            BigInt?
-  swap_net                 BigInt?
-  managed_money_net        BigInt?
-  other_rept_net           BigInt?
-  nonrept_net              BigInt?
-  managed_money_net_pct_oi Float?
-  prod_merc_net_pct_oi     Float?
-  source                   String?   @db.VarChar(50)
-  ingested_at              DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([report_date, symbol])
-  @@index([report_date], map: "idx_cftc_date")
-  @@index([symbol], map: "idx_cftc_symbol")
-  @@schema("public")
-}
-
-model fred_series_metadata {
-  id                  Int       @id @default(autoincrement())
-  series_id           String    @unique @db.VarChar(50)
-  title               String?   @db.VarChar(500)
-  observation_start   DateTime? @db.Date
-  observation_end     DateTime? @db.Date
-  frequency           String?   @db.VarChar(50)
-  units               String?   @db.VarChar(200)
-  seasonal_adjustment String?   @db.VarChar(100)
-  last_updated        DateTime? @db.Timestamp(6)
-  source              String?   @db.VarChar(200)
-  notes               String?
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  @@schema("public")
-}
-
-model meta_weights {
-  id            Int      @id @default(autoincrement())
-  source        String   @db.VarChar(50)
-  horizon       Int
-  weight        Float
-  model_version String   @db.VarChar(100)
-  trained_at    DateTime @db.Timestamp(6)
-
-  @@unique([source, horizon, model_version])
-  @@index([horizon], map: "idx_meta_weights_horizon")
-  @@schema("public")
-}
-
-model raw_options_futures {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar(50)
-  as_of_date    DateTime  @db.Date
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        BigInt?
-  open_interest BigInt?
-  expiration    DateTime? @db.Date
-  strike        Float?
-  option_type   String?   @db.VarChar(10)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, as_of_date])
-  @@index([as_of_date], map: "idx_options_date")
-  @@index([symbol], map: "idx_options_symbol")
-  @@schema("public")
-}
-
-model usda_export_sales {
+model DataSourceRegistry {
   id                   Int       @id @default(autoincrement())
-  report_date          DateTime  @db.Date
-  commodity            String    @db.VarChar(100)
-  destination_country  String?   @db.VarChar(100)
-  net_sales_mt         Float?
-  exports_mt           Float?
-  outstanding_sales_mt Float?
-  source               String?   @db.VarChar(50)
-  ingested_at          DateTime? @default(now()) @db.Timestamp(6)
+  sourceId             String    @unique @map("source_id")
+  sourceName           String    @map("source_name")
+  description          String?
+  targetTable          String    @map("target_table")
+  targetSchema         String    @default("raw") @map("target_schema")
+  apiProvider          String    @map("api_provider")
+  apiEndpoint          String    @map("api_endpoint")
+  apiDocsUrl           String?   @map("api_docs_url")
+  authType             String?   @map("auth_type")
+  authEnvVar           String?   @map("auth_env_var")
+  responseFormat       String?   @map("response_format")
+  dateColumn           String?   @map("date_column")
+  entityColumn         String?   @map("entity_column")
+  updateFrequency      String    @map("update_frequency")
+  typicalLagHours      Int?      @map("typical_lag_hours")
+  ingestionScript      String?   @map("ingestion_script")
+  lastSuccessfulRun    DateTime? @map("last_successful_run") @db.Timestamptz
+  isActive             Boolean?  @default(true) @map("is_active")
+  requiresSubscription Boolean?  @default(false) @map("requires_subscription")
+  subscriptionStatus   String?   @map("subscription_status")
+  notes                String?
+  createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @default(now()) @map("updated_at") @db.Timestamptz
 
-  @@unique([report_date, commodity, destination_country])
-  @@index([commodity], map: "idx_usda_commodity")
-  @@index([report_date], map: "idx_usda_date")
-  @@index([commodity], map: "idx_usda_exports_commodity")
-  @@index([report_date], map: "idx_usda_exports_date")
-  @@schema("public")
-}
-
-model usda_wasde {
-  id          Int       @id @default(autoincrement())
-  report_date DateTime  @db.Date
-  commodity   String    @db.VarChar(100)
-  country     String?   @db.VarChar(100)
-  metric      String?   @db.VarChar(200)
-  value       Float?
-  unit        String?   @db.VarChar(50)
-  source      String?   @db.VarChar(50)
-  ingested_at DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([report_date, commodity, country, metric])
-  @@index([commodity], map: "idx_wasde_commodity")
-  @@index([report_date], map: "idx_wasde_date")
-  @@schema("public")
-}
-
-model weather_noaa {
-  id                Int       @id @default(autoincrement())
-  station_id        String    @db.VarChar(50)
-  as_of_date        DateTime  @db.Date
-  tavg_c            Float?
-  tmin_c            Float?
-  tmax_c            Float?
-  prcp_mm           Float?
-  snow_mm           Float?
-  awnd_ms           Float?
-  // NEW columns for expanded weather variables
-  snwd_mm           Float?    // Snow depth (mm)
-  evap_mm           Float?    // Evaporation (mm)
-  rhav_pct          Float?    // Relative humidity avg (%)
-  wsfg_ms           Float?    // Peak wind gust (m/s)
-  // Metadata
-  region            String?   @db.VarChar(100)
-  country           String?   @db.VarChar(50)
-  specialist_bucket String?   @db.VarChar(50)
-  ingested_at       DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([station_id, as_of_date])
-  @@index([specialist_bucket], map: "idx_weather_bucket")
-  @@index([as_of_date], map: "idx_weather_date")
-  @@index([region], map: "idx_weather_region")
-  @@map("weather_noaa_1d")
-  @@schema("raw")
-}
-
-model dashboard_metrics {
-  id          Int       @id @default(autoincrement())
-  metric_type String    @db.VarChar(50)
-  as_of_date  DateTime  @db.Date
-  symbol      String?   @db.VarChar(20)
-  horizon     Int?
-  value       Float?
-  metadata    Json?
-  updated_at  DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([metric_type, as_of_date, symbol, horizon])
-  @@index([as_of_date], map: "idx_dashboard_date")
-  @@index([metric_type], map: "idx_dashboard_type")
-  @@schema("public")
-}
-
-model garch_forecasts {
-  id              Int       @id @default(autoincrement())
-  symbol          String    @db.VarChar(20)
-  as_of_date      DateTime  @db.Date
-  horizon         Int
-  conditional_vol Float
-  annualized_vol  Float
-  var_01          Float?
-  var_05          Float?
-  cvar_05         Float?
-  vol_lower       Float?
-  vol_upper       Float?
-  model_type      String?   @db.VarChar(50)
-  model_version   String?   @db.VarChar(100)
-  created_at      DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, as_of_date, horizon, model_version])
-  @@index([as_of_date], map: "idx_garch_forecast_date")
-  @@index([symbol], map: "idx_garch_forecast_symbol")
-  @@schema("public")
-}
-
-model garch_parameters {
-  id             Int       @id @default(autoincrement())
-  symbol         String    @db.VarChar(20)
-  model_type     String    @db.VarChar(50)
-  p              Int
-  q              Int
-  omega          Float
-  alpha          Json
-  beta           Json
-  gamma          Json?
-  distribution   String?   @db.VarChar(20)
-  df             Float?
-  log_likelihood Float?
-  aic            Float?
-  bic            Float?
-  model_version  String?   @db.VarChar(100)
-  trained_at     DateTime? @db.Timestamp(6)
-  created_at     DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, model_type, p, q, model_version])
-  @@index([symbol], map: "idx_garch_params_symbol")
-  @@schema("public")
-}
-
-model probability_distributions {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar(20)
-  as_of_date    DateTime  @db.Date
-  horizon       Int
-  percentile    Float
-  value         Float
-  model_version String?   @db.VarChar(100)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, as_of_date, horizon, percentile])
-  @@index([as_of_date], map: "idx_prob_dist_date")
-  @@index([symbol], map: "idx_prob_dist_symbol")
-  @@schema("public")
-}
-
-model realized_volatility {
-  id               Int       @id @default(autoincrement())
-  symbol           String    @db.VarChar(20)
-  as_of_date       DateTime  @db.Date
-  window_days      Int
-  realized_vol     Float
-  parkinson_vol    Float?
-  garman_klass_vol Float?
-  yang_zhang_vol   Float?
-  annualized       Boolean?  @default(true)
-  created_at       DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, as_of_date, window_days])
-  @@index([as_of_date], map: "idx_realized_vol_date")
-  @@index([symbol], map: "idx_realized_vol_symbol")
-  @@schema("public")
-}
-
-model regime_probabilities {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @db.Date
-  regime_type   String    @db.VarChar(50)
-  regime_name   String    @db.VarChar(100)
-  probability   Float
-  confidence    Float?
-  drivers       Json?
-  model_version String?   @db.VarChar(100)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([as_of_date, regime_type, regime_name])
-  @@index([as_of_date], map: "idx_regime_prob_date")
-  @@schema("public")
-}
-
-model scenario_analysis {
-  id                Int       @id @default(autoincrement())
-  scenario_id       String    @db.VarChar(100)
-  scenario_name     String    @db.VarChar(200)
-  as_of_date        DateTime  @db.Date
-  horizon           Int
-  assumptions       Json
-  base_forecast     Float?
-  scenario_forecast Float?
-  impact_pct        Float?
-  probability       Float?
-  confidence        String?   @db.VarChar(20)
-  model_version     String?   @db.VarChar(100)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([scenario_id, as_of_date, horizon])
-  @@index([as_of_date], map: "idx_scenario_date")
-  @@schema("public")
-}
-
-model shap_summary {
-  id            Int       @id @default(autoincrement())
-  horizon       Int
-  feature_name  String    @db.VarChar(100)
-  mean_abs_shap Float
-  std_shap      Float?
-  rank          Int?
-  model_version String?   @db.VarChar(100)
-  trained_at    DateTime? @db.Timestamp(6)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([horizon, feature_name, model_version])
-  @@index([horizon], map: "idx_shap_summary_horizon")
-  @@schema("public")
-}
-
-model shap_values {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @db.Date
-  horizon       Int
-  feature_name  String    @db.VarChar(100)
-  shap_value    Float
-  base_value    Float?
-  prediction    Float?
-  model_version String?   @db.VarChar(100)
-  created_at    DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([as_of_date, horizon, feature_name, model_version])
-  @@index([as_of_date], map: "idx_shap_values_date")
-  @@index([horizon], map: "idx_shap_values_horizon")
-  @@schema("public")
-}
-
-model vol_regimes {
-  id               Int       @id @default(autoincrement())
-  symbol           String    @db.VarChar(20)
-  as_of_date       DateTime  @db.Date
-  regime           String    @db.VarChar(20)
-  regime_prob      Float?
-  transition_probs Json?
-  smoothed_prob    Float?
-  model_type       String?   @db.VarChar(50)
-  model_version    String?   @db.VarChar(100)
-  created_at       DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([symbol, as_of_date, model_version])
-  @@index([as_of_date], map: "idx_vol_regime_date")
-  @@index([symbol], map: "idx_vol_regime_symbol")
-  @@schema("public")
+  @@map("data_source_registry")
+  @@schema("ops")
 }

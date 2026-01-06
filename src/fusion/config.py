@@ -1,19 +1,13 @@
 """Fusion configuration.
 
-This repository uses Prisma Postgres as the authoritative database.
-DuckDB (data/fusion.db) is ARCHIVE ONLY - do not use for training or operations.
-
-Architecture:
-    CLOUD (Prisma Postgres)  - Ingestion target, dashboard source, authoritative
-    LOCAL (training only)    - Sync from cloud, train, push results back
+This repository uses Prisma Postgres as the production database.
+All training, inference, and operations use Prisma Postgres.
+Deployed via Railway for dashboard/API access.
 
 Environment Variables:
     DATABASE_URL         - Prisma Postgres connection string (REQUIRED)
     FUSION_MODEL_DIR     - Path to model directory (default: models)
     HISTORICAL_DATA_PATH - Path to historical parquet files (for initial ingestion)
-
-Deprecated (archive only):
-    FUSION_DB_PATH    - Path to DuckDB archive (default: data/fusion.db)
 """
 
 import os
@@ -24,7 +18,7 @@ from pathlib import Path
 # CANONICAL ENVIRONMENT VARIABLES
 # =============================================================================
 
-# Prisma Postgres connection (AUTHORITATIVE)
+# Prisma Postgres connection (REQUIRED)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # Model directory
@@ -33,9 +27,6 @@ FUSION_MODEL_DIR = os.environ.get("FUSION_MODEL_DIR", "models")
 # Historical data path (for ingestion scripts)
 # Default to None - must be explicitly set for ingestion
 HISTORICAL_DATA_PATH = os.environ.get("HISTORICAL_DATA_PATH")
-
-# DuckDB archive path (READ-ONLY, for historical extraction only)
-FUSION_DB_PATH = os.environ.get("FUSION_DB_PATH", "data/fusion.db")
 
 
 # =============================================================================
@@ -55,11 +46,6 @@ def get_database_url() -> str:
                         return line.split("=", 1)[1].strip().strip('"').strip("'")
         raise ValueError("DATABASE_URL not set. Set it in environment or .env file.")
     return DATABASE_URL
-
-
-def get_db_path() -> Path:
-    """Get absolute path to DuckDB archive (READ-ONLY)."""
-    return Path(FUSION_DB_PATH).resolve()
 
 
 def get_model_dir() -> Path:

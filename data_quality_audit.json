@@ -1,0 +1,2408 @@
+{
+  "market_futures": {
+    "schema": "raw",
+    "table": "market_futures_1d",
+    "row_count": 396602,
+    "oldest_date": "1990-01-01",
+    "latest_date": "2025-12-29",
+    "days_coverage": 13146,
+    "freshness_days": 4,
+    "symbols": [
+      "10Y",
+      "2YY",
+      "30Y",
+      "5YY",
+      "6A",
+      "6B",
+      "6C",
+      "6E",
+      "6J",
+      "6L",
+      "6M",
+      "6N",
+      "6R",
+      "6S",
+      "6Z",
+      "ALI",
+      "BDRY",
+      "BTC",
+      "BZ",
+      "CL",
+      "CPO",
+      "DC",
+      "DY",
+      "EMD",
+      "ES",
+      "ETH",
+      "GC",
+      "GE",
+      "GF",
+      "HE",
+      "HG",
+      "HO",
+      "KE",
+      "LBR",
+      "LE",
+      "M2K",
+      "M6A",
+      "M6B",
+      "M6E",
+      "MBT",
+      "MCL",
+      "MES",
+      "MET",
+      "MGC",
+      "MNQ",
+      "MYM",
+      "NG",
+      "NIY",
+      "NQ",
+      "PA",
+      "PL",
+      "QG",
+      "QH",
+      "QI",
+      "QM",
+      "QO",
+      "QU",
+      "RB",
+      "RTY",
+      "SB",
+      "SBLK",
+      "SI",
+      "SR1",
+      "SR3",
+      "TN",
+      "TT",
+      "UB",
+      "XC",
+      "XK",
+      "XW",
+      "YM",
+      "ZB",
+      "ZC",
+      "ZF",
+      "ZL",
+      "ZM",
+      "ZN",
+      "ZO",
+      "ZQ",
+      "ZR",
+      "ZS",
+      "ZT",
+      "ZW"
+    ],
+    "symbol_count": 83,
+    "null_percentages": {
+      "open": 0.0,
+      "high": 0.0,
+      "low": 0.0,
+      "close": 0.0,
+      "volume": 0.0
+    },
+    "symbol_coverage": {
+      "10Y": {
+        "records": 1346,
+        "start_date": "2021-08-16",
+        "end_date": "2025-12-15"
+      },
+      "2YY": {
+        "records": 1113,
+        "start_date": "2021-08-16",
+        "end_date": "2025-11-26"
+      },
+      "30Y": {
+        "records": 776,
+        "start_date": "2021-08-16",
+        "end_date": "2025-12-12"
+      },
+      "5YY": {
+        "records": 438,
+        "start_date": "2021-08-16",
+        "end_date": "2025-11-11"
+      },
+      "6A": {
+        "records": 7190,
+        "start_date": "2000-11-08",
+        "end_date": "2025-12-29"
+      },
+      "6B": {
+        "records": 7208,
+        "start_date": "2000-10-05",
+        "end_date": "2025-12-29"
+      },
+      "6C": {
+        "records": 7309,
+        "start_date": "2000-05-23",
+        "end_date": "2025-12-29"
+      },
+      "6E": {
+        "records": 7294,
+        "start_date": "2000-09-12",
+        "end_date": "2025-12-29"
+      },
+      "6J": {
+        "records": 7215,
+        "start_date": "2000-09-13",
+        "end_date": "2025-12-29"
+      },
+      "6L": {
+        "records": 4165,
+        "start_date": "2010-06-14",
+        "end_date": "2025-12-15"
+      },
+      "6M": {
+        "records": 7014,
+        "start_date": "2001-06-18",
+        "end_date": "2025-12-29"
+      },
+      "6N": {
+        "records": 7174,
+        "start_date": "2000-06-09",
+        "end_date": "2025-12-29"
+      },
+      "6R": {
+        "records": 3052,
+        "start_date": "2010-06-09",
+        "end_date": "2025-07-07"
+      },
+      "6S": {
+        "records": 7188,
+        "start_date": "2000-11-10",
+        "end_date": "2025-12-29"
+      },
+      "6Z": {
+        "records": 3987,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "ALI": {
+        "records": 1872,
+        "start_date": "2014-05-06",
+        "end_date": "2025-12-29"
+      },
+      "BDRY": {
+        "records": 1954,
+        "start_date": "2018-03-22",
+        "end_date": "2025-12-29"
+      },
+      "BTC": {
+        "records": 2493,
+        "start_date": "2017-12-17",
+        "end_date": "2025-12-29"
+      },
+      "BZ": {
+        "records": 5322,
+        "start_date": "2007-07-30",
+        "end_date": "2025-12-29"
+      },
+      "CL": {
+        "records": 7277,
+        "start_date": "2000-08-23",
+        "end_date": "2025-12-29"
+      },
+      "CPO": {
+        "records": 3767,
+        "start_date": "2010-05-25",
+        "end_date": "2025-12-29"
+      },
+      "DC": {
+        "records": 4511,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "DY": {
+        "records": 8201,
+        "start_date": "1990-01-01",
+        "end_date": "2025-12-29"
+      },
+      "EMD": {
+        "records": 4799,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "ES": {
+        "records": 7291,
+        "start_date": "2000-09-18",
+        "end_date": "2025-12-29"
+      },
+      "ETH": {
+        "records": 1516,
+        "start_date": "2021-02-07",
+        "end_date": "2025-12-29"
+      },
+      "GC": {
+        "records": 7263,
+        "start_date": "2000-08-30",
+        "end_date": "2025-12-29"
+      },
+      "GE": {
+        "records": 4026,
+        "start_date": "2010-06-07",
+        "end_date": "2023-06-19"
+      },
+      "GF": {
+        "records": 6201,
+        "start_date": "2001-04-03",
+        "end_date": "2025-12-29"
+      },
+      "HE": {
+        "records": 6293,
+        "start_date": "2000-12-15",
+        "end_date": "2025-12-29"
+      },
+      "HG": {
+        "records": 7266,
+        "start_date": "2000-08-30",
+        "end_date": "2025-12-29"
+      },
+      "HO": {
+        "records": 7271,
+        "start_date": "2000-09-01",
+        "end_date": "2025-12-29"
+      },
+      "KE": {
+        "records": 5466,
+        "start_date": "2000-09-21",
+        "end_date": "2025-12-29"
+      },
+      "LBR": {
+        "records": 3289,
+        "start_date": "2000-07-17",
+        "end_date": "2025-12-29"
+      },
+      "LE": {
+        "records": 6226,
+        "start_date": "2001-03-01",
+        "end_date": "2025-12-29"
+      },
+      "M2K": {
+        "records": 2065,
+        "start_date": "2019-05-05",
+        "end_date": "2025-12-29"
+      },
+      "M6A": {
+        "records": 4807,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "M6B": {
+        "records": 4791,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "M6E": {
+        "records": 4823,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "MBT": {
+        "records": 1435,
+        "start_date": "2021-05-02",
+        "end_date": "2025-12-15"
+      },
+      "MCL": {
+        "records": 1380,
+        "start_date": "2016-09-29",
+        "end_date": "2025-12-15"
+      },
+      "MES": {
+        "records": 2065,
+        "start_date": "2019-05-05",
+        "end_date": "2025-12-29"
+      },
+      "MET": {
+        "records": 1248,
+        "start_date": "2021-12-05",
+        "end_date": "2025-12-15"
+      },
+      "MGC": {
+        "records": 4700,
+        "start_date": "2010-10-03",
+        "end_date": "2025-12-15"
+      },
+      "MNQ": {
+        "records": 2065,
+        "start_date": "2019-05-05",
+        "end_date": "2025-12-29"
+      },
+      "MYM": {
+        "records": 2064,
+        "start_date": "2019-05-05",
+        "end_date": "2025-12-29"
+      },
+      "NG": {
+        "records": 7272,
+        "start_date": "2000-08-30",
+        "end_date": "2025-12-29"
+      },
+      "NIY": {
+        "records": 4777,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "NQ": {
+        "records": 7291,
+        "start_date": "2000-09-18",
+        "end_date": "2025-12-29"
+      },
+      "PA": {
+        "records": 7265,
+        "start_date": "1998-09-28",
+        "end_date": "2025-12-29"
+      },
+      "PL": {
+        "records": 7272,
+        "start_date": "1997-10-29",
+        "end_date": "2025-12-29"
+      },
+      "QG": {
+        "records": 4813,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "QH": {
+        "records": 993,
+        "start_date": "2010-06-09",
+        "end_date": "2025-12-09"
+      },
+      "QI": {
+        "records": 4655,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "QM": {
+        "records": 4813,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "QO": {
+        "records": 4792,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "QU": {
+        "records": 782,
+        "start_date": "2010-06-17",
+        "end_date": "2025-12-10"
+      },
+      "RB": {
+        "records": 7232,
+        "start_date": "2000-11-01",
+        "end_date": "2025-12-29"
+      },
+      "RTY": {
+        "records": 2631,
+        "start_date": "2017-07-09",
+        "end_date": "2025-12-29"
+      },
+      "SB": {
+        "records": 2564,
+        "start_date": "2000-03-01",
+        "end_date": "2020-02-24"
+      },
+      "SBLK": {
+        "records": 4547,
+        "start_date": "2007-12-03",
+        "end_date": "2025-12-29"
+      },
+      "SI": {
+        "records": 7259,
+        "start_date": "2000-08-30",
+        "end_date": "2025-12-29"
+      },
+      "SR1": {
+        "records": 2157,
+        "start_date": "2018-05-06",
+        "end_date": "2025-12-15"
+      },
+      "SR3": {
+        "records": 2127,
+        "start_date": "2018-05-06",
+        "end_date": "2025-12-15"
+      },
+      "TN": {
+        "records": 3356,
+        "start_date": "2010-10-25",
+        "end_date": "2025-12-29"
+      },
+      "TT": {
+        "records": 775,
+        "start_date": "2010-06-07",
+        "end_date": "2020-12-30"
+      },
+      "UB": {
+        "records": 4777,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-29"
+      },
+      "XC": {
+        "records": 4014,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "XK": {
+        "records": 4012,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "XW": {
+        "records": 4014,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "YM": {
+        "records": 6881,
+        "start_date": "2002-04-05",
+        "end_date": "2025-12-29"
+      },
+      "ZB": {
+        "records": 7264,
+        "start_date": "2000-09-21",
+        "end_date": "2025-12-29"
+      },
+      "ZC": {
+        "records": 6482,
+        "start_date": "2000-07-17",
+        "end_date": "2025-12-29"
+      },
+      "ZF": {
+        "records": 7265,
+        "start_date": "2000-09-21",
+        "end_date": "2025-12-29"
+      },
+      "ZL": {
+        "records": 6521,
+        "start_date": "2000-03-15",
+        "end_date": "2025-12-29"
+      },
+      "ZM": {
+        "records": 6482,
+        "start_date": "2000-05-15",
+        "end_date": "2025-12-29"
+      },
+      "ZN": {
+        "records": 7259,
+        "start_date": "2000-09-21",
+        "end_date": "2025-12-29"
+      },
+      "ZO": {
+        "records": 6549,
+        "start_date": "1999-09-14",
+        "end_date": "2025-12-29"
+      },
+      "ZQ": {
+        "records": 4531,
+        "start_date": "2010-06-07",
+        "end_date": "2025-12-15"
+      },
+      "ZR": {
+        "records": 6682,
+        "start_date": "1999-09-14",
+        "end_date": "2025-12-15"
+      },
+      "ZS": {
+        "records": 6472,
+        "start_date": "2000-09-15",
+        "end_date": "2025-12-29"
+      },
+      "ZT": {
+        "records": 7316,
+        "start_date": "2000-06-02",
+        "end_date": "2025-12-29"
+      },
+      "ZW": {
+        "records": 6492,
+        "start_date": "2000-07-17",
+        "end_date": "2025-12-29"
+      }
+    }
+  },
+  "fred_observations": {
+    "schema": "raw",
+    "table": "fred_observations_1d",
+    "row_count": 437930,
+    "oldest_date": "1871-01-01",
+    "latest_date": "2025-12-31",
+    "days_coverage": 56612,
+    "freshness_days": 2,
+    "series_count": 118,
+    "series_list": [
+      "APU000074714",
+      "B235RC1Q027SBEA",
+      "BAMLC0A0CM",
+      "BAMLH0A0HYM2",
+      "BOGMBASE",
+      "BOPGSTB",
+      "BUSLOANS",
+      "CCSA",
+      "CHNCPIALLMINMEI",
+      "CHNGDPNQDSMEI",
+      "CHNMAINLANDTPU",
+      "CPIAUCSL",
+      "CPILFESL",
+      "DCOILBRENTEU",
+      "DCOILWTICO",
+      "DDFUELUSGULF",
+      "DEXBZUS",
+      "DEXCAUS",
+      "DEXCHUS",
+      "DEXHKUS",
+      "DEXINUS",
+      "DEXJPUS",
+      "DEXKOUS",
+      "DEXMAUS",
+      "DEXMXUS",
+      "DEXNOUS",
+      "DEXSFUS",
+      "DEXSIUS",
+      "DEXSZUS",
+      "DEXTAUS",
+      "DEXTHUS",
+      "DEXUSAL",
+      "DEXUSEU",
+      "DEXUSUK",
+      "DFEDTARL",
+      "DFEDTARU",
+      "DFF",
+      "DGS1",
+      "DGS10",
+      "DGS1MO",
+      "DGS2",
+      "DGS20",
+      "DGS30",
+      "DGS3MO",
+      "DGS5",
+      "DGS6MO",
+      "DGS7",
+      "DHHNGSP",
+      "DHOILNYH",
+      "DPRIME",
+      "DRCCLACBS",
+      "DTWEXAFEGS",
+      "DTWEXBGS",
+      "DTWEXEMEGS",
+      "EMVTRADEPOLEMV",
+      "EPUTRADE",
+      "EXPGS",
+      "FEDFUNDS",
+      "GASDESW",
+      "GASREGW",
+      "GDP",
+      "GDPC1",
+      "HOUST",
+      "ICSA",
+      "IMPCH",
+      "IMPGS",
+      "INDPRO",
+      "IR3TIB01CNM156N",
+      "M2SL",
+      "MANEMP",
+      "MORTGAGE30US",
+      "MYAGM2CNM189N",
+      "NASDAQCOM",
+      "NFCI",
+      "OVXCLS",
+      "PAYEMS",
+      "PCE",
+      "PCEPI",
+      "PCEPILFE",
+      "PCOPPUSDM",
+      "PCU311224311224",
+      "PERMIT",
+      "PMAIZMTUSDM",
+      "PNGASEUUSDM",
+      "PPIACO",
+      "PPIFGS",
+      "PPOILUSDM",
+      "PRICENPQUSDM",
+      "PROILUSDM",
+      "PSOILUSDM",
+      "PSOYBUSDM",
+      "PSUNOUSDM",
+      "PWHEAMTUSDM",
+      "RRPONTSYD",
+      "RSXFS",
+      "SOFR",
+      "SP500",
+      "SP500_HISTORICAL",
+      "STLFSI",
+      "STLFSI4",
+      "T10Y2Y",
+      "T10Y3M",
+      "T10YIE",
+      "TEDRATE",
+      "TOTRESNS",
+      "UMCSENT",
+      "UNRATE",
+      "USEPUINDXD",
+      "USEPUINDXM",
+      "VIXCLS",
+      "WALCL",
+      "WPU01830161",
+      "WPU01830171",
+      "WPU057303",
+      "WPU06140341",
+      "WRESBAL",
+      "XTEXVA01CNM667S",
+      "XTIMVA01CNM667S"
+    ],
+    "null_percentages": {
+      "value": 0.0
+    },
+    "series_coverage": {
+      "APU000074714": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "B235RC1Q027SBEA": {
+        "records": 163,
+        "non_null_values": 163,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-07-01 00:00:00"
+      },
+      "BAMLC0A0CM": {
+        "records": 42,
+        "non_null_values": 42,
+        "coverage_pct": 100.0,
+        "start_date": "2025-11-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "BAMLH0A0HYM2": {
+        "records": 526,
+        "non_null_values": 526,
+        "coverage_pct": 100.0,
+        "start_date": "2023-12-28 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "BOGMBASE": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "BOPGSTB": {
+        "records": 129,
+        "non_null_values": 129,
+        "coverage_pct": 100.0,
+        "start_date": "2015-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "BUSLOANS": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "CCSA": {
+        "records": 1353,
+        "non_null_values": 1353,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-29 00:00:00"
+      },
+      "CHNCPIALLMINMEI": {
+        "records": 304,
+        "non_null_values": 304,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-04-01 00:00:00"
+      },
+      "CHNGDPNQDSMEI": {
+        "records": 127,
+        "non_null_values": 127,
+        "coverage_pct": 100.0,
+        "start_date": "1992-01-01 00:00:00",
+        "end_date": "2023-07-01 00:00:00"
+      },
+      "CHNMAINLANDTPU": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "CPIAUCSL": {
+        "records": 946,
+        "non_null_values": 946,
+        "coverage_pct": 100.0,
+        "start_date": "1947-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "CPILFESL": {
+        "records": 310,
+        "non_null_values": 310,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "DCOILBRENTEU": {
+        "records": 9797,
+        "non_null_values": 9797,
+        "coverage_pct": 100.0,
+        "start_date": "1987-05-20 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DCOILWTICO": {
+        "records": 10067,
+        "non_null_values": 10067,
+        "coverage_pct": 100.0,
+        "start_date": "1986-01-02 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DDFUELUSGULF": {
+        "records": 4903,
+        "non_null_values": 4903,
+        "coverage_pct": 100.0,
+        "start_date": "2006-06-14 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXBZUS": {
+        "records": 7771,
+        "non_null_values": 7771,
+        "coverage_pct": 100.0,
+        "start_date": "1995-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXCAUS": {
+        "records": 13794,
+        "non_null_values": 13794,
+        "coverage_pct": 100.0,
+        "start_date": "1971-01-04 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXCHUS": {
+        "records": 11228,
+        "non_null_values": 11228,
+        "coverage_pct": 100.0,
+        "start_date": "1981-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXHKUS": {
+        "records": 6510,
+        "non_null_values": 6510,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXINUS": {
+        "records": 13280,
+        "non_null_values": 13280,
+        "coverage_pct": 100.0,
+        "start_date": "1973-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXJPUS": {
+        "records": 6515,
+        "non_null_values": 6515,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXKOUS": {
+        "records": 6510,
+        "non_null_values": 6510,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXMAUS": {
+        "records": 13766,
+        "non_null_values": 13766,
+        "coverage_pct": 100.0,
+        "start_date": "1971-01-04 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXMXUS": {
+        "records": 8056,
+        "non_null_values": 8056,
+        "coverage_pct": 100.0,
+        "start_date": "1993-11-08 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXNOUS": {
+        "records": 6515,
+        "non_null_values": 6515,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXSFUS": {
+        "records": 6515,
+        "non_null_values": 6515,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXSIUS": {
+        "records": 6510,
+        "non_null_values": 6510,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXSZUS": {
+        "records": 6510,
+        "non_null_values": 6510,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXTAUS": {
+        "records": 6507,
+        "non_null_values": 6507,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXTHUS": {
+        "records": 6510,
+        "non_null_values": 6510,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXUSAL": {
+        "records": 6515,
+        "non_null_values": 6515,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXUSEU": {
+        "records": 6767,
+        "non_null_values": 6767,
+        "coverage_pct": 100.0,
+        "start_date": "1999-01-04 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DEXUSUK": {
+        "records": 6515,
+        "non_null_values": 6515,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DFEDTARL": {
+        "records": 6219,
+        "non_null_values": 6219,
+        "coverage_pct": 100.0,
+        "start_date": "2008-12-16 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DFEDTARU": {
+        "records": 6219,
+        "non_null_values": 6219,
+        "coverage_pct": 100.0,
+        "start_date": "2008-12-16 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DFF": {
+        "records": 26116,
+        "non_null_values": 26116,
+        "coverage_pct": 100.0,
+        "start_date": "1954-07-01 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS1": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS10": {
+        "records": 15983,
+        "non_null_values": 15983,
+        "coverage_pct": 100.0,
+        "start_date": "1962-01-02 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS1MO": {
+        "records": 6105,
+        "non_null_values": 6105,
+        "coverage_pct": 100.0,
+        "start_date": "2001-07-31 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS2": {
+        "records": 12391,
+        "non_null_values": 12391,
+        "coverage_pct": 100.0,
+        "start_date": "1976-06-01 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS20": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS30": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS3MO": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS5": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS6MO": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DGS7": {
+        "records": 6501,
+        "non_null_values": 6501,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "DHHNGSP": {
+        "records": 7278,
+        "non_null_values": 7278,
+        "coverage_pct": 100.0,
+        "start_date": "1997-01-07 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DHOILNYH": {
+        "records": 6508,
+        "non_null_values": 6508,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-04 00:00:00",
+        "end_date": "2025-12-17 00:00:00"
+      },
+      "DPRIME": {
+        "records": 6556,
+        "non_null_values": 6556,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "DRCCLACBS": {
+        "records": 103,
+        "non_null_values": 103,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-07-01 00:00:00"
+      },
+      "DTWEXAFEGS": {
+        "records": 5010,
+        "non_null_values": 5010,
+        "coverage_pct": 100.0,
+        "start_date": "2006-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DTWEXBGS": {
+        "records": 5010,
+        "non_null_values": 5010,
+        "coverage_pct": 100.0,
+        "start_date": "2006-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "DTWEXEMEGS": {
+        "records": 5010,
+        "non_null_values": 5010,
+        "coverage_pct": 100.0,
+        "start_date": "2006-01-02 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "EMVTRADEPOLEMV": {
+        "records": 491,
+        "non_null_values": 491,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "EPUTRADE": {
+        "records": 490,
+        "non_null_values": 490,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      },
+      "EXPGS": {
+        "records": 42,
+        "non_null_values": 42,
+        "coverage_pct": 100.0,
+        "start_date": "2015-01-01 00:00:00",
+        "end_date": "2025-04-01 00:00:00"
+      },
+      "FEDFUNDS": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "GASDESW": {
+        "records": 1658,
+        "non_null_values": 1658,
+        "coverage_pct": 100.0,
+        "start_date": "1994-03-21 00:00:00",
+        "end_date": "2025-12-22 00:00:00"
+      },
+      "GASREGW": {
+        "records": 1839,
+        "non_null_values": 1839,
+        "coverage_pct": 100.0,
+        "start_date": "1990-08-20 00:00:00",
+        "end_date": "2025-12-22 00:00:00"
+      },
+      "GDP": {
+        "records": 102,
+        "non_null_values": 102,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-04-01 00:00:00"
+      },
+      "GDPC1": {
+        "records": 102,
+        "non_null_values": 102,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-04-01 00:00:00"
+      },
+      "HOUST": {
+        "records": 308,
+        "non_null_values": 308,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-08-01 00:00:00"
+      },
+      "ICSA": {
+        "records": 1355,
+        "non_null_values": 1355,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-12-20 00:00:00"
+      },
+      "IMPCH": {
+        "records": 490,
+        "non_null_values": 490,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      },
+      "IMPGS": {
+        "records": 42,
+        "non_null_values": 42,
+        "coverage_pct": 100.0,
+        "start_date": "2015-01-01 00:00:00",
+        "end_date": "2025-04-01 00:00:00"
+      },
+      "INDPRO": {
+        "records": 1283,
+        "non_null_values": 1283,
+        "coverage_pct": 100.0,
+        "start_date": "1919-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "IR3TIB01CNM156N": {
+        "records": 130,
+        "non_null_values": 130,
+        "coverage_pct": 100.0,
+        "start_date": "2015-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      },
+      "M2SL": {
+        "records": 24,
+        "non_null_values": 24,
+        "coverage_pct": 100.0,
+        "start_date": "2023-12-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "MANEMP": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "MORTGAGE30US": {
+        "records": 1357,
+        "non_null_values": 1357,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-07 00:00:00",
+        "end_date": "2025-12-31 00:00:00"
+      },
+      "MYAGM2CNM189N": {
+        "records": 236,
+        "non_null_values": 236,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2019-08-01 00:00:00"
+      },
+      "NASDAQCOM": {
+        "records": 6532,
+        "non_null_values": 6532,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "NFCI": {
+        "records": 2869,
+        "non_null_values": 2869,
+        "coverage_pct": 100.0,
+        "start_date": "1971-01-08 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "OVXCLS": {
+        "records": 501,
+        "non_null_values": 501,
+        "coverage_pct": 100.0,
+        "start_date": "2023-12-28 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "PAYEMS": {
+        "records": 1043,
+        "non_null_values": 1043,
+        "coverage_pct": 100.0,
+        "start_date": "1939-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "PCE": {
+        "records": 309,
+        "non_null_values": 309,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "PCEPI": {
+        "records": 801,
+        "non_null_values": 801,
+        "coverage_pct": 100.0,
+        "start_date": "1959-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "PCEPILFE": {
+        "records": 309,
+        "non_null_values": 309,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "PCOPPUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PCU311224311224": {
+        "records": 166,
+        "non_null_values": 166,
+        "coverage_pct": 100.0,
+        "start_date": "2011-12-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "PERMIT": {
+        "records": 308,
+        "non_null_values": 308,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-08-01 00:00:00"
+      },
+      "PMAIZMTUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PNGASEUUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PPIACO": {
+        "records": 309,
+        "non_null_values": 309,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "PPIFGS": {
+        "records": 192,
+        "non_null_values": 192,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2015-12-01 00:00:00"
+      },
+      "PPOILUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PRICENPQUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PROILUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PSOILUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PSOYBUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PSUNOUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "PWHEAMTUSDM": {
+        "records": 426,
+        "non_null_values": 426,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-01 00:00:00",
+        "end_date": "2025-06-01 00:00:00"
+      },
+      "RRPONTSYD": {
+        "records": 3149,
+        "non_null_values": 3149,
+        "coverage_pct": 100.0,
+        "start_date": "2003-02-07 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "RSXFS": {
+        "records": 406,
+        "non_null_values": 406,
+        "coverage_pct": 100.0,
+        "start_date": "1992-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      },
+      "SOFR": {
+        "records": 1932,
+        "non_null_values": 1932,
+        "coverage_pct": 100.0,
+        "start_date": "2018-04-03 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "SP500": {
+        "records": 2519,
+        "non_null_values": 2519,
+        "coverage_pct": 100.0,
+        "start_date": "2015-12-16 00:00:00",
+        "end_date": "2025-12-29 00:00:00"
+      },
+      "SP500_HISTORICAL": {
+        "records": 3542,
+        "non_null_values": 3542,
+        "coverage_pct": 100.0,
+        "start_date": "1871-01-01 00:00:00",
+        "end_date": "2025-12-15 00:00:00"
+      },
+      "STLFSI": {
+        "records": 1368,
+        "non_null_values": 1368,
+        "coverage_pct": 100.0,
+        "start_date": "1993-12-31 00:00:00",
+        "end_date": "2020-03-13 00:00:00"
+      },
+      "STLFSI4": {
+        "records": 1670,
+        "non_null_values": 1670,
+        "coverage_pct": 100.0,
+        "start_date": "1993-12-31 00:00:00",
+        "end_date": "2025-12-26 00:00:00"
+      },
+      "T10Y2Y": {
+        "records": 12392,
+        "non_null_values": 12392,
+        "coverage_pct": 100.0,
+        "start_date": "1976-06-01 00:00:00",
+        "end_date": "2025-12-31 00:00:00"
+      },
+      "T10Y3M": {
+        "records": 11001,
+        "non_null_values": 11001,
+        "coverage_pct": 100.0,
+        "start_date": "1982-01-04 00:00:00",
+        "end_date": "2025-12-31 00:00:00"
+      },
+      "T10YIE": {
+        "records": 5752,
+        "non_null_values": 5752,
+        "coverage_pct": 100.0,
+        "start_date": "2003-01-02 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "TEDRATE": {
+        "records": 5412,
+        "non_null_values": 5412,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-04 00:00:00",
+        "end_date": "2022-01-21 00:00:00"
+      },
+      "TOTRESNS": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "UMCSENT": {
+        "records": 311,
+        "non_null_values": 311,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "UNRATE": {
+        "records": 934,
+        "non_null_values": 934,
+        "coverage_pct": 100.0,
+        "start_date": "1948-01-01 00:00:00",
+        "end_date": "2025-11-01 00:00:00"
+      },
+      "USEPUINDXD": {
+        "records": 14975,
+        "non_null_values": 14975,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-12-31 00:00:00"
+      },
+      "USEPUINDXM": {
+        "records": 492,
+        "non_null_values": 492,
+        "coverage_pct": 100.0,
+        "start_date": "1985-01-01 00:00:00",
+        "end_date": "2025-12-01 00:00:00"
+      },
+      "VIXCLS": {
+        "records": 9091,
+        "non_null_values": 9091,
+        "coverage_pct": 100.0,
+        "start_date": "1990-01-02 00:00:00",
+        "end_date": "2025-12-30 00:00:00"
+      },
+      "WALCL": {
+        "records": 1202,
+        "non_null_values": 1202,
+        "coverage_pct": 100.0,
+        "start_date": "2002-12-18 00:00:00",
+        "end_date": "2025-12-24 00:00:00"
+      },
+      "WPU01830161": {
+        "records": 313,
+        "non_null_values": 313,
+        "coverage_pct": 100.0,
+        "start_date": "1991-12-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "WPU01830171": {
+        "records": 166,
+        "non_null_values": 166,
+        "coverage_pct": 100.0,
+        "start_date": "2011-12-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "WPU057303": {
+        "records": 309,
+        "non_null_values": 309,
+        "coverage_pct": 100.0,
+        "start_date": "2000-01-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "WPU06140341": {
+        "records": 279,
+        "non_null_values": 279,
+        "coverage_pct": 100.0,
+        "start_date": "2001-07-01 00:00:00",
+        "end_date": "2025-09-01 00:00:00"
+      },
+      "WRESBAL": {
+        "records": 1202,
+        "non_null_values": 1202,
+        "coverage_pct": 100.0,
+        "start_date": "2002-12-18 00:00:00",
+        "end_date": "2025-12-24 00:00:00"
+      },
+      "XTEXVA01CNM667S": {
+        "records": 406,
+        "non_null_values": 406,
+        "coverage_pct": 100.0,
+        "start_date": "1992-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      },
+      "XTIMVA01CNM667S": {
+        "records": 406,
+        "non_null_values": 406,
+        "coverage_pct": 100.0,
+        "start_date": "1992-01-01 00:00:00",
+        "end_date": "2025-10-01 00:00:00"
+      }
+    },
+    "good_coverage_series": [
+      "APU000074714",
+      "B235RC1Q027SBEA",
+      "BAMLC0A0CM",
+      "BAMLH0A0HYM2",
+      "BOGMBASE",
+      "BOPGSTB",
+      "BUSLOANS",
+      "CCSA",
+      "CHNCPIALLMINMEI",
+      "CHNGDPNQDSMEI",
+      "CHNMAINLANDTPU",
+      "CPIAUCSL",
+      "CPILFESL",
+      "DCOILBRENTEU",
+      "DCOILWTICO",
+      "DDFUELUSGULF",
+      "DEXBZUS",
+      "DEXCAUS",
+      "DEXCHUS",
+      "DEXHKUS",
+      "DEXINUS",
+      "DEXJPUS",
+      "DEXKOUS",
+      "DEXMAUS",
+      "DEXMXUS",
+      "DEXNOUS",
+      "DEXSFUS",
+      "DEXSIUS",
+      "DEXSZUS",
+      "DEXTAUS",
+      "DEXTHUS",
+      "DEXUSAL",
+      "DEXUSEU",
+      "DEXUSUK",
+      "DFEDTARL",
+      "DFEDTARU",
+      "DFF",
+      "DGS1",
+      "DGS10",
+      "DGS1MO",
+      "DGS2",
+      "DGS20",
+      "DGS30",
+      "DGS3MO",
+      "DGS5",
+      "DGS6MO",
+      "DGS7",
+      "DHHNGSP",
+      "DHOILNYH",
+      "DPRIME",
+      "DRCCLACBS",
+      "DTWEXAFEGS",
+      "DTWEXBGS",
+      "DTWEXEMEGS",
+      "EMVTRADEPOLEMV",
+      "EPUTRADE",
+      "EXPGS",
+      "FEDFUNDS",
+      "GASDESW",
+      "GASREGW",
+      "GDP",
+      "GDPC1",
+      "HOUST",
+      "ICSA",
+      "IMPCH",
+      "IMPGS",
+      "INDPRO",
+      "IR3TIB01CNM156N",
+      "M2SL",
+      "MANEMP",
+      "MORTGAGE30US",
+      "MYAGM2CNM189N",
+      "NASDAQCOM",
+      "NFCI",
+      "OVXCLS",
+      "PAYEMS",
+      "PCE",
+      "PCEPI",
+      "PCEPILFE",
+      "PCOPPUSDM",
+      "PCU311224311224",
+      "PERMIT",
+      "PMAIZMTUSDM",
+      "PNGASEUUSDM",
+      "PPIACO",
+      "PPIFGS",
+      "PPOILUSDM",
+      "PRICENPQUSDM",
+      "PROILUSDM",
+      "PSOILUSDM",
+      "PSOYBUSDM",
+      "PSUNOUSDM",
+      "PWHEAMTUSDM",
+      "RRPONTSYD",
+      "RSXFS",
+      "SOFR",
+      "SP500",
+      "SP500_HISTORICAL",
+      "STLFSI",
+      "STLFSI4",
+      "T10Y2Y",
+      "T10Y3M",
+      "T10YIE",
+      "TEDRATE",
+      "TOTRESNS",
+      "UMCSENT",
+      "UNRATE",
+      "USEPUINDXD",
+      "USEPUINDXM",
+      "VIXCLS",
+      "WALCL",
+      "WPU01830161",
+      "WPU01830171",
+      "WPU057303",
+      "WPU06140341",
+      "WRESBAL",
+      "XTEXVA01CNM667S",
+      "XTIMVA01CNM667S"
+    ],
+    "good_coverage_count": 118
+  },
+  "fred_metadata": {
+    "total_series": 27,
+    "frequency_distribution": {
+      "Daily": 10,
+      "Monthly": 6,
+      "Weekly, Ending Friday": 3,
+      "M": 3,
+      "Weekly, Ending Monday": 2,
+      "Daily, 7-Day": 1,
+      "Q": 1,
+      "Daily, Close": 1
+    },
+    "series_sample": [
+      {
+        "series_id": "B235RC1Q027SBEA",
+        "title": "Federal government current tax receipts: Taxes on production and imports: Customs duties",
+        "start": null,
+        "end": null,
+        "frequency": "Q"
+      },
+      {
+        "series_id": "CHNMAINLANDTPU",
+        "title": "Trade Policy Uncertainty Index: Mainland Papers for China",
+        "start": null,
+        "end": null,
+        "frequency": "M"
+      },
+      {
+        "series_id": "CPIAUCSL",
+        "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+        "start": "1947-01-01",
+        "end": "2025-09-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "DCOILWTICO",
+        "title": "Crude Oil Prices: West Texas Intermediate (WTI) - Cushing, Oklahoma",
+        "start": "1986-01-02",
+        "end": "2025-12-15",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DEXBZUS",
+        "title": "Brazilian Reals to U.S. Dollar Spot Exchange Rate",
+        "start": "1995-01-02",
+        "end": "2025-12-12",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DEXCHUS",
+        "title": "Chinese Yuan Renminbi to U.S. Dollar Spot Exchange Rate",
+        "start": "1981-01-02",
+        "end": "2025-12-12",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DEXMXUS",
+        "title": "Mexican Pesos to U.S. Dollar Spot Exchange Rate",
+        "start": "1993-11-08",
+        "end": "2025-12-12",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DFF",
+        "title": "Federal Funds Effective Rate",
+        "start": "1954-07-01",
+        "end": "2025-12-16",
+        "frequency": "Daily, 7-Day"
+      },
+      {
+        "series_id": "DGS10",
+        "title": "Market Yield on U.S. Treasury Securities at 10-Year Constant Maturity, Quoted on an Investment Basis",
+        "start": "1962-01-02",
+        "end": "2025-12-16",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DGS2",
+        "title": "Market Yield on U.S. Treasury Securities at 2-Year Constant Maturity, Quoted on an Investment Basis",
+        "start": "1976-06-01",
+        "end": "2025-12-16",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DHHNGSP",
+        "title": "Henry Hub Natural Gas Spot Price",
+        "start": "1997-01-07",
+        "end": "2025-12-15",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "DTWEXBGS",
+        "title": "Nominal Broad U.S. Dollar Index",
+        "start": "2006-01-02",
+        "end": "2025-12-12",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "EMVTRADEPOLEMV",
+        "title": "Equity Market Volatility Tracker: Trade Policy",
+        "start": null,
+        "end": null,
+        "frequency": "M"
+      },
+      {
+        "series_id": "GASDESW",
+        "title": "US Diesel Sales Price",
+        "start": "1994-03-21",
+        "end": "2025-12-15",
+        "frequency": "Weekly, Ending Monday"
+      },
+      {
+        "series_id": "GASREGW",
+        "title": "US Regular All Formulations Gas Price",
+        "start": "1990-08-20",
+        "end": "2025-12-15",
+        "frequency": "Weekly, Ending Monday"
+      },
+      {
+        "series_id": "IMPCH",
+        "title": "U.S. Imports of Goods by Customs Basis from China",
+        "start": null,
+        "end": null,
+        "frequency": "M"
+      },
+      {
+        "series_id": "NFCI",
+        "title": "Chicago Fed National Financial Conditions Index",
+        "start": "1971-01-08",
+        "end": "2025-12-12",
+        "frequency": "Weekly, Ending Friday"
+      },
+      {
+        "series_id": "PCEPI",
+        "title": "Personal Consumption Expenditures: Chain-type Price Index",
+        "start": "1959-01-01",
+        "end": "2025-09-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "PCOPPUSDM",
+        "title": "Global price of Copper",
+        "start": "1990-01-01",
+        "end": "2025-06-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "PMAIZMTUSDM",
+        "title": "Global price of Corn",
+        "start": "1990-01-01",
+        "end": "2025-06-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "PSOYBUSDM",
+        "title": "Global price of Soybeans",
+        "start": "1990-01-01",
+        "end": "2025-06-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "SOFR",
+        "title": "Secured Overnight Financing Rate",
+        "start": "2018-04-03",
+        "end": "2025-12-16",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "STLFSI",
+        "title": "St. Louis Fed Financial Stress Index (DISCONTINUED)",
+        "start": "1993-12-31",
+        "end": "2020-03-13",
+        "frequency": "Weekly, Ending Friday"
+      },
+      {
+        "series_id": "STLFSI4",
+        "title": "St. Louis Fed Financial Stress Index",
+        "start": "1993-12-31",
+        "end": "2025-12-12",
+        "frequency": "Weekly, Ending Friday"
+      },
+      {
+        "series_id": "T10Y2Y",
+        "title": "10-Year Treasury Constant Maturity Minus 2-Year Treasury Constant Maturity",
+        "start": "1976-06-01",
+        "end": "2025-12-17",
+        "frequency": "Daily"
+      },
+      {
+        "series_id": "UNRATE",
+        "title": "Unemployment Rate",
+        "start": "1948-01-01",
+        "end": "2025-11-01",
+        "frequency": "Monthly"
+      },
+      {
+        "series_id": "VIXCLS",
+        "title": "CBOE Volatility Index: VIX",
+        "start": "1990-01-02",
+        "end": "2025-12-16",
+        "frequency": "Daily, Close"
+      }
+    ]
+  },
+  "weather": {
+    "schema": "raw",
+    "table": "weather_noaa_1d",
+    "row_count": 215320,
+    "oldest_date": "2005-01-01",
+    "latest_date": "2025-12-20",
+    "days_coverage": 7658,
+    "freshness_days": 13,
+    "station_count": 57,
+    "stations": [
+      "GHCND:AR000000011",
+      "GHCND:AR000087129",
+      "GHCND:AR000087155",
+      "GHCND:AR000087257",
+      "GHCND:AR000087344",
+      "GHCND:AR000087374",
+      "GHCND:AR000087418",
+      "GHCND:AR000087534",
+      "GHCND:AR000087623",
+      "GHCND:AR000087692",
+      "GHCND:AR000875440",
+      "GHCND:AR000875850",
+      "GHCND:AR000877500",
+      "GHCND:ARM00087148",
+      "GHCND:ARM00087162",
+      "GHCND:ARM00087166",
+      "GHCND:BR000082400",
+      "GHCND:BR000254000",
+      "GHCND:BR000352000",
+      "GHCND:BR000956000",
+      "GHCND:BR001943012",
+      "GHCND:BR001957002",
+      "GHCND:BR002351003",
+      "GHCND:BR002548005",
+      "GHCND:BR002549075",
+      "GHCND:BR002752004",
+      "GHCND:BR00D6-0010",
+      "GHCND:BR00D8-0390",
+      "GHCND:BR00E3-0520",
+      "OM_IA_CEDAR_RAPIDS",
+      "OM_IA_DES_MOINES",
+      "OM_IA_SIOUX_CITY",
+      "OM_IL_CHAMPAIGN",
+      "OM_IL_PEORIA",
+      "OM_IL_SPRINGFIELD",
+      "OM_IN_FORT_WAYNE",
+      "OM_IN_INDIANAPOLIS",
+      "OM_MN_MINNEAPOLIS",
+      "OM_MN_ROCHESTER",
+      "OM_MO_KANSAS_CITY",
+      "OM_MO_ST_LOUIS",
+      "OM_NE_LINCOLN",
+      "OM_NE_OMAHA",
+      "OPENMETEO:AR_BA",
+      "OPENMETEO:AR_CH",
+      "OPENMETEO:AR_CO",
+      "OPENMETEO:AR_CR",
+      "OPENMETEO:AR_ER",
+      "OPENMETEO:AR_FO",
+      "OPENMETEO:AR_LP"
+    ],
+    "regions": [
+      "AR_BA",
+      "AR_CH",
+      "AR_CO",
+      "AR_CR",
+      "AR_ER",
+      "AR_FO",
+      "AR_LP",
+      "AR_MZ",
+      "AR_SE",
+      "AR_SF",
+      "BR_MG",
+      "BR_MS",
+      "BR_MT",
+      "BR_NE",
+      "BR_PA",
+      "BR_PR",
+      "BR_RS",
+      "BR_SP",
+      "US_IA",
+      "US_IL",
+      "US_IN",
+      "US_MN",
+      "US_MO",
+      "US_NE"
+    ],
+    "region_count": 24,
+    "null_percentages": {
+      "tavg_c": 0.0,
+      "tmin_c": 1.47,
+      "tmax_c": 1.96,
+      "prcp_mm": 2.23,
+      "awnd_ms": 100.0,
+      "rhav_pct": 100.0
+    },
+    "region_coverage": {
+      "AR_BA": {
+        "stations": 5,
+        "records": 8234,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_CH": {
+        "stations": 3,
+        "records": 7718,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_CO": {
+        "stations": 3,
+        "records": 7628,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_CR": {
+        "stations": 2,
+        "records": 7538,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_ER": {
+        "stations": 3,
+        "records": 7715,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_FO": {
+        "stations": 2,
+        "records": 7447,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_LP": {
+        "stations": 2,
+        "records": 7447,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_MZ": {
+        "stations": 2,
+        "records": 7447,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_SE": {
+        "stations": 2,
+        "records": 7447,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "AR_SF": {
+        "stations": 2,
+        "records": 7482,
+        "start_date": "2005-01-01",
+        "end_date": "2024-12-31"
+      },
+      "BR_MG": {
+        "stations": 2,
+        "records": 7537,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_MS": {
+        "stations": 1,
+        "records": 230,
+        "start_date": "2024-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_MT": {
+        "stations": 2,
+        "records": 441,
+        "start_date": "2024-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_NE": {
+        "stations": 1,
+        "records": 145,
+        "start_date": "2024-04-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_PA": {
+        "stations": 2,
+        "records": 7537,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_PR": {
+        "stations": 4,
+        "records": 7868,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_RS": {
+        "stations": 2,
+        "records": 7537,
+        "start_date": "2005-01-01",
+        "end_date": "2025-08-24"
+      },
+      "BR_SP": {
+        "stations": 3,
+        "records": 696,
+        "start_date": "2024-01-01",
+        "end_date": "2025-08-24"
+      },
+      "US_IA": {
+        "stations": 3,
+        "records": 22977,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      },
+      "US_IL": {
+        "stations": 3,
+        "records": 22977,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      },
+      "US_IN": {
+        "stations": 2,
+        "records": 15318,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      },
+      "US_MN": {
+        "stations": 2,
+        "records": 15318,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      },
+      "US_MO": {
+        "stations": 2,
+        "records": 15318,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      },
+      "US_NE": {
+        "stations": 2,
+        "records": 15318,
+        "start_date": "2005-01-01",
+        "end_date": "2025-12-20"
+      }
+    }
+  },
+  "cot": {
+    "schema": "raw",
+    "table": "cftc_cot_1w",
+    "row_count": 18355,
+    "oldest_date": "2006-06-13",
+    "latest_date": "2025-12-23",
+    "days_coverage": 7133,
+    "freshness_days": 10,
+    "symbols": [
+      "CC",
+      "CL",
+      "CT",
+      "GC",
+      "GF",
+      "HE",
+      "HG",
+      "HO",
+      "KC",
+      "KE",
+      "LE",
+      "MWE",
+      "NG",
+      "PA",
+      "PL",
+      "SB",
+      "SI",
+      "ZC",
+      "ZL",
+      "ZM",
+      "ZO",
+      "ZR",
+      "ZS",
+      "ZW"
+    ],
+    "symbol_count": 24,
+    "null_percentages": {
+      "open_interest": 0.0,
+      "managed_money_long": 0.25,
+      "managed_money_short": 0.41,
+      "managed_money_net": 0.0,
+      "prod_merc_net": 0.0
+    },
+    "symbol_coverage": {
+      "CC": {
+        "records": 51,
+        "start_date": "2025-01-07",
+        "end_date": "2025-12-23"
+      },
+      "CL": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "CT": {
+        "records": 51,
+        "start_date": "2025-01-07",
+        "end_date": "2025-12-23"
+      },
+      "GC": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "GF": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "HE": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "HG": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "HO": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "KC": {
+        "records": 51,
+        "start_date": "2025-01-07",
+        "end_date": "2025-12-23"
+      },
+      "KE": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "LE": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "MWE": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "NG": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "PA": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "PL": {
+        "records": 308,
+        "start_date": "2020-01-07",
+        "end_date": "2025-11-25"
+      },
+      "SB": {
+        "records": 51,
+        "start_date": "2025-01-07",
+        "end_date": "2025-12-23"
+      },
+      "SI": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "ZC": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "ZL": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "ZM": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "ZO": {
+        "records": 195,
+        "start_date": "2020-01-07",
+        "end_date": "2025-11-25"
+      },
+      "ZR": {
+        "records": 308,
+        "start_date": "2020-01-07",
+        "end_date": "2025-11-25"
+      },
+      "ZS": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      },
+      "ZW": {
+        "records": 1020,
+        "start_date": "2006-06-13",
+        "end_date": "2025-12-23"
+      }
+    }
+  },
+  "usda": {
+    "export_sales": {
+      "schema": "raw",
+      "table": "usda_export_sales_1w",
+      "row_count": 9544,
+      "oldest_date": "2000-01-06",
+      "latest_date": "2025-12-11",
+      "days_coverage": 9471,
+      "freshness_days": 22,
+      "commodities": [
+        "Soybean Meal",
+        "Soybean Oil",
+        "Soybeans"
+      ],
+      "commodity_count": 3,
+      "null_percentages": {
+        "net_sales_mt": 32.82,
+        "exports_mt": 32.82,
+        "outstanding_sales_mt": 32.82
+      }
+    },
+    "wasde": {
+      "schema": "raw",
+      "table": "usda_wasde_1m",
+      "row_count": 18660,
+      "oldest_date": "2000-02-12",
+      "latest_date": "2025-12-12",
+      "days_coverage": 9435,
+      "freshness_days": 21,
+      "commodities": [
+        "Soybean Meal",
+        "Soybean Oil",
+        "Soybeans"
+      ],
+      "commodity_count": 3,
+      "null_percentages": {
+        "value": 76.85
+      }
+    }
+  },
+  "quality_issues": {
+    "duplicates": {
+      "market_futures": 0,
+      "cftc_cot": 0,
+      "fred_observations": 0
+    },
+    "gaps": {
+      "market_futures": [
+        {
+          "symbol": "2YY",
+          "gaps": [
+            {
+              "curr_date": "2025-11-05",
+              "next_date": "2025-11-26",
+              "gap_days": 21
+            },
+            {
+              "curr_date": "2025-09-29",
+              "next_date": "2025-10-14",
+              "gap_days": 15
+            },
+            {
+              "curr_date": "2021-09-01",
+              "next_date": "2021-09-10",
+              "gap_days": 9
+            },
+            {
+              "curr_date": "2025-08-13",
+              "next_date": "2025-08-22",
+              "gap_days": 9
+            },
+            {
+              "curr_date": "2025-10-20",
+              "next_date": "2025-10-28",
+              "gap_days": 8
+            }
+          ]
+        },
+        {
+          "symbol": "30Y",
+          "gaps": [
+            {
+              "curr_date": "2025-06-27",
+              "next_date": "2025-09-24",
+              "gap_days": 89
+            },
+            {
+              "curr_date": "2024-12-13",
+              "next_date": "2025-02-25",
+              "gap_days": 74
+            },
+            {
+              "curr_date": "2025-02-25",
+              "next_date": "2025-04-28",
+              "gap_days": 62
+            },
+            {
+              "curr_date": "2024-08-15",
+              "next_date": "2024-09-12",
+              "gap_days": 28
+            },
+            {
+              "curr_date": "2024-09-26",
+              "next_date": "2024-10-23",
+              "gap_days": 27
+            }
+          ]
+        },
+        {
+          "symbol": "5YY",
+          "gaps": [
+            {
+              "curr_date": "2024-09-12",
+              "next_date": "2025-04-04",
+              "gap_days": 204
+            },
+            {
+              "curr_date": "2024-01-25",
+              "next_date": "2024-07-31",
+              "gap_days": 188
+            },
+            {
+              "curr_date": "2025-04-07",
+              "next_date": "2025-06-26",
+              "gap_days": 80
+            },
+            {
+              "curr_date": "2023-10-30",
+              "next_date": "2024-01-08",
+              "gap_days": 70
+            },
+            {
+              "curr_date": "2025-07-23",
+              "next_date": "2025-09-24",
+              "gap_days": 63
+            }
+          ]
+        }
+      ],
+      "fred_observations": [
+        {
+          "curr_date": "1914-07-01T00:00:00",
+          "next_date": "1914-12-01T00:00:00",
+          "gap_days": 153
+        },
+        {
+          "curr_date": "1872-03-01T00:00:00",
+          "next_date": "1872-04-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-08-01T00:00:00",
+          "next_date": "1871-09-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-05-01T00:00:00",
+          "next_date": "1871-06-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-03-01T00:00:00",
+          "next_date": "1871-04-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-07-01T00:00:00",
+          "next_date": "1871-08-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-12-01T00:00:00",
+          "next_date": "1872-01-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-01-01T00:00:00",
+          "next_date": "1871-02-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1871-10-01T00:00:00",
+          "next_date": "1871-11-01T00:00:00",
+          "gap_days": 31
+        },
+        {
+          "curr_date": "1872-01-01T00:00:00",
+          "next_date": "1872-02-01T00:00:00",
+          "gap_days": 31
+        }
+      ]
+    }
+  }
+}

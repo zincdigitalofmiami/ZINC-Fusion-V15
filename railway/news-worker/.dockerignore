@@ -1,0 +1,6 @@
+# Minimal ignore for news-worker - include all source files
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+DEPLOY.md

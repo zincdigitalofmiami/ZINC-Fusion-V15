@@ -1,0 +1,21 @@
+# Railway Configuration for News Ingestion Worker
+# https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# This is a cron job, not a web service
+numReplicas = 1
+sleepApplication = false
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Cron schedule: Every 4 hours
+# Format: minute hour day month weekday
+cronSchedule = "0 */4 * * *"
+
+[deploy.healthcheck]
+# No healthcheck needed for cron jobs
+enabled = false
