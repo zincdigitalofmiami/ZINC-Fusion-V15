@@ -73,10 +73,37 @@ A procurement intelligence system that's 95% right and 5% wrong is **worse** tha
 
 ---
 
-## 2. DATABASE STATE (Prisma Postgres)
+## 2. DATABASE ARCHITECTURE (Prisma Postgres)
 
-### Schemas (11 total)
-`raw`, `silver`, `gold`, `features`, `training`, `forecasts`, `monitoring`, `specialist`, `weather`, `metadata`, `archive`
+### Medallion Architecture (Law)
+
+```
+EXTERNAL → RAW (Bronze) → SILVER (Canonical) → TRAINING → MODEL → ANALYTICS
+                ↑
+          metadata.instrument + metadata.symbol_mapping
+```
+
+### Schema Purposes (14 total)
+
+| Schema | Layer | Purpose |
+|--------|-------|---------|
+| `raw` | Bronze | Immutable ingestion, append-only |
+| `silver` | Silver | Deduplicated canonical data with provenance |
+| `gold` | Gold | Aggregated business views |
+| `training` | Feature | Specialist staging + feature matrices |
+| `model` | ML | OOF, registry, forecasts |
+| `analytics` | Presentation | Dashboard tables: latest_prices, intraday_prices, metrics |
+| `metadata` | Control | Canonical instruments, symbol mappings |
+| `ops` | Infrastructure | data_source_registry, job health only |
+
+### Analytics vs Ops Boundary
+
+| Goes in `analytics` | Goes in `ops` |
+|---------------------|---------------|
+| latest_prices | data_source_registry |
+| intraday_prices | job_run_status |
+| dashboard_metrics | ingestion_health |
+| Any user-facing | Any infrastructure |
 
 ### Raw Data Inventory (as of 2026-01-05)
 

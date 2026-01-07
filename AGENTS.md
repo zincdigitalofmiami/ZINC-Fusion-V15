@@ -89,6 +89,24 @@ Domains are an organizational convention for raw ingestion + table naming. Not e
 - End state lives in Prisma `raw.market_*` tables.
 - Do not create `brz`/`slv`/`gld` (guardrails will fail).
 
+### Intraday Data Rule (Hard Lock)
+
+| Frequency | Table | Allowed Destination | Forbidden |
+|-----------|-------|---------------------|-----------|
+| Daily (1d) | `raw.market_futures_1d` | silver → gold → training → model | - |
+| Intraday (15m) | `analytics.intraday_prices` | Dashboard display ONLY | training.*, features.*, any ML tables |
+
+**ZL Only:** Intraday 15m data is collected ONLY for ZL (soybean oil) - the procurement target. No other instruments need intraday tracking.
+
+**Rationale:** Intraday data is for dashboard display and real-time monitoring only. Training models use daily data to avoid:
+- Noise amplification from microstructure
+- Inconsistent bar boundaries across instruments
+- Data volume issues (15m = 26x daily storage)
+
+**Scripts:**
+- `scripts/ingest_yahoo_eod.py` → `raw.market_futures_1d` → training path
+- `scripts/ingest_yahoo_15m.py` → `analytics.intraday_prices` (ZL only, dashboard)
+
 ### Naming Contracts
 
 | Rule | Required | Forbidden |
@@ -122,9 +140,114 @@ Not all data series have 25+ years of history. Training scripts MUST tier data b
 - The explicit mapping lives in `src/fusion/ingestion/router.py` (`FRED_SERIES_BUCKETS` / `get_fred_bucket`).
 - When adding or changing ownership for a series, update the mapping and keep tests green (`tests/test_fred_routing.py`).
 
-### Allowed Schemas (11 only)
+### Allowed Schemas (14 total)
 
-`raw`, `silver`, `gold`, `features`, `training`, `forecasts`, `monitoring`, `specialist`, `weather`, `metadata`, `archive`
+`raw`, `silver`, `gold`, `features`, `training`, `forecasts`, `monitoring`, `specialist`, `weather`, `metadata`, `archive`, `model`, `analytics`, `ops`
+
+---
+
+## Medallion Architecture (Data Flow Law)
+
+This is the canonical data flow pattern. No exceptions.
+
+### Schema Purposes (Locked)
+
+| Schema | Layer | Purpose | Mutability |
+|--------|-------|---------|------------|
+| `raw` | Bronze | Immutable ingestion from external sources | Append-only |
+| `silver` | Silver | Cleaned, deduplicated, canonical OHLCV with source tracking | Upsert via metadata |
+| `gold` | Gold | **Denormalized feature store** (OHLCV + indicators + derived metrics) | Computed |
+| `training` | Feature | Specialist staging + feature matrices (reads from Gold) | Rebuilt on demand |
+| `model` | ML | OOF predictions, model registry, forecasts | Versioned |
+| `analytics` | Presentation | Dashboard-facing tables, real-time displays | Real-time updates |
+| `metadata` | Control | Canonical instruments, symbol mappings | Governance only |
+| `ops` | Infrastructure | Data source registry, job health | System-managed |
+
+### Data Flow Rules
+
+```
+EXTERNAL SOURCES
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  RAW (Bronze) - Immutable ingestion                         │
+│  • raw.market_futures_1d, raw.fred_observations_1d          │
+│  • raw.fx_spot_1d, raw.cftc_cot_1w                          │
+│  • NEVER modify after insert                                │
+└─────────────────────────────────────────────────────────────┘
+      │
+      │ metadata.symbol_mapping (canonical resolution)
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  SILVER - Cleaned, deduplicated canonical data              │
+│  • silver.fx_rates_1d (deduplicated from fx_spot + FRED)    │
+│  • silver.futures_prices_1d (canonical OHLCV)               │
+│  • Source + confidence tracking per row                     │
+└─────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  GOLD - Denormalized feature store (business-ready)         │
+│  • gold.elite_indicators_1d = OHLCV + 27 indicators + KPIs  │
+│  • Denormalized: no JOINs needed downstream                 │
+│  • Hurst, ConnorsRSI, Fisher, TTM Squeeze, returns, etc.    │
+│  • Module: src/fusion/features/elite_indicators.py          │
+└─────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  TRAINING - Reads from Gold directly                        │
+│  • training.specialist_*_1d (JOINs to silver, not copies)   │
+│  • training.core_matrix_full_1d (feature matrix)            │
+│  • training.specialist_features (JSON blob)                 │
+└─────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  MODEL - ML outputs                                         │
+│  • model.model_registry, model.training_runs                │
+│  • model.oof_predictions, model.forecast_quantiles          │
+└─────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ANALYTICS - Dashboard presentation                         │
+│  • analytics.latest_prices (real-time ticker)               │
+│  • analytics.intraday_prices (charting)                     │
+│  • analytics.dashboard_metrics, analytics.risk_metrics      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Deduplication via Metadata Control Plane
+
+When multiple sources provide the same underlying data:
+
+1. **Register canonical instrument** in `metadata.instrument`
+2. **Map source symbols** in `metadata.symbol_mapping` with confidence scores
+3. **Silver layer** resolves to canonical using highest-confidence primary source
+4. **Training layer** JOINs to silver (never copies OHLCV)
+
+**Example: FX Rates**
+```
+metadata.instrument: { canonical_id: "USDBRL", asset_class: "fx", primary_source: "raw.fx_spot_1d" }
+metadata.symbol_mapping: [
+  { canonical_id: "USDBRL", source_table: "raw.fx_spot_1d", source_symbol: "USDBRL", is_primary: true },
+  { canonical_id: "USDBRL", source_table: "raw.fred_observations_1d", source_symbol: "DEXBZUS", is_primary: false }
+]
+silver.fx_rates_1d: Uses primary source, tracks provenance
+```
+
+### Analytics vs Ops (Boundary Law)
+
+| Goes in `analytics` | Goes in `ops` |
+|---------------------|---------------|
+| latest_prices | data_source_registry |
+| intraday_prices | job_run_status |
+| dashboard_metrics | ingestion_health |
+| risk_metrics | system_alerts |
+| Any user-facing data | Any infrastructure metadata |
+
+---
 
 ### MLflow/Prisma Linkage
 

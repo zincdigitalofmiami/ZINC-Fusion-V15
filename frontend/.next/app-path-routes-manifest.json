@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/auth/login/route": "/api/auth/login",
+  "/api/auth/logout/route": "/api/auth/logout",
+  "/api/health/route": "/api/health",
+  "/dashboard/page": "/dashboard",
+  "/legislation/page": "/legislation",
+  "/login/page": "/login",
+  "/page": "/",
+  "/sentiment/page": "/sentiment",
+  "/strategy/page": "/strategy",
+  "/vegas-intel/page": "/vegas-intel"
+}

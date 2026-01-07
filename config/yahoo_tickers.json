@@ -1,0 +1,54 @@
+{
+  "_comment": "Canonical symbol → Yahoo Finance ticker mapping",
+  "_updated": "2026-01-06",
+  
+  "futures": {
+    "_comment": "CME/CBOT futures - use =F suffix",
+    "ZL": "ZL=F",
+    "ZS": "ZS=F",
+    "ZM": "ZM=F",
+    "ZC": "ZC=F",
+    "ZW": "ZW=F",
+    "CL": "CL=F",
+    "HO": "HO=F",
+    "RB": "RB=F",
+    "NG": "NG=F",
+    "GC": "GC=F",
+    "SI": "SI=F",
+    "HG": "HG=F",
+    "KC": "KC=F",
+    "SB": "SB=F",
+    "CC": "CC=F",
+    "CT": "CT=F",
+    "ES": "ES=F",
+    "NQ": "NQ=F",
+    "YM": "YM=F",
+    "RTY": "RTY=F"
+  },
+  
+  "fx": {
+    "_comment": "Currency pairs - use =X suffix",
+    "USDBRL": "BRL=X",
+    "USDCNY": "CNY=X",
+    "EURUSD": "EURUSD=X",
+    "USDJPY": "JPY=X",
+    "GBPUSD": "GBPUSD=X",
+    "USDCAD": "CAD=X",
+    "AUDUSD": "AUDUSD=X"
+  },
+  
+  "indices": {
+    "_comment": "Market indices - use ^ prefix",
+    "DXY": "DX-Y.NYB",
+    "VIX": "^VIX",
+    "SPX": "^GSPC",
+    "NDX": "^NDX"
+  },
+  
+  "equities": {
+    "_comment": "Trump/policy proxy tickers for trump_effect specialist",
+    "DJT": "DJT",
+    "FXI": "FXI",
+    "KWEB": "KWEB"
+  }
+}

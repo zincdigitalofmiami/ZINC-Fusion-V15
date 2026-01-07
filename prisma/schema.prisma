@@ -1,11 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+  output          = "./generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["raw", "training", "model", "analytics", "ops"]
+  schemas  = ["raw", "silver", "gold", "training", "metadata", "model", "analytics", "ops"]
 }
 
 // =============================================================================
@@ -1419,8 +1420,53 @@ model VolRegimes {
   @@schema("analytics")
 }
 
+model LatestPrices {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar
+  price         Float
+  previousClose Float?    @map("previous_close")
+  change        Float?
+  changePercent Float?    @map("change_percent")
+  dayHigh       Float?    @map("day_high")
+  dayLow        Float?    @map("day_low")
+  dayOpen       Float?    @map("day_open")
+  volume        Int?
+  timestamp     DateTime  @db.Timestamptz
+  marketState   String?   @map("market_state") @db.VarChar
+  source        String?   @db.VarChar
+  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@unique([symbol])
+  @@map("latest_prices")
+  @@schema("analytics")
+}
+
+model IntradayPrices {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar
+  timestamp     DateTime  @db.Timestamptz
+  open          Float?
+  high          Float?
+  low           Float?
+  close         Float?
+  volume        Int?
+  previousClose Float?    @map("previous_close")
+  change        Float?
+  changePercent Float?    @map("change_percent")
+  dayHigh       Float?    @map("day_high")
+  dayLow        Float?    @map("day_low")
+  source        String?   @db.VarChar
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([symbol, timestamp])
+  @@index([symbol])
+  @@index([timestamp(sort: Desc)])
+  @@map("intraday_prices")
+  @@schema("analytics")
+}
+
 // =============================================================================
-// OPS SCHEMA (3 tables) - Operations layer
+// OPS SCHEMA (1 table) - Operations infrastructure only
 // =============================================================================
 
 model DataSourceRegistry {
@@ -1452,3 +1498,79 @@ model DataSourceRegistry {
   @@map("data_source_registry")
   @@schema("ops")
 }
+
+// =============================================================================
+// METADATA SCHEMA - Canonical Instrument & Source Governance
+// =============================================================================
+
+model Instrument {
+  canonicalId   String   @id @map("canonical_id") @db.VarChar(50)
+  assetClass    String   @map("asset_class") @db.VarChar(20)
+  description   String   @db.Text
+  primarySource String   @map("primary_source") @db.VarChar(50)
+  unit          String?  @db.VarChar(20)
+  currency      String?  @db.VarChar(3)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  mappings SymbolMapping[]
+
+  @@map("instrument")
+  @@schema("metadata")
+}
+
+model SymbolMapping {
+  id               Int       @id @default(autoincrement())
+  canonicalId      String    @map("canonical_id") @db.VarChar(50)
+  sourceTable      String    @map("source_table") @db.VarChar(100)
+  sourceSymbol     String    @map("source_symbol") @db.VarChar(50)
+  sourceConfidence Decimal   @map("source_confidence") @db.Decimal(3, 2)
+  isPrimary        Boolean   @default(false) @map("is_primary")
+  validFrom        DateTime  @default(now()) @map("valid_from")
+  validTo          DateTime? @map("valid_to")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  instrument Instrument @relation(fields: [canonicalId], references: [canonicalId])
+
+  @@unique([sourceTable, sourceSymbol])
+  @@index([canonicalId])
+  @@map("symbol_mapping")
+  @@schema("metadata")
+}
+
+// =============================================================================
+// SILVER SCHEMA - Medallion Deduplication Layer
+// =============================================================================
+
+model FxRates1d {
+  date         DateTime @db.Date
+  currencyPair String   @map("currency_pair") @db.VarChar(10)
+  rate         Decimal  @db.Decimal(18, 8)
+  source       String   @db.VarChar(50)
+  confidence   Decimal  @db.Decimal(3, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@id([date, currencyPair])
+  @@index([currencyPair])
+  @@index([date(sort: Desc)])
+  @@map("fx_rates_1d")
+  @@schema("silver")
+}
+
+model FuturesPrices1d {
+  date      DateTime @db.Date
+  symbol    String   @db.VarChar(10)
+  open      Decimal  @db.Decimal(18, 8)
+  high      Decimal  @db.Decimal(18, 8)
+  low       Decimal  @db.Decimal(18, 8)
+  close     Decimal  @db.Decimal(18, 8)
+  volume    BigInt
+  source    String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([date, symbol])
+  @@index([symbol])
+  @@map("futures_prices_1d")
+  @@schema("silver")
+}
+
