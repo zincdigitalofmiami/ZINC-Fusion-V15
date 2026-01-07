@@ -1,498 +1,330 @@
 <template>
-  <div class="legislation-page">
-    <header class="page-header">
-      <h1 class="page-title">Legislation & Policy</h1>
-      <p class="page-description">Regulatory tracking | Impact assessment | Policy probability shifts</p>
-    </header>
+    <div class="page-legislation">
+        <div style="padding: 40px; max-width: 1400px; margin: 128px auto 0;">
+            <!-- Page Header -->
+            <div style="margin-bottom: 40px;">
+                <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">Legislation &amp; Policy</h1>
+                <p style="font-size: 16px; opacity: 0.6;">Regulatory calendar, active bills, executive orders, and policy impact analysis</p>
+            </div>
 
-    <!-- Policy Impact Summary -->
-    <div class="grid grid-4">
-      <div class="card kpi">
-        <div class="kpi-value" :class="activeRegsClass">{{ activeRegulations }}</div>
-        <div class="kpi-label">Active Regulations</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-value positive">{{ pendingProposals }}</div>
-        <div class="kpi-label">Pending Proposals</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-value neutral">{{ formatPercent(avgImpactProb) }}</div>
-        <div class="kpi-label">Avg Impact Probability</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-value" :class="netPolicyImpactClass">
-          {{ netPolicyImpact > 0 ? '+' : '' }}{{ netPolicyImpact.toFixed(1) }}%
+            <!-- Alert Banner -->
+            <div style="background: rgba(239, 83, 80, 0.1); border: 1px solid rgba(239, 83, 80, 0.3); border-radius: 8px; padding: 16px 20px; margin-bottom: 32px; display: flex; align-items: center; gap: 12px;">
+                <svg style="width: 20px; height: 20px; color: #ef5350; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div>
+                    <span style="font-weight: 600; color: #ef5350;">HIGH ALERT:</span>
+                    <span style="opacity: 0.9;"> Section 301 tariff review deadline in 12 days — potential 25% duty on Chinese vegetable oil imports</span>
+                </div>
+                <div style="margin-left: auto; display: flex; gap: 8px;">
+                    <span style="background: rgba(239, 83, 80, 0.2); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #ef5350;">TARIFF</span>
+                    <span style="background: rgba(239, 83, 80, 0.2); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #ef5350;">CHINA</span>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 360px; gap: 24px;">
+                
+                <!-- Left Column -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- Regulatory Calendar -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h2 style="font-size: 18px; font-weight: 600;">Regulatory Calendar</h2>
+                            <div style="display: flex; gap: 8px;">
+                                <button style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">This Week</button>
+                                <button style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; opacity: 0.7;">This Month</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Calendar Events -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Event 1 -->
+                            <div style="display: flex; gap: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #ef5350;">
+                                <div style="text-align: center; min-width: 48px;">
+                                    <div style="font-size: 24px; font-weight: 700;">15</div>
+                                    <div style="font-size: 11px; opacity: 0.6; text-transform: uppercase;">Jan</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">Section 301 Tariff Review Deadline</div>
+                                    <div style="font-size: 13px; opacity: 0.7; margin-bottom: 8px;">USTR decision on Chinese vegetable oil duties. 25% tariff possible.</div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(239, 83, 80, 0.2); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #ef5350;">HIGH IMPACT</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">Tariff</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">China</span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 80px;">
+                                    <div style="font-size: 11px; opacity: 0.5;">Model Impact</div>
+                                    <div style="font-size: 18px; font-weight: 700; color: #ef5350;">+4.2%</div>
+                                </div>
+                            </div>
+
+                            <!-- Event 2 -->
+                            <div style="display: flex; gap: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #ffb464;">
+                                <div style="text-align: center; min-width: 48px;">
+                                    <div style="font-size: 24px; font-weight: 700;">10</div>
+                                    <div style="font-size: 11px; opacity: 0.6; text-transform: uppercase;">Jan</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">WASDE Report Release</div>
+                                    <div style="font-size: 13px; opacity: 0.7; margin-bottom: 8px;">USDA World Agricultural Supply and Demand Estimates. Key soybean data.</div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(255, 180, 100, 0.2); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #ffb464;">MEDIUM IMPACT</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">USDA</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">Supply</span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 80px;">
+                                    <div style="font-size: 11px; opacity: 0.5;">Model Impact</div>
+                                    <div style="font-size: 18px; font-weight: 700; color: #ffb464;">±1.8%</div>
+                                </div>
+                            </div>
+
+                            <!-- Event 3 -->
+                            <div style="display: flex; gap: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #2962FF;">
+                                <div style="text-align: center; min-width: 48px;">
+                                    <div style="font-size: 24px; font-weight: 700;">29</div>
+                                    <div style="font-size: 11px; opacity: 0.6; text-transform: uppercase;">Jan</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">FOMC Interest Rate Decision</div>
+                                    <div style="font-size: 13px; opacity: 0.7; margin-bottom: 8px;">Federal Reserve policy announcement. Expected hold at current rates.</div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(41, 98, 255, 0.2); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #2962FF;">LOW IMPACT</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">Fed</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">Rates</span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 80px;">
+                                    <div style="font-size: 11px; opacity: 0.5;">Model Impact</div>
+                                    <div style="font-size: 18px; font-weight: 700; color: #2962FF;">±0.5%</div>
+                                </div>
+                            </div>
+
+                            <!-- Event 4 -->
+                            <div style="display: flex; gap: 16px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #ffb464;">
+                                <div style="text-align: center; min-width: 48px;">
+                                    <div style="font-size: 24px; font-weight: 700;">01</div>
+                                    <div style="font-size: 11px; opacity: 0.6; text-transform: uppercase;">Feb</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">EPA RFS Volume Obligation Deadline</div>
+                                    <div style="font-size: 13px; opacity: 0.7; margin-bottom: 8px;">2026 Renewable Fuel Standard compliance volumes finalized.</div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(255, 180, 100, 0.2); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: #ffb464;">MEDIUM IMPACT</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">Biofuel</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; opacity: 0.8;">EPA</span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 80px;">
+                                    <div style="font-size: 11px; opacity: 0.5;">Model Impact</div>
+                                    <div style="font-size: 18px; font-weight: 700; color: #ffb464;">+2.1%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Legislation -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">Active Legislation</h2>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <!-- Bill 1 -->
+                            <div style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="font-weight: 600; margin-bottom: 4px;">H.R. 4521 — Biofuel Infrastructure Investment Act</div>
+                                        <div style="font-size: 13px; opacity: 0.6;">Sponsor: Rep. Johnson (R-SD) • Introduced: Nov 15, 2025</div>
+                                    </div>
+                                    <div style="background: rgba(41, 98, 255, 0.2); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #2962FF;">IN COMMITTEE</div>
+                                </div>
+                                <div style="font-size: 13px; opacity: 0.8; margin-bottom: 12px;">$2.4B authorization for renewable diesel infrastructure. Expands blender tax credits through 2030.</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px;">Biofuel</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px;">Energy</span>
+                                    </div>
+                                    <div style="font-size: 12px;">
+                                        <span style="opacity: 0.5;">Passage Odds:</span>
+                                        <span style="font-weight: 600; color: #2962FF;"> 68%</span>
+                                    </div>
+                                </div>
+                                <!-- Progress Bar -->
+                                <div style="margin-top: 12px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-bottom: 4px;">
+                                        <span>Introduced</span>
+                                        <span>Committee</span>
+                                        <span>Floor Vote</span>
+                                        <span>Signed</span>
+                                    </div>
+                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="width: 35%; height: 100%; background: #2962FF; border-radius: 2px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bill 2 -->
+                            <div style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="font-weight: 600; margin-bottom: 4px;">S. 892 — Fair Agricultural Trade Act</div>
+                                        <div style="font-size: 13px; opacity: 0.6;">Sponsor: Sen. Grassley (R-IA) • Introduced: Dec 3, 2025</div>
+                                    </div>
+                                    <div style="background: rgba(255, 180, 100, 0.2); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #ffb464;">MARKUP</div>
+                                </div>
+                                <div style="font-size: 13px; opacity: 0.8; margin-bottom: 12px;">Retaliatory tariff authority for agricultural exports. Targets Chinese non-tariff barriers.</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 6px;">
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px;">Tariff</span>
+                                        <span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px;">China</span>
+                                    </div>
+                                    <div style="font-size: 12px;">
+                                        <span style="opacity: 0.5;">Passage Odds:</span>
+                                        <span style="font-weight: 600; color: #ffb464;"> 45%</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-bottom: 4px;">
+                                        <span>Introduced</span>
+                                        <span>Committee</span>
+                                        <span>Floor Vote</span>
+                                        <span>Signed</span>
+                                    </div>
+                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="width: 25%; height: 100%; background: #ffb464; border-radius: 2px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- Executive Orders -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                            <svg style="width: 20px; height: 20px; opacity: 0.8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <h2 style="font-size: 18px; font-weight: 600;">Executive Orders</h2>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- EO 1 -->
+                            <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #ef5350;">
+                                <div style="font-size: 11px; opacity: 0.5; margin-bottom: 4px;">EO 14178 • Dec 20, 2025</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Energy Independence Acceleration</div>
+                                <div style="font-size: 12px; opacity: 0.7; margin-bottom: 8px;">Fast-track permitting for domestic biofuel refineries. 90-day review mandate.</div>
+                                <div style="display: flex; gap: 4px;">
+                                    <span style="background: rgba(41, 98, 255, 0.2); padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #2962FF;">Biofuel ↑</span>
+                                    <span style="background: rgba(41, 98, 255, 0.2); padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #2962FF;">Energy ↑</span>
+                                </div>
+                            </div>
+
+                            <!-- EO 2 -->
+                            <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #ffb464;">
+                                <div style="font-size: 11px; opacity: 0.5; margin-bottom: 4px;">EO 14175 • Dec 12, 2025</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Trade Enforcement Modernization</div>
+                                <div style="font-size: 12px; opacity: 0.7; margin-bottom: 8px;">Expanded USTR authority for agricultural tariff negotiations.</div>
+                                <div style="display: flex; gap: 4px;">
+                                    <span style="background: rgba(255, 180, 100, 0.2); padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #ffb464;">Tariff ↔</span>
+                                    <span style="background: rgba(239, 83, 80, 0.2); padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #ef5350;">China ↓</span>
+                                </div>
+                            </div>
+
+                            <!-- EO 3 -->
+                            <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #2962FF;">
+                                <div style="font-size: 11px; opacity: 0.5; margin-bottom: 4px;">EO 14172 • Nov 28, 2025</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">SAF Production Tax Credit Extension</div>
+                                <div style="font-size: 12px; opacity: 0.7; margin-bottom: 8px;">Sustainable Aviation Fuel credits extended to 2032. $1.75/gal incentive.</div>
+                                <div style="display: flex; gap: 4px;">
+                                    <span style="background: rgba(41, 98, 255, 0.2); padding: 2px 6px; border-radius: 3px; font-size: 9px; color: #2962FF;">Biofuel ↑</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Policy Impact Matrix -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">Specialist Impact</h2>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size: 13px;">Tariff Regime</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 85%; height: 100%; background: #ef5350;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #ef5350; min-width: 32px;">HIGH</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size: 13px;">Biofuel Mandate</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 78%; height: 100%; background: #ef5350;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #ef5350; min-width: 32px;">HIGH</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size: 13px;">China Demand</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 72%; height: 100%; background: #ffb464;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #ffb464; min-width: 32px;">MED</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size: 13px;">Trump Effect</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 68%; height: 100%; background: #ffb464;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #ffb464; min-width: 32px;">MED</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="font-size: 13px;">Energy Complex</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 45%; height: 100%; background: #2962FF;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #2962FF; min-width: 32px;">LOW</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+                                <span style="font-size: 13px;">Fed Policy</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 80px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div style="width: 25%; height: 100%; background: #2962FF;"></div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 600; color: #2962FF; min-width: 32px;">LOW</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Policy Volatility Index -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; text-align: center;">
+                        <div style="font-size: 12px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Policy Volatility Index</div>
+                        <div style="font-size: 48px; font-weight: 700; color: #ef5350; margin-bottom: 8px;">0.74</div>
+                        <div style="font-size: 13px; opacity: 0.7;">ELEVATED</div>
+                        <div style="font-size: 11px; opacity: 0.5; margin-top: 8px;">↑ 0.12 from last week</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="kpi-label">Net Policy Impact (90D)</div>
-      </div>
     </div>
-
-    <!-- Policy Timeline -->
-    <div class="card" style="margin-top: 16px;">
-      <div class="card-header">
-        <span class="card-title">Policy Timeline</span>
-        <select v-model="timelineFilter" class="select-input">
-          <option value="all">All Categories</option>
-          <option value="tariff">Tariff</option>
-          <option value="biofuel">Biofuel</option>
-          <option value="trade">Trade</option>
-          <option value="environment">Environmental</option>
-        </select>
-      </div>
-      <div class="timeline">
-        <div 
-          v-for="event in filteredTimeline" 
-          :key="event.id" 
-          class="timeline-item"
-          :class="event.status"
-        >
-          <div class="timeline-date">
-            <span class="date-day">{{ formatDay(event.date) }}</span>
-            <span class="date-month">{{ formatMonth(event.date) }}</span>
-          </div>
-          <div class="timeline-marker" :class="event.status"></div>
-          <div class="timeline-content">
-            <div class="timeline-header">
-              <span class="timeline-title">{{ event.title }}</span>
-              <span class="badge" :class="getStatusBadge(event.status)">{{ event.status }}</span>
-            </div>
-            <p class="timeline-description">{{ event.description }}</p>
-            <div class="timeline-meta">
-              <div class="meta-item">
-                <span class="meta-label">Category:</span>
-                <span class="badge badge-blue">{{ event.category }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Impact Probability:</span>
-                <span :class="event.impactProb > 0.6 ? 'positive' : 'neutral'">
-                  {{ formatPercent(event.impactProb) }}
-                </span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Price Effect:</span>
-                <span :class="event.priceEffect > 0 ? 'positive' : 'negative'">
-                  {{ event.priceEffect > 0 ? '+' : '' }}{{ event.priceEffect.toFixed(2) }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Policy Categories -->
-    <div class="grid grid-2" style="margin-top: 16px;">
-      <!-- Tariff Watch -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Tariff Watch</span>
-        </div>
-        <div class="policy-list">
-          <div v-for="tariff in tariffWatch" :key="tariff.id" class="policy-item">
-            <div class="policy-name">{{ tariff.name }}</div>
-            <div class="policy-details">
-              <span class="detail-item">
-                <span class="detail-label">Current Rate:</span>
-                {{ tariff.currentRate }}%
-              </span>
-              <span class="detail-item">
-                <span class="detail-label">Proposed:</span>
-                {{ tariff.proposedRate }}%
-              </span>
-              <span class="detail-item">
-                <span class="detail-label">Prob:</span>
-                <span :class="tariff.probability > 0.5 ? 'positive' : 'neutral'">
-                  {{ formatPercent(tariff.probability) }}
-                </span>
-              </span>
-            </div>
-            <div class="prob-bar">
-              <div 
-                class="prob-fill" 
-                :class="tariff.probability > 0.5 ? 'high' : 'medium'"
-                :style="{ width: tariff.probability * 100 + '%' }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Biofuel Mandates -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Biofuel Mandates</span>
-        </div>
-        <div class="policy-list">
-          <div v-for="mandate in biofuelMandates" :key="mandate.id" class="policy-item">
-            <div class="policy-name">{{ mandate.name }}</div>
-            <div class="policy-details">
-              <span class="detail-item">
-                <span class="detail-label">Current:</span>
-                {{ mandate.currentVolume }}B gal
-              </span>
-              <span class="detail-item">
-                <span class="detail-label">Target:</span>
-                {{ mandate.targetVolume }}B gal
-              </span>
-              <span class="detail-item">
-                <span class="detail-label">Effective:</span>
-                {{ mandate.effectiveDate }}
-              </span>
-            </div>
-            <div class="mandate-impact">
-              <span class="impact-label">Demand Impact:</span>
-              <span class="positive">+{{ mandate.demandImpact }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Regulatory Calendar -->
-    <div class="card" style="margin-top: 16px;">
-      <div class="card-header">
-        <span class="card-title">Regulatory Calendar</span>
-      </div>
-      <div class="calendar-grid">
-        <div v-for="event in upcomingEvents" :key="event.id" class="calendar-item">
-          <div class="calendar-date">
-            <span class="cal-day">{{ formatCalDay(event.date) }}</span>
-            <span class="cal-month">{{ formatCalMonth(event.date) }}</span>
-          </div>
-          <div class="calendar-content">
-            <div class="calendar-title">{{ event.title }}</div>
-            <div class="calendar-agency">{{ event.agency }}</div>
-            <div class="calendar-impact">
-              <span class="badge" :class="getImpactBadge(event.impact)">
-                {{ event.impact }} Impact
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-
-// Summary KPIs - populated from API
-const activePolicies = ref(null)
-const pendingChanges = ref(null)
-const avgImpactProb = ref(null)
-const netPolicyImpact = ref(null)
-const upcomingDeadlines = ref(null)
-
-const timelineFilter = ref('all')
-
-const activeRegsClass = computed(() => 
-  activeRegulations.value > 20 ? 'neutral' : 'positive'
-)
-
-const netPolicyImpactClass = computed(() =>
-  netPolicyImpact.value > 0 ? 'positive' : 'negative'
-)
-
-// Policy data - populated from API
-const policyTimeline = ref([])
-
-const filteredTimeline = computed(() => {
-  if (timelineFilter.value === 'all') return policyTimeline.value
-  return policyTimeline.value.filter(e => e.category === timelineFilter.value)
-})
-
-const tariffWatch = ref([])
-const biofuelMandates = ref([])
-const upcomingEvents = ref([])
-
-function formatPercent(val) {
-  return (val * 100).toFixed(1) + '%'
-}
-
-function formatDay(date) {
-  return new Date(date).getDate()
-}
-
-function formatMonth(date) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short' })
-}
-
-function formatCalDay(date) {
-  return new Date(date).getDate()
-}
-
-function formatCalMonth(date) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-}
-
-function getStatusBadge(status) {
-  const map = {
-    upcoming: 'badge-blue',
-    active: 'badge-orange',
-    completed: 'badge-green',
-  }
-  return map[status] || 'badge-blue'
-}
-
-function getImpactBadge(impact) {
-  const map = {
-    High: 'badge-red',
-    Medium: 'badge-orange',
-    Low: 'badge-green',
-  }
-  return map[impact] || 'badge-blue'
-}
-
-async function fetchLegislationData() {
-  try {
-    const [timelineRes, tariffsRes, mandatesRes, eventsRes, summaryRes] = await Promise.all([
-      fetch('/api/legislation/timeline'),
-      fetch('/api/legislation/tariffs'),
-      fetch('/api/legislation/mandates'),
-      fetch('/api/legislation/events'),
-      fetch('/api/legislation/summary'),
-    ])
-    
-    if (timelineRes.ok) {
-      const data = await timelineRes.json()
-      if (data.timeline) policyTimeline.value = data.timeline
-    }
-    
-    if (tariffsRes.ok) {
-      const data = await tariffsRes.json()
-      if (data.tariffs) tariffWatch.value = data.tariffs
-    }
-    
-    if (mandatesRes.ok) {
-      const data = await mandatesRes.json()
-      if (data.mandates) biofuelMandates.value = data.mandates
-    }
-    
-    if (eventsRes.ok) {
-      const data = await eventsRes.json()
-      if (data.events) upcomingEvents.value = data.events
-    }
-    
-    if (summaryRes.ok) {
-      const data = await summaryRes.json()
-      if (data.activeCount != null) activePolicies.value = data.activeCount
-      if (data.pendingChanges != null) pendingChanges.value = data.pendingChanges
-      if (data.netImpact != null) netPolicyImpact.value = data.netImpact
-      if (data.upcomingDeadlines != null) upcomingDeadlines.value = data.upcomingDeadlines
-    }
-  } catch (err) {
-    console.error('Failed to fetch legislation data:', err)
-  }
-}
-
-onMounted(() => {
-  fetchLegislationData()
-})
 </script>
 
 <style scoped>
-.timeline {
-  position: relative;
-  padding-left: 100px;
-}
-
-.timeline-item {
-  position: relative;
-  padding: 20px 0 20px 40px;
-  border-left: 2px solid var(--tv-border);
-}
-
-.timeline-item:last-child {
-  border-left-color: transparent;
-}
-
-.timeline-date {
-  position: absolute;
-  left: -100px;
-  width: 80px;
-  text-align: right;
-  padding-right: 20px;
-}
-
-.date-day {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--tv-text-primary);
-}
-
-.date-month {
-  display: block;
-  font-size: 12px;
-  color: var(--tv-text-muted);
-  text-transform: uppercase;
-}
-
-.timeline-marker {
-  position: absolute;
-  left: -8px;
-  top: 24px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--tv-bg-secondary);
-  border: 3px solid var(--tv-blue);
-}
-
-.timeline-marker.upcoming { border-color: var(--tv-blue); }
-.timeline-marker.active { border-color: var(--tv-orange); background: var(--tv-orange); }
-.timeline-marker.completed { border-color: var(--tv-green); }
-
-.timeline-content {
-  background: var(--tv-bg-primary);
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid var(--tv-border);
-}
-
-.timeline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.timeline-title {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.timeline-description {
-  color: var(--tv-text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-.timeline-meta {
-  display: flex;
-  gap: 24px;
-  padding-top: 12px;
-  border-top: 1px solid var(--tv-border);
-}
-
-.meta-item {
-  font-size: 13px;
-}
-
-.meta-label {
-  color: var(--tv-text-muted);
-  margin-right: 4px;
-}
-
-.policy-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.policy-item {
-  padding: 12px;
-  background: var(--tv-bg-primary);
-  border-radius: 6px;
-  border: 1px solid var(--tv-border);
-}
-
-.policy-name {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.policy-details {
-  display: flex;
-  gap: 16px;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.detail-label {
-  color: var(--tv-text-muted);
-}
-
-.mandate-impact {
-  margin-top: 8px;
-  font-size: 13px;
-}
-
-.impact-label {
-  color: var(--tv-text-muted);
-  margin-right: 8px;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.calendar-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: var(--tv-bg-primary);
-  border-radius: 8px;
-  border: 1px solid var(--tv-border);
-}
-
-.calendar-date {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px;
-  padding: 8px;
-  background: var(--tv-bg-tertiary);
-  border-radius: 6px;
-}
-
-.cal-day {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.cal-month {
-  font-size: 11px;
-  color: var(--tv-text-muted);
-  text-transform: uppercase;
-}
-
-.calendar-content {
-  flex: 1;
-}
-
-.calendar-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.calendar-agency {
-  font-size: 12px;
-  color: var(--tv-text-muted);
-  margin-bottom: 8px;
-}
-
-.select-input {
-  background: var(--tv-bg-tertiary);
-  border: 1px solid var(--tv-border);
-  border-radius: 4px;
-  padding: 6px 12px;
-  color: var(--tv-text-primary);
-  font-size: 13px;
-}
-
-.positive { color: var(--tv-green); }
-.negative { color: var(--tv-red); }
-.neutral { color: var(--tv-text-primary); }
 </style>

@@ -119,7 +119,7 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
     action_rows = _fetch_rows(
         """
         SELECT as_of_date, action, confidence, rationale
-        FROM forecasts.procurement_actions_1d
+        FROM analytics.procurement_actions
         WHERE symbol = ?
         ORDER BY as_of_date DESC
         LIMIT 1
@@ -583,11 +583,11 @@ def forecast_quantiles(
 ) -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Postgres uses 'horizon' column instead of 'horizon_days'
+        # Use model.forecast_quantiles table (corrected schema)
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM forecast_quantiles
+            FROM model.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
@@ -597,7 +597,7 @@ def forecast_quantiles(
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles_1d
+            FROM model.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
@@ -617,11 +617,11 @@ def forecast_bands(
 ) -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Postgres uses same forecast_quantiles table for bands
+        # Use model.forecast_quantiles for bands (corrected schema)
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM forecast_quantiles
+            FROM model.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
@@ -907,7 +907,7 @@ def strategy_posture(symbol: str = "ZL") -> Dict[str, Any]:
     actions = _fetch_rows(
         """
         SELECT as_of_date, action, confidence, rationale
-        FROM forecasts.procurement_actions_1d
+        FROM analytics.procurement_actions
         WHERE symbol = ?
         ORDER BY as_of_date DESC
         LIMIT 30
@@ -920,7 +920,7 @@ def strategy_posture(symbol: str = "ZL") -> Dict[str, Any]:
         """
         SELECT as_of_date, horizon_days, tail_proximity, probability_lift, confidence_adjusted_lift,
                regime_dampening, window_start_week, window_end_week
-        FROM forecasts.value_timing_windows_1d
+        FROM analytics.value_timing_windows
         WHERE symbol = ?
         ORDER BY as_of_date DESC, horizon_days ASC
         LIMIT 200
@@ -941,7 +941,7 @@ def strategy_risk(symbol: str = "ZL", horizon: Optional[str] = None) -> Dict[str
     rows = _fetch_rows(
         """
         SELECT as_of_date, horizon, var_95, var_99, cvar_95, cvar_99
-        FROM forecasts.risk_metrics
+        FROM analytics.risk_metrics
         WHERE symbol = ?
         ORDER BY as_of_date DESC
         LIMIT 1000
@@ -970,21 +970,22 @@ def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> Dict[str, Any]:
 def drivers_latest(symbol: str = "ZL") -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Postgres uses bucket column instead of driver_id
+        # Use analytics.driver_scores table (corrected schema)
         rows = _fetch_rows(
             """
             WITH latest AS (
                 SELECT MAX(as_of_date) AS as_of_date
-                FROM driver_scores
+                FROM analytics.driver_scores
                 WHERE symbol = ?
             )
             SELECT
                 s.as_of_date,
                 s.symbol,
-                s.bucket as driver_id,
-                s.direction as description,
-                s.score
-            FROM driver_scores s
+                s.bucket as specialist,
+                s.direction,
+                s.score,
+                s.weight
+            FROM analytics.driver_scores s
             JOIN latest l ON s.as_of_date = l.as_of_date
             WHERE s.symbol = ?
             ORDER BY s.bucket
@@ -996,25 +997,25 @@ def drivers_latest(symbol: str = "ZL") -> Dict[str, Any]:
             """
             WITH latest AS (
                 SELECT MAX(as_of_date) AS as_of_date
-                FROM features.driver_scores_1d
+                FROM analytics.driver_scores
                 WHERE symbol = ?
             )
             SELECT
                 s.as_of_date,
                 s.symbol,
-                s.driver_id,
-                d.description,
-                s.score
-            FROM features.driver_scores_1d s
+                s.bucket as specialist,
+                s.direction,
+                s.score,
+                s.weight
+            FROM analytics.driver_scores s
             JOIN latest l ON s.as_of_date = l.as_of_date
-            LEFT JOIN specialist.drivers d ON d.driver_id = s.driver_id
             WHERE s.symbol = ?
-            ORDER BY s.driver_id
+            ORDER BY s.bucket
             """,
             [symbol, symbol],
         )
     as_of_date = rows[0]["as_of_date"] if rows else None
-    return {"symbol": symbol, "as_of_date": as_of_date, "drivers": rows}
+    return {"symbol": symbol, "as_of_date": as_of_date, "signals": rows}
 
 
 @app.get("/api/drivers/series")
@@ -1025,13 +1026,13 @@ def drivers_series(
 ) -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Postgres uses bucket column
+        # Use analytics.driver_scores (corrected schema)
         rows = _fetch_rows(
             """
             SELECT as_of_date, score
             FROM (
                 SELECT as_of_date, score
-                FROM driver_scores
+                FROM analytics.driver_scores
                 WHERE symbol = ? AND bucket = ?
                 ORDER BY as_of_date DESC
                 LIMIT ?
@@ -1046,8 +1047,8 @@ def drivers_series(
             SELECT as_of_date, score
             FROM (
                 SELECT as_of_date, score
-                FROM features.driver_scores_1d
-                WHERE symbol = ? AND driver_id = ?
+                FROM analytics.driver_scores
+                WHERE symbol = ? AND bucket = ?
                 ORDER BY as_of_date DESC
                 LIMIT ?
             ) t
@@ -1061,3 +1062,194 @@ def drivers_series(
         if row.get("score") is not None
     ]
     return {"symbol": symbol, "driver_id": driver_id, "series": series}
+
+
+# =============================================================================
+# ZL Intraday 15m Endpoint (Dashboard Only)
+# =============================================================================
+
+
+@app.get("/api/zl/live")
+def zl_live() -> Dict[str, Any]:
+    """
+    Get the latest ZL price for the header widget.
+    Returns the most recent 15m bar with change from previous close.
+    """
+    rows = _fetch_rows(
+        """
+        SELECT 
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            previous_close,
+            change,
+            change_percent,
+            day_high,
+            day_low
+        FROM analytics.intraday_prices
+        WHERE symbol = 'ZL'
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """
+    )
+
+    if not rows:
+        # Fallback to daily data if no intraday available
+        daily_rows = _fetch_rows(
+            """
+            SELECT as_of_date, close
+            FROM raw.market_futures_1d
+            WHERE symbol = 'ZL'
+            ORDER BY as_of_date DESC
+            LIMIT 2
+            """
+        )
+        if daily_rows:
+            latest = daily_rows[0]
+            prev = daily_rows[1] if len(daily_rows) > 1 else None
+            prev_close = prev["close"] if prev else None
+            change = (latest["close"] - prev_close) if prev_close else None
+            change_pct = (
+                (change / prev_close * 100) if (change and prev_close) else None
+            )
+            return {
+                "symbol": "ZL",
+                "timestamp": latest["as_of_date"],
+                "price": latest["close"],
+                "previous_close": prev_close,
+                "change": change,
+                "change_percent": change_pct,
+                "source": "daily",
+            }
+        return {"symbol": "ZL", "error": "No price data available"}
+
+    row = rows[0]
+    return {
+        "symbol": "ZL",
+        "timestamp": row["timestamp"],
+        "price": row["close"],
+        "open": row["open"],
+        "high": row["high"],
+        "low": row["low"],
+        "volume": row["volume"],
+        "previous_close": row["previous_close"],
+        "change": row["change"],
+        "change_percent": row["change_percent"],
+        "day_high": row["day_high"],
+        "day_low": row["day_low"],
+        "source": "intraday",
+    }
+
+
+@app.get("/api/zl/intraday")
+def zl_intraday(
+    hours: int = Query(
+        24, ge=1, le=168, description="Hours of data to return (max 168 = 7 days)"
+    ),
+) -> Dict[str, Any]:
+    """
+    Get ZL 15-minute bars for charting.
+    Returns OHLCV data for the specified number of hours.
+    """
+    rows = _fetch_rows(
+        f"""
+        SELECT 
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume
+        FROM analytics.intraday_prices
+        WHERE symbol = 'ZL'
+          AND timestamp > NOW() - INTERVAL '{hours} hours'
+        ORDER BY timestamp ASC
+        """
+    )
+
+    # Format for charting libraries (TradingView lightweight-charts format)
+    from datetime import datetime as dt
+
+    bars = []
+    for row in rows:
+        ts = row["timestamp"]
+        # Handle string or datetime
+        if isinstance(ts, str):
+            ts = dt.fromisoformat(ts.replace("Z", "+00:00"))
+        bars.append(
+            {
+                "time": int(ts.timestamp()),  # Unix timestamp
+                "open": row["open"],
+                "high": row["high"],
+                "low": row["low"],
+                "close": row["close"],
+                "volume": row["volume"],
+            }
+        )
+
+    return {
+        "symbol": "ZL",
+        "interval": "15m",
+        "bars": bars,
+        "count": len(bars),
+    }
+
+
+@app.get("/api/zl/intraday/ohlc")
+def zl_intraday_ohlc(
+    days: int = Query(7, ge=1, le=60, description="Days of data to return"),
+) -> Dict[str, Any]:
+    """
+    Get ZL 15-minute bars with full OHLC data.
+    Returns ISO timestamps for broader compatibility.
+    """
+    rows = _fetch_rows(
+        f"""
+        SELECT 
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            day_high,
+            day_low
+        FROM analytics.intraday_prices
+        WHERE symbol = 'ZL'
+          AND timestamp > NOW() - INTERVAL '{days} days'
+        ORDER BY timestamp ASC
+        """
+    )
+
+    from datetime import datetime as dt
+
+    bars = []
+    for row in rows:
+        ts = row["timestamp"]
+        # Handle string or datetime
+        if isinstance(ts, str):
+            ts_str = ts
+        else:
+            ts_str = ts.isoformat()
+        bars.append(
+            {
+                "timestamp": ts_str,
+                "open": row["open"],
+                "high": row["high"],
+                "low": row["low"],
+                "close": row["close"],
+                "volume": row["volume"],
+                "day_high": row["day_high"],
+                "day_low": row["day_low"],
+            }
+        )
+
+    return {
+        "symbol": "ZL",
+        "interval": "15m",
+        "bars": bars,
+        "count": len(bars),
+    }

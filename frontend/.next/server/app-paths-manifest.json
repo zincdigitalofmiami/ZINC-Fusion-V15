@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/legislation/page": "app/legislation/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/sentiment/page": "app/sentiment/page.js",
+  "/strategy/page": "app/strategy/page.js",
+  "/vegas-intel/page": "app/vegas-intel/page.js"
+}
