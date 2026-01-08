@@ -262,30 +262,30 @@ model CoreFeatures {
 }
 
 model OptionsFeatures {
-  id                 Int       @id @default(autoincrement())
-  underlying         String?   @db.VarChar
-  asOfDate           DateTime? @map("as_of_date") @db.Date
-  expiryBucket       String?   @map("expiry_bucket") @db.VarChar
-  ivAtmCall          Decimal?  @map("iv_atm_call")
-  ivAtmPut           Decimal?  @map("iv_atm_put")
-  ivSkew             Decimal?  @map("iv_skew")
-  ivTermStructure    Decimal?  @map("iv_term_structure")
-  ivPercentile30d    Decimal?  @map("iv_percentile_30d")
-  ivRank             Decimal?  @map("iv_rank")
-  deltaWeightedOiCall Decimal? @map("delta_weighted_oi_call")
-  deltaWeightedOiPut Decimal?  @map("delta_weighted_oi_put")
-  gammaExposure      Decimal?  @map("gamma_exposure")
-  netGamma           Decimal?  @map("net_gamma")
-  vegaExposure       Decimal?  @map("vega_exposure")
-  thetaDecay         Decimal?  @map("theta_decay")
-  putCallRatioVolume Decimal?  @map("put_call_ratio_volume")
-  putCallRatioOi     Decimal?  @map("put_call_ratio_oi")
-  totalVolume        BigInt?   @map("total_volume")
-  totalOpenInterest  BigInt?   @map("total_open_interest")
-  skewZscore         Decimal?  @map("skew_zscore")
-  gammaFlipLevel     Decimal?  @map("gamma_flip_level")
-  maxPainStrike      Decimal?  @map("max_pain_strike")
-  createdAt          DateTime? @default(now()) @map("created_at")
+  id                  Int       @id @default(autoincrement())
+  underlying          String?   @db.VarChar
+  asOfDate            DateTime? @map("as_of_date") @db.Date
+  expiryBucket        String?   @map("expiry_bucket") @db.VarChar
+  ivAtmCall           Decimal?  @map("iv_atm_call")
+  ivAtmPut            Decimal?  @map("iv_atm_put")
+  ivSkew              Decimal?  @map("iv_skew")
+  ivTermStructure     Decimal?  @map("iv_term_structure")
+  ivPercentile30d     Decimal?  @map("iv_percentile_30d")
+  ivRank              Decimal?  @map("iv_rank")
+  deltaWeightedOiCall Decimal?  @map("delta_weighted_oi_call")
+  deltaWeightedOiPut  Decimal?  @map("delta_weighted_oi_put")
+  gammaExposure       Decimal?  @map("gamma_exposure")
+  netGamma            Decimal?  @map("net_gamma")
+  vegaExposure        Decimal?  @map("vega_exposure")
+  thetaDecay          Decimal?  @map("theta_decay")
+  putCallRatioVolume  Decimal?  @map("put_call_ratio_volume")
+  putCallRatioOi      Decimal?  @map("put_call_ratio_oi")
+  totalVolume         BigInt?   @map("total_volume")
+  totalOpenInterest   BigInt?   @map("total_open_interest")
+  skewZscore          Decimal?  @map("skew_zscore")
+  gammaFlipLevel      Decimal?  @map("gamma_flip_level")
+  maxPainStrike       Decimal?  @map("max_pain_strike")
+  createdAt           DateTime? @default(now()) @map("created_at")
 
   @@unique([underlying, asOfDate, expiryBucket])
   @@map("options_features")
@@ -325,16 +325,16 @@ model OptionsGreeks {
 }
 
 model RealizedVolatility {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
-  asOfDate      DateTime  @map("as_of_date") @db.Date
-  windowDays    Int       @map("window_days")
-  realizedVol   Float     @map("realized_vol")
-  parkinsonVol  Float?    @map("parkinson_vol")
-  garmanKlassVol Float?   @map("garman_klass_vol")
-  yangZhangVol  Float?    @map("yang_zhang_vol")
-  annualized    Boolean?  @default(true)
-  createdAt     DateTime? @default(now()) @map("created_at")
+  id             Int       @id @default(autoincrement())
+  symbol         String    @db.VarChar
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  windowDays     Int       @map("window_days")
+  realizedVol    Float     @map("realized_vol")
+  parkinsonVol   Float?    @map("parkinson_vol")
+  garmanKlassVol Float?    @map("garman_klass_vol")
+  yangZhangVol   Float?    @map("yang_zhang_vol")
+  annualized     Boolean?  @default(true)
+  createdAt      DateTime? @default(now()) @map("created_at")
 
   @@unique([symbol, asOfDate, windowDays])
   @@map("realized_volatility")
@@ -353,15 +353,15 @@ model SpecialistFeatures {
 }
 
 model VolatilitySurface {
-  id          Int       @id @default(autoincrement())
-  underlying  String?   @db.VarChar
-  asOfDate    DateTime? @map("as_of_date") @db.Date
-  surfaceData Json?     @map("surface_data") @db.JsonB
-  atmVol      Decimal?  @map("atm_vol")
-  skew25d     Decimal?  @map("skew_25d")
-  butterfly25d Decimal? @map("butterfly_25d")
-  termSlope   Decimal?  @map("term_slope")
-  createdAt   DateTime? @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  underlying   String?   @db.VarChar
+  asOfDate     DateTime? @map("as_of_date") @db.Date
+  surfaceData  Json?     @map("surface_data") @db.JsonB
+  atmVol       Decimal?  @map("atm_vol")
+  skew25d      Decimal?  @map("skew_25d")
+  butterfly25d Decimal?  @map("butterfly_25d")
+  termSlope    Decimal?  @map("term_slope")
+  createdAt    DateTime? @default(now()) @map("created_at")
 
   @@unique([underlying, asOfDate])
   @@map("volatility_surface")
@@ -827,19 +827,19 @@ model CvFolds {
 }
 
 model DataQualityMetrics {
-  id              Int       @id @default(autoincrement())
-  asOfDate        DateTime  @map("as_of_date") @db.Date
-  source          String
-  lastUpdate      DateTime? @map("last_update") @db.Timestamptz
-  hoursSinceUpdate Decimal? @map("hours_since_update")
-  totalRows       Int?      @map("total_rows")
-  expectedRows    Int?      @map("expected_rows")
-  completenessPct Decimal?  @map("completeness_pct")
-  nullCount       Int?      @map("null_count")
-  nullPct         Decimal?  @map("null_pct")
-  isStale         Boolean?  @map("is_stale")
-  isIncomplete    Boolean?  @map("is_incomplete")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  id               Int       @id @default(autoincrement())
+  asOfDate         DateTime  @map("as_of_date") @db.Date
+  source           String
+  lastUpdate       DateTime? @map("last_update") @db.Timestamptz
+  hoursSinceUpdate Decimal?  @map("hours_since_update")
+  totalRows        Int?      @map("total_rows")
+  expectedRows     Int?      @map("expected_rows")
+  completenessPct  Decimal?  @map("completeness_pct")
+  nullCount        Int?      @map("null_count")
+  nullPct          Decimal?  @map("null_pct")
+  isStale          Boolean?  @map("is_stale")
+  isIncomplete     Boolean?  @map("is_incomplete")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([asOfDate, source])
   @@map("data_quality_metrics")
@@ -1160,70 +1160,70 @@ model TrainingRuns {
 // If this row says FAIL, the model does not exist operationally.
 
 model ModelCoreAudit {
-  id                       String   @id @default(uuid())
+  id String @id @default(uuid())
 
   // Identity
-  trainingRunId            String   @unique @map("training_run_id")
-  horizon                  String   // "5d" | "21d" | "63d" | "126d"
-  reviewedAt               DateTime @default(now()) @map("reviewed_at")
-  reviewer                 String
+  trainingRunId String   @unique @map("training_run_id")
+  horizon       String // "5d" | "21d" | "63d" | "126d"
+  reviewedAt    DateTime @default(now()) @map("reviewed_at")
+  reviewer      String
 
   // -------- HARD GATES --------
 
   // Scope & CV
-  isCoreRun                Boolean  @map("is_core_run")
-  cvPurgedWalkForward      Boolean  @map("cv_purged_walk_forward")
-  asofAlignmentValid       Boolean  @map("asof_alignment_valid")
+  isCoreRun           Boolean @map("is_core_run")
+  cvPurgedWalkForward Boolean @map("cv_purged_walk_forward")
+  asofAlignmentValid  Boolean @map("asof_alignment_valid")
 
   // Horizon allowlist
-  chronosBoltPresent       Boolean  @map("chronos_bolt_present")
-  chronos2Present          Boolean  @map("chronos2_present")
-  chronos2LoraPresent      Boolean  @map("chronos2_lora_present")
-  recursiveTabularPresent  Boolean  @map("recursive_tabular_present")
+  chronosBoltPresent      Boolean @map("chronos_bolt_present")
+  chronos2Present         Boolean @map("chronos2_present")
+  chronos2LoraPresent     Boolean @map("chronos2_lora_present")
+  recursiveTabularPresent Boolean @map("recursive_tabular_present")
 
   // Mandatory baselines
-  autoetsPresent           Boolean  @map("autoets_present")
-  thetaPresent             Boolean  @map("theta_present")
-  seasonalNaivePresent     Boolean  @map("seasonal_naive_present")
+  autoetsPresent       Boolean @map("autoets_present")
+  thetaPresent         Boolean @map("theta_present")
+  seasonalNaivePresent Boolean @map("seasonal_naive_present")
 
   // Ensemble integrity
-  weightedEnsembleUsed     Boolean  @map("weighted_ensemble_used")
-  oofOnly                  Boolean  @map("oof_only")
-  maxSingleWeight          Float    @map("max_single_weight")
-  chronosWeightNonzero     Boolean  @map("chronos_weight_nonzero")
-  recursiveWeightZeroLong  Boolean  @map("recursive_weight_zero_long")
+  weightedEnsembleUsed    Boolean @map("weighted_ensemble_used")
+  oofOnly                 Boolean @map("oof_only")
+  maxSingleWeight         Float   @map("max_single_weight")
+  chronosWeightNonzero    Boolean @map("chronos_weight_nonzero")
+  recursiveWeightZeroLong Boolean @map("recursive_weight_zero_long")
 
   // Probabilistic contract
-  monteCarloRuns           Int      @map("monte_carlo_runs")
-  p10Present               Boolean  @map("p10_present")
-  p50Present               Boolean  @map("p50_present")
-  p90Present               Boolean  @map("p90_present")
-  stressWideningApplied    Boolean  @map("stress_widening_applied")
+  monteCarloRuns        Int     @map("monte_carlo_runs")
+  p10Present            Boolean @map("p10_present")
+  p50Present            Boolean @map("p50_present")
+  p90Present            Boolean @map("p90_present")
+  stressWideningApplied Boolean @map("stress_widening_applied")
 
   // Validation
-  rmseRecorded             Boolean  @map("rmse_recorded")
-  brierRecorded            Boolean  @map("brier_recorded")
-  p10CoverageOk            Boolean  @map("p10_coverage_ok")
-  p90CoverageOk            Boolean  @map("p90_coverage_ok")
+  rmseRecorded  Boolean @map("rmse_recorded")
+  brierRecorded Boolean @map("brier_recorded")
+  p10CoverageOk Boolean @map("p10_coverage_ok")
+  p90CoverageOk Boolean @map("p90_coverage_ok")
 
   // Registry & lineage
-  registryComplete         Boolean  @map("registry_complete")
-  ensembleEdgesRecorded    Boolean  @map("ensemble_edges_recorded")
-  resourcesLogged          Boolean  @map("resources_logged")
-  artifactIsolationSafe    Boolean  @map("artifact_isolation_safe")
+  registryComplete      Boolean @map("registry_complete")
+  ensembleEdgesRecorded Boolean @map("ensemble_edges_recorded")
+  resourcesLogged       Boolean @map("resources_logged")
+  artifactIsolationSafe Boolean @map("artifact_isolation_safe")
 
   // -------- BUSINESS GATE --------
-  narrativeReady           Boolean  @map("narrative_ready")
-  buySellLanguageAbsent    Boolean  @map("buy_sell_language_absent")
-  uncertaintyExplained     Boolean  @map("uncertainty_explained")
-  specialistDivergenceFlag Boolean  @map("specialist_divergence_flag")
+  narrativeReady           Boolean @map("narrative_ready")
+  buySellLanguageAbsent    Boolean @map("buy_sell_language_absent")
+  uncertaintyExplained     Boolean @map("uncertainty_explained")
+  specialistDivergenceFlag Boolean @map("specialist_divergence_flag")
 
   // -------- FINAL VERDICT --------
-  hardGatePass             Boolean  @map("hard_gate_pass")
-  finalApproved            Boolean  @map("final_approved")
+  hardGatePass  Boolean @map("hard_gate_pass")
+  finalApproved Boolean @map("final_approved")
 
   // Required on failure
-  failureReason            String?  @map("failure_reason")
+  failureReason String? @map("failure_reason")
 
   @@index([horizon])
   @@index([finalApproved])
@@ -1573,4 +1573,3 @@ model FuturesPrices1d {
   @@map("futures_prices_1d")
   @@schema("silver")
 }
-
