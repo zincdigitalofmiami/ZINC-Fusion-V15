@@ -1,47 +1,11 @@
 'use client'
 
-import { useState, useEffect, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, type FormEvent } from 'react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
-  const [checkingAuth, setCheckingAuth] = useState(true)
-
-  // Check if already authenticated on mount
-  useEffect(() => {
-    const controller = new AbortController()
-    
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/auth/check', { 
-          credentials: 'same-origin',
-          signal: controller.signal,
-        })
-        
-        if (res.ok) {
-          const data = await res.json()
-          if (data.authenticated) {
-            // Already logged in - redirect to dashboard
-            const nextPath = new URLSearchParams(window.location.search).get('next')
-            const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
-            window.location.href = destination
-            return
-          }
-        }
-      } catch (err) {
-        // Aborted or network error - just show login form
-        if (err instanceof Error && err.name === 'AbortError') return
-      }
-      setCheckingAuth(false)
-    }
-    
-    checkAuth()
-    
-    return () => controller.abort()
-  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -83,17 +47,6 @@ export default function LoginPage() {
       setError('Network error. Please try again.')
       setStatus('idle')
     }
-  }
-
-  // Show loading while checking auth (with timeout fallback)
-  if (checkingAuth) {
-    return (
-      <div className="main-content" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 120 }}>
-        <div className="card" style={{ marginTop: 60, textAlign: 'center' }}>
-          <div style={{ color: 'var(--text-muted)' }}>Checking authentication...</div>
-        </div>
-      </div>
-    )
   }
 
   const isDisabled = status !== 'idle'
