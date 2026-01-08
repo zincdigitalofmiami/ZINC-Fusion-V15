@@ -6,6 +6,7 @@ const PUBLIC_PATH_PREFIXES = [
   '/favicon',
   '/api/health',
   '/api/auth',
+  '/api/inngest',  // Public - Inngest handles its own auth via signing key
   '/login',
 ]
 
