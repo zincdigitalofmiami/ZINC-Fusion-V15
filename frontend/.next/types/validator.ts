@@ -137,6 +137,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/zl/chart/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/zl/chart">> = Specific
+  const handler = {} as typeof import("../../src/app/api/zl/chart/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/zl/intraday/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/zl/intraday">> = Specific
+  const handler = {} as typeof import("../../src/app/api/zl/intraday/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/zl/live/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/zl/live">> = Specific
+  const handler = {} as typeof import("../../src/app/api/zl/live/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 
 
 
