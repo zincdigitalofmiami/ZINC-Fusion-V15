@@ -12,27 +12,36 @@ export default function LoginPage() {
 
   // Check if already authenticated on mount
   useEffect(() => {
+    const controller = new AbortController()
+    
     async function checkAuth() {
       try {
-        // Try to access a protected endpoint
-        const res = await fetch('/api/zl/chart', { 
-          method: 'HEAD',
-          credentials: 'same-origin' 
+        const res = await fetch('/api/auth/check', { 
+          credentials: 'same-origin',
+          signal: controller.signal,
         })
+        
         if (res.ok) {
-          // Already logged in - redirect to dashboard
-          const nextPath = new URLSearchParams(window.location.search).get('next')
-          const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
-          router.replace(destination)
-          return
+          const data = await res.json()
+          if (data.authenticated) {
+            // Already logged in - redirect to dashboard
+            const nextPath = new URLSearchParams(window.location.search).get('next')
+            const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
+            window.location.href = destination
+            return
+          }
         }
-      } catch {
-        // Not authenticated, show login form
+      } catch (err) {
+        // Aborted or network error - just show login form
+        if (err instanceof Error && err.name === 'AbortError') return
       }
       setCheckingAuth(false)
     }
+    
     checkAuth()
-  }, [router])
+    
+    return () => controller.abort()
+  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -62,18 +71,13 @@ export default function LoginPage() {
       setStatus('success')
       
       // Small delay to ensure cookie is persisted before redirect
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 150))
       
       const nextPath = new URLSearchParams(window.location.search).get('next')
       const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
       
-      // Use router.push first to update Next.js cache, then hard reload
-      router.push(destination)
-      
-      // Fallback: if router.push doesn't trigger navigation, force it
-      setTimeout(() => {
-        window.location.href = destination
-      }, 300)
+      // Hard redirect to ensure middleware sees the new cookie
+      window.location.href = destination
 
     } catch (err) {
       setError('Network error. Please try again.')
@@ -81,7 +85,7 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading while checking auth
+  // Show loading while checking auth (with timeout fallback)
   if (checkingAuth) {
     return (
       <div className="main-content" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 120 }}>
