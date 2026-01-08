@@ -44,8 +44,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="main-content" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 80 }}>
-      <div className="card" style={{ marginTop: 40 }}>
+    <div className="main-content" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 120 }}>
+      <div className="card" style={{ marginTop: 60 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 10 }}>
           Client Login
         </h1>
