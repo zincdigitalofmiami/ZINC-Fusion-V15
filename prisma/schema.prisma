@@ -1465,6 +1465,24 @@ model IntradayPrices {
   @@schema("analytics")
 }
 
+model ZlLive {
+  id            Int       @id @default(autoincrement())
+  price         Float
+  previousClose Float?    @map("previous_close")
+  change        Float?
+  changePct     Float?    @map("change_pct")
+  dayHigh       Float?    @map("day_high")
+  dayLow        Float?    @map("day_low")
+  dayOpen       Float?    @map("day_open")
+  volume        Int?
+  timestamp     DateTime? @db.Timestamptz
+  source        String?   @db.VarChar(50)
+  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("zl_live")
+  @@schema("analytics")
+}
+
 // =============================================================================
 // OPS SCHEMA (1 table) - Operations infrastructure only
 // =============================================================================
