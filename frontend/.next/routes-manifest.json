@@ -59,6 +59,24 @@
       "namedRegex": "^/api/health(?:/)?$"
     },
     {
+      "page": "/api/zl/chart",
+      "regex": "^/api/zl/chart(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/zl/chart(?:/)?$"
+    },
+    {
+      "page": "/api/zl/intraday",
+      "regex": "^/api/zl/intraday(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/zl/intraday(?:/)?$"
+    },
+    {
+      "page": "/api/zl/live",
+      "regex": "^/api/zl/live(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/zl/live(?:/)?$"
+    },
+    {
       "page": "/dashboard",
       "regex": "^/dashboard(?:/)?$",
       "routeKeys": {},
