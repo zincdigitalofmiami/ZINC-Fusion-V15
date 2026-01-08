@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+data
+models
+*.db
+*.sqlite
+__pycache__
+.venv
+*.pyc
+.DS_Store
