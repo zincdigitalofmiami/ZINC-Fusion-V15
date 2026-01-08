@@ -1,8 +1,14 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import StatusBar from '@/components/StatusBar';
-import HeaderNav from '@/components/HeaderNav';
+import Header from '@/components/Header';
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'ZINC Fusion V15',
@@ -11,11 +17,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.className}>
       <body>
         <StatusBar />
-        <HeaderNav />
-        <main className="container">{children}</main>
+        <Header />
+        {children}
       </body>
     </html>
   );
