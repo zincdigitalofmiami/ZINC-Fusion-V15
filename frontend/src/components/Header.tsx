@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
@@ -18,7 +19,13 @@ export default function Header() {
     <header className="header">
       <nav className="nav-container">
         <Link href="/" className="logo">
-          ZINC FUSION
+          <Image 
+            src="/logo.svg" 
+            alt="ZINC FUSION" 
+            width={200} 
+            height={50}
+            priority
+          />
         </Link>
         <ul className="nav-links">
           {navItems.map((item) => (
