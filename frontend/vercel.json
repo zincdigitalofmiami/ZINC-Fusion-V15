@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "env": {
+    "AUTH_PASSWORD": "@auth-password",
+    "NEXT_PUBLIC_API_URL": "@next-public-api-url"
+  }
+}
