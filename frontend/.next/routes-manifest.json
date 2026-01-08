@@ -83,6 +83,12 @@
       "namedRegex": "^/dashboard(?:/)?$"
     },
     {
+      "page": "/icon",
+      "regex": "^/icon(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon(?:/)?$"
+    },
+    {
       "page": "/legislation",
       "regex": "^/legislation(?:/)?$",
       "routeKeys": {},

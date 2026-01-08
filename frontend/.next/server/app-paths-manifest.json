@@ -8,6 +8,7 @@
   "/api/zl/intraday/route": "app/api/zl/intraday/route.js",
   "/api/zl/live/route": "app/api/zl/live/route.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/icon/route": "app-edge-has-no-entrypoint",
   "/legislation/page": "app/legislation/page.js",
   "/login/page": "app/login/page.js",
   "/page": "app/page.js",

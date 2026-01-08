@@ -3,6 +3,7 @@
   "functions": {
     "/api/auth/login": {},
     "/api/auth/logout": {},
-    "/api/health": {}
+    "/api/health": {},
+    "/icon": {}
   }
 }
