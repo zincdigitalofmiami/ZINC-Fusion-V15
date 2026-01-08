@@ -1,0 +1,10 @@
+{
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/legislation/page": "app/legislation/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/sentiment/page": "app/sentiment/page.js",
+  "/strategy/page": "app/strategy/page.js",
+  "/vegas-intel/page": "app/vegas-intel/page.js"
+}
