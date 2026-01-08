@@ -1,10 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -17,28 +15,28 @@ export default function LoginPage() {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
+        credentials: 'same-origin', // Ensure cookies are included
       })
 
-      if (!res.ok) {
-        let message = 'Login failed'
+      const data = await res.json().catch(() => ({ ok: false, error: 'Invalid response' }))
 
-        const data: unknown = await res.json().catch(() => null)
-        if (data && typeof data === 'object') {
-          const record = data as Record<string, unknown>
-          if (typeof record.error === 'string' && record.error.trim().length > 0) {
-            message = record.error
-          }
-        }
-
-        setError(message)
+      if (!res.ok || !data.ok) {
+        setError(data.error || 'Login failed')
+        setPassword('') // Clear password on error
+        setIsSubmitting(false)
         return
       }
 
+      // Success - use hard redirect to ensure middleware sees the new cookie
       const nextPath = new URLSearchParams(window.location.search).get('next')
-      router.replace(nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard')
-    } finally {
+      const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
+      
+      // Hard redirect ensures fresh request with new cookie
+      window.location.href = destination
+    } catch (err) {
+      setError('Network error. Please try again.')
       setIsSubmitting(false)
     }
   }
@@ -61,6 +59,8 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               autoComplete="current-password"
+              autoFocus
+              disabled={isSubmitting}
               style={{
                 flex: 1,
                 padding: '12px 14px',
@@ -69,29 +69,42 @@ export default function LoginPage() {
                 background: 'var(--surface-2)',
                 color: 'var(--text)',
                 outline: 'none',
+                opacity: isSubmitting ? 0.7 : 1,
               }}
             />
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !password.trim()}
               style={{
-                padding: '12px 14px',
+                padding: '12px 20px',
                 borderRadius: 10,
-                border: '1px solid var(--border-strong)',
-                background: 'var(--accent)',
-                color: 'var(--text-strong)',
-                fontWeight: 700,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1,
+                border: 'none',
+                background: isSubmitting || !password.trim() ? 'var(--surface-3)' : 'var(--accent)',
+                color: isSubmitting || !password.trim() ? 'var(--text-muted)' : 'white',
+                fontWeight: 600,
+                cursor: isSubmitting || !password.trim() ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </button>
           </div>
 
-          {error ? (
-            <div style={{ marginTop: 12, color: 'var(--down)', fontSize: 13 }}>{error}</div>
-          ) : null}
+          {error && (
+            <div 
+              style={{ 
+                marginTop: 12, 
+                padding: '10px 14px',
+                borderRadius: 8,
+                background: 'rgba(239, 83, 80, 0.1)',
+                border: '1px solid rgba(239, 83, 80, 0.3)',
+                color: '#ef5350', 
+                fontSize: 13 
+              }}
+            >
+              {error}
+            </div>
+          )}
         </form>
       </div>
     </div>

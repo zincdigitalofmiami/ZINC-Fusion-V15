@@ -8,6 +8,7 @@
   "/api/zl/intraday/route": "/api/zl/intraday",
   "/api/zl/live/route": "/api/zl/live",
   "/dashboard/page": "/dashboard",
+  "/icon/route": "/icon",
   "/legislation/page": "/legislation",
   "/login/page": "/login",
   "/page": "/",
