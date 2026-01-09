@@ -1592,3 +1592,52 @@ model FuturesPrices1d {
   @@schema("silver")
 }
 
+// =============================================================================
+// GOLD SCHEMA - Intel Drops (AI-Generated Market Intelligence)
+// =============================================================================
+
+model IntelDrop {
+  id              Int      @id @default(autoincrement())
+  asOfTs          DateTime @map("as_of_ts")
+
+  // Domain Identity
+  domain          String   @db.VarChar(20)   // CRUSH, CHINA, FX, FED, TARIFF, ENERGY, BIOFUEL, PALM, VOLATILITY, SUBSTITUTES, TRUMP_EFFECT
+  horizon         String   @db.VarChar(5)    // 1W, 1M, 3M, 6M
+
+  // Directional Signal (indexed for queries)
+  direction       Int                        // -1 (SHORT), 0 (FLAT), +1 (LONG)
+  pressureCents   Float    @map("pressure_cents")  // Magnitude in cents/lb
+  edge            Float                      // Confidence 0-1
+
+  // Driver Attribution (JSON for flexibility)
+  driverWeights   Json     @map("driver_weights")   // {technical, flows, macro, policy, weather, positioning, sentiment}
+  topDrivers      Json     @map("top_drivers")      // [{driver_id, label, sign, weight, receipts}]
+
+  // Context Arrays
+  regimeTags      String[] @map("regime_tags")      // ['contango_carry', 'policy_roulette']
+  qualityFlags    String[] @map("quality_flags")    // ['OK', 'LOW_EVIDENCE', 'CONFLICTING_EVIDENCE']
+  dataGaps        String[] @map("data_gaps")        // Missing data sources
+
+  // Evidence Traceability
+  receipts        Json?                             // Document/URL references for claims
+
+  // THE 1000+ WORD ANALYSIS - Text for readability, not nested JSON
+  narrative       String   @db.Text                 // Full expert analysis (1000+ words)
+
+  // Structured quant output (correlations, regressions, forecasts)
+  quantPayload    Json     @map("quant_payload")    // Numeric results from AI compute
+
+  // Lineage
+  sourceModel     String?  @map("source_model")     // 'gpt-4o', 'grok-3', 'claude-opus'
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([asOfTs, domain, horizon])
+  @@index([domain])
+  @@index([asOfTs])
+  @@index([direction])  // Fast queries for bullish/bearish filtering
+  @@map("intel_drops")
+  @@schema("gold")
+}
+
+

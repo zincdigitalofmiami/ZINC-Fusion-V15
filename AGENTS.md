@@ -189,6 +189,7 @@ EXTERNAL SOURCES
 ┌─────────────────────────────────────────────────────────────┐
 │  GOLD - Denormalized feature store (business-ready)         │
 │  • gold.elite_indicators_1d = OHLCV + 27 indicators + KPIs  │
+│  • gold.intelligence_cells = Bio-Genetic Intelligence Units │
 │  • Denormalized: no JOINs needed downstream                 │
 │  • Hurst, ConnorsRSI, Fisher, TTM Squeeze, returns, etc.    │
 │  • Module: src/fusion/features/elite_indicators.py          │

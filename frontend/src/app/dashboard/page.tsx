@@ -1,172 +1,175 @@
-import ZLPriceChart from '@/components/ZLPriceChart'
+'use client';
+
+import React, { useState } from 'react';
+import ZLPriceChart from '@/components/ZLPriceChart';
+import { SignalGauge } from '@/components/ui/SignalGauge';
+import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalculator';
+import { MarketCommentary } from '@/components/ui/MarketCommentary';
+import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
+import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
+import { FusionBrain } from '@/components/viz/FusionBrain';
+import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
+import { QuantAdminSidebar } from '@/components/layout/QuantAdminSidebar';
+import { BrainCircuit, Wind, TrendingUp, AlertTriangle, Menu, Activity } from 'lucide-react';
 
 export default function DashboardPage() {
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+
   return (
-    <div className="main-content" style={{ maxWidth: '100%', padding: '0 24px' }}>
-      {/* Full-width ZL Chart */}
-      <div style={{ marginBottom: '32px' }}>
-        <ZLPriceChart />
-      </div>
+    <div className="min-h-screen animate-in fade-in duration-500 p-6 space-y-8 pb-20 bg-[#0a0a0a]">
+      
+      <QuantAdminSidebar isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
 
-      {/* Forecast Horizons - 4 cards equally spaced */}
-      <div className="horizon-section" style={{ marginBottom: '32px' }}>
-        <h4 className="horizon-title">Forecast Horizons</h4>
-        <div className="horizon-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          <div className="gauge-card-hz">
-            <div className="gauge-hz-label">1 Week</div>
-            <div className="gauge-hz-container">
-              <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                <defs>
-                  <linearGradient id="gaugeGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ef5350" />
-                    <stop offset="25%" stopColor="#ffb74d" />
-                    <stop offset="50%" stopColor="#ffd54f" />
-                    <stop offset="75%" stopColor="#81c784" />
-                    <stop offset="100%" stopColor="#2962FF" />
-                  </linearGradient>
-                </defs>
-                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="url(#gaugeGrad1)" strokeWidth="8" strokeLinecap="round" />
-                <line x1="60" y1="60" x2="60" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round" transform="rotate(45 60 60)" />
-                <circle cx="60" cy="60" r="4" fill="white" />
-              </svg>
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/5 pb-6">
+        <div>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            STRATEGY COMMAND
+          </h1>
+          <p className="text-slate-400 mt-1 font-mono text-sm tracking-wide">
+             ALTERNATIVE DATA INTELLIGENCE // MULTI-HORIZON XAI
+          </p>
+        </div>
+        <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE FEED
             </div>
-            <div className="gauge-hz-price">—</div>
-            <div className="gauge-hz-change positive">—</div>
-            <div className="gauge-hz-metrics">
-              <div className="gauge-hz-metric"><span>P10</span><span>—</span></div>
-              <div className="gauge-hz-metric"><span>P90</span><span>—</span></div>
+            <div>UPDATED: 14:02 CST</div>
             </div>
-          </div>
-
-          <div className="gauge-card-hz">
-            <div className="gauge-hz-label">1 Month</div>
-            <div className="gauge-hz-container">
-              <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                <defs>
-                  <linearGradient id="gaugeGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ef5350" />
-                    <stop offset="25%" stopColor="#ffb74d" />
-                    <stop offset="50%" stopColor="#ffd54f" />
-                    <stop offset="75%" stopColor="#81c784" />
-                    <stop offset="100%" stopColor="#2962FF" />
-                  </linearGradient>
-                </defs>
-                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="url(#gaugeGrad2)" strokeWidth="8" strokeLinecap="round" />
-                <line x1="60" y1="60" x2="60" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round" transform="rotate(30 60 60)" />
-                <circle cx="60" cy="60" r="4" fill="white" />
-              </svg>
-            </div>
-            <div className="gauge-hz-price">—</div>
-            <div className="gauge-hz-change positive">—</div>
-            <div className="gauge-hz-metrics">
-              <div className="gauge-hz-metric"><span>P10</span><span>—</span></div>
-              <div className="gauge-hz-metric"><span>P90</span><span>—</span></div>
-            </div>
-          </div>
-
-          <div className="gauge-card-hz">
-            <div className="gauge-hz-label">3 Month</div>
-            <div className="gauge-hz-container">
-              <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                <defs>
-                  <linearGradient id="gaugeGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ef5350" />
-                    <stop offset="25%" stopColor="#ffb74d" />
-                    <stop offset="50%" stopColor="#ffd54f" />
-                    <stop offset="75%" stopColor="#81c784" />
-                    <stop offset="100%" stopColor="#2962FF" />
-                  </linearGradient>
-                </defs>
-                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="url(#gaugeGrad3)" strokeWidth="8" strokeLinecap="round" />
-                <line x1="60" y1="60" x2="60" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round" transform="rotate(-10 60 60)" />
-                <circle cx="60" cy="60" r="4" fill="white" />
-              </svg>
-            </div>
-            <div className="gauge-hz-price">—</div>
-            <div className="gauge-hz-change negative">—</div>
-            <div className="gauge-hz-metrics">
-              <div className="gauge-hz-metric"><span>P10</span><span>—</span></div>
-              <div className="gauge-hz-metric"><span>P90</span><span>—</span></div>
-            </div>
-          </div>
-
-          <div className="gauge-card-hz">
-            <div className="gauge-hz-label">6 Month</div>
-            <div className="gauge-hz-container">
-              <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                <defs>
-                  <linearGradient id="gaugeGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ef5350" />
-                    <stop offset="25%" stopColor="#ffb74d" />
-                    <stop offset="50%" stopColor="#ffd54f" />
-                    <stop offset="75%" stopColor="#81c784" />
-                    <stop offset="100%" stopColor="#2962FF" />
-                  </linearGradient>
-                </defs>
-                <path d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="url(#gaugeGrad4)" strokeWidth="8" strokeLinecap="round" />
-                <line x1="60" y1="60" x2="60" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round" transform="rotate(-30 60 60)" />
-                <circle cx="60" cy="60" r="4" fill="white" />
-              </svg>
-            </div>
-            <div className="gauge-hz-price">—</div>
-            <div className="gauge-hz-change negative">—</div>
-            <div className="gauge-hz-metrics">
-              <div className="gauge-hz-metric"><span>P10</span><span>—</span></div>
-              <div className="gauge-hz-metric"><span>P90</span><span>—</span></div>
-            </div>
-          </div>
+            
+            <button 
+                onClick={() => setIsAdminOpen(true)}
+                className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors border border-transparent hover:border-white/10"
+            >
+                <Menu size={20} />
+            </button>
         </div>
       </div>
 
-      {/* Key Drivers - 4 gauges */}
-      <div className="gauges-section">
-        <h4 className="gauges-title">Key Drivers</h4>
-        <div className="gauges-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          <div className="gauge-card">
-            <div className="gauge-label">Crush Spread</div>
-            <div className="gauge-visual">
-              <div className="gauge-arc"></div>
-              <div className="gauge-needle" style={{ transform: 'rotate(30deg)' }}></div>
-              <div className="gauge-center"></div>
-            </div>
-            <div className="gauge-value high">—</div>
-            <div className="gauge-context">Soy processing margin<br />Supportive for ZL</div>
+      {/* SECTION 1: THE MASSIVE CHART (L0-L3 FUSION) */}
+      <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-1 shadow-2xl shadow-black/50 relative">
+          <div className="absolute top-4 left-6 z-10 pointer-events-none">
+             <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Activity size={18} className="text-emerald-400" />
+                ZL CORE FORECAST <span className="text-slate-500 text-sm font-normal">// L3 ENSEMBLE PATH</span>
+             </h2>
           </div>
+          <ZLPriceChart height={500} />
+      </div>
 
-          <div className="gauge-card">
-            <div className="gauge-label">China Demand</div>
-            <div className="gauge-visual">
-              <div className="gauge-arc"></div>
-              <div className="gauge-needle" style={{ transform: 'rotate(-10deg)' }}></div>
-              <div className="gauge-center"></div>
-            </div>
-            <div className="gauge-value medium">—</div>
-            <div className="gauge-context">Export sales activity<br />Neutral signal</div>
-          </div>
-
-          <div className="gauge-card">
-            <div className="gauge-label">Volatility</div>
-            <div className="gauge-visual">
-              <div className="gauge-arc"></div>
-              <div className="gauge-needle" style={{ transform: 'rotate(-20deg)' }}></div>
-              <div className="gauge-center"></div>
-            </div>
-            <div className="gauge-value low">—</div>
-            <div className="gauge-context">21-day realized vol<br />Low regime</div>
-          </div>
-
-          <div className="gauge-card">
-            <div className="gauge-label">Palm Spread</div>
-            <div className="gauge-visual">
-              <div className="gauge-arc"></div>
-              <div className="gauge-needle" style={{ transform: 'rotate(10deg)' }}></div>
-              <div className="gauge-center"></div>
-            </div>
-            <div className="gauge-value medium">—</div>
-            <div className="gauge-context">ZL vs palm premium<br />Substitution risk</div>
-          </div>
+      {/* SECTION 1.5: HORIZON SIGNALS (Moved Up) */}
+      <div>
+        <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-blue-500">
+            <h3 className="text-xl font-bold text-white">
+                Multi-Horizon Signals
+            </h3>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                ACTIVE
+            </span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SignalGauge 
+                horizon="1 Week" 
+                value={65} 
+                trend="bullish" 
+                p10={46.20} 
+                p90={48.90} 
+                confidence="High"
+            />
+            <SignalGauge 
+                horizon="1 Month" 
+                value={45} 
+                trend="neutral" 
+                p10={44.50} 
+                p90={50.10} 
+                confidence="Med"
+            />
+            <SignalGauge 
+                horizon="3 Months" 
+                value={30} 
+                trend="bearish" 
+                p10={40.20} 
+                p90={49.50} 
+                confidence="Low"
+            />
+            <SignalGauge 
+                horizon="6 Months" 
+                value={25} 
+                trend="bearish" 
+                p10={38.10} 
+                p90={47.80} 
+                confidence="Low"
+            />
         </div>
       </div>
+
+      {/* SECTION 2: QUANT OPERATIONAL LAYER */}
+      <div className="grid grid-cols-12 gap-6">
+        
+        {/* Left Column: Tools & Drivers (8) */}
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+            
+            {/* Impact & Waterfall Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ContractImpactCalculator />
+                <FactorWaterfall prevPrice={49.20} currentPrice={49.65} />
+            </div>
+
+            {/* Heatmap */}
+            <ProbabilityHeatmap />
+
+            {/* Brain (Force Graph) */}
+            <div className="h-[400px] border border-white/5 rounded-xl overflow-hidden bg-black/20">
+                 <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">Global Causal Network</span>
+                    <BrainCircuit size={14} className="text-purple-400" />
+                 </div>
+                 <FusionBrain />
+            </div>
+        </div>
+
+        {/* Right Column: Commentary & Risks (4) */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            
+            {/* Weather Risk Array (New Hi-Def Component) */}
+            <WeatherRiskArray />
+
+            {/* Quick Stats / Active Risks */}
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-6">
+                <h3 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-amber-400" />
+                    Active Risks
+                </h3>
+                <div className="space-y-3">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-amber-400 text-xs font-bold">TRUMP TARIFFS</span>
+                            <span className="text-amber-400 text-xs">HIGH PROB</span>
+                        </div>
+                        <p className="text-slate-400 text-xs">EPU index &gt; 175. China retaliation likely.</p>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-blue-400 text-xs font-bold">BIOFUEL MANDATE</span>
+                            <span className="text-blue-400 text-xs">MED IMPACT</span>
+                        </div>
+                        <p className="text-slate-400 text-xs">EPA waiver discussions in progress.</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Market Commentary */}
+            <MarketCommentary />
+        </div>
+
+      </div>
+
+
+      {/* Bottom Section: Horizon Gauges (Moved Up) */}
+      
     </div>
-  )
+  );
 }
