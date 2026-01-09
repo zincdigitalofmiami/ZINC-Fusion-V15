@@ -23,11 +23,8 @@ Usage:
 
 import os
 
-# Environment settings for Mac M4 Pro training
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 os.environ["KERAS_BACKEND"] = "tensorflow"
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # MPS fallback for unsupported ops
-os.environ["AUTOGLUON_DISABLE_RAY"] = "1"  # Prevents Ray/GCS failures on macOS
 
 import sys
 import logging
@@ -219,15 +216,13 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     logger.info("LOADING TRAINING DATA FROM PRISMA")
     logger.info("=" * 60)
 
-    # Tactical vs Strategic data window
-    is_tactical = horizon in TACTICAL_HORIZONS
-    start_date = TACTICAL_START_DATE if is_tactical else STRATEGIC_START_DATE
-    mode_label = "TACTICAL" if is_tactical else "STRATEGIC"
+    # ALL horizons use daily data - unified pipeline
+    start_date = CORE_START_DATE
     freq_label = "1d"
 
-    logger.info(f"Horizon: {horizon}d ({mode_label})")
-    logger.info(f"Base frequency: {freq_label}")
-    logger.info(f"Start date: {start_date} ({mode_label} window)")
+    logger.info(f"Horizon: {horizon}d")
+    logger.info(f"Base frequency: {freq_label} (UNIFIED - all horizons use daily)")
+    logger.info(f"Start date: {start_date}")
     logger.info(f"Strategy: Daily base + volatility proxies + merge_asof for lower frequencies")
     logger.info(f"  - Base: 1D symbols with volatility proxy features")
     logger.info(f"  - Forward-fill: 1D (FX, RIN, FRED, Weather, News)")
