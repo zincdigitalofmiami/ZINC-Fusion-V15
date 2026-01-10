@@ -2,26 +2,58 @@
 
 import { useEffect, useState } from 'react'
 
+interface ZlLiveData {
+  price: number
+  change: number
+  change_pct: number
+  updated_at: string
+}
+
 interface StatusBarProps {
-  zlPrice?: number
-  zlChange?: number
-  zlChangePercent?: number
   regime?: 'stable' | 'rising' | 'falling' | 'volatile' | 'crisis'
   confidence?: number
-  lastUpdate?: Date
-  isStale?: boolean
 }
 
 export default function StatusBar({
-  zlPrice = 42.85,
-  zlChange = -0.47,
-  zlChangePercent = -1.08,
   regime = 'volatile',
   confidence = 87,
-  lastUpdate = new Date(),
-  isStale = false,
 }: StatusBarProps) {
   const [displayTime, setDisplayTime] = useState<string>('')
+  const [zlData, setZlData] = useState<ZlLiveData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isStale, setIsStale] = useState(false)
+
+  // Fetch live ZL price
+  useEffect(() => {
+    async function fetchZlLive() {
+      try {
+        const res = await fetch('/api/zl/live')
+        if (!res.ok) throw new Error('Failed to fetch ZL live')
+        const json = await res.json()
+        setZlData({
+          price: json.price,
+          change: json.change,
+          change_pct: json.change_pct,
+          updated_at: json.updated_at
+        })
+        
+        // Check if data is stale (>30 min old)
+        const updatedAt = new Date(json.updated_at)
+        const now = new Date()
+        setIsStale((now.getTime() - updatedAt.getTime()) > 30 * 60 * 1000)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchZlLive()
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchZlLive, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const formatTime = () => {
@@ -38,6 +70,9 @@ export default function StatusBar({
     return () => clearInterval(interval)
   }, [])
 
+  const zlPrice = zlData?.price ?? 0
+  const zlChange = zlData?.change ?? 0
+  const zlChangePercent = zlData?.change_pct ?? 0
   const isPositive = zlChange >= 0
   const priceChangeClass = isPositive ? 'positive' : 'negative'
 
