@@ -146,7 +146,7 @@ presets = "best_quality"
 - AutoGluon 1.5 TabularPredictor
 - LASSO (L1) + GBM + CatBoost + XGBoost + Random Forest
 
-### The 10 Specialists
+### The 11 Specialists
 
 | Bucket | Domain Intelligence | Key Features |
 |--------|---------------------|--------------|
@@ -160,6 +160,7 @@ presets = "best_quality"
 | `palm` | Palm oil production, supply disruptions | Malaysian palm, CPO prices |
 | `volatility` | Realized vol, IV, regime detection | GARCH, IV percentile |
 | `substitutes` | Canola, sunflower, competing oils | Spread vs alternatives |
+| `trump_effect` | Trump/policy regime dynamics, trade war | Policy uncertainty, EPA waivers, trade rhetoric |
 
 ### Configuration
 ```python
@@ -204,12 +205,13 @@ hyperparameters = {
 - AutoGluon 1.5 TabularPredictor
 - LASSO + LightGBM
 
-### Input Features (14 total)
+### Input Features (15 total)
 
-**Base Features (11)**:
+**Base Features (12)**:
 - `core_p50` - Core model median forecast
 - `crush_p50`, `china_p50`, `fx_p50`, `fed_p50`, `tariff_p50`
 - `energy_p50`, `biofuel_p50`, `palm_p50`, `volatility_p50`, `substitutes_p50`
+- `trump_effect_p50` - Trump/policy regime dynamics forecast
 
 **Dissent Features (3)**:
 ```python

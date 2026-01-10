@@ -1,7 +1,7 @@
 """
-ZINC Fusion V15: Big-10 Specialist Bucket Indicators
+ZINC Fusion V15: Big-11 Specialist Bucket Indicators
 =====================================================
-Domain-specific indicators for each of the 10 specialist buckets.
+Domain-specific indicators for each of the 11 specialist buckets.
 
 Each bucket has custom indicators, weightings, and regime detection
 tailored to its specific market drivers.
@@ -17,6 +17,7 @@ Buckets:
 8. FX (3-5% weight) - Currency effects
 9. FED (2-4% weight) - Monetary policy
 10. VOLATILITY (2-3% weight) - Financial stress/fear
+11. TRUMP_EFFECT (5-10% weight) - Trump/policy regime dynamics, trade war, EPA waivers
 """
 
 import pandas as pd
@@ -1846,7 +1847,7 @@ class TariffBucketIndicators:
 
 class ZincFusionBucketIndicators:
     """
-    Master class to compute all Big-10 specialist bucket indicators.
+    Master class to compute all Big-11 specialist bucket indicators.
     """
 
     def __init__(self, df: pd.DataFrame):
@@ -1863,13 +1864,13 @@ class ZincFusionBucketIndicators:
         palm_df: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
         """
-        Compute indicators for all 10 specialist buckets.
+        Compute indicators for all 11 specialist buckets.
 
         Returns DataFrame with all bucket indicators added.
         """
         result = self.df.copy()
 
-        print("🎯 Computing Big-10 Specialist Bucket Indicators...")
+        print("🎯 Computing Big-11 Specialist Bucket Indicators...")
 
         # 1. CRUSH Bucket
         print("   → CRUSH bucket...")
@@ -2086,7 +2087,7 @@ class ZincFusionBucketIndicators:
 # =============================================================================
 
 if __name__ == "__main__":
-    print("🚀 ZINC Fusion V15 Big-10 Specialist Bucket Indicators")
+    print("🚀 ZINC Fusion V15 Big-11 Specialist Bucket Indicators")
     print("=" * 60)
 
     # Show bucket configurations

@@ -140,14 +140,15 @@ WHERE as_of_date >= CURRENT_DATE - INTERVAL '30 days'
 GROUP BY specialist
 ORDER BY specialist;
 
--- Should return 10 rows (all specialists)
+-- Should return 11 rows (all specialists)
 
 -- Check for missing specialists
 SELECT s.specialist
 FROM (VALUES ('crush'), ('china'), ('fx'), ('fed'), ('tariff'),
-             ('energy'), ('biofuel'), ('palm'), ('volatility'), ('substitutes')
+             ('energy'), ('biofuel'), ('palm'), ('volatility'), ('substitutes'),
+             ('trump_effect')
      ) AS s(specialist)
-LEFT JOIN features.sentiment_specialist_1d f 
+LEFT JOIN features.sentiment_specialist_1d f
     ON s.specialist = f.specialist
 WHERE f.specialist IS NULL;
 

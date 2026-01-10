@@ -70,7 +70,7 @@ class RegimeState:
 
 
 # =============================================================================
-# BASE BUCKET WEIGHTS (Default allocation for Big-10)
+# BASE BUCKET WEIGHTS (Default allocation for Big-11)
 # =============================================================================
 
 BASE_WEIGHTS = {
@@ -88,7 +88,7 @@ BASE_WEIGHTS = {
 
 
 # =============================================================================
-# REGIME-SPECIFIC WEIGHT ADJUSTMENTS (Big-10)
+# REGIME-SPECIFIC WEIGHT ADJUSTMENTS (Big-11)
 # =============================================================================
 
 REGIME_WEIGHT_OVERRIDES = {

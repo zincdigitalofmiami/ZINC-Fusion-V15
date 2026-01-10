@@ -2,7 +2,7 @@
 """
 ZINC-FUSION-V15: Meta-Ensemble Training Script (L4 Layer)
 
-Trains the L4 meta-ensemble that combines core + 10 specialist OOF predictions
+Trains the L4 meta-ensemble that combines core + 11 specialist OOF predictions
 into final quantile forecasts with dissent features for disagreement detection.
 
 NON-NEGOTIABLES:
@@ -23,9 +23,9 @@ AUTOGLUON GOVERNANCE (from doctrine):
 
 Architecture (L4):
 - L4 Meta-Ensemble: LASSO + LightGBM
-- Base Inputs (11): core_p50 + 10 specialist_p50 values
+- Base Inputs (12): core_p50 + 11 specialist_p50 values
 - Dissent Features (3): specialist_std, specialist_range, core_vs_mean
-- Total Inputs: 14 features
+- Total Inputs: 15 features
 - Outputs: calibrated P10, P50, P90 quantiles
 - Saves: dissent_index to analytics for downstream L5 consumption
 
@@ -64,7 +64,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ═══════════════════════════════════════════════════════════════════════════════
 # ALL DATA POLICY ENFORCEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
-# The meta-ensemble MUST have OOF predictions from ALL sources (core + 10 specialists).
+# The meta-ensemble MUST have OOF predictions from ALL sources (core + 11 specialists).
 # This ensures the full ensemble has visibility into all information.
 # ═══════════════════════════════════════════════════════════════════════════════
 from src.fusion.validation.all_data_policy import log_all_data_summary

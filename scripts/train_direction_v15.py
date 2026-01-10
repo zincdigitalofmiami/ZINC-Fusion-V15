@@ -59,18 +59,19 @@ load_dotenv()
 HORIZONS = [5, 21, 63, 126]
 MODEL_ROOT = PROJECT_ROOT / "models" / "v15_stack"
 
-# 10 Specialist buckets (matching L3 architecture)
+# 11 Specialist buckets (matching L3 architecture)
 SPECIALIST_BUCKETS = [
-    "crush",       # Crush spread, meal/oil ratio
-    "china",       # Import demand, Dalian futures
-    "fx",          # USD strength, EM currencies
-    "fed",         # Rate expectations, yield curve
-    "tariff",      # Trade policy, duties
-    "energy",      # Crude, diesel, biodiesel economics
-    "biofuel",     # RINs, mandates, blending
-    "palm",        # Palm oil, CPO prices
-    "volatility",  # Vol regime, GARCH
-    "substitutes", # Competing oils (canola, sunflower)
+    "crush",        # Crush spread, meal/oil ratio
+    "china",        # Import demand, Dalian futures
+    "fx",           # USD strength, EM currencies
+    "fed",          # Rate expectations, yield curve
+    "tariff",       # Trade policy, duties
+    "energy",       # Crude, diesel, biodiesel economics
+    "biofuel",      # RINs, mandates, blending
+    "palm",         # Palm oil, CPO prices
+    "volatility",   # Vol regime, GARCH
+    "substitutes",  # Competing oils (canola, sunflower)
+    "trump_effect", # Trump/policy regime dynamics
 ]
 
 # Elite indicators (27 curated institutional-grade)

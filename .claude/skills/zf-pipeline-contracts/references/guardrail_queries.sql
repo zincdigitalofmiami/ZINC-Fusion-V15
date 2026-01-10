@@ -253,10 +253,10 @@ ORDER BY 1 DESC, 2;
 
 -- =============================================================================
 -- 10. SENTIMENT SPECIALIST COVERAGE
--- All 10 specialists should have sentiment features
+-- All 11 specialists should have sentiment features
 -- =============================================================================
 
-SELECT 
+SELECT
     specialist,
     COUNT(*) AS days_with_sentiment,
     MIN(as_of_date) AS first_date,
@@ -268,7 +268,8 @@ ORDER BY specialist;
 -- Check for missing specialists
 SELECT s.specialist AS missing_specialist
 FROM (VALUES ('crush'), ('china'), ('fx'), ('fed'), ('tariff'),
-             ('energy'), ('biofuel'), ('palm'), ('volatility'), ('substitutes')
+             ('energy'), ('biofuel'), ('palm'), ('volatility'), ('substitutes'),
+             ('trump_effect')
      ) AS s(specialist)
 LEFT JOIN (
     SELECT DISTINCT specialist FROM features.sentiment_specialist_1d

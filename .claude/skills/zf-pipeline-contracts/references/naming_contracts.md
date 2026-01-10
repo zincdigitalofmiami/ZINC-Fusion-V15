@@ -40,9 +40,9 @@ from cbi.config import ...            # legacy name
 
 | Term | Use For |
 |------|---------|
-| Specialists | The 10 TabularPredictor domain models |
+| Specialists | The 11 TabularPredictor domain models |
 | Core | The single TimeSeriesPredictor for ZL |
-| L0 | Base layer (Core + 10 Specialists = 11 models) |
+| L0 | Base layer (Core + 11 Specialists = 12 models) |
 | OOF | Out-of-fold predictions from L0 |
 
 Never say "Big-10 buckets" or "specialist buckets"—just "Specialists."

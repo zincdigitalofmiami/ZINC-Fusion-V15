@@ -23,7 +23,7 @@ Experiment Taxonomy:
     │   ├── china-demand
     │   ├── brazil-weather
     │   ├── argentina-fx
-    │   └── ... (10 specialists)
+    │   └── ... (11 specialists)
     ├── ensemble/       # L2 Ensemble/stacking models
     │   └── fusion-lasso
     └── backtest/       # Historical validation runs
