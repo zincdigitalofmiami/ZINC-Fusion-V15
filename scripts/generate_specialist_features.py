@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Generate Specialist Features from ALL Raw Data
+ZINC-FUSION-V15: Generate DOMAIN-SPECIFIC Specialist Features
 
-This script generates comprehensive specialist features using ALL available
-data sources, not just a subset.
+CRITICAL DISTINCTION FROM CORE:
+- CORE uses ALL 800+ features → AutoGluon figures out what matters
+- SPECIALISTS use HAND-PICKED features (20-50 per domain) → Expert curation
 
-Data Sources Used:
-- Market futures (84 symbols) - OHLCV + technical indicators
-- FRED economic (111 features)
-- Weather NOAA (10 features)
-- FX Spot (30 pairs)
-- CFTC COT (20 features)
-- USDA Exports (5 features)
-- USDA WASDE (5 features)
-- EPA RIN (4 features)
-- News sentiment (5 features)
+Each specialist receives ONLY the features relevant to their domain:
+- CRUSH: board_crush, oil_share, ZL/ZS/ZM ratios, NOPA, CFTC positioning
+- CHINA: copper (HG), USD/CNY, Dalian proxies, export sales to China
+- FX: DXY, USD/BRL, USD/CNY, carry trades, real effective rates
+- FED: Fed funds, yield curve, NFCI, real rates, credit spreads
+- TARIFF: policy uncertainty, trade war sentiment, retaliatory risk
+- ENERGY: CL, HO, crack spreads, BOHO spread, refinery margins
+- BIOFUEL: D4/D6 RINs, LCFS credits, biodiesel production
+- PALM: palm/soy ratio, Malaysia production/inventory, export levies
+- VOLATILITY: VIX, OVX, soybean IV, skew, term structure
+- SUBSTITUTES: canola, sunflower, rapeseed spreads vs ZL
+- TRUMP_EFFECT: tariff regime, EPA waivers, MFP, election cycle
 
-For each specialist bucket, we generate:
-1. Bucket-specific symbol features (OHLCV for relevant symbols)
-2. Technical indicators (SMA, EMA, RSI, MACD, Bollinger, etc.)
-3. Cross-asset spreads and ratios
-4. Relevant macro features from FRED/FX/COT
-5. Forward-filled to daily frequency
+This is NOT all_data_policy - that's for CORE only.
 
 Usage:
     python scripts/generate_specialist_features.py --dry-run
@@ -48,20 +46,16 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ALL DATA POLICY ENFORCEMENT
+# SPECIALIST FEATURE POLICY (NOT ALL DATA!)
 # ═══════════════════════════════════════════════════════════════════════════════
-# CRITICAL: Every specialist bucket gets ALL data, not a subset.
-# AutoGluon determines what's relevant. We provide EVERYTHING.
+# SPECIALISTS get HAND-PICKED features per domain, NOT all 800+.
 #
-# MINIMUM FEATURES PER BUCKET: 800+
+# - CORE model uses ALL DATA POLICY (800+ features, AutoGluon decides)
+# - SPECIALISTS use DOMAIN-SPECIFIC features (20-50 each, expert curated)
 #
-# If you see fewer features, YOU ARE DOING IT WRONG.
+# This is intentional. Each specialist is an expert in ONE thing.
+# The domain-specific feature definitions are in SPECIALIST_FEATURE_CONFIGS below.
 # ═══════════════════════════════════════════════════════════════════════════════
-from src.fusion.validation.all_data_policy import (
-    enforce_all_data_policy,
-    validate_specialist_features,
-    log_all_data_summary,
-)
 
 # Setup logging
 logging.basicConfig(
@@ -74,111 +68,439 @@ load_dotenv()
 load_dotenv(".env.vercel")
 
 # =============================================================================
-# SPECIALIST BUCKET DEFINITIONS
+# SPECIALIST FEATURE CONFIGURATIONS
 # =============================================================================
-# Each bucket has specific symbols and features it focuses on
+# Each specialist gets HAND-PICKED features specific to their domain.
+# This is the OPPOSITE of Core's all_data_policy.
+#
+# Feature counts per specialist: 20-50 (NOT 800+!)
 
-SPECIALIST_BUCKETS = {
+SPECIALIST_FEATURE_CONFIGS = {
+    # =========================================================================
+    # CRUSH (28-35% weight) - Soybean complex fundamentals
+    # =========================================================================
+    # This is THE most important specialist. Crush dynamics drive ZL pricing.
     "crush": {
-        "description": "Soybean complex fundamentals",
-        "symbols": ["ZL", "ZM", "ZS", "XK"],  # Soybean oil, meal, beans, Malaysian palm
-        "fred_series": ["DCOILWTICO", "DTWEXBGS"],
-        "fx_pairs": ["USDBRL", "USDARS"],
+        "description": "Soybean complex fundamentals - board crush, oil share, ratios",
+        "symbols": ["ZL", "ZM", "ZS"],  # Core soy complex only
+        "primary_features": [
+            # From specialist_buckets.py BUCKET_CONFIGS
+            "board_crush",           # ZS*11 - ZL*11 - ZM (processing economics)
+            "oil_share",             # ZL value / (ZL + ZM) - value split
+            "zl_zs_ratio",           # SoyOil/Soybean ratio
+            "zm_zs_ratio",           # SoyMeal/Soybean ratio
+            "crush_margin",          # Crush profitability
+            "nopa_crush_utilization",# US processing capacity usage
+            "cftc_zl_net_position",  # Speculative flows
+        ],
+        "secondary_features": [
+            "canola_spread",         # ZL vs canola
+            "sunflower_spread",      # ZL vs sunflower
+            "rapeseed_spread",       # ZL vs rapeseed
+            "argentina_crush",       # SA competition
+            "brazil_crush",          # SA competition
+            "crush_momentum_21d",    # Trend
+        ],
+        "derived_indicators": [
+            # From CrushBucketIndicators class
+            "crush_zscore",          # Z-score of board crush
+            "oil_share_zscore",      # Z-score of oil share
+            "crush_bb_pct",          # Bollinger band position
+            "crush_squeeze_prob",    # Regime probability
+            "crush_bucket_signal",   # Composite signal
+            "crush_percentile",      # Historical percentile rank
+        ],
+        "fred_series": [],  # Crush is pure fundamentals, no macro
+        "fx_pairs": ["USDBRL", "USDARS"],  # SA currency = crush competition
         "cot_symbols": ["ZL", "ZS", "ZM"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 40,
     },
+
+    # =========================================================================
+    # CHINA (16-22% weight) - Chinese import demand
+    # =========================================================================
+    # China buys 60%+ of global soybean trade. Copper = China demand proxy.
     "china": {
-        "description": "Chinese import demand",
-        "symbols": ["ZS", "ZL", "ZM", "HG", "FEF1"],  # Soybeans + copper/iron as China proxies
-        "fred_series": ["DTWEXBGS", "DCOILWTICO"],
-        "fx_pairs": ["USDCNY", "USDHKD"],
+        "description": "Chinese import demand - copper proxy, CNY, trade flows",
+        "symbols": ["ZL", "ZS", "HG"],  # Soybeans + copper (Dr. Copper)
+        "primary_features": [
+            "china_soy_imports",     # Actual import data
+            "dalian_soy_close",      # Dalian soybean price
+            "hg_close",              # Copper = China industrial proxy
+            "shanghai_copper",       # Shanghai copper
+            "usda_export_sales_china",# US exports to China
+            "china_crushing_margin", # China processor profitability
+        ],
+        "secondary_features": [
+            "china_pmi",             # Manufacturing PMI
+            "china_gdp_proxy",       # GDP growth proxy
+            "pork_hog_ratio",        # Protein demand cycle
+            "china_inventory",       # Port stocks
+            "brazil_premium",        # Brazil vs US pricing
+            "usd_cny",               # Currency effect
+        ],
+        "derived_indicators": [
+            # From ChinaBucketIndicators class
+            "hg_zscore",             # Copper z-score
+            "hg_momentum_21d",       # Copper momentum
+            "hg_zl_corr_21d",        # Copper/ZL correlation
+            "china_demand_regime",   # very_weak to very_strong
+            "china_bucket_signal",   # Composite signal
+            "cny_devalue_prob",      # CNY devaluation risk
+        ],
+        "fred_series": ["PCOPPUSDM"],  # FRED copper
+        "fx_pairs": ["USDCNY"],  # Only CNY matters
         "cot_symbols": ["ZS", "ZL"],
+        "include_usda_exports": True,
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 35,
     },
+
+    # =========================================================================
+    # ENERGY (10-14% weight) - Petroleum complex
+    # =========================================================================
+    # Biodiesel economics: SoyOil competes with Heating Oil.
+    "energy": {
+        "description": "Petroleum complex - crude, HO, crack spreads, BOHO",
+        "symbols": ["ZL", "CL", "HO", "RB", "NG"],
+        "primary_features": [
+            "cl_close",              # WTI crude
+            "ho_close",              # Heating oil (biodiesel substitute)
+            "rb_close",              # Gasoline
+            "ng_close",              # Natural gas
+            "crack_spread_321",      # Refining margin
+            "boho_spread",           # SoyOil - HO = biodiesel premium
+        ],
+        "secondary_features": [
+            "brent_wti_spread",      # Crude arbitrage
+            "gasoline_crack",        # RB-CL spread
+            "diesel_crack",          # HO-CL spread
+            "energy_inventory",      # DOE inventory
+            "refinery_utilization",  # Refinery run rates
+            "opec_spare_capacity",   # Supply buffer
+        ],
+        "derived_indicators": [
+            # From EnergyBucketIndicators class
+            "boho_zscore",           # BOHO z-score
+            "boho_percentile",       # BOHO historical rank
+            "cl_zscore",             # Crude z-score
+            "crack_zscore",          # Crack spread z-score
+            "energy_bucket_signal",  # Composite signal
+            "zl_cl_corr_21d",        # ZL/Crude correlation
+        ],
+        "fred_series": ["DCOILWTICO", "DCOILBRENTEU"],
+        "fx_pairs": [],  # Energy not FX sensitive
+        "cot_symbols": ["ZL", "CL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 40,
+    },
+
+    # =========================================================================
+    # PALM (8-12% weight) - Palm oil complex
+    # =========================================================================
+    # Palm is the world's largest vegetable oil. ZL competes with palm.
+    "palm": {
+        "description": "Palm oil complex - Malaysia/Indonesia production & spreads",
+        "symbols": ["ZL", "XK"],  # XK = Malaysian palm (CME)
+        "primary_features": [
+            "palm_oil_close",        # BMD palm close
+            "palm_oil_front",        # Front month
+            "zl_palm_spread",        # ZL - Palm absolute
+            "zl_palm_ratio",         # ZL/Palm ratio
+            "palm_production_malaysia",# Production data
+            "palm_inventory_malaysia",# MPOB inventory
+        ],
+        "secondary_features": [
+            "palm_export_levy_indonesia",# Indo levy
+            "palm_export_levy_malaysia",# Malaysia levy
+            "indonesia_export_policy",# DMO/DPO policy
+            "palm_biodiesel_mandate",# B30/B35 mandate
+            "el_nino_index",         # Weather impact
+            "la_nina_index",         # Weather impact
+        ],
+        "derived_indicators": [
+            # From PalmBucketIndicators class
+            "zl_palm_zscore",        # Spread z-score
+            "palm_inventory_zscore", # Inventory vs history
+            "palm_regime",           # premium/discount/parity
+            "palm_bucket_signal",    # Composite signal
+        ],
+        "fred_series": [],  # No relevant FRED series
+        "fx_pairs": ["USDMYR", "USDIDR"],  # Ringgit & Rupiah
+        "cot_symbols": ["ZL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "include_weather": True,  # El Nino affects palm yields
+        "expected_features": 30,
+    },
+
+    # =========================================================================
+    # BIOFUEL (6-10% weight) - Renewable mandates
+    # =========================================================================
+    # RFS/LCFS mandates drive soybean oil demand for biodiesel.
+    "biofuel": {
+        "description": "Renewable mandates - RINs, LCFS, biodiesel/RD capacity",
+        "symbols": ["ZL", "CL", "HO"],
+        "primary_features": [
+            "rin_d4_price",          # D4 biodiesel RIN
+            "rin_d6_price",          # D6 ethanol RIN
+            "lcfs_credit",           # California carbon credit
+            "rfs_mandate_level",     # Federal mandate volume
+            "biodiesel_production",  # Monthly production
+            "renewable_diesel_capacity",# RD nameplate capacity
+        ],
+        "secondary_features": [
+            "sbo_biodiesel_pct",     # SBO share of feedstock
+            "epa_waivers",           # Small refinery exemptions
+            "saf_demand",            # Sustainable aviation fuel
+            "carbon_credit_price",   # Global carbon
+            "blender_tax_credit",    # $1/gal BTC status
+            "e15_waiver_status",     # E15 summer status
+        ],
+        "derived_indicators": [
+            # From BiofuelBucketIndicators class
+            "rin_d4_zscore",         # D4 z-score
+            "rin_d4_percentile",     # D4 historical rank
+            "rin_d4_d6_spread",      # D4-D6 spread
+            "rin_regime",            # weak/neutral/strong
+            "biofuel_bucket_signal", # Composite signal
+            "lcfs_zscore",           # LCFS z-score
+        ],
+        "fred_series": [],  # RINs ARE the signal
+        "fx_pairs": [],
+        "cot_symbols": ["ZL"],
+        "include_rin": True,  # Core to this specialist
+        "include_trump_features": True,  # EPA waivers = Trump policy
+        "expected_features": 35,
+    },
+
+    # =========================================================================
+    # FX (3-5% weight) - Currency effects on trade
+    # =========================================================================
+    # Dollar strength affects commodity pricing, BRL/CNY affect trade flows.
     "fx": {
-        "description": "Currency effects on trade",
-        "symbols": ["ZL", "ZS", "DX", "6E", "6J", "6B"],  # Dollar index, major currencies
-        "fred_series": ["DTWEXBGS", "DGS10", "FEDFUNDS"],
-        "fx_pairs": ["EURUSD", "USDJPY", "GBPUSD", "USDBRL", "USDCNY"],
+        "description": "Currency effects - dollar, EM currencies, carry trades",
+        "symbols": ["ZL", "DX"],
+        "primary_features": [
+            "dxy",                   # Dollar index
+            "usd_brl",               # Brazil Real
+            "usd_cny",               # Chinese Yuan
+            "usd_ars",               # Argentine Peso
+            "fx_volatility",         # Currency vol
+            "em_currency_index",     # EM FX composite
+        ],
+        "secondary_features": [
+            "eur_usd",               # Euro cross
+            "real_effective_rate",   # Real exchange rate
+            "carry_trade_index",     # Risk appetite
+            "fx_intervention_risk",  # Central bank action
+            "current_account_balance",# Trade balance
+            "terms_of_trade",        # Export prices
+        ],
+        "derived_indicators": [
+            "dxy_zscore",            # Dollar z-score
+            "brl_devalue_prob",      # BRL stress
+            "cny_devalue_prob",      # CNY devalue risk
+            "fx_bucket_signal",      # Composite signal
+        ],
+        "fred_series": ["DTWEXBGS"],  # Trade-weighted dollar
+        "fx_pairs": ["EURUSD", "USDJPY", "USDBRL", "USDCNY", "USDARS"],
         "cot_symbols": ["ZL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 30,
     },
+
+    # =========================================================================
+    # FED (2-4% weight) - Monetary policy impacts
+    # =========================================================================
+    # Rate policy affects commodity carry, financial conditions affect risk appetite.
     "fed": {
-        "description": "Monetary policy impacts",
-        "symbols": ["ZL", "ES", "ZN", "ZB", "GC"],  # S&P, 10Y, 30Y bond, Gold
-        "fred_series": ["FEDFUNDS", "DGS10", "DGS2", "T10Y2Y", "VIXCLS", "DTWEXBGS"],
-        "fx_pairs": ["EURUSD", "USDJPY"],
+        "description": "Monetary policy - rates, yield curve, financial conditions",
+        "symbols": ["ZL", "ZN", "ZB"],
+        "primary_features": [
+            "fed_funds_rate",        # Effective FF rate
+            "fed_funds_target",      # FOMC target
+            "t10y2y",                # Yield curve slope
+            "real_rates",            # Real interest rates
+            "nfci",                  # Financial conditions
+            "financial_conditions_index",# Chicago Fed FCI
+        ],
+        "secondary_features": [
+            "fed_balance_sheet",     # Fed assets
+            "qe_pace",               # QE/QT monthly pace
+            "fomc_dots",             # Fed projections
+            "market_fed_expectations",# Fed funds futures
+            "inflation_breakevens",  # TIPS spread
+            "tips_spreads",          # Real yield spreads
+            "credit_spreads",        # HY-IG spread
+        ],
+        "derived_indicators": [
+            "yield_curve_regime",    # Inverted/flat/steep
+            "financial_stress_zscore",# NFCI z-score
+            "fed_bucket_signal",     # Composite signal
+        ],
+        "fred_series": ["FEDFUNDS", "DGS10", "DGS2", "T10Y2Y", "NFCI"],
+        "fx_pairs": ["EURUSD"],  # Dollar response to Fed
         "cot_symbols": ["ZL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 30,
     },
+
+    # =========================================================================
+    # TARIFF (3-5% weight) - Trade policy impacts
+    # =========================================================================
+    # Trade war regime, policy uncertainty, retaliation risk.
     "tariff": {
-        "description": "Trade policy impacts",
-        "symbols": ["ZL", "ZS", "ZM", "ZC", "ZW"],  # Ag complex
-        "fred_series": ["DTWEXBGS"],
+        "description": "Trade policy - tariffs, uncertainty, retaliation risk",
+        "symbols": ["ZL", "ZS", "ZM"],
+        "primary_features": [
+            "effective_tariff_rate", # Actual tariff rate
+            "trade_war_sentiment",   # News sentiment
+            "policy_uncertainty_index",# EPU index
+            "china_tariff_rate",     # China retaliatory tariff
+            "retaliatory_tariff_risk",# Risk score
+        ],
+        "secondary_features": [
+            "trade_negotiation_score",# Deal probability
+            "diplomatic_sentiment",  # Diplomatic relations
+            "news_volume",           # Trade news frequency
+            "trump_trade_tweets",    # Tweet volume
+            "section_301_risk",      # IP investigation risk
+            "wto_dispute_count",     # WTO cases
+        ],
+        "derived_indicators": [
+            "trade_war_regime",      # -5 to +5 scale
+            "tariff_bucket_signal",  # Composite signal
+            "policy_uncertainty_zscore",
+        ],
+        "fred_series": ["USEPUINDXM"],  # Policy Uncertainty
         "fx_pairs": ["USDCNY", "USDBRL"],
         "cot_symbols": ["ZL", "ZS"],
+        "include_rin": False,
+        "include_trump_features": True,  # Tariff = Trump regime
+        "expected_features": 30,
     },
-    "energy": {
-        "description": "Petroleum complex",
-        "symbols": ["ZL", "CL", "HO", "RB", "NG"],  # Crude, heating oil, gasoline, natgas
-        "fred_series": ["DCOILWTICO", "DCOILBRENTEU"],
-        "fx_pairs": ["USDCAD", "USDRUB"],
-        "cot_symbols": ["ZL", "CL"],
-    },
-    "biofuel": {
-        "description": "Renewable mandates",
-        "symbols": ["ZL", "ZS", "CL", "HO", "RB"],  # Soybean oil + energy
-        "fred_series": ["DCOILWTICO"],
-        "fx_pairs": [],
-        "cot_symbols": ["ZL", "CL"],
-        "include_rin": True,
-    },
-    "palm": {
-        "description": "Palm oil complex",
-        "symbols": ["ZL", "XK", "ZS"],  # Soybean oil vs palm
-        "fred_series": ["DCOILWTICO"],
-        "fx_pairs": ["USDMYR", "USDIDR"],
-        "cot_symbols": ["ZL"],
-    },
+
+    # =========================================================================
+    # VOLATILITY (2-3% weight) - Market stress/fear
+    # =========================================================================
+    # VIX, realized vol, term structure, correlation breakdown.
     "volatility": {
-        "description": "Market stress/fear",
-        "symbols": ["ZL", "ES", "VX", "GC", "ZN"],  # S&P, VIX futures, Gold, 10Y
-        "fred_series": ["VIXCLS", "DGS10", "T10Y2Y", "TEDRATE"],
-        "fx_pairs": ["EURUSD", "USDJPY"],
-        "cot_symbols": ["ZL"],
-    },
-    "substitutes": {
-        "description": "Competing vegetable oils",
-        "symbols": ["ZL", "XK", "RS", "OJ"],  # Soybean oil, palm, canola, OJ as ag proxy
-        "fred_series": [],
-        "fx_pairs": ["USDCAD", "EURUSD"],  # Canola from Canada, Rapeseed from EU
-        "cot_symbols": ["ZL"],
-    },
-    # =========================================================================
-    # TRUMP SPECIALIST - The 11th Specialist
-    # =========================================================================
-    # Trump is a REGIME unto itself. Not just tariffs - it's the COMBINATION:
-    # - Section 301 tariffs + China retaliation
-    # - EPA small refinery waivers (crushed biodiesel demand)
-    # - MFP payments (artificial price floor)
-    # - Tweet-driven volatility
-    # - Policy unpredictability
-    #
-    # Training uses Trump 1.0 (2017-2021) to predict Trump 2.0 (2025+)
-    # =========================================================================
-    "trump_effect": {
-        "description": "Trump/policy regime dynamics - tariffs, EPA waivers, China trade war, tweets",
-        "symbols": ["ZL", "ZS", "ZM", "HG", "ES", "DX"],  # Soy complex + copper (China) + S&P + dollar
-        "fred_series": [
-            "DTWEXBGS",      # Dollar index
-            "DEXCHUS",       # USD/CNY
-            "FEDFUNDS",      # Fed funds (Trump pressure on Fed)
-            "VIXCLS",        # VIX (uncertainty)
-            "T10Y2Y",        # Yield curve
-            "PCOPPUSDM",     # Copper (China proxy)
+        "description": "Market stress - VIX, vol surfaces, correlation, skew",
+        "symbols": ["ZL", "ES", "VX"],
+        "primary_features": [
+            "vix",                   # VIX index
+            "ovx",                   # Oil vol index
+            "soybean_iv",            # ZL implied vol
+            "realized_vol_20d",      # 20d realized vol
+            "vol_risk_premium",      # IV - RV
+            "term_structure_slope",  # VX1/VX2 ratio
         ],
-        "fx_pairs": ["USDCNY", "USDBRL", "USDMXN"],  # China, Brazil (competitor), Mexico (NAFTA)
+        "secondary_features": [
+            "skew_index",            # Put skew
+            "put_call_ratio",        # Options sentiment
+            "vvix",                  # Vol of vol
+            "correlation_index",     # Asset correlation
+            "stress_index",          # Financial stress
+            "liquidity_index",       # Market liquidity
+            "tail_risk_measure",     # Left tail risk
+        ],
+        "derived_indicators": [
+            "vix_zscore",            # VIX z-score
+            "vix_regime",            # low/normal/high/crisis
+            "vol_bucket_signal",     # Composite signal
+            "vol_term_contango",     # Contango/backwardation
+        ],
+        "fred_series": ["VIXCLS"],
+        "fx_pairs": [],  # Vol not FX sensitive
+        "cot_symbols": ["ZL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 30,
+    },
+
+    # =========================================================================
+    # SUBSTITUTES (4-6% weight) - Competing vegetable oils
+    # =========================================================================
+    # Canola, sunflower, rapeseed compete with soybean oil.
+    "substitutes": {
+        "description": "Competing oils - canola, sunflower, rapeseed spreads",
+        "symbols": ["ZL", "RS"],  # RS = Canola (ICE)
+        "primary_features": [
+            "canola_close",          # ICE Canola
+            "sunflower_close",       # Sunflower price
+            "rapeseed_close",        # Matif Rapeseed
+            "cottonseed_oil_close",  # Cottonseed
+            "zl_canola_spread",      # ZL - Canola
+            "zl_sunflower_spread",   # ZL - Sunflower
+        ],
+        "secondary_features": [
+            "eu_rapeseed_production",# EU production
+            "black_sea_sunflower",   # Ukraine/Russia
+            "canola_crush_canada",   # Canada crush
+            "argentina_sunflower_crop",# Argentina
+            "india_import_policy",   # Import duties
+            "eu_biofuel_feedstock",  # RED II feedstock
+        ],
+        "derived_indicators": [
+            "zl_canola_zscore",      # Spread z-score
+            "substitutes_regime",    # tight/normal/loose
+            "substitutes_bucket_signal",# Composite
+        ],
+        "fred_series": [],
+        "fx_pairs": ["USDCAD", "EURUSD"],  # Canola/Rapeseed currencies
+        "cot_symbols": ["ZL"],
+        "include_rin": False,
+        "include_trump_features": False,
+        "expected_features": 25,
+    },
+
+    # =========================================================================
+    # TRUMP_EFFECT (variable weight) - Policy regime dynamics
+    # =========================================================================
+    # Trump is a REGIME: tariffs + EPA waivers + MFP + tweets.
+    "trump_effect": {
+        "description": "Trump/policy regime - tariffs, EPA waivers, MFP, elections",
+        "symbols": ["ZL", "ZS", "HG", "ES", "DX"],
+        "primary_features": [
+            # Binary regime flags
+            "trump_in_office",       # Is Trump president
+            "trump_transition",      # 60-day inauguration window
+            "china_tariff_active",   # 25% tariff on soybeans
+            "phase_one_active",      # Trade deal in effect
+            "mfp_active",            # MFP payments active
+        ],
+        "secondary_features": [
+            # Continuous regime scores
+            "epa_waiver_regime",     # SRE policy score (-5 to 0)
+            "trade_war_regime",      # Trade tension (-5 to +5)
+            "trump_regime_score",    # Composite score
+            "days_to_election",      # Election cycle
+            "trump_2_anticipation",  # Market pricing Trump 2.0
+            "election_year",         # Is election year
+        ],
+        "derived_indicators": [
+            "days_since_tariff_announce",# Tariff timeline
+            "trump_volatility_impact",# VIX during Trump
+            "trump_bucket_signal",   # Composite signal
+        ],
+        "fred_series": ["VIXCLS", "T10Y2Y"],
+        "fx_pairs": ["USDCNY", "USDBRL", "USDMXN"],
         "cot_symbols": ["ZL", "ZS"],
-        "include_rin": True,  # EPA waiver impact on RINs
-        "include_trump_features": True,  # Special Trump regime features
+        "include_rin": True,  # EPA waivers affect RINs
+        "include_trump_features": True,
+        "expected_features": 40,
     },
 }
+
+# Legacy alias for backwards compatibility
+SPECIALIST_BUCKETS = SPECIALIST_FEATURE_CONFIGS
 
 
 def get_postgres_connection():
@@ -652,15 +974,34 @@ def generate_bucket_features(
     news_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Generate features for a specialist bucket.
+    Generate DOMAIN-SPECIFIC features for a specialist bucket.
 
-    CRITICAL: ALL DATA SOURCES ARE INCLUDED FOR EVERY BUCKET.
-    No cherry-picking. AutoGluon will figure out what's relevant.
+    IMPORTANT: Specialists get HAND-PICKED features, NOT all 800+.
+    This is the OPPOSITE of Core's all_data_policy.
+
+    Each specialist receives only:
+    - Symbols listed in their config
+    - FRED series listed in their config
+    - FX pairs listed in their config
+    - COT data for listed symbols
+    - Trump features if include_trump_features=True
+    - RIN data if include_rin=True
+    - Weather if include_weather=True
     """
-    logger.info(f"  Generating features for bucket: {bucket_name}")
+    logger.info(f"  Generating DOMAIN-SPECIFIC features for: {bucket_name}")
+
+    # Get config for this bucket
+    symbols = bucket_config.get("symbols", ["ZL"])
+    fred_series = bucket_config.get("fred_series", [])
+    fx_pairs = bucket_config.get("fx_pairs", [])
+    cot_symbols = bucket_config.get("cot_symbols", ["ZL"])
+    include_rin = bucket_config.get("include_rin", False)
+    include_trump = bucket_config.get("include_trump_features", False)
+    include_weather = bucket_config.get("include_weather", False)
+    include_usda = bucket_config.get("include_usda_exports", False)
 
     # ==========================================================================
-    # 1. BASE: Start with ZL as base
+    # 1. BASE: Start with ZL as base (always included)
     # ==========================================================================
     zl_df = market_df[market_df["symbol"] == "ZL"][["as_of_date", "open", "high", "low", "close", "volume"]].copy()
     zl_df = zl_df.rename(columns={
@@ -669,19 +1010,17 @@ def generate_bucket_features(
     })
     zl_df = zl_df.sort_values("as_of_date")
 
-    # Add ZL technical indicators
+    # Add ZL core technical indicators
     zl_tech = calculate_technical_indicators(zl_df.rename(columns={"zl_close": "close"}), "close")
-    for col in ["return_1d", "return_5d", "return_21d", "sma_5", "sma_21", "sma_63",
-                "ema_12", "ema_26", "macd", "macd_signal", "rsi_14",
-                "bb_pct", "volatility_21d", "price_vs_sma21", "price_vs_sma63"]:
+    for col in ["return_1d", "return_5d", "return_21d", "sma_21", "sma_63",
+                "macd", "rsi_14", "bb_pct", "volatility_21d"]:
         if col in zl_tech.columns:
             zl_df[f"zl_{col}"] = zl_tech[col].values
 
     # ==========================================================================
-    # 2. ADD ALL SYMBOLS (pivot wide)
+    # 2. ADD ONLY CONFIGURED SYMBOLS (not all 84!)
     # ==========================================================================
-    all_symbols = market_df["symbol"].unique()
-    for sym in all_symbols:
+    for sym in symbols:
         if sym == "ZL":
             continue
         sym_df = market_df[market_df["symbol"] == sym][["as_of_date", "open", "high", "low", "close", "volume"]].copy()
@@ -694,79 +1033,379 @@ def generate_bucket_features(
                 "close": f"{sym_lower}_close",
                 "volume": f"{sym_lower}_volume"
             })
-            # Add returns
+            # Add key returns
             sym_df[f"{sym_lower}_return_1d"] = sym_df[f"{sym_lower}_close"].pct_change(1)
-            sym_df[f"{sym_lower}_return_5d"] = sym_df[f"{sym_lower}_close"].pct_change(5)
             sym_df[f"{sym_lower}_return_21d"] = sym_df[f"{sym_lower}_close"].pct_change(21)
             zl_df = zl_df.merge(sym_df, on="as_of_date", how="left")
-
-    # Calculate soy complex spreads if available
-    if "zm_close" in zl_df.columns and "zs_close" in zl_df.columns:
-        zl_df["board_crush"] = zl_df.get("zm_close", 0) * 22 + zl_df["zl_close"] * 11 - zl_df.get("zs_close", 0) * 50
-        zl_df["oil_share"] = zl_df["zl_close"] * 11 / (zl_df["zl_close"] * 11 + zl_df.get("zm_close", 0) * 22 + 0.001)
-        zl_df["zl_zs_ratio"] = zl_df["zl_close"] / (zl_df.get("zs_close", 1) + 0.001)
-        zl_df["zm_zs_ratio"] = zl_df.get("zm_close", 0) / (zl_df.get("zs_close", 1) + 0.001)
+    logger.info(f"    + Symbols: {len(symbols)} ({', '.join(symbols)})")
 
     # ==========================================================================
-    # 3. ADD ALL FRED (111 features)
+    # 3. COMPUTE RICH BUCKET-SPECIFIC INDICATORS
     # ==========================================================================
-    zl_df = zl_df.merge(fred_df, on="as_of_date", how="left")
-    logger.info(f"    + FRED: {len(fred_df.columns)-1} features")
+    if bucket_name == "crush":
+        # =====================================================================
+        # CRUSH: Board crush, oil share, crush economics, momentum, regimes
+        # =====================================================================
+        if "zm_close" in zl_df.columns and "zs_close" in zl_df.columns:
+            # Core spreads
+            zl_df["board_crush"] = zl_df["zl_close"] * 11 + zl_df["zm_close"] * 22 - zl_df["zs_close"] * 50
+            zl_df["oil_share"] = zl_df["zl_close"] * 11 / (zl_df["zl_close"] * 11 + zl_df["zm_close"] * 22 + 0.001)
+            zl_df["zl_zs_ratio"] = zl_df["zl_close"] / (zl_df["zs_close"] + 0.001)
+            zl_df["zm_zs_ratio"] = zl_df["zm_close"] / (zl_df["zs_close"] + 0.001)
+            zl_df["zl_zm_ratio"] = zl_df["zl_close"] / (zl_df["zm_close"] + 0.001)
+
+            # Z-scores (normalized)
+            zl_df["crush_zscore"] = (zl_df["board_crush"] - zl_df["board_crush"].rolling(252).mean()) / zl_df["board_crush"].rolling(252).std()
+            zl_df["oil_share_zscore"] = (zl_df["oil_share"] - zl_df["oil_share"].rolling(252).mean()) / zl_df["oil_share"].rolling(252).std()
+
+            # Percentile ranks
+            zl_df["crush_percentile"] = zl_df["board_crush"].rolling(252).rank(pct=True) * 100
+            zl_df["oil_share_percentile"] = zl_df["oil_share"].rolling(252).rank(pct=True) * 100
+
+            # Bollinger bands for crush
+            crush_sma = zl_df["board_crush"].rolling(20).mean()
+            crush_std = zl_df["board_crush"].rolling(20).std()
+            zl_df["crush_bb_upper"] = crush_sma + 2 * crush_std
+            zl_df["crush_bb_lower"] = crush_sma - 2 * crush_std
+            zl_df["crush_bb_pct"] = (zl_df["board_crush"] - zl_df["crush_bb_lower"]) / (zl_df["crush_bb_upper"] - zl_df["crush_bb_lower"] + 0.001)
+
+            # Momentum
+            zl_df["crush_momentum_5d"] = zl_df["board_crush"].pct_change(5) * 100
+            zl_df["crush_momentum_21d"] = zl_df["board_crush"].pct_change(21) * 100
+            zl_df["oil_share_change_21d"] = zl_df["oil_share"].diff(21)
+
+            # Regime probabilities
+            zl_df["crush_squeeze_prob"] = 1 / (1 + np.exp(zl_df["crush_zscore"] + 1))
+            zl_df["crush_wide_prob"] = 1 / (1 + np.exp(-zl_df["crush_zscore"] + 1))
+
+            # Signal strength (0-100)
+            zl_df["crush_signal_strength"] = np.abs(zl_df["crush_zscore"]).clip(0, 3) / 3 * 100
+            zl_df["oil_share_signal_strength"] = np.abs(zl_df["oil_share_zscore"]).clip(0, 3) / 3 * 100
+
+            # Composite bucket signal
+            zl_df["crush_bucket_signal"] = zl_df["crush_zscore"] * 0.5 + zl_df["oil_share_zscore"] * 0.5
+
+            # Support/Resistance
+            zl_df["crush_52w_high"] = zl_df["board_crush"].rolling(252).max()
+            zl_df["crush_52w_low"] = zl_df["board_crush"].rolling(252).min()
+            zl_df["crush_range_position"] = (zl_df["board_crush"] - zl_df["crush_52w_low"]) / (zl_df["crush_52w_high"] - zl_df["crush_52w_low"] + 0.001) * 100
+
+    elif bucket_name == "energy":
+        # =====================================================================
+        # ENERGY: BOHO, crack spreads, crude dynamics, refining economics
+        # =====================================================================
+        if "ho_close" in zl_df.columns:
+            # BOHO spread (biodiesel premium)
+            zl_df["boho_spread"] = zl_df["zl_close"] - zl_df["ho_close"]
+            zl_df["boho_ratio"] = zl_df["zl_close"] / (zl_df["ho_close"] + 0.001)
+            zl_df["boho_zscore"] = (zl_df["boho_spread"] - zl_df["boho_spread"].rolling(252).mean()) / zl_df["boho_spread"].rolling(252).std()
+            zl_df["boho_percentile"] = zl_df["boho_spread"].rolling(252).rank(pct=True) * 100
+
+            # BOHO Bollinger bands
+            boho_sma = zl_df["boho_spread"].rolling(20).mean()
+            boho_std = zl_df["boho_spread"].rolling(20).std()
+            zl_df["boho_bb_pct"] = (zl_df["boho_spread"] - (boho_sma - 2*boho_std)) / (4*boho_std + 0.001)
+
+            # BOHO momentum
+            zl_df["boho_momentum_5d"] = zl_df["boho_spread"].pct_change(5) * 100
+            zl_df["boho_momentum_21d"] = zl_df["boho_spread"].pct_change(21) * 100
+            zl_df["boho_signal_strength"] = np.abs(zl_df["boho_zscore"]).clip(0, 3) / 3 * 100
+
+        if "cl_close" in zl_df.columns:
+            # Crude indicators
+            zl_df["zl_cl_ratio"] = zl_df["zl_close"] / (zl_df["cl_close"] + 0.001)
+            zl_df["cl_zscore"] = (zl_df["cl_close"] - zl_df["cl_close"].rolling(252).mean()) / zl_df["cl_close"].rolling(252).std()
+            zl_df["cl_percentile"] = zl_df["cl_close"].rolling(252).rank(pct=True) * 100
+            zl_df["cl_momentum_21d"] = zl_df["cl_close"].pct_change(21) * 100
+            zl_df["cl_momentum_63d"] = zl_df["cl_close"].pct_change(63) * 100
+            zl_df["zl_cl_corr_21d"] = zl_df["zl_close"].rolling(21).corr(zl_df["cl_close"])
+
+        if all(c in zl_df.columns for c in ["cl_close", "ho_close", "rb_close"]):
+            # 3-2-1 crack spread
+            zl_df["crack_spread_321"] = 2 * zl_df["rb_close"] + zl_df["ho_close"] - 3 * zl_df["cl_close"]
+            zl_df["crack_zscore"] = (zl_df["crack_spread_321"] - zl_df["crack_spread_321"].rolling(252).mean()) / zl_df["crack_spread_321"].rolling(252).std()
+            zl_df["crack_percentile"] = zl_df["crack_spread_321"].rolling(252).rank(pct=True) * 100
+            zl_df["crack_momentum_21d"] = zl_df["crack_spread_321"].pct_change(21) * 100
+
+            # Gasoline crack
+            zl_df["gasoline_crack"] = zl_df["rb_close"] - zl_df["cl_close"]
+            # Diesel crack
+            zl_df["diesel_crack"] = zl_df["ho_close"] - zl_df["cl_close"]
+
+        # Composite energy signal
+        energy_signals = []
+        if "cl_zscore" in zl_df.columns:
+            energy_signals.append(zl_df["cl_zscore"])
+        if "boho_zscore" in zl_df.columns:
+            energy_signals.append(zl_df["boho_zscore"])
+        if energy_signals:
+            zl_df["energy_bucket_signal"] = pd.concat(energy_signals, axis=1).mean(axis=1)
+            zl_df["energy_signal_strength"] = np.abs(zl_df["energy_bucket_signal"]).clip(0, 3) / 3 * 100
+
+    elif bucket_name == "china":
+        # =====================================================================
+        # CHINA: Copper as demand proxy, CNY effects, trade flows
+        # =====================================================================
+        if "hg_close" in zl_df.columns:
+            # Copper z-score and momentum
+            zl_df["hg_zscore"] = (zl_df["hg_close"] - zl_df["hg_close"].rolling(252).mean()) / zl_df["hg_close"].rolling(252).std()
+            zl_df["hg_percentile"] = zl_df["hg_close"].rolling(252).rank(pct=True) * 100
+            zl_df["hg_momentum_5d"] = zl_df["hg_close"].pct_change(5) * 100
+            zl_df["hg_momentum_21d"] = zl_df["hg_close"].pct_change(21) * 100
+            zl_df["hg_momentum_63d"] = zl_df["hg_close"].pct_change(63) * 100
+
+            # Copper Bollinger bands
+            hg_sma = zl_df["hg_close"].rolling(20).mean()
+            hg_std = zl_df["hg_close"].rolling(20).std()
+            zl_df["hg_bb_pct"] = (zl_df["hg_close"] - (hg_sma - 2*hg_std)) / (4*hg_std + 0.001)
+
+            # HG/ZL correlation (rolling)
+            zl_df["hg_zl_corr_21d"] = zl_df["hg_close"].rolling(21).corr(zl_df["zl_close"])
+            zl_df["hg_zl_corr_60d"] = zl_df["hg_close"].rolling(60).corr(zl_df["zl_close"])
+
+            # HG/ZL ratio
+            zl_df["hg_zl_ratio"] = zl_df["hg_close"] / zl_df["zl_close"]
+
+            # Signal strength
+            zl_df["hg_signal_strength"] = np.abs(zl_df["hg_zscore"]).clip(0, 3) / 3 * 100
+            zl_df["hg_bullish_prob"] = 1 / (1 + np.exp(-zl_df["hg_zscore"]))
+
+            # China demand regime (very_weak to very_strong)
+            zl_df["china_demand_score"] = zl_df["hg_zscore"]
+
+        # Composite signal
+        if "hg_zscore" in zl_df.columns:
+            zl_df["china_bucket_signal"] = zl_df["hg_zscore"]
+            zl_df["china_signal_strength"] = np.abs(zl_df["china_bucket_signal"]).clip(0, 3) / 3 * 100
+
+    elif bucket_name == "palm":
+        # =====================================================================
+        # PALM: Palm/soy spreads, inventory, production, weather (El Nino)
+        # =====================================================================
+        if "xk_close" in zl_df.columns:
+            # Core spreads
+            zl_df["zl_palm_spread"] = zl_df["zl_close"] - zl_df["xk_close"]
+            zl_df["zl_palm_ratio"] = zl_df["zl_close"] / (zl_df["xk_close"] + 0.001)
+            zl_df["zl_palm_zscore"] = (zl_df["zl_palm_spread"] - zl_df["zl_palm_spread"].rolling(252).mean()) / zl_df["zl_palm_spread"].rolling(252).std()
+            zl_df["zl_palm_percentile"] = zl_df["zl_palm_spread"].rolling(252).rank(pct=True) * 100
+
+            # Palm momentum
+            zl_df["palm_momentum_5d"] = zl_df["xk_close"].pct_change(5) * 100
+            zl_df["palm_momentum_21d"] = zl_df["xk_close"].pct_change(21) * 100
+            zl_df["zl_palm_spread_momentum"] = zl_df["zl_palm_spread"].diff(21)
+
+            # Palm Bollinger bands
+            palm_sma = zl_df["zl_palm_spread"].rolling(20).mean()
+            palm_std = zl_df["zl_palm_spread"].rolling(20).std()
+            zl_df["palm_bb_pct"] = (zl_df["zl_palm_spread"] - (palm_sma - 2*palm_std)) / (4*palm_std + 0.001)
+
+            # Signal strength
+            zl_df["palm_signal_strength"] = np.abs(zl_df["zl_palm_zscore"]).clip(0, 3) / 3 * 100
+
+            # Premium/discount flag
+            zl_df["palm_premium_flag"] = (zl_df["zl_palm_ratio"] < 1.05).astype(int)
+            zl_df["palm_discount_flag"] = (zl_df["zl_palm_ratio"] > 1.15).astype(int)
+
+            # Composite
+            zl_df["palm_bucket_signal"] = zl_df["zl_palm_zscore"]
+
+    elif bucket_name == "biofuel":
+        # =====================================================================
+        # BIOFUEL: RIN indicators are added separately via include_rin
+        # Add biodiesel margin and SBO feedstock calculations here
+        # =====================================================================
+        if "ho_close" in zl_df.columns:
+            # Biodiesel margin proxy (ZL vs HO, RINs added later)
+            zl_df["biodiesel_margin_proxy"] = zl_df["zl_close"] - zl_df["ho_close"]
+            zl_df["biodiesel_margin_zscore"] = (zl_df["biodiesel_margin_proxy"] - zl_df["biodiesel_margin_proxy"].rolling(252).mean()) / zl_df["biodiesel_margin_proxy"].rolling(252).std()
+
+        if "cl_close" in zl_df.columns:
+            # Energy feedstock economics
+            zl_df["zl_crude_ratio"] = zl_df["zl_close"] / (zl_df["cl_close"] + 0.001)
+
+    elif bucket_name == "volatility":
+        # =====================================================================
+        # VOLATILITY: VIX, realized vol, term structure, correlation, skew
+        # =====================================================================
+        # ZL realized volatility
+        zl_df["zl_realized_vol_10d"] = zl_df["zl_return_1d"].rolling(10).std() * np.sqrt(252)
+        zl_df["zl_realized_vol_20d"] = zl_df["zl_return_1d"].rolling(20).std() * np.sqrt(252)
+        zl_df["zl_realized_vol_60d"] = zl_df["zl_return_1d"].rolling(60).std() * np.sqrt(252)
+
+        # Vol of vol
+        zl_df["vol_of_vol"] = zl_df["zl_realized_vol_20d"].rolling(20).std()
+
+        # Vol regime
+        vol_mean = zl_df["zl_realized_vol_20d"].rolling(252).mean()
+        vol_std = zl_df["zl_realized_vol_20d"].rolling(252).std()
+        zl_df["vol_zscore"] = (zl_df["zl_realized_vol_20d"] - vol_mean) / vol_std
+        zl_df["vol_percentile"] = zl_df["zl_realized_vol_20d"].rolling(252).rank(pct=True) * 100
+
+        # Vol momentum
+        zl_df["vol_momentum_5d"] = zl_df["zl_realized_vol_20d"].pct_change(5) * 100
+        zl_df["vol_momentum_21d"] = zl_df["zl_realized_vol_20d"].pct_change(21) * 100
+
+        if "es_close" in zl_df.columns:
+            # Equity correlation
+            es_ret = zl_df["es_close"].pct_change()
+            zl_df["es_zl_corr_21d"] = es_ret.rolling(21).corr(zl_df["zl_return_1d"])
+            zl_df["es_zl_corr_60d"] = es_ret.rolling(60).corr(zl_df["zl_return_1d"])
+
+            # ES realized vol for comparison
+            zl_df["es_realized_vol_20d"] = es_ret.rolling(20).std() * np.sqrt(252)
+
+        if "vx_close" in zl_df.columns:
+            # VIX futures indicators
+            zl_df["vx_zscore"] = (zl_df["vx_close"] - zl_df["vx_close"].rolling(252).mean()) / zl_df["vx_close"].rolling(252).std()
+            zl_df["vx_percentile"] = zl_df["vx_close"].rolling(252).rank(pct=True) * 100
+
+        # Composite
+        zl_df["vol_bucket_signal"] = zl_df["vol_zscore"]
+        zl_df["vol_signal_strength"] = np.abs(zl_df["vol_zscore"]).clip(0, 3) / 3 * 100
+
+    elif bucket_name == "substitutes":
+        # =====================================================================
+        # SUBSTITUTES: Canola, sunflower, rapeseed spreads
+        # =====================================================================
+        if "rs_close" in zl_df.columns:
+            # Canola spreads
+            zl_df["zl_canola_spread"] = zl_df["zl_close"] - zl_df["rs_close"]
+            zl_df["zl_canola_ratio"] = zl_df["zl_close"] / (zl_df["rs_close"] + 0.001)
+            zl_df["zl_canola_zscore"] = (zl_df["zl_canola_spread"] - zl_df["zl_canola_spread"].rolling(252).mean()) / zl_df["zl_canola_spread"].rolling(252).std()
+            zl_df["zl_canola_percentile"] = zl_df["zl_canola_spread"].rolling(252).rank(pct=True) * 100
+
+            # Canola momentum
+            zl_df["canola_momentum_21d"] = zl_df["rs_close"].pct_change(21) * 100
+            zl_df["zl_canola_spread_momentum"] = zl_df["zl_canola_spread"].diff(21)
+
+            # Canola Bollinger
+            canola_sma = zl_df["zl_canola_spread"].rolling(20).mean()
+            canola_std = zl_df["zl_canola_spread"].rolling(20).std()
+            zl_df["canola_bb_pct"] = (zl_df["zl_canola_spread"] - (canola_sma - 2*canola_std)) / (4*canola_std + 0.001)
+
+            # Signal strength
+            zl_df["canola_signal_strength"] = np.abs(zl_df["zl_canola_zscore"]).clip(0, 3) / 3 * 100
+
+            # Canola tight flag (premium)
+            zl_df["canola_tight_flag"] = (zl_df["zl_canola_spread"] < zl_df["zl_canola_spread"].rolling(252).quantile(0.2)).astype(int)
+
+            # Composite
+            zl_df["substitutes_bucket_signal"] = zl_df["zl_canola_zscore"]
+
+    elif bucket_name == "fx":
+        # =====================================================================
+        # FX: Dollar strength, EM currencies, devaluation risks
+        # =====================================================================
+        if "dx_close" in zl_df.columns:
+            # DXY indicators
+            zl_df["dxy_zscore"] = (zl_df["dx_close"] - zl_df["dx_close"].rolling(252).mean()) / zl_df["dx_close"].rolling(252).std()
+            zl_df["dxy_percentile"] = zl_df["dx_close"].rolling(252).rank(pct=True) * 100
+            zl_df["dxy_momentum_21d"] = zl_df["dx_close"].pct_change(21) * 100
+
+            # DXY Bollinger
+            dx_sma = zl_df["dx_close"].rolling(20).mean()
+            dx_std = zl_df["dx_close"].rolling(20).std()
+            zl_df["dxy_bb_pct"] = (zl_df["dx_close"] - (dx_sma - 2*dx_std)) / (4*dx_std + 0.001)
+
+            # Dollar/ZL correlation
+            zl_df["dxy_zl_corr_21d"] = zl_df["dx_close"].rolling(21).corr(zl_df["zl_close"])
+
+            # Composite
+            zl_df["fx_bucket_signal"] = -zl_df["dxy_zscore"]  # Negative: strong dollar = bearish ZL
+            zl_df["fx_signal_strength"] = np.abs(zl_df["dxy_zscore"]).clip(0, 3) / 3 * 100
+
+    elif bucket_name == "fed":
+        # =====================================================================
+        # FED: Yield curve, financial conditions, rate expectations
+        # =====================================================================
+        if "zn_close" in zl_df.columns and "zb_close" in zl_df.columns:
+            # Treasury spread (2s10s proxy via futures)
+            zl_df["treasury_spread"] = zl_df["zn_close"] - zl_df["zb_close"]
+            zl_df["treasury_spread_zscore"] = (zl_df["treasury_spread"] - zl_df["treasury_spread"].rolling(252).mean()) / zl_df["treasury_spread"].rolling(252).std()
+
+        if "zn_close" in zl_df.columns:
+            # 10Y momentum
+            zl_df["zn_momentum_21d"] = zl_df["zn_close"].pct_change(21) * 100
+            zl_df["zn_zl_corr_21d"] = zl_df["zn_close"].rolling(21).corr(zl_df["zl_close"])
+
+    elif bucket_name == "tariff":
+        # =====================================================================
+        # TARIFF: Trump features added via include_trump_features
+        # Add soy complex positioning for tariff sensitivity here
+        # =====================================================================
+        if "zs_close" in zl_df.columns:
+            # Soy complex sensitivity to trade war
+            zl_df["zs_zscore"] = (zl_df["zs_close"] - zl_df["zs_close"].rolling(252).mean()) / zl_df["zs_close"].rolling(252).std()
+            zl_df["zs_percentile"] = zl_df["zs_close"].rolling(252).rank(pct=True) * 100
+
+        if "zm_close" in zl_df.columns:
+            zl_df["zm_zscore"] = (zl_df["zm_close"] - zl_df["zm_close"].rolling(252).mean()) / zl_df["zm_close"].rolling(252).std()
 
     # ==========================================================================
-    # 4. ADD ALL FX (30 pairs)
+    # 4. ADD ONLY CONFIGURED FRED SERIES (not all 111!)
     # ==========================================================================
-    zl_df = zl_df.merge(fx_df, on="as_of_date", how="left")
-    logger.info(f"    + FX: {len(fx_df.columns)-1} features")
+    if fred_series and len(fred_df.columns) > 1:
+        fred_cols = ["as_of_date"] + [c for c in fred_df.columns if c in fred_series]
+        if len(fred_cols) > 1:
+            zl_df = zl_df.merge(fred_df[fred_cols], on="as_of_date", how="left")
+            logger.info(f"    + FRED: {len(fred_cols)-1} series ({', '.join(fred_series[:3])}...)")
 
     # ==========================================================================
-    # 5. ADD ALL COT
+    # 5. ADD ONLY CONFIGURED FX PAIRS (not all 30!)
     # ==========================================================================
-    zl_df = zl_df.merge(cot_df, on="as_of_date", how="left")
-    logger.info(f"    + COT: {len(cot_df.columns)-1} features")
+    if fx_pairs and len(fx_df.columns) > 1:
+        fx_cols_to_add = ["as_of_date"]
+        for pair in fx_pairs:
+            fx_col = f"fx_{pair}"
+            if fx_col in fx_df.columns:
+                fx_cols_to_add.append(fx_col)
+        if len(fx_cols_to_add) > 1:
+            zl_df = zl_df.merge(fx_df[fx_cols_to_add], on="as_of_date", how="left")
+            logger.info(f"    + FX: {len(fx_cols_to_add)-1} pairs")
 
     # ==========================================================================
-    # 6. ADD ALL USDA EXPORTS
+    # 6. ADD COT FOR CONFIGURED SYMBOLS ONLY
     # ==========================================================================
-    zl_df = zl_df.merge(usda_df, on="as_of_date", how="left")
-    logger.info(f"    + USDA Exports: {len(usda_df.columns)-1} features")
+    if cot_symbols and len(cot_df.columns) > 1:
+        cot_cols = ["as_of_date"]
+        for sym in cot_symbols:
+            cot_cols.extend([c for c in cot_df.columns if c.startswith(f"cot_{sym}_")])
+        cot_cols = list(set(cot_cols))
+        if len(cot_cols) > 1:
+            zl_df = zl_df.merge(cot_df[cot_cols], on="as_of_date", how="left")
+            logger.info(f"    + COT: {len(cot_cols)-1} features for {cot_symbols}")
 
     # ==========================================================================
-    # 7. ADD ALL WASDE
+    # 7. ADD RIN DATA (only if configured)
     # ==========================================================================
-    zl_df = zl_df.merge(wasde_df, on="as_of_date", how="left")
-    logger.info(f"    + WASDE: {len(wasde_df.columns)-1} features")
+    if include_rin and len(rin_df.columns) > 1:
+        zl_df = zl_df.merge(rin_df, on="as_of_date", how="left")
+        # Add RIN z-scores
+        for rin_col in [c for c in zl_df.columns if c.startswith("rin_")]:
+            zl_df[f"{rin_col}_zscore"] = (zl_df[rin_col] - zl_df[rin_col].rolling(252).mean()) / zl_df[rin_col].rolling(252).std()
+        logger.info(f"    + RIN: {len(rin_df.columns)-1} types")
 
     # ==========================================================================
-    # 8. ADD ALL RIN
+    # 8. ADD USDA EXPORTS (only if configured)
     # ==========================================================================
-    zl_df = zl_df.merge(rin_df, on="as_of_date", how="left")
-    logger.info(f"    + RIN: {len(rin_df.columns)-1} features")
+    if include_usda and len(usda_df.columns) > 1:
+        zl_df = zl_df.merge(usda_df, on="as_of_date", how="left")
+        logger.info(f"    + USDA Exports: {len(usda_df.columns)-1} features")
 
     # ==========================================================================
-    # 9. ADD ALL WEATHER
+    # 9. ADD WEATHER (only if configured - mainly for palm)
     # ==========================================================================
-    zl_df = zl_df.merge(weather_df, on="as_of_date", how="left")
-    logger.info(f"    + Weather: {len(weather_df.columns)-1} features")
+    if include_weather and len(weather_df.columns) > 1:
+        zl_df = zl_df.merge(weather_df, on="as_of_date", how="left")
+        zl_df = add_weather_staleness(zl_df, time_col="as_of_date")
+        logger.info(f"    + Weather: {len(weather_df.columns)-1} features")
 
     # ==========================================================================
-    # 10. ADD ALL NEWS
+    # 10. ADD TRUMP REGIME FEATURES (only if configured)
     # ==========================================================================
-    zl_df = zl_df.merge(news_df, on="as_of_date", how="left")
-    logger.info(f"    + News: {len(news_df.columns)-1} features")
-
-    # ==========================================================================
-    # 11. ADD TRUMP REGIME FEATURES (for all buckets, but especially "trump_effect")
-    # ==========================================================================
-    # These are binary and continuous features that capture Trump/policy-specific dynamics
-    zl_df = add_trump_regime_features(zl_df)
-    logger.info(f"    + Trump/policy regime: added")
-
-    # ==========================================================================
-    # ADD STALENESS COLUMNS (before forward-fill)
-    # ==========================================================================
-    zl_df = add_weather_staleness(zl_df, time_col="as_of_date")
-    logger.info(f"    + Weather staleness: added age columns for sparse vars")
+    if include_trump:
+        zl_df = add_trump_regime_features(zl_df)
+        logger.info(f"    + Trump regime: 10+ features")
 
     # ==========================================================================
     # FORWARD-FILL AND CLEAN
@@ -776,7 +1415,8 @@ def generate_bucket_features(
     zl_df = zl_df.dropna(subset=["zl_close"])
 
     feature_cols = [c for c in zl_df.columns if c != "as_of_date"]
-    logger.info(f"    TOTAL: {len(zl_df):,} rows with {len(feature_cols)} features")
+    expected = bucket_config.get("expected_features", 30)
+    logger.info(f"    TOTAL: {len(zl_df):,} rows with {len(feature_cols)} features (expected ~{expected})")
 
     return zl_df
 

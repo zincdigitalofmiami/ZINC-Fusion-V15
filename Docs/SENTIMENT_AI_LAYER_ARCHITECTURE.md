@@ -27,7 +27,7 @@ NEW: Light models + AI agents = SMOKE
 
 | Tier | Purpose | Components |
 |------|---------|------------|
-| **Tier 1: L0-L3 Heavy Models** | Trained, Backtested | Core TimeSeriesPredictor, 10 Specialists, Meta-learner, Monte Carlo |
+| **Tier 1: L0-L3 Heavy Models** | Trained, Backtested | Core TimeSeriesPredictor, 11 Specialists, Meta-learner, Monte Carlo |
 | **Tier 2: AI Compute Agents** | On-Demand Intelligence | Sentiment scoring, Correlation analysis, Factor attribution, Scenario modeling |
 
 ---

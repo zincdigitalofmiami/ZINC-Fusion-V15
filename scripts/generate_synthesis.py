@@ -253,7 +253,7 @@ def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) 
 
 def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
     """Load specialist predictions and compute agreement metrics."""
-    specialists = ['crush', 'china', 'fx', 'fed', 'tariff', 'energy', 'biofuel', 'palm', 'volatility', 'substitutes']
+    specialists = ['crush', 'china', 'fx', 'fed', 'tariff', 'energy', 'biofuel', 'palm', 'volatility', 'substitutes', 'trump_effect']
 
     with conn.cursor() as cur:
         cur.execute("""

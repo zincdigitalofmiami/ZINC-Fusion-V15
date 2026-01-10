@@ -8,7 +8,7 @@ soybean oil forecasting system.
 Components:
 -----------
 1. technical_indicators: 130+ technical indicators using ta, TA-Lib, pandas-ta
-2. specialist_buckets: Big-10 bucket-specific indicators (Crush, China, Energy, Biofuel, Substitutes, etc.)
+2. specialist_buckets: Big-11 bucket-specific indicators (Crush, China, Energy, Biofuel, Substitutes, Trump Effect, etc.)
 3. regime_detection: Market regime classification and dynamic weighting
 
 Usage:

@@ -14,11 +14,11 @@ Enforce schema, drift prevention, and pipeline contracts across the L0→L1→L2
 | Project | ZINC-Fusion-V15 | CBI-V15, CBI, zinc_fusion |
 | Database | Prisma Postgres | - |
 | Python module | `fusion.*` | `zinc_fusion.*`, `cbi.*` |
-| Model term | "Specialists" | "Big-10", "buckets", "Big-8" |
+| Model term | "Specialists" | "Big-10", "Big-8", "buckets" |
 
 If you drift to legacy names, stop and correct immediately.
 
-## L0 Architecture (11 Models)
+## L0 Architecture (12 Models)
 
 | ID | Name | Type | Domain |
 |----|------|------|--------|
@@ -33,6 +33,7 @@ If you drift to legacy names, stop and correct immediately.
 | 8 | `palm` | TabularPredictor | Palm oil competition |
 | 9 | `volatility` | TabularPredictor | Volatility regimes |
 | 10 | `substitutes` | TabularPredictor | Veg oil substitution |
+| 11 | `trump_effect` | TabularPredictor | Trump/policy regime dynamics |
 
 ## Time Grains (LOCKED)
 
@@ -52,7 +53,7 @@ L2: Ensemble Layer  → Weighted fusion → P10/P50/P90 forecasts
         ↑
 L1: Meta-Learner    → TabularPredictor stacking OOF from L0
         ↑
-L0: Base Models     → 1 Core + 10 Specialists (11 total)
+L0: Base Models     → 1 Core + 11 Specialists (12 total)
 ```
 
 ## Neural Sentiment → ALL Specialists

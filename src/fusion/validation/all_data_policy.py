@@ -262,10 +262,14 @@ def enforce_all_data_policy(
 
 def validate_specialist_features(df, bucket: str, strict: bool = True) -> bool:
     """
-    Validate that specialist features DataFrame has ALL data.
+    Validate that specialist features DataFrame has DOMAIN-SPECIFIC features.
 
-    Specialists should have 900+ features per bucket because we're using
-    ALL data sources for EVERY bucket. AutoGluon figures out relevance.
+    IMPORTANT: Specialists use HAND-PICKED features (20-50 per domain),
+    NOT the full 800+ features that Core uses.
+
+    This is by design:
+    - CORE = ALL DATA (800+) → AutoGluon figures out relevance
+    - SPECIALISTS = HAND-PICKED (20-50) → Expert-curated per domain
 
     Args:
         df: Specialist features DataFrame
@@ -276,9 +280,24 @@ def validate_specialist_features(df, bucket: str, strict: bool = True) -> bool:
         True if valid
 
     Raises:
-        ValueError: If strict=True and features are missing
+        ValueError: If strict=True and features are outside expected range
     """
-    MIN_SPECIALIST_FEATURES = 800  # Absolute minimum for ALL DATA
+    # Expected feature range per specialist (NOT 800+!)
+    SPECIALIST_FEATURE_RANGES = {
+        "crush": (25, 50),
+        "china": (25, 45),
+        "energy": (30, 50),
+        "palm": (20, 40),
+        "biofuel": (25, 45),
+        "fx": (20, 40),
+        "fed": (20, 40),
+        "tariff": (20, 40),
+        "volatility": (20, 40),
+        "substitutes": (15, 35),
+        "trump_effect": (30, 50),
+    }
+
+    min_features, max_features = SPECIALIST_FEATURE_RANGES.get(bucket, (15, 60))
 
     feature_count = len(df.columns)
     row_count = len(df)
@@ -286,19 +305,30 @@ def validate_specialist_features(df, bucket: str, strict: bool = True) -> bool:
     logger.info(f"Validating specialist features for bucket: {bucket}")
     logger.info(f"  Feature count: {feature_count}")
     logger.info(f"  Row count: {row_count}")
+    logger.info(f"  Expected range: {min_features}-{max_features}")
 
-    if feature_count < MIN_SPECIALIST_FEATURES:
+    if feature_count < min_features:
         msg = (
             f"Specialist bucket '{bucket}' has only {feature_count} features. "
-            f"MINIMUM is {MIN_SPECIALIST_FEATURES}. "
-            f"You are NOT using ALL DATA. Fix this immediately."
+            f"MINIMUM for this domain is {min_features}. "
+            f"Check that all domain-specific features are included."
         )
         logger.error(msg)
         if strict:
             raise ValueError(msg)
         return False
 
-    logger.info(f"  ✅ Feature count OK ({feature_count} >= {MIN_SPECIALIST_FEATURES})")
+    if feature_count > max_features:
+        msg = (
+            f"Specialist bucket '{bucket}' has {feature_count} features. "
+            f"This exceeds expected max of {max_features}. "
+            f"Specialists should use HAND-PICKED features, not all data. "
+            f"If you need all data, use Core model instead."
+        )
+        logger.warning(msg)
+        # Don't raise - just warn if too many features
+
+    logger.info(f"  ✅ Feature count OK ({feature_count} in range [{min_features}, {max_features}])")
     return True
 
 

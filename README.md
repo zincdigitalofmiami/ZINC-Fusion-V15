@@ -27,14 +27,14 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 
 **ZINC Fusion V15** is a 4-layer hierarchical ensemble forecasting system:
 
-- **L0 Layer**: 9 base models (1 Core TimeSeriesPredictor + 8 Specialist TabularPredictors)
+- **L0 Layer**: 12 base models (1 Core TimeSeriesPredictor + 11 Specialist TabularPredictors)
 - **L1 Layer**: Meta-learner combining OOF predictions from L0 models
 - **L2 Layer**: Ensemble fusion producing probabilistic forecasts (P10-P90)
 - **L3 Layer**: Monte Carlo simulation for risk metrics (VaR, CVaR)
 
 ### Key Features
 
-- **Big-10 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy+Biofuel, Palm Oil, Volatility
+- **Big-11 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy, Biofuel, Palm, Volatility, Substitutes, Trump Effect
 - **Prisma Postgres**: Cloud-hosted authoritative database for all training and operations
 - **Databento Integration**: Real-time and historical market data from CME Globex
 
@@ -64,9 +64,9 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 └─────────────────────────────────────────────────────────────┘
                             ↑
 ┌─────────────────────────────────────────────────────────────┐
-│              L0: BASE MODELS (9 Predictors)                 │
+│              L0: BASE MODELS (12 Predictors)                │
 │  • 1 Core (TimeSeriesPredictor) - ZL price action          │
-│  • 8 Specialists (TabularPredictor) - Big-10 Buckets        │
+│  • 11 Specialists (TabularPredictor) - Big-11 Buckets       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -128,7 +128,7 @@ The ZINC Fusion V15 training workflow follows a strict sequence:
 
 1. **Canonical Features (Gold)**: Use `features.driver_scores_1d` as the canonical feature matrix.
 2. **Train L0 Specialists (Per-Bucket)**:
-    - Train each of the 10 specialist buckets with its own unique model family (independent pipelines).
+    - Train each of the 11 specialist buckets with its own unique model family (independent pipelines).
     - Extract OOF predictions per bucket (before any refit_full).
     - Apply per‑bucket bagging to reduce variance.
 3. **Join & Stack**: Horizontally stack all specialist OOF/bagged outputs.
@@ -139,8 +139,8 @@ The ZINC Fusion V15 training workflow follows a strict sequence:
 See [`QUANT_V15_Complete.ipynb`](./QUANT_V15_Complete.ipynb) for the complete training specification.
 
 Canonical Feature Table
-- The canonical features table is `features.driver_scores_1d` which provides normalized 0-100 scores for all 10 specialist drivers.
-- Training tables follow the pattern `training.specialist_{bucket}_1d` where bucket is one of: crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes.
+- The canonical features table is `features.driver_scores_1d` which provides normalized 0-100 scores for all 11 specialist drivers.
+- Training tables follow the pattern `training.specialist_{bucket}_1d` where bucket is one of: crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes, trump_effect.
 
 ## Scheduling
 
