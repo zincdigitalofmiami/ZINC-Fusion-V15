@@ -23,8 +23,9 @@ const AVAILABLE_MODELS = [
 interface ZLPriceChartProps {
   height?: number
   data?: {
-    dates: string[]
-    prices: number[]
+    time: string[]
+    close: number[]
+    targetDates: string[]
     p10?: number[]
     p25?: number[]
     p50?: number[]
@@ -55,8 +56,8 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
     if (data) return data
     
     // Generate sophisticated looking curve
-    const historyDates = []
-    const historyPrices = []
+    const time: string[] = []
+    const close: number[] = []
     let price = 48.50
     const now = new Date()
     
@@ -64,13 +65,13 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
     for(let i=60; i>0; i--) {
         const d = new Date(now)
         d.setDate(d.getDate() - i)
-        historyDates.push(d.toISOString().split('T')[0])
+        time.push(d.toISOString().split('T')[0])
         price = price + (Math.random() - 0.48) * 0.8 // slight uptrend bias
-        historyPrices.push(price)
+        close.push(price)
     }
 
-    const lastPrice = historyPrices[historyPrices.length-1]
-    const forecastDates = []
+    const lastPrice = close[close.length-1]
+    const targetDates: string[] = []
     const p50 = []
     const p10 = []
     const p25 = []
@@ -83,7 +84,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
     for(let i=0; i<30; i++) {
         const d = new Date(now)
         d.setDate(d.getDate() + i)
-        forecastDates.push(d.toISOString().split('T')[0])
+        targetDates.push(d.toISOString().split('T')[0])
         
         // Logarithmic decay of certainty + trend
         const dayFactor = Math.sqrt(i + 1) * 0.15
@@ -104,9 +105,9 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
     }
 
     return {
-      historyDates,
-      historyPrices,
-      forecastDates,
+      time,
+      close,
+      targetDates,
       p10, p25, p50, p75, p90
     }
   }, [data, selectedModel])
@@ -137,8 +138,8 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
         data={[
           // Historical price line
           {
-            x: chartData.historyDates,
-            y: chartData.historyPrices,
+            x: chartData.time,
+            y: chartData.close,
             type: 'scatter',
             mode: 'lines',
             name: 'ZL Spot',
@@ -147,7 +148,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
           },
           // P90 Bound (Invisible)
           {
-            x: chartData.forecastDates,
+            x: chartData.targetDates,
             y: chartData.p90,
             type: 'scatter',
             mode: 'lines',
@@ -158,7 +159,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
           },
           // P10 Bound (Fill to P90)
           {
-            x: chartData.forecastDates,
+            x: chartData.targetDates,
             y: chartData.p10,
             type: 'scatter',
             mode: 'lines',
@@ -171,7 +172,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
           },
           // P75 Bound (Invisible)
           {
-            x: chartData.forecastDates,
+            x: chartData.targetDates,
             y: chartData.p75,
             type: 'scatter',
             mode: 'lines',
@@ -182,7 +183,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
           },
           // P25 Bound (Fill to P75)
           {
-            x: chartData.forecastDates,
+            x: chartData.targetDates,
             y: chartData.p25,
             type: 'scatter',
             mode: 'lines',
@@ -195,7 +196,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
           },
           // Prediction Line (Dynamic Color)
           {
-            x: chartData.forecastDates,
+            x: chartData.targetDates,
             y: chartData.p50,
             type: 'scatter',
             mode: 'lines',
