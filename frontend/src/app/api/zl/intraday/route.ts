@@ -1,6 +1,6 @@
 /**
  * GET /api/zl/intraday
- * Returns ZL 15-minute bars from public.intraday_prices
+ * Returns ZL 15-minute bars from analytics.zl_intraday
  * Query params: hours (default 24)
  * Runtime query - no repo dependency
  */
@@ -22,16 +22,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await query<IntradayRow>(`
-      SELECT 
+      SELECT
         timestamp,
         open,
         high,
         low,
         close,
         volume
-      FROM public.intraday_prices
-      WHERE symbol = 'ZL'
-        AND timestamp > NOW() - INTERVAL '${hours} hours'
+      FROM analytics.zl_intraday
+      WHERE timestamp > NOW() - INTERVAL '${hours} hours'
       ORDER BY timestamp ASC
     `)
 
