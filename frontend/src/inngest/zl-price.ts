@@ -37,11 +37,10 @@ export const zlPrice = inngest.createFunction(
     const change = data.price - data.previousClose;
     const changePct = (change / data.previousClose) * 100;
 
-    // Step 3: Write to analytics.zl_live and analytics.zl_intraday
+    // Step 3: Write to analytics.zl_live
     await step.run("write-db", async () => {
       const client = await pool.connect();
       try {
-        // Update live price
         await client.query(
           `UPDATE analytics.zl_live SET
             price = $1,
@@ -65,25 +64,6 @@ export const zlPrice = inngest.createFunction(
             data.dayLow,
             data.dayOpen,
             data.volume,
-          ]
-        );
-
-        // Insert intraday bar
-        await client.query(
-          `INSERT INTO analytics.zl_intraday
-            (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
-           VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'yahoo', NOW())`,
-          [
-            data.dayOpen,
-            data.dayHigh,
-            data.dayLow,
-            data.price,
-            data.volume,
-            data.previousClose,
-            change,
-            changePct,
-            data.dayHigh,
-            data.dayLow,
           ]
         );
       } finally {

@@ -1420,51 +1420,6 @@ model VolRegimes {
   @@schema("analytics")
 }
 
-model LatestPrices {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
-  price         Float
-  previousClose Float?    @map("previous_close")
-  change        Float?
-  changePercent Float?    @map("change_percent")
-  dayHigh       Float?    @map("day_high")
-  dayLow        Float?    @map("day_low")
-  dayOpen       Float?    @map("day_open")
-  volume        Int?
-  timestamp     DateTime  @db.Timestamptz
-  marketState   String?   @map("market_state") @db.VarChar
-  source        String?   @db.VarChar
-  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz
-
-  @@unique([symbol])
-  @@map("latest_prices")
-  @@schema("analytics")
-}
-
-model IntradayPrices {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
-  timestamp     DateTime  @db.Timestamptz
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        Int?
-  previousClose Float?    @map("previous_close")
-  change        Float?
-  changePercent Float?    @map("change_percent")
-  dayHigh       Float?    @map("day_high")
-  dayLow        Float?    @map("day_low")
-  source        String?   @db.VarChar
-  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([symbol, timestamp])
-  @@index([symbol])
-  @@index([timestamp(sort: Desc)])
-  @@map("intraday_prices")
-  @@schema("analytics")
-}
-
 model ZlLive {
   id            Int       @id @default(autoincrement())
   price         Float

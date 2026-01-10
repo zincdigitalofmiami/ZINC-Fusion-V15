@@ -81,12 +81,12 @@ export const fredDaily = inngest.createFunction(
           try {
             await client.query(
               `INSERT INTO raw.fred_observations_1d
-                (as_of_date, series_id, value, source, ingested_at)
+                (as_of_date, series_id, value, source, created_at)
                VALUES ($1::date, $2, $3, 'fred_api', NOW())
                ON CONFLICT (as_of_date, series_id) DO UPDATE SET
                  value = EXCLUDED.value,
                  source = EXCLUDED.source,
-                 ingested_at = EXCLUDED.ingested_at`,
+                 created_at = EXCLUDED.created_at`,
               [obs.date, series.id, value]
             );
             results.push({ series: series.id, status: "success", value });
