@@ -583,11 +583,11 @@ def forecast_quantiles(
 ) -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Use model.forecast_quantiles table (corrected schema)
+        # Use forecasts.forecast_quantiles table
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM model.forecast_quantiles
+            FROM forecasts.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
@@ -617,11 +617,11 @@ def forecast_bands(
 ) -> Dict[str, Any]:
     backend = get_backend()
     if backend == "postgres":
-        # Use model.forecast_quantiles for bands (corrected schema)
+        # Use forecasts.forecast_quantiles for bands
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM model.forecast_quantiles
+            FROM forecasts.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
