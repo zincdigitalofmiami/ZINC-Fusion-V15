@@ -57,7 +57,7 @@ DATA_SOURCES = {
     },
     "databento_extended": {
         "parquet": HIST_DATA_PATH
-        / "Databricks Historical Databento/raw/databento_futures_ohlcv_1d_full_2010_plus.parquet",
+        / "Databento Historical/raw/databento_futures_ohlcv_1d_full_2010_plus.parquet",
         "table": "market_futures_1d",
         "merge": True,  # Merge with existing data
     },

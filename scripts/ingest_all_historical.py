@@ -53,14 +53,15 @@ if not HIST_DATA_PATH or str(HIST_DATA_PATH) == "":
     HIST_DATA_PATH = Path("/tmp/historical_data")  # Placeholder for import to work
 
 MOTHERDUCK_RAW = HIST_DATA_PATH / "MotherDuck/raw"
-DATABRICKS_RAW = HIST_DATA_PATH / "Databricks Historical Databento/raw"
+DATABENTO_HISTORICAL_RAW = HIST_DATA_PATH / "Databento Historical/raw"
 
 # Data sources configuration
 DATA_SOURCES = {
     "futures": {
         "files": [
             MOTHERDUCK_RAW / "databento_futures_ohlcv_1d.parquet",
-            DATABRICKS_RAW / "databento_futures_ohlcv_1d_full_2010_plus.parquet",
+            DATABENTO_HISTORICAL_RAW
+            / "databento_futures_ohlcv_1d_full_2010_plus.parquet",
         ],
         "table": "market_futures_1d",
         "priority": 1,
