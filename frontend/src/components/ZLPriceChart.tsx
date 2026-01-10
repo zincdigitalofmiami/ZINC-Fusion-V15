@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 
 // Dynamic import to avoid SSR issues with Plotly
 const Plot = dynamic(() => import('react-plotly.js'), { 
@@ -34,9 +34,21 @@ interface ZLPriceChartProps {
   }
 }
 
-export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) {
+export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
   const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0])
   const [isMobile, setIsMobile] = useState(false)
+  const [chartData, setChartData] = useState<{
+    time: string[]
+    close: number[]
+    targetDates: string[]
+    p10: number[]
+    p25: number[]
+    p50: number[]
+    p75: number[]
+    p90: number[]
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -51,66 +63,54 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Sample data if none provided
-  const chartData = useMemo(() => {
-    if (data) return data
-    
-    // Generate sophisticated looking curve
-    const time: string[] = []
-    const close: number[] = []
-    let price = 48.50
-    const now = new Date()
-    
-    // 60 days history
-    for(let i=60; i>0; i--) {
-        const d = new Date(now)
-        d.setDate(d.getDate() - i)
-        time.push(d.toISOString().split('T')[0])
-        price = price + (Math.random() - 0.48) * 0.8 // slight uptrend bias
-        close.push(price)
-    }
-
-    const lastPrice = close[close.length-1]
-    const targetDates: string[] = []
-    const p50 = []
-    const p10 = []
-    const p25 = []
-    const p75 = []
-    const p90 = []
-
-    let currentP50 = lastPrice
-    
-    // 30 days forecast
-    for(let i=0; i<30; i++) {
-        const d = new Date(now)
-        d.setDate(d.getDate() + i)
-        targetDates.push(d.toISOString().split('T')[0])
+  // Fetch real data from API
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/zl/chart?days=60')
+        if (!res.ok) throw new Error('Failed to fetch ZL data')
+        const json = await res.json()
         
-        // Logarithmic decay of certainty + trend
-        const dayFactor = Math.sqrt(i + 1) * 0.15
+        // Transform API response to chart format
+        const time = json.series.map((d: { time: string }) => d.time)
+        const close = json.series.map((d: { close: number }) => d.close)
         
-        // Slightly different curve shape per model to show "live" switching
-        let noise = 0
-        if (selectedModel.id === 'core_chronos2') noise = Math.sin(i/2) * 0.1
-        if (selectedModel.id === 'core_deepar') noise = Math.cos(i/3) * 0.15
-        if (selectedModel.id === 'core_tide') noise = (Math.random() - 0.5) * 0.2
-
-        currentP50 = currentP50 + (0.05 * Math.sin(i/3)) + 0.02 + noise
-        
-        p50.push(currentP50)
-        p25.push(currentP50 - (dayFactor * 0.8))
-        p75.push(currentP50 + (dayFactor * 0.8))
-        p10.push(currentP50 - (dayFactor * 1.5))
-        p90.push(currentP50 + (dayFactor * 1.5))
+        setChartData({
+          time,
+          close,
+          targetDates: [],
+          p10: [],
+          p25: [],
+          p50: [],
+          p75: [],
+          p90: []
+        })
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
     }
+    fetchData()
+  }, [])
 
-    return {
-      time,
-      close,
-      targetDates,
-      p10, p25, p50, p75, p90
-    }
-  }, [data, selectedModel])
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[500px] text-slate-500 animate-pulse">
+        Loading ZL price data...
+      </div>
+    )
+  }
+
+  if (error || !chartData) {
+    return (
+      <div className="flex items-center justify-center h-[500px] text-red-500">
+        ERROR: {error || 'No data available'}
+      </div>
+    )
+  }
 
   return (
     <div className="relative group">
