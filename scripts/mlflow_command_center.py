@@ -94,8 +94,7 @@ LOCAL_MLRUNS = PROJECT_ROOT / "mlruns"
 MODELS_DIR = PROJECT_ROOT / "models"
 CHARTS_DIR = PROJECT_ROOT / "charts"
 
-# Railway MLflow server
-RAILWAY_MLFLOW_URI = "https://mlflow-tracking-production-1916.up.railway.app"
+# MLflow tracking (local SQLite)
 LOCAL_MLFLOW_URI = f"sqlite:///{LOCAL_MLRUNS / 'mlflow.db'}"
 
 # Naming conventions
@@ -235,17 +234,7 @@ class ModelCard:
 
 
 def get_tracking_uri() -> str:
-    """Get MLflow tracking URI with Railway preference."""
-    try:
-        import requests
-
-        resp = requests.get(f"{RAILWAY_MLFLOW_URI}/health", timeout=5)
-        if resp.status_code == 200:
-            logger.info(f"Connected to Railway MLflow: {RAILWAY_MLFLOW_URI}")
-            return RAILWAY_MLFLOW_URI
-    except Exception as e:
-        logger.warning(f"Railway MLflow unreachable: {e}")
-
+    """Get MLflow tracking URI (local SQLite)."""
     LOCAL_MLRUNS.mkdir(exist_ok=True)
     logger.info(f"Using local MLflow: {LOCAL_MLFLOW_URI}")
     return LOCAL_MLFLOW_URI

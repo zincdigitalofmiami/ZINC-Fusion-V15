@@ -7,7 +7,7 @@ Production-grade MLflow tracking and model registry for quantitative
 commodity forecasting with model versioning and lifecycle management.
 
 Architecture:
-- Remote tracking server: Railway-hosted MLflow
+- Tracking server: Local SQLite (mlruns/mlflow.db)
 - Model Registry: Staging → Champion → Archived lifecycle
 - Experiments: Hierarchical taxonomy (core/specialist/ensemble/backtest)
 - Artifacts: Models stored as versioned, deployable packages
@@ -89,8 +89,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 LOCAL_MLRUNS = PROJECT_ROOT / "mlruns"
 MODELS_DIR = PROJECT_ROOT / "models"
 
-# Railway MLflow server (production)
-RAILWAY_MLFLOW_URI = "https://mlflow-tracking-production-1916.up.railway.app"
+# MLflow tracking (local SQLite)
 LOCAL_MLFLOW_URI = f"sqlite:///{LOCAL_MLRUNS / 'mlflow.db'}"
 
 # Model Registry naming convention
@@ -239,17 +238,7 @@ class ModelCard:
 
 
 def get_tracking_uri() -> str:
-    """Get MLflow tracking URI - prefer Railway, fallback to local."""
-    try:
-        import requests
-
-        resp = requests.get(f"{RAILWAY_MLFLOW_URI}/health", timeout=5)
-        if resp.status_code == 200:
-            logger.info(f"Connected to Railway MLflow: {RAILWAY_MLFLOW_URI}")
-            return RAILWAY_MLFLOW_URI
-    except Exception as e:
-        logger.warning(f"Railway MLflow unreachable: {e}")
-
+    """Get MLflow tracking URI (local SQLite)."""
     LOCAL_MLRUNS.mkdir(exist_ok=True)
     logger.info(f"Using local MLflow: {LOCAL_MLFLOW_URI}")
     return LOCAL_MLFLOW_URI

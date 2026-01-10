@@ -5,7 +5,7 @@ ZINC-FUSION News Ingestion Pipeline (Server Scheduled Job)
 Pulls real news from 25+ agricultural, trade, and policy sources.
 Routes to appropriate Big-11 specialist buckets via rule-based classifier.
 
-DEPLOYMENT: Railway/Server cron job - NOT for local Mac execution.
+DEPLOYMENT: Server cron job - NOT for local Mac execution.
 
 Schedule (recommended):
     - P0 Critical: Every 2 hours (6 AM - 10 PM ET)
