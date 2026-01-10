@@ -40,7 +40,7 @@ The current `train_specialist.py` and `generate_specialist_features.py` give **i
 Each of the 11 specialists needs:
 
 1. **Different raw data sources** (as documented in `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md`)
-2. **Different feature engineering** (from `src/fusion/features/specialist_buckets.py` classes)
+2. **Different feature engineering** (from `src/fusion/features/specialist_buckets.py` Specialist classes)
 3. **Different model configurations** (some need GARCH, some need neural networks)
 
 ### The 11 Specialists & Their Requirements
@@ -64,7 +64,7 @@ Each of the 11 specialists needs:
 ## Key Files & Their Purposes
 
 ### Feature Engineering (EXISTS - needs to be used properly)
-- `src/fusion/features/specialist_buckets.py` - All bucket indicator classes (83KB)
+- `src/fusion/features/specialist_buckets.py` - All Specialist indicator classes (83KB)
 - `src/fusion/features/trump_effect.py` - Trump-specific feature engine (29KB)
 - `src/fusion/features/technical_indicators.py` - 130+ technical indicators (42KB)
 - `src/fusion/features/regime_detection.py` - Market regime classification (18KB)
@@ -133,7 +133,7 @@ raw.news_articles_1d      -- 4,884 rows (2008-2026)
 
 ### Training Tables (PARTIALLY POPULATED)
 ```sql
-training.specialist_features -- 11 buckets x 6,521 rows each (but with generic features)
+training.specialist_features -- 11 Specialists x 6,521 rows each (but with generic features)
 training.cv_folds            -- Proper expanding window folds
 ```
 
@@ -156,7 +156,7 @@ model.cv_folds               -- Populated
    - Use appropriate model configuration
    - Save to specialist-specific model tables
 
-3. Consider using the `ZincFusionBucketIndicators.compute_all_buckets()` method but only for the relevant bucket
+3. Consider using the `ZincFusionBucketIndicators.compute_all_buckets()` method but only for the relevant Specialist
 
 4. Reference `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md` for exact data requirements per specialist
 

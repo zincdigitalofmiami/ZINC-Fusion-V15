@@ -780,7 +780,7 @@ df['cot_signal'] = np.where(df['cot_net'] > 0, 1, -1)  # NaN becomes 0 or error
 ```
 src/fusion/features/
 ├── elite_indicators.py      # 27 institutional-grade indicators
-├── specialist_buckets.py    # Big-11 bucket configurations
+├── specialist_buckets.py    # Big-11 Specialist configurations
 ├── trump_effect.py          # Trump Effect feature engine
 ├── engineer.py              # Feature orchestration
 └── targets.py               # Forward returns calculation
@@ -813,7 +813,7 @@ src/fusion/features/
 - ADL: Accumulation/Distribution Line
 - VWAP Deviation: Institutional fair value distance
 
-### Specialist Bucket Configs (`specialist_buckets.py`, 2100 lines)
+### Specialist Configs (`specialist_buckets.py`, 2100 lines)
 
 ```python
 @dataclass
@@ -889,7 +889,7 @@ SANCTIONS, EXPORT_CONTROLS, TRADE_DEAL, EXECUTIVE_ACTION, TWEET_THREAT
 | FRED pipeline | ✅ 157 series | But many need backfill |
 | CFTC COT | ✅ 19 years | 2006-2025, 18K rows |
 | Elite indicators | ✅ 27 indicators | Hurst, TTM Squeeze, etc. |
-| Specialist routing | ✅ 11 buckets | Pattern + keyword + prefix |
+| Specialist routing | ✅ 11 Specialists | Pattern + keyword + prefix |
 | EPU regime detection | ✅ Code ready | Needs population |
 
 ### ⚠️ PARTIALLY IMPLEMENTED
@@ -956,7 +956,7 @@ SANCTIONS, EXPORT_CONTROLS, TRADE_DEAL, EXECUTIVE_ACTION, TWEET_THREAT
 2. ☑ Mapped specialist bucket → feature module relationships (COMPLETE)
 3. ☑ Documented Core + Specialist architecture (COMPLETE)
 4. ☐ **Populate trump_effect specialist table** (PRIORITY)
-5. ☐ **Generate Specialist OOFs for all 11 buckets**
+5. ☐ **Generate Specialist OOFs for all 11 Specialists**
 6. ☐ **Create WASDE backfill ingestion script**
 7. ☐ **Ingest Brazil INMET weather data**
 8. ☐ **Implement position change velocity features**
