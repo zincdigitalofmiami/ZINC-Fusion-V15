@@ -15,7 +15,7 @@ This repository has strict governance. Treat `AGENTS.md` as the primary source o
 - All training, inference, and operations use Prisma
 - Connection: `DATABASE_URL` environment variable
 - Schema: `prisma/schema.prisma`
-- Deployed via Railway
+- Frontend: Vercel (Next.js + Inngest)
 
 ## Non‑negotiables
 

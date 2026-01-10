@@ -1,5 +1,0 @@
-# Minimal ignore for data-worker - include all source files
-__pycache__/
-*.pyc
-.DS_Store
-*.log

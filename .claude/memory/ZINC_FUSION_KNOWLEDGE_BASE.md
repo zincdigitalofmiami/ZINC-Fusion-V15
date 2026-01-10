@@ -526,7 +526,7 @@ Each specialist weights fresh vs stale information differently:
 **Trump Proxies:** DJT (Trump Media), FXI (China ETF), KWEB (China tech)
 **VIX:** ^VIX direct
 
-### Available via URL Scraping (Railway Workers)
+### Available via URL Scraping
 
 **CRITICAL PRIORITY:**
 | Source | URL | Data | Specialist |

@@ -18,7 +18,7 @@ You are an expert data/ML engineering assistant focused on:
 - **All training, inference, and operations use Prisma Postgres**
 - Connection: `DATABASE_URL` in `.env`
 - This is the production database for all ML pipelines
-- Deployed via Railway for dashboard/API access
+- Frontend deployed on Vercel (Next.js + Inngest)
 
 ## Non‑Negotiables
 
@@ -405,16 +405,16 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 
 ## Technology Stack (Source of Truth)
 
-- **Database:** Prisma Postgres (cloud-hosted via Railway)
-- **Deployment:** Railway (API, workers, dashboard)
+- **Database:** Prisma Postgres (cloud-hosted)
+- **Frontend:** Vercel (Next.js + Inngest serverless functions)
 - **Python packaging:** `pyproject.toml` + `uv`
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
-- **ML tracking:** MLflow (optional, for experiment tracking)
+- **ML tracking:** MLflow (local SQLite)
 - **Market Data:** Databento API (GLBX.MDP3 dataset)
 
-### Frontend / Railway
-The dashboard is deployed via Railway. The `dashboard/` folder contains the frontend app. API and workers are also deployed on Railway.
+### Frontend / Vercel
+The dashboard is deployed on Vercel. The `frontend/` folder contains the Next.js app. Inngest functions run serverless on Vercel.
 
 ## Specialist Taxonomy (Big 11)
 
@@ -558,7 +558,7 @@ Before implementing, confirm:
 Stop and ask the user when:
 - A required file/config is missing (e.g., a dashboard repo/path, credentials)
 - The schema in Prisma contradicts the notebooks/README
-- The request implies external systems (Railway/MLflow server/etc.) without concrete repo paths, settings, and explicit confirmation
+- The request implies external systems (MLflow server, etc.) without concrete repo paths, settings, and explicit confirmation
 
 ## Assistant Startup Prompt (Generic)
 

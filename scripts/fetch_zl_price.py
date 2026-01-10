@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-ZL Price Fetcher - Railway Cron Job
+ZL Price Fetcher - Scheduled Job
 Fetches current ZL price from Yahoo and writes to analytics.intraday_prices.
-Runs every 15 minutes via Railway cron.
+Runs every 15 minutes via cron or Inngest.
 """
 
 import logging

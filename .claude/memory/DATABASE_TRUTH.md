@@ -13,7 +13,11 @@
 - DuckDB
 - MotherDuck
 - Second database
-- Railway database (Railway hosts the app, not a separate DB)
+
+## DEPLOYMENT
+
+- Frontend: Vercel (Next.js + Inngest)
+- Database: Prisma Postgres (cloud-hosted)
 
 ## BEFORE EDITING ANY DATABASE-RELATED CODE
 

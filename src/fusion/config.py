@@ -2,7 +2,7 @@
 
 This repository uses Prisma Postgres as the production database.
 All training, inference, and operations use Prisma Postgres.
-Deployed via Railway for dashboard/API access.
+Frontend deployed on Vercel (Next.js + Inngest).
 
 Environment Variables:
     DATABASE_URL         - Prisma Postgres connection string (REQUIRED)
