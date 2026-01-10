@@ -3,9 +3,8 @@
 ZINC-FUSION-V15: Quant ML Command Center
 =========================================
 
-Production-grade MLflow infrastructure for quantitative commodity forecasting.
-Inspired by Databricks MLOps best practices with live metrics, dataset tracking,
-and automated chart generation.
+Production MLflow infrastructure for quantitative commodity forecasting
+with live metrics, dataset tracking, and automated chart generation.
 
 Features:
 - Live metrics streaming during training (step-by-step logging)
@@ -70,16 +69,20 @@ from mlflow.data.pandas_dataset import PandasDataset
 # Chart generation
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend
+
+    matplotlib.use("Agg")  # Non-interactive backend
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
     plt = None
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -103,6 +106,7 @@ HORIZONS = [5, 21, 63, 126]
 
 class ModelStage(str, Enum):
     """Model lifecycle stages."""
+
     NONE = "None"
     STAGING = "Staging"
     PRODUCTION = "Production"
@@ -111,6 +115,7 @@ class ModelStage(str, Enum):
 
 class ModelAlias(str, Enum):
     """Model deployment aliases."""
+
     CHAMPION = "champion"
     STAGING = "staging"
     CHALLENGER = "challenger"
@@ -123,7 +128,6 @@ EXPERIMENT_TAXONOMY = {
     "core-h21d": f"{REGISTRY_PREFIX}/core/h21d",
     "core-h63d": f"{REGISTRY_PREFIX}/core/h63d",
     "core-h126d": f"{REGISTRY_PREFIX}/core/h126d",
-
     # L1 Specialists
     "specialist-china": f"{REGISTRY_PREFIX}/specialist/china-demand",
     "specialist-brazil": f"{REGISTRY_PREFIX}/specialist/brazil-weather",
@@ -135,10 +139,8 @@ EXPERIMENT_TAXONOMY = {
     "specialist-macro": f"{REGISTRY_PREFIX}/specialist/macro-rates",
     "specialist-positioning": f"{REGISTRY_PREFIX}/specialist/cot-positioning",
     "specialist-seasonality": f"{REGISTRY_PREFIX}/specialist/seasonality",
-
     # L2 Ensemble
     "ensemble": f"{REGISTRY_PREFIX}/ensemble/fusion-lasso",
-
     # Backtest
     "backtest": f"{REGISTRY_PREFIX}/backtest/validation",
 }
@@ -156,9 +158,11 @@ REGISTERED_MODELS = {
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class DatasetInfo:
     """Dataset metadata for lineage tracking."""
+
     name: str
     rows: int
     columns: int
@@ -176,6 +180,7 @@ class DatasetInfo:
 @dataclass
 class LiveMetrics:
     """Container for live training metrics."""
+
     step: int = 0
     epoch: int = 0
     loss: float = 0.0
@@ -193,6 +198,7 @@ class LiveMetrics:
 @dataclass
 class ModelCard:
     """Model documentation artifact."""
+
     name: str
     version: int
     horizon_days: int
@@ -227,10 +233,12 @@ class ModelCard:
 # CONNECTION MANAGEMENT
 # =============================================================================
 
+
 def get_tracking_uri() -> str:
     """Get MLflow tracking URI with Railway preference."""
     try:
         import requests
+
         resp = requests.get(f"{RAILWAY_MLFLOW_URI}/health", timeout=5)
         if resp.status_code == 200:
             logger.info(f"Connected to Railway MLflow: {RAILWAY_MLFLOW_URI}")
@@ -247,6 +255,7 @@ def get_tracking_uri() -> str:
 # CHART GENERATION
 # =============================================================================
 
+
 class ChartGenerator:
     """Generate MLflow artifact charts for model analysis."""
 
@@ -254,17 +263,15 @@ class ChartGenerator:
         if HAS_MATPLOTLIB:
             plt.style.use(style)
         self.colors = {
-            "primary": "#00D4AA",    # Teal
+            "primary": "#00D4AA",  # Teal
             "secondary": "#FF6B6B",  # Coral
-            "tertiary": "#4ECDC4",   # Light teal
-            "warning": "#FFE66D",    # Yellow
-            "background": "#1a1a2e", # Dark
+            "tertiary": "#4ECDC4",  # Light teal
+            "warning": "#FFE66D",  # Yellow
+            "background": "#1a1a2e",  # Dark
         }
 
     def create_training_progress_chart(
-        self,
-        metrics_history: List[Dict],
-        title: str = "Training Progress"
+        self, metrics_history: List[Dict], title: str = "Training Progress"
     ) -> Optional[str]:
         """Create training loss/metric curve."""
         if not HAS_MATPLOTLIB or not metrics_history:
@@ -280,10 +287,21 @@ class ChartGenerator:
             losses = [m.get("loss", np.nan) for m in metrics_history]
             val_losses = [m.get("val_loss", np.nan) for m in metrics_history]
 
-            axes[0].plot(steps, losses, color=self.colors["primary"],
-                        label="Train Loss", linewidth=2)
-            axes[0].plot(steps, val_losses, color=self.colors["secondary"],
-                        label="Val Loss", linewidth=2, linestyle="--")
+            axes[0].plot(
+                steps,
+                losses,
+                color=self.colors["primary"],
+                label="Train Loss",
+                linewidth=2,
+            )
+            axes[0].plot(
+                steps,
+                val_losses,
+                color=self.colors["secondary"],
+                label="Val Loss",
+                linewidth=2,
+                linestyle="--",
+            )
             axes[0].set_xlabel("Step", color="white")
             axes[0].set_ylabel("Loss", color="white")
             axes[0].set_title("Loss Curve", color="white", fontsize=12)
@@ -295,8 +313,14 @@ class ChartGenerator:
         if any("mase" in m for m in metrics_history):
             mase_vals = [m.get("mase", np.nan) for m in metrics_history]
 
-            axes[1].plot(steps, mase_vals, color=self.colors["tertiary"],
-                        linewidth=2, marker="o", markersize=4)
+            axes[1].plot(
+                steps,
+                mase_vals,
+                color=self.colors["tertiary"],
+                linewidth=2,
+                marker="o",
+                markersize=4,
+            )
             axes[1].set_xlabel("Step", color="white")
             axes[1].set_ylabel("MASE", color="white")
             axes[1].set_title("MASE (Validation)", color="white", fontsize=12)
@@ -308,15 +332,18 @@ class ChartGenerator:
 
         # Save to temp file
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            plt.savefig(f.name, dpi=150, facecolor=self.colors["background"],
-                       edgecolor="none", bbox_inches="tight")
+            plt.savefig(
+                f.name,
+                dpi=150,
+                facecolor=self.colors["background"],
+                edgecolor="none",
+                bbox_inches="tight",
+            )
             plt.close(fig)
             return f.name
 
     def create_leaderboard_chart(
-        self,
-        leaderboard: pd.DataFrame,
-        title: str = "Model Leaderboard"
+        self, leaderboard: pd.DataFrame, title: str = "Model Leaderboard"
     ) -> Optional[str]:
         """Create horizontal bar chart of model scores."""
         if not HAS_MATPLOTLIB or leaderboard is None or len(leaderboard) == 0:
@@ -336,8 +363,14 @@ class ChartGenerator:
 
         # Add value labels
         for bar, score in zip(bars, scores):
-            ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2,
-                   f"{score:.4f}", va="center", color="white", fontsize=9)
+            ax.text(
+                bar.get_width() + 0.01,
+                bar.get_y() + bar.get_height() / 2,
+                f"{score:.4f}",
+                va="center",
+                color="white",
+                fontsize=9,
+            )
 
         ax.set_xlabel("MASE Score (lower is better)", color="white")
         ax.set_title(title, color="white", fontsize=14, fontweight="bold")
@@ -350,8 +383,13 @@ class ChartGenerator:
         plt.tight_layout()
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            plt.savefig(f.name, dpi=150, facecolor=self.colors["background"],
-                       edgecolor="none", bbox_inches="tight")
+            plt.savefig(
+                f.name,
+                dpi=150,
+                facecolor=self.colors["background"],
+                edgecolor="none",
+                bbox_inches="tight",
+            )
             plt.close(fig)
             return f.name
 
@@ -360,7 +398,7 @@ class ChartGenerator:
         actuals: pd.Series,
         predictions: pd.DataFrame,
         symbol: str = "ZL",
-        title: str = None
+        title: str = None,
     ) -> Optional[str]:
         """Create prediction vs actuals chart with quantile bands."""
         if not HAS_MATPLOTLIB:
@@ -371,26 +409,41 @@ class ChartGenerator:
         ax.set_facecolor(self.colors["background"])
 
         # Plot actuals
-        ax.plot(actuals.index, actuals.values, color="white",
-               label="Actual", linewidth=1.5, alpha=0.9)
+        ax.plot(
+            actuals.index,
+            actuals.values,
+            color="white",
+            label="Actual",
+            linewidth=1.5,
+            alpha=0.9,
+        )
 
         # Plot prediction median
         if "0.5" in predictions.columns:
-            ax.plot(predictions.index, predictions["0.5"],
-                   color=self.colors["primary"], label="Prediction (P50)",
-                   linewidth=2)
+            ax.plot(
+                predictions.index,
+                predictions["0.5"],
+                color=self.colors["primary"],
+                label="Prediction (P50)",
+                linewidth=2,
+            )
 
         # Plot confidence band
         if "0.1" in predictions.columns and "0.9" in predictions.columns:
-            ax.fill_between(predictions.index,
-                           predictions["0.1"], predictions["0.9"],
-                           color=self.colors["primary"], alpha=0.2,
-                           label="80% Confidence")
+            ax.fill_between(
+                predictions.index,
+                predictions["0.1"],
+                predictions["0.9"],
+                color=self.colors["primary"],
+                alpha=0.2,
+                label="80% Confidence",
+            )
 
         ax.set_xlabel("Date", color="white")
         ax.set_ylabel("Price", color="white")
-        ax.set_title(title or f"{symbol} Forecast", color="white",
-                    fontsize=14, fontweight="bold")
+        ax.set_title(
+            title or f"{symbol} Forecast", color="white", fontsize=14, fontweight="bold"
+        )
         ax.legend(facecolor=self.colors["background"], labelcolor="white")
         ax.tick_params(colors="white")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
@@ -399,15 +452,18 @@ class ChartGenerator:
         plt.tight_layout()
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            plt.savefig(f.name, dpi=150, facecolor=self.colors["background"],
-                       edgecolor="none", bbox_inches="tight")
+            plt.savefig(
+                f.name,
+                dpi=150,
+                facecolor=self.colors["background"],
+                edgecolor="none",
+                bbox_inches="tight",
+            )
             plt.close(fig)
             return f.name
 
     def create_horizon_comparison_chart(
-        self,
-        horizon_metrics: Dict[int, float],
-        metric_name: str = "MASE"
+        self, horizon_metrics: Dict[int, float], metric_name: str = "MASE"
     ) -> Optional[str]:
         """Create bar chart comparing metrics across horizons."""
         if not HAS_MATPLOTLIB or not horizon_metrics:
@@ -420,27 +476,47 @@ class ChartGenerator:
         horizons = list(horizon_metrics.keys())
         values = list(horizon_metrics.values())
 
-        colors = [self.colors["primary"], self.colors["tertiary"],
-                 self.colors["warning"], self.colors["secondary"]]
+        colors = [
+            self.colors["primary"],
+            self.colors["tertiary"],
+            self.colors["warning"],
+            self.colors["secondary"],
+        ]
 
-        bars = ax.bar([f"{h}d" for h in horizons], values,
-                     color=colors[:len(horizons)], edgecolor="white")
+        bars = ax.bar(
+            [f"{h}d" for h in horizons],
+            values,
+            color=colors[: len(horizons)],
+            edgecolor="white",
+        )
 
         for bar, val in zip(bars, values):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
-                   f"{val:.4f}", ha="center", color="white", fontsize=11)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.02,
+                f"{val:.4f}",
+                ha="center",
+                color="white",
+                fontsize=11,
+            )
 
         ax.set_xlabel("Forecast Horizon", color="white", fontsize=12)
         ax.set_ylabel(metric_name, color="white", fontsize=12)
-        ax.set_title(f"{metric_name} by Horizon", color="white",
-                    fontsize=14, fontweight="bold")
+        ax.set_title(
+            f"{metric_name} by Horizon", color="white", fontsize=14, fontweight="bold"
+        )
         ax.tick_params(colors="white")
 
         plt.tight_layout()
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            plt.savefig(f.name, dpi=150, facecolor=self.colors["background"],
-                       edgecolor="none", bbox_inches="tight")
+            plt.savefig(
+                f.name,
+                dpi=150,
+                facecolor=self.colors["background"],
+                edgecolor="none",
+                bbox_inches="tight",
+            )
             plt.close(fig)
             return f.name
 
@@ -448,6 +524,7 @@ class ChartGenerator:
 # =============================================================================
 # LIVE METRICS CALLBACK
 # =============================================================================
+
 
 class LiveMetricsCallback:
     """
@@ -476,7 +553,7 @@ class LiveMetricsCallback:
         loss: Optional[float] = None,
         val_loss: Optional[float] = None,
         mase: Optional[float] = None,
-        **kwargs
+        **kwargs,
     ):
         """Log metrics at each step."""
         self.step = step or self.step + 1
@@ -527,6 +604,7 @@ class LiveMetricsCallback:
 # QUANT ML COMMAND CENTER
 # =============================================================================
 
+
 class QuantMLCommandCenter:
     """
     Central hub for ML experiment tracking with live metrics,
@@ -544,7 +622,9 @@ class QuantMLCommandCenter:
 
         logger.info(f"QuantMLCommandCenter initialized @ {self.tracking_uri}")
 
-    def _get_experiment_name(self, component: str, horizon: Optional[int] = None) -> str:
+    def _get_experiment_name(
+        self, component: str, horizon: Optional[int] = None
+    ) -> str:
         """Get hierarchical experiment name."""
         if component == "core" and horizon:
             key = f"core-h{horizon}d"
@@ -571,7 +651,7 @@ class QuantMLCommandCenter:
         component: str,
         horizon: int,
         mode: str,
-        tags: Optional[Dict[str, str]] = None
+        tags: Optional[Dict[str, str]] = None,
     ):
         """
         Context manager for training runs with live metrics.
@@ -605,12 +685,14 @@ class QuantMLCommandCenter:
         self._datasets_logged = []
 
         # Log base parameters
-        mlflow.log_params({
-            "horizon_days": horizon,
-            "training_mode": mode,
-            "component": component,
-            "quantile_levels": str(QUANTILE_LEVELS),
-        })
+        mlflow.log_params(
+            {
+                "horizon_days": horizon,
+                "training_mode": mode,
+                "component": component,
+                "quantile_levels": str(QUANTILE_LEVELS),
+            }
+        )
 
         tracker = RunTracker(
             run=self.active_run,
@@ -640,7 +722,7 @@ class QuantMLCommandCenter:
             if self._metrics_callback.metrics_history:
                 chart_path = self.chart_gen.create_training_progress_chart(
                     self._metrics_callback.metrics_history,
-                    title=f"{component} h{horizon}d Training Progress"
+                    title=f"{component} h{horizon}d Training Progress",
                 )
                 if chart_path:
                     mlflow.log_artifact(chart_path, "charts")
@@ -673,7 +755,7 @@ class QuantMLCommandCenter:
                     runs = self.client.search_runs(
                         experiment_ids=[exp.experiment_id],
                         order_by=["metrics.mase ASC"],
-                        max_results=1
+                        max_results=1,
                     )
                     if runs:
                         results[horizon] = runs[0].data.metrics.get("mase")
@@ -769,7 +851,6 @@ class RunTracker:
         try:
             mlflow_dataset = mlflow.data.from_pandas(
                 df.head(10000),  # Sample for large datasets
-                source=source or "prisma://database",
                 name=dataset_name,
             )
             mlflow.log_input(mlflow_dataset, context=context)
@@ -777,13 +858,15 @@ class RunTracker:
             logger.warning(f"Could not log MLflow dataset: {e}")
 
         # Log dataset params
-        mlflow.log_params({
-            f"dataset_{context}_name": dataset_name,
-            f"dataset_{context}_rows": info.rows,
-            f"dataset_{context}_symbols": info.symbols,
-            f"dataset_{context}_features": info.columns,
-            f"dataset_{context}_digest": digest,
-        })
+        mlflow.log_params(
+            {
+                f"dataset_{context}_name": dataset_name,
+                f"dataset_{context}_rows": info.rows,
+                f"dataset_{context}_symbols": info.symbols,
+                f"dataset_{context}_features": info.columns,
+                f"dataset_{context}_digest": digest,
+            }
+        )
 
         # Log dataset info as artifact
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -794,12 +877,7 @@ class RunTracker:
         logger.info(f"Logged {context} dataset: {dataset_name} ({info.rows:,} rows)")
         return info
 
-    def log_live_metric(
-        self,
-        key: str,
-        value: float,
-        step: Optional[int] = None
-    ):
+    def log_live_metric(self, key: str, value: float, step: Optional[int] = None):
         """Log a live metric during training."""
         self.metrics_callback.on_step(**{key: value})
         mlflow.log_metric(f"live/{key}", value, step=step)
@@ -835,17 +913,26 @@ class RunTracker:
             leaderboard = predictor.leaderboard()
 
             # Log as CSV artifact
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as f:
                 leaderboard.to_csv(f.name, index=False)
                 mlflow.log_artifact(f.name, "leaderboard")
                 os.unlink(f.name)
 
             # Log as JSON
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-                json.dump({
-                    "leaderboard": leaderboard.to_dict("records"),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                }, f, indent=2, default=str)
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
+                json.dump(
+                    {
+                        "leaderboard": leaderboard.to_dict("records"),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                    f,
+                    indent=2,
+                    default=str,
+                )
                 mlflow.log_artifact(f.name, "leaderboard")
                 os.unlink(f.name)
 
@@ -853,7 +940,7 @@ class RunTracker:
             if generate_charts:
                 chart_path = self.chart_gen.create_leaderboard_chart(
                     leaderboard,
-                    title=f"{self.component} h{self.horizon}d Model Leaderboard"
+                    title=f"{self.component} h{self.horizon}d Model Leaderboard",
                 )
                 if chart_path:
                     mlflow.log_artifact(chart_path, "charts")
@@ -882,8 +969,10 @@ class RunTracker:
                 mlflow.log_metric("best_score", best_score)
 
                 if "pred_time_val" in leaderboard.columns:
-                    mlflow.log_metric("inference_time_seconds",
-                                     float(leaderboard.iloc[0]["pred_time_val"]))
+                    mlflow.log_metric(
+                        "inference_time_seconds",
+                        float(leaderboard.iloc[0]["pred_time_val"]),
+                    )
         except Exception as e:
             logger.warning(f"Could not log best model: {e}")
 
@@ -893,11 +982,15 @@ class RunTracker:
                 "path": str(predictor.path),
                 "model_best": predictor.model_best,
                 "prediction_length": predictor.prediction_length,
-                "quantile_levels": list(getattr(predictor, 'quantile_levels', QUANTILE_LEVELS)),
-                "freq": getattr(predictor, 'freq', None),
+                "quantile_levels": list(
+                    getattr(predictor, "quantile_levels", QUANTILE_LEVELS)
+                ),
+                "freq": getattr(predictor, "freq", None),
             }
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
                 json.dump(info, f, indent=2, default=str)
                 mlflow.log_artifact(f.name, "predictor")
                 os.unlink(f.name)
@@ -923,7 +1016,7 @@ class RunTracker:
             horizon_days=self.horizon,
             training_mode=self.mode,
             created_at=datetime.now(timezone.utc).isoformat(),
-            best_model=predictor.model_best if hasattr(predictor, 'model_best') else "",
+            best_model=predictor.model_best if hasattr(predictor, "model_best") else "",
             training_time_sec=training_time,
         )
 
@@ -932,8 +1025,11 @@ class RunTracker:
             mlflow.log_artifact(f.name, "model_card")
             os.unlink(f.name)
 
-        logger.info(f"Logged complete model: {predictor.model_best} (MASE={leaderboard.iloc[0]['score_val']:.4f})"
-                   if leaderboard is not None and len(leaderboard) > 0 else "Logged complete model")
+        logger.info(
+            f"Logged complete model: {predictor.model_best} (MASE={leaderboard.iloc[0]['score_val']:.4f})"
+            if leaderboard is not None and len(leaderboard) > 0
+            else "Logged complete model"
+        )
 
     def log_predictions(
         self,
@@ -954,8 +1050,7 @@ class RunTracker:
         # Generate chart if actuals provided
         if generate_chart and actuals is not None:
             chart_path = self.chart_gen.create_prediction_chart(
-                actuals, predictions, symbol,
-                title=f"{symbol} {self.horizon}d Forecast"
+                actuals, predictions, symbol, title=f"{symbol} {self.horizon}d Forecast"
             )
             if chart_path:
                 mlflow.log_artifact(chart_path, "charts")
@@ -966,8 +1061,9 @@ class RunTracker:
 # MODEL REGISTRY
 # =============================================================================
 
+
 class ModelRegistry:
-    """Model Registry with Databricks-style lifecycle management."""
+    """Model Registry with lifecycle management (None → Staging → Production → Archived)."""
 
     def __init__(self, tracking_uri: Optional[str] = None):
         self.tracking_uri = tracking_uri or get_tracking_uri()
@@ -994,8 +1090,7 @@ class ModelRegistry:
             self.client.get_registered_model(model_name)
         except MlflowException:
             self.client.create_registered_model(
-                model_name,
-                description=description or f"ZINC-FUSION {component} model"
+                model_name, description=description or f"ZINC-FUSION {component} model"
             )
 
         mv = self.client.create_model_version(
@@ -1006,14 +1101,18 @@ class ModelRegistry:
         )
 
         self.client.set_model_version_tag(
-            model_name, mv.version,
-            "registered_at", datetime.now(timezone.utc).isoformat()
+            model_name,
+            mv.version,
+            "registered_at",
+            datetime.now(timezone.utc).isoformat(),
         )
 
         logger.info(f"Registered: {model_name} v{mv.version}")
         return mv
 
-    def promote_to_champion(self, model_name: str, version: Union[int, str]) -> ModelVersion:
+    def promote_to_champion(
+        self, model_name: str, version: Union[int, str]
+    ) -> ModelVersion:
         """Promote a model to champion (production)."""
         # Archive current production
         try:
@@ -1055,13 +1154,21 @@ class ModelRegistry:
         """List all registered models."""
         models = []
         try:
-            for rm in self.client.search_registered_models(f"name LIKE '{REGISTRY_PREFIX}%'"):
+            for rm in self.client.search_registered_models(
+                f"name LIKE '{REGISTRY_PREFIX}%'"
+            ):
                 champion = self.get_champion(rm.name)
-                models.append({
-                    "name": rm.name,
-                    "latest_version": rm.latest_versions[0].version if rm.latest_versions else None,
-                    "champion_version": champion.version if champion else None,
-                })
+                models.append(
+                    {
+                        "name": rm.name,
+                        "latest_version": (
+                            rm.latest_versions[0].version
+                            if rm.latest_versions
+                            else None
+                        ),
+                        "champion_version": champion.version if champion else None,
+                    }
+                )
         except Exception as e:
             logger.warning(f"Error listing models: {e}")
         return models
@@ -1079,21 +1186,29 @@ AutoGluonMLflowTracker = QuantMLCommandCenter
 # CLI
 # =============================================================================
 
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="ZINC-FUSION Quant ML Command Center")
     parser.add_argument("--test", action="store_true", help="Test connection")
-    parser.add_argument("--create-experiments", action="store_true",
-                       help="Create all experiments in taxonomy")
-    parser.add_argument("--list-experiments", action="store_true",
-                       help="List all experiments")
-    parser.add_argument("--list-models", action="store_true",
-                       help="List registered models")
-    parser.add_argument("--compare-horizons", action="store_true",
-                       help="Compare best MASE across horizons")
-    parser.add_argument("--dashboard", action="store_true",
-                       help="Print dashboard URL")
+    parser.add_argument(
+        "--create-experiments",
+        action="store_true",
+        help="Create all experiments in taxonomy",
+    )
+    parser.add_argument(
+        "--list-experiments", action="store_true", help="List all experiments"
+    )
+    parser.add_argument(
+        "--list-models", action="store_true", help="List registered models"
+    )
+    parser.add_argument(
+        "--compare-horizons",
+        action="store_true",
+        help="Compare best MASE across horizons",
+    )
+    parser.add_argument("--dashboard", action="store_true", help="Print dashboard URL")
 
     args = parser.parse_args()
 
@@ -1131,8 +1246,10 @@ def main():
         print("REGISTERED MODELS")
         print("=" * 60)
         for m in models:
-            champion = f"v{m['champion_version']}" if m['champion_version'] else "none"
-            print(f"  {m['name']:<40} | latest: v{m['latest_version']} | champion: {champion}")
+            champion = f"v{m['champion_version']}" if m["champion_version"] else "none"
+            print(
+                f"  {m['name']:<40} | latest: v{m['latest_version']} | champion: {champion}"
+            )
         if not models:
             print("  No models registered yet.")
 

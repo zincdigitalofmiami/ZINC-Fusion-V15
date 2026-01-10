@@ -13,8 +13,6 @@ mlruns/
 
 # Data directories (generated at runtime)
 data/
-*.db
-*.duckdb
 
 # Generated documentation
 *.docx
@@ -54,3 +52,6 @@ logs/
 # Models directory (large artifacts)
 models/
 .env
+# Training logs (regenerated)
+*.log
+training_*.log
