@@ -128,7 +128,7 @@ The ZINC Fusion V15 training workflow follows a strict sequence:
 
 1. **Canonical Features (Gold)**: Use `features.driver_scores_1d` as the canonical feature matrix.
 2. **Train L0 Specialists (Per-Bucket)**:
-    - Train each of the 11 specialist buckets with its own unique model family (independent pipelines).
+    - Train each of the 11 Specialists with its own unique model family (independent pipelines).
     - Extract OOF predictions per bucket (before any refit_full).
     - Apply per‑bucket bagging to reduce variance.
 3. **Join & Stack**: Horizontally stack all specialist OOF/bagged outputs.
