@@ -438,39 +438,122 @@ Each Intel Drop has `domain` field = specialist name. This is a feature source l
 
 ## INNGEST JOBS NEEDED
 
-### EXISTS (5)
+### EXISTS (6)
 - [x] cftc-weekly.ts
 - [x] fred-daily.ts
 - [x] yahoo-eod.ts
 - [x] zl-price.ts
+- [x] federal-register.ts → `raw.legislation_federal_register_1d` ✅ BUILT 2026-01-11
 - [x] crowd-beliefs.ts (NEEDS FIX - remove cross-specialist routing)
 
-### LEGISLATION (6) - PRIORITY
-- [ ] whitehouse.ts → `raw.legislation_whitehouse_1d`
-- [ ] federal-register.ts → `raw.legislation_federal_register_1d`
-- [ ] ustr.ts → `raw.legislation_ustr_1d`
-- [ ] epa.ts → `raw.legislation_epa_1d`
-- [ ] congress.ts → `raw.legislation_congress_1d`
-- [ ] ice.ts → `raw.legislation_ice_1d`
+### GOVERNMENT RSS (5) - HIGH PRIORITY (No API Key)
+- [ ] whitehouse.ts → `raw.whitehouse_actions_event` (HOLD - Track B upgrading)
+- [ ] ice-dhs.ts → `raw.ice_releases_event`, `raw.dhs_releases_event`
+- [ ] cbp.ts → `raw.cbp_trade_event`
+- [ ] ustr.ts → `raw.ustr_releases_event`
+- [ ] epa.ts → `raw.epa_releases_event`
 
-### AGRICULTURE (2)
-- [ ] nopa.ts → `raw.agriculture_nopa_1m`
-- [ ] conab.ts → `raw.agriculture_conab_1w`
+### AGRICULTURE NEWS (3) - HIGH PRIORITY
+- [ ] agweb.ts → `raw.agweb_articles_event` (soybeans RSS)
+- [ ] farmdoc.ts → `raw.farmdoc_articles_event` (RINs, ag policy)
+- [ ] conab.ts → `raw.conab_news_event` (Brazil)
 
-### ENERGY (2)
-- [ ] eia-inventories.ts → `raw.energy_eia_inventories_1w`
-- [ ] eia-production.ts → `raw.energy_eia_production_1m`
+### SOCIAL MEDIA (1) - HIGH PRIORITY (Have SCRAPECREATORS_API_KEY)
+- [ ] truthsocial.ts → `raw.truthsocial_posts_event`
+
+### FED/RATES (1)
+- [ ] nyfed.ts → `raw.nyfed_rates_1d`
+
+### THINK TANKS (2)
+- [ ] aei.ts → `raw.aei_articles_event`
+- [ ] piie.ts → `raw.piie_articles_event`
+
+### AGRICULTURE DATA (2)
+- [ ] nopa.ts → `raw.nopa_crush_1m`
+- [ ] usda-fas.ts → (export sales already exists)
+
+### ENERGY (2) - BLOCKED (Need EIA_API_KEY)
+- [ ] eia-inventories.ts → `raw.eia_inventories_1w`
+- [ ] eia-production.ts → `raw.eia_production_1m`
 
 ### TRADE (3)
-- [ ] gacc.ts → `raw.trade_gacc_china_1m`
-- [ ] mpob.ts → `raw.trade_mpob_palm_1m`
-- [ ] usitc.ts → `raw.trade_usitc_1m`
+- [ ] gacc.ts → `raw.gacc_trade_1m` (China customs - complex)
+- [ ] mpob.ts → `raw.mpob_palm_1m`
+- [ ] usitc.ts → `raw.usitc_trade_1m`
 
-### SENTIMENT (2)
-- [ ] social.ts → `raw.sentiment_social_1d`
-- [ ] polymarket.ts → `raw.sentiment_prediction_1d` (REPLACE crowd-beliefs.ts)
+### CONGRESS (1) - BLOCKED (Need CONGRESS_API_KEY)
+- [ ] congress.ts → `raw.congress_bills_event`
 
-**TOTAL: 15 new jobs needed**
+---
+
+## 📡 RSS FEEDS & API ENDPOINTS (VERIFIED)
+
+### Government - No API Key Required
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **Federal Register** | `https://www.federalregister.gov/api/v1/documents.json` | JSON API | `legislation`, `tariff`, `trump_effect`, `biofuel` |
+| **ICE Releases** | `https://www.ice.gov/rss` | RSS | `trump_effect`, `legislation` |
+| **DHS Releases** | `https://www.dhs.gov/news-releases.xml` | RSS | `trump_effect`, `legislation` |
+| **CBP Trade** | `https://www.cbp.gov/rss/trade` | RSS | `tariff`, `legislation` |
+| **CBP Border** | `https://www.cbp.gov/rss/border-security` | RSS | `trump_effect`, `legislation` |
+| **NY Fed Rates** | `https://markets.newyorkfed.org/api/rates/all/latest.json` | JSON API | `fed` |
+
+### Agriculture News - RSS
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **AgWeb Soybeans** | `https://www.agweb.com/news/crops/soybeans/rss` | RSS | `crush` |
+| **DTN Progressive Farmer** | `https://www.dtnpf.com/agriculture/web/rss/news` | RSS | `crush`, `china` |
+| **Farm Progress** | `https://www.farmprogress.com/soybeans/feed/` | RSS | `crush` |
+| **Agriculture.com** | `https://www.agriculture.com/markets-commodities.rss` | RSS | `crush`, `energy` |
+| **Agrimoney Grains** | `https://www.agrimoney.com/rss/news` | RSS | `crush`, `palm` |
+| **World-Grain** | `https://www.world-grain.com/rss` | RSS | `crush`, `substitutes` |
+| **CONAB Brazil** | `https://www.conab.gov.br/rss` | RSS | `crush`, `china` |
+| **Farmdoc Ag Policy** | `https://farmdocdaily.illinois.edu/category/areas/agricultural-policy/feed/` | RSS | `crush`, `tariff` |
+| **Farmdoc RINs** | `https://farmdocdaily.illinois.edu/category/areas/biofuels/rins/feed/` | RSS | `biofuel` |
+
+### Think Tanks - RSS
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **AEI Trade Policy** | `https://www.aei.org/tag/trade-policy/feed/` | RSS | `tariff`, `trump_effect` |
+| **Heritage Agriculture** | `https://www.heritage.org/agriculture/rss` | RSS | `crush`, `tariff` |
+| **America First Policy** | `https://americafirstpolicy.com/feed/` | RSS | `trump_effect`, `tariff` |
+| **Tax Foundation Trade** | `https://taxfoundation.org/research/all/federal/trade/feed/` | RSS | `tariff` |
+| **PIIE** | `https://www.piie.com/rss` | RSS | `tariff`, `china` |
+| **CSIS Trade** | `https://www.csis.org/rss/programs` | RSS | `tariff`, `china` |
+| **US-China Business** | `https://www.uschina.org/rss` | RSS | `china`, `tariff` |
+
+### Social Media - API (Have SCRAPECREATORS_API_KEY)
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **Truth Social** | `https://api.scrapecreators.com/v1/truthsocial` | REST API | `trump_effect` |
+| **Facebook Pages** | `https://api.scrapecreators.com/v1/facebook/post` | REST API | varies |
+| **Reddit Agriculture** | `https://www.reddit.com/r/agriculture.json` | JSON | `crush` |
+
+### Farm Organizations - RSS
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **American Farm Bureau** | `https://www.fb.org/feed/` | RSS | `crush`, `legislation` |
+| **Soygrowers** | `https://soygrowers.com/feed/` | RSS | `crush` |
+| **Farm Action** | `https://farmaction.us/feed/` | RSS | `crush`, `china` |
+| **Western Growers** | `https://www.wga.com/rss.xml` | RSS | `crush` |
+
+### Campaign/Political - RSS
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **Trump Campaign** | `https://www.donaldjtrump.com/news/feed/` | RSS | `trump_effect` |
+
+### Market Data - API
+
+| Source | Endpoint | Type | Tags |
+|--------|----------|------|------|
+| **TradingEconomics** | `https://api.tradingeconomics.com/calendar/country/{country}` | REST API | `fed`, `china` |
+| **Polygon.io** | `https://api.polygon.io/v2/aggs/ticker/{ticker}/...` | REST API | `crush`, `energy` |
 
 ---
 

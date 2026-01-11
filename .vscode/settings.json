@@ -11,7 +11,7 @@
         "strings": false
     },
     "editor.parameterHints.enabled": false,
-    "editor.hover.enabled": false,
+    "editor.hover.enabled": "off",
     "editor.suggestOnTriggerCharacters": false,
     "typescript.suggest.enabled": false,
     "javascript.suggest.enabled": false,

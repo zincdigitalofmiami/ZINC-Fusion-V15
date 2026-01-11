@@ -122,7 +122,6 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.CftcCot1wScalarFieldEnum = {
   id: 'id',
-  reportDate: 'reportDate',
   symbol: 'symbol',
   openInterest: 'openInterest',
   prodMercLong: 'prodMercLong',
@@ -142,25 +141,63 @@ exports.Prisma.CftcCot1wScalarFieldEnum = {
   nonreptNet: 'nonreptNet',
   managedMoneyNetPctOi: 'managedMoneyNetPctOi',
   prodMercNetPctOi: 'prodMercNetPctOi',
+  eventDate: 'eventDate',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
   source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
   ingestedAt: 'ingestedAt'
 };
 
 exports.Prisma.EpaRinPrices1dScalarFieldEnum = {
   id: 'id',
   rinType: 'rinType',
-  asOfDate: 'asOfDate',
   price: 'price',
+  eventDate: 'eventDate',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
+  source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
   createdAt: 'createdAt'
 };
 
 exports.Prisma.FredObservations1dScalarFieldEnum = {
   id: 'id',
   seriesId: 'seriesId',
-  asOfDate: 'asOfDate',
   value: 'value',
-  createdAt: 'createdAt',
-  source: 'source'
+  eventDate: 'eventDate',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
+  source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.FredSeriesMetadataScalarFieldEnum = {
@@ -181,34 +218,71 @@ exports.Prisma.FredSeriesMetadataScalarFieldEnum = {
 exports.Prisma.FxSpot1dScalarFieldEnum = {
   id: 'id',
   pair: 'pair',
-  asOfDate: 'asOfDate',
   rate: 'rate',
+  eventDate: 'eventDate',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
+  source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
   createdAt: 'createdAt'
 };
 
 exports.Prisma.MarketFutures1dScalarFieldEnum = {
-  asOfDate: 'asOfDate',
   symbol: 'symbol',
   open: 'open',
   high: 'high',
   low: 'low',
   close: 'close',
   volume: 'volume',
+  eventDate: 'eventDate',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
   source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
   ingestedAt: 'ingestedAt'
 };
 
 exports.Prisma.MarketFutures1hScalarFieldEnum = {
   id: 'id',
   symbol: 'symbol',
-  tsEvent: 'tsEvent',
   open: 'open',
   high: 'high',
   low: 'low',
   close: 'close',
   volume: 'volume',
   openInterest: 'openInterest',
+  eventTime: 'eventTime',
+  knowledgeTime: 'knowledgeTime',
+  revisionNo: 'revisionNo',
+  supersedesId: 'supersedesId',
+  isPreliminary: 'isPreliminary',
+  validationStatus: 'validationStatus',
+  qualityScore: 'qualityScore',
+  anomalyFlags: 'anomalyFlags',
   source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
   createdAt: 'createdAt'
 };
 
@@ -302,6 +376,28 @@ exports.Prisma.YahooEquity1dScalarFieldEnum = {
   adjClose: 'adjClose',
   volume: 'volume',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.CrowdBeliefsEventScalarFieldEnum = {
+  id: 'id',
+  eventSlug: 'eventSlug',
+  outcomeQuestion: 'outcomeQuestion',
+  capturedAt: 'capturedAt',
+  impliedProbYes: 'impliedProbYes',
+  impliedProbNo: 'impliedProbNo',
+  attentionIndex24h: 'attentionIndex24h',
+  attentionIndex7d: 'attentionIndex7d',
+  probMomentum24h: 'probMomentum24h',
+  probMomentum7d: 'probMomentum7d',
+  consensusStrength: 'consensusStrength',
+  eventCategory: 'eventCategory',
+  specialistTags: 'specialistTags',
+  eventResolutionDate: 'eventResolutionDate',
+  daysToResolution: 'daysToResolution',
+  rawBettingVolumeUsd: 'rawBettingVolumeUsd',
+  rawLiquidityUsd: 'rawLiquidityUsd',
+  source: 'source',
+  ingestedAt: 'ingestedAt'
 };
 
 exports.Prisma.CoreFeaturesScalarFieldEnum = {
@@ -1202,39 +1298,124 @@ exports.Prisma.VolRegimesScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.LatestPricesScalarFieldEnum = {
+exports.Prisma.ZlLiveScalarFieldEnum = {
   id: 'id',
-  symbol: 'symbol',
   price: 'price',
   previousClose: 'previousClose',
   change: 'change',
-  changePercent: 'changePercent',
+  changePct: 'changePct',
   dayHigh: 'dayHigh',
   dayLow: 'dayLow',
   dayOpen: 'dayOpen',
   volume: 'volume',
   timestamp: 'timestamp',
-  marketState: 'marketState',
   source: 'source',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.IntradayPricesScalarFieldEnum = {
+exports.Prisma.VegasRestaurantsScalarFieldEnum = {
   id: 'id',
-  symbol: 'symbol',
-  timestamp: 'timestamp',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  previousClose: 'previousClose',
-  change: 'change',
-  changePercent: 'changePercent',
-  dayHigh: 'dayHigh',
-  dayLow: 'dayLow',
-  source: 'source',
-  createdAt: 'createdAt'
+  glideRowId: 'glideRowId',
+  name: 'name',
+  location: 'location',
+  category: 'category',
+  currentOilLbs: 'currentOilLbs',
+  deliveryDay: 'deliveryDay',
+  scheduleTime: 'scheduleTime',
+  baselineLbs: 'baselineLbs',
+  fryers: 'fryers',
+  notes: 'notes',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasCasinosScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  name: 'name',
+  eventCalendar: 'eventCalendar',
+  premiumTier: 'premiumTier',
+  affiliations: 'affiliations',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasFryersScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  restaurantId: 'restaurantId',
+  fryerType: 'fryerType',
+  capacityLb: 'capacityLb',
+  turnsPerMonth: 'turnsPerMonth',
+  baseDailyGal: 'baseDailyGal',
+  currentUtil: 'currentUtil',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasExportListScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  customerName: 'customerName',
+  segment: 'segment',
+  contactEmail: 'contactEmail',
+  contactPhone: 'contactPhone',
+  campaignHist: 'campaignHist',
+  acceptRate: 'acceptRate',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasScheduledReportsScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  reportName: 'reportName',
+  schedule: 'schedule',
+  dataSnapshot: 'dataSnapshot',
+  alertTriggers: 'alertTriggers',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftsScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  shiftTime: 'shiftTime',
+  driverAvailable: 'driverAvailable',
+  deliveryCapLbs: 'deliveryCapLbs',
+  routeAssign: 'routeAssign',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftCasinosScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  casinoId: 'casinoId',
+  shiftSchedule: 'shiftSchedule',
+  premiumWindow: 'premiumWindow',
+  eventBasedCap: 'eventBasedCap',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftRestaurantsScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  restaurantId: 'restaurantId',
+  preferredWindow: 'preferredWindow',
+  scheduleConstraint: 'scheduleConstraint',
+  deliveryReliability: 'deliveryReliability',
+  data: 'data',
+  sourceTableId: 'sourceTableId',
+  ingestedAt: 'ingestedAt'
 };
 
 exports.Prisma.DataSourceRegistryScalarFieldEnum = {
@@ -1262,6 +1443,33 @@ exports.Prisma.DataSourceRegistryScalarFieldEnum = {
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.IngestRunScalarFieldEnum = {
+  id: 'id',
+  jobName: 'jobName',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  status: 'status',
+  rowsAttempted: 'rowsAttempted',
+  rowsInserted: 'rowsInserted',
+  rowsSkipped: 'rowsSkipped',
+  rowsQuarantined: 'rowsQuarantined',
+  cursorPosition: 'cursorPosition',
+  errorMessage: 'errorMessage'
+};
+
+exports.Prisma.QuarantinedRecordScalarFieldEnum = {
+  id: 'id',
+  sourceTable: 'sourceTable',
+  ingestRunId: 'ingestRunId',
+  attemptedAt: 'attemptedAt',
+  rawPayload: 'rawPayload',
+  validationErrors: 'validationErrors',
+  severity: 'severity',
+  resolutionStatus: 'resolutionStatus',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy'
 };
 
 exports.Prisma.InstrumentScalarFieldEnum = {
@@ -1308,17 +1516,37 @@ exports.Prisma.FuturesPrices1dScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.IntelDropScalarFieldEnum = {
+  id: 'id',
+  asOfTs: 'asOfTs',
+  domain: 'domain',
+  horizon: 'horizon',
+  direction: 'direction',
+  pressureCents: 'pressureCents',
+  edge: 'edge',
+  driverWeights: 'driverWeights',
+  topDrivers: 'topDrivers',
+  regimeTags: 'regimeTags',
+  qualityFlags: 'qualityFlags',
+  dataGaps: 'dataGaps',
+  receipts: 'receipts',
+  narrative: 'narrative',
+  quantPayload: 'quantPayload',
+  sourceModel: 'sourceModel',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -1327,15 +1555,15 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
-};
-
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 
 
@@ -1353,6 +1581,7 @@ exports.Prisma.ModelName = {
   UsdaWasde1m: 'UsdaWasde1m',
   WeatherNoaa1d: 'WeatherNoaa1d',
   YahooEquity1d: 'YahooEquity1d',
+  CrowdBeliefsEvent: 'CrowdBeliefsEvent',
   CoreFeatures: 'CoreFeatures',
   OptionsFeatures: 'OptionsFeatures',
   OptionsGreeks: 'OptionsGreeks',
@@ -1412,13 +1641,23 @@ exports.Prisma.ModelName = {
   TrainingRunLog: 'TrainingRunLog',
   ValueTimingWindows: 'ValueTimingWindows',
   VolRegimes: 'VolRegimes',
-  LatestPrices: 'LatestPrices',
-  IntradayPrices: 'IntradayPrices',
+  ZlLive: 'ZlLive',
+  VegasRestaurants: 'VegasRestaurants',
+  VegasCasinos: 'VegasCasinos',
+  VegasFryers: 'VegasFryers',
+  VegasExportList: 'VegasExportList',
+  VegasScheduledReports: 'VegasScheduledReports',
+  VegasShifts: 'VegasShifts',
+  VegasShiftCasinos: 'VegasShiftCasinos',
+  VegasShiftRestaurants: 'VegasShiftRestaurants',
   DataSourceRegistry: 'DataSourceRegistry',
+  IngestRun: 'IngestRun',
+  QuarantinedRecord: 'QuarantinedRecord',
   Instrument: 'Instrument',
   SymbolMapping: 'SymbolMapping',
   FxRates1d: 'FxRates1d',
-  FuturesPrices1d: 'FuturesPrices1d'
+  FuturesPrices1d: 'FuturesPrices1d',
+  IntelDrop: 'IntelDrop'
 };
 
 /**

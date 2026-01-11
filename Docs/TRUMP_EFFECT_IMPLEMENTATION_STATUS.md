@@ -1,0 +1,145 @@
+# TRUMP EFFECT SPECIALIST: Implementation Status
+
+**Date:** January 10, 2026
+**Status:** PARTIAL - Crowd Beliefs addon complete, model retraining required
+
+---
+
+## 🔴 CRITICAL FINDING: Current Model Uses WRONG Features
+
+The Trump Effect specialist model trained on Jan 3, 2026 is **BROKEN** because:
+
+| Issue | Detail |
+|-------|--------|
+| **Root Cause** | `train_specialist.py` gives ALL 11 specialists the SAME 997 generic features |
+| **Evidence** | Top feature importance was Norwegian Krone (DEXNOUS) - not Trump-specific |
+| **Impact** | Model learned FX patterns, not policy dynamics |
+
+**This model should NOT be used for production forecasts until retrained with proper features.**
+
+---
+
+## ✅ COMPLETED: Polymarket Crowd Beliefs Addon
+
+### Schema Addition
+```prisma
+model CrowdBeliefsEvent {
+  // Added to raw schema in prisma/schema.prisma
+  // 15 columns capturing behavioral signals from prediction markets
+}
+```
+
+**Table:** `raw.crowd_beliefs_event`
+
+### Inngest Ingestion
+**File:** `frontend/src/inngest/sources/markets/crowd-beliefs.ts`
+**Schedule:** Daily at 6 PM ET
+**API:** https://gamma-api.polymarket.com/events
+
+Features:
+- Filters for ZL-relevant events (tariff, china, trump, doge, biofuel, etc.)
+- Calculates attention index (normalized betting activity)
+- Calculates probability momentum (belief shift rate)
+- Routes to multiple specialists via `specialist_tags`
+
+### Feature Engineering
+**File:** `src/fusion/features/crowd_beliefs.py`
+
+Feature groups:
+1. **Probability features**: max/avg/std belief levels
+2. **Momentum features**: 24h/7d rate of change (MOST PREDICTIVE)
+3. **Attention features**: spike detection, average activity
+4. **Consensus features**: crowd agreement level
+5. **Urgency features**: time decay as resolution approaches
+
+---
+
+## 📊 What Trump Effect Specialist SHOULD Use
+
+### Existing Features (from `src/fusion/features/trump_effect.py`):
+
+| Feature Group | Source | Signals |
+|---------------|--------|---------|
+| EPU Regime | FRED | USEPUINDXD, EPUTRADE, EMVTRADEPOLEMV |
+| Proxy Stocks | Yahoo | DJT, FXI, KWEB returns & correlations |
+| Event Intensity | Federal Register | EO counts, tariff actions |
+| GARCH Regime | Computed | Volatility multipliers by regime |
+| Risk Metrics | Computed | Sharpe, Sortino, VaR, CVaR |
+
+### NEW Features (from `src/fusion/features/crowd_beliefs.py`):
+
+| Feature Group | Source | Signals |
+|---------------|--------|---------|
+| Crowd Probability | Polymarket | Tariff prob, deportation prob, DOGE prob |
+| Belief Momentum | Polymarket | 24h/7d probability shifts (CRITICAL) |
+| Attention Spikes | Polymarket | Event detection via betting activity |
+| Crowd Uncertainty | Polymarket | 1 - consensus_strength |
+| Resolution Urgency | Polymarket | Time decay as events approach |
+
+### Integration Function:
+```python
+from src.fusion.features.crowd_beliefs import enhance_trump_effect_features
+
+enhanced_features = enhance_trump_effect_features(base_features, conn)
+```
+
+---
+
+## 🔧 Work Required to Fix Trump Effect Specialist
+
+### Option A: Domain-Specific Feature Table
+Create `training.specialist_trump_effect_features` with ONLY Trump-relevant features:
+- EPU regime signals
+- DJT/FXI/KWEB proxy returns
+- Crowd belief signals (Polymarket)
+- Event counts from Federal Register
+- News sentiment (affects_trump_effect = true)
+
+### Option B: Per-Specialist Training Scripts
+Create `scripts/train_trump_effect.py` that:
+1. Loads from `TrumpEffectFeatureEngine`
+2. Loads from `CrowdBeliefsFeatureEngine`
+3. Merges features
+4. Trains with appropriate model config
+
+### Model Architecture for Trump Effect
+
+Per architecture docs, Trump Effect should use:
+- XGBoost/LightGBM for tabular features
+- LSTM for sequence patterns in belief shifts
+- Probability calibration layer (Platt scaling)
+
+---
+
+## 📁 Files Created/Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `prisma/schema.prisma` | Modified | Added CrowdBeliefsEvent model |
+| `frontend/src/inngest/sources/markets/crowd-beliefs.ts` | Created | Polymarket ingestion |
+| `frontend/src/inngest/functions.ts` | Modified | Export crowdBeliefs |
+| `src/fusion/features/crowd_beliefs.py` | Created | Feature extraction |
+
+---
+
+## 📋 Next Steps
+
+1. **Run Prisma migration** to create `raw.crowd_beliefs_event` table
+2. **Test Inngest function** to verify Polymarket API connectivity
+3. **Backfill historical beliefs** (if Polymarket has historical API)
+4. **Create domain-specific feature table** for Trump Effect
+5. **Retrain Trump Effect specialist** with proper features
+
+---
+
+## 🔗 Related Documents
+
+- `/Users/zincdigital/.claude/plans/trump-effect-specialist-architecture.md` (23KB comprehensive)
+- `/Volumes/Satechi Hub/ZINC-FUSION-V15/Docs/SPECIALIST_TRAINING_STATUS.md`
+- `/Volumes/Satechi Hub/ZINC-FUSION-V15/Docs/ARCHITECTURE_L0_L5.md`
+- `/Volumes/Satechi Hub/ZINC-FUSION-V15/Docs/SENTIMENT_AI_LAYER_ARCHITECTURE.md`
+
+---
+
+*Generated by Claude | ZINC Digital of Miami*
+*Session: January 10, 2026*

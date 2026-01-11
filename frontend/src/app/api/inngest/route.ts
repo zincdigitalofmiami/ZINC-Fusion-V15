@@ -1,6 +1,18 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { zlPrice, yahooEod, fredDaily, cftcWeekly, federalRegisterDaily } from "@/inngest/functions";
+import { 
+  zlPrice, 
+  yahooEod, 
+  fredDaily, 
+  cftcWeekly, 
+  federalRegisterDaily,
+  nyfedDaily,
+  cbpTradeDaily,
+  iceReleasesDaily,
+  farmdocRinsDaily,
+  aeiTradeDaily,
+  conabNewsDaily,
+} from "@/inngest/functions";
 
 /**
  * Compute the serve host explicitly to prevent empty URL issues.
@@ -41,7 +53,19 @@ if (process.env.NODE_ENV !== 'production') {
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [zlPrice, yahooEod, fredDaily, cftcWeekly, federalRegisterDaily],
+  functions: [
+    zlPrice, 
+    yahooEod, 
+    fredDaily, 
+    cftcWeekly, 
+    federalRegisterDaily,
+    nyfedDaily,
+    cbpTradeDaily,
+    iceReleasesDaily,
+    farmdocRinsDaily,
+    aeiTradeDaily,
+    conabNewsDaily,
+  ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
 });
