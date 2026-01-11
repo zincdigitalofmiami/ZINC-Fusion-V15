@@ -1,538 +1,484 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
   output          = "./generated/prisma"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["raw", "silver", "gold", "training", "metadata", "model", "analytics", "ops"]
+  schemas  = ["analytics", "gold", "metadata", "model", "ops", "raw", "silver", "training"]
 }
 
-// =============================================================================
-// RAW SCHEMA (13 tables) - Immutable ingestion layer
-// =============================================================================
-
 model CftcCot1w {
-  id Int @id @default(autoincrement())
+  id                   Int       @id(map: "cftc_cot_pkey") @default(autoincrement())
+  eventDate            DateTime  @map("event_date") @db.Date
+  symbol               String    @db.VarChar(20)
+  openInterest         BigInt?   @map("open_interest")
+  prodMercLong         BigInt?   @map("prod_merc_long")
+  prodMercShort        BigInt?   @map("prod_merc_short")
+  swapLong             BigInt?   @map("swap_long")
+  swapShort            BigInt?   @map("swap_short")
+  managedMoneyLong     BigInt?   @map("managed_money_long")
+  managedMoneyShort    BigInt?   @map("managed_money_short")
+  otherReptLong        BigInt?   @map("other_rept_long")
+  otherReptShort       BigInt?   @map("other_rept_short")
+  nonreptLong          BigInt?   @map("nonrept_long")
+  nonreptShort         BigInt?   @map("nonrept_short")
+  prodMercNet          BigInt?   @map("prod_merc_net")
+  swapNet              BigInt?   @map("swap_net")
+  managedMoneyNet      BigInt?   @map("managed_money_net")
+  otherReptNet         BigInt?   @map("other_rept_net")
+  nonreptNet           BigInt?   @map("nonrept_net")
+  managedMoneyNetPctOi Float?    @map("managed_money_net_pct_oi")
+  prodMercNetPctOi     Float?    @map("prod_merc_net_pct_oi")
+  source               String?   @db.VarChar(50)
+  ingestedAt           DateTime? @default(now()) @map("ingested_at") @db.Timestamp(6)
+  knowledgeTime        DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo           Int?      @default(1) @map("revision_no")
+  supersedesId         Int?      @map("supersedes_id")
+  isPreliminary        Boolean?  @default(true) @map("is_preliminary")
+  validationStatus     String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore         Int?      @map("quality_score")
+  anomalyFlags         String[]  @map("anomaly_flags")
+  sourceUrl            String?   @map("source_url") @db.VarChar
+  rawPayload           Json?     @map("raw_payload")
+  ingestionBatchId     String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash              String?   @map("row_hash") @db.VarChar(64)
+  specialistTags       String[]  @map("specialist_tags")
 
-  // ENTITY KEYS
-  symbol String @db.VarChar
-
-  // POSITIONING DATA
-  openInterest         BigInt? @map("open_interest")
-  prodMercLong         BigInt? @map("prod_merc_long")
-  prodMercShort        BigInt? @map("prod_merc_short")
-  swapLong             BigInt? @map("swap_long")
-  swapShort            BigInt? @map("swap_short")
-  managedMoneyLong     BigInt? @map("managed_money_long")
-  managedMoneyShort    BigInt? @map("managed_money_short")
-  otherReptLong        BigInt? @map("other_rept_long")
-  otherReptShort       BigInt? @map("other_rept_short")
-  nonreptLong          BigInt? @map("nonrept_long")
-  nonreptShort         BigInt? @map("nonrept_short")
-  prodMercNet          BigInt? @map("prod_merc_net")
-  swapNet              BigInt? @map("swap_net")
-  managedMoneyNet      BigInt? @map("managed_money_net")
-  otherReptNet         BigInt? @map("other_rept_net")
-  nonreptNet           BigInt? @map("nonrept_net")
-  managedMoneyNetPctOi Float?  @map("managed_money_net_pct_oi")
-  prodMercNetPctOi     Float?  @map("prod_merc_net_pct_oi")
-
-  // TEMPORAL (PIT Correctness)
-  eventDate     DateTime  @map("event_date") @db.Date
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(true) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
-  source           String? @db.VarChar
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
-
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED (keep for backward compat)
-  ingestedAt DateTime? @default(now()) @map("ingested_at")
-
-  // NO UNIQUE - allows revisions (append-only)
-  @@index([symbol, eventDate])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([eventDate], map: "idx_cftc_date")
+  @@index([knowledgeTime], map: "idx_cftc_knowledge_time")
+  @@index([rowHash], map: "idx_cftc_row_hash")
+  @@index([specialistTags], map: "idx_cftc_specialist_tags", type: Gin)
+  @@index([symbol], map: "idx_cftc_symbol")
+  @@index([symbol, eventDate], map: "idx_cftc_symbol_event")
   @@map("cftc_cot_1w")
   @@schema("raw")
 }
 
 model EpaRinPrices1d {
-  id Int @id @default(autoincrement())
+  id               Int       @id(map: "raw_epa_rin_prices_pkey") @default(autoincrement())
+  rinType          String    @map("rin_type")
+  eventDate        DateTime  @map("event_date")
+  price            Float
+  createdAt        DateTime  @default(now()) @map("created_at")
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo       Int?      @default(1) @map("revision_no")
+  supersedesId     Int?      @map("supersedes_id")
+  isPreliminary    Boolean?  @default(false) @map("is_preliminary")
+  validationStatus String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?      @map("quality_score")
+  anomalyFlags     String[]  @map("anomaly_flags")
+  source           String?   @db.VarChar
+  sourceUrl        String?   @map("source_url") @db.VarChar
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  specialistTags   String[]  @map("specialist_tags")
 
-  // ENTITY KEY
-  rinType String @map("rin_type")
-  price   Float
-
-  // TEMPORAL (PIT Correctness)
-  eventDate     DateTime  @map("event_date")
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(false) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("validated") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
-  source           String?
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
-
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([rinType, eventDate])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([knowledgeTime], map: "idx_epa_rin_knowledge_time")
+  @@index([rowHash], map: "idx_epa_rin_row_hash")
+  @@index([specialistTags], map: "idx_epa_rin_specialist_tags", type: Gin)
+  @@index([rinType, eventDate], map: "idx_epa_rin_type_event")
+  @@index([eventDate], map: "raw_epa_rin_prices_as_of_date_idx")
+  @@index([rinType], map: "raw_epa_rin_prices_rin_type_idx")
   @@map("epa_rin_prices_1d")
   @@schema("raw")
 }
 
 model FredObservations1d {
-  id Int @id @default(autoincrement())
+  id               Int       @id(map: "raw_fred_observations_pkey") @default(autoincrement())
+  seriesId         String    @map("series_id")
+  eventDate        DateTime  @map("event_date")
+  value            Float?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  source           String?   @db.VarChar(50)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo       Int?      @default(1) @map("revision_no")
+  supersedesId     Int?      @map("supersedes_id")
+  isPreliminary    Boolean?  @default(true) @map("is_preliminary")
+  validationStatus String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?      @map("quality_score")
+  anomalyFlags     String[]  @map("anomaly_flags")
+  sourceUrl        String?   @map("source_url") @db.VarChar
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  specialistTags   String[]  @map("specialist_tags")
 
-  // ENTITY KEY
-  seriesId String @map("series_id")
-  value    Float?
-
-  // TEMPORAL (PIT Correctness)
-  eventDate     DateTime  @map("event_date")
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(true) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
-  source           String? @db.VarChar
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
-
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED (keep for backward compat)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // NO UNIQUE - allows revisions (append-only)
-  @@index([seriesId, eventDate])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([knowledgeTime], map: "idx_fred_obs_knowledge_time")
+  @@index([rowHash], map: "idx_fred_obs_row_hash")
+  @@index([seriesId, eventDate], map: "idx_fred_obs_series_event")
+  @@index([specialistTags], map: "idx_fred_obs_specialist_tags", type: Gin)
+  @@index([seriesId], map: "raw_fred_observations_series_id_idx")
   @@map("fred_observations_1d")
   @@schema("raw")
 }
 
-model FredSeriesMetadata {
-  id                 Int       @id @default(autoincrement())
-  seriesId           String    @unique @map("series_id") @db.VarChar
-  title              String?   @db.VarChar
-  observationStart   DateTime? @map("observation_start") @db.Date
-  observationEnd     DateTime? @map("observation_end") @db.Date
-  frequency          String?   @db.VarChar
-  units              String?   @db.VarChar
-  seasonalAdjustment String?   @map("seasonal_adjustment") @db.VarChar
-  lastUpdated        DateTime? @map("last_updated")
-  source             String?   @db.VarChar
-  notes              String?
-  createdAt          DateTime? @default(now()) @map("created_at")
-
-  @@map("fred_series_metadata")
-  @@schema("raw")
-}
-
 model FxSpot1d {
-  id Int @id @default(autoincrement())
+  id               Int       @id(map: "raw_fx_spot_pkey") @default(autoincrement())
+  pair             String
+  eventDate        DateTime  @map("event_date")
+  rate             Float
+  createdAt        DateTime  @default(now()) @map("created_at")
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo       Int?      @default(1) @map("revision_no")
+  supersedesId     Int?      @map("supersedes_id")
+  isPreliminary    Boolean?  @default(false) @map("is_preliminary")
+  validationStatus String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?      @map("quality_score")
+  anomalyFlags     String[]  @map("anomaly_flags")
+  source           String?   @db.VarChar
+  sourceUrl        String?   @map("source_url") @db.VarChar
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  specialistTags   String[]  @map("specialist_tags")
 
-  // ENTITY KEY
-  pair String
-  rate Float
-
-  // TEMPORAL (PIT Correctness)
-  eventDate     DateTime  @map("event_date")
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(false) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("validated") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
-  source           String?
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
-
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([pair, eventDate])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([knowledgeTime], map: "idx_fx_spot_knowledge_time")
+  @@index([pair, eventDate], map: "idx_fx_spot_pair_event")
+  @@index([rowHash], map: "idx_fx_spot_row_hash")
+  @@index([specialistTags], map: "idx_fx_spot_specialist_tags", type: Gin)
+  @@index([eventDate], map: "raw_fx_spot_as_of_date_idx")
+  @@index([pair], map: "raw_fx_spot_pair_idx")
   @@map("fx_spot_1d")
   @@schema("raw")
 }
 
 model MarketFutures1d {
-  // ENTITY KEYS
-  symbol String
-
-  // OHLCV DATA
-  open   Float?
-  high   Float?
-  low    Float?
-  close  Float?
-  volume BigInt?
-
-  // TEMPORAL (PIT Correctness)
-  eventDate     DateTime  @map("event_date") @db.Date
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(true) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
+  eventDate        DateTime  @map("event_date") @db.Date
+  symbol           String
+  open             Float?
+  high             Float?
+  low              Float?
+  close            Float?
+  volume           BigInt?
   source           String?
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
+  ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo       Int?      @default(1) @map("revision_no")
+  supersedesId     Int?      @map("supersedes_id")
+  isPreliminary    Boolean?  @default(true) @map("is_preliminary")
+  validationStatus String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?      @map("quality_score")
+  anomalyFlags     String[]  @map("anomaly_flags")
+  sourceUrl        String?   @map("source_url") @db.VarChar
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  specialistTags   String[]  @map("specialist_tags")
 
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED (keep for backward compat)
-  ingestedAt DateTime? @default(now()) @map("ingested_at") @db.Timestamptz
-
-  // Composite PK on symbol+event_date (no unique constraint for append-only)
   @@id([eventDate, symbol])
-  @@index([symbol, eventDate])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([knowledgeTime], map: "idx_mkt_fut_1d_knowledge_time")
+  @@index([rowHash], map: "idx_mkt_fut_1d_row_hash")
+  @@index([specialistTags], map: "idx_mkt_fut_1d_specialist_tags", type: Gin)
+  @@index([symbol, eventDate], map: "idx_mkt_fut_1d_symbol_event")
   @@map("market_futures_1d")
   @@schema("raw")
 }
 
 model MarketFutures1h {
-  id Int @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
+  symbol           String    @db.VarChar(20)
+  eventTime        DateTime  @map("event_time") @db.Timestamp(6)
+  open             Float?
+  high             Float?
+  low              Float?
+  close            Float?
+  volume           BigInt?
+  openInterest     BigInt?   @map("open_interest")
+  source           String?   @db.VarChar(50)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  revisionNo       Int?      @default(1) @map("revision_no")
+  supersedesId     Int?      @map("supersedes_id")
+  isPreliminary    Boolean?  @default(true) @map("is_preliminary")
+  validationStatus String?   @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?      @map("quality_score")
+  anomalyFlags     String[]  @map("anomaly_flags")
+  sourceUrl        String?   @map("source_url") @db.VarChar
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.VarChar
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  specialistTags   String[]  @map("specialist_tags")
 
-  // ENTITY KEYS
-  symbol String @db.VarChar
-
-  // OHLCV DATA
-  open         Float?
-  high         Float?
-  low          Float?
-  close        Float?
-  volume       BigInt?
-  openInterest BigInt? @map("open_interest")
-
-  // TEMPORAL (PIT Correctness) - renamed from ts_event
-  eventTime     DateTime  @map("event_time")
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
-
-  // REVISION TRACKING
-  revisionNo    Int?     @default(1) @map("revision_no")
-  supersedesId  Int?     @map("supersedes_id")
-  isPreliminary Boolean? @default(true) @map("is_preliminary")
-
-  // QUALITY GATES
-  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
-  qualityScore     Int?     @map("quality_score")
-  anomalyFlags     String[] @map("anomaly_flags")
-
-  // PROVENANCE
-  source           String? @db.VarChar
-  sourceUrl        String? @map("source_url")
-  rawPayload       Json?   @map("raw_payload") @db.JsonB
-  ingestionBatchId String? @map("ingestion_batch_id")
-
-  // IDEMPOTENCY
-  rowHash String? @map("row_hash") @db.VarChar(64)
-
-  // ROUTING
-  specialistTags String[] @map("specialist_tags")
-
-  // DEPRECATED (keep for backward compat)
-  createdAt DateTime? @default(now()) @map("created_at")
-
-  // NO UNIQUE - allows revisions (append-only)
-  @@index([symbol, eventTime])
-  @@index([knowledgeTime])
-  @@index([rowHash])
+  @@index([knowledgeTime], map: "idx_mkt_fut_1h_knowledge_time")
+  @@index([rowHash], map: "idx_mkt_fut_1h_row_hash")
+  @@index([specialistTags], map: "idx_mkt_fut_1h_specialist_tags", type: Gin)
+  @@index([symbol], map: "idx_raw_market_futures_1h_symbol")
+  @@index([symbol, eventTime], map: "idx_raw_market_futures_1h_symbol_ts")
+  @@index([eventTime], map: "idx_raw_market_futures_1h_ts_event")
   @@map("market_futures_1h")
   @@schema("raw")
 }
 
 model NewsArticles1d {
-  id             Int       @id @default(autoincrement())
-  articleId      String?   @map("article_id") @db.VarChar
-  asOfDate       DateTime? @map("as_of_date") @db.Date
-  publishedAt    DateTime? @map("published_at")
-  headline       String?
-  content        String?
-  url            String?
-  author         String?   @db.VarChar
-  bucketName     String?   @map("bucket_name") @db.VarChar
-  source         String?   @db.VarChar
-  sentimentScore Float?    @map("sentiment_score")
-  zlSentiment    String?   @map("zl_sentiment") @db.VarChar
-  isTrumpRelated Boolean?  @map("is_trump_related")
-  createdAt      DateTime? @default(now()) @map("created_at")
-  contentHash    String?   @map("content_hash") @db.VarChar
-  ingestedAt     DateTime? @default(now()) @map("ingested_at") @db.Timestamptz
+  id                 Int             @id(map: "news_articles_pkey") @default(autoincrement())
+  articleId          String?         @map("article_id") @db.VarChar(100)
+  event_date         DateTime?       @db.Date
+  publishedAt        DateTime?       @map("published_at") @db.Timestamp(6)
+  headline           String?
+  content            String?
+  url                String?
+  author             String?         @db.VarChar(200)
+  bucketName         String?         @map("bucket_name") @db.VarChar(50)
+  source             String?         @db.VarChar(100)
+  sentimentScore     Float?          @map("sentiment_score")
+  zlSentiment        String?         @map("zl_sentiment") @db.VarChar(20)
+  isTrumpRelated     Boolean?        @map("is_trump_related")
+  createdAt          DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  contentHash        String?         @map("content_hash") @db.VarChar(64)
+  ingestedAt         DateTime?       @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledge_time     DateTime?       @default(now()) @db.Timestamptz(6)
+  revision_no        Int?            @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?        @default(false)
+  validation_status  String?         @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source_url         String?         @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?         @db.VarChar
+  row_hash           String?         @db.VarChar(64)
+  specialist_tags    String[]
+  news_scored_1d     news_scored_1d?
 
+  @@index([event_date(sort: Desc)], map: "idx_news_as_of_date")
+  @@index([bucketName], map: "idx_news_bucket")
+  @@index([contentHash], map: "idx_news_content_hash")
+  @@index([event_date], map: "idx_news_date")
+  @@index([event_date], map: "idx_news_event_date")
+  @@index([knowledge_time], map: "idx_news_knowledge_time")
+  @@index([row_hash], map: "idx_news_row_hash")
+  @@index([source], map: "idx_news_source")
+  @@index([specialist_tags], map: "idx_news_specialist_tags", type: Gin)
   @@map("news_articles_1d")
   @@schema("raw")
 }
 
 model OptionsFutures1d {
-  id           Int       @id @default(autoincrement())
-  symbol       String    @db.VarChar
-  asOfDate     DateTime  @map("as_of_date") @db.Date
-  open         Float?
-  high         Float?
-  low          Float?
-  close        Float?
-  volume       BigInt?
-  openInterest BigInt?   @map("open_interest")
-  expiration   DateTime? @db.Date
-  strike       Float?
-  optionType   String?   @map("option_type") @db.VarChar
-  createdAt    DateTime? @default(now()) @map("created_at")
+  id                 Int       @id(map: "raw_options_futures_pkey") @default(autoincrement())
+  symbol             String    @db.VarChar(50)
+  event_date         DateTime  @db.Date
+  open               Float?
+  high               Float?
+  low                Float?
+  close              Float?
+  volume             BigInt?
+  openInterest       BigInt?   @map("open_interest")
+  expiration         DateTime? @db.Date
+  strike             Float?
+  optionType         String?   @map("option_type") @db.VarChar(10)
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source             String?   @db.VarChar
+  source_url         String?   @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.VarChar
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]
 
-  @@unique([symbol, asOfDate])
+  @@index([event_date], map: "idx_options_date")
+  @@index([knowledge_time], map: "idx_options_knowledge_time")
+  @@index([row_hash], map: "idx_options_row_hash")
+  @@index([specialist_tags], map: "idx_options_specialist_tags", type: Gin)
+  @@index([symbol], map: "idx_options_symbol")
+  @@index([symbol, event_date], map: "idx_options_symbol_event")
   @@map("options_futures_1d")
   @@schema("raw")
 }
 
 model UsdaExportSales1w {
-  id                 Int       @id @default(autoincrement())
-  reportDate         DateTime  @map("report_date") @db.Date
-  commodity          String    @db.VarChar
-  destinationCountry String?   @map("destination_country") @db.VarChar
+  id                 Int       @id(map: "usda_export_sales_pkey") @default(autoincrement())
+  event_date         DateTime  @db.Date
+  commodity          String    @db.VarChar(100)
+  destinationCountry String?   @map("destination_country") @db.VarChar(100)
   netSalesMt         Float?    @map("net_sales_mt")
   exportsMt          Float?    @map("exports_mt")
   outstandingSalesMt Float?    @map("outstanding_sales_mt")
-  source             String?   @db.VarChar
-  ingestedAt         DateTime? @default(now()) @map("ingested_at")
+  source             String?   @db.VarChar(50)
+  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source_url         String?   @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.VarChar
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]
 
-  @@unique([reportDate, commodity, destinationCountry])
+  @@index([commodity, event_date], map: "idx_export_sales_commodity_event")
+  @@index([knowledge_time], map: "idx_export_sales_knowledge_time")
+  @@index([row_hash], map: "idx_export_sales_row_hash")
+  @@index([specialist_tags], map: "idx_export_sales_specialist_tags", type: Gin)
+  @@index([commodity], map: "idx_usda_commodity")
+  @@index([event_date], map: "idx_usda_date")
+  @@index([commodity], map: "idx_usda_exports_commodity")
+  @@index([event_date], map: "idx_usda_exports_date")
   @@map("usda_export_sales_1w")
   @@schema("raw")
 }
 
 model UsdaWasde1m {
-  id         Int       @id @default(autoincrement())
-  reportDate DateTime  @map("report_date") @db.Date
-  commodity  String    @db.VarChar
-  country    String?   @db.VarChar
-  metric     String?   @db.VarChar
-  value      Float?
-  unit       String?   @db.VarChar
-  source     String?   @db.VarChar
-  ingestedAt DateTime? @default(now()) @map("ingested_at")
+  id                 Int       @id(map: "usda_wasde_pkey") @default(autoincrement())
+  event_date         DateTime  @db.Date
+  commodity          String    @db.VarChar(100)
+  country            String?   @db.VarChar(100)
+  metric             String?   @db.VarChar(200)
+  value              Float?
+  unit               String?   @db.VarChar(50)
+  source             String?   @db.VarChar(50)
+  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source_url         String?   @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.VarChar
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]
 
-  @@unique([reportDate, commodity, country, metric])
+  @@index([commodity], map: "idx_wasde_commodity")
+  @@index([commodity, event_date], map: "idx_wasde_commodity_event")
+  @@index([event_date], map: "idx_wasde_date")
+  @@index([knowledge_time], map: "idx_wasde_knowledge_time")
+  @@index([row_hash], map: "idx_wasde_row_hash")
+  @@index([specialist_tags], map: "idx_wasde_specialist_tags", type: Gin)
   @@map("usda_wasde_1m")
   @@schema("raw")
 }
 
 model WeatherNoaa1d {
-  id               Int       @id @default(autoincrement())
-  stationId        String    @map("station_id") @db.VarChar
-  asOfDate         DateTime  @map("as_of_date") @db.Date
-  tavgC            Float?    @map("tavg_c")
-  tminC            Float?    @map("tmin_c")
-  tmaxC            Float?    @map("tmax_c")
-  prcpMm           Float?    @map("prcp_mm")
-  snowMm           Float?    @map("snow_mm")
-  region           String?   @db.VarChar
-  ingestedAt       DateTime? @default(now()) @map("ingested_at")
-  awndMs           Float?    @map("awnd_ms")
-  specialistBucket String?   @map("specialist_bucket") @db.VarChar
-  country          String?   @db.VarChar
-  snwdMm           Float?    @map("snwd_mm")
-  evapMm           Float?    @map("evap_mm")
-  rhavPct          Float?    @map("rhav_pct")
-  wsfgMs           Float?    @map("wsfg_ms")
+  id                 Int       @id(map: "weather_noaa_pkey") @default(autoincrement())
+  stationId          String    @map("station_id") @db.VarChar(50)
+  event_date         DateTime  @db.Date
+  tavgC              Float?    @map("tavg_c")
+  tminC              Float?    @map("tmin_c")
+  tmaxC              Float?    @map("tmax_c")
+  prcpMm             Float?    @map("prcp_mm")
+  snowMm             Float?    @map("snow_mm")
+  region             String?   @db.VarChar(100)
+  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamp(6)
+  awndMs             Float?    @map("awnd_ms")
+  specialistBucket   String?   @map("specialist_bucket") @db.VarChar(50)
+  country            String?   @db.VarChar(50)
+  snwdMm             Float?    @map("snwd_mm")
+  evapMm             Float?    @map("evap_mm")
+  rhavPct            Float?    @map("rhav_pct")
+  wsfgMs             Float?    @map("wsfg_ms")
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source             String?   @db.VarChar
+  source_url         String?   @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.VarChar
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]
 
-  @@unique([stationId, asOfDate])
+  @@index([specialistBucket], map: "idx_weather_bucket")
+  @@index([event_date], map: "idx_weather_date")
+  @@index([knowledge_time], map: "idx_weather_knowledge_time")
+  @@index([region], map: "idx_weather_region")
+  @@index([row_hash], map: "idx_weather_row_hash")
+  @@index([specialist_tags], map: "idx_weather_specialist_tags", type: Gin)
+  @@index([stationId, event_date], map: "idx_weather_station_event")
   @@map("weather_noaa_1d")
   @@schema("raw")
 }
 
 model YahooEquity1d {
-  id        Int       @id @default(autoincrement())
-  symbol    String    @db.VarChar
-  asOfDate  DateTime  @map("as_of_date") @db.Date
-  open      Float?
-  high      Float?
-  low       Float?
-  close     Float?
-  adjClose  Float?    @map("adj_close")
-  volume    BigInt?
-  createdAt DateTime? @default(now()) @map("created_at")
+  id                 Int       @id @default(autoincrement())
+  symbol             String    @db.VarChar(20)
+  event_date         DateTime  @db.Date
+  open               Float?
+  high               Float?
+  low                Float?
+  close              Float?
+  adjClose           Float?    @map("adj_close")
+  volume             BigInt?
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated") @db.VarChar(20)
+  quality_score      Int?
+  anomaly_flags      String[]
+  source             String?   @db.VarChar
+  source_url         String?   @db.VarChar
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.VarChar
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]
 
-  @@unique([symbol, asOfDate])
+  @@index([event_date], map: "idx_yahoo_equity_date")
+  @@index([symbol], map: "idx_yahoo_equity_symbol")
+  @@index([knowledge_time], map: "idx_yahoo_knowledge_time")
+  @@index([row_hash], map: "idx_yahoo_row_hash")
+  @@index([specialist_tags], map: "idx_yahoo_specialist_tags", type: Gin)
+  @@index([symbol, event_date], map: "idx_yahoo_symbol_event")
   @@map("yahoo_equity_1d")
   @@schema("raw")
 }
 
-// -----------------------------------------------------------------------------
-// CROWD BELIEFS (Polymarket Behavioral Signal)
-// Forward-looking probability estimates from prediction markets
-// Cross-specialist feature: routes to trump_effect, china, tariff, biofuel, etc.
-// API: https://gamma-api.polymarket.com/events
-// -----------------------------------------------------------------------------
-
-model CrowdBeliefsEvent {
-  id Int @id @default(autoincrement())
-
-  // Identity
-  eventSlug       String   @map("event_slug") @db.VarChar(200)
-  outcomeQuestion String   @map("outcome_question")
-  capturedAt      DateTime @map("captured_at") @db.Timestamptz
-
-  // Behavioral Signal (CORE DATA)
-  impliedProbYes Decimal? @map("implied_prob_yes") @db.Decimal(5, 4)
-  impliedProbNo  Decimal? @map("implied_prob_no") @db.Decimal(5, 4)
-
-  // Attention (normalized 0-100)
-  attentionIndex24h Decimal? @map("attention_index_24h") @db.Decimal(5, 2)
-  attentionIndex7d  Decimal? @map("attention_index_7d") @db.Decimal(5, 2)
-
-  // Momentum (rate of change)
-  probMomentum24h Decimal? @map("prob_momentum_24h") @db.Decimal(6, 4)
-  probMomentum7d  Decimal? @map("prob_momentum_7d") @db.Decimal(6, 4)
-
-  // Consensus
-  consensusStrength Decimal? @map("consensus_strength") @db.Decimal(5, 4)
-
-  // Cross-Specialist Routing (JSON array of specialist tags)
-  eventCategory  String?  @map("event_category") @db.VarChar(50)
-  specialistTags String[] @map("specialist_tags")
-
-  // Event Context
-  eventResolutionDate DateTime? @map("event_resolution_date") @db.Timestamptz
-  daysToResolution    Int?      @map("days_to_resolution")
-
-  // Raw (stored but not used directly as features)
-  rawBettingVolumeUsd Decimal? @map("raw_betting_volume_usd") @db.Decimal(15, 2)
-  rawLiquidityUsd     Decimal? @map("raw_liquidity_usd") @db.Decimal(15, 2)
-
-  // Metadata
-  source     String?  @default("polymarket") @db.VarChar(50)
-  ingestedAt DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@unique([eventSlug, outcomeQuestion, capturedAt])
-  @@index([capturedAt])
-  @@index([eventCategory])
-  @@map("crowd_beliefs_event")
-  @@schema("raw")
-}
-
-// =============================================================================
-// TRAINING SCHEMA (28 tables) - Feature engineering layer
-// =============================================================================
-
 model CoreFeatures {
   id       Int      @id @default(autoincrement())
-  asOfDate DateTime @map("as_of_date")
-  features Json     @db.JsonB
+  asOfDate DateTime @unique @map("as_of_date")
+  features Json
 
-  @@unique([asOfDate])
+  @@index([asOfDate])
   @@map("core_features")
   @@schema("training")
 }
 
 model OptionsFeatures {
   id                  Int       @id @default(autoincrement())
-  underlying          String?   @db.VarChar
+  underlying          String?   @db.VarChar(10)
   asOfDate            DateTime? @map("as_of_date") @db.Date
-  expiryBucket        String?   @map("expiry_bucket") @db.VarChar
-  ivAtmCall           Decimal?  @map("iv_atm_call")
-  ivAtmPut            Decimal?  @map("iv_atm_put")
-  ivSkew              Decimal?  @map("iv_skew")
-  ivTermStructure     Decimal?  @map("iv_term_structure")
-  ivPercentile30d     Decimal?  @map("iv_percentile_30d")
-  ivRank              Decimal?  @map("iv_rank")
-  deltaWeightedOiCall Decimal?  @map("delta_weighted_oi_call")
-  deltaWeightedOiPut  Decimal?  @map("delta_weighted_oi_put")
-  gammaExposure       Decimal?  @map("gamma_exposure")
-  netGamma            Decimal?  @map("net_gamma")
-  vegaExposure        Decimal?  @map("vega_exposure")
-  thetaDecay          Decimal?  @map("theta_decay")
-  putCallRatioVolume  Decimal?  @map("put_call_ratio_volume")
-  putCallRatioOi      Decimal?  @map("put_call_ratio_oi")
+  expiryBucket        String?   @map("expiry_bucket") @db.VarChar(5)
+  ivAtmCall           Decimal?  @map("iv_atm_call") @db.Decimal(8, 6)
+  ivAtmPut            Decimal?  @map("iv_atm_put") @db.Decimal(8, 6)
+  ivSkew              Decimal?  @map("iv_skew") @db.Decimal(8, 6)
+  ivTermStructure     Decimal?  @map("iv_term_structure") @db.Decimal(8, 6)
+  ivPercentile30d     Decimal?  @map("iv_percentile_30d") @db.Decimal(5, 2)
+  ivRank              Decimal?  @map("iv_rank") @db.Decimal(5, 2)
+  deltaWeightedOiCall Decimal?  @map("delta_weighted_oi_call") @db.Decimal(18, 4)
+  deltaWeightedOiPut  Decimal?  @map("delta_weighted_oi_put") @db.Decimal(18, 4)
+  gammaExposure       Decimal?  @map("gamma_exposure") @db.Decimal(18, 4)
+  netGamma            Decimal?  @map("net_gamma") @db.Decimal(18, 4)
+  vegaExposure        Decimal?  @map("vega_exposure") @db.Decimal(18, 4)
+  thetaDecay          Decimal?  @map("theta_decay") @db.Decimal(18, 4)
+  putCallRatioVolume  Decimal?  @map("put_call_ratio_volume") @db.Decimal(8, 4)
+  putCallRatioOi      Decimal?  @map("put_call_ratio_oi") @db.Decimal(8, 4)
   totalVolume         BigInt?   @map("total_volume")
   totalOpenInterest   BigInt?   @map("total_open_interest")
-  skewZscore          Decimal?  @map("skew_zscore")
-  gammaFlipLevel      Decimal?  @map("gamma_flip_level")
-  maxPainStrike       Decimal?  @map("max_pain_strike")
-  createdAt           DateTime? @default(now()) @map("created_at")
+  skewZscore          Decimal?  @map("skew_zscore") @db.Decimal(6, 4)
+  gammaFlipLevel      Decimal?  @map("gamma_flip_level") @db.Decimal(10, 4)
+  maxPainStrike       Decimal?  @map("max_pain_strike") @db.Decimal(10, 4)
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([underlying, asOfDate, expiryBucket])
+  @@index([asOfDate], map: "idx_options_features_date")
+  @@index([underlying], map: "idx_options_features_underlying")
   @@map("options_features")
   @@schema("training")
 }
@@ -540,38 +486,42 @@ model OptionsFeatures {
 model OptionsGreeks {
   id              Int       @id @default(autoincrement())
   instrumentId    BigInt?   @map("instrument_id")
-  rawSymbol       String?   @map("raw_symbol") @db.VarChar
-  underlying      String?   @db.VarChar
+  rawSymbol       String?   @map("raw_symbol") @db.VarChar(50)
+  underlying      String?   @db.VarChar(10)
   asOfDate        DateTime? @map("as_of_date") @db.Date
   expirationDate  DateTime? @map("expiration_date") @db.Date
-  strikePrice     Decimal?  @map("strike_price")
-  optionType      String?   @map("option_type") @db.VarChar
-  open            Decimal?
-  high            Decimal?
-  low             Decimal?
-  close           Decimal?
+  strikePrice     Decimal?  @map("strike_price") @db.Decimal(12, 4)
+  optionType      String?   @map("option_type") @db.VarChar(1)
+  open            Decimal?  @db.Decimal(10, 4)
+  high            Decimal?  @db.Decimal(10, 4)
+  low             Decimal?  @db.Decimal(10, 4)
+  close           Decimal?  @db.Decimal(10, 4)
   volume          BigInt?
   openInterest    BigInt?   @map("open_interest")
-  underlyingPrice Decimal?  @map("underlying_price")
-  riskFreeRate    Decimal?  @map("risk_free_rate")
-  impliedVol      Decimal?  @map("implied_volatility")
-  delta           Decimal?
-  gamma           Decimal?
-  theta           Decimal?
-  vega            Decimal?
+  underlyingPrice Decimal?  @map("underlying_price") @db.Decimal(10, 4)
+  riskFreeRate    Decimal?  @map("risk_free_rate") @db.Decimal(8, 6)
+  impliedVol      Decimal?  @map("implied_volatility") @db.Decimal(8, 6)
+  delta           Decimal?  @db.Decimal(8, 6)
+  gamma           Decimal?  @db.Decimal(10, 8)
+  theta           Decimal?  @db.Decimal(10, 6)
+  vega            Decimal?  @db.Decimal(10, 6)
   daysToExpiry    Int?      @map("days_to_expiry")
-  moneyness       String?   @db.VarChar
-  expiryBucket    String?   @map("expiry_bucket") @db.VarChar
-  createdAt       DateTime? @default(now()) @map("created_at")
+  moneyness       String?   @db.VarChar(10)
+  expiryBucket    String?   @map("expiry_bucket") @db.VarChar(5)
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([instrumentId, asOfDate])
+  @@index([asOfDate], map: "idx_options_greeks_date")
+  @@index([expiryBucket], map: "idx_options_greeks_expiry")
+  @@index([moneyness], map: "idx_options_greeks_moneyness")
+  @@index([underlying], map: "idx_options_greeks_underlying")
   @@map("options_greeks")
   @@schema("training")
 }
 
 model RealizedVolatility {
   id             Int       @id @default(autoincrement())
-  symbol         String    @db.VarChar
+  symbol         String    @db.VarChar(20)
   asOfDate       DateTime  @map("as_of_date") @db.Date
   windowDays     Int       @map("window_days")
   realizedVol    Float     @map("realized_vol")
@@ -579,9 +529,11 @@ model RealizedVolatility {
   garmanKlassVol Float?    @map("garman_klass_vol")
   yangZhangVol   Float?    @map("yang_zhang_vol")
   annualized     Boolean?  @default(true)
-  createdAt      DateTime? @default(now()) @map("created_at")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([symbol, asOfDate, windowDays])
+  @@index([asOfDate], map: "idx_realized_vol_date")
+  @@index([symbol], map: "idx_realized_vol_symbol")
   @@map("realized_volatility")
   @@schema("training")
 }
@@ -590,44 +542,47 @@ model SpecialistFeatures {
   id       Int      @id @default(autoincrement())
   bucket   String
   asOfDate DateTime @map("as_of_date")
-  features Json     @db.JsonB
+  features Json
 
   @@unique([bucket, asOfDate])
+  @@index([asOfDate])
+  @@index([bucket])
   @@map("specialist_features")
   @@schema("training")
 }
 
 model VolatilitySurface {
   id           Int       @id @default(autoincrement())
-  underlying   String?   @db.VarChar
+  underlying   String?   @db.VarChar(10)
   asOfDate     DateTime? @map("as_of_date") @db.Date
-  surfaceData  Json?     @map("surface_data") @db.JsonB
-  atmVol       Decimal?  @map("atm_vol")
-  skew25d      Decimal?  @map("skew_25d")
-  butterfly25d Decimal?  @map("butterfly_25d")
-  termSlope    Decimal?  @map("term_slope")
-  createdAt    DateTime? @default(now()) @map("created_at")
+  surfaceData  Json?     @map("surface_data")
+  atmVol       Decimal?  @map("atm_vol") @db.Decimal(8, 6)
+  skew25d      Decimal?  @map("skew_25d") @db.Decimal(8, 6)
+  butterfly25d Decimal?  @map("butterfly_25d") @db.Decimal(8, 6)
+  termSlope    Decimal?  @map("term_slope") @db.Decimal(8, 6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([underlying, asOfDate])
+  @@index([asOfDate], map: "idx_vol_surface_date")
+  @@index([underlying], map: "idx_vol_surface_underlying")
   @@map("volatility_surface")
   @@schema("training")
 }
 
-// Specialist bucket tables (daily) - all share same structure
 model SpecialistBiofuel1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("biofuel") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_biofuel_1d")
@@ -636,18 +591,18 @@ model SpecialistBiofuel1d {
 
 model SpecialistBiofuel1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("biofuel") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_biofuel_1h")
@@ -657,17 +612,17 @@ model SpecialistBiofuel1h {
 model SpecialistChina1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("china") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_china_1d")
@@ -676,18 +631,18 @@ model SpecialistChina1d {
 
 model SpecialistChina1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("china") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_china_1h")
@@ -697,17 +652,17 @@ model SpecialistChina1h {
 model SpecialistCrush1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("crush") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_crush_1d")
@@ -716,18 +671,18 @@ model SpecialistCrush1d {
 
 model SpecialistCrush1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("crush") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_crush_1h")
@@ -737,17 +692,17 @@ model SpecialistCrush1h {
 model SpecialistEnergy1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("energy") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_energy_1d")
@@ -756,18 +711,18 @@ model SpecialistEnergy1d {
 
 model SpecialistEnergy1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("energy") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_energy_1h")
@@ -777,17 +732,17 @@ model SpecialistEnergy1h {
 model SpecialistFed1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("fed") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_fed_1d")
@@ -796,18 +751,18 @@ model SpecialistFed1d {
 
 model SpecialistFed1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("fed") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_fed_1h")
@@ -817,17 +772,17 @@ model SpecialistFed1h {
 model SpecialistFx1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("fx") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_fx_1d")
@@ -836,18 +791,18 @@ model SpecialistFx1d {
 
 model SpecialistFx1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("fx") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_fx_1h")
@@ -857,17 +812,17 @@ model SpecialistFx1h {
 model SpecialistPalm1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("palm") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_palm_1d")
@@ -876,18 +831,18 @@ model SpecialistPalm1d {
 
 model SpecialistPalm1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("palm") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_palm_1h")
@@ -897,17 +852,17 @@ model SpecialistPalm1h {
 model SpecialistSubstitutes1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("substitutes") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_substitutes_1d")
@@ -916,18 +871,18 @@ model SpecialistSubstitutes1d {
 
 model SpecialistSubstitutes1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("substitutes") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_substitutes_1h")
@@ -937,17 +892,17 @@ model SpecialistSubstitutes1h {
 model SpecialistTariff1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("tariff") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_tariff_1d")
@@ -956,18 +911,18 @@ model SpecialistTariff1d {
 
 model SpecialistTariff1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("tariff") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_tariff_1h")
@@ -975,41 +930,34 @@ model SpecialistTariff1h {
 }
 
 model SpecialistTrumpEffect1d {
-  symbol         String
-  asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
-  volume         BigInt?
-  openInterest   BigInt?   @map("open_interest")
-  contractMonth  String?   @map("contract_month")
-  expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  id         Int       @id @default(autoincrement())
+  asOfDate   DateTime  @map("as_of_date") @db.Date
+  symbol     String?   @default("ZL") @db.VarChar(20)
+  signal     Float?
+  confidence Float?
+  features   Json?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@id([symbol, asOfDate])
+  @@unique([asOfDate, symbol])
+  @@index([asOfDate], map: "idx_trump_1d_date")
+  @@index([asOfDate], map: "idx_trump_effect_1d_date")
+  @@index([asOfDate], map: "idx_trump_effect_date")
   @@map("specialist_trump_effect_1d")
   @@schema("training")
 }
 
 model SpecialistTrumpEffect1h {
-  symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
-  volume         BigInt?
-  openInterest   BigInt?   @map("open_interest")
-  contractMonth  String?   @map("contract_month")
-  expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  id         Int       @id @default(autoincrement())
+  as_of_date DateTime  @db.Timestamp(6)
+  symbol     String?   @default("ZL") @db.VarChar(20)
+  signal     Float?
+  confidence Float?
+  features   Json?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@id([symbol, asOfTime])
+  @@unique([as_of_date, symbol])
+  @@index([as_of_date], map: "idx_trump_1h_date")
+  @@index([as_of_date], map: "idx_trump_effect_1h_date")
   @@map("specialist_trump_effect_1h")
   @@schema("training")
 }
@@ -1017,17 +965,17 @@ model SpecialistTrumpEffect1h {
 model SpecialistVolatility1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("volatility") @map("bucket_name")
+  granularity    String?   @default("1d")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfDate])
   @@map("specialist_volatility_1d")
@@ -1036,27 +984,23 @@ model SpecialistVolatility1d {
 
 model SpecialistVolatility1h {
   symbol         String
-  asOfTime       DateTime  @map("as_of_time")
-  open           Decimal?
-  high           Decimal?
-  low            Decimal?
-  close          Decimal?
+  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
+  open           Decimal?  @db.Decimal(18, 6)
+  high           Decimal?  @db.Decimal(18, 6)
+  low            Decimal?  @db.Decimal(18, 6)
+  close          Decimal?  @db.Decimal(18, 6)
   volume         BigInt?
   openInterest   BigInt?   @map("open_interest")
   contractMonth  String?   @map("contract_month")
   expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @map("bucket_name")
-  granularity    String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  bucketName     String?   @default("volatility") @map("bucket_name")
+  granularity    String?   @default("1h")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@id([symbol, asOfTime])
   @@map("specialist_volatility_1h")
   @@schema("training")
 }
-
-// =============================================================================
-// MODEL SCHEMA (18 tables) - ML outputs layer
-// =============================================================================
 
 model CvFolds {
   id       Int      @id @default(autoincrement())
@@ -1067,88 +1011,33 @@ model CvFolds {
   isVal    Boolean  @map("is_val")
 
   @@unique([asOfDate, horizon, foldId])
+  @@index([asOfDate])
+  @@index([horizon])
   @@map("cv_folds")
-  @@schema("model")
-}
-
-model DataQualityMetrics {
-  id               Int       @id @default(autoincrement())
-  asOfDate         DateTime  @map("as_of_date") @db.Date
-  source           String
-  lastUpdate       DateTime? @map("last_update") @db.Timestamptz
-  hoursSinceUpdate Decimal?  @map("hours_since_update")
-  totalRows        Int?      @map("total_rows")
-  expectedRows     Int?      @map("expected_rows")
-  completenessPct  Decimal?  @map("completeness_pct")
-  nullCount        Int?      @map("null_count")
-  nullPct          Decimal?  @map("null_pct")
-  isStale          Boolean?  @map("is_stale")
-  isIncomplete     Boolean?  @map("is_incomplete")
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([asOfDate, source])
-  @@map("data_quality_metrics")
-  @@schema("model")
-}
-
-model ForecastQuantiles {
-  id           Int       @id @default(autoincrement())
-  modelName    String    @map("model_name")
-  horizon      Int
-  forecastDate DateTime  @map("forecast_date") @db.Date
-  targetDate   DateTime  @map("target_date") @db.Date
-  symbol       String?
-  p10          Decimal?
-  p50          Decimal?
-  p90          Decimal?
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([modelName, horizon, forecastDate])
-  @@map("forecast_quantiles")
-  @@schema("model")
-}
-
-model GarchForecasts {
-  id             Int       @id @default(autoincrement())
-  symbol         String    @db.VarChar
-  asOfDate       DateTime  @map("as_of_date") @db.Date
-  horizon        Int
-  conditionalVol Float     @map("conditional_vol")
-  annualizedVol  Float     @map("annualized_vol")
-  var01          Float?    @map("var_01")
-  var05          Float?    @map("var_05")
-  cvar05         Float?    @map("cvar_05")
-  volLower       Float?    @map("vol_lower")
-  volUpper       Float?    @map("vol_upper")
-  modelType      String?   @map("model_type") @db.VarChar
-  modelVersion   String?   @map("model_version") @db.VarChar
-  createdAt      DateTime? @default(now()) @map("created_at")
-
-  @@unique([symbol, asOfDate, horizon, modelVersion])
-  @@map("garch_forecasts")
   @@schema("model")
 }
 
 model GarchParameters {
   id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
-  modelType     String    @map("model_type") @db.VarChar
+  symbol        String    @db.VarChar(20)
+  modelType     String    @map("model_type") @db.VarChar(50)
   p             Int
   q             Int
   omega         Float
-  alpha         Json      @db.JsonB
-  beta          Json      @db.JsonB
-  gamma         Json?     @db.JsonB
-  distribution  String?   @db.VarChar
+  alpha         Json
+  beta          Json
+  gamma         Json?
+  distribution  String?   @db.VarChar(20)
   df            Float?
   logLikelihood Float?    @map("log_likelihood")
   aic           Float?
   bic           Float?
-  modelVersion  String?   @map("model_version") @db.VarChar
-  trainedAt     DateTime? @map("trained_at")
-  createdAt     DateTime? @default(now()) @map("created_at")
+  modelVersion  String?   @map("model_version") @db.VarChar(100)
+  trainedAt     DateTime? @map("trained_at") @db.Timestamp(6)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([symbol, modelType, p, q, modelVersion])
+  @@index([symbol], map: "idx_garch_params_symbol")
   @@map("garch_parameters")
   @@schema("model")
 }
@@ -1164,21 +1053,25 @@ model LassoCoefficients {
   trainedAt    DateTime @map("trained_at")
 
   @@unique([bucket, horizon, featureName, modelVersion])
+  @@index([bucket])
+  @@index([horizon])
+  @@index([isActive])
   @@map("lasso_coefficients")
   @@schema("model")
 }
 
 model MetaEnsemble {
   id           Int      @id @default(autoincrement())
-  asOfDate     DateTime @map("as_of_date")
+  asOfDate     DateTime @map("as_of_date") @db.Timestamp(6)
   horizon      Int
   p10          Float
   p50          Float
   p90          Float
-  modelVersion String   @map("model_version") @db.VarChar
-  trainedAt    DateTime @map("trained_at")
+  modelVersion String   @map("model_version") @db.VarChar(100)
+  trainedAt    DateTime @map("trained_at") @db.Timestamp(6)
 
   @@unique([asOfDate, horizon])
+  @@index([horizon], map: "idx_meta_ensemble_horizon")
   @@map("meta_ensemble")
   @@schema("model")
 }
@@ -1187,152 +1080,110 @@ model MetaWeights {
   id                Int       @id @default(autoincrement())
   horizon           Int
   specialist        String
-  weight            Decimal?
-  featureImportance Decimal?  @map("feature_importance")
-  trainedAt         DateTime? @map("trained_at") @db.Timestamptz
+  weight            Decimal?  @db.Decimal(10, 6)
+  featureImportance Decimal?  @map("feature_importance") @db.Decimal(10, 6)
+  trainedAt         DateTime? @default(now()) @map("trained_at") @db.Timestamptz(6)
 
-  @@unique([horizon, specialist])
+  @@unique([specialist, horizon])
   @@map("meta_weights")
   @@schema("model")
 }
 
 model ModelLeaderboard {
-  id              Int       @id @default(autoincrement())
-  runId           String    @map("run_id")
-  modelName       String    @map("model_name")
+  id              Int           @id @default(autoincrement())
+  runId           String        @map("run_id")
+  modelName       String        @map("model_name")
   rank            Int?
-  scoreVal        Decimal?  @map("score_val")
-  scoreTest       Decimal?  @map("score_test")
-  fitTimeSeconds  Decimal?  @map("fit_time_seconds")
-  predTimeSeconds Decimal?  @map("pred_time_seconds")
-  modelPath       String?   @map("model_path")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  scoreVal        Decimal?      @map("score_val") @db.Decimal
+  scoreTest       Decimal?      @map("score_test") @db.Decimal
+  fitTimeSeconds  Decimal?      @map("fit_time_seconds") @db.Decimal
+  predTimeSeconds Decimal?      @map("pred_time_seconds") @db.Decimal
+  modelPath       String?       @map("model_path")
+  createdAt       DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  training_runs   training_runs @relation(fields: [runId], references: [run_id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([runId, modelName])
+  @@index([rank], map: "idx_leaderboard_rank")
+  @@index([runId], map: "idx_leaderboard_run_id")
   @@map("model_leaderboard")
   @@schema("model")
 }
 
 model ModelRegistry {
   id                  Int       @id @default(autoincrement())
-  modelId             String    @unique @map("model_id")
+  modelId             String    @map("model_id")
   modelName           String    @map("model_name")
   modelType           String    @map("model_type")
   horizon             Int?
-  version             Int
-  trainedAt           DateTime  @map("trained_at") @db.Timestamptz
+  version             Int       @default(1)
+  trainedAt           DateTime  @default(now()) @map("trained_at") @db.Timestamptz(6)
   trainingMode        String?   @map("training_mode")
-  trainingTimeSeconds Decimal?  @map("training_time_seconds")
+  trainingTimeSeconds Decimal?  @map("training_time_seconds") @db.Decimal
   datasetRows         Int?      @map("dataset_rows")
   datasetFeatures     Int?      @map("dataset_features")
   datasetStartDate    DateTime? @map("dataset_start_date") @db.Date
   datasetEndDate      DateTime? @map("dataset_end_date") @db.Date
-  mase                Decimal?
-  rmse                Decimal?
-  mae                 Decimal?
-  mape                Decimal?
-  pinballLossP10      Decimal?  @map("pinball_loss_p10")
-  pinballLossP50      Decimal?  @map("pinball_loss_p50")
-  pinballLossP90      Decimal?  @map("pinball_loss_p90")
-  coverage80          Decimal?  @map("coverage_80")
+  mase                Decimal?  @db.Decimal
+  rmse                Decimal?  @db.Decimal
+  mae                 Decimal?  @db.Decimal
+  mape                Decimal?  @db.Decimal
+  pinballLossP10      Decimal?  @map("pinball_loss_p10") @db.Decimal
+  pinballLossP50      Decimal?  @map("pinball_loss_p50") @db.Decimal
+  pinballLossP90      Decimal?  @map("pinball_loss_p90") @db.Decimal
+  coverage80          Decimal?  @map("coverage_80") @db.Decimal
   bestModel           String?   @map("best_model")
   modelsTrained       Int?      @map("models_trained")
-  status              String
-  isChampion          Boolean?  @map("is_champion")
-  promotedAt          DateTime? @map("promoted_at") @db.Timestamptz
+  status              String    @default("trained")
+  isChampion          Boolean?  @default(false) @map("is_champion")
+  promotedAt          DateTime? @map("promoted_at") @db.Timestamptz(6)
   artifactPath        String?   @map("artifact_path")
   mlflowRunId         String?   @map("mlflow_run_id")
-  tags                Json?     @db.JsonB
+  tags                Json?     @default("{}")
   notes               String?
-  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime? @map("updated_at") @db.Timestamptz
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([modelId, version])
+  @@index([horizon], map: "idx_registry_horizon")
+  @@index([isChampion], map: "idx_registry_is_champion")
+  @@index([modelType], map: "idx_registry_model_type")
+  @@index([status], map: "idx_registry_status")
+  @@index([trainedAt], map: "idx_registry_trained_at")
   @@map("model_registry")
   @@schema("model")
 }
 
-model MonteCarloRuns {
-  id           Int      @id @default(autoincrement())
-  symbol       String
-  asOfDate     DateTime @map("as_of_date")
-  horizon      Int
-  numSims      Int      @map("num_sims")
-  percentiles  Json     @db.JsonB
-  correlations Json?    @db.JsonB
-  modelVersion String   @map("model_version")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  @@unique([symbol, asOfDate, horizon, modelVersion])
-  @@map("monte_carlo_runs")
-  @@schema("model")
-}
-
 model OofPredictions {
-  id         Int       @id @default(autoincrement())
-  specialist String
-  horizon    Int
-  asOfDate   DateTime  @map("as_of_date") @db.Date
-  symbol     String?
-  predP10    Decimal?  @map("pred_p10")
-  predP50    Decimal?  @map("pred_p50")
-  predP90    Decimal?  @map("pred_p90")
-  actual     Decimal?
-  foldId     Int?      @map("fold_id")
-  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  id            Int       @id @default(autoincrement())
+  specialist    String
+  horizon       Int
+  asOfDate      DateTime  @map("as_of_date") @db.Date
+  symbol        String?   @default("ZL")
+  predP10       Decimal?  @map("pred_p10") @db.Decimal(18, 6)
+  predP50       Decimal?  @map("pred_p50") @db.Decimal(18, 6)
+  predP90       Decimal?  @map("pred_p90") @db.Decimal(18, 6)
+  actual        Decimal?  @db.Decimal(18, 6)
+  foldId        Int?      @map("fold_id")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  model_version String?
 
   @@unique([specialist, horizon, asOfDate, foldId])
   @@map("oof_predictions")
   @@schema("model")
 }
 
-model PredictionAccuracy {
-  id             Int       @id @default(autoincrement())
-  modelId        String    @map("model_id")
-  horizon        Int
-  predictionDate DateTime  @map("prediction_date") @db.Date
-  targetDate     DateTime  @map("target_date") @db.Date
-  actual         Decimal?
-  predP10        Decimal?  @map("pred_p10")
-  predP50        Decimal?  @map("pred_p50")
-  predP90        Decimal?  @map("pred_p90")
-  error          Decimal?
-  absError       Decimal?  @map("abs_error")
-  pctError       Decimal?  @map("pct_error")
-  in80Band       Boolean?  @map("in_80_band")
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([modelId, horizon, predictionDate])
-  @@map("prediction_accuracy")
-  @@schema("model")
-}
-
-model ProbabilityDistributions {
-  id           Int       @id @default(autoincrement())
-  symbol       String    @db.VarChar
-  asOfDate     DateTime  @map("as_of_date") @db.Date
-  horizon      Int
-  percentile   Float
-  value        Float
-  modelVersion String?   @map("model_version") @db.VarChar
-  createdAt    DateTime? @default(now()) @map("created_at")
-
-  @@unique([symbol, asOfDate, horizon, percentile])
-  @@map("probability_distributions")
-  @@schema("model")
-}
-
 model RegimeProbabilities {
   id           Int       @id @default(autoincrement())
   asOfDate     DateTime  @map("as_of_date") @db.Date
-  regimeType   String    @map("regime_type") @db.VarChar
-  regimeName   String    @map("regime_name") @db.VarChar
+  regimeType   String    @map("regime_type") @db.VarChar(50)
+  regimeName   String    @map("regime_name") @db.VarChar(100)
   probability  Float
   confidence   Float?
-  drivers      Json?     @db.JsonB
-  modelVersion String?   @map("model_version") @db.VarChar
-  createdAt    DateTime? @default(now()) @map("created_at")
+  drivers      Json?
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([asOfDate, regimeType, regimeName])
+  @@index([asOfDate], map: "idx_regime_prob_date")
   @@map("regime_probabilities")
   @@schema("model")
 }
@@ -1340,15 +1191,16 @@ model RegimeProbabilities {
 model ShapSummary {
   id           Int       @id @default(autoincrement())
   horizon      Int
-  featureName  String    @map("feature_name") @db.VarChar
+  featureName  String    @map("feature_name") @db.VarChar(100)
   meanAbsShap  Float     @map("mean_abs_shap")
   stdShap      Float?    @map("std_shap")
   rank         Int?
-  modelVersion String?   @map("model_version") @db.VarChar
-  trainedAt    DateTime? @map("trained_at")
-  createdAt    DateTime? @default(now()) @map("created_at")
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  trainedAt    DateTime? @map("trained_at") @db.Timestamp(6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([horizon, featureName, modelVersion])
+  @@index([horizon], map: "idx_shap_summary_horizon")
   @@map("shap_summary")
   @@schema("model")
 }
@@ -1357,128 +1209,19 @@ model ShapValues {
   id           Int       @id @default(autoincrement())
   asOfDate     DateTime  @map("as_of_date") @db.Date
   horizon      Int
-  featureName  String    @map("feature_name") @db.VarChar
+  featureName  String    @map("feature_name") @db.VarChar(100)
   shapValue    Float     @map("shap_value")
   baseValue    Float?    @map("base_value")
   prediction   Float?
-  modelVersion String?   @map("model_version") @db.VarChar
-  createdAt    DateTime? @default(now()) @map("created_at")
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([asOfDate, horizon, featureName, modelVersion])
+  @@index([asOfDate], map: "idx_shap_values_date")
+  @@index([horizon], map: "idx_shap_values_horizon")
   @@map("shap_values")
   @@schema("model")
 }
-
-model TrainingRuns {
-  id              Int       @id @default(autoincrement())
-  runId           String    @unique @map("run_id")
-  runName         String?   @map("run_name")
-  experimentName  String?   @map("experiment_name")
-  modelType       String    @map("model_type")
-  specialistName  String?   @map("specialist_name")
-  horizon         Int?
-  startedAt       DateTime  @map("started_at") @db.Timestamptz
-  completedAt     DateTime? @map("completed_at") @db.Timestamptz
-  durationSeconds Decimal?  @map("duration_seconds")
-  status          String?
-  trainingMode    String?   @map("training_mode")
-  hyperparameters Json?     @db.JsonB
-  datasetName     String?   @map("dataset_name")
-  datasetRows     Int?      @map("dataset_rows")
-  datasetFeatures Int?      @map("dataset_features")
-  metrics         Json?     @db.JsonB
-  mase            Decimal?
-  errorMessage    String?   @map("error_message")
-  artifactPath    String?   @map("artifact_path")
-  logPath         String?   @map("log_path")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@map("training_runs")
-  @@schema("model")
-}
-
-// =============================================================================
-// MODEL CORE AUDIT (V15 Compliance Enforcement)
-// =============================================================================
-// Every Core training run must write exactly one audit row.
-// CI and release gates read from this table.
-// If this row says FAIL, the model does not exist operationally.
-
-model ModelCoreAudit {
-  id String @id @default(uuid())
-
-  // Identity
-  trainingRunId String   @unique @map("training_run_id")
-  horizon       String // "5d" | "21d" | "63d" | "126d"
-  reviewedAt    DateTime @default(now()) @map("reviewed_at")
-  reviewer      String
-
-  // -------- HARD GATES --------
-
-  // Scope & CV
-  isCoreRun           Boolean @map("is_core_run")
-  cvPurgedWalkForward Boolean @map("cv_purged_walk_forward")
-  asofAlignmentValid  Boolean @map("asof_alignment_valid")
-
-  // Horizon allowlist
-  chronosBoltPresent      Boolean @map("chronos_bolt_present")
-  chronos2Present         Boolean @map("chronos2_present")
-  chronos2LoraPresent     Boolean @map("chronos2_lora_present")
-  recursiveTabularPresent Boolean @map("recursive_tabular_present")
-
-  // Mandatory baselines
-  autoetsPresent       Boolean @map("autoets_present")
-  thetaPresent         Boolean @map("theta_present")
-  seasonalNaivePresent Boolean @map("seasonal_naive_present")
-
-  // Ensemble integrity
-  weightedEnsembleUsed    Boolean @map("weighted_ensemble_used")
-  oofOnly                 Boolean @map("oof_only")
-  maxSingleWeight         Float   @map("max_single_weight")
-  chronosWeightNonzero    Boolean @map("chronos_weight_nonzero")
-  recursiveWeightZeroLong Boolean @map("recursive_weight_zero_long")
-
-  // Probabilistic contract
-  monteCarloRuns        Int     @map("monte_carlo_runs")
-  p10Present            Boolean @map("p10_present")
-  p50Present            Boolean @map("p50_present")
-  p90Present            Boolean @map("p90_present")
-  stressWideningApplied Boolean @map("stress_widening_applied")
-
-  // Validation
-  rmseRecorded  Boolean @map("rmse_recorded")
-  brierRecorded Boolean @map("brier_recorded")
-  p10CoverageOk Boolean @map("p10_coverage_ok")
-  p90CoverageOk Boolean @map("p90_coverage_ok")
-
-  // Registry & lineage
-  registryComplete      Boolean @map("registry_complete")
-  ensembleEdgesRecorded Boolean @map("ensemble_edges_recorded")
-  resourcesLogged       Boolean @map("resources_logged")
-  artifactIsolationSafe Boolean @map("artifact_isolation_safe")
-
-  // -------- BUSINESS GATE --------
-  narrativeReady           Boolean @map("narrative_ready")
-  buySellLanguageAbsent    Boolean @map("buy_sell_language_absent")
-  uncertaintyExplained     Boolean @map("uncertainty_explained")
-  specialistDivergenceFlag Boolean @map("specialist_divergence_flag")
-
-  // -------- FINAL VERDICT --------
-  hardGatePass  Boolean @map("hard_gate_pass")
-  finalApproved Boolean @map("final_approved")
-
-  // Required on failure
-  failureReason String? @map("failure_reason")
-
-  @@index([horizon])
-  @@index([finalApproved])
-  @@map("model_core_audit")
-  @@schema("model")
-}
-
-// =============================================================================
-// ANALYTICS SCHEMA (12 tables) - Dashboard layer
-// =============================================================================
 
 model ChartOverlays {
   id          Int       @id @default(autoincrement())
@@ -1488,9 +1231,12 @@ model ChartOverlays {
   endDate     DateTime? @map("end_date")
   label       String
   color       String?
-  metadata    Json?     @db.JsonB
+  metadata    Json?
   createdAt   DateTime  @default(now()) @map("created_at")
 
+  @@index([overlayType])
+  @@index([startDate])
+  @@index([symbol])
   @@map("chart_overlays")
   @@schema("analytics")
 }
@@ -1498,27 +1244,11 @@ model ChartOverlays {
 model DashboardMetrics {
   id          Int       @id @default(autoincrement())
   metricName  String    @map("metric_name")
-  metricValue Decimal?  @map("metric_value")
+  metricValue Decimal?  @map("metric_value") @db.Decimal(18, 6)
   asOfDate    DateTime? @map("as_of_date") @db.Date
-  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([metricName, asOfDate])
   @@map("dashboard_metrics")
-  @@schema("analytics")
-}
-
-model DataQualityLog {
-  id         Int      @id @default(autoincrement())
-  tableName  String   @map("table_name")
-  checkDate  DateTime @map("check_date")
-  rowCount   Int      @map("row_count")
-  nullCount  Int      @map("null_count")
-  latestDate DateTime @map("latest_date")
-  oldestDate DateTime @map("oldest_date")
-  issues     Json?    @db.JsonB
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@map("data_quality_log")
   @@schema("analytics")
 }
 
@@ -1526,11 +1256,11 @@ model DriverScores {
   id               Int       @id @default(autoincrement())
   asOfDate         DateTime  @map("as_of_date") @db.Date
   specialist       String
-  signal           Decimal?
+  signal           Decimal?  @db.Decimal(10, 6)
   direction        String?
-  confidence       Decimal?
-  shapContribution Decimal?  @map("shap_contribution")
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  confidence       Decimal?  @db.Decimal(10, 6)
+  shapContribution Decimal?  @map("shap_contribution") @db.Decimal(10, 6)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([asOfDate, specialist])
   @@map("driver_scores")
@@ -1542,10 +1272,10 @@ model MarketPosture {
   asOfDate     DateTime  @map("as_of_date") @db.Date
   horizon      Int
   posture      String?
-  confidence   Decimal?
+  confidence   Decimal?  @db.Decimal(10, 6)
   regime       String?
-  tailRiskProb Decimal?  @map("tail_risk_prob")
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  tailRiskProb Decimal?  @map("tail_risk_prob") @db.Decimal(10, 6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([asOfDate, horizon])
   @@map("market_posture")
@@ -1562,13 +1292,15 @@ model ProcurementActions {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([symbol, asOfDate])
+  @@index([asOfDate])
+  @@index([symbol])
   @@map("procurement_actions")
   @@schema("analytics")
 }
 
 model RiskMetrics {
   id           Int       @id @default(autoincrement())
-  asOfDate     DateTime  @map("as_of_date")
+  asOfDate     DateTime  @map("as_of_date") @db.Timestamp(6)
   horizon      Int
   var01        Float     @map("var_01")
   var05        Float     @map("var_05")
@@ -1577,9 +1309,9 @@ model RiskMetrics {
   probUp       Float     @map("prob_up")
   probUp5pct   Float     @map("prob_up_5pct")
   probDown5pct Float     @map("prob_down_5pct")
-  regime       String    @db.VarChar
+  regime       String    @db.VarChar(20)
   tailRiskFlag Boolean   @map("tail_risk_flag")
-  createdAt    DateTime? @default(now()) @map("created_at")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([asOfDate, horizon])
   @@map("risk_metrics")
@@ -1588,45 +1320,22 @@ model RiskMetrics {
 
 model ScenarioAnalysis {
   id               Int       @id @default(autoincrement())
-  scenarioId       String    @map("scenario_id") @db.VarChar
-  scenarioName     String    @map("scenario_name") @db.VarChar
+  scenarioId       String    @map("scenario_id") @db.VarChar(100)
+  scenarioName     String    @map("scenario_name") @db.VarChar(200)
   asOfDate         DateTime  @map("as_of_date") @db.Date
   horizon          Int
-  assumptions      Json      @db.JsonB
+  assumptions      Json
   baseForecast     Float?    @map("base_forecast")
   scenarioForecast Float?    @map("scenario_forecast")
   impactPct        Float?    @map("impact_pct")
   probability      Float?
-  confidence       String?   @db.VarChar
-  modelVersion     String?   @map("model_version") @db.VarChar
-  createdAt        DateTime? @default(now()) @map("created_at")
+  confidence       String?   @db.VarChar(20)
+  modelVersion     String?   @map("model_version") @db.VarChar(100)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([scenarioId, asOfDate, horizon])
+  @@index([asOfDate], map: "idx_scenario_date")
   @@map("scenario_analysis")
-  @@schema("analytics")
-}
-
-model SpecialistDrivers {
-  id          Int    @id @default(autoincrement())
-  driverId    String @unique @map("driver_id")
-  description String
-
-  @@map("specialist_drivers")
-  @@schema("analytics")
-}
-
-model TrainingRunLog {
-  id           Int       @id @default(autoincrement())
-  runId        String    @unique @map("run_id")
-  horizon      Int
-  phase        String
-  status       String
-  startedAt    DateTime  @map("started_at")
-  completedAt  DateTime? @map("completed_at")
-  errorMessage String?   @map("error_message")
-  metrics      Json?     @db.JsonB
-
-  @@map("training_run_log")
   @@schema("analytics")
 }
 
@@ -1644,23 +1353,28 @@ model ValueTimingWindows {
   createdAt              DateTime @default(now()) @map("created_at")
 
   @@unique([symbol, asOfDate, horizonDays])
+  @@index([asOfDate])
+  @@index([horizonDays])
+  @@index([symbol])
   @@map("value_timing_windows")
   @@schema("analytics")
 }
 
 model VolRegimes {
   id              Int       @id @default(autoincrement())
-  symbol          String    @db.VarChar
+  symbol          String    @db.VarChar(20)
   asOfDate        DateTime  @map("as_of_date") @db.Date
-  regime          String    @db.VarChar
+  regime          String    @db.VarChar(20)
   regimeProb      Float?    @map("regime_prob")
-  transitionProbs Json?     @map("transition_probs") @db.JsonB
+  transitionProbs Json?     @map("transition_probs")
   smoothedProb    Float?    @map("smoothed_prob")
-  modelType       String?   @map("model_type") @db.VarChar
-  modelVersion    String?   @map("model_version") @db.VarChar
-  createdAt       DateTime? @default(now()) @map("created_at")
+  modelType       String?   @map("model_type") @db.VarChar(50)
+  modelVersion    String?   @map("model_version") @db.VarChar(100)
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([symbol, asOfDate, modelVersion])
+  @@index([asOfDate], map: "idx_vol_regime_date")
+  @@index([symbol], map: "idx_vol_regime_symbol")
   @@map("vol_regimes")
   @@schema("analytics")
 }
@@ -1675,156 +1389,13 @@ model ZlLive {
   dayLow        Float?    @map("day_low")
   dayOpen       Float?    @map("day_open")
   volume        Int?
-  timestamp     DateTime? @db.Timestamptz
+  timestamp     DateTime? @db.Timestamptz(6)
   source        String?   @db.VarChar(50)
-  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("zl_live")
   @@schema("analytics")
 }
-
-// =============================================================================
-// OPS SCHEMA - Operations & Vegas CRM Data
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-// VEGAS CRM TABLES (Synced from Glide - READ ONLY source)
-// Data flow: Glide API → These tables → Frontend
-// Script: src/fusion/ingestion/glide_vegas.py
-// -----------------------------------------------------------------------------
-
-model VegasRestaurants {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  name          String?  @db.VarChar
-  location      String?  @db.VarChar
-  category      String?  @db.VarChar
-  currentOilLbs Float?   @map("current_oil_lbs")
-  deliveryDay   String?  @map("delivery_day") @db.VarChar
-  scheduleTime  String?  @map("schedule_time") @db.VarChar
-  baselineLbs   Float?   @map("baseline_lbs")
-  fryers        Int?
-  notes         String?
-  data          Json?    @db.JsonB // All other Glide columns
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_restaurants")
-  @@schema("ops")
-}
-
-model VegasCasinos {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  name          String?  @db.VarChar
-  eventCalendar String?  @map("event_calendar") @db.VarChar
-  premiumTier   Boolean? @map("premium_tier")
-  affiliations  String?  @db.VarChar
-  data          Json?    @db.JsonB
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_casinos")
-  @@schema("ops")
-}
-
-model VegasFryers {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  restaurantId  String?  @map("restaurant_id") @db.VarChar
-  fryerType     String?  @map("fryer_type") @db.VarChar
-  capacityLb    Float?   @map("capacity_lb")
-  turnsPerMonth Int?     @map("turns_per_month")
-  baseDailyGal  Float?   @map("base_daily_gal")
-  currentUtil   Float?   @map("current_util")
-  data          Json?    @db.JsonB
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_fryers")
-  @@schema("ops")
-}
-
-model VegasExportList {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  customerName  String?  @map("customer_name") @db.VarChar
-  segment       String?  @db.VarChar
-  contactEmail  String?  @map("contact_email") @db.VarChar
-  contactPhone  String?  @map("contact_phone") @db.VarChar
-  campaignHist  String?  @map("campaign_hist") @db.VarChar
-  acceptRate    Float?   @map("accept_rate")
-  data          Json?    @db.JsonB
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_export_list")
-  @@schema("ops")
-}
-
-model VegasScheduledReports {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  reportName    String?  @map("report_name") @db.VarChar
-  schedule      String?  @db.VarChar
-  dataSnapshot  String?  @map("data_snapshot") @db.VarChar
-  alertTriggers String?  @map("alert_triggers") @db.VarChar
-  data          Json?    @db.JsonB
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_scheduled_reports")
-  @@schema("ops")
-}
-
-model VegasShifts {
-  id              Int      @id @default(autoincrement())
-  glideRowId      String?  @map("glide_rowid") @db.VarChar
-  shiftTime       String?  @map("shift_time") @db.VarChar
-  driverAvailable String?  @map("driver_available") @db.VarChar
-  deliveryCapLbs  Float?   @map("delivery_cap_lbs")
-  routeAssign     String?  @map("route_assign") @db.VarChar
-  data            Json?    @db.JsonB
-  sourceTableId   String   @map("source_table_id") @db.VarChar
-  ingestedAt      DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_shifts")
-  @@schema("ops")
-}
-
-model VegasShiftCasinos {
-  id            Int      @id @default(autoincrement())
-  glideRowId    String?  @map("glide_rowid") @db.VarChar
-  casinoId      String?  @map("casino_id") @db.VarChar
-  shiftSchedule String?  @map("shift_schedule") @db.VarChar
-  premiumWindow String?  @map("premium_window") @db.VarChar
-  eventBasedCap Float?   @map("event_based_cap")
-  data          Json?    @db.JsonB
-  sourceTableId String   @map("source_table_id") @db.VarChar
-  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_shift_casinos")
-  @@schema("ops")
-}
-
-model VegasShiftRestaurants {
-  id                  Int      @id @default(autoincrement())
-  glideRowId          String?  @map("glide_rowid") @db.VarChar
-  restaurantId        String?  @map("restaurant_id") @db.VarChar
-  preferredWindow     String?  @map("preferred_window") @db.VarChar
-  scheduleConstraint  String?  @map("schedule_constraint") @db.VarChar
-  deliveryReliability Float?   @map("delivery_reliability")
-  data                Json?    @db.JsonB
-  sourceTableId       String   @map("source_table_id") @db.VarChar
-  ingestedAt          DateTime @default(now()) @map("ingested_at") @db.Timestamptz
-
-  @@map("vegas_shift_restaurants")
-  @@schema("ops")
-}
-
-// -----------------------------------------------------------------------------
-// Operations Infrastructure
-// -----------------------------------------------------------------------------
 
 model DataSourceRegistry {
   id                   Int       @id @default(autoincrement())
@@ -1844,186 +1415,648 @@ model DataSourceRegistry {
   updateFrequency      String    @map("update_frequency")
   typicalLagHours      Int?      @map("typical_lag_hours")
   ingestionScript      String?   @map("ingestion_script")
-  lastSuccessfulRun    DateTime? @map("last_successful_run") @db.Timestamptz
+  lastSuccessfulRun    DateTime? @map("last_successful_run") @db.Timestamptz(6)
   isActive             Boolean?  @default(true) @map("is_active")
   requiresSubscription Boolean?  @default(false) @map("requires_subscription")
   subscriptionStatus   String?   @map("subscription_status")
   notes                String?
-  createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("data_source_registry")
   @@schema("ops")
 }
 
-// -----------------------------------------------------------------------------
-// Bronze Ingestion Infrastructure
-// -----------------------------------------------------------------------------
-
 model IngestRun {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  jobName     String    @map("job_name")
-  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz
-  completedAt DateTime? @map("completed_at") @db.Timestamptz
-  status      String    @default("running") // running, success, partial, failed
-
-  rowsAttempted   Int @default(0) @map("rows_attempted")
-  rowsInserted    Int @default(0) @map("rows_inserted")
-  rowsSkipped     Int @default(0) @map("rows_skipped")
-  rowsQuarantined Int @default(0) @map("rows_quarantined")
-
-  cursorPosition Json?   @map("cursor_position") @db.JsonB
-  errorMessage   String? @map("error_message")
-
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobName            String              @map("job_name") @db.VarChar
+  startedAt          DateTime?           @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt        DateTime?           @map("completed_at") @db.Timestamptz(6)
+  status             String?             @default("running") @db.VarChar
+  rowsAttempted      Int?                @default(0) @map("rows_attempted")
+  rowsInserted       Int?                @default(0) @map("rows_inserted")
+  rowsSkipped        Int?                @default(0) @map("rows_skipped")
+  rowsQuarantined    Int?                @default(0) @map("rows_quarantined")
+  cursorPosition     Json?               @map("cursor_position")
+  errorMessage       String?             @map("error_message")
   quarantinedRecords QuarantinedRecord[]
 
-  @@index([jobName, startedAt])
+  @@index([jobName, startedAt], map: "idx_ingest_run_job_started")
   @@map("ingest_run")
   @@schema("ops")
 }
 
 model QuarantinedRecord {
-  id          Int    @id @default(autoincrement())
-  sourceTable String @map("source_table")
+  id               Int       @id @default(autoincrement())
+  sourceTable      String    @map("source_table") @db.VarChar
+  ingestRunId      String    @map("ingest_run_id") @db.Uuid
+  attemptedAt      DateTime? @default(now()) @map("attempted_at") @db.Timestamptz(6)
+  rawPayload       Json      @map("raw_payload")
+  validationErrors String[]  @map("validation_errors")
+  severity         String?   @default("error") @db.VarChar
+  resolutionStatus String?   @default("pending") @map("resolution_status") @db.VarChar
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(6)
+  resolvedBy       String?   @map("resolved_by") @db.VarChar
+  ingestRun        IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  ingestRunId String    @map("ingest_run_id") @db.Uuid
-  ingestRun   IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
-
-  attemptedAt      DateTime @default(now()) @map("attempted_at") @db.Timestamptz
-  rawPayload       Json     @map("raw_payload") @db.JsonB
-  validationErrors String[] @map("validation_errors")
-
-  severity         String    @default("error") // warning, error, critical
-  resolutionStatus String    @default("pending") @map("resolution_status") // pending, resolved, ignored
-  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz
-  resolvedBy       String?   @map("resolved_by")
-
-  @@index([sourceTable])
-  @@index([resolutionStatus])
-  @@index([ingestRunId])
+  @@index([ingestRunId], map: "idx_quarantine_ingest_run_id")
+  @@index([resolutionStatus], map: "idx_quarantine_resolution_status")
+  @@index([sourceTable], map: "idx_quarantine_source_table")
   @@map("quarantined_record")
   @@schema("ops")
 }
 
-// =============================================================================
-// METADATA SCHEMA - Canonical Instrument & Source Governance
-// =============================================================================
-
 model Instrument {
-  canonicalId   String   @id @map("canonical_id") @db.VarChar(50)
-  assetClass    String   @map("asset_class") @db.VarChar(20)
-  description   String   @db.Text
-  primarySource String   @map("primary_source") @db.VarChar(50)
-  unit          String?  @db.VarChar(20)
-  currency      String?  @db.VarChar(3)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  mappings SymbolMapping[]
+  id                    Int             @id @default(autoincrement())
+  canonicalId           String          @unique @map("canonical_id") @db.VarChar(50)
+  name                  String?         @db.VarChar(255)
+  assetClass            String          @map("asset_class") @db.VarChar(50)
+  primary_source_table  String?         @db.VarChar(100)
+  primary_source_symbol String?         @db.VarChar(50)
+  createdAt             DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  mappings              SymbolMapping[]
 
   @@map("instrument")
   @@schema("metadata")
 }
 
 model SymbolMapping {
-  id               Int       @id @default(autoincrement())
-  canonicalId      String    @map("canonical_id") @db.VarChar(50)
-  sourceTable      String    @map("source_table") @db.VarChar(100)
-  sourceSymbol     String    @map("source_symbol") @db.VarChar(50)
-  sourceConfidence Decimal   @map("source_confidence") @db.Decimal(3, 2)
-  isPrimary        Boolean   @default(false) @map("is_primary")
-  validFrom        DateTime  @default(now()) @map("valid_from")
-  validTo          DateTime? @map("valid_to")
-  createdAt        DateTime  @default(now()) @map("created_at")
-
-  instrument Instrument @relation(fields: [canonicalId], references: [canonicalId])
+  id               Int        @id @default(autoincrement())
+  canonicalId      String     @map("canonical_id") @db.VarChar(50)
+  sourceTable      String     @map("source_table") @db.VarChar(100)
+  sourceSymbol     String     @map("source_symbol") @db.VarChar(50)
+  isPrimary        Boolean?   @default(false) @map("is_primary")
+  confidence_score Decimal?   @default(1.00) @db.Decimal(3, 2)
+  notes            String?
+  createdAt        DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
+  instrument       Instrument @relation(fields: [canonicalId], references: [canonicalId], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([sourceTable, sourceSymbol])
-  @@index([canonicalId])
   @@map("symbol_mapping")
   @@schema("metadata")
 }
 
-// =============================================================================
-// SILVER SCHEMA - Medallion Deduplication Layer
-// =============================================================================
-
 model FxRates1d {
-  date         DateTime @db.Date
-  currencyPair String   @map("currency_pair") @db.VarChar(10)
-  rate         Decimal  @db.Decimal(18, 8)
-  source       String   @db.VarChar(50)
-  confidence   Decimal  @db.Decimal(3, 2)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement())
+  trade_date    DateTime  @db.Date
+  canonical_id  String    @db.VarChar(50)
+  rate          Decimal   @db.Decimal(18, 8)
+  source_table  String    @db.VarChar(100)
+  source_symbol String    @db.VarChar(50)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@id([date, currencyPair])
-  @@index([currencyPair])
-  @@index([date(sort: Desc)])
+  @@unique([trade_date, canonical_id])
   @@map("fx_rates_1d")
   @@schema("silver")
 }
 
 model FuturesPrices1d {
-  date      DateTime @db.Date
-  symbol    String   @db.VarChar(10)
-  open      Decimal  @db.Decimal(18, 8)
-  high      Decimal  @db.Decimal(18, 8)
-  low       Decimal  @db.Decimal(18, 8)
-  close     Decimal  @db.Decimal(18, 8)
-  volume    BigInt
-  source    String   @db.VarChar(50)
-  createdAt DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement())
+  trade_date    DateTime  @db.Date
+  canonical_id  String    @db.VarChar(50)
+  open          Decimal?  @db.Decimal(18, 6)
+  high          Decimal?  @db.Decimal(18, 6)
+  low           Decimal?  @db.Decimal(18, 6)
+  close         Decimal   @db.Decimal(18, 6)
+  volume        BigInt?
+  source_table  String    @db.VarChar(100)
+  source_symbol String    @db.VarChar(50)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
-  @@id([date, symbol])
-  @@index([symbol])
+  @@unique([trade_date, canonical_id])
   @@map("futures_prices_1d")
   @@schema("silver")
 }
 
-// =============================================================================
-// GOLD SCHEMA - Intel Drops (AI-Generated Market Intelligence)
-// =============================================================================
-
 model IntelDrop {
-  id     Int      @id @default(autoincrement())
-  asOfTs DateTime @map("as_of_ts")
-
-  // Domain Identity
-  domain  String @db.VarChar(20) // CRUSH, CHINA, FX, FED, TARIFF, ENERGY, BIOFUEL, PALM, VOLATILITY, SUBSTITUTES, TRUMP_EFFECT
-  horizon String @db.VarChar(5) // 1W, 1M, 3M, 6M
-
-  // Directional Signal (indexed for queries)
-  direction     Int // -1 (SHORT), 0 (FLAT), +1 (LONG)
-  pressureCents Float @map("pressure_cents") // Magnitude in cents/lb
-  edge          Float // Confidence 0-1
-
-  // Driver Attribution (JSON for flexibility)
-  driverWeights Json @map("driver_weights") // {technical, flows, macro, policy, weather, positioning, sentiment}
-  topDrivers    Json @map("top_drivers") // [{driver_id, label, sign, weight, receipts}]
-
-  // Context Arrays
-  regimeTags   String[] @map("regime_tags") // ['contango_carry', 'policy_roulette']
-  qualityFlags String[] @map("quality_flags") // ['OK', 'LOW_EVIDENCE', 'CONFLICTING_EVIDENCE']
-  dataGaps     String[] @map("data_gaps") // Missing data sources
-
-  // Evidence Traceability
-  receipts Json? // Document/URL references for claims
-
-  // THE 1000+ WORD ANALYSIS - Text for readability, not nested JSON
-  narrative String @db.Text // Full expert analysis (1000+ words)
-
-  // Structured quant output (correlations, regressions, forecasts)
-  quantPayload Json @map("quant_payload") // Numeric results from AI compute
-
-  // Lineage
-  sourceModel String? @map("source_model") // 'gpt-4o', 'grok-3', 'claude-opus'
-
-  createdAt DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement())
+  asOfTs        DateTime  @map("as_of_ts") @db.Timestamp(6)
+  domain        String    @db.VarChar(20)
+  horizon       String    @db.VarChar(5)
+  direction     Int
+  pressureCents Float     @map("pressure_cents")
+  edge          Float
+  driverWeights Json      @map("driver_weights")
+  topDrivers    Json      @map("top_drivers")
+  regimeTags    String[]  @default([]) @map("regime_tags")
+  qualityFlags  String[]  @default([]) @map("quality_flags")
+  dataGaps      String[]  @default([]) @map("data_gaps")
+  receipts      Json?
+  narrative     String
+  quantPayload  Json      @map("quant_payload")
+  sourceModel   String?   @map("source_model") @db.VarChar(50)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@unique([asOfTs, domain, horizon])
-  @@index([domain])
-  @@index([asOfTs])
-  @@index([direction]) // Fast queries for bullish/bearish filtering
+  @@index([asOfTs], map: "idx_intel_drops_as_of_ts")
+  @@index([direction], map: "idx_intel_drops_direction")
+  @@index([domain], map: "idx_intel_drops_domain")
   @@map("intel_drops")
   @@schema("gold")
+}
+
+model driver_attribution_1d {
+  id            Int       @id @default(autoincrement())
+  forecast_date DateTime  @db.Date
+  horizon_days  Int
+  driver_name   String    @db.VarChar(50)
+  shap_value    Float?
+  direction     String?   @db.VarChar(10)
+  rank          Int?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([forecast_date, horizon_days, driver_name])
+  @@index([forecast_date], map: "idx_driver_attr_forecast_date")
+  @@schema("analytics")
+}
+
+model regime_state_1d {
+  id                  Int       @id @default(autoincrement())
+  forecast_date       DateTime  @unique @db.Date
+  regime              String    @db.VarChar(20)
+  vix_contribution    Float?
+  policy_contribution Float?
+  news_contribution   Float?
+  confidence          Float?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([forecast_date], map: "idx_regime_state_forecast_date")
+  @@schema("analytics")
+}
+
+model zl_intraday {
+  id             Int       @id @default(autoincrement())
+  timestamp      DateTime  @unique @db.Timestamptz(6)
+  open           Float
+  high           Float
+  low            Float
+  close          Float
+  volume         Int?
+  previous_close Float?
+  change         Float?
+  change_percent Float?
+  day_high       Float?
+  day_low        Float?
+  source         String?   @db.VarChar(50)
+  created_at     DateTime? @db.Timestamptz(6)
+
+  @@schema("analytics")
+}
+
+model elite_indicators_1d {
+  id                   Int       @id @default(autoincrement())
+  trade_date           DateTime  @db.Date
+  symbol               String    @db.VarChar(20)
+  hurst_exponent       Decimal?  @db.Decimal(8, 6)
+  hurst_regime         String?   @db.VarChar(20)
+  connors_rsi          Decimal?  @db.Decimal(8, 4)
+  fisher_transform     Decimal?  @db.Decimal(10, 6)
+  fisher_signal        Decimal?  @db.Decimal(10, 6)
+  mcginley_dynamic     Decimal?  @db.Decimal(18, 6)
+  ttm_squeeze_on       Boolean?
+  ttm_squeeze_momentum Decimal?  @db.Decimal(18, 6)
+  schaff_trend_cycle   Decimal?  @db.Decimal(8, 4)
+  rvi                  Decimal?  @db.Decimal(10, 6)
+  rvi_signal           Decimal?  @db.Decimal(10, 6)
+  elder_force_index    Decimal?  @db.Decimal(18, 6)
+  kama_10              Decimal?  @db.Decimal(18, 6)
+  hma_20               Decimal?  @db.Decimal(18, 6)
+  alma_50              Decimal?  @db.Decimal(18, 6)
+  rsi_2                Decimal?  @db.Decimal(8, 4)
+  rsi_14               Decimal?  @db.Decimal(8, 4)
+  cumulative_rsi       Decimal?  @db.Decimal(8, 4)
+  macd                 Decimal?  @db.Decimal(18, 6)
+  macd_signal          Decimal?  @db.Decimal(18, 6)
+  macd_histogram       Decimal?  @db.Decimal(18, 6)
+  cci_14               Decimal?  @db.Decimal(10, 4)
+  cci_50               Decimal?  @db.Decimal(10, 4)
+  atr_10               Decimal?  @db.Decimal(18, 6)
+  atr_50               Decimal?  @db.Decimal(18, 6)
+  atr_ratio            Decimal?  @db.Decimal(8, 4)
+  garman_klass_vol     Decimal?  @db.Decimal(10, 6)
+  yang_zhang_vol       Decimal?  @db.Decimal(10, 6)
+  bb_percent_b         Decimal?  @db.Decimal(8, 4)
+  cmf_21               Decimal?  @db.Decimal(10, 6)
+  volume_zscore        Decimal?  @db.Decimal(8, 4)
+  unusual_volume       Boolean?
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  open                 Decimal?  @db.Decimal(18, 6)
+  high                 Decimal?  @db.Decimal(18, 6)
+  low                  Decimal?  @db.Decimal(18, 6)
+  close                Decimal?  @db.Decimal(18, 6)
+  volume               BigInt?
+  returns_1d           Decimal?  @db.Decimal(10, 6)
+  log_returns_1d       Decimal?  @db.Decimal(10, 6)
+  range_pct            Decimal?  @db.Decimal(10, 6)
+
+  @@unique([trade_date, symbol])
+  @@schema("gold")
+}
+
+model specialist_drivers {
+  id          Int    @id @default(autoincrement())
+  driver_id   String @unique
+  description String
+
+  @@schema("metadata")
+}
+
+model data_quality_log {
+  id          Int      @id @default(autoincrement())
+  table_name  String
+  check_date  DateTime
+  row_count   Int
+  null_count  Int
+  latest_date DateTime
+  oldest_date DateTime
+  issues      Json?
+  created_at  DateTime @default(now())
+
+  @@index([check_date])
+  @@index([table_name])
+  @@schema("ops")
+}
+
+model data_quality_metrics {
+  id                 Int       @id @default(autoincrement())
+  as_of_date         DateTime  @db.Date
+  source             String
+  last_update        DateTime? @db.Timestamptz(6)
+  hours_since_update Decimal?  @db.Decimal
+  total_rows         Int?
+  expected_rows      Int?
+  completeness_pct   Decimal?  @db.Decimal
+  null_count         Int?
+  null_pct           Decimal?  @db.Decimal
+  is_stale           Boolean?  @default(false)
+  is_incomplete      Boolean?  @default(false)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([as_of_date, source])
+  @@index([as_of_date], map: "idx_dq_date")
+  @@index([source], map: "idx_dq_source")
+  @@schema("ops")
+}
+
+model model_core_audit {
+  id                         String   @id @default(dbgenerated("gen_random_uuid()"))
+  training_run_id            String   @unique
+  horizon                    String
+  reviewed_at                DateTime @default(now())
+  reviewer                   String
+  is_core_run                Boolean
+  cv_purged_walk_forward     Boolean
+  asof_alignment_valid       Boolean
+  chronos_bolt_present       Boolean
+  chronos2_present           Boolean
+  chronos2_lora_present      Boolean
+  recursive_tabular_present  Boolean
+  autoets_present            Boolean
+  theta_present              Boolean
+  seasonal_naive_present     Boolean
+  weighted_ensemble_used     Boolean
+  oof_only                   Boolean
+  max_single_weight          Float
+  chronos_weight_nonzero     Boolean
+  recursive_weight_zero_long Boolean
+  monte_carlo_runs           Int
+  p10_present                Boolean
+  p50_present                Boolean
+  p90_present                Boolean
+  stress_widening_applied    Boolean
+  rmse_recorded              Boolean
+  brier_recorded             Boolean
+  p10_coverage_ok            Boolean
+  p90_coverage_ok            Boolean
+  registry_complete          Boolean
+  ensemble_edges_recorded    Boolean
+  resources_logged           Boolean
+  artifact_isolation_safe    Boolean
+  narrative_ready            Boolean
+  buy_sell_language_absent   Boolean
+  uncertainty_explained      Boolean
+  specialist_divergence_flag Boolean
+  hard_gate_pass             Boolean
+  final_approved             Boolean
+  failure_reason             String?
+
+  @@index([final_approved])
+  @@index([horizon])
+  @@schema("ops")
+}
+
+model prediction_accuracy {
+  id              Int       @id @default(autoincrement())
+  model_id        String
+  horizon         Int
+  prediction_date DateTime  @db.Date
+  target_date     DateTime  @db.Date
+  actual          Decimal?  @db.Decimal
+  pred_p10        Decimal?  @db.Decimal
+  pred_p50        Decimal?  @db.Decimal
+  pred_p90        Decimal?  @db.Decimal
+  error           Decimal?  @db.Decimal
+  abs_error       Decimal?  @db.Decimal
+  pct_error       Decimal?  @db.Decimal
+  in_80_band      Boolean?
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([model_id, prediction_date, target_date])
+  @@index([model_id], map: "idx_accuracy_model")
+  @@index([target_date], map: "idx_accuracy_target_date")
+  @@schema("ops")
+}
+
+model source_relabel_audit {
+  id             Int       @id @default(autoincrement())
+  relabel_ts     DateTime  @default(now()) @db.Timestamptz(6)
+  table_name     String
+  from_source    String
+  to_source      String
+  row_count      BigInt
+  min_as_of_date DateTime? @db.Date
+  max_as_of_date DateTime? @db.Date
+
+  @@schema("ops")
+}
+
+model training_run_log {
+  id            Int       @id @default(autoincrement())
+  run_id        String    @unique
+  horizon       Int
+  phase         String
+  status        String
+  started_at    DateTime
+  completed_at  DateTime?
+  error_message String?
+  metrics       Json?
+
+  @@index([horizon])
+  @@index([phase])
+  @@index([status])
+  @@schema("ops")
+}
+
+model training_runs {
+  id                Int                @id @default(autoincrement())
+  run_id            String             @unique
+  run_name          String?
+  experiment_name   String?
+  model_type        String
+  specialist_name   String?
+  horizon           Int?
+  started_at        DateTime           @default(now()) @db.Timestamptz(6)
+  completed_at      DateTime?          @db.Timestamptz(6)
+  duration_seconds  Decimal?           @db.Decimal
+  status            String?            @default("running")
+  training_mode     String?
+  hyperparameters   Json?              @default("{}")
+  dataset_name      String?
+  dataset_rows      Int?
+  dataset_features  Int?
+  metrics           Json?              @default("{}")
+  mase              Decimal?           @db.Decimal
+  error_message     String?
+  artifact_path     String?
+  log_path          String?
+  created_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  model_leaderboard ModelLeaderboard[]
+
+  @@index([model_type], map: "idx_runs_model_type")
+  @@index([started_at], map: "idx_runs_started_at")
+  @@index([status], map: "idx_runs_status")
+  @@schema("ops")
+}
+
+model cftc_cits_1w {
+  id                      Int       @id @default(autoincrement())
+  report_date             DateTime  @db.Date
+  contract_code           Int
+  symbol                  String    @db.VarChar(50)
+  report_type             String    @db.VarChar(20)
+  market_participation    BigInt?
+  non_commercial_longs    BigInt?
+  non_commercial_shorts   BigInt?
+  non_commercial_spreads  BigInt?
+  commercial_longs        BigInt?
+  commercial_shorts       BigInt?
+  total_reportable_longs  BigInt?
+  total_reportable_shorts BigInt?
+  non_reportable_longs    BigInt?
+  non_reportable_shorts   BigInt?
+  index_trader_longs      BigInt?
+  index_trader_shorts     BigInt?
+  index_trader_net        BigInt?
+  non_commercial_net      BigInt?
+  commercial_net          BigInt?
+  source                  String?   @default("quandl_cits") @db.VarChar(50)
+  ingested_at             DateTime? @default(now()) @db.Timestamp(6)
+  knowledge_time          DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no             Int?      @default(1)
+  supersedes_id           Int?
+  is_preliminary          Boolean?  @default(false)
+  validation_status       String?   @default("valid")
+  quality_score           Decimal?  @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags           String[]  @default([])
+  source_url              String?
+  raw_payload             Json?
+  ingestion_batch_id      String?   @db.Uuid
+  row_hash                String?
+  specialist_tags         String[]  @default([])
+
+  @@unique([report_date, contract_code, report_type])
+  @@index([row_hash], map: "idx_cftc_cits_row_hash")
+  @@index([report_date], map: "idx_cits_date")
+  @@index([report_date, symbol], map: "idx_cits_date_symbol")
+  @@index([symbol], map: "idx_cits_symbol")
+  @@schema("raw")
+}
+
+model fred_series_static {
+  id                  Int       @id(map: "fred_series_metadata_pkey") @default(autoincrement())
+  series_id           String    @unique(map: "fred_series_metadata_series_id_key") @db.VarChar(50)
+  title               String?   @db.VarChar(500)
+  observation_start   DateTime? @db.Date
+  observation_end     DateTime? @db.Date
+  frequency           String?   @db.VarChar(50)
+  units               String?   @db.VarChar(200)
+  seasonal_adjustment String?   @db.VarChar(100)
+  last_updated        DateTime? @db.Timestamp(6)
+  source              String?   @db.VarChar(200)
+  notes               String?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  knowledge_time      DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no         Int?      @default(1)
+  supersedes_id       Int?
+  is_preliminary      Boolean?  @default(false)
+  validation_status   String?   @default("valid")
+  quality_score       Decimal?  @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags       String[]  @default([])
+  source_url          String?
+  raw_payload         Json?
+  ingestion_batch_id  String?   @db.Uuid
+  row_hash            String?
+  specialist_tags     String[]  @default([])
+
+  @@index([row_hash], map: "idx_fredseriesstatic_row_hash")
+  @@schema("raw")
+}
+
+model legislation_federal_register_1d {
+  id                                    String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date                            DateTime                          @db.Date
+  document_number                       String
+  document_type                         String?
+  title                                 String?
+  abstract                              String?
+  agency                                String[]
+  publication_date                      DateTime?                         @db.Date
+  effective_date                        DateTime?                         @db.Date
+  knowledge_time                        DateTime                          @default(now()) @db.Timestamptz(6)
+  revision_no                           Int                               @default(1)
+  supersedes_id                         String?                           @db.Uuid
+  is_preliminary                        Boolean?                          @default(false)
+  validation_status                     String?                           @default("valid")
+  quality_score                         Decimal?                          @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags                         String[]                          @default([])
+  source_url                            String?
+  raw_payload                           Json?
+  ingestion_batch_id                    String?                           @db.Uuid
+  row_hash                              String
+  specialist_tags                       String[]
+  legislation_federal_register_1d       legislation_federal_register_1d?  @relation("legislation_federal_register_1dTolegislation_federal_register_1d", fields: [supersedes_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_legislation_federal_register_1d legislation_federal_register_1d[] @relation("legislation_federal_register_1dTolegislation_federal_register_1d")
+
+  @@index([document_number], map: "idx_fed_reg_doc_number")
+  @@index([event_date], map: "idx_fed_reg_event_date")
+  @@index([row_hash], map: "idx_fed_reg_row_hash")
+  @@index([specialist_tags], map: "idx_fed_reg_tags", type: Gin)
+  @@schema("raw")
+}
+
+model news_articles_event {
+  id                 Int       @id(map: "news_articles_archive_pkey") @default(autoincrement())
+  original_id        Int?
+  headline           String?
+  content            String?
+  source             String?   @db.VarChar(255)
+  published_at       DateTime? @db.Timestamp(6)
+  bucket_name        String?   @db.VarChar(100)
+  sentiment_score    Decimal?  @db.Decimal
+  archived_at        DateTime? @default(now()) @db.Timestamp(6)
+  archive_reason     String?   @db.VarChar(100)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("valid")
+  quality_score      Decimal?  @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags      String[]  @default([])
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String?
+  specialist_tags    String[]  @default([])
+
+  @@index([archived_at], map: "idx_archive_date")
+  @@index([original_id], map: "idx_archive_original_id")
+  @@index([row_hash], map: "idx_newsarticlesevent_row_hash")
+  @@schema("raw")
+}
+
+model usda_nass_event {
+  id                 Int       @id(map: "usda_nass_1y_pkey") @default(autoincrement())
+  commodity_desc     String
+  short_desc         String
+  statisticcat_desc  String?
+  unit_desc          String?
+  year               Int
+  freq_desc          String?
+  begin_code         String?
+  end_code           String?
+  value              String?
+  cv_percent         String?
+  source_desc        String?
+  state_alpha        String?
+  state_name         String?
+  ingested_at        DateTime? @default(now()) @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("valid")
+  quality_score      Decimal?  @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags      String[]  @default([])
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String?
+  specialist_tags    String[]  @default([])
+
+  @@unique([commodity_desc, short_desc, year, state_alpha], map: "usda_nass_1y_commodity_desc_short_desc_year_state_alpha_key")
+  @@index([row_hash], map: "idx_usdanassevent_row_hash")
+  @@schema("raw")
+}
+
+model whitehouse_actions_event {
+  id                 Int       @id @default(autoincrement())
+  action_date        DateTime  @db.Date
+  action_type        String    @db.VarChar(50)
+  title              String?
+  url                String?
+  summary            String?
+  tags               Json?
+  scraped_at         DateTime? @default(now()) @db.Timestamp(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  revision_no        Int?      @default(1)
+  supersedes_id      Int?
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("valid")
+  quality_score      Decimal?  @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags      String[]  @default([])
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String?
+  specialist_tags    String[]  @default([])
+
+  @@unique([action_date, action_type, title])
+  @@index([row_hash], map: "idx_whitehouseactionsevent_row_hash")
+  @@schema("raw")
+}
+
+model news_scored_1d {
+  id                   Int             @id @default(autoincrement())
+  raw_id               Int?            @unique
+  published_at         DateTime?       @db.Timestamp(6)
+  raw_bucket           String?         @db.VarChar(100)
+  canonical_bucket     String?         @db.VarChar(50)
+  sentiment_score      Decimal?        @db.Decimal(6, 4)
+  sentiment_direction  String?         @db.VarChar(20)
+  sentiment_confidence Decimal?        @db.Decimal(4, 3)
+  is_zl_relevant       Boolean?        @default(true)
+  zl_impact_score      Decimal?        @db.Decimal(6, 4)
+  affects_crush        Boolean?        @default(false)
+  affects_china        Boolean?        @default(false)
+  affects_fx           Boolean?        @default(false)
+  affects_fed          Boolean?        @default(false)
+  affects_tariff       Boolean?        @default(false)
+  affects_energy       Boolean?        @default(false)
+  affects_biofuel      Boolean?        @default(false)
+  affects_palm         Boolean?        @default(false)
+  affects_volatility   Boolean?        @default(false)
+  affects_substitutes  Boolean?        @default(false)
+  affects_trump_effect Boolean?        @default(false)
+  headline             String?         @db.VarChar(500)
+  source               String?         @db.VarChar(100)
+  word_count           Int?
+  matched_categories   Json?
+  scored_at            DateTime?       @default(now()) @db.Timestamp(6)
+  scoring_model        String?         @default("rule-based-v1") @db.VarChar(50)
+  news_articles_1d     NewsArticles1d? @relation(fields: [raw_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([canonical_bucket], map: "idx_silver_news_canonical")
+  @@index([published_at], map: "idx_silver_news_published")
+  @@schema("silver")
 }
