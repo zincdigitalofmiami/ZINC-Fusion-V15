@@ -212,6 +212,30 @@ frontend/src/inngest/
 
 ---
 
+## ⚠️ NAMING CONTRACT (LOCKED)
+
+**Read full contract:** `Docs/BRONZE_NAMING_CONTRACT_LOCKED.md`
+
+**Allowed cadence suffixes ONLY:**
+- `_1h` - Hourly
+- `_1d` - Daily
+- `_1w` - Weekly
+- `_1m` - Monthly
+- `_event` - Irregular/event-time (press releases, notices, actions)
+- `_static` - Reference/dimension data
+
+**FORBIDDEN:** `_1y`, `_archive`, `_hist`, `_bronze`, `_silver`, `_daily`, `_weekly`
+
+**Grammar:** `raw.<provider>_<dataset>_<cadence>`
+
+**Examples:**
+- ✅ `raw.whitehouse_actions_event`
+- ✅ `raw.legislation_federal_register_1d`
+- ❌ `raw.news_articles_archive` (should be `_event`)
+- ❌ `raw.usda_nass_1y` (should be `_event`)
+
+---
+
 ## PRINCIPLE
 
 1. RAW = Organized by DATA SOURCE (not specialist)
