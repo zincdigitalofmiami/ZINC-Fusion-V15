@@ -14,56 +14,151 @@ datasource db {
 // =============================================================================
 
 model CftcCot1w {
-  id                   Int       @id @default(autoincrement())
-  reportDate           DateTime  @map("report_date") @db.Date
-  symbol               String    @db.VarChar
-  openInterest         BigInt?   @map("open_interest")
-  prodMercLong         BigInt?   @map("prod_merc_long")
-  prodMercShort        BigInt?   @map("prod_merc_short")
-  swapLong             BigInt?   @map("swap_long")
-  swapShort            BigInt?   @map("swap_short")
-  managedMoneyLong     BigInt?   @map("managed_money_long")
-  managedMoneyShort    BigInt?   @map("managed_money_short")
-  otherReptLong        BigInt?   @map("other_rept_long")
-  otherReptShort       BigInt?   @map("other_rept_short")
-  nonreptLong          BigInt?   @map("nonrept_long")
-  nonreptShort         BigInt?   @map("nonrept_short")
-  prodMercNet          BigInt?   @map("prod_merc_net")
-  swapNet              BigInt?   @map("swap_net")
-  managedMoneyNet      BigInt?   @map("managed_money_net")
-  otherReptNet         BigInt?   @map("other_rept_net")
-  nonreptNet           BigInt?   @map("nonrept_net")
-  managedMoneyNetPctOi Float?    @map("managed_money_net_pct_oi")
-  prodMercNetPctOi     Float?    @map("prod_merc_net_pct_oi")
-  source               String?   @db.VarChar
-  ingestedAt           DateTime? @default(now()) @map("ingested_at")
+  id Int @id @default(autoincrement())
 
-  @@unique([reportDate, symbol])
+  // ENTITY KEYS
+  symbol String @db.VarChar
+
+  // POSITIONING DATA
+  openInterest         BigInt? @map("open_interest")
+  prodMercLong         BigInt? @map("prod_merc_long")
+  prodMercShort        BigInt? @map("prod_merc_short")
+  swapLong             BigInt? @map("swap_long")
+  swapShort            BigInt? @map("swap_short")
+  managedMoneyLong     BigInt? @map("managed_money_long")
+  managedMoneyShort    BigInt? @map("managed_money_short")
+  otherReptLong        BigInt? @map("other_rept_long")
+  otherReptShort       BigInt? @map("other_rept_short")
+  nonreptLong          BigInt? @map("nonrept_long")
+  nonreptShort         BigInt? @map("nonrept_short")
+  prodMercNet          BigInt? @map("prod_merc_net")
+  swapNet              BigInt? @map("swap_net")
+  managedMoneyNet      BigInt? @map("managed_money_net")
+  otherReptNet         BigInt? @map("other_rept_net")
+  nonreptNet           BigInt? @map("nonrept_net")
+  managedMoneyNetPctOi Float?  @map("managed_money_net_pct_oi")
+  prodMercNetPctOi     Float?  @map("prod_merc_net_pct_oi")
+
+  // TEMPORAL (PIT Correctness)
+  eventDate     DateTime  @map("event_date") @db.Date
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(true) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String? @db.VarChar
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED (keep for backward compat)
+  ingestedAt DateTime? @default(now()) @map("ingested_at")
+
+  // NO UNIQUE - allows revisions (append-only)
+  @@index([symbol, eventDate])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("cftc_cot_1w")
   @@schema("raw")
 }
 
 model EpaRinPrices1d {
-  id        Int      @id @default(autoincrement())
-  rinType   String   @map("rin_type")
-  asOfDate  DateTime @map("as_of_date")
-  price     Float
+  id Int @id @default(autoincrement())
+
+  // ENTITY KEY
+  rinType String @map("rin_type")
+  price   Float
+
+  // TEMPORAL (PIT Correctness)
+  eventDate     DateTime  @map("event_date")
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(false) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String?
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([rinType, asOfDate])
+  @@index([rinType, eventDate])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("epa_rin_prices_1d")
   @@schema("raw")
 }
 
 model FredObservations1d {
-  id        Int      @id @default(autoincrement())
-  seriesId  String   @map("series_id")
-  asOfDate  DateTime @map("as_of_date")
-  value     Float?
-  createdAt DateTime @default(now()) @map("created_at")
-  source    String?  @db.VarChar
+  id Int @id @default(autoincrement())
 
-  @@unique([seriesId, asOfDate])
+  // ENTITY KEY
+  seriesId String @map("series_id")
+  value    Float?
+
+  // TEMPORAL (PIT Correctness)
+  eventDate     DateTime  @map("event_date")
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(true) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String? @db.VarChar
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED (keep for backward compat)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // NO UNIQUE - allows revisions (append-only)
+  @@index([seriesId, eventDate])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("fred_observations_1d")
   @@schema("raw")
 }
@@ -87,47 +182,144 @@ model FredSeriesMetadata {
 }
 
 model FxSpot1d {
-  id        Int      @id @default(autoincrement())
-  pair      String
-  asOfDate  DateTime @map("as_of_date")
-  rate      Float
+  id Int @id @default(autoincrement())
+
+  // ENTITY KEY
+  pair String
+  rate Float
+
+  // TEMPORAL (PIT Correctness)
+  eventDate     DateTime  @map("event_date")
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(false) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("validated") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String?
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([pair, asOfDate])
+  @@index([pair, eventDate])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("fx_spot_1d")
   @@schema("raw")
 }
 
 model MarketFutures1d {
-  asOfDate   DateTime  @map("as_of_date") @db.Date
-  symbol     String
-  open       Float?
-  high       Float?
-  low        Float?
-  close      Float?
-  volume     BigInt?
-  source     String?
+  // ENTITY KEYS
+  symbol String
+
+  // OHLCV DATA
+  open   Float?
+  high   Float?
+  low    Float?
+  close  Float?
+  volume BigInt?
+
+  // TEMPORAL (PIT Correctness)
+  eventDate     DateTime  @map("event_date") @db.Date
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(true) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String?
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED (keep for backward compat)
   ingestedAt DateTime? @default(now()) @map("ingested_at") @db.Timestamptz
 
-  @@id([asOfDate, symbol])
+  // Composite PK on symbol+event_date (no unique constraint for append-only)
+  @@id([eventDate, symbol])
+  @@index([symbol, eventDate])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("market_futures_1d")
   @@schema("raw")
 }
 
 model MarketFutures1h {
-  id           Int       @id @default(autoincrement())
-  symbol       String    @db.VarChar
-  tsEvent      DateTime  @map("ts_event")
+  id Int @id @default(autoincrement())
+
+  // ENTITY KEYS
+  symbol String @db.VarChar
+
+  // OHLCV DATA
   open         Float?
   high         Float?
   low          Float?
   close        Float?
   volume       BigInt?
-  openInterest BigInt?   @map("open_interest")
-  source       String?   @db.VarChar
-  createdAt    DateTime? @default(now()) @map("created_at")
+  openInterest BigInt? @map("open_interest")
 
-  @@unique([symbol, tsEvent])
+  // TEMPORAL (PIT Correctness) - renamed from ts_event
+  eventTime     DateTime  @map("event_time")
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz
+
+  // REVISION TRACKING
+  revisionNo    Int?     @default(1) @map("revision_no")
+  supersedesId  Int?     @map("supersedes_id")
+  isPreliminary Boolean? @default(true) @map("is_preliminary")
+
+  // QUALITY GATES
+  validationStatus String?  @default("pending") @map("validation_status") @db.VarChar(20)
+  qualityScore     Int?     @map("quality_score")
+  anomalyFlags     String[] @map("anomaly_flags")
+
+  // PROVENANCE
+  source           String? @db.VarChar
+  sourceUrl        String? @map("source_url")
+  rawPayload       Json?   @map("raw_payload") @db.JsonB
+  ingestionBatchId String? @map("ingestion_batch_id")
+
+  // IDEMPOTENCY
+  rowHash String? @map("row_hash") @db.VarChar(64)
+
+  // ROUTING
+  specialistTags String[] @map("specialist_tags")
+
+  // DEPRECATED (keep for backward compat)
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  // NO UNIQUE - allows revisions (append-only)
+  @@index([symbol, eventTime])
+  @@index([knowledgeTime])
+  @@index([rowHash])
   @@map("market_futures_1h")
   @@schema("raw")
 }
@@ -244,6 +436,59 @@ model YahooEquity1d {
 
   @@unique([symbol, asOfDate])
   @@map("yahoo_equity_1d")
+  @@schema("raw")
+}
+
+// -----------------------------------------------------------------------------
+// CROWD BELIEFS (Polymarket Behavioral Signal)
+// Forward-looking probability estimates from prediction markets
+// Cross-specialist feature: routes to trump_effect, china, tariff, biofuel, etc.
+// API: https://gamma-api.polymarket.com/events
+// -----------------------------------------------------------------------------
+
+model CrowdBeliefsEvent {
+  id Int @id @default(autoincrement())
+
+  // Identity
+  eventSlug       String   @map("event_slug") @db.VarChar(200)
+  outcomeQuestion String   @map("outcome_question")
+  capturedAt      DateTime @map("captured_at") @db.Timestamptz
+
+  // Behavioral Signal (CORE DATA)
+  impliedProbYes Decimal? @map("implied_prob_yes") @db.Decimal(5, 4)
+  impliedProbNo  Decimal? @map("implied_prob_no") @db.Decimal(5, 4)
+
+  // Attention (normalized 0-100)
+  attentionIndex24h Decimal? @map("attention_index_24h") @db.Decimal(5, 2)
+  attentionIndex7d  Decimal? @map("attention_index_7d") @db.Decimal(5, 2)
+
+  // Momentum (rate of change)
+  probMomentum24h Decimal? @map("prob_momentum_24h") @db.Decimal(6, 4)
+  probMomentum7d  Decimal? @map("prob_momentum_7d") @db.Decimal(6, 4)
+
+  // Consensus
+  consensusStrength Decimal? @map("consensus_strength") @db.Decimal(5, 4)
+
+  // Cross-Specialist Routing (JSON array of specialist tags)
+  eventCategory  String?  @map("event_category") @db.VarChar(50)
+  specialistTags String[] @map("specialist_tags")
+
+  // Event Context
+  eventResolutionDate DateTime? @map("event_resolution_date") @db.Timestamptz
+  daysToResolution    Int?      @map("days_to_resolution")
+
+  // Raw (stored but not used directly as features)
+  rawBettingVolumeUsd Decimal? @map("raw_betting_volume_usd") @db.Decimal(15, 2)
+  rawLiquidityUsd     Decimal? @map("raw_liquidity_usd") @db.Decimal(15, 2)
+
+  // Metadata
+  source     String?  @default("polymarket") @db.VarChar(50)
+  ingestedAt DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@unique([eventSlug, outcomeQuestion, capturedAt])
+  @@index([capturedAt])
+  @@index([eventCategory])
+  @@map("crowd_beliefs_event")
   @@schema("raw")
 }
 
@@ -1420,54 +1665,166 @@ model VolRegimes {
   @@schema("analytics")
 }
 
-model LatestPrices {
+model ZlLive {
   id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
   price         Float
   previousClose Float?    @map("previous_close")
   change        Float?
-  changePercent Float?    @map("change_percent")
+  changePct     Float?    @map("change_pct")
   dayHigh       Float?    @map("day_high")
   dayLow        Float?    @map("day_low")
   dayOpen       Float?    @map("day_open")
   volume        Int?
-  timestamp     DateTime  @db.Timestamptz
-  marketState   String?   @map("market_state") @db.VarChar
-  source        String?   @db.VarChar
+  timestamp     DateTime? @db.Timestamptz
+  source        String?   @db.VarChar(50)
   updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz
 
-  @@unique([symbol])
-  @@map("latest_prices")
-  @@schema("analytics")
-}
-
-model IntradayPrices {
-  id            Int       @id @default(autoincrement())
-  symbol        String    @db.VarChar
-  timestamp     DateTime  @db.Timestamptz
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        Int?
-  previousClose Float?    @map("previous_close")
-  change        Float?
-  changePercent Float?    @map("change_percent")
-  dayHigh       Float?    @map("day_high")
-  dayLow        Float?    @map("day_low")
-  source        String?   @db.VarChar
-  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([symbol, timestamp])
-  @@index([symbol])
-  @@index([timestamp(sort: Desc)])
-  @@map("intraday_prices")
+  @@map("zl_live")
   @@schema("analytics")
 }
 
 // =============================================================================
-// OPS SCHEMA (1 table) - Operations infrastructure only
+// OPS SCHEMA - Operations & Vegas CRM Data
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+// VEGAS CRM TABLES (Synced from Glide - READ ONLY source)
+// Data flow: Glide API → These tables → Frontend
+// Script: src/fusion/ingestion/glide_vegas.py
+// -----------------------------------------------------------------------------
+
+model VegasRestaurants {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  name          String?  @db.VarChar
+  location      String?  @db.VarChar
+  category      String?  @db.VarChar
+  currentOilLbs Float?   @map("current_oil_lbs")
+  deliveryDay   String?  @map("delivery_day") @db.VarChar
+  scheduleTime  String?  @map("schedule_time") @db.VarChar
+  baselineLbs   Float?   @map("baseline_lbs")
+  fryers        Int?
+  notes         String?
+  data          Json?    @db.JsonB // All other Glide columns
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_restaurants")
+  @@schema("ops")
+}
+
+model VegasCasinos {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  name          String?  @db.VarChar
+  eventCalendar String?  @map("event_calendar") @db.VarChar
+  premiumTier   Boolean? @map("premium_tier")
+  affiliations  String?  @db.VarChar
+  data          Json?    @db.JsonB
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_casinos")
+  @@schema("ops")
+}
+
+model VegasFryers {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  restaurantId  String?  @map("restaurant_id") @db.VarChar
+  fryerType     String?  @map("fryer_type") @db.VarChar
+  capacityLb    Float?   @map("capacity_lb")
+  turnsPerMonth Int?     @map("turns_per_month")
+  baseDailyGal  Float?   @map("base_daily_gal")
+  currentUtil   Float?   @map("current_util")
+  data          Json?    @db.JsonB
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_fryers")
+  @@schema("ops")
+}
+
+model VegasExportList {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  customerName  String?  @map("customer_name") @db.VarChar
+  segment       String?  @db.VarChar
+  contactEmail  String?  @map("contact_email") @db.VarChar
+  contactPhone  String?  @map("contact_phone") @db.VarChar
+  campaignHist  String?  @map("campaign_hist") @db.VarChar
+  acceptRate    Float?   @map("accept_rate")
+  data          Json?    @db.JsonB
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_export_list")
+  @@schema("ops")
+}
+
+model VegasScheduledReports {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  reportName    String?  @map("report_name") @db.VarChar
+  schedule      String?  @db.VarChar
+  dataSnapshot  String?  @map("data_snapshot") @db.VarChar
+  alertTriggers String?  @map("alert_triggers") @db.VarChar
+  data          Json?    @db.JsonB
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_scheduled_reports")
+  @@schema("ops")
+}
+
+model VegasShifts {
+  id              Int      @id @default(autoincrement())
+  glideRowId      String?  @map("glide_rowid") @db.VarChar
+  shiftTime       String?  @map("shift_time") @db.VarChar
+  driverAvailable String?  @map("driver_available") @db.VarChar
+  deliveryCapLbs  Float?   @map("delivery_cap_lbs")
+  routeAssign     String?  @map("route_assign") @db.VarChar
+  data            Json?    @db.JsonB
+  sourceTableId   String   @map("source_table_id") @db.VarChar
+  ingestedAt      DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_shifts")
+  @@schema("ops")
+}
+
+model VegasShiftCasinos {
+  id            Int      @id @default(autoincrement())
+  glideRowId    String?  @map("glide_rowid") @db.VarChar
+  casinoId      String?  @map("casino_id") @db.VarChar
+  shiftSchedule String?  @map("shift_schedule") @db.VarChar
+  premiumWindow String?  @map("premium_window") @db.VarChar
+  eventBasedCap Float?   @map("event_based_cap")
+  data          Json?    @db.JsonB
+  sourceTableId String   @map("source_table_id") @db.VarChar
+  ingestedAt    DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_shift_casinos")
+  @@schema("ops")
+}
+
+model VegasShiftRestaurants {
+  id                  Int      @id @default(autoincrement())
+  glideRowId          String?  @map("glide_rowid") @db.VarChar
+  restaurantId        String?  @map("restaurant_id") @db.VarChar
+  preferredWindow     String?  @map("preferred_window") @db.VarChar
+  scheduleConstraint  String?  @map("schedule_constraint") @db.VarChar
+  deliveryReliability Float?   @map("delivery_reliability")
+  data                Json?    @db.JsonB
+  sourceTableId       String   @map("source_table_id") @db.VarChar
+  ingestedAt          DateTime @default(now()) @map("ingested_at") @db.Timestamptz
+
+  @@map("vegas_shift_restaurants")
+  @@schema("ops")
+}
+
+// -----------------------------------------------------------------------------
+// Operations Infrastructure
+// -----------------------------------------------------------------------------
 
 model DataSourceRegistry {
   id                   Int       @id @default(autoincrement())
@@ -1496,6 +1853,55 @@ model DataSourceRegistry {
   updatedAt            DateTime? @default(now()) @map("updated_at") @db.Timestamptz
 
   @@map("data_source_registry")
+  @@schema("ops")
+}
+
+// -----------------------------------------------------------------------------
+// Bronze Ingestion Infrastructure
+// -----------------------------------------------------------------------------
+
+model IngestRun {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobName     String    @map("job_name")
+  startedAt   DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  status      String    @default("running") // running, success, partial, failed
+
+  rowsAttempted   Int @default(0) @map("rows_attempted")
+  rowsInserted    Int @default(0) @map("rows_inserted")
+  rowsSkipped     Int @default(0) @map("rows_skipped")
+  rowsQuarantined Int @default(0) @map("rows_quarantined")
+
+  cursorPosition Json?   @map("cursor_position") @db.JsonB
+  errorMessage   String? @map("error_message")
+
+  quarantinedRecords QuarantinedRecord[]
+
+  @@index([jobName, startedAt])
+  @@map("ingest_run")
+  @@schema("ops")
+}
+
+model QuarantinedRecord {
+  id          Int    @id @default(autoincrement())
+  sourceTable String @map("source_table")
+
+  ingestRunId String    @map("ingest_run_id") @db.Uuid
+  ingestRun   IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade)
+
+  attemptedAt      DateTime @default(now()) @map("attempted_at") @db.Timestamptz
+  rawPayload       Json     @map("raw_payload") @db.JsonB
+  validationErrors String[] @map("validation_errors")
+
+  severity         String    @default("error") // warning, error, critical
+  resolutionStatus String    @default("pending") @map("resolution_status") // pending, resolved, ignored
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz
+  resolvedBy       String?   @map("resolved_by")
+
+  @@index([sourceTable])
+  @@index([resolutionStatus])
+  @@index([ingestRunId])
+  @@map("quarantined_record")
   @@schema("ops")
 }
 
@@ -1572,4 +1978,52 @@ model FuturesPrices1d {
   @@index([symbol])
   @@map("futures_prices_1d")
   @@schema("silver")
+}
+
+// =============================================================================
+// GOLD SCHEMA - Intel Drops (AI-Generated Market Intelligence)
+// =============================================================================
+
+model IntelDrop {
+  id     Int      @id @default(autoincrement())
+  asOfTs DateTime @map("as_of_ts")
+
+  // Domain Identity
+  domain  String @db.VarChar(20) // CRUSH, CHINA, FX, FED, TARIFF, ENERGY, BIOFUEL, PALM, VOLATILITY, SUBSTITUTES, TRUMP_EFFECT
+  horizon String @db.VarChar(5) // 1W, 1M, 3M, 6M
+
+  // Directional Signal (indexed for queries)
+  direction     Int // -1 (SHORT), 0 (FLAT), +1 (LONG)
+  pressureCents Float @map("pressure_cents") // Magnitude in cents/lb
+  edge          Float // Confidence 0-1
+
+  // Driver Attribution (JSON for flexibility)
+  driverWeights Json @map("driver_weights") // {technical, flows, macro, policy, weather, positioning, sentiment}
+  topDrivers    Json @map("top_drivers") // [{driver_id, label, sign, weight, receipts}]
+
+  // Context Arrays
+  regimeTags   String[] @map("regime_tags") // ['contango_carry', 'policy_roulette']
+  qualityFlags String[] @map("quality_flags") // ['OK', 'LOW_EVIDENCE', 'CONFLICTING_EVIDENCE']
+  dataGaps     String[] @map("data_gaps") // Missing data sources
+
+  // Evidence Traceability
+  receipts Json? // Document/URL references for claims
+
+  // THE 1000+ WORD ANALYSIS - Text for readability, not nested JSON
+  narrative String @db.Text // Full expert analysis (1000+ words)
+
+  // Structured quant output (correlations, regressions, forecasts)
+  quantPayload Json @map("quant_payload") // Numeric results from AI compute
+
+  // Lineage
+  sourceModel String? @map("source_model") // 'gpt-4o', 'grok-3', 'claude-opus'
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([asOfTs, domain, horizon])
+  @@index([domain])
+  @@index([asOfTs])
+  @@index([direction]) // Fast queries for bullish/bearish filtering
+  @@map("intel_drops")
+  @@schema("gold")
 }
