@@ -141,7 +141,7 @@ const FRED_SERIES: FredSeriesConfig[] = [
   // =========================================================================
   { id: "USEPUINDXD", name: "US Policy Uncertainty (Daily)", tags: ["trump_effect", "volatility"] },
   { id: "USEPUINDXM", name: "US Policy Uncertainty (Monthly)", tags: ["trump_effect", "volatility"] },
-  { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["trump_effect", "tariff", "volatility"] },
+  { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["tariff"] },
 
   // =========================================================================
   // CHINA SPECIALIST - China Economic Indicators
