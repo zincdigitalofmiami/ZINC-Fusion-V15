@@ -455,7 +455,7 @@ export const fredDaily = inngest.createFunction(
           }
 
           // Rate limit: FRED allows ~120 requests/minute
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 100)); // FRED allows 120/min, 100ms is safe
         });
       }
 
