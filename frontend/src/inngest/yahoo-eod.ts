@@ -39,7 +39,7 @@ interface YahooQuote {
  */
 export const yahooEod = inngest.createFunction(
   { id: "yahoo-eod", name: "Yahoo EOD Prices" },
-  { cron: "0 23 * * 1-5" }, // 6PM ET = 11PM UTC, Mon-Fri
+  { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
   async ({ step }) => {
     const results: { symbol: string; status: string; close?: number }[] = [];
 

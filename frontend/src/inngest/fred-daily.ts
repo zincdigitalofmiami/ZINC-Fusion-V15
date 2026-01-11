@@ -320,7 +320,7 @@ export const fredDaily = inngest.createFunction(
     name: "FRED Daily Bronze Ingestion",
     retries: 3,
   },
-  { cron: "0 15 * * 1-5" }, // 10AM ET = 3PM UTC, Mon-Fri
+  { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
   async ({ step, logger }) => {
     const apiKey = process.env.FRED_API_KEY;
     if (!apiKey) {
