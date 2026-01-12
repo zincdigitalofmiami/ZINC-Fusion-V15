@@ -100,7 +100,7 @@ export const cftcWeekly = inngest.createFunction(
 
             await client.query(
               `INSERT INTO raw.cftc_cot_1w
-                (report_date, symbol, open_interest,
+                (event_date, symbol, open_interest,
                  managed_money_long, managed_money_short, managed_money_net,
                  prod_merc_long, prod_merc_short, prod_merc_net,
                  swap_long, swap_short, swap_net,
@@ -109,7 +109,7 @@ export const cftcWeekly = inngest.createFunction(
                  managed_money_net_pct_oi, prod_merc_net_pct_oi,
                  source, ingested_at)
                VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 'cftc_api', NOW())
-               ON CONFLICT (report_date, symbol) DO UPDATE SET
+               ON CONFLICT (event_date, symbol) DO UPDATE SET
                  open_interest = EXCLUDED.open_interest,
                  managed_money_long = EXCLUDED.managed_money_long,
                  managed_money_short = EXCLUDED.managed_money_short,

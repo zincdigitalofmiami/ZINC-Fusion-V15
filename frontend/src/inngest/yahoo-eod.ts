@@ -73,9 +73,9 @@ export const yahooEod = inngest.createFunction(
         try {
           await client.query(
             `INSERT INTO raw.market_futures_1d
-              (as_of_date, symbol, open, high, low, close, volume, source, ingested_at)
+              (event_date, symbol, open, high, low, close, volume, source, ingested_at)
              VALUES (CURRENT_DATE, $1, $2, $3, $4, $5, $6, 'yahoo_eod', NOW())
-             ON CONFLICT (as_of_date, symbol) DO UPDATE SET
+             ON CONFLICT (event_date, symbol) DO UPDATE SET
                open = EXCLUDED.open,
                high = EXCLUDED.high,
                low = EXCLUDED.low,
