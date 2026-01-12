@@ -59,17 +59,17 @@ NEW: Light models + AI agents = SMOKE
                               ▲
                               │
 ┌─────────────────────────────────────────────────────────────────┐
-│                      RAILWAY (Compute)                          │
+│                      LOCAL MAC (Compute)                        │
 │  • Python ML training (AutoGluon)                               │
-│  • Cron jobs (Saturday 6AM training)                            │
+│  • Scheduled jobs (Saturday 6AM training)                       │
 │  • Background workers (sentiment scoring)                       │
 │  • Heavy compute jobs                                           │
-│  • NOT for frontend serving!                                    │
+│  • Runs on Mac M4 Pro                                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Insight
-> Railway is compute, not frontend serving. 8 hours fighting Railway for dashboard = architectural mismatch. Vercel is DESIGNED for Next.js + Prisma.
+> Local compute for heavy ML, Vercel for frontend. Vercel is DESIGNED for Next.js + Prisma.
 
 ---
 

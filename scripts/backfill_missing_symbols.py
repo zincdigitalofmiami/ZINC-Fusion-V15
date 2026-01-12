@@ -70,8 +70,9 @@ def get_postgres_connection():
     """Get Postgres connection using DATABASE_URL."""
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
-        # Try the Prisma Postgres URL
-        database_url = "postgres://d687a7ec267e124a21607a1e5dd9a89d60c9a122d219e499e32f3eee42a858c0:sk_NLg8ZV3VJ61FPM0F_QHMe@db.prisma.io:5432/postgres?sslmode=require"
+        raise EnvironmentError(
+            "DATABASE_URL not set. Source .env or export DATABASE_URL."
+        )
     return psycopg2.connect(database_url)
 
 
@@ -174,11 +175,23 @@ def insert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     if dry_run:
         logger.info(f"  [DRY RUN] Would insert {len(df):,} new rows for {symbol}")
-        logger.info(f"    Date range: {df['as_of_date'].min()} to {df['as_of_date'].max()}")
+        logger.info(
+            f"    Date range: {df['as_of_date'].min()} to {df['as_of_date'].max()}"
+        )
         return len(df)
 
     # Prepare data for insertion
-    columns = ["as_of_date", "symbol", "open", "high", "low", "close", "volume", "source", "ingested_at"]
+    columns = [
+        "as_of_date",
+        "symbol",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "source",
+        "ingested_at",
+    ]
     values = [
         (
             row["as_of_date"],
@@ -220,8 +233,12 @@ def insert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Backfill missing market symbols")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without inserting")
-    parser.add_argument("--symbol", type=str, default="all", help="Specific symbol or 'all'")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
+    parser.add_argument(
+        "--symbol", type=str, default="all", help="Specific symbol or 'all'"
+    )
     args = parser.parse_args()
 
     logger.info("=" * 70)
@@ -252,21 +269,27 @@ def main():
                 (symbol,),
             )
             db_count, db_min, db_max = cur.fetchone()
-            logger.info(f"  Database: {db_count:,} rows ({db_min or 'N/A'} to {db_max or 'N/A'})")
+            logger.info(
+                f"  Database: {db_count:,} rows ({db_min or 'N/A'} to {db_max or 'N/A'})"
+            )
 
         # Load CSV data
         df = load_csv_data(symbol, config)
         if df.empty:
             continue
 
-        logger.info(f"  CSV: {len(df):,} rows ({df['as_of_date'].min()} to {df['as_of_date'].max()})")
+        logger.info(
+            f"  CSV: {len(df):,} rows ({df['as_of_date'].min()} to {df['as_of_date'].max()})"
+        )
 
         # Insert data
         inserted = insert_data(conn, df, args.dry_run)
         total_inserted += inserted
 
     logger.info("\n" + "=" * 70)
-    logger.info(f"BACKFILL COMPLETE: {total_inserted:,} total rows {'would be ' if args.dry_run else ''}inserted")
+    logger.info(
+        f"BACKFILL COMPLETE: {total_inserted:,} total rows {'would be ' if args.dry_run else ''}inserted"
+    )
     logger.info("=" * 70)
 
     conn.close()

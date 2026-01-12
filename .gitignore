@@ -18,11 +18,7 @@ data/
 *.docx
 *.pdf
 
-# Dashboard (frontend) artifacts (if/when implemented)
-dashboard/node_modules/
-dashboard/.next/
-dashboard/out/
-dashboard/dist/
+# Vercel deployment cache
 .vercel/
 
 # Client (Next.js) artifacts

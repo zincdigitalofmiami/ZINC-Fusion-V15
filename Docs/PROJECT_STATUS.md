@@ -67,7 +67,7 @@ models/
 └── specialists/        # Not trained yet
 
 src/fusion/
-├── grafana_registry.py # Grafana integration helper
+├── grafana_registry.py # MOVED to grafana/ folder
 ├── taxonomy.py         # 11 specialists defined
 └── features/
     └── trump_effect.py # Trump effect feature engine

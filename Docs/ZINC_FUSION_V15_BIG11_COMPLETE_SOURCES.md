@@ -1,7 +1,7 @@
 # ZINC-FUSION-V15: Complete Data Source Registry
 
 **Version**: 2.0 (Big 11 Specialists)
-**Stack**: Prisma PostgreSQL + Railway
+**Stack**: Prisma PostgreSQL
 **Updated**: January 2026
 
 ---

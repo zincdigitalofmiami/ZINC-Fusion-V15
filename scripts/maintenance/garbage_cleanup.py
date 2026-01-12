@@ -4,7 +4,7 @@ ZINC-FUSION-V15: Garbage Cleanup Maintenance Job
 =================================================
 Runs daily/weekly to archive and purge low-quality articles.
 
-Schedule via Railway cron or local crontab:
+Schedule via local crontab or Inngest:
     Daily:  0 2 * * * /path/to/.venv/bin/python scripts/maintenance/garbage_cleanup.py
     Weekly: 0 3 * * 0 /path/to/.venv/bin/python scripts/maintenance/garbage_cleanup.py --purge
 

@@ -5,7 +5,9 @@ Writes training runs, model metrics, and OOF predictions to Prisma Postgres
 for Grafana dashboard visualization.
 
 Usage:
-    from fusion.grafana_registry import GrafanaRegistry
+    import sys
+    sys.path.append('../')
+    from grafana.grafana_registry import GrafanaRegistry
 
     registry = GrafanaRegistry()
 
@@ -45,6 +47,7 @@ load_dotenv()
 @dataclass
 class TrainingMetrics:
     """Metrics from a training run."""
+
     mase: Optional[float] = None
     rmse: Optional[float] = None
     mae: Optional[float] = None
@@ -81,7 +84,7 @@ class GrafanaRegistry:
         specialist_name: str,
         horizon: int,
         training_mode: str = "full",
-        experiment_name: Optional[str] = None
+        experiment_name: Optional[str] = None,
     ) -> str:
         """
         Register start of a training run. Returns run_id for tracking.
@@ -103,12 +106,23 @@ class GrafanaRegistry:
         cur = conn.cursor()
 
         try:
-            cur.execute('''
+            cur.execute(
+                """
                 INSERT INTO model.training_runs
                 (run_id, run_name, model_type, specialist_name, horizon,
                  training_mode, status, started_at, experiment_name)
                 VALUES (%s, %s, %s, %s, %s, %s, 'running', NOW(), %s)
-            ''', (run_id, run_name, model_type, specialist_name, horizon, training_mode, experiment_name))
+            """,
+                (
+                    run_id,
+                    run_name,
+                    model_type,
+                    specialist_name,
+                    horizon,
+                    training_mode,
+                    experiment_name,
+                ),
+            )
 
             conn.commit()
             print(f"[Grafana] Training run started: {run_name}")
@@ -122,7 +136,7 @@ class GrafanaRegistry:
         run_id: str,
         current_model: Optional[str] = None,
         models_completed: Optional[int] = None,
-        total_models: Optional[int] = None
+        total_models: Optional[int] = None,
     ):
         """Update progress of a running training job."""
         conn = self._get_conn()
@@ -144,11 +158,14 @@ class GrafanaRegistry:
 
             if updates:
                 params.append(run_id)
-                cur.execute(f'''
+                cur.execute(
+                    f"""
                     UPDATE model.training_runs
                     SET {", ".join(updates)}
                     WHERE run_id = %s
-                ''', params)
+                """,
+                    params,
+                )
                 conn.commit()
 
         finally:
@@ -161,7 +178,7 @@ class GrafanaRegistry:
         metrics: Optional[TrainingMetrics] = None,
         artifact_path: Optional[str] = None,
         oof_predictions: Optional[pd.DataFrame] = None,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ):
         """
         Complete a training run and update model registry.
@@ -179,11 +196,14 @@ class GrafanaRegistry:
 
         try:
             # Get run info
-            cur.execute('''
+            cur.execute(
+                """
                 SELECT model_type, specialist_name, horizon, started_at
                 FROM model.training_runs
                 WHERE run_id = %s
-            ''', (run_id,))
+            """,
+                (run_id,),
+            )
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"Run {run_id} not found")
@@ -192,7 +212,11 @@ class GrafanaRegistry:
 
             # Calculate duration (handle timezone-aware datetimes)
             if started_at:
-                now = datetime.now(started_at.tzinfo) if started_at.tzinfo else datetime.now()
+                now = (
+                    datetime.now(started_at.tzinfo)
+                    if started_at.tzinfo
+                    else datetime.now()
+                )
                 duration = (now - started_at).total_seconds()
             else:
                 duration = None
@@ -201,17 +225,18 @@ class GrafanaRegistry:
             metrics_json = None
             if metrics:
                 metrics_json = {
-                    'best_model': metrics.best_model,
-                    'models_trained': metrics.models_trained,
-                    'rmse': metrics.rmse,
-                    'mae': metrics.mae,
-                    'mape': metrics.mape,
-                    'coverage_80': metrics.coverage_80,
+                    "best_model": metrics.best_model,
+                    "models_trained": metrics.models_trained,
+                    "rmse": metrics.rmse,
+                    "mae": metrics.mae,
+                    "mape": metrics.mape,
+                    "coverage_80": metrics.coverage_80,
                 }
                 # Remove None values
                 metrics_json = {k: v for k, v in metrics_json.items() if v is not None}
 
-            cur.execute('''
+            cur.execute(
+                """
                 UPDATE model.training_runs
                 SET status = %s,
                     completed_at = NOW(),
@@ -220,38 +245,52 @@ class GrafanaRegistry:
                     metrics = %s,
                     error_message = %s
                 WHERE run_id = %s
-            ''', (
-                status,
-                duration,
-                metrics.mase if metrics else None,
-                psycopg2.extras.Json(metrics_json) if metrics_json else None,
-                error_message,
-                run_id
-            ))
+            """,
+                (
+                    status,
+                    duration,
+                    metrics.mase if metrics else None,
+                    psycopg2.extras.Json(metrics_json) if metrics_json else None,
+                    error_message,
+                    run_id,
+                ),
+            )
 
             # Update model_registry if successful
             if status == "completed" and metrics:
                 # Try both model_id patterns (with and without horizon suffix)
-                model_id_with_horizon = f"zinc-fusion-specialist-{specialist_name}-h{horizon}d"
+                model_id_with_horizon = (
+                    f"zinc-fusion-specialist-{specialist_name}-h{horizon}d"
+                )
                 model_id_without_horizon = f"zinc-fusion-specialist-{specialist_name}"
                 if model_type != "specialist":
-                    model_id_with_horizon = f"zinc-fusion-{model_type}-{specialist_name}-h{horizon}d"
-                    model_id_without_horizon = f"zinc-fusion-{model_type}-{specialist_name}"
+                    model_id_with_horizon = (
+                        f"zinc-fusion-{model_type}-{specialist_name}-h{horizon}d"
+                    )
+                    model_id_without_horizon = (
+                        f"zinc-fusion-{model_type}-{specialist_name}"
+                    )
 
                 # Check which pattern exists
-                cur.execute('SELECT model_id FROM model.model_registry WHERE model_id = %s', (model_id_with_horizon,))
+                cur.execute(
+                    "SELECT model_id FROM model.model_registry WHERE model_id = %s",
+                    (model_id_with_horizon,),
+                )
                 if cur.fetchone():
                     model_id = model_id_with_horizon
                 else:
-                    cur.execute('SELECT model_id FROM model.model_registry WHERE model_id = %s AND horizon = %s',
-                               (model_id_without_horizon, horizon))
+                    cur.execute(
+                        "SELECT model_id FROM model.model_registry WHERE model_id = %s AND horizon = %s",
+                        (model_id_without_horizon, horizon),
+                    )
                     if cur.fetchone():
                         model_id = model_id_without_horizon
                     else:
                         # Neither exists, use with-horizon pattern (will be an insert candidate)
                         model_id = model_id_with_horizon
 
-                cur.execute('''
+                cur.execute(
+                    """
                     UPDATE model.model_registry
                     SET trained_at = NOW(),
                         training_time_seconds = %s,
@@ -269,21 +308,23 @@ class GrafanaRegistry:
                         artifact_path = %s,
                         updated_at = NOW()
                     WHERE model_id = %s
-                ''', (
-                    duration,
-                    metrics.mase,
-                    metrics.rmse,
-                    metrics.mae,
-                    metrics.mape,
-                    metrics.pinball_loss_p10,
-                    metrics.pinball_loss_p50,
-                    metrics.pinball_loss_p90,
-                    metrics.coverage_80,
-                    metrics.best_model,
-                    metrics.models_trained,
-                    artifact_path,
-                    model_id
-                ))
+                """,
+                    (
+                        duration,
+                        metrics.mase,
+                        metrics.rmse,
+                        metrics.mae,
+                        metrics.mape,
+                        metrics.pinball_loss_p10,
+                        metrics.pinball_loss_p50,
+                        metrics.pinball_loss_p90,
+                        metrics.coverage_80,
+                        metrics.best_model,
+                        metrics.models_trained,
+                        artifact_path,
+                        model_id,
+                    ),
+                )
 
                 # Insert OOF predictions if provided
                 if oof_predictions is not None and len(oof_predictions) > 0:
@@ -298,21 +339,19 @@ class GrafanaRegistry:
             conn.close()
 
     def _insert_oof_predictions(
-        self,
-        cur,
-        specialist: str,
-        horizon: int,
-        df: pd.DataFrame,
-        run_id: str
+        self, cur, specialist: str, horizon: int, df: pd.DataFrame, run_id: str
     ):
         """Insert OOF predictions for accuracy tracking."""
-        required_cols = {'as_of_date', 'p10', 'p50', 'p90'}
+        required_cols = {"as_of_date", "p10", "p50", "p90"}
         if not required_cols.issubset(df.columns):
-            print(f"[Grafana] Warning: OOF DataFrame missing columns {required_cols - set(df.columns)}")
+            print(
+                f"[Grafana] Warning: OOF DataFrame missing columns {required_cols - set(df.columns)}"
+            )
             return
 
         for _, row in df.iterrows():
-            cur.execute('''
+            cur.execute(
+                """
                 INSERT INTO model.oof_predictions
                 (specialist, horizon, as_of_date, pred_p10, pred_p50, pred_p90, run_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -321,12 +360,17 @@ class GrafanaRegistry:
                               pred_p50 = EXCLUDED.pred_p50,
                               pred_p90 = EXCLUDED.pred_p90,
                               run_id = EXCLUDED.run_id
-            ''', (
-                specialist, horizon,
-                row['as_of_date'],
-                row['p10'], row['p50'], row['p90'],
-                run_id
-            ))
+            """,
+                (
+                    specialist,
+                    horizon,
+                    row["as_of_date"],
+                    row["p10"],
+                    row["p50"],
+                    row["p90"],
+                    run_id,
+                ),
+            )
 
     def promote_to_champion(self, model_id: str):
         """Promote a model to champion status for its horizon."""
@@ -335,25 +379,34 @@ class GrafanaRegistry:
 
         try:
             # Get horizon for this model
-            cur.execute('SELECT horizon FROM model.model_registry WHERE model_id = %s', (model_id,))
+            cur.execute(
+                "SELECT horizon FROM model.model_registry WHERE model_id = %s",
+                (model_id,),
+            )
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"Model {model_id} not found")
             horizon = row[0]
 
             # Demote current champion at this horizon
-            cur.execute('''
+            cur.execute(
+                """
                 UPDATE model.model_registry
                 SET is_champion = FALSE
                 WHERE horizon = %s AND is_champion = TRUE
-            ''', (horizon,))
+            """,
+                (horizon,),
+            )
 
             # Promote new champion
-            cur.execute('''
+            cur.execute(
+                """
                 UPDATE model.model_registry
                 SET is_champion = TRUE, promoted_at = NOW()
                 WHERE model_id = %s
-            ''', (model_id,))
+            """,
+                (model_id,),
+            )
 
             conn.commit()
             print(f"[Grafana] Promoted {model_id} to champion for h{horizon}d")
@@ -366,15 +419,15 @@ class GrafanaRegistry:
         from datetime import date
 
         sources = [
-            ('Market Futures (1D)', 'raw.market_futures_1d', 'as_of_date'),
-            ('FRED Economic', 'raw.fred_observations_1d', 'as_of_date'),
-            ('FX Spot', 'raw.fx_spot_1d', 'as_of_date'),
-            ('CFTC COT', 'raw.cftc_cot_1w', 'report_date'),
-            ('Weather NOAA', 'raw.weather_noaa_1d', 'as_of_date'),
-            ('EPA RIN', 'raw.epa_rin_prices_1d', 'as_of_date'),
-            ('USDA Exports', 'raw.usda_export_sales_1w', 'report_date'),
-            ('USDA WASDE', 'raw.usda_wasde_1m', 'report_date'),
-            ('News Articles', 'raw.news_articles_1d', 'published_at'),
+            ("Market Futures (1D)", "raw.market_futures_1d", "as_of_date"),
+            ("FRED Economic", "raw.fred_observations_1d", "as_of_date"),
+            ("FX Spot", "raw.fx_spot_1d", "as_of_date"),
+            ("CFTC COT", "raw.cftc_cot_1w", "report_date"),
+            ("Weather NOAA", "raw.weather_noaa_1d", "as_of_date"),
+            ("EPA RIN", "raw.epa_rin_prices_1d", "as_of_date"),
+            ("USDA Exports", "raw.usda_export_sales_1w", "report_date"),
+            ("USDA WASDE", "raw.usda_wasde_1m", "report_date"),
+            ("News Articles", "raw.news_articles_1d", "published_at"),
         ]
 
         conn = self._get_conn()
@@ -385,26 +438,36 @@ class GrafanaRegistry:
         try:
             for source_name, table, date_col in sources:
                 try:
-                    cur.execute(f'SELECT COUNT(*), MAX({date_col}) FROM {table}')
+                    cur.execute(f"SELECT COUNT(*), MAX({date_col}) FROM {table}")
                     count, latest = cur.fetchone()
 
                     if latest:
-                        if isinstance(latest, date) and not isinstance(latest, datetime):
+                        if isinstance(latest, date) and not isinstance(
+                            latest, datetime
+                        ):
                             hours = (today - latest).days * 24
                             latest_ts = datetime.combine(latest, datetime.min.time())
                         else:
-                            hours = (now - latest.replace(tzinfo=None)).total_seconds() / 3600 if latest else 999
+                            hours = (
+                                (now - latest.replace(tzinfo=None)).total_seconds()
+                                / 3600
+                                if latest
+                                else 999
+                            )
                             latest_ts = latest
                         is_stale = hours > 48
                     else:
                         hours, is_stale, latest_ts = 999, True, None
 
-                    cur.execute('''
+                    cur.execute(
+                        """
                         UPDATE model.data_quality_metrics
                         SET total_rows = %s, last_update = %s,
                             hours_since_update = %s, is_stale = %s, as_of_date = CURRENT_DATE
                         WHERE source = %s
-                    ''', (count, latest_ts, hours, is_stale, source_name))
+                    """,
+                        (count, latest_ts, hours, is_stale, source_name),
+                    )
 
                 except Exception as e:
                     print(f"[Grafana] Error refreshing {source_name}: {e}")
@@ -418,9 +481,13 @@ class GrafanaRegistry:
 
 
 # Convenience functions for training scripts
-def register_training_start(model_type: str, specialist_name: str, horizon: int, **kwargs) -> str:
+def register_training_start(
+    model_type: str, specialist_name: str, horizon: int, **kwargs
+) -> str:
     """Quick helper to start tracking a training run."""
-    return GrafanaRegistry().start_training_run(model_type, specialist_name, horizon, **kwargs)
+    return GrafanaRegistry().start_training_run(
+        model_type, specialist_name, horizon, **kwargs
+    )
 
 
 def register_training_complete(run_id: str, mase: float, best_model: str, **kwargs):
@@ -431,4 +498,6 @@ def register_training_complete(run_id: str, mase: float, best_model: str, **kwar
 
 def register_training_failed(run_id: str, error_message: str):
     """Quick helper to mark a training run as failed."""
-    GrafanaRegistry().complete_training_run(run_id, status="failed", error_message=error_message)
+    GrafanaRegistry().complete_training_run(
+        run_id, status="failed", error_message=error_message
+    )
