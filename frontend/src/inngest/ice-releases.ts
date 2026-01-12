@@ -100,16 +100,20 @@ export const iceReleasesDaily = inngest.createFunction(
       logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from ICE RSS`);
 
       const itemArray = Array.isArray(items) ? items : [items];
-      for (const item of itemArray) {
-        await step.run(`ingest-${item.guid || item.link || item.id}`, async () => {
-          rowsAttempted++;
+      const batchResult = await step.run("process-items", async () => {
+        let batchAttempted = 0;
+        let batchInserted = 0;
+        let batchSkipped = 0;
+
+        for (const item of itemArray) {
+          batchAttempted++;
           const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
           const link = item.link?.["@_href"] || item.link || "";
           const rowHash = computeRowHash(link || item.guid || item.id, pubDate);
 
           if (await hashExists(client, "raw.ice_releases_event", rowHash)) {
-            rowsSkipped++;
-            return;
+            batchSkipped++;
+            continue;
           }
 
           const eventDate = new Date(pubDate).toISOString().split("T")[0];
@@ -127,9 +131,15 @@ export const iceReleasesDaily = inngest.createFunction(
               ["trump_effect", "legislation", "volatility"]
             ]
           );
-          rowsInserted++;
-        });
-      }
+          batchInserted++;
+        }
+
+        return { attempted: batchAttempted, inserted: batchInserted, skipped: batchSkipped };
+      });
+
+      rowsAttempted += batchResult.attempted;
+      rowsInserted += batchResult.inserted;
+      rowsSkipped += batchResult.skipped;
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
       logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
