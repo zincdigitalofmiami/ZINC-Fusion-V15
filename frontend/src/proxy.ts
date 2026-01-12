@@ -10,7 +10,7 @@ const PUBLIC_PATH_PREFIXES = [
   '/login',
 ]
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Allow public paths
