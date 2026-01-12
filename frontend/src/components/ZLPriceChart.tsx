@@ -63,17 +63,17 @@ export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Fetch real data from API (6 months fixed = ~4380 hours)
+  // Fetch real historical price data (6 months daily = ~180 days)
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
-        const res = await fetch('/api/zl/price-1h?hours=4380')
-        if (!res.ok) throw new Error('Failed to fetch ZL data')
+        const res = await fetch('/api/zl/historical?days=180')
+        if (!res.ok) throw new Error('Failed to fetch ZL historical data')
         const json = await res.json()
         
         // Transform API response to chart format
-        const time = json.data.map((d: { timestamp: string }) => d.timestamp)
+        const time = json.data.map((d: { event_date: string }) => d.event_date)
         const close = json.data.map((d: { close: number }) => d.close)
         
         setChartData({
@@ -122,69 +122,11 @@ export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
             y: chartData.close,
             type: 'scatter',
             mode: 'lines',
-            name: 'ZL Spot',
+            name: 'ZL Daily Close',
             line: { color: '#FF3B30', width: 2.5 },
             fill: 'tozeroy',
             fillcolor: 'rgba(255, 59, 48, 0.15)',
-            hovertemplate: '%{x}<br>Spot: $%{y:.2f}<extra></extra>',
-          },
-          // P90 Bound (Invisible)
-          {
-            x: chartData.targetDates,
-            y: chartData.p90,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'P90',
-            line: { width: 0, shape: 'spline' },
-            showlegend: false,
-            hoverinfo: 'skip'
-          },
-          // P10 Bound (Fill to P90)
-          {
-            x: chartData.targetDates,
-            y: chartData.p10,
-            type: 'scatter',
-            mode: 'lines',
-            fill: 'tonexty',
-            fillcolor: 'rgba(41, 98, 255, 0.08)', 
-            name: 'Confidence (90%)',
-            line: { width: 0, shape: 'spline' },
-            showlegend: true,
-            hoverinfo: 'skip'
-          },
-          // P75 Bound (Invisible)
-          {
-            x: chartData.targetDates,
-            y: chartData.p75,
-            type: 'scatter',
-            mode: 'lines',
-            name: 'P75',
-            line: { width: 0, shape: 'spline' },
-            showlegend: false,
-            hoverinfo: 'skip'
-          },
-          // P25 Bound (Fill to P75)
-          {
-            x: chartData.targetDates,
-            y: chartData.p25,
-            type: 'scatter',
-            mode: 'lines',
-            fill: 'tonexty',
-            fillcolor: 'rgba(41, 98, 255, 0.15)', 
-            name: 'Likely Range (50%)',
-            line: { width: 0, shape: 'spline' },
-            showlegend: true,
-            hoverinfo: 'skip'
-          },
-          // Prediction Line (Dynamic Color)
-          {
-            x: chartData.targetDates,
-            y: chartData.p50,
-            type: 'scatter',
-            mode: 'lines',
-            name: selectedModel.label.split('(')[0].trim(),
-            line: { color: selectedModel.color, width: 3, dash: 'dot', shape: 'spline' },
-            hovertemplate: `%{x}<br>${selectedModel.label}: $%{y:.2f}<extra></extra>`,
+            hovertemplate: '%{x}<br>Close: $%{y:.2f}<extra></extra>',
           },
         ]}
         layout={{
@@ -194,6 +136,12 @@ export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
           paper_bgcolor: 'transparent',
           plot_bgcolor: 'transparent',
           font: { color: 'rgba(255, 255, 255, 0.8)', family: 'monospace' },
+          title: {
+            text: 'ZL Soybean Oil - 6 Month Historical (Daily Candles)',
+            font: { size: 14, color: 'rgba(255,255,255,0.6)' },
+            x: 0.05,
+            xanchor: 'left'
+          },
           images: [
             {
               source: "/chart_watermark.svg",

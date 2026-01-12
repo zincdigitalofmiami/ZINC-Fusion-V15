@@ -48,12 +48,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* SECTION 1: THE MASSIVE CHART (L0-L3 FUSION) */}
+      {/* SECTION 1: THE MASSIVE CHART (HISTORICAL PRICES) */}
       <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-1 shadow-2xl shadow-black/50 relative">
           <div className="absolute top-4 left-6 z-10 pointer-events-none">
              <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Activity size={18} className="text-emerald-400" />
-                ZL CORE FORECAST <span className="text-slate-500 text-sm font-normal">// L3 ENSEMBLE PATH</span>
+                ZL HISTORICAL PRICES <span className="text-slate-500 text-sm font-normal">// 6 MONTHS DAILY</span>
              </h2>
           </div>
           <ZLPriceChart height={500} />
