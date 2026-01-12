@@ -157,6 +157,24 @@ const FRED_SERIES: FredSeriesConfig[] = [
   { id: "INDPRO", name: "Industrial Production", tags: ["general"] },
   { id: "UMCSENT", name: "Consumer Sentiment", tags: ["general"] },
   { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["general"] },
+
+  // =========================================================================
+  // ADDITIONAL CRITICAL SERIES (Missing from original list)
+  // =========================================================================
+  { id: "FEDFUNDS", name: "Federal Funds Rate", tags: ["fed"] },
+  { id: "DFEDTARL", name: "Fed Funds Target Lower", tags: ["fed"] },
+  { id: "TEDRATE", name: "TED Spread", tags: ["fed", "volatility"] },
+  { id: "CIVPART", name: "Labor Force Participation", tags: ["fed"] },
+  { id: "GDP", name: "Gross Domestic Product", tags: ["general"] },
+  { id: "AMBSL", name: "Monetary Base", tags: ["fed"] },
+  { id: "M1SL", name: "M1 Money Stock", tags: ["fed"] },
+  { id: "M2SL", name: "M2 Money Stock", tags: ["fed"] },
+  { id: "DEXARUS", name: "USD/ARS (Argentina)", tags: ["fx"] },
+  { id: "OVXCLS", name: "Oil VIX", tags: ["volatility", "energy"] },
+  { id: "VXGSCLS", name: "Gold VIX", tags: ["volatility"] },
+  { id: "GVZCLS", name: "Gold Volatility Index", tags: ["volatility"] },
+  { id: "KCFSI", name: "Kansas City Financial Stress", tags: ["volatility"] },
+  { id: "IMPCH", name: "US Imports from China", tags: ["china", "tariff"] },
 ];
 
 // =============================================================================
@@ -312,7 +330,9 @@ async function fetchFredSeries(
  * FRED Daily Bronze Ingestion
  * 
  * Runs daily at 10:00 AM ET (3PM UTC) after FRED updates.
- * Ingests 76 FRED series with Bronze contract compliance.
+ * Ingests 94 FRED series with Bronze contract compliance.
+ * 
+ * PERFORMANCE FIX: Batches series into groups of 20 to avoid Inngest step limits
  */
 export const fredDaily = inngest.createFunction(
   { 
@@ -346,116 +366,124 @@ export const fredDaily = inngest.createFunction(
 
       logger.info(`Started ingest run: ${runId}`);
 
-      // Step 2: Process each FRED series
-      for (const series of FRED_SERIES) {
-        await step.run(`ingest-${series.id}`, async () => {
-          rowsAttempted++;
+      // Step 2: Process FRED series in batches (avoid Inngest step limit)
+      const BATCH_SIZE = 20; // Process 20 series per step
+      const totalBatches = Math.ceil(FRED_SERIES.length / BATCH_SIZE);
 
-          try {
-            // Fetch from FRED API
-            const obs = await fetchFredSeries(series.id, apiKey);
+      for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+        await step.run(`ingest-batch-${batchIdx + 1}`, async () => {
+          const start = batchIdx * BATCH_SIZE;
+          const end = Math.min(start + BATCH_SIZE, FRED_SERIES.length);
+          const batch = FRED_SERIES.slice(start, end);
 
-            if (!obs) {
-              results.push({ series: series.id, status: "no_data" });
-              rowsSkipped++;
-              return;
-            }
+          logger.info(`Processing batch ${batchIdx + 1}/${totalBatches}: ${batch.length} series`);
 
-            const value = parseFloat(obs.value);
+          for (const series of batch) {
+            rowsAttempted++;
 
-            // Validate value
-            if (isNaN(value)) {
+            try {
+              // Fetch from FRED API
+              const obs = await fetchFredSeries(series.id, apiKey);
+
+              if (!obs) {
+                results.push({ series: series.id, status: "no_data" });
+                rowsSkipped++;
+                continue;
+              }
+
+              const value = parseFloat(obs.value);
+
+              // Validate value
+              if (isNaN(value)) {
+                await quarantineRecord(
+                  client,
+                  runId!,
+                  "raw.fred_observations_1d",
+                  { series_id: series.id, date: obs.date, raw_value: obs.value },
+                  ["Invalid numeric value: " + obs.value],
+                  "error"
+                );
+                results.push({ series: series.id, status: "quarantined_invalid_value" });
+                rowsQuarantined++;
+                continue;
+              }
+
+              // Compute row hash for idempotency
+              const rowHash = computeRowHash(series.id, obs.date, value);
+
+              // Check if exact same data already exists (skip duplicate)
+              if (await hashExists(client, rowHash)) {
+                results.push({ series: series.id, status: "skipped_duplicate" });
+                rowsSkipped++;
+                continue;
+              }
+
+              // Check for revision (same series+date, different value)
+              const existing = await getLatestRevision(client, series.id, obs.date);
+              let revisionNo = 1;
+
+              if (existing && existing.value !== value) {
+                revisionNo = existing.revisionNo + 1;
+              }
+
+              // Insert new observation (append-only)
+              await client.query(
+                `INSERT INTO raw.fred_observations_1d (
+                   series_id,
+                   value,
+                   event_date,
+                   knowledge_time,
+                   revision_no,
+                   is_preliminary,
+                   validation_status,
+                   source,
+                   source_url,
+                   ingestion_batch_id,
+                   row_hash,
+                   specialist_tags
+                 ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11)`,
+                [
+                  series.id,
+                  value,
+                  obs.date,
+                  revisionNo,
+                  false,
+                  "validated",
+                  "fred_api",
+                  `https://fred.stlouisfed.org/series/${series.id}`,
+                  runId,
+                  rowHash,
+                  series.tags,
+                ]
+              );
+
+              results.push({
+                series: series.id,
+                status: revisionNo > 1 ? "inserted_revision" : "inserted",
+                value,
+                tags: series.tags,
+              });
+              rowsInserted++;
+
+            } catch (error) {
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              
               await quarantineRecord(
                 client,
                 runId!,
                 "raw.fred_observations_1d",
-                { series_id: series.id, date: obs.date, raw_value: obs.value },
-                ["Invalid numeric value: " + obs.value],
+                { series_id: series.id, error: errorMsg },
+                ["Fetch/insert error: " + errorMsg],
                 "error"
               );
-              results.push({ series: series.id, status: "quarantined_invalid_value" });
+
+              results.push({ series: series.id, status: "error" });
               rowsQuarantined++;
-              return;
             }
 
-            // Compute row hash for idempotency
-            const rowHash = computeRowHash(series.id, obs.date, value);
-
-            // Check if exact same data already exists (skip duplicate)
-            if (await hashExists(client, rowHash)) {
-              results.push({ series: series.id, status: "skipped_duplicate" });
-              rowsSkipped++;
-              return;
-            }
-
-            // Check for revision (same series+date, different value)
-            const existing = await getLatestRevision(client, series.id, obs.date);
-            let revisionNo = 1;
-            let supersedesId: number | null = null;
-
-            if (existing && existing.value !== value) {
-              revisionNo = existing.revisionNo + 1;
-              // Note: Would need to fetch the ID to set supersedes_id
-              // For now, we rely on revision_no ordering
-            }
-
-            // Insert new observation (append-only)
-            await client.query(
-              `INSERT INTO raw.fred_observations_1d (
-                 series_id,
-                 value,
-                 event_date,
-                 knowledge_time,
-                 revision_no,
-                 is_preliminary,
-                 validation_status,
-                 source,
-                 source_url,
-                 ingestion_batch_id,
-                 row_hash,
-                 specialist_tags
-               ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11)`,
-              [
-                series.id,
-                value,
-                obs.date,
-                revisionNo,
-                false, // FRED data is generally final
-                "validated",
-                "fred_api",
-                `https://fred.stlouisfed.org/series/${series.id}`,
-                runId,
-                rowHash,
-                series.tags,
-              ]
-            );
-
-            results.push({
-              series: series.id,
-              status: revisionNo > 1 ? "inserted_revision" : "inserted",
-              value,
-              tags: series.tags,
-            });
-            rowsInserted++;
-
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            
-            await quarantineRecord(
-              client,
-              runId!,
-              "raw.fred_observations_1d",
-              { series_id: series.id, error: errorMsg },
-              ["Fetch/insert error: " + errorMsg],
-              "error"
-            );
-
-            results.push({ series: series.id, status: "error" });
-            rowsQuarantined++;
+            // Rate limit: FRED allows ~120 requests/minute
+            await new Promise((resolve) => setTimeout(resolve, 600)); // 600ms = safe for 100 req/min
           }
-
-          // Rate limit: FRED allows ~120 requests/minute
-          await new Promise((resolve) => setTimeout(resolve, 100)); // FRED allows 120/min, 100ms is safe
         });
       }
 
