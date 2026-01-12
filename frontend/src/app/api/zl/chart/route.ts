@@ -1,14 +1,14 @@
 /**
  * GET /api/zl/chart
- * Returns ZL daily OHLCV from silver.futures_prices_1d
- * Query params: days (default 365)
+ * Returns ZL 15m OHLCV from analytics.zl_intraday
+ * Query params: hours (default 168 = 7 days)
  * Runtime query - no repo dependency
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 
-interface PriceRow {
-  trade_date: string
+interface IntradayRow {
+  timestamp: string
   open: number
   high: number
   low: number
@@ -18,26 +18,25 @@ interface PriceRow {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const days = parseInt(searchParams.get('days') || '365', 10)
+  const hours = parseInt(searchParams.get('hours') || '168', 10) // 7 days default
 
   try {
-    const rows = await query<PriceRow>(`
+    const rows = await query<IntradayRow>(`
       SELECT 
-        trade_date,
+        timestamp,
         open,
         high,
         low,
         close,
         volume
-      FROM silver.futures_prices_1d
-      WHERE canonical_id = 'ZL'
-      ORDER BY trade_date DESC
-      LIMIT $1
-    `, [days])
+      FROM analytics.zl_intraday
+      WHERE timestamp > NOW() - INTERVAL '${hours} hours'
+      ORDER BY timestamp ASC
+    `)
 
-    // Reverse to chronological order and format for lightweight-charts
-    const series = rows.reverse().map(row => ({
-      time: row.trade_date,
+    // Format for lightweight-charts
+    const series = rows.map(row => ({
+      time: row.timestamp,
       open: row.open,
       high: row.high,
       low: row.low,
@@ -47,6 +46,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       symbol: 'ZL',
+      interval: '15m',
       count: series.length,
       series,
     })
