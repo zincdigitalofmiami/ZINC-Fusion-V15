@@ -7,6 +7,7 @@ const PUBLIC_PATH_PREFIXES = [
   '/api/health',
   '/api/auth',
   '/api/inngest',  // Public - Inngest handles its own auth via signing key
+  '/api/zl',       // Public - ZL price data endpoints
   '/login',
 ]
 
