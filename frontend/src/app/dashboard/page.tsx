@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import ZLPriceChart from '@/components/ZLPriceChart';
+import { ZLPriceChart } from '@/components/ZLPriceChart';
 import { SignalGauge } from '@/components/ui/SignalGauge';
 import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalculator';
 import { MarketCommentary } from '@/components/ui/MarketCommentary';

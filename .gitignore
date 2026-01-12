@@ -4,11 +4,6 @@ __pycache__/
 .ruff_cache/
 .DS_Store
 
-# Python virtual environments
-.venv/
-venv/
-env/
-
 # Local runtime directories (do not commit)
 .tmp_dagster_home_*/
 .tmp/

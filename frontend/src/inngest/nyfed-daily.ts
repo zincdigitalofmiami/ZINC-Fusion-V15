@@ -171,28 +171,23 @@ export const nyfedDaily = inngest.createFunction(
 
       logger.info(`Fetched ${rates.length} rates from NY Fed`);
 
-      // Step 4: Process rates (batched for counter tracking)
-      const batchResult = await step.run("process-rates", async () => {
-        let batchAttempted = 0;
-        let batchInserted = 0;
-        let batchSkipped = 0;
-        const batchResults = [];
-
-        for (const rate of rates) {
-          batchAttempted++;
+      // Step 4: Process each rate
+      for (const rate of rates) {
+        await step.run(`ingest-${rate.type}`, async () => {
+          rowsAttempted++;
 
           if (!rate.effectiveDate || !rate.type) {
-            batchResults.push({ rateType: rate.type || "UNKNOWN", status: "skipped_invalid" });
-            batchSkipped++;
-            continue;
+            results.push({ rateType: rate.type || "UNKNOWN", status: "skipped_invalid" });
+            rowsSkipped++;
+            return;
           }
 
           const rowHash = computeRowHash(rate.type, rate.effectiveDate, rate.percentRate || 0);
 
           if (await hashExists(client, "raw.nyfed_rates_1d", rowHash)) {
-            batchResults.push({ rateType: rate.type, status: "skipped_duplicate" });
-            batchSkipped++;
-            continue;
+            results.push({ rateType: rate.type, status: "skipped_duplicate" });
+            rowsSkipped++;
+            return;
           }
 
           await client.query(
@@ -221,23 +216,10 @@ export const nyfedDaily = inngest.createFunction(
             ]
           );
 
-          batchResults.push({ rateType: rate.type, status: "inserted", rate: rate.percentRate });
-          batchInserted++;
-        }
-
-        return {
-          attempted: batchAttempted,
-          inserted: batchInserted,
-          skipped: batchSkipped,
-          results: batchResults,
-        };
-      });
-
-      // Aggregate counts from batch result
-      rowsAttempted += batchResult.attempted;
-      rowsInserted += batchResult.inserted;
-      rowsSkipped += batchResult.skipped;
-      results.push(...batchResult.results);
+          results.push({ rateType: rate.type, status: "inserted", rate: rate.percentRate });
+          rowsInserted++;
+        });
+      }
 
       // Step 5: Complete ingest run
       await step.run("complete-ingest-run", async () => {

@@ -36,7 +36,7 @@ const SPECIALISTS = [
 
 const INITIAL_NODES: Node[] = SPECIALISTS.map(s => ({
   ...s,
-  val: s.group === 'technical' ? 45 : s.group === 'geopolitics' ? 35 : 20 + Math.random() * 10, // Weight technicals higher per user
+  val: s.group === 'technical' ? 45 : s.group === 'geopolitics' ? 35 : 25, // Fixed value for hydration stability
   status: s.id === 'china' || s.id === 'trump' ? 'critical' : s.group === 'technical' ? 'active' : 'calm',
   x: 0,
   y: 0

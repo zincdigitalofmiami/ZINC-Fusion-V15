@@ -111,21 +111,17 @@ export const cbpTradeDaily = inngest.createFunction(
 
       logger.info(`Fetched ${items.length} items from CBP Trade RSS`);
 
-      // Process items (batched for counter tracking)
+      // Process items
       const itemArray = Array.isArray(items) ? items : [items];
-      const batchResult = await step.run("process-items", async () => {
-        let batchAttempted = 0;
-        let batchInserted = 0;
-        let batchSkipped = 0;
-
-        for (const item of itemArray) {
-          batchAttempted++;
+      for (const item of itemArray) {
+        await step.run(`ingest-${item.guid || item.link}`, async () => {
+          rowsAttempted++;
           const pubDate = item.pubDate || new Date().toISOString();
           const rowHash = computeRowHash(item.link || item.guid, pubDate);
 
           if (await hashExists(client, "raw.cbp_trade_event", rowHash)) {
-            batchSkipped++;
-            continue;
+            rowsSkipped++;
+            return;
           }
 
           const eventDate = new Date(pubDate).toISOString().split("T")[0];
@@ -140,15 +136,9 @@ export const cbpTradeDaily = inngest.createFunction(
               ["tariff", "legislation"]
             ]
           );
-          batchInserted++;
-        }
-
-        return { attempted: batchAttempted, inserted: batchInserted, skipped: batchSkipped };
-      });
-
-      rowsAttempted += batchResult.attempted;
-      rowsInserted += batchResult.inserted;
-      rowsSkipped += batchResult.skipped;
+          rowsInserted++;
+        });
+      }
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
       logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
