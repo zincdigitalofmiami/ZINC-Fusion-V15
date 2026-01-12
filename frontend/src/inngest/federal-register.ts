@@ -337,109 +337,142 @@ export const federalRegisterDaily = inngest.createFunction(
 
       logger.info(`Fetched ${documents.length} documents from Federal Register`);
 
-      // Step 3: Process each document
-      for (const doc of documents) {
-        await step.run(`ingest-${doc.document_number}`, async () => {
-          rowsAttempted++;
+      // Step 3: Process documents in batches (20 per batch)
+      const BATCH_SIZE = 20;
+      const batches = [];
+      for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+        batches.push(documents.slice(i, i + BATCH_SIZE));
+      }
 
-          try {
-            // Validate required fields
-            if (!doc.document_number || !doc.publication_date) {
+      logger.info(`Processing ${documents.length} documents in ${batches.length} batches`);
+
+      for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+        const batch = batches[batchIdx];
+        
+        const batchResult = await step.run(`process-batch-${batchIdx}`, async () => {
+          let batchAttempted = 0;
+          let batchInserted = 0;
+          let batchSkipped = 0;
+          let batchQuarantined = 0;
+          const batchResults = [];
+
+          for (const doc of batch) {
+            batchAttempted++;
+
+            try {
+              // Validate required fields
+              if (!doc.document_number || !doc.publication_date) {
+                await quarantineRecord(
+                  client,
+                  runId!,
+                  "raw.legislation_federal_register_1d",
+                  doc,
+                  ["Missing required fields: document_number or publication_date"],
+                  "error"
+                );
+                batchResults.push({ docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" });
+                batchQuarantined++;
+                continue;
+              }
+
+              // Compute row hash for idempotency
+              const rowHash = computeRowHash(doc.document_number, doc.publication_date);
+
+              // Check if exact same data already exists (skip duplicate)
+              if (await hashExists(client, rowHash)) {
+                batchResults.push({ docNumber: doc.document_number, status: "skipped_duplicate" });
+                batchSkipped++;
+                continue;
+              }
+
+              // Extract agencies
+              const agencies = doc.agencies?.map(a => a.name) || [];
+
+              // Assign specialist tags
+              const tags = assignTags(
+                doc.title || "",
+                doc.abstract || "",
+                doc.type,
+                agencies
+              );
+
+              // Insert new document (append-only)
+              await client.query(
+                `INSERT INTO raw.legislation_federal_register_1d (
+                   event_date,
+                   document_number,
+                   document_type,
+                   title,
+                   abstract,
+                   agency,
+                   publication_date,
+                   effective_date,
+                   knowledge_time,
+                   revision_no,
+                   is_preliminary,
+                   validation_status,
+                   source_url,
+                   raw_payload,
+                   ingestion_batch_id,
+                   row_hash,
+                   specialist_tags
+                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 1, false, 'validated', $9, $10, $11, $12, $13)`,
+                [
+                  doc.publication_date,      // event_date
+                  doc.document_number,       // document_number
+                  doc.type,                  // document_type
+                  doc.title,                 // title
+                  doc.abstract,              // abstract
+                  agencies,                  // agency[]
+                  doc.publication_date,      // publication_date
+                  doc.effective_on,          // effective_date
+                  doc.html_url,              // source_url
+                  JSON.stringify(doc),       // raw_payload
+                  runId,                     // ingestion_batch_id
+                  rowHash,                   // row_hash
+                  tags,                      // specialist_tags
+                ]
+              );
+
+              batchResults.push({
+                docNumber: doc.document_number,
+                status: "inserted",
+                tags,
+              });
+              batchInserted++;
+
+            } catch (error) {
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              
               await quarantineRecord(
                 client,
                 runId!,
                 "raw.legislation_federal_register_1d",
                 doc,
-                ["Missing required fields: document_number or publication_date"],
+                ["Insert error: " + errorMsg],
                 "error"
               );
-              results.push({ docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" });
-              rowsQuarantined++;
-              return;
+
+              batchResults.push({ docNumber: doc.document_number, status: "error" });
+              batchQuarantined++;
             }
-
-            // Compute row hash for idempotency
-            const rowHash = computeRowHash(doc.document_number, doc.publication_date);
-
-            // Check if exact same data already exists (skip duplicate)
-            if (await hashExists(client, rowHash)) {
-              results.push({ docNumber: doc.document_number, status: "skipped_duplicate" });
-              rowsSkipped++;
-              return;
-            }
-
-            // Extract agencies
-            const agencies = doc.agencies?.map(a => a.name) || [];
-
-            // Assign specialist tags
-            const tags = assignTags(
-              doc.title || "",
-              doc.abstract || "",
-              doc.type,
-              agencies
-            );
-
-            // Insert new document (append-only)
-            await client.query(
-              `INSERT INTO raw.legislation_federal_register_1d (
-                 event_date,
-                 document_number,
-                 document_type,
-                 title,
-                 abstract,
-                 agency,
-                 publication_date,
-                 effective_date,
-                 knowledge_time,
-                 revision_no,
-                 is_preliminary,
-                 validation_status,
-                 source_url,
-                 raw_payload,
-                 ingestion_batch_id,
-                 row_hash,
-                 specialist_tags
-               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 1, false, 'validated', $9, $10, $11, $12, $13)`,
-              [
-                doc.publication_date,      // event_date
-                doc.document_number,       // document_number
-                doc.type,                  // document_type
-                doc.title,                 // title
-                doc.abstract,              // abstract
-                agencies,                  // agency[]
-                doc.publication_date,      // publication_date
-                doc.effective_on,          // effective_date
-                doc.html_url,              // source_url
-                JSON.stringify(doc),       // raw_payload
-                runId,                     // ingestion_batch_id
-                rowHash,                   // row_hash
-                tags,                      // specialist_tags
-              ]
-            );
-
-            results.push({
-              docNumber: doc.document_number,
-              status: "inserted",
-              tags,
-            });
-            rowsInserted++;
-
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            
-            await quarantineRecord(
-              client,
-              runId!,
-              "raw.legislation_federal_register_1d",
-              doc,
-              ["Insert error: " + errorMsg],
-              "error"
-            );
-
-            results.push({ docNumber: doc.document_number, status: "error" });
-            rowsQuarantined++;
           }
+
+          return {
+            attempted: batchAttempted,
+            inserted: batchInserted,
+            skipped: batchSkipped,
+            quarantined: batchQuarantined,
+            results: batchResults,
+          };
         });
+
+        // Aggregate counts from batch result
+        rowsAttempted += batchResult.attempted;
+        rowsInserted += batchResult.inserted;
+        rowsSkipped += batchResult.skipped;
+        rowsQuarantined += batchResult.quarantined;
+        results.push(...batchResult.results);
       }
 
       // Step 4: Update ingest run with final counts
