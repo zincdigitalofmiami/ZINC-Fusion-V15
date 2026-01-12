@@ -63,18 +63,18 @@ export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Fetch real data from API
+  // Fetch real data from API (6 months fixed = ~4380 hours)
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
-        const res = await fetch('/api/zl/chart?days=60')
+        const res = await fetch('/api/zl/price-1h?hours=4380')
         if (!res.ok) throw new Error('Failed to fetch ZL data')
         const json = await res.json()
         
         // Transform API response to chart format
-        const time = json.series.map((d: { time: string }) => d.time)
-        const close = json.series.map((d: { close: number }) => d.close)
+        const time = json.data.map((d: { timestamp: string }) => d.timestamp)
+        const close = json.data.map((d: { close: number }) => d.close)
         
         setChartData({
           time,
@@ -114,36 +114,18 @@ export default function ZLPriceChart({ height = 500 }: ZLPriceChartProps) {
 
   return (
     <div className="relative group">
-      {/* Model Selector Overlay */}
-      <div className="absolute top-4 left-16 z-10 flex gap-2">
-        <select 
-          value={selectedModel.id}
-          onChange={(e) => setSelectedModel(AVAILABLE_MODELS.find(m => m.id === e.target.value) || AVAILABLE_MODELS[0])}
-          className="bg-black/40 backdrop-blur-md border border-white/10 text-xs text-white rounded px-2 py-1 outline-none hover:bg-black/60 transition-colors cursor-pointer appearance-none pl-3 pr-8"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25em 1.25em' }}
-        >
-          {AVAILABLE_MODELS.map(m => (
-            <option key={m.id} value={m.id} className="bg-slate-900 text-slate-200">
-              {m.label}
-            </option>
-          ))}
-        </select>
-        <div className="hidden group-hover:flex items-center text-[10px] text-white/40 px-2 bg-white/5 rounded backdrop-blur-sm border border-white/5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
-          LIVE INFERENCE
-        </div>
-      </div>
-
       <Plot
         data={[
-          // Historical price line
+          // Historical price line with red gradient fill
           {
             x: chartData.time,
             y: chartData.close,
             type: 'scatter',
             mode: 'lines',
             name: 'ZL Spot',
-            line: { color: '#ffffff', width: 2 }, 
+            line: { color: '#FF3B30', width: 2.5 },
+            fill: 'tozeroy',
+            fillcolor: 'rgba(255, 59, 48, 0.15)',
             hovertemplate: '%{x}<br>Spot: $%{y:.2f}<extra></extra>',
           },
           // P90 Bound (Invisible)

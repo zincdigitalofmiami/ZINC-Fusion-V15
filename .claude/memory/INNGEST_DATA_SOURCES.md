@@ -195,3 +195,270 @@ Required columns:
 - ScrapeCreators handles Twitter/Truth Social - need API key
 - Facebook/LinkedIn endpoints not available in ScrapeCreators basic tier
 - Priority 0/1 sources are most important for MVP
+
+---
+
+# COMPREHENSIVE FEED REGISTRY (GPT-Verified Sources)
+
+## POLLING STRATEGY (LOCKED)
+| Asset | Frequency | Cron |
+|-------|-----------|------|
+| **ZL Price** | Every 15 min | `*/15 * * * *` |
+| **Everything else** | 2x daily | `0 8,16 * * *` (8 AM & 4 PM CT) |
+
+---
+
+## CONGRESS.GOV RSS (Verified - Real URLs)
+
+| feed_id | name | url | specialist_tags | cadence |
+|---------|------|-----|-----------------|--------|
+| `congress_most_viewed_bills` | Most-Viewed Bills | `https://www.congress.gov/rss/most-viewed-bills.xml` | trump_effect, policy, tariff, biofuel, crush | event |
+| `congress_house_floor_today` | House Floor Today | `https://www.congress.gov/rss/house-floor-today.xml` | policy, tariff, biofuel, crush | event |
+| `congress_senate_floor_today` | Senate Floor Today | `https://www.congress.gov/rss/senate-floor-today.xml` | policy, tariff, biofuel, crush | event |
+| `congress_presented_to_president` | Bills Presented to President | `https://www.congress.gov/rss/presented-to-president.xml` | trump_effect, policy, tariff | event |
+
+**Target:** `raw.us_congress_event`
+
+---
+
+## COMMITTEE SCRAPES (No RSS Available)
+
+| feed_id | name | url | specialist_tags | type |
+|---------|------|-----|-----------------|------|
+| `house_ag_news` | House Agriculture Committee | `https://agriculture.house.gov/news/documentquery.aspx` | crush, biofuel, policy | scrape |
+| `senate_ag_majority_news` | Senate Ag - Majority | `https://www.agriculture.senate.gov/newsroom/majority-news` | crush, biofuel, policy | scrape |
+| `senate_ag_minority_news` | Senate Ag - Minority | `https://www.agriculture.senate.gov/newsroom/minority-news` | crush, biofuel, tariff | scrape |
+| `ways_means_trade_news` | Ways & Means - Trade | `https://waysandmeans.house.gov/news/` | tariff, trump_effect, policy | scrape |
+
+**Target:** `raw.us_congress_event`
+
+**Filter Rules:**
+```json
+{
+  "must_include_any": ["tariff", "trade", "301", "farm", "commodity", "crop", "biofuel", "renewable", "RFS", "soy", "oilseed"],
+  "must_exclude_any": ["internship", "photo", "congratulations"]
+}
+```
+
+---
+
+## FEDERAL REGISTER API (Targeted - Not RSS)
+
+| feed_id | name | url | type |
+|---------|------|-----|------|
+| `federal_register_targeted` | Federal Register (RULE + PRESDOCU) | `https://www.federalregister.gov/api/v1/documents.json` | api |
+
+**Target:** `raw.federal_register_event`
+**Specialist Tags:** trump_effect, policy, tariff, biofuel, energy, crush
+
+**Filter Rules:**
+```json
+{
+  "doc_types": ["RULE", "PRESDOCU"],
+  "presidential_document_types": ["executive_order", "proclamation", "memorandum", "determination", "notice"],
+  "agencies_any": ["Agriculture Department", "U.S. Trade Representative", "Environmental Protection Agency", "Department of Energy", "Foreign Agricultural Service", "Commodity Futures Trading Commission"],
+  "keywords_any": ["soy", "soybean", "vegetable oil", "biofuel", "biodiesel", "renewable fuel", "RFS", "45Z", "tariff", "section 301", "countervailing", "antidumping", "China", "import", "export", "sanctions", "EPA RIN", "EMTS"]
+}
+```
+
+---
+
+## EIA RSS FEEDS (5 Verified)
+
+| feed_id | name | url | cadence | specialist_tags |
+|---------|------|-----|---------|----------------|
+| `eia_wpsr` | Weekly Petroleum Status Report | `https://www.eia.gov/rss/weekly_petroleum.xml` | _1w | energy, biofuel |
+| `eia_today_in_energy` | Today in Energy | `https://www.eia.gov/rss/todayinenergy.xml` | _event | energy |
+| `eia_press_releases` | EIA Press Releases | `https://www.eia.gov/rss/press_releases.xml` | _event | energy |
+| `eia_steo` | Short-Term Energy Outlook | `https://www.eia.gov/rss/steo.xml` | _1m | energy |
+| `eia_petroleum` | Petroleum & Liquids | `https://www.eia.gov/rss/petroleum.xml` | _event | energy |
+
+**Target:** `raw.eia_*_event` or `raw.eia_*_1w`
+
+**Note:** RSS for event detection only. Use EIA API for numeric inventory series.
+
+---
+
+## REGULATORY / POLICY FEEDS
+
+| feed_id | name | url | type | specialist_tags |
+|---------|------|-----|------|----------------|
+| `govinfo_feeds` | GovInfo RSS Registry | `https://www.govinfo.gov/feeds` | scrape | policy, trump_effect |
+| `oira_eo_review` | OIRA EO Submissions | `https://www.reginfo.gov/public/do/eoReviewSearch` | scrape | trump_effect, policy |
+| `whitehouse_briefing` | White House Briefings | `https://www.whitehouse.gov/briefing-room/feed/` | rss | trump_effect, policy |
+
+**Target:** `raw.whitehouse_actions_event`, `raw.oira_regulatory_event`, `raw.govinfo_event`
+
+---
+
+## BIOFUEL FEEDS (Verified)
+
+| feed_id | name | url | type | legal_risk |
+|---------|------|-----|------|------------|
+| `biofuels_digest` | Biofuels Digest | `https://www.biofuelsdigest.com/bdigest/feed/` | rss | medium |
+| `clean_fuels_alliance` | Clean Fuels Alliance | `https://cleanfuels.org/feed/` | rss | low |
+
+**Target:** `raw.biofuel_policy_event`
+
+---
+
+## PALM OIL / ASIA FEEDS
+
+| feed_id | name | url | type | legal_risk |
+|---------|------|-----|------|------------|
+| `thestar_business` | The Star (Malaysia) | `https://www.thestar.com.my/RSS` | rss | **HIGH** |
+| `scmp_rss` | SCMP Directory | `https://www.scmp.com/rss` | rss | medium |
+| `jakarta_post` | Jakarta Post | `https://www.thejakartapost.com/rss` | rss | medium |
+| `mpob_malaysia` | MPOB Malaysia | `https://www.mpob.gov.my/rss` | rss | low |
+
+**Target:** `raw.palm_oil_news_event`, `raw.china_trade_news_event`
+
+**⚠️ The Star has restrictive terms - HIGH risk unless licensed**
+
+---
+
+## CHINA FEEDS
+
+| feed_id | name | url | type | notes |
+|---------|------|-----|------|-------|
+| `xinhua_business` | Xinhua Business | `http://www.xinhuanet.com/english/rss/businessrss.xml` | rss | Official state media |
+| `scmp_commodities` | SCMP Commodities | Select from `https://www.scmp.com/rss` | rss | Pick topic feed |
+| `caixin_global` | Caixin Global | `https://www.caixinglobal.com/rss/feed.xml` | rss | May need verification |
+
+**Target:** `raw.china_trade_news_event`
+
+---
+
+## MACRO / INSTITUTIONAL RESEARCH (Reference Only)
+
+| source | url | notes |
+|--------|-----|-------|
+| IEA News | `https://www.iea.org/rss/news.xml` | Macro energy context |
+| IEA Reports | `https://www.iea.org/rss/reports.xml` | Balance modeling |
+| World Bank | `https://www.worldbank.org/en/news/all?feed=rss` | Global macro |
+| OECD | `https://www.oecd.org/newsroom/rss.xml` | Policy context |
+
+**Note:** Not for price prediction - regime/context signals only.
+
+---
+
+## LICENSED / PAYWALLED (DO NOT SCRAPE)
+
+| source | status | action |
+|--------|--------|--------|
+| ChAI | Licensed only | Benchmark comparator, not ingestable |
+| Bloomberg Terminal | Licensed only | No free RSS for commodities |
+| Oil World | Licensed only | Paid PDF reports |
+| Reuters Premium | Licensed only | LSEG products |
+
+**These require commercial agreements - mark `enabled = false` in registry**
+
+---
+
+## metadata.feed REGISTRY SCHEMA
+
+```sql
+CREATE TABLE metadata.feed (
+  feed_id            VARCHAR PRIMARY KEY,
+  source_id          VARCHAR NOT NULL,
+  name               VARCHAR NOT NULL,
+  description        TEXT,
+  feed_url           TEXT NOT NULL,
+  feed_type          VARCHAR NOT NULL,   -- rss | api | scrape | licensed
+  enabled            BOOLEAN DEFAULT TRUE,
+  cadence            VARCHAR NOT NULL,   -- event | 1h | 1d | 1w | 1m | static
+  target_table       VARCHAR NOT NULL,
+  specialist_tags    TEXT[] NOT NULL,
+  cron               VARCHAR NOT NULL,
+  release_tz         VARCHAR DEFAULT 'America/Chicago',
+  release_window     JSONB,
+  freshness_sla_min  INTEGER DEFAULT 1440,
+  filter_rules       JSONB DEFAULT '{}',
+  guid_strategy      VARCHAR DEFAULT 'guid_or_link_hash',
+  item_hash_fields   TEXT[] DEFAULT ARRAY['guid','link','title','published'],
+  parser_profile     VARCHAR DEFAULT 'rss_v2',
+  legal_risk         VARCHAR DEFAULT 'low',
+  license_note       TEXT,
+  failure_policy     JSONB DEFAULT '{"retries":3,"backoff":"exp2"}',
+  http_etag          TEXT,
+  http_last_modified TEXT,
+  last_polled_at     TIMESTAMPTZ,
+  last_success_at    TIMESTAMPTZ
+);
+```
+
+---
+
+## INNGEST PULL ENGINE CONTRACT
+
+### Single Job Class: `ingest:feed:pull`
+
+**Event:**
+```typescript
+type FeedPullEvent = {
+  name: "feed/pull";
+  data: {
+    feed_id?: string;        // pull one feed
+    cadence?: "event" | "1w"; // or pull all by cadence
+    force?: boolean;         // bypass freshness SLA
+  };
+};
+```
+
+**Behavior:**
+1. Load feeds from `metadata.feed` where `enabled = true`
+2. Check freshness SLA (skip if recent)
+3. Create `ops.ingest_run` record
+4. Fetch by `feed_type` (rss/api/scrape)
+5. Apply `filter_rules` to items
+6. Normalize → Bronze row with PIT semantics
+7. Dedupe via `row_hash`
+8. Handle revisions via `revision_no` + `supersedes_id`
+9. Quarantine bad rows to `ops.quarantined_record`
+10. Complete `ops.ingest_run` with stats
+
+**Cron Triggers:**
+```typescript
+// Event feeds - 2x daily
+inngest.createFunction(
+  { id: "cron:feed:event" },
+  { cron: "0 8,16 * * *" },  // 8 AM & 4 PM CT
+  async () => inngest.send({ name: "feed/pull", data: { cadence: "event" } })
+);
+
+// Weekly feeds - aligned to release windows
+inngest.createFunction(
+  { id: "cron:feed:weekly" },
+  { cron: "0 12 * * 3" },  // Wed noon CT (EIA WPSR)
+  async () => inngest.send({ name: "feed/pull", data: { cadence: "1w" } })
+);
+```
+
+---
+
+## TOTAL FEED INVENTORY
+
+| Category | Count | Type |
+|----------|-------|------|
+| Congress.gov RSS | 4 | rss |
+| Committee scrapes | 4 | scrape |
+| Federal Register | 1 | api |
+| EIA | 5 | rss |
+| Regulatory/Policy | 3 | mixed |
+| Biofuel | 2 | rss |
+| Palm/Asia | 4 | rss |
+| China | 3 | rss |
+| Macro/Institutional | 4 | rss |
+| News (from scripts) | 42 | mixed |
+| Social (Twitter) | 100+ | scrapecreators |
+| **TOTAL** | **170+** | - |
+
+---
+
+## NEXT STEPS
+
+1. Create `metadata.feed` table in Prisma Postgres
+2. Seed with all verified feeds (start with RSS, skip scrapes)
+3. Build single `ingest:feed:pull` Inngest function
+4. Kill individual hardcoded jobs
+5. Add `ops.feed_health` monitoring

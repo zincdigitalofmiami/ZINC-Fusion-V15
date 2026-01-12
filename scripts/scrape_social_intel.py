@@ -5,7 +5,7 @@ ZINC-FUSION Social Media Intelligence Scraper
 Pulls social posts from Twitter/X, Facebook, LinkedIn via ScrapeCreators API.
 Routes to Big-11 specialist buckets and stores in raw.news_articles_1d.
 
-DEPLOYMENT: Railway/Server cron job - NOT for local Mac execution.
+DEPLOYMENT: Server cron job or Inngest scheduled function.
 
 Schedule (recommended):
     - HIGH_ALPHA (Trump, USTR, China): Every 5 minutes

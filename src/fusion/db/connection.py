@@ -49,7 +49,7 @@ def get_database_url() -> str:
     """
     Get Prisma Postgres connection URL from environment.
 
-    Checks DATABASE_URL first, then POSTGRES_URL for Railway compatibility.
+    Checks DATABASE_URL first, then POSTGRES_URL as fallback.
 
     Returns:
         Connection URL string

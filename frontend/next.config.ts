@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // output: 'standalone', // Disabled - Railway cache conflict with standalone
+  // output: 'standalone', // Disabled for Vercel deployment
   turbopack: {
     root: __dirname,
   },
