@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createChart, CandlestickSeries } from 'lightweight-charts'
+import { createChart, CandlestickSeries, ColorType } from 'lightweight-charts'
 
 interface PriceData {
   timestamp: string
@@ -83,7 +83,7 @@ export function ZLPriceChart({ height = 600 }: { height?: number }) {
       width: containerWidth,
       height: height,
       layout: {
-        background: { type: 'solid' as const, color: '#131722' },
+        background: { type: ColorType.Solid, color: '#131722' },
         textColor: '#d1d4dc',
       },
       grid: {

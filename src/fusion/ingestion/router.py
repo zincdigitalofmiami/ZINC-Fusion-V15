@@ -622,13 +622,29 @@ class DataRouter:
 FRED_SERIES_BUCKETS: Dict[str, SpecialistBucket] = {
     # FED bucket
     "DFF": SpecialistBucket.FED,  # Fed Funds Rate
+    "FEDFUNDS": SpecialistBucket.FED,  # Federal Funds Effective Rate
+    "DFEDTARL": SpecialistBucket.FED,  # Fed Funds Target Range (Lower)
+    "DFEDTARU": SpecialistBucket.FED,  # Fed Funds Target Range (Upper)
     "DGS10": SpecialistBucket.FED,  # 10-Year Treasury
     "DGS2": SpecialistBucket.FED,  # 2-Year Treasury
     "T10Y2Y": SpecialistBucket.FED,  # Yield Curve
     "T10Y3M": SpecialistBucket.FED,  # Yield Curve
     "SOFR": SpecialistBucket.FED,  # SOFR Rate
+    "BOGMBASE": SpecialistBucket.FED,  # Monetary Base
     "M2SL": SpecialistBucket.FED,  # M2 Money Supply
+    "TOTRESNS": SpecialistBucket.FED,  # Total Reserves
+    "BUSLOANS": SpecialistBucket.FED,  # Commercial & Industrial Loans
+    "DRCCLACBS": SpecialistBucket.FED,  # Credit Card Delinquency Rate
     "WALCL": SpecialistBucket.FED,  # Fed Balance Sheet
+    "PCE": SpecialistBucket.FED,  # Personal Consumption Expenditures
+    "PPIACO": SpecialistBucket.FED,  # PPI All Commodities
+    "PPIFGS": SpecialistBucket.FED,  # PPI Finished Goods
+    "GDP": SpecialistBucket.FED,  # Gross Domestic Product
+    "GDPC1": SpecialistBucket.FED,  # Real GDP
+    "HOUST": SpecialistBucket.FED,  # Housing Starts
+    "PERMIT": SpecialistBucket.FED,  # Housing Permits
+    "MANEMP": SpecialistBucket.FED,  # Manufacturing Employment
+    "RSXFS": SpecialistBucket.FED,  # Retail Sales
     # FX bucket
     "DEXUSEU": SpecialistBucket.FX,  # USD/EUR
     "DEXBZUS": SpecialistBucket.FX,  # USD/BRL
@@ -641,17 +657,42 @@ FRED_SERIES_BUCKETS: Dict[str, SpecialistBucket] = {
     "DCOILBRENTEU": SpecialistBucket.ENERGY,  # Brent Crude
     "DHHNGSP": SpecialistBucket.ENERGY,  # Henry Hub Natural Gas
     "GASREGW": SpecialistBucket.ENERGY,  # Gasoline Prices
+    "DHOILNYH": SpecialistBucket.ENERGY,  # Heating Oil NY Harbor
+    "PNGASEUUSDM": SpecialistBucket.ENERGY,  # EU Natural Gas Price
+    "WPU057303": SpecialistBucket.ENERGY,  # PPI Diesel Fuel
+    "PCU32411032411012": SpecialistBucket.ENERGY,  # PPI Motor Gasoline
+    "APU000074714": SpecialistBucket.BIOFUEL,  # Gasoline CPI (Unleaded Regular)
+    "WPU06140341": SpecialistBucket.BIOFUEL,  # PPI Ethanol
     # CRUSH bucket (soybean-related)
     "PSOYBOILUSDM": SpecialistBucket.CRUSH,  # Soybean Oil
     "PSOYBEANMEALUSDM": SpecialistBucket.CRUSH,  # Soybean Meal
+    "PCU311224311224": SpecialistBucket.CRUSH,  # PPI Soybean Oil Processing
     # Macro / Inflation (often fed-related)
     "CPIAUCSL": SpecialistBucket.FED,  # CPI (headline)
     "PCEPI": SpecialistBucket.FED,  # PCE Price Index
     # VOLATILITY bucket
+    "SP500": SpecialistBucket.VOLATILITY,  # S&P 500
+    "NASDAQCOM": SpecialistBucket.VOLATILITY,  # NASDAQ Composite
     "VIXCLS": SpecialistBucket.VOLATILITY,  # VIX
+    "STLFSI": SpecialistBucket.VOLATILITY,  # Financial Stress Index (legacy)
+    "TEDRATE": SpecialistBucket.VOLATILITY,  # TED Spread
     "STLFSI4": SpecialistBucket.VOLATILITY,  # Financial Stress Index
     "BAMLH0A0HYM2": SpecialistBucket.VOLATILITY,  # HY OAS proxy for risk
     "OVXCLS": SpecialistBucket.VOLATILITY,  # Oil VIX
+    # SUBSTITUTES bucket
+    "PCOPPUSDM": SpecialistBucket.SUBSTITUTES,  # Copper Price
+    "PRICENPQUSDM": SpecialistBucket.SUBSTITUTES,  # Rice Price
+    "PSUNOUSDM": SpecialistBucket.SUBSTITUTES,  # Sunflower Oil Price
+    "WPU01830161": SpecialistBucket.SUBSTITUTES,  # PPI Farm Products: Sunflower
+    "WPU01830171": SpecialistBucket.SUBSTITUTES,  # PPI Farm Products: Canola
+    # TARIFF bucket
+    "BOPGSTB": SpecialistBucket.TARIFF,  # Trade Balance
+    "EXPGS": SpecialistBucket.TARIFF,  # Exports of Goods & Services
+    "IMPGS": SpecialistBucket.TARIFF,  # Imports of Goods & Services
+    # CHINA bucket
+    "CHNCPIALLMINMEI": SpecialistBucket.CHINA,  # China CPI
+    "IR3TIB01CNM156N": SpecialistBucket.CHINA,  # China 3M Interbank Rate
+    "MYAGM2CNM189N": SpecialistBucket.CHINA,  # China M2
     # TRUMP_EFFECT bucket (policy uncertainty + trade flow)
     "USEPUINDXD": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Daily)
     "USEPUINDXM": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Monthly)
