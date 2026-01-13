@@ -1,129 +1,162 @@
 /**
- * EIA Today in Energy RSS Bronze Ingestion
+ * EIA Petroleum Prices Ingestion (ACTUAL DATA via API v2)
  * 
- * BRONZE CONTRACT COMPLIANT
- * SOURCE: https://www.eia.gov/rss/todayinenergy.xml
- * Tags: energy
+ * Hits EIA API v2 for REAL petroleum spot prices:
+ * - EPCBRENT: Brent Crude Oil ($/BBL)
+ * - EPCWTI: WTI Crude Oil ($/BBL)
+ * - EPD2DXL0: No.2 Diesel Retail ($/GAL)
+ * - EPMRU: Regular Gasoline ($/GAL)
+ * - EPMPU: Premium Gasoline ($/GAL)
  * 
- * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-01-13
+ * API: https://api.eia.gov/v2/petroleum/pri/spt/data/
+ * Routes to: energy specialist
+ * Table: raw.fred_observations_1d (reusing FRED pattern)
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
-import { XMLParser } from "fast-xml-parser";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const EIA_API_KEY = process.env.EIA_API_KEY;
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-function computeRowHash(url: string, pubDate: string): string {
-  return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
+interface EIADataPoint {
+  period: string;
+  product: string;
+  "product-name": string;
+  value: number;
+  units: string;
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
+interface EIAResponse {
+  response: {
+    data: EIADataPoint[];
+    total: number;
+  };
 }
 
-async function updateIngestRun(
-  client: PoolClient, runId: string, status: string,
-  attempted: number, inserted: number, skipped: number, quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
+// Map EIA product codes to our series naming
+const PRODUCT_MAPPING: Record<string, { seriesId: string; description: string }> = {
+  EPCBRENT: { seriesId: "EIA_BRENT_SPOT", description: "Brent Crude Oil Spot Price" },
+  EPCWTI: { seriesId: "EIA_WTI_SPOT", description: "WTI Crude Oil Spot Price" },
+  EPD2DXL0: { seriesId: "EIA_DIESEL_SPOT", description: "No.2 Diesel Spot Price" },
+  EPMRU: { seriesId: "EIA_GASOLINE_REG_SPOT", description: "Regular Gasoline Spot Price" },
+  EPMPU: { seriesId: "EIA_GASOLINE_PREM_SPOT", description: "Premium Gasoline Spot Price" },
+};
 
-async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM raw.news_articles_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
-  return r.rows.length > 0;
+function generateRowHash(seriesId: string, date: string, value: number): string {
+  const content = `${seriesId}|${date}|${value}`;
+  return createHash("sha256").update(content).digest("hex");
 }
 
 export const eiaDaily = inngest.createFunction(
-  { id: "eia-daily", name: "EIA Today in Energy RSS Bronze Ingestion", retries: 3 },
-  { cron: "0 16 * * 1-5" }, // 10AM CT weekdays
-  async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
+  {
+    id: "eia-petroleum-daily",
+    name: "EIA Petroleum Spot Prices (API v2)",
+  },
+  { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
+  async ({ step }) => {
+    if (!EIA_API_KEY) {
+      throw new Error("EIA_API_KEY not configured");
+    }
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "eia-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    // Step 1: Fetch petroleum spot prices from EIA API v2
+    const eiaData = await step.run("fetch-eia-petroleum", async () => {
+      // Get last 30 days of data
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      const startStr = startDate.toISOString().split("T")[0];
 
-      const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://www.eia.gov/rss/todayinenergy.xml", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
-        });
-        if (!response.ok) throw new Error(`EIA RSS error: ${response.status}`);
-        const xml = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        return parsed?.rss?.channel?.item || [];
-      });
+      const url = new URL("https://api.eia.gov/v2/petroleum/pri/spt/data/");
+      url.searchParams.set("api_key", EIA_API_KEY);
+      url.searchParams.set("frequency", "daily");
+      url.searchParams.set("data[0]", "value");
+      url.searchParams.set("start", startStr);
+      url.searchParams.set("length", "500"); // Enough for 30 days * 5 products
 
-      logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from EIA RSS`);
-
-      const itemArray = Array.isArray(items) ? items : [items];
-      for (const item of itemArray) {
-        rowsAttempted++;
-        
-        const outcome = await step.run(`ingest-${item.guid || item.link}`, async () => {
-          const pubDate = item.pubDate || new Date().toISOString();
-          const rowHash = computeRowHash(item.link || item.guid, pubDate);
-
-          if (await hashExists(client, rowHash)) {
-            return { status: "skipped_duplicate" as const };
-          }
-
-          const eventDate = new Date(pubDate).toISOString().split("T")[0];
-          const categories = item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [];
-          const author = item["dc:creator"] || item.author || "";
-
-          await client.query(
-            `INSERT INTO raw.news_articles_1d (
-               event_date, headline, content, url, published_at, author,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-            [
-              eventDate, item.title, item.description, item.link, pubDate, author,
-              "eia_rss",
-              "https://www.eia.gov/rss/todayinenergy.xml",
-              JSON.stringify(item), runId, rowHash,
-              ["energy"]
-            ]
-          );
-          return { status: "inserted" as const };
-        });
-
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`EIA API error: ${response.status} - ${text}`);
       }
 
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
-      logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
-      return { status: "success", runId, inserted: rowsInserted, skipped: rowsSkipped };
+      const json: EIAResponse = await response.json();
+      return json.response.data;
+    });
 
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) await updateIngestRun(client, runId, "failed", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, msg);
-      logger.error(`EIA RSS ingestion failed: ${msg}`);
-      throw error;
-    } finally {
-      client.release();
+    // Step 2: Filter to our target products
+    const targetProducts = Object.keys(PRODUCT_MAPPING);
+    const filteredData = eiaData.filter((d) => targetProducts.includes(d.product));
+
+    // Step 3: Insert into database
+    const result = await step.run("insert-eia-prices", async () => {
+      if (!DATABASE_URL) {
+        throw new Error("DATABASE_URL not configured");
+      }
+
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: DATABASE_URL });
+
+      let inserted = 0;
+      let skipped = 0;
+
+      try {
+        for (const dataPoint of filteredData) {
+          const mapping = PRODUCT_MAPPING[dataPoint.product];
+          if (!mapping) continue;
+
+          const rowHash = generateRowHash(
+            mapping.seriesId,
+            dataPoint.period,
+            dataPoint.value
+          );
+
+          // Check if exists
+          const checkResult = await pool.query(
+            `SELECT 1 FROM raw.fred_observations_1d WHERE row_hash = $1`,
+            [rowHash]
+          );
+
+          if (checkResult.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          // Insert - reusing fred_observations_1d pattern
+          await pool.query(
+            `INSERT INTO raw.fred_observations_1d 
+             (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+            [
+              mapping.seriesId,
+              dataPoint.period,
+              dataPoint.value,
+              dataPoint.units,
+              rowHash,
+              ["energy"],
+            ]
+          );
+          inserted++;
+        }
+      } finally {
+        await pool.end();
+      }
+
+      return { inserted, skipped, total: filteredData.length };
+    });
+
+    // Build summary by product
+    const byProduct: Record<string, number> = {};
+    for (const d of filteredData) {
+      const name = PRODUCT_MAPPING[d.product]?.seriesId || d.product;
+      byProduct[name] = (byProduct[name] || 0) + 1;
     }
+
+    return {
+      success: true,
+      source: "EIA API v2 petroleum/pri/spt",
+      products: byProduct,
+      ...result,
+    };
   }
 );
