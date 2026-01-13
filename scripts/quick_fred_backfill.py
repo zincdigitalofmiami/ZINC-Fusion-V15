@@ -8,7 +8,7 @@ import hashlib
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict
 
 import pandas as pd
@@ -25,6 +25,7 @@ except ImportError:
 
 # FRED API
 FRED_API_BASE = "https://api.stlouisfed.org/fred/series/observations"
+FRED_SERIES_API_BASE = "https://api.stlouisfed.org/fred/series"
 FRED_API_KEY = os.getenv("FRED_API_KEY")
 
 # All Big-11 specialist FRED series
@@ -83,26 +84,38 @@ FRED_SERIES = {
     "DJFUELUSGULF": "Jet Fuel Gulf Coast",
     "DPROPANEMBTX": "Propane Prices: Mont Belvieu, Texas",
 
+    # BIOFUEL SPECIALIST
+    "GASREGW": "US Regular Gas Price",
+    "GASDESW": "US Diesel Price",
+
     # CRUSH SPECIALIST - Soybean complex from FRED
     "PSOILUSDM": "Soybean Oil Price (World Bank)",
     "PSOYBUSDM": "Soybeans Price (World Bank)",
-    "PPOILUSDM": "Global price of Palm Oil",
     "PBARLUSDM": "Barley Price",
-    "PROILUSDM": "Global price of Rapeseed Oil (proxy for palm kernel)",
     "PWHEAMTUSDM": "Wheat Price",
     "PMAIZMTUSDM": "Global price of Corn",
+
+    # PALM SPECIALIST
+    "PPOILUSDM": "Global price of Palm Oil",
+    "PROILUSDM": "Global price of Rapeseed Oil (proxy for palm kernel)",
 
     # VOLATILITY SPECIALIST
     "VIXCLS": "VIX Index",
     "STLFSI4": "St. Louis Financial Stress",
     "NFCI": "Chicago Fed Financial Conditions",
-    "CLVMNACSCAB1GQEA19": "Euro Area Financial Stress",
     "BAMLH0A0HYM2": "High Yield OAS",
     "BAMLC0A0CM": "Corporate OAS",
 
     # TRUMP EFFECT / POLICY SPECIALIST
     "USEPUINDXD": "US Policy Uncertainty (Daily)",
     "USEPUINDXM": "US Policy Uncertainty (Monthly)",
+    "EPUTRADE": "Trade Policy Uncertainty",
+
+    # CHINA SPECIALIST
+    "CHNPRINTO01IXPYM": "China Industrial Production",
+    "CHNGDPNQDSMEI": "China Real GDP",
+    "XTEXVA01CNM667S": "China Exports Value",
+    "XTIMVA01CNM667S": "China Imports Value",
 
     # Macro indicators
     "ICSA": "Initial Jobless Claims (Weekly)",
@@ -115,14 +128,116 @@ FRED_SERIES = {
     "PAYEMS": "Nonfarm Payrolls",
     "INDPRO": "Industrial Production",
     "UMCSENT": "Consumer Sentiment",
+    "FRGSHPUSM649NCIS": "Cass Freight Index",
 }
 
-FALLBACK_TAGS: Dict[str, list[str]] = {
-    "DPROPANEMBTX": ["energy"],
-    "PMAIZMTUSDM": ["crush", "substitutes"],
-    "PROILUSDM": ["palm", "substitutes"],
-    "PPOILUSDM": ["palm"],
-}
+SERIES_TAGS: Dict[str, list[str]] = {}
+
+
+def _add_tags(series_ids: list[str], tags: list[str]) -> None:
+    for series_id in series_ids:
+        SERIES_TAGS[series_id] = tags
+
+
+_add_tags(
+    [
+        "DFF",
+        "DGS1MO",
+        "DGS3MO",
+        "DGS6MO",
+        "DGS1",
+        "DGS2",
+        "DGS5",
+        "DGS7",
+        "DGS10",
+        "DGS20",
+        "DGS30",
+        "T10Y2Y",
+        "T10Y3M",
+        "T10YIE",
+        "SOFR",
+        "DPRIME",
+        "MORTGAGE30US",
+        "WALCL",
+        "WRESBAL",
+        "RRPONTSYD",
+        "CPIAUCSL",
+        "CPILFESL",
+        "PCEPI",
+        "PCEPILFE",
+        "UNRATE",
+        "PAYEMS",
+        "ICSA",
+        "CCSA",
+    ],
+    ["fed"],
+)
+
+_add_tags(
+    [
+        "DEXBZUS",
+        "DEXUSEU",
+        "DEXUSUK",
+        "DEXJPUS",
+        "DEXCAUS",
+        "DEXMXUS",
+        "DEXKOUS",
+        "DEXINUS",
+        "DEXSFUS",
+        "DEXTHUS",
+        "DEXHKUS",
+        "DEXTAUS",
+        "DEXUSAL",
+        "DEXNOUS",
+        "DEXSZUS",
+        "DEXSIUS",
+        "DTWEXBGS",
+        "DTWEXAFEGS",
+        "DTWEXEMEGS",
+    ],
+    ["fx"],
+)
+SERIES_TAGS["DEXCHUS"] = ["fx", "china"]
+SERIES_TAGS["DEXMAUS"] = ["fx", "palm"]
+
+_add_tags(
+    [
+        "DCOILWTICO",
+        "DCOILBRENTEU",
+        "DHHNGSP",
+        "DJFUELUSGULF",
+        "DPROPANEMBTX",
+    ],
+    ["energy"],
+)
+SERIES_TAGS["DDFUELUSGULF"] = ["energy", "biofuel"]
+SERIES_TAGS["DGASUSGULF"] = ["energy", "biofuel"]
+
+SERIES_TAGS["GASREGW"] = ["biofuel", "energy"]
+SERIES_TAGS["GASDESW"] = ["biofuel", "energy"]
+
+_add_tags(["PSOILUSDM", "PSOYBUSDM"], ["crush"])
+SERIES_TAGS["PMAIZMTUSDM"] = ["crush", "substitutes"]
+SERIES_TAGS["PWHEAMTUSDM"] = ["substitutes"]
+SERIES_TAGS["PBARLUSDM"] = ["substitutes"]
+
+SERIES_TAGS["PPOILUSDM"] = ["palm"]
+SERIES_TAGS["PROILUSDM"] = ["palm", "substitutes"]
+
+_add_tags(["VIXCLS", "STLFSI4", "NFCI", "BAMLH0A0HYM2", "BAMLC0A0CM"], ["volatility"])
+
+SERIES_TAGS["USEPUINDXD"] = ["trump_effect", "volatility"]
+SERIES_TAGS["USEPUINDXM"] = ["trump_effect", "volatility"]
+SERIES_TAGS["EPUTRADE"] = ["tariff"]
+
+SERIES_TAGS["CHNPRINTO01IXPYM"] = ["china"]
+SERIES_TAGS["CHNGDPNQDSMEI"] = ["china"]
+SERIES_TAGS["XTEXVA01CNM667S"] = ["china", "tariff"]
+SERIES_TAGS["XTIMVA01CNM667S"] = ["china", "tariff"]
+
+SERIES_TAGS["INDPRO"] = ["general"]
+SERIES_TAGS["UMCSENT"] = ["general"]
+SERIES_TAGS["FRGSHPUSM649NCIS"] = ["general"]
 
 
 def get_postgres_connection():
@@ -206,17 +321,53 @@ def load_series_tags(conn) -> Dict[str, list[str]]:
         return tags_map
 
 
-def series_exists(conn, series_id: str) -> bool:
-    """Check if series already has any rows."""
+def get_series_min_date(conn, series_id: str):
+    """Return earliest event_date for a series (or None if missing)."""
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT 1 FROM raw.fred_observations_1d WHERE series_id=%s LIMIT 1",
+            "SELECT MIN(event_date) FROM raw.fred_observations_1d WHERE series_id=%s",
             (series_id,),
         )
-        return cur.fetchone() is not None
+        return cur.fetchone()[0]
 
 
-def fetch_fred_series(series_id: str, start_date: str = "2000-01-01") -> pd.DataFrame:
+def validate_series_ids(series_ids: list[str], sleep_seconds: float = 0.25):
+    """Validate series IDs against FRED metadata endpoint."""
+    invalid = {}
+    metadata = {}
+    if not FRED_API_KEY:
+        return series_ids, invalid
+
+    for series_id in series_ids:
+        params = {
+            "series_id": series_id,
+            "api_key": FRED_API_KEY,
+            "file_type": "json",
+        }
+        try:
+            response = requests.get(FRED_SERIES_API_BASE, params=params, timeout=20)
+            if response.status_code != 200:
+                invalid[series_id] = f"status {response.status_code}"
+            else:
+                data = response.json()
+                if not data.get("seriess"):
+                    invalid[series_id] = "empty series"
+                else:
+                    metadata[series_id] = data["seriess"][0]
+        except Exception as exc:
+            invalid[series_id] = f"error {exc}"
+
+        time.sleep(sleep_seconds)
+
+    valid = [series_id for series_id in series_ids if series_id not in invalid]
+    return valid, invalid, metadata
+
+
+def fetch_fred_series(
+    series_id: str,
+    start_date: str = "2000-01-01",
+    end_date: str | None = None,
+) -> pd.DataFrame:
     """Fetch FRED series from API."""
     if not FRED_API_KEY:
         print(f"  Warning: No FRED_API_KEY, skipping {series_id}")
@@ -227,7 +378,7 @@ def fetch_fred_series(series_id: str, start_date: str = "2000-01-01") -> pd.Data
         "api_key": FRED_API_KEY,
         "file_type": "json",
         "observation_start": start_date,
-        "observation_end": datetime.now().strftime("%Y-%m-%d"),
+        "observation_end": end_date or datetime.now().strftime("%Y-%m-%d"),
     }
 
     try:
@@ -319,7 +470,17 @@ def main():
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Backfill even if the series already exists in the DB",
+        help="Backfill missing history even if the series already exists in the DB",
+    )
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Skip FRED series metadata validation",
+    )
+    parser.add_argument(
+        "--fail-on-invalid",
+        action="store_true",
+        help="Exit if any FRED series IDs are invalid",
     )
     args = parser.parse_args()
 
@@ -339,6 +500,21 @@ def main():
         print("ERROR: FRED_API_KEY not set in environment")
         return 1
 
+    start_date = datetime.strptime(args.start_date, "%Y-%m-%d").date()
+
+    metadata = {}
+    if not args.skip_validation:
+        print("Validating FRED series IDs...")
+        series_ids, invalid, metadata = validate_series_ids(series_ids)
+        if invalid:
+            print("\nInvalid series IDs detected:")
+            for series_id, reason in invalid.items():
+                print(f"  - {series_id}: {reason}")
+            if args.fail_on_invalid:
+                print("ERROR: Invalid series IDs present; aborting.")
+                return 1
+        print(f"Valid series: {len(series_ids)}")
+
     conn = get_postgres_connection()
     tags_map = load_series_tags(conn)
     run_id = create_ingest_run(conn, "fred-backfill")
@@ -353,20 +529,41 @@ def main():
         print(f"[{i}/{len(series_ids)}] {series_id}: {description}")
         total_attempted += 1
 
-        if not args.force and series_exists(conn, series_id):
-            print("  Already in DB, skipping (use --force to override)")
-            total_skipped += 1
-            continue
+        min_date = get_series_min_date(conn, series_id)
+        fetch_start = start_date
+        meta = metadata.get(series_id)
+        if meta and meta.get("observation_start"):
+            try:
+                obs_start = datetime.strptime(meta["observation_start"], "%Y-%m-%d").date()
+                fetch_start = max(fetch_start, obs_start)
+            except ValueError:
+                pass
 
-        df = fetch_fred_series(series_id, args.start_date)
+        if min_date:
+            min_date_val = min_date.date() if hasattr(min_date, "date") else min_date
+            if min_date_val <= fetch_start:
+                print("  Already has history to start_date, skipping")
+                total_skipped += 1
+                continue
+            end_date = (min_date_val - timedelta(days=1)).isoformat()
+        else:
+            end_date = None
+
+        if min_date:
+            print(f"  Backfilling missing history through {end_date}")
+        elif not min_date:
+            print("  Series not found in DB, backfilling full history")
+
+        df = fetch_fred_series(series_id, fetch_start.isoformat(), end_date)
 
         if df.empty:
-            print(f"  No data available")
+            print("  No data available")
+            total_skipped += 1
             time.sleep(0.3)
             continue
 
         fetched = len(df)
-        tags = tags_map.get(series_id) or FALLBACK_TAGS.get(series_id)
+        tags = tags_map.get(series_id) or SERIES_TAGS.get(series_id)
         inserted = insert_fred_data(conn, series_id, df, tags, run_id)
 
         print(f"  Fetched: {fetched:,} | Inserted: {inserted:,}")
