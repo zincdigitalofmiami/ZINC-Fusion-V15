@@ -21,6 +21,10 @@ import {
   farmdocRinsDaily,
   aeiTradeDaily,
   conabNewsDaily,
+  whitehouseDaily,
+  usdaDaily,
+  eiaDaily,
+  nassWeekly,
 } from "@/inngest/functions";
 
 /**
@@ -83,6 +87,10 @@ export const { GET, POST, PUT } = serve({
     farmdocRinsDaily,
     aeiTradeDaily,
     conabNewsDaily,
+    whitehouseDaily,
+    usdaDaily,
+    eiaDaily,
+    nassWeekly,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
