@@ -1,19 +1,39 @@
 /**
- * White House Policy Ingestion (TARGETED URLs)
+ * White House Policy Ingestion (COMPREHENSIVE - ALL TARGETED URLs)
  * 
- * Hits SPECIFIC White House endpoints for trade/tariff policy:
- * 1. Trade Issues Page: https://www.whitehouse.gov/issues/trade/
- * 2. Executive Orders/Presidential Actions: https://www.whitehouse.gov/presidential-actions/
- * 3. Briefing Room RSS: https://www.whitehouse.gov/briefing-room/statements-releases/feed/
+ * Hits 20+ TARGETED White House endpoints organized by category:
  * 
- * Routes to: tariff, trump_effect specialists
+ * PRESIDENTIAL ACTIONS:
+ * - /presidential-actions/executive-orders/
+ * - /presidential-actions/presidential-memoranda/
+ * - /presidential-actions/proclamations/
+ * - /presidential-actions/nominations-appointments/
+ * 
+ * POLICY ISSUES:
+ * - /issues/trade/ (TRADE POLICY - CRITICAL)
+ * - /issues/border-immigration/ (ICE, immigration)
+ * - /issues/economy/ (economic policy)
+ * - /issues/economy/energy/ (energy policy)
+ * - /issues/national-security/
+ * - /issues/doge/ (DOGE/gov efficiency)
+ * - /issues/safe-communities/
+ * 
+ * NEWS/CONTENT:
+ * - /briefings-statements/
+ * - /fact-sheets/
+ * - /remarks/
+ * - /news/
+ * 
+ * RSS FEEDS:
+ * - /briefing-room/statements-releases/feed/
+ * 
+ * Routes to: tariff, trump_effect, energy, china specialists
  * Table: raw.news_articles_event
  */
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
 
-// Database connection via fetch to API
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 interface WhiteHouseItem {
@@ -21,17 +41,83 @@ interface WhiteHouseItem {
   link: string;
   pubDate?: string;
   description?: string;
-  type: "trade" | "executive_order" | "press_release";
+  sourceCategory: string;
 }
 
-interface ParsedRSSItem {
-  title?: string;
-  link?: string;
-  pubDate?: string;
-  description?: string;
-}
+// =============================================================================
+// ALL TARGETED WHITE HOUSE URLS
+// =============================================================================
 
-async function fetchAndParseRSS(url: string): Promise<ParsedRSSItem[]> {
+const WHITEHOUSE_SOURCES = {
+  // Presidential Actions - CRITICAL for trump_effect
+  presidentialActions: {
+    executiveOrders: "https://www.whitehouse.gov/presidential-actions/executive-orders/",
+    memoranda: "https://www.whitehouse.gov/presidential-actions/presidential-memoranda/",
+    proclamations: "https://www.whitehouse.gov/presidential-actions/proclamations/",
+    nominations: "https://www.whitehouse.gov/presidential-actions/nominations-appointments/",
+  },
+  
+  // Policy Issues - CRITICAL for specialists
+  issues: {
+    trade: "https://www.whitehouse.gov/issues/trade/", // tariff specialist
+    borderImmigration: "https://www.whitehouse.gov/issues/border-immigration/", // trump_effect / ICE
+    economy: "https://www.whitehouse.gov/issues/economy/", // fed specialist
+    energy: "https://www.whitehouse.gov/issues/economy/energy/", // energy specialist
+    nationalSecurity: "https://www.whitehouse.gov/issues/national-security/", // trump_effect
+    doge: "https://www.whitehouse.gov/issues/doge/", // trump_effect
+    safeCommunities: "https://www.whitehouse.gov/issues/safe-communities/",
+    techInnovation: "https://www.whitehouse.gov/issues/tech-innovation/",
+    maha: "https://www.whitehouse.gov/issues/maha/", // health policy
+    socialCauses: "https://www.whitehouse.gov/issues/social-causes/",
+  },
+  
+  // News & Statements
+  news: {
+    briefings: "https://www.whitehouse.gov/briefings-statements/",
+    factSheets: "https://www.whitehouse.gov/fact-sheets/",
+    remarks: "https://www.whitehouse.gov/remarks/",
+    news: "https://www.whitehouse.gov/news/",
+    articles: "https://www.whitehouse.gov/articles/",
+  },
+  
+  // RSS Feeds
+  rss: {
+    statementsReleases: "https://www.whitehouse.gov/briefing-room/statements-releases/feed/",
+  },
+};
+
+// Specialist routing rules
+const SOURCE_TO_SPECIALISTS: Record<string, string[]> = {
+  // Presidential Actions
+  executiveOrders: ["trump_effect", "tariff"],
+  memoranda: ["trump_effect"],
+  proclamations: ["trump_effect"],
+  nominations: ["trump_effect"],
+  
+  // Issues
+  trade: ["tariff", "china"],
+  borderImmigration: ["trump_effect"],
+  economy: ["fed", "trump_effect"],
+  energy: ["energy", "biofuel"],
+  nationalSecurity: ["trump_effect", "china"],
+  doge: ["trump_effect"],
+  safeCommunities: ["trump_effect"],
+  techInnovation: ["trump_effect"],
+  maha: ["trump_effect"],
+  socialCauses: ["trump_effect"],
+  
+  // News
+  briefings: ["trump_effect", "tariff"],
+  factSheets: ["trump_effect", "tariff"],
+  remarks: ["trump_effect"],
+  news: ["trump_effect"],
+  articles: ["trump_effect"],
+  
+  // RSS
+  statementsReleases: ["trump_effect", "tariff"],
+};
+
+async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
@@ -40,104 +126,106 @@ async function fetchAndParseRSS(url: string): Promise<ParsedRSSItem[]> {
   });
 
   if (!response.ok) {
-    throw new Error(`RSS fetch failed: ${response.status}`);
+    console.log(`RSS fetch failed: ${response.status} for ${url}`);
+    return [];
   }
 
   const text = await response.text();
-  const items: ParsedRSSItem[] = [];
-
-  // Simple XML parsing for RSS items
+  const items: WhiteHouseItem[] = [];
   const itemMatches = text.match(/<item>[\s\S]*?<\/item>/g) || [];
   
-  for (const itemXml of itemMatches) {
+  for (const itemXml of itemMatches.slice(0, 25)) {
     const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
     const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
     const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/);
     const descMatch = itemXml.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>|<description>(.*?)<\/description>/s);
 
-    items.push({
-      title: titleMatch?.[1] || titleMatch?.[2] || "",
-      link: linkMatch?.[1] || "",
-      pubDate: pubDateMatch?.[1] || "",
-      description: descMatch?.[1] || descMatch?.[2] || "",
-    });
+    if (titleMatch && linkMatch) {
+      items.push({
+        title: (titleMatch[1] || titleMatch[2] || "").trim(),
+        link: linkMatch[1] || "",
+        pubDate: pubDateMatch?.[1] || "",
+        description: descMatch?.[1] || descMatch?.[2] || "",
+        sourceCategory: "statementsReleases",
+      });
+    }
   }
 
   return items;
 }
 
-async function scrapePresidentialActions(): Promise<WhiteHouseItem[]> {
-  const url = "https://www.whitehouse.gov/presidential-actions/";
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
-      "Accept": "text/html",
-    },
-  });
+async function scrapePage(url: string, sourceKey: string): Promise<WhiteHouseItem[]> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+    });
 
-  if (!response.ok) {
-    console.log(`Presidential actions fetch returned ${response.status}`);
+    if (!response.ok) {
+      console.log(`Page fetch returned ${response.status} for ${url}`);
+      return [];
+    }
+
+    const html = await response.text();
+    const items: WhiteHouseItem[] = [];
+
+    // Pattern 1: Article links with specific paths
+    const patterns = [
+      // Presidential actions with dates
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/presidential-actions\/\d{4}\/\d{2}\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Briefings/statements
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/briefing-room\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Fact sheets
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/fact-sheet[^"]*)"[^>]*>([^<]+)<\/a>/gi,
+      // Remarks
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/remarks\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Articles
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/articles\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Issues subpages
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/issues\/[^"]+\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // News
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/news\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Wire
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/wire\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      // Briefings-statements with dates
+      /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/briefings-statements\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+    ];
+
+    const seen = new Set<string>();
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        const link = match[1];
+        const title = match[2].trim();
+        
+        // Skip if already seen, too short, or navigation text
+        if (
+          seen.has(link) ||
+          title.length < 10 ||
+          title.includes("Read More") ||
+          title.includes("View All") ||
+          title === "Read"
+        ) {
+          continue;
+        }
+        
+        seen.add(link);
+        items.push({
+          title,
+          link,
+          sourceCategory: sourceKey,
+        });
+      }
+    }
+
+    return items.slice(0, 30); // Max 30 per page
+  } catch (error) {
+    console.error(`Error scraping ${url}:`, error);
     return [];
   }
-
-  const html = await response.text();
-  const items: WhiteHouseItem[] = [];
-
-  // Find article links - look for executive order and proclamation patterns
-  const articlePattern = /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/presidential-actions\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
-  let match;
-  
-  while ((match = articlePattern.exec(html)) !== null) {
-    const link = match[1];
-    const title = match[2].trim();
-    
-    if (title && title.length > 10 && !title.includes("Read More")) {
-      items.push({
-        title,
-        link,
-        type: "executive_order",
-      });
-    }
-  }
-
-  return items.slice(0, 20); // Latest 20
-}
-
-async function scrapeTradePage(): Promise<WhiteHouseItem[]> {
-  const url = "https://www.whitehouse.gov/issues/trade/";
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
-      "Accept": "text/html",
-    },
-  });
-
-  if (!response.ok) {
-    console.log(`Trade page fetch returned ${response.status}`);
-    return [];
-  }
-
-  const html = await response.text();
-  const items: WhiteHouseItem[] = [];
-
-  // Find article/news links on trade page
-  const articlePattern = /<a[^>]*href="(https:\/\/www\.whitehouse\.gov\/[^"]*(?:briefing-room|fact-sheet|statement)[^"]*)"[^>]*>([^<]+)<\/a>/gi;
-  let match;
-
-  while ((match = articlePattern.exec(html)) !== null) {
-    const link = match[1];
-    const title = match[2].trim();
-    
-    if (title && title.length > 10) {
-      items.push({
-        title,
-        link,
-        type: "trade",
-      });
-    }
-  }
-
-  return items.slice(0, 20);
 }
 
 function generateRowHash(item: WhiteHouseItem): string {
@@ -145,117 +233,108 @@ function generateRowHash(item: WhiteHouseItem): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
-function classifySpecialist(item: WhiteHouseItem): string[] {
+function classifySpecialists(item: WhiteHouseItem): string[] {
+  // Start with source-based classification
+  const baseSpecialists = SOURCE_TO_SPECIALISTS[item.sourceCategory] || ["trump_effect"];
+  const specialists = new Set<string>(baseSpecialists);
+  
   const text = `${item.title} ${item.description || ""}`.toLowerCase();
-  const specialists: string[] = [];
-
-  // Tariff specialist keywords
-  if (
-    text.includes("tariff") ||
-    text.includes("trade") ||
-    text.includes("import") ||
-    text.includes("export") ||
-    text.includes("customs") ||
-    text.includes("china") ||
-    text.includes("agriculture") ||
-    text.includes("soybean") ||
-    item.type === "trade"
-  ) {
-    specialists.push("tariff");
+  
+  // Keyword-based additions
+  if (text.includes("tariff") || text.includes("trade") || text.includes("import") || text.includes("export")) {
+    specialists.add("tariff");
   }
-
-  // Trump effect specialist - all executive orders + policy announcements
-  if (
-    item.type === "executive_order" ||
-    text.includes("executive order") ||
-    text.includes("proclamation") ||
-    text.includes("memorandum") ||
-    text.includes("emergency") ||
-    text.includes("national security")
-  ) {
-    specialists.push("trump_effect");
+  if (text.includes("china") || text.includes("chinese") || text.includes("beijing")) {
+    specialists.add("china");
   }
-
-  // Energy specialist
-  if (
-    text.includes("energy") ||
-    text.includes("oil") ||
-    text.includes("petroleum") ||
-    text.includes("lng") ||
-    text.includes("fuel")
-  ) {
-    specialists.push("energy");
+  if (text.includes("oil") || text.includes("energy") || text.includes("petroleum") || text.includes("lng")) {
+    specialists.add("energy");
   }
-
-  // Biofuel specialist
-  if (
-    text.includes("biofuel") ||
-    text.includes("biodiesel") ||
-    text.includes("renewable fuel") ||
-    text.includes("ethanol") ||
-    text.includes("rfs")
-  ) {
-    specialists.push("biofuel");
+  if (text.includes("biofuel") || text.includes("biodiesel") || text.includes("renewable fuel") || text.includes("ethanol")) {
+    specialists.add("biofuel");
   }
-
-  // Default to trump_effect if no other match
-  if (specialists.length === 0) {
-    specialists.push("trump_effect");
+  if (text.includes("soybean") || text.includes("agriculture") || text.includes("farm") || text.includes("crop")) {
+    specialists.add("crush");
   }
-
-  return specialists;
+  if (text.includes("brazil") || text.includes("argentina")) {
+    specialists.add("crush");
+    specialists.add("fx");
+  }
+  if (text.includes("currency") || text.includes("dollar") || text.includes("exchange rate")) {
+    specialists.add("fx");
+  }
+  if (text.includes("fed") || text.includes("interest rate") || text.includes("inflation") || text.includes("monetary")) {
+    specialists.add("fed");
+  }
+  if (text.includes("ice") || text.includes("immigration") || text.includes("border") || text.includes("deportation")) {
+    specialists.add("trump_effect");
+  }
+  if (text.includes("lawsuit") || text.includes("court") || text.includes("legal") || text.includes("judge")) {
+    specialists.add("trump_effect");
+  }
+  
+  return Array.from(specialists);
 }
 
 export const whitehouseDaily = inngest.createFunction(
   {
-    id: "whitehouse-policy-daily",
-    name: "White House Policy Ingestion (Trade + EOs)",
+    id: "whitehouse-comprehensive-daily",
+    name: "White House Comprehensive (20+ URLs)",
   },
-  { cron: "0 8,14,20 * * *" }, // 8am, 2pm, 8pm daily
+  { cron: "0 7,11,15,19 * * *" }, // 4x daily
   async ({ step }) => {
-    // Step 1: Fetch RSS feed
-    const rssItems = await step.run("fetch-briefing-rss", async () => {
-      try {
-        const items = await fetchAndParseRSS(
-          "https://www.whitehouse.gov/briefing-room/statements-releases/feed/"
-        );
-        return items.map((item) => ({
-          title: item.title || "",
-          link: item.link || "",
-          pubDate: item.pubDate,
-          description: item.description,
-          type: "press_release" as const,
-        }));
-      } catch (error) {
-        console.error("RSS fetch error:", error);
-        return [];
-      }
+    const allItems: WhiteHouseItem[] = [];
+    const sourceCounts: Record<string, number> = {};
+
+    // Step 1: Fetch RSS
+    const rssItems = await step.run("fetch-rss-feed", async () => {
+      const items = await fetchAndParseRSS(WHITEHOUSE_SOURCES.rss.statementsReleases);
+      return items;
     });
+    allItems.push(...rssItems);
+    sourceCounts["rss_statementsReleases"] = rssItems.length;
 
-    // Step 2: Scrape Presidential Actions (Executive Orders)
-    const eoItems = await step.run("scrape-presidential-actions", async () => {
-      try {
-        return await scrapePresidentialActions();
-      } catch (error) {
-        console.error("Presidential actions scrape error:", error);
-        return [];
+    // Step 2: Scrape Presidential Actions (most important)
+    const presActionsItems = await step.run("scrape-presidential-actions", async () => {
+      const items: WhiteHouseItem[] = [];
+      for (const [key, url] of Object.entries(WHITEHOUSE_SOURCES.presidentialActions)) {
+        const pageItems = await scrapePage(url, key);
+        items.push(...pageItems);
+        // Small delay between requests
+        await new Promise((r) => setTimeout(r, 500));
       }
+      return items;
     });
+    allItems.push(...presActionsItems);
+    sourceCounts["presidentialActions"] = presActionsItems.length;
 
-    // Step 3: Scrape Trade Issues page
-    const tradeItems = await step.run("scrape-trade-page", async () => {
-      try {
-        return await scrapeTradePage();
-      } catch (error) {
-        console.error("Trade page scrape error:", error);
-        return [];
+    // Step 3: Scrape Policy Issues (trade, immigration, energy, etc.)
+    const issuesItems = await step.run("scrape-policy-issues", async () => {
+      const items: WhiteHouseItem[] = [];
+      for (const [key, url] of Object.entries(WHITEHOUSE_SOURCES.issues)) {
+        const pageItems = await scrapePage(url, key);
+        items.push(...pageItems);
+        await new Promise((r) => setTimeout(r, 500));
       }
+      return items;
     });
+    allItems.push(...issuesItems);
+    sourceCounts["policyIssues"] = issuesItems.length;
 
-    // Combine all items
-    const allItems: WhiteHouseItem[] = [...rssItems, ...eoItems, ...tradeItems];
+    // Step 4: Scrape News sections
+    const newsItems = await step.run("scrape-news-sections", async () => {
+      const items: WhiteHouseItem[] = [];
+      for (const [key, url] of Object.entries(WHITEHOUSE_SOURCES.news)) {
+        const pageItems = await scrapePage(url, key);
+        items.push(...pageItems);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      return items;
+    });
+    allItems.push(...newsItems);
+    sourceCounts["news"] = newsItems.length;
 
-    // Deduplicate by link
+    // Deduplicate
     const seen = new Set<string>();
     const uniqueItems = allItems.filter((item) => {
       if (seen.has(item.link)) return false;
@@ -263,13 +342,12 @@ export const whitehouseDaily = inngest.createFunction(
       return true;
     });
 
-    // Step 4: Insert into database
+    // Step 5: Insert into database
     const result = await step.run("insert-articles", async () => {
       if (!DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
       }
 
-      // Use pg for direct connection
       const { Pool } = await import("pg");
       const pool = new Pool({ connectionString: DATABASE_URL });
 
@@ -279,7 +357,7 @@ export const whitehouseDaily = inngest.createFunction(
       try {
         for (const item of uniqueItems) {
           const rowHash = generateRowHash(item);
-          const specialists = classifySpecialist(item);
+          const specialists = classifySpecialists(item);
           const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
           // Check if exists
@@ -299,7 +377,7 @@ export const whitehouseDaily = inngest.createFunction(
              (source_id, title, url, published_at, content_snippet, specialist_tags, row_hash, ingested_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
             [
-              `whitehouse_${item.type}`,
+              `whitehouse_${item.sourceCategory}`,
               item.title,
               item.link,
               publishedAt,
@@ -314,16 +392,14 @@ export const whitehouseDaily = inngest.createFunction(
         await pool.end();
       }
 
-      return { inserted, skipped, total: uniqueItems.length };
+      return { inserted, skipped };
     });
 
     return {
       success: true,
-      sources: {
-        rss: rssItems.length,
-        executiveOrders: eoItems.length,
-        tradePage: tradeItems.length,
-      },
+      totalFetched: allItems.length,
+      uniqueItems: uniqueItems.length,
+      sourceCounts,
       ...result,
     };
   }
