@@ -1,6 +1,17 @@
 export { zlPrice } from "./zl-price";
 export { yahooEod } from "./yahoo-eod";
-export { fredDaily } from "./fred-daily";
+export {
+  fredDailyFed,
+  fredDailyFx,
+  fredDailyEnergy,
+  fredDailyBiofuel,
+  fredDailyCrush,
+  fredDailyPalm,
+  fredDailyVolatility,
+  fredDailyTrumpEffect,
+  fredDailyChina,
+  fredDailyGeneral,
+} from "./fred-daily";
 export { cftcWeekly } from "./cftc-weekly";
 export { federalRegisterDaily } from "./federal-register";
 export { nyfedDaily } from "./nyfed-daily";

@@ -33,9 +33,15 @@ interface FredSeriesConfig {
   tags: string[];
 }
 
-interface FredSegment {
-  name: string;
+interface FredSegmentConfig {
+  segment: string;
+  id: string;
+  jobName: string;
+  displayName: string;
+  cron: string;
   series: FredSeriesConfig[];
+  rateLimitMs?: number;
+  retries?: number;
 }
 
 type FredIngestResult = { series: string; status: string; value?: number; tags?: string[] };
@@ -162,132 +168,100 @@ const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
   { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["general"] },
 ];
 
-const FRED_CONFIG_SEGMENTS: FredSegment[] = [
-  { name: "fed", series: FRED_FED_SERIES },
-  { name: "fx", series: FRED_FX_SERIES },
-  { name: "energy", series: FRED_ENERGY_SERIES },
-  { name: "biofuel", series: FRED_BIOFUEL_SERIES },
-  { name: "crush", series: FRED_CRUSH_SERIES },
-  { name: "palm", series: FRED_PALM_SERIES },
-  { name: "volatility", series: FRED_VOLATILITY_SERIES },
-  { name: "trump_effect", series: FRED_TRUMP_EFFECT_SERIES },
-  { name: "china", series: FRED_CHINA_SERIES },
-  { name: "general", series: FRED_GENERAL_SERIES },
-];
+const DEFAULT_FRED_RATE_LIMIT_MS = 500;
 
-const FRED_SEGMENT_ORDER = FRED_CONFIG_SEGMENTS.map((segment) => segment.name);
-
-const TAG_TO_SEGMENT: Record<string, string> = {
-  fed: "fed",
-  fx: "fx",
-  energy: "energy",
-  biofuel: "biofuel",
-  crush: "crush",
-  substitutes: "crush",
-  palm: "palm",
-  volatility: "volatility",
-  trump_effect: "trump_effect",
-  tariff: "trump_effect",
-  china: "china",
-  general: "general",
+const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
+  fed: {
+    segment: "fed",
+    id: "fred-daily-fed",
+    jobName: "fred-daily-fed",
+    displayName: "FRED Daily - Fed",
+    cron: "0 11 * * 1-5",
+    series: FRED_FED_SERIES,
+    rateLimitMs: 450,
+  },
+  fx: {
+    segment: "fx",
+    id: "fred-daily-fx",
+    jobName: "fred-daily-fx",
+    displayName: "FRED Daily - FX",
+    cron: "5 11 * * 1-5",
+    series: FRED_FX_SERIES,
+    rateLimitMs: 450,
+  },
+  energy: {
+    segment: "energy",
+    id: "fred-daily-energy",
+    jobName: "fred-daily-energy",
+    displayName: "FRED Daily - Energy",
+    cron: "10 11 * * 1-5",
+    series: FRED_ENERGY_SERIES,
+    rateLimitMs: 450,
+  },
+  biofuel: {
+    segment: "biofuel",
+    id: "fred-daily-biofuel",
+    jobName: "fred-daily-biofuel",
+    displayName: "FRED Daily - Biofuel",
+    cron: "15 11 * * 1-5",
+    series: FRED_BIOFUEL_SERIES,
+    rateLimitMs: 450,
+  },
+  crush: {
+    segment: "crush",
+    id: "fred-daily-crush",
+    jobName: "fred-daily-crush",
+    displayName: "FRED Daily - Crush",
+    cron: "20 11 * * 1-5",
+    series: FRED_CRUSH_SERIES,
+    rateLimitMs: 450,
+  },
+  palm: {
+    segment: "palm",
+    id: "fred-daily-palm",
+    jobName: "fred-daily-palm",
+    displayName: "FRED Daily - Palm",
+    cron: "25 11 * * 1-5",
+    series: FRED_PALM_SERIES,
+    rateLimitMs: 450,
+  },
+  volatility: {
+    segment: "volatility",
+    id: "fred-daily-volatility",
+    jobName: "fred-daily-volatility",
+    displayName: "FRED Daily - Volatility",
+    cron: "30 11 * * 1-5",
+    series: FRED_VOLATILITY_SERIES,
+    rateLimitMs: 450,
+  },
+  trump_effect: {
+    segment: "trump_effect",
+    id: "fred-daily-trump-effect",
+    jobName: "fred-daily-trump-effect",
+    displayName: "FRED Daily - Trump Effect",
+    cron: "35 11 * * 1-5",
+    series: FRED_TRUMP_EFFECT_SERIES,
+    rateLimitMs: 450,
+  },
+  china: {
+    segment: "china",
+    id: "fred-daily-china",
+    jobName: "fred-daily-china",
+    displayName: "FRED Daily - China",
+    cron: "40 11 * * 1-5",
+    series: FRED_CHINA_SERIES,
+    rateLimitMs: 450,
+  },
+  general: {
+    segment: "general",
+    id: "fred-daily-general",
+    jobName: "fred-daily-general",
+    displayName: "FRED Daily - General",
+    cron: "45 11 * * 1-5",
+    series: FRED_GENERAL_SERIES,
+    rateLimitMs: 450,
+  },
 };
-
-const FRED_RATE_LIMIT_MS = 500;
-
-const CONFIG_SERIES_INDEX: Record<string, { series: FredSeriesConfig; segment: string }> = {};
-for (const segment of FRED_CONFIG_SEGMENTS) {
-  for (const series of segment.series) {
-    CONFIG_SERIES_INDEX[series.id] = { series, segment: segment.name };
-  }
-}
-
-function normalizeTags(tags: unknown): string[] | null {
-  if (!tags) return null;
-  if (Array.isArray(tags)) {
-    return tags.map((tag) => String(tag).trim()).filter(Boolean);
-  }
-  if (typeof tags === "string") {
-    return tags
-      .replace(/[{}]/g, "")
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-  }
-  return null;
-}
-
-async function fetchDbSeriesIds(client: PoolClient): Promise<string[]> {
-  const result = await client.query(
-    `SELECT DISTINCT series_id
-     FROM raw.fred_observations_1d
-     ORDER BY series_id`
-  );
-  return result.rows.map((row) => row.series_id);
-}
-
-async function fetchDbSeriesTags(client: PoolClient): Promise<Record<string, string[]>> {
-  const result = await client.query(
-    `SELECT DISTINCT ON (series_id) series_id, specialist_tags
-     FROM raw.fred_observations_1d
-     WHERE specialist_tags IS NOT NULL
-     ORDER BY series_id, event_date DESC, knowledge_time DESC`
-  );
-  const tagsMap: Record<string, string[]> = {};
-  for (const row of result.rows) {
-    const normalized = normalizeTags(row.specialist_tags);
-    if (normalized && normalized.length > 0) {
-      tagsMap[row.series_id] = normalized;
-    }
-  }
-  return tagsMap;
-}
-
-function selectSegment(tags: string[]): string {
-  for (const tag of tags) {
-    const mapped = TAG_TO_SEGMENT[tag];
-    if (mapped) return mapped;
-  }
-  return "general";
-}
-
-function buildDynamicSegments(
-  dbSeriesIds: string[],
-  dbTags: Record<string, string[]>
-): { segments: FredSegment[]; missingTags: string[]; totalSeries: number } {
-  const allSeriesIds = new Set<string>([...Object.keys(CONFIG_SERIES_INDEX), ...dbSeriesIds]);
-  const segmentMap: Record<string, FredSeriesConfig[]> = {};
-  for (const name of FRED_SEGMENT_ORDER) {
-    segmentMap[name] = [];
-  }
-  const missingTags: string[] = [];
-
-  for (const seriesId of Array.from(allSeriesIds).sort()) {
-    const config = CONFIG_SERIES_INDEX[seriesId];
-    if (config) {
-      segmentMap[config.segment].push(config.series);
-      continue;
-    }
-
-    const tags = dbTags[seriesId];
-    if (!tags || tags.length === 0) {
-      missingTags.push(seriesId);
-      continue;
-    }
-
-    const segmentName = selectSegment(tags);
-    segmentMap[segmentName].push({ id: seriesId, name: seriesId, tags });
-  }
-
-  const segments = FRED_SEGMENT_ORDER
-    .map((name) => ({ name, series: segmentMap[name] }))
-    .filter((segment) => segment.series.length > 0);
-
-  return {
-    segments,
-    missingTags,
-    totalSeries: allSeriesIds.size,
-  };
-}
 
 // =============================================================================
 // BRONZE HELPER FUNCTIONS
@@ -442,7 +416,8 @@ async function ingestFredSegment(
   client: PoolClient,
   runId: string,
   apiKey: string,
-  seriesList: FredSeriesConfig[]
+  seriesList: FredSeriesConfig[],
+  rateLimitMs: number
 ): Promise<FredSegmentSummary> {
   const results: FredIngestResult[] = [];
   let attempted = 0;
@@ -546,7 +521,7 @@ async function ingestFredSegment(
       quarantined++;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, FRED_RATE_LIMIT_MS));
+    await new Promise((resolve) => setTimeout(resolve, rateLimitMs));
   }
 
   return {
@@ -559,144 +534,131 @@ async function ingestFredSegment(
 }
 
 // =============================================================================
-// MAIN INNGEST FUNCTION
+// MAIN INNGEST FUNCTIONS (SEGMENTED)
 // =============================================================================
 
-/**
- * FRED Daily Bronze Ingestion
- * 
- * Runs daily at 10:00 AM ET (3PM UTC) after FRED updates.
- * Ingests all configured FRED series plus any series already present in raw.fred_observations_1d.
- */
-export const fredDaily = inngest.createFunction(
-  { 
-    id: "fred-daily", 
-    name: "FRED Daily Bronze Ingestion",
-    retries: 3,
-  },
-  { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
-  async ({ step, logger }) => {
-    const apiKey = process.env.FRED_API_KEY;
-    if (!apiKey) {
-      return { status: "error", message: "FRED_API_KEY not configured" };
-    }
-
-    // Get database client
-    const client = await pool.connect();
-    let runId: string | null = null;
-
-    // Counters
-    let rowsAttempted = 0;
-    let rowsInserted = 0;
-    let rowsSkipped = 0;
-    let rowsQuarantined = 0;
-    let results: FredIngestResult[] = [];
-
-    try {
-      // Step 1: Create ingest run record
-      runId = await step.run("create-ingest-run", async () => {
-        return await createIngestRun(client, "fred-daily");
-      });
-
-      logger.info(`Started ingest run: ${runId}`);
-
-      const seriesIndex = await step.run("load-series-index", async () => {
-        const dbSeriesIds = await fetchDbSeriesIds(client);
-        const dbTags = await fetchDbSeriesTags(client);
-        return buildDynamicSegments(dbSeriesIds, dbTags);
-      });
-
-      logger.info(
-        `Loaded ${seriesIndex.totalSeries} series across ${seriesIndex.segments.length} segments`
-      );
-      if (seriesIndex.missingTags.length > 0) {
-        logger.warn(
-          `Series missing tags (skipped): ${seriesIndex.missingTags.join(", ")}`
-        );
+function createFredSegmentJob(config: FredSegmentConfig) {
+  return inngest.createFunction(
+    {
+      id: config.id,
+      name: config.displayName,
+      retries: config.retries ?? 3,
+    },
+    { cron: config.cron },
+    async ({ step, logger }) => {
+      const apiKey = process.env.FRED_API_KEY;
+      if (!apiKey) {
+        return { status: "error", message: "FRED_API_KEY not configured" };
       }
 
-      // Step 2: Fetch and process FRED series in segmented batches
-      for (const segment of seriesIndex.segments) {
-        const segmentSummary = await step.run(`fetch-${segment.name}`, async () => {
-          return await ingestFredSegment(client, runId!, apiKey, segment.series);
+      const client = await pool.connect();
+      let runId: string | null = null;
+
+      let rowsAttempted = 0;
+      let rowsInserted = 0;
+      let rowsSkipped = 0;
+      let rowsQuarantined = 0;
+      let results: FredIngestResult[] = [];
+
+      try {
+        runId = await step.run("create-ingest-run", async () => {
+          return await createIngestRun(client, config.jobName);
         });
 
-        rowsAttempted += segmentSummary.attempted;
-        rowsInserted += segmentSummary.inserted;
-        rowsSkipped += segmentSummary.skipped;
-        rowsQuarantined += segmentSummary.quarantined;
-        results.push(...segmentSummary.results);
+        logger.info(`Started ingest run: ${runId} (${config.segment})`);
 
-        logger.info(
-          `Segment ${segment.name}: attempted=${segmentSummary.attempted}, inserted=${segmentSummary.inserted}, skipped=${segmentSummary.skipped}, quarantined=${segmentSummary.quarantined}`
-        );
-      }
+        const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
+          const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
+          return await ingestFredSegment(
+            client,
+            runId!,
+            apiKey,
+            config.series,
+            rateLimitMs
+          );
+        });
 
-      // Step 3: Update ingest run with final counts
-      await step.run("complete-ingest-run", async () => {
-        await updateIngestRun(
-          client,
-          runId!,
-          "success",
-          rowsAttempted,
-          rowsInserted,
-          rowsSkipped,
-          rowsQuarantined
-        );
-      });
+        rowsAttempted = segmentSummary.attempted;
+        rowsInserted = segmentSummary.inserted;
+        rowsSkipped = segmentSummary.skipped;
+        rowsQuarantined = segmentSummary.quarantined;
+        results = segmentSummary.results;
 
-      logger.info(`Completed ingest run: ${runId}`);
-      logger.info(`  Attempted: ${rowsAttempted}`);
-      logger.info(`  Inserted: ${rowsInserted}`);
-      logger.info(`  Skipped: ${rowsSkipped}`);
-      logger.info(`  Quarantined: ${rowsQuarantined}`);
+        await step.run("complete-ingest-run", async () => {
+          await updateIngestRun(
+            client,
+            runId!,
+            "success",
+            rowsAttempted,
+            rowsInserted,
+            rowsSkipped,
+            rowsQuarantined
+          );
+        });
 
-      return {
-        status: "success",
-        runId,
-        date: new Date().toISOString().split("T")[0],
-        summary: {
-          attempted: rowsAttempted,
-          inserted: rowsInserted,
-          skipped: rowsSkipped,
-          quarantined: rowsQuarantined,
-        },
-        results,
-      };
+        logger.info(`Completed ingest run: ${runId}`);
+        logger.info(`  Attempted: ${rowsAttempted}`);
+        logger.info(`  Inserted: ${rowsInserted}`);
+        logger.info(`  Skipped: ${rowsSkipped}`);
+        logger.info(`  Quarantined: ${rowsQuarantined}`);
 
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      // Update ingest run as failed
-      if (runId) {
-        await updateIngestRun(
-          client,
+        return {
+          status: "success",
           runId,
-          "failed",
-          rowsAttempted,
-          rowsInserted,
-          rowsSkipped,
-          rowsQuarantined,
-          errorMsg
-        );
+          segment: config.segment,
+          date: new Date().toISOString().split("T")[0],
+          summary: {
+            attempted: rowsAttempted,
+            inserted: rowsInserted,
+            skipped: rowsSkipped,
+            quarantined: rowsQuarantined,
+          },
+          results,
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        if (runId) {
+          await updateIngestRun(
+            client,
+            runId,
+            "failed",
+            rowsAttempted,
+            rowsInserted,
+            rowsSkipped,
+            rowsQuarantined,
+            errorMsg
+          );
+        }
+
+        logger.error(`Ingest run failed: ${errorMsg}`);
+
+        return {
+          status: "failed",
+          runId,
+          segment: config.segment,
+          error: errorMsg,
+          summary: {
+            attempted: rowsAttempted,
+            inserted: rowsInserted,
+            skipped: rowsSkipped,
+            quarantined: rowsQuarantined,
+          },
+        };
+      } finally {
+        client.release();
       }
-
-      logger.error(`Ingest run failed: ${errorMsg}`);
-
-      return {
-        status: "failed",
-        runId,
-        error: errorMsg,
-        summary: {
-          attempted: rowsAttempted,
-          inserted: rowsInserted,
-          skipped: rowsSkipped,
-          quarantined: rowsQuarantined,
-        },
-      };
-
-    } finally {
-      client.release();
     }
-  }
-);
+  );
+}
+
+export const fredDailyFed = createFredSegmentJob(FRED_SEGMENT_CONFIGS.fed);
+export const fredDailyFx = createFredSegmentJob(FRED_SEGMENT_CONFIGS.fx);
+export const fredDailyEnergy = createFredSegmentJob(FRED_SEGMENT_CONFIGS.energy);
+export const fredDailyBiofuel = createFredSegmentJob(FRED_SEGMENT_CONFIGS.biofuel);
+export const fredDailyCrush = createFredSegmentJob(FRED_SEGMENT_CONFIGS.crush);
+export const fredDailyPalm = createFredSegmentJob(FRED_SEGMENT_CONFIGS.palm);
+export const fredDailyVolatility = createFredSegmentJob(FRED_SEGMENT_CONFIGS.volatility);
+export const fredDailyTrumpEffect = createFredSegmentJob(FRED_SEGMENT_CONFIGS.trump_effect);
+export const fredDailyChina = createFredSegmentJob(FRED_SEGMENT_CONFIGS.china);
+export const fredDailyGeneral = createFredSegmentJob(FRED_SEGMENT_CONFIGS.general);
