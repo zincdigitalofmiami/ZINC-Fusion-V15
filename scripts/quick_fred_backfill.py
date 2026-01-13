@@ -32,6 +32,9 @@ FRED_API_KEY = os.getenv("FRED_API_KEY")
 FRED_SERIES = {
     # FED SPECIALIST - Interest Rates, Yields, Monetary Policy
     "DFF": "Fed Funds Effective Rate (Daily)",
+    "FEDFUNDS": "Federal Funds Effective Rate",
+    "DFEDTARL": "Fed Funds Target Range - Lower Limit",
+    "DFEDTARU": "Fed Funds Target Range - Upper Limit",
     "DGS1MO": "1-Month Treasury",
     "DGS3MO": "3-Month Treasury",
     "DGS6MO": "6-Month Treasury",
@@ -51,6 +54,11 @@ FRED_SERIES = {
     "WALCL": "Fed Total Assets",
     "WRESBAL": "Reserve Balances",
     "RRPONTSYD": "Reverse Repo",
+    "BOGMBASE": "Monetary Base: Total",
+    "M2SL": "M2 Money Stock",
+    "TOTRESNS": "Total Reserves",
+    "BUSLOANS": "Commercial & Industrial Loans",
+    "DRCCLACBS": "Credit Card Delinquency Rate",
 
     # FX SPECIALIST - Currency
     "DEXBZUS": "USD/BRL (Brazil)",
@@ -79,18 +87,25 @@ FRED_SERIES = {
     "DCOILWTICO": "WTI Crude Oil",
     "DCOILBRENTEU": "Brent Crude Oil",
     "DHHNGSP": "Henry Hub Natural Gas",
+    "DHOILNYH": "Heating Oil Prices (NY Harbor)",
+    "PNGASEUUSDM": "Natural Gas Price, EU",
     "DDFUELUSGULF": "Diesel Gulf Coast",
     "DGASUSGULF": "Gasoline Gulf Coast",
     "DJFUELUSGULF": "Jet Fuel Gulf Coast",
     "DPROPANEMBTX": "Propane Prices: Mont Belvieu, Texas",
+    "WPU057303": "PPI Diesel Fuel",
+    "PCU32411032411012": "PPI Motor Gasoline",
 
     # BIOFUEL SPECIALIST
+    "APU000074714": "Gasoline CPI (Unleaded Regular)",
     "GASREGW": "US Regular Gas Price",
     "GASDESW": "US Diesel Price",
+    "WPU06140341": "PPI Ethanol",
 
     # CRUSH SPECIALIST - Soybean complex from FRED
     "PSOILUSDM": "Soybean Oil Price (World Bank)",
     "PSOYBUSDM": "Soybeans Price (World Bank)",
+    "PCU311224311224": "PPI Soybean Oil Processing",
     "PBARLUSDM": "Barley Price",
     "PWHEAMTUSDM": "Wheat Price",
     "PMAIZMTUSDM": "Global price of Corn",
@@ -100,8 +115,13 @@ FRED_SERIES = {
     "PROILUSDM": "Global price of Rapeseed Oil (proxy for palm kernel)",
 
     # VOLATILITY SPECIALIST
+    "SP500": "S&P 500 Index",
+    "NASDAQCOM": "NASDAQ Composite Index",
     "VIXCLS": "VIX Index",
+    "OVXCLS": "Crude Oil Volatility Index",
+    "STLFSI": "St. Louis Financial Stress Index",
     "STLFSI4": "St. Louis Financial Stress",
+    "TEDRATE": "TED Spread",
     "NFCI": "Chicago Fed Financial Conditions",
     "BAMLH0A0HYM2": "High Yield OAS",
     "BAMLC0A0CM": "Corporate OAS",
@@ -110,10 +130,17 @@ FRED_SERIES = {
     "USEPUINDXD": "US Policy Uncertainty (Daily)",
     "USEPUINDXM": "US Policy Uncertainty (Monthly)",
     "EPUTRADE": "Trade Policy Uncertainty",
+    "EMVTRADEPOLEMV": "Trade Policy Volatility",
+    "CHNMAINLANDTPU": "China Trade Policy Uncertainty",
+    "B235RC1Q027SBEA": "Customs Duties (Tariff Receipts)",
+    "IMPCH": "US Imports from China",
 
     # CHINA SPECIALIST
+    "CHNCPIALLMINMEI": "China CPI (Total)",
     "CHNPRINTO01IXPYM": "China Industrial Production",
     "CHNGDPNQDSMEI": "China Real GDP",
+    "IR3TIB01CNM156N": "China Interbank Rate (3M)",
+    "MYAGM2CNM189N": "China M2",
     "XTEXVA01CNM667S": "China Exports Value",
     "XTIMVA01CNM667S": "China Imports Value",
 
@@ -126,6 +153,23 @@ FRED_SERIES = {
     "PCEPILFE": "Core PCE",
     "UNRATE": "Unemployment Rate",
     "PAYEMS": "Nonfarm Payrolls",
+    "MANEMP": "Manufacturing Employment",
+    "RSXFS": "Retail Sales",
+    "GDP": "Gross Domestic Product",
+    "GDPC1": "Real Gross Domestic Product",
+    "PCE": "Personal Consumption Expenditures",
+    "HOUST": "Housing Starts",
+    "PERMIT": "Housing Permits",
+    "PPIACO": "PPI All Commodities",
+    "PPIFGS": "PPI Finished Goods",
+    "BOPGSTB": "Trade Balance: Goods & Services",
+    "EXPGS": "Exports of Goods & Services",
+    "IMPGS": "Imports of Goods & Services",
+    "PCOPPUSDM": "Copper Price (Global)",
+    "PRICENPQUSDM": "Rice Price (Global)",
+    "PSUNOUSDM": "Sunflower Oil Price (Global)",
+    "WPU01830161": "PPI Farm Products: Sunflower",
+    "WPU01830171": "PPI Farm Products: Canola",
     "INDPRO": "Industrial Production",
     "UMCSENT": "Consumer Sentiment",
     "FRGSHPUSM649NCIS": "Cass Freight Index",
@@ -142,6 +186,9 @@ def _add_tags(series_ids: list[str], tags: list[str]) -> None:
 _add_tags(
     [
         "DFF",
+        "FEDFUNDS",
+        "DFEDTARL",
+        "DFEDTARU",
         "DGS1MO",
         "DGS3MO",
         "DGS6MO",
@@ -161,12 +208,26 @@ _add_tags(
         "WALCL",
         "WRESBAL",
         "RRPONTSYD",
+        "BOGMBASE",
+        "M2SL",
+        "TOTRESNS",
+        "BUSLOANS",
+        "DRCCLACBS",
         "CPIAUCSL",
         "CPILFESL",
         "PCEPI",
         "PCEPILFE",
+        "PCE",
+        "PPIACO",
+        "PPIFGS",
         "UNRATE",
         "PAYEMS",
+        "MANEMP",
+        "RSXFS",
+        "GDP",
+        "GDPC1",
+        "HOUST",
+        "PERMIT",
         "ICSA",
         "CCSA",
     ],
@@ -205,6 +266,8 @@ _add_tags(
         "DCOILWTICO",
         "DCOILBRENTEU",
         "DHHNGSP",
+        "DHOILNYH",
+        "PNGASEUUSDM",
         "DJFUELUSGULF",
         "DPROPANEMBTX",
     ],
@@ -212,26 +275,59 @@ _add_tags(
 )
 SERIES_TAGS["DDFUELUSGULF"] = ["energy", "biofuel"]
 SERIES_TAGS["DGASUSGULF"] = ["energy", "biofuel"]
+SERIES_TAGS["WPU057303"] = ["energy", "biofuel"]
+SERIES_TAGS["PCU32411032411012"] = ["energy", "biofuel"]
 
+SERIES_TAGS["APU000074714"] = ["biofuel", "energy"]
 SERIES_TAGS["GASREGW"] = ["biofuel", "energy"]
 SERIES_TAGS["GASDESW"] = ["biofuel", "energy"]
+SERIES_TAGS["WPU06140341"] = ["biofuel"]
 
-_add_tags(["PSOILUSDM", "PSOYBUSDM"], ["crush"])
+_add_tags(["PSOILUSDM", "PSOYBUSDM", "PCU311224311224"], ["crush"])
 SERIES_TAGS["PMAIZMTUSDM"] = ["crush", "substitutes"]
 SERIES_TAGS["PWHEAMTUSDM"] = ["substitutes"]
 SERIES_TAGS["PBARLUSDM"] = ["substitutes"]
+SERIES_TAGS["PSUNOUSDM"] = ["substitutes"]
+SERIES_TAGS["PRICENPQUSDM"] = ["substitutes"]
+SERIES_TAGS["PCOPPUSDM"] = ["substitutes"]
+SERIES_TAGS["WPU01830161"] = ["substitutes"]
+SERIES_TAGS["WPU01830171"] = ["substitutes"]
 
 SERIES_TAGS["PPOILUSDM"] = ["palm"]
 SERIES_TAGS["PROILUSDM"] = ["palm", "substitutes"]
 
-_add_tags(["VIXCLS", "STLFSI4", "NFCI", "BAMLH0A0HYM2", "BAMLC0A0CM"], ["volatility"])
+_add_tags(
+    [
+        "SP500",
+        "NASDAQCOM",
+        "VIXCLS",
+        "OVXCLS",
+        "STLFSI",
+        "STLFSI4",
+        "TEDRATE",
+        "NFCI",
+        "BAMLH0A0HYM2",
+        "BAMLC0A0CM",
+    ],
+    ["volatility"],
+)
 
 SERIES_TAGS["USEPUINDXD"] = ["trump_effect", "volatility"]
 SERIES_TAGS["USEPUINDXM"] = ["trump_effect", "volatility"]
 SERIES_TAGS["EPUTRADE"] = ["tariff"]
+SERIES_TAGS["EMVTRADEPOLEMV"] = ["trump_effect", "volatility"]
+SERIES_TAGS["CHNMAINLANDTPU"] = ["trump_effect", "tariff"]
+SERIES_TAGS["B235RC1Q027SBEA"] = ["trump_effect", "tariff"]
+SERIES_TAGS["IMPCH"] = ["trump_effect", "tariff"]
+SERIES_TAGS["BOPGSTB"] = ["tariff"]
+SERIES_TAGS["EXPGS"] = ["tariff"]
+SERIES_TAGS["IMPGS"] = ["tariff"]
 
+SERIES_TAGS["CHNCPIALLMINMEI"] = ["china"]
 SERIES_TAGS["CHNPRINTO01IXPYM"] = ["china"]
 SERIES_TAGS["CHNGDPNQDSMEI"] = ["china"]
+SERIES_TAGS["IR3TIB01CNM156N"] = ["china"]
+SERIES_TAGS["MYAGM2CNM189N"] = ["china"]
 SERIES_TAGS["XTEXVA01CNM667S"] = ["china", "tariff"]
 SERIES_TAGS["XTIMVA01CNM667S"] = ["china", "tariff"]
 

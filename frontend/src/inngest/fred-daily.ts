@@ -44,7 +44,7 @@ interface FredSegmentConfig {
   fetchTimeoutMs?: number;
   fetchRetries?: number;
   fetchBackoffMs?: number;
-  retries?: number;
+  retries?: InngestRetries;
 }
 
 type FredIngestResult = { series: string; status: string; value?: number; tags?: string[] };
@@ -57,12 +57,40 @@ interface FredSegmentSummary {
   results: FredIngestResult[];
 }
 
+type InngestRetries =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
+  | 17
+  | 18
+  | 19
+  | 20;
+
+const DEFAULT_JOB_RETRIES: InngestRetries = 3;
+
 /**
  * Comprehensive FRED series list grouped by specialist bucket.
  * Source: RAW_SOURCE_SPECIALIST_MAPPING.md (LOCKED)
  */
 const FRED_FED_SERIES: FredSeriesConfig[] = [
   { id: "DFF", name: "Fed Funds Effective Rate", tags: ["fed"] },
+  { id: "FEDFUNDS", name: "Federal Funds Effective Rate", tags: ["fed"] },
+  { id: "DFEDTARL", name: "Fed Funds Target Range (Lower)", tags: ["fed"] },
+  { id: "DFEDTARU", name: "Fed Funds Target Range (Upper)", tags: ["fed"] },
   { id: "DGS1MO", name: "1-Month Treasury", tags: ["fed"] },
   { id: "DGS3MO", name: "3-Month Treasury", tags: ["fed"] },
   { id: "DGS6MO", name: "6-Month Treasury", tags: ["fed"] },
@@ -82,12 +110,26 @@ const FRED_FED_SERIES: FredSeriesConfig[] = [
   { id: "WALCL", name: "Fed Total Assets", tags: ["fed"] },
   { id: "WRESBAL", name: "Reserve Balances", tags: ["fed"] },
   { id: "RRPONTSYD", name: "Reverse Repo", tags: ["fed"] },
+  { id: "BOGMBASE", name: "Monetary Base", tags: ["fed"] },
+  { id: "M2SL", name: "M2 Money Stock", tags: ["fed"] },
+  { id: "TOTRESNS", name: "Total Reserves", tags: ["fed"] },
+  { id: "BUSLOANS", name: "Commercial & Industrial Loans", tags: ["fed"] },
+  { id: "DRCCLACBS", name: "Credit Card Delinquency Rate", tags: ["fed"] },
   { id: "CPIAUCSL", name: "CPI All Urban", tags: ["fed"] },
   { id: "CPILFESL", name: "Core CPI", tags: ["fed"] },
   { id: "PCEPI", name: "PCE Price Index", tags: ["fed"] },
   { id: "PCEPILFE", name: "Core PCE", tags: ["fed"] },
+  { id: "PCE", name: "Personal Consumption Expenditures", tags: ["fed"] },
+  { id: "PPIACO", name: "PPI All Commodities", tags: ["fed"] },
+  { id: "PPIFGS", name: "PPI Finished Goods", tags: ["fed"] },
   { id: "UNRATE", name: "Unemployment Rate", tags: ["fed"] },
   { id: "PAYEMS", name: "Nonfarm Payrolls", tags: ["fed"] },
+  { id: "MANEMP", name: "Manufacturing Employment", tags: ["fed"] },
+  { id: "RSXFS", name: "Retail Sales", tags: ["fed"] },
+  { id: "GDP", name: "Gross Domestic Product", tags: ["fed"] },
+  { id: "GDPC1", name: "Real Gross Domestic Product", tags: ["fed"] },
+  { id: "HOUST", name: "Housing Starts", tags: ["fed"] },
+  { id: "PERMIT", name: "Housing Permits", tags: ["fed"] },
   { id: "ICSA", name: "Initial Jobless Claims", tags: ["fed"] },
   { id: "CCSA", name: "Continued Claims", tags: ["fed"] },
 ];
@@ -120,20 +162,27 @@ const FRED_ENERGY_SERIES: FredSeriesConfig[] = [
   { id: "DCOILWTICO", name: "WTI Crude Oil", tags: ["energy"] },
   { id: "DCOILBRENTEU", name: "Brent Crude Oil", tags: ["energy"] },
   { id: "DHHNGSP", name: "Henry Hub Natural Gas", tags: ["energy"] },
+  { id: "DHOILNYH", name: "Heating Oil NY Harbor", tags: ["energy"] },
+  { id: "PNGASEUUSDM", name: "EU Natural Gas Price", tags: ["energy"] },
   { id: "DDFUELUSGULF", name: "Diesel Gulf Coast", tags: ["energy", "biofuel"] },
   { id: "DGASUSGULF", name: "Gasoline Gulf Coast", tags: ["energy", "biofuel"] },
   { id: "DJFUELUSGULF", name: "Jet Fuel Gulf Coast", tags: ["energy"] },
   { id: "DPROPANEMBTX", name: "Propane Prices: Mont Belvieu, Texas", tags: ["energy"] },
+  { id: "WPU057303", name: "PPI Diesel Fuel", tags: ["energy", "biofuel"] },
+  { id: "PCU32411032411012", name: "PPI Motor Gasoline", tags: ["energy", "biofuel"] },
 ];
 
 const FRED_BIOFUEL_SERIES: FredSeriesConfig[] = [
+  { id: "APU000074714", name: "Gasoline CPI (Unleaded Regular)", tags: ["biofuel", "energy"] },
   { id: "GASREGW", name: "US Regular Gas Price", tags: ["biofuel", "energy"] },
   { id: "GASDESW", name: "US Diesel Price", tags: ["biofuel", "energy"] },
+  { id: "WPU06140341", name: "PPI Ethanol", tags: ["biofuel"] },
 ];
 
 const FRED_CRUSH_SERIES: FredSeriesConfig[] = [
   { id: "PSOILUSDM", name: "Soybean Oil Price (World Bank)", tags: ["crush"] },
   { id: "PSOYBUSDM", name: "Soybeans Price (World Bank)", tags: ["crush"] },
+  { id: "PCU311224311224", name: "PPI Soybean Oil Processing", tags: ["crush"] },
   { id: "PMAIZMTUSDM", name: "Global price of Corn", tags: ["crush", "substitutes"] },
   { id: "PWHEAMTUSDM", name: "Wheat Price", tags: ["substitutes"] },
   { id: "PBARLUSDM", name: "Barley Price", tags: ["substitutes"] },
@@ -145,8 +194,13 @@ const FRED_PALM_SERIES: FredSeriesConfig[] = [
 ];
 
 const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
+  { id: "SP500", name: "S&P 500 Index", tags: ["volatility"] },
+  { id: "NASDAQCOM", name: "NASDAQ Composite Index", tags: ["volatility"] },
   { id: "VIXCLS", name: "VIX Index", tags: ["volatility"] },
+  { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility"] },
+  { id: "STLFSI", name: "St. Louis Financial Stress", tags: ["volatility"] },
   { id: "STLFSI4", name: "St. Louis Financial Stress", tags: ["volatility"] },
+  { id: "TEDRATE", name: "TED Spread", tags: ["volatility"] },
   { id: "NFCI", name: "Chicago Fed Financial Conditions", tags: ["volatility"] },
   { id: "BAMLH0A0HYM2", name: "High Yield OAS", tags: ["volatility"] },
   { id: "BAMLC0A0CM", name: "Corporate OAS", tags: ["volatility"] },
@@ -156,11 +210,18 @@ const FRED_TRUMP_EFFECT_SERIES: FredSeriesConfig[] = [
   { id: "USEPUINDXD", name: "US Policy Uncertainty (Daily)", tags: ["trump_effect", "volatility"] },
   { id: "USEPUINDXM", name: "US Policy Uncertainty (Monthly)", tags: ["trump_effect", "volatility"] },
   { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["tariff"] },
+  { id: "EMVTRADEPOLEMV", name: "Trade Policy Volatility", tags: ["trump_effect", "volatility"] },
+  { id: "CHNMAINLANDTPU", name: "China Trade Policy Uncertainty", tags: ["trump_effect", "tariff"] },
+  { id: "B235RC1Q027SBEA", name: "Customs Duties (Tariff Receipts)", tags: ["trump_effect", "tariff"] },
+  { id: "IMPCH", name: "US Imports from China", tags: ["trump_effect", "tariff"] },
 ];
 
 const FRED_CHINA_SERIES: FredSeriesConfig[] = [
+  { id: "CHNCPIALLMINMEI", name: "China CPI (Total)", tags: ["china"] },
   { id: "CHNPRINTO01IXPYM", name: "China Industrial Production", tags: ["china"] },
   { id: "CHNGDPNQDSMEI", name: "China Real GDP", tags: ["china"] },
+  { id: "IR3TIB01CNM156N", name: "China Interbank Rate (3M)", tags: ["china"] },
+  { id: "MYAGM2CNM189N", name: "China M2", tags: ["china"] },
   { id: "XTEXVA01CNM667S", name: "China Exports Value", tags: ["china", "tariff"] },
   { id: "XTIMVA01CNM667S", name: "China Imports Value", tags: ["china", "tariff"] },
 ];
@@ -169,6 +230,14 @@ const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
   { id: "INDPRO", name: "Industrial Production", tags: ["general"] },
   { id: "UMCSENT", name: "Consumer Sentiment", tags: ["general"] },
   { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["general"] },
+  { id: "BOPGSTB", name: "Trade Balance (Goods & Services)", tags: ["tariff"] },
+  { id: "EXPGS", name: "Exports of Goods & Services", tags: ["tariff"] },
+  { id: "IMPGS", name: "Imports of Goods & Services", tags: ["tariff"] },
+  { id: "PCOPPUSDM", name: "Copper Price (Global)", tags: ["substitutes"] },
+  { id: "PRICENPQUSDM", name: "Rice Price (Global)", tags: ["substitutes"] },
+  { id: "PSUNOUSDM", name: "Sunflower Oil Price (Global)", tags: ["substitutes"] },
+  { id: "WPU01830161", name: "PPI Farm Products: Sunflower", tags: ["substitutes"] },
+  { id: "WPU01830171", name: "PPI Farm Products: Canola", tags: ["substitutes"] },
 ];
 
 const DEFAULT_FRED_RATE_LIMIT_MS = 500;
@@ -659,7 +728,7 @@ function createFredSegmentJob(config: FredSegmentConfig) {
     {
       id: config.id,
       name: config.displayName,
-      retries: config.retries ?? 3,
+      retries: config.retries ?? DEFAULT_JOB_RETRIES,
     },
     { cron: config.cron },
     async ({ step, logger }) => {
