@@ -159,89 +159,112 @@ async function getStats(): Promise<NextResponse> {
 }
 
 async function getRestaurants(): Promise<NextResponse> {
-  const results = await query<VegasRestaurant>(`
-    SELECT 
-      id,
-      COALESCE(data->>'Name', data->>'name', 'Unknown') as name,
-      COALESCE(data->>'Location', data->>'location', 'Las Vegas') as location,
-      COALESCE(data->>'Category', data->>'category', 'Restaurant') as category,
-      (data->>'current_oil_lbs')::float as current_oil_lbs,
-      COALESCE(data->>'delivery_day', data->>'DeliveryDay', '') as delivery_day,
-      (data->>'fryers')::int as fryers,
-      data
-    FROM ops.vegas_restaurants
-    ORDER BY name
-    LIMIT 200
-  `)
-  
-  return NextResponse.json({ restaurants: results, count: results.length })
+  try {
+    const results = await query<VegasRestaurant>(`
+      SELECT
+        id,
+        COALESCE(data->>'Name', data->>'name', 'Unknown') as name,
+        COALESCE(data->>'Location', data->>'location', 'Las Vegas') as location,
+        COALESCE(data->>'Category', data->>'category', 'Restaurant') as category,
+        (data->>'current_oil_lbs')::float as current_oil_lbs,
+        COALESCE(data->>'delivery_day', data->>'DeliveryDay', '') as delivery_day,
+        (data->>'fryers')::int as fryers,
+        data
+      FROM ops.vegas_restaurants
+      ORDER BY name
+      LIMIT 200
+    `)
+
+    return NextResponse.json({ restaurants: results, count: results.length })
+  } catch {
+    return NextResponse.json({ restaurants: [], count: 0 })
+  }
 }
 
 async function getCasinos(): Promise<NextResponse> {
-  const results = await query<VegasCasino>(`
-    SELECT 
-      id,
-      COALESCE(data->>'Name', data->>'name', 'Unknown') as name,
-      COALESCE(data->>'EventCalendar', data->>'event_calendar', '') as event_calendar,
-      COALESCE((data->>'PremiumTier')::boolean, false) as premium_tier,
-      data
-    FROM ops.vegas_casinos
-    ORDER BY name
-    LIMIT 100
-  `)
-  
-  return NextResponse.json({ casinos: results, count: results.length })
+  try {
+    const results = await query<VegasCasino>(`
+      SELECT
+        id,
+        COALESCE(data->>'Name', data->>'name', 'Unknown') as name,
+        COALESCE(data->>'EventCalendar', data->>'event_calendar', '') as event_calendar,
+        COALESCE((data->>'PremiumTier')::boolean, false) as premium_tier,
+        data
+      FROM ops.vegas_casinos
+      ORDER BY name
+      LIMIT 100
+    `)
+
+    return NextResponse.json({ casinos: results, count: results.length })
+  } catch {
+    return NextResponse.json({ casinos: [], count: 0 })
+  }
 }
 
 async function getFryers(): Promise<NextResponse> {
-  const results = await query<VegasFryer>(`
-    SELECT 
-      id,
-      COALESCE(data->>'restaurant_id', data->>'RestaurantId', '') as restaurant_id,
-      COALESCE(data->>'fryer_type', data->>'FryerType', 'Standard') as fryer_type,
-      COALESCE((data->>'capacity_lb')::float, 0) as capacity_lb,
-      COALESCE((data->>'turns_per_month')::int, 0) as turns_per_month,
-      COALESCE((data->>'base_daily_gal')::float, 0) as base_daily_gal,
-      data
-    FROM ops.vegas_fryers
-    ORDER BY restaurant_id
-    LIMIT 500
-  `)
-  
-  return NextResponse.json({ fryers: results, count: results.length })
+  try {
+    const results = await query<VegasFryer>(`
+      SELECT
+        id,
+        COALESCE(data->>'restaurant_id', data->>'RestaurantId', '') as restaurant_id,
+        COALESCE(data->>'fryer_type', data->>'FryerType', 'Standard') as fryer_type,
+        COALESCE((data->>'capacity_lb')::float, 0) as capacity_lb,
+        COALESCE((data->>'turns_per_month')::int, 0) as turns_per_month,
+        COALESCE((data->>'base_daily_gal')::float, 0) as base_daily_gal,
+        data
+      FROM ops.vegas_fryers
+      ORDER BY restaurant_id
+      LIMIT 500
+    `)
+
+    return NextResponse.json({ fryers: results, count: results.length })
+  } catch {
+    return NextResponse.json({ fryers: [], count: 0 })
+  }
 }
 
 async function getCustomers(): Promise<NextResponse> {
-  const results = await query<{ id: number; customer_name: string; segment: string; data: Record<string, unknown> }>(`
-    SELECT 
-      id,
-      COALESCE(data->>'CustomerName', data->>'customer_name', data->>'Name', 'Unknown') as customer_name,
-      COALESCE(data->>'Segment', data->>'segment', 'General') as segment,
-      data
-    FROM ops.vegas_export_list
-    ORDER BY customer_name
-    LIMIT 500
-  `)
-  
-  return NextResponse.json({ customers: results, count: results.length })
+  try {
+    const results = await query<{ id: number; customer_name: string; segment: string; data: Record<string, unknown> }>(`
+      SELECT
+        id,
+        COALESCE(data->>'CustomerName', data->>'customer_name', data->>'Name', 'Unknown') as customer_name,
+        COALESCE(data->>'Segment', data->>'segment', 'General') as segment,
+        data
+      FROM ops.vegas_export_list
+      ORDER BY customer_name
+      LIMIT 500
+    `)
+
+    return NextResponse.json({ customers: results, count: results.length })
+  } catch {
+    return NextResponse.json({ customers: [], count: 0 })
+  }
 }
 
 async function getAllData(): Promise<NextResponse> {
-  const [stats, restaurants, casinos, fryers] = await Promise.all([
-    query<{ table_name: string; count: number }>(`
-      SELECT 'restaurants' as table_name, COUNT(*) as count FROM ops.vegas_restaurants
-      UNION ALL
-      SELECT 'casinos', COUNT(*) FROM ops.vegas_casinos
-      UNION ALL  
-      SELECT 'fryers', COUNT(*) FROM ops.vegas_fryers
-    `),
-    query(`SELECT id, data FROM ops.vegas_restaurants LIMIT 10`),
-    query(`SELECT id, data FROM ops.vegas_casinos LIMIT 10`),
-    query(`SELECT id, data FROM ops.vegas_fryers LIMIT 20`)
-  ])
+  try {
+    const [stats, restaurants, casinos, fryers] = await Promise.all([
+      query<{ table_name: string; count: number }>(`
+        SELECT 'restaurants' as table_name, COUNT(*) as count FROM ops.vegas_restaurants
+        UNION ALL
+        SELECT 'casinos', COUNT(*) FROM ops.vegas_casinos
+        UNION ALL
+        SELECT 'fryers', COUNT(*) FROM ops.vegas_fryers
+      `),
+      query(`SELECT id, data FROM ops.vegas_restaurants LIMIT 10`),
+      query(`SELECT id, data FROM ops.vegas_casinos LIMIT 10`),
+      query(`SELECT id, data FROM ops.vegas_fryers LIMIT 20`)
+    ])
 
-  return NextResponse.json({
-    stats: stats.reduce((acc, row) => ({ ...acc, [row.table_name]: row.count }), {}),
-    sample: { restaurants, casinos, fryers }
-  })
+    return NextResponse.json({
+      stats: stats.reduce((acc, row) => ({ ...acc, [row.table_name]: row.count }), {}),
+      sample: { restaurants, casinos, fryers }
+    })
+  } catch {
+    return NextResponse.json({
+      stats: { restaurants: 0, casinos: 0, fryers: 0 },
+      sample: { restaurants: [], casinos: [], fryers: [] }
+    })
+  }
 }
