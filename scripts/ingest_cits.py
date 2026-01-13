@@ -60,6 +60,7 @@ def create_cits_table(conn):
         CREATE TABLE raw.cftc_cits_1w (
             id SERIAL PRIMARY KEY,
             report_date DATE NOT NULL,
+            event_date DATE NOT NULL,
             contract_code INTEGER NOT NULL,
             symbol VARCHAR(50) NOT NULL,
             report_type VARCHAR(20) NOT NULL,
@@ -96,6 +97,7 @@ def create_cits_table(conn):
 
     # Create indexes
     cur.execute("CREATE INDEX idx_cits_date ON raw.cftc_cits_1w(report_date)")
+    cur.execute("CREATE INDEX idx_cits_event_date ON raw.cftc_cits_1w(event_date)")
     cur.execute("CREATE INDEX idx_cits_symbol ON raw.cftc_cits_1w(symbol)")
     cur.execute(
         "CREATE INDEX idx_cits_date_symbol ON raw.cftc_cits_1w(report_date, symbol)"
@@ -138,6 +140,7 @@ def load_and_transform_cits(csv_path):
 
     # Map report type
     df["report_type"] = df["type"]
+    df["event_date"] = df["report_date"]
 
     # Convert position columns to int
     int_cols = [
@@ -169,6 +172,7 @@ def ingest_cits(conn, df):
     # Prepare data for insertion
     columns = [
         "report_date",
+        "event_date",
         "contract_code",
         "symbol",
         "report_type",

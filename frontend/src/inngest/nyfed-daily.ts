@@ -19,7 +19,7 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
 
 // Database connection pool
@@ -36,7 +36,7 @@ function computeRowHash(rateType: string, effectiveDate: string, rate: number): 
   return createHash("sha256").update(`${rateType}|${effectiveDate}|${rate}`).digest("hex");
 }
 
-async function createIngestRun(client: any, jobName: string): Promise<string> {
+async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at)
      VALUES ($1, 'running', NOW())
@@ -47,7 +47,7 @@ async function createIngestRun(client: any, jobName: string): Promise<string> {
 }
 
 async function updateIngestRun(
-  client: any,
+  client: PoolClient,
   runId: string,
   status: string,
   rowsAttempted: number,
@@ -67,7 +67,7 @@ async function updateIngestRun(
   );
 }
 
-async function hashExists(client: any, tableName: string, rowHash: string): Promise<boolean> {
+async function hashExists(client: PoolClient, tableName: string, rowHash: string): Promise<boolean> {
   const result = await client.query(
     `SELECT 1 FROM ${tableName} WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
@@ -139,6 +139,7 @@ export const nyfedDaily = inngest.createFunction(
             validation_status TEXT DEFAULT 'validated',
             quality_score NUMERIC(3,2) DEFAULT 1.0,
             anomaly_flags TEXT[] DEFAULT '{}',
+            source TEXT,
             source_url TEXT,
             raw_payload JSONB,
             ingestion_batch_id UUID,
@@ -173,21 +174,15 @@ export const nyfedDaily = inngest.createFunction(
 
       // Step 4: Process each rate
       for (const rate of rates) {
-        await step.run(`ingest-${rate.type}`, async () => {
-          rowsAttempted++;
-
+        const outcome = await step.run(`ingest-${rate.type}`, async () => {
           if (!rate.effectiveDate || !rate.type) {
-            results.push({ rateType: rate.type || "UNKNOWN", status: "skipped_invalid" });
-            rowsSkipped++;
-            return;
+            return { rateType: rate.type || "UNKNOWN", status: "skipped_invalid" as const };
           }
 
           const rowHash = computeRowHash(rate.type, rate.effectiveDate, rate.percentRate || 0);
 
           if (await hashExists(client, "raw.nyfed_rates_1d", rowHash)) {
-            results.push({ rateType: rate.type, status: "skipped_duplicate" });
-            rowsSkipped++;
-            return;
+            return { rateType: rate.type, status: "skipped_duplicate" as const };
           }
 
           await client.query(
@@ -196,8 +191,8 @@ export const nyfedDaily = inngest.createFunction(
                percentile_1, percentile_25, percentile_75, percentile_99,
                volume_billions, footnote_id,
                knowledge_time, revision_no, is_preliminary, validation_status,
-               source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), 1, false, 'validated', $10, $11, $12, $13, $14)`,
+               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), 1, false, 'validated', $10, $11, $12, $13, $14, $15)`,
             [
               rate.effectiveDate,
               rate.type,
@@ -208,6 +203,7 @@ export const nyfedDaily = inngest.createFunction(
               rate.percentPercentile99,
               rate.volumeInBillions,
               rate.footnoteId,
+              "nyfed_api",
               "https://markets.newyorkfed.org/api/rates/all/latest.json",
               JSON.stringify(rate),
               runId,
@@ -216,9 +212,16 @@ export const nyfedDaily = inngest.createFunction(
             ]
           );
 
-          results.push({ rateType: rate.type, status: "inserted", rate: rate.percentRate });
-          rowsInserted++;
+          return { rateType: rate.type, status: "inserted" as const, rate: rate.percentRate };
         });
+
+        rowsAttempted++;
+        results.push(outcome);
+        if (outcome.status === "inserted") {
+          rowsInserted++;
+        } else {
+          rowsSkipped++;
+        }
       }
 
       // Step 5: Complete ingest run

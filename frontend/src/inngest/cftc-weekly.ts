@@ -19,17 +19,6 @@ const CFTC_CONTRACTS = [
   { code: "085692", symbol: "HG", name: "Copper" },
 ];
 
-interface CftcRow {
-  Report_Date_as_YYYY_MM_DD: string;
-  Open_Interest_All: string;
-  NonComm_Positions_Long_All: string;
-  NonComm_Positions_Short_All: string;
-  Comm_Positions_Long_All: string;
-  Comm_Positions_Short_All: string;
-  NonRept_Positions_Long_All: string;
-  NonRept_Positions_Short_All: string;
-}
-
 /**
  * Fetch weekly CFTC Commitments of Traders data
  * Runs every Friday at 4:00 PM ET (after CFTC release)
@@ -74,17 +63,12 @@ export const cftcWeekly = inngest.createFunction(
 
         const client = await pool.connect();
         try {
-          let inserted = 0;
           for (const row of contractRows.slice(0, 10)) {
             // Last 10 weeks
             const reportDate = row.report_date_as_yyyy_mm_dd;
             if (!reportDate) continue;
 
             const openInterest = parseInt(row.open_interest_all || "0");
-            const nonCommLong = parseInt(row.noncomm_positions_long_all || "0");
-            const nonCommShort = parseInt(row.noncomm_positions_short_all || "0");
-            const commLong = parseInt(row.comm_positions_long_all || "0");
-            const commShort = parseInt(row.comm_positions_short_all || "0");
 
             // Parse Disaggregated data fields
             const managedLong = parseInt(row.m_money_positions_long_all || "0");
@@ -152,14 +136,13 @@ export const cftcWeekly = inngest.createFunction(
                 openInterest > 0 ? ((prodMercLong - prodMercShort) / openInterest) * 100 : 0,
               ]
             );
-            inserted++;
           }
           results.push({
             symbol: contract.symbol,
             status: "success",
             date: contractRows[0]?.report_date_as_yyyy_mm_dd,
           });
-        } catch (error) {
+        } catch {
           results.push({ symbol: contract.symbol, status: "error" });
         } finally {
           client.release();

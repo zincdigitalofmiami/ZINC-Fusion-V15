@@ -3,11 +3,13 @@
 Quick FRED backfill script - pulls data back to 2000 for all Big-11 series.
 """
 
+import argparse
+import hashlib
 import os
 import sys
 import time
-from datetime import datetime
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict
 
 import pandas as pd
 import psycopg2
@@ -79,16 +81,16 @@ FRED_SERIES = {
     "DDFUELUSGULF": "Diesel Gulf Coast",
     "DGASUSGULF": "Gasoline Gulf Coast",
     "DJFUELUSGULF": "Jet Fuel Gulf Coast",
-    "DPROPANEUSGULF": "Propane Gulf Coast",
+    "DPROPANEMBTX": "Propane Prices: Mont Belvieu, Texas",
 
     # CRUSH SPECIALIST - Soybean complex from FRED
     "PSOILUSDM": "Soybean Oil Price (World Bank)",
     "PSOYBUSDM": "Soybeans Price (World Bank)",
-    "PMAABORPCSF": "Palm Oil Price (World Bank)",
+    "PPOILUSDM": "Global price of Palm Oil",
     "PBARLUSDM": "Barley Price",
-    "PMAABORPCPF": "Palm Kernel Oil Price",
+    "PROILUSDM": "Global price of Rapeseed Oil (proxy for palm kernel)",
     "PWHEAMTUSDM": "Wheat Price",
-    "PCORNUSDM": "Corn Price",
+    "PMAIZMTUSDM": "Global price of Corn",
 
     # VOLATILITY SPECIALIST
     "VIXCLS": "VIX Index",
@@ -115,6 +117,13 @@ FRED_SERIES = {
     "UMCSENT": "Consumer Sentiment",
 }
 
+FALLBACK_TAGS: Dict[str, list[str]] = {
+    "DPROPANEMBTX": ["energy"],
+    "PMAIZMTUSDM": ["crush", "substitutes"],
+    "PROILUSDM": ["palm", "substitutes"],
+    "PPOILUSDM": ["palm"],
+}
+
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
@@ -122,6 +131,89 @@ def get_postgres_connection():
     if not database_url:
         raise ValueError("DATABASE_URL or POSTGRES_URL not found in environment")
     return psycopg2.connect(database_url)
+
+
+def js_number_string(value: float) -> str:
+    """Mirror JS Number.toString() formatting for row_hash consistency."""
+    return format(value, ".15g")
+
+
+def compute_row_hash(series_id: str, event_date: datetime, value: float) -> str:
+    payload = f"{series_id}|{event_date.strftime('%Y-%m-%d')}|{js_number_string(value)}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def create_ingest_run(conn, job_name: str) -> str:
+    """Create ops.ingest_run record and return run_id."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO ops.ingest_run (job_name, status, started_at, rows_attempted, rows_inserted, rows_skipped, rows_quarantined)
+            VALUES (%s, 'running', NOW(), 0, 0, 0, 0)
+            RETURNING id
+            """,
+            (job_name,),
+        )
+        run_id = cur.fetchone()[0]
+    conn.commit()
+    return str(run_id)
+
+
+def complete_ingest_run(
+    conn,
+    run_id: str,
+    status: str,
+    attempted: int,
+    inserted: int,
+    skipped: int,
+    quarantined: int,
+    error_message: str | None = None,
+) -> None:
+    """Update ops.ingest_run with final counters."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE ops.ingest_run
+            SET status = %s,
+                completed_at = NOW(),
+                rows_attempted = %s,
+                rows_inserted = %s,
+                rows_skipped = %s,
+                rows_quarantined = %s,
+                error_message = %s
+            WHERE id = %s
+            """,
+            (status, attempted, inserted, skipped, quarantined, error_message, run_id),
+        )
+    conn.commit()
+
+
+def load_series_tags(conn) -> Dict[str, list[str]]:
+    """Load most recent specialist_tags per series from DB."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT ON (series_id) series_id, specialist_tags
+            FROM raw.fred_observations_1d
+            WHERE specialist_tags IS NOT NULL
+            ORDER BY series_id, event_date DESC, knowledge_time DESC
+            """
+        )
+        tags_map: Dict[str, list[str]] = {}
+        for series_id, tags in cur.fetchall():
+            if tags:
+                tags_map[series_id] = list(tags)
+        return tags_map
+
+
+def series_exists(conn, series_id: str) -> bool:
+    """Check if series already has any rows."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM raw.fred_observations_1d WHERE series_id=%s LIMIT 1",
+            (series_id,),
+        )
+        return cur.fetchone() is not None
 
 
 def fetch_fred_series(series_id: str, start_date: str = "2000-01-01") -> pd.DataFrame:
@@ -159,20 +251,38 @@ def fetch_fred_series(series_id: str, start_date: str = "2000-01-01") -> pd.Data
         return pd.DataFrame()
 
 
-def insert_fred_data(conn, series_id: str, df: pd.DataFrame) -> int:
+def insert_fred_data(
+    conn,
+    series_id: str,
+    df: pd.DataFrame,
+    tags: list[str] | None,
+    run_id: str,
+) -> int:
     """Insert FRED data into database."""
     if df.empty:
         return 0
 
-    records = [
-        (
-            series_id,
-            row["date"],
-            row["value"],
-            "FRED"
+    now = datetime.now(timezone.utc)
+    records = []
+    for _, row in df.iterrows():
+        event_date = row["date"].to_pydatetime() if hasattr(row["date"], "to_pydatetime") else row["date"]
+        value = float(row["value"])
+        records.append(
+            (
+                series_id,
+                event_date,
+                value,
+                "fred_api",
+                now,
+                1,
+                False,
+                "validated",
+                f"https://fred.stlouisfed.org/series/{series_id}",
+                run_id,
+                compute_row_hash(series_id, event_date, value),
+                tags,
+            )
         )
-        for _, row in df.iterrows()
-    ]
 
     try:
         with conn.cursor() as cur:
@@ -180,14 +290,13 @@ def insert_fred_data(conn, series_id: str, df: pd.DataFrame) -> int:
                 cur,
                 """
                 INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                (series_id, event_date, value, source, knowledge_time, revision_no, is_preliminary, validation_status, source_url, ingestion_batch_id, row_hash, specialist_tags)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 records,
                 page_size=500
             )
-            inserted = cur.rowcount
+            inserted = len(records)
         conn.commit()
         return inserted
     except Exception as e:
@@ -197,11 +306,33 @@ def insert_fred_data(conn, series_id: str, df: pd.DataFrame) -> int:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Backfill FRED series into raw.fred_observations_1d")
+    parser.add_argument(
+        "--series",
+        help="Comma-separated list of FRED series IDs to backfill (default: all in script)",
+    )
+    parser.add_argument(
+        "--start-date",
+        default="2000-01-01",
+        help="Start date for backfill (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Backfill even if the series already exists in the DB",
+    )
+    args = parser.parse_args()
+
+    if args.series:
+        series_ids = [s.strip() for s in args.series.split(",") if s.strip()]
+    else:
+        series_ids = list(FRED_SERIES.keys())
+
     print("=" * 60)
     print("FRED BACKFILL TO 2000")
     print("=" * 60)
-    print(f"Series to backfill: {len(FRED_SERIES)}")
-    print(f"Start date: 2000-01-01")
+    print(f"Series to backfill: {len(series_ids)}")
+    print(f"Start date: {args.start_date}")
     print()
 
     if not FRED_API_KEY:
@@ -209,14 +340,25 @@ def main():
         return 1
 
     conn = get_postgres_connection()
+    tags_map = load_series_tags(conn)
+    run_id = create_ingest_run(conn, "fred-backfill")
 
     total_inserted = 0
     total_fetched = 0
+    total_attempted = 0
+    total_skipped = 0
 
-    for i, (series_id, description) in enumerate(FRED_SERIES.items(), 1):
-        print(f"[{i}/{len(FRED_SERIES)}] {series_id}: {description}")
+    for i, series_id in enumerate(series_ids, 1):
+        description = FRED_SERIES.get(series_id, "Custom series")
+        print(f"[{i}/{len(series_ids)}] {series_id}: {description}")
+        total_attempted += 1
 
-        df = fetch_fred_series(series_id, "2000-01-01")
+        if not args.force and series_exists(conn, series_id):
+            print("  Already in DB, skipping (use --force to override)")
+            total_skipped += 1
+            continue
+
+        df = fetch_fred_series(series_id, args.start_date)
 
         if df.empty:
             print(f"  No data available")
@@ -224,7 +366,8 @@ def main():
             continue
 
         fetched = len(df)
-        inserted = insert_fred_data(conn, series_id, df)
+        tags = tags_map.get(series_id) or FALLBACK_TAGS.get(series_id)
+        inserted = insert_fred_data(conn, series_id, df, tags, run_id)
 
         print(f"  Fetched: {fetched:,} | Inserted: {inserted:,}")
         total_fetched += fetched
@@ -233,6 +376,15 @@ def main():
         # Rate limit: FRED allows ~120 requests/minute
         time.sleep(0.5)
 
+    complete_ingest_run(
+        conn,
+        run_id,
+        "success",
+        total_attempted,
+        total_inserted,
+        total_skipped,
+        0,
+    )
     conn.close()
 
     print()

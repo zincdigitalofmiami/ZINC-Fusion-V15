@@ -14,7 +14,7 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
 
 // Database connection pool
@@ -33,14 +33,26 @@ interface FredSeriesConfig {
   tags: string[];
 }
 
+interface FredSegment {
+  name: string;
+  series: FredSeriesConfig[];
+}
+
+type FredIngestResult = { series: string; status: string; value?: number; tags?: string[] };
+
+interface FredSegmentSummary {
+  attempted: number;
+  inserted: number;
+  skipped: number;
+  quarantined: number;
+  results: FredIngestResult[];
+}
+
 /**
- * Comprehensive FRED series list with specialist tag assignments
+ * Comprehensive FRED series list grouped by specialist bucket.
  * Source: RAW_SOURCE_SPECIALIST_MAPPING.md (LOCKED)
  */
-const FRED_SERIES: FredSeriesConfig[] = [
-  // =========================================================================
-  // FED SPECIALIST - Interest Rates, Yields, Monetary Policy
-  // =========================================================================
+const FRED_FED_SERIES: FredSeriesConfig[] = [
   { id: "DFF", name: "Fed Funds Effective Rate", tags: ["fed"] },
   { id: "DGS1MO", name: "1-Month Treasury", tags: ["fed"] },
   { id: "DGS3MO", name: "3-Month Treasury", tags: ["fed"] },
@@ -69,10 +81,9 @@ const FRED_SERIES: FredSeriesConfig[] = [
   { id: "PAYEMS", name: "Nonfarm Payrolls", tags: ["fed"] },
   { id: "ICSA", name: "Initial Jobless Claims", tags: ["fed"] },
   { id: "CCSA", name: "Continued Claims", tags: ["fed"] },
+];
 
-  // =========================================================================
-  // FX SPECIALIST - Currency Exchange Rates
-  // =========================================================================
+const FRED_FX_SERIES: FredSeriesConfig[] = [
   { id: "DEXBZUS", name: "USD/BRL (Brazil)", tags: ["fx"] },
   { id: "DEXCHUS", name: "USD/CNY (China)", tags: ["fx", "china"] },
   { id: "DEXUSEU", name: "USD/EUR", tags: ["fx"] },
@@ -94,70 +105,189 @@ const FRED_SERIES: FredSeriesConfig[] = [
   { id: "DTWEXBGS", name: "Trade-Weighted USD (Broad)", tags: ["fx"] },
   { id: "DTWEXAFEGS", name: "USD vs Advanced FX", tags: ["fx"] },
   { id: "DTWEXEMEGS", name: "USD vs EM FX", tags: ["fx"] },
+];
 
-  // =========================================================================
-  // ENERGY SPECIALIST - Oil, Gas, Fuels
-  // =========================================================================
+const FRED_ENERGY_SERIES: FredSeriesConfig[] = [
   { id: "DCOILWTICO", name: "WTI Crude Oil", tags: ["energy"] },
   { id: "DCOILBRENTEU", name: "Brent Crude Oil", tags: ["energy"] },
   { id: "DHHNGSP", name: "Henry Hub Natural Gas", tags: ["energy"] },
   { id: "DDFUELUSGULF", name: "Diesel Gulf Coast", tags: ["energy", "biofuel"] },
   { id: "DGASUSGULF", name: "Gasoline Gulf Coast", tags: ["energy", "biofuel"] },
   { id: "DJFUELUSGULF", name: "Jet Fuel Gulf Coast", tags: ["energy"] },
-  { id: "DPROPANEUSGULF", name: "Propane Gulf Coast", tags: ["energy"] },
+  { id: "DPROPANEMBTX", name: "Propane Prices: Mont Belvieu, Texas", tags: ["energy"] },
+];
 
-  // =========================================================================
-  // BIOFUEL SPECIALIST - Renewable Fuel Indicators
-  // =========================================================================
+const FRED_BIOFUEL_SERIES: FredSeriesConfig[] = [
   { id: "GASREGW", name: "US Regular Gas Price", tags: ["biofuel", "energy"] },
   { id: "GASDESW", name: "US Diesel Price", tags: ["biofuel", "energy"] },
+];
 
-  // =========================================================================
-  // CRUSH SPECIALIST - Soybean Complex, Agricultural Commodities
-  // =========================================================================
+const FRED_CRUSH_SERIES: FredSeriesConfig[] = [
   { id: "PSOILUSDM", name: "Soybean Oil Price (World Bank)", tags: ["crush"] },
   { id: "PSOYBUSDM", name: "Soybeans Price (World Bank)", tags: ["crush"] },
-  { id: "PCORNUSDM", name: "Corn Price", tags: ["crush", "substitutes"] },
+  { id: "PMAIZMTUSDM", name: "Global price of Corn", tags: ["crush", "substitutes"] },
   { id: "PWHEAMTUSDM", name: "Wheat Price", tags: ["substitutes"] },
   { id: "PBARLUSDM", name: "Barley Price", tags: ["substitutes"] },
+];
 
-  // =========================================================================
-  // PALM SPECIALIST - Palm Oil, SE Asia
-  // =========================================================================
-  { id: "PMAABORPCSF", name: "Palm Oil Price (World Bank)", tags: ["palm"] },
-  { id: "PMAABORPCPF", name: "Palm Kernel Oil Price", tags: ["palm"] },
+const FRED_PALM_SERIES: FredSeriesConfig[] = [
+  { id: "PPOILUSDM", name: "Global price of Palm Oil", tags: ["palm"] },
+  { id: "PROILUSDM", name: "Global price of Rapeseed Oil (proxy for palm kernel)", tags: ["palm", "substitutes"] },
+];
 
-  // =========================================================================
-  // VOLATILITY SPECIALIST - Financial Stress, Risk Indicators
-  // =========================================================================
+const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "VIXCLS", name: "VIX Index", tags: ["volatility"] },
   { id: "STLFSI4", name: "St. Louis Financial Stress", tags: ["volatility"] },
   { id: "NFCI", name: "Chicago Fed Financial Conditions", tags: ["volatility"] },
   { id: "BAMLH0A0HYM2", name: "High Yield OAS", tags: ["volatility"] },
   { id: "BAMLC0A0CM", name: "Corporate OAS", tags: ["volatility"] },
+];
 
-  // =========================================================================
-  // TRUMP EFFECT / POLICY SPECIALIST
-  // =========================================================================
+const FRED_TRUMP_EFFECT_SERIES: FredSeriesConfig[] = [
   { id: "USEPUINDXD", name: "US Policy Uncertainty (Daily)", tags: ["trump_effect", "volatility"] },
   { id: "USEPUINDXM", name: "US Policy Uncertainty (Monthly)", tags: ["trump_effect", "volatility"] },
   { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["tariff"] },
+];
 
-  // =========================================================================
-  // CHINA SPECIALIST - China Economic Indicators
-  // =========================================================================
+const FRED_CHINA_SERIES: FredSeriesConfig[] = [
   { id: "CHNPRINTO01IXPYM", name: "China Industrial Production", tags: ["china"] },
   { id: "CHNGDPNQDSMEI", name: "China Real GDP", tags: ["china"] },
   { id: "XTEXVA01CNM667S", name: "China Exports Value", tags: ["china", "tariff"] },
   { id: "XTIMVA01CNM667S", name: "China Imports Value", tags: ["china", "tariff"] },
+];
 
-  // =========================================================================
-  // GENERAL MACRO - Cross-specialist indicators
-  // =========================================================================
+const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
   { id: "INDPRO", name: "Industrial Production", tags: ["general"] },
   { id: "UMCSENT", name: "Consumer Sentiment", tags: ["general"] },
   { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["general"] },
 ];
+
+const FRED_CONFIG_SEGMENTS: FredSegment[] = [
+  { name: "fed", series: FRED_FED_SERIES },
+  { name: "fx", series: FRED_FX_SERIES },
+  { name: "energy", series: FRED_ENERGY_SERIES },
+  { name: "biofuel", series: FRED_BIOFUEL_SERIES },
+  { name: "crush", series: FRED_CRUSH_SERIES },
+  { name: "palm", series: FRED_PALM_SERIES },
+  { name: "volatility", series: FRED_VOLATILITY_SERIES },
+  { name: "trump_effect", series: FRED_TRUMP_EFFECT_SERIES },
+  { name: "china", series: FRED_CHINA_SERIES },
+  { name: "general", series: FRED_GENERAL_SERIES },
+];
+
+const FRED_SEGMENT_ORDER = FRED_CONFIG_SEGMENTS.map((segment) => segment.name);
+
+const TAG_TO_SEGMENT: Record<string, string> = {
+  fed: "fed",
+  fx: "fx",
+  energy: "energy",
+  biofuel: "biofuel",
+  crush: "crush",
+  substitutes: "crush",
+  palm: "palm",
+  volatility: "volatility",
+  trump_effect: "trump_effect",
+  tariff: "trump_effect",
+  china: "china",
+  general: "general",
+};
+
+const FRED_RATE_LIMIT_MS = 500;
+
+const CONFIG_SERIES_INDEX: Record<string, { series: FredSeriesConfig; segment: string }> = {};
+for (const segment of FRED_CONFIG_SEGMENTS) {
+  for (const series of segment.series) {
+    CONFIG_SERIES_INDEX[series.id] = { series, segment: segment.name };
+  }
+}
+
+function normalizeTags(tags: unknown): string[] | null {
+  if (!tags) return null;
+  if (Array.isArray(tags)) {
+    return tags.map((tag) => String(tag).trim()).filter(Boolean);
+  }
+  if (typeof tags === "string") {
+    return tags
+      .replace(/[{}]/g, "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+  return null;
+}
+
+async function fetchDbSeriesIds(client: PoolClient): Promise<string[]> {
+  const result = await client.query(
+    `SELECT DISTINCT series_id
+     FROM raw.fred_observations_1d
+     ORDER BY series_id`
+  );
+  return result.rows.map((row) => row.series_id);
+}
+
+async function fetchDbSeriesTags(client: PoolClient): Promise<Record<string, string[]>> {
+  const result = await client.query(
+    `SELECT DISTINCT ON (series_id) series_id, specialist_tags
+     FROM raw.fred_observations_1d
+     WHERE specialist_tags IS NOT NULL
+     ORDER BY series_id, event_date DESC, knowledge_time DESC`
+  );
+  const tagsMap: Record<string, string[]> = {};
+  for (const row of result.rows) {
+    const normalized = normalizeTags(row.specialist_tags);
+    if (normalized && normalized.length > 0) {
+      tagsMap[row.series_id] = normalized;
+    }
+  }
+  return tagsMap;
+}
+
+function selectSegment(tags: string[]): string {
+  for (const tag of tags) {
+    const mapped = TAG_TO_SEGMENT[tag];
+    if (mapped) return mapped;
+  }
+  return "general";
+}
+
+function buildDynamicSegments(
+  dbSeriesIds: string[],
+  dbTags: Record<string, string[]>
+): { segments: FredSegment[]; missingTags: string[]; totalSeries: number } {
+  const allSeriesIds = new Set<string>([...Object.keys(CONFIG_SERIES_INDEX), ...dbSeriesIds]);
+  const segmentMap: Record<string, FredSeriesConfig[]> = {};
+  for (const name of FRED_SEGMENT_ORDER) {
+    segmentMap[name] = [];
+  }
+  const missingTags: string[] = [];
+
+  for (const seriesId of Array.from(allSeriesIds).sort()) {
+    const config = CONFIG_SERIES_INDEX[seriesId];
+    if (config) {
+      segmentMap[config.segment].push(config.series);
+      continue;
+    }
+
+    const tags = dbTags[seriesId];
+    if (!tags || tags.length === 0) {
+      missingTags.push(seriesId);
+      continue;
+    }
+
+    const segmentName = selectSegment(tags);
+    segmentMap[segmentName].push({ id: seriesId, name: seriesId, tags });
+  }
+
+  const segments = FRED_SEGMENT_ORDER
+    .map((name) => ({ name, series: segmentMap[name] }))
+    .filter((segment) => segment.series.length > 0);
+
+  return {
+    segments,
+    missingTags,
+    totalSeries: allSeriesIds.size,
+  };
+}
 
 // =============================================================================
 // BRONZE HELPER FUNCTIONS
@@ -174,7 +304,7 @@ function computeRowHash(seriesId: string, date: string, value: number): string {
 /**
  * Create a new ingest run record
  */
-async function createIngestRun(client: any, jobName: string): Promise<string> {
+async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at)
      VALUES ($1, 'running', NOW())
@@ -188,7 +318,7 @@ async function createIngestRun(client: any, jobName: string): Promise<string> {
  * Update ingest run with final counts
  */
 async function updateIngestRun(
-  client: any,
+  client: PoolClient,
   runId: string,
   status: string,
   rowsAttempted: number,
@@ -215,7 +345,7 @@ async function updateIngestRun(
  * Quarantine an invalid record
  */
 async function quarantineRecord(
-  client: any,
+  client: PoolClient,
   runId: string,
   sourceTable: string,
   payload: object,
@@ -233,7 +363,7 @@ async function quarantineRecord(
 /**
  * Check if row hash already exists in database
  */
-async function hashExists(client: any, rowHash: string): Promise<boolean> {
+async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
   const result = await client.query(
     `SELECT 1 FROM raw.fred_observations_1d WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
@@ -245,7 +375,7 @@ async function hashExists(client: any, rowHash: string): Promise<boolean> {
  * Check for existing observation with different value (revision detection)
  */
 async function getLatestRevision(
-  client: any,
+  client: PoolClient,
   seriesId: string,
   eventDate: string
 ): Promise<{ value: number; revisionNo: number } | null> {
@@ -305,6 +435,130 @@ async function fetchFredSeries(
 }
 
 // =============================================================================
+// SEGMENTED INGEST HELPERS
+// =============================================================================
+
+async function ingestFredSegment(
+  client: PoolClient,
+  runId: string,
+  apiKey: string,
+  seriesList: FredSeriesConfig[]
+): Promise<FredSegmentSummary> {
+  const results: FredIngestResult[] = [];
+  let attempted = 0;
+  let inserted = 0;
+  let skipped = 0;
+  let quarantined = 0;
+
+  for (const series of seriesList) {
+    attempted++;
+
+    try {
+      const obs = await fetchFredSeries(series.id, apiKey);
+
+      if (!obs) {
+        results.push({ series: series.id, status: "no_data" });
+        skipped++;
+        continue;
+      }
+
+      const value = parseFloat(obs.value);
+
+      if (isNaN(value)) {
+        await quarantineRecord(
+          client,
+          runId,
+          "raw.fred_observations_1d",
+          { series_id: series.id, date: obs.date, raw_value: obs.value },
+          ["Invalid numeric value: " + obs.value],
+          "error"
+        );
+        results.push({ series: series.id, status: "quarantined_invalid_value" });
+        quarantined++;
+        continue;
+      }
+
+      const rowHash = computeRowHash(series.id, obs.date, value);
+
+      if (await hashExists(client, rowHash)) {
+        results.push({ series: series.id, status: "skipped_duplicate" });
+        skipped++;
+        continue;
+      }
+
+      const existing = await getLatestRevision(client, series.id, obs.date);
+      let revisionNo = 1;
+      if (existing && existing.value !== value) {
+        revisionNo = existing.revisionNo + 1;
+      }
+
+      await client.query(
+        `INSERT INTO raw.fred_observations_1d (
+           series_id,
+           value,
+           event_date,
+           knowledge_time,
+           revision_no,
+           is_preliminary,
+           validation_status,
+           source,
+           source_url,
+           ingestion_batch_id,
+           row_hash,
+           specialist_tags
+         ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          series.id,
+          value,
+          obs.date,
+          revisionNo,
+          false,
+          "validated",
+          "fred_api",
+          `https://fred.stlouisfed.org/series/${series.id}`,
+          runId,
+          rowHash,
+          series.tags,
+        ]
+      );
+
+      results.push({
+        series: series.id,
+        status: revisionNo > 1 ? "inserted_revision" : "inserted",
+        value,
+        tags: series.tags,
+      });
+      inserted++;
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      await quarantineRecord(
+        client,
+        runId,
+        "raw.fred_observations_1d",
+        { series_id: series.id, error: errorMsg },
+        ["Fetch/insert error: " + errorMsg],
+        "error"
+      );
+
+      results.push({ series: series.id, status: "error" });
+      quarantined++;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, FRED_RATE_LIMIT_MS));
+  }
+
+  return {
+    results,
+    attempted,
+    inserted,
+    skipped,
+    quarantined,
+  };
+}
+
+// =============================================================================
 // MAIN INNGEST FUNCTION
 // =============================================================================
 
@@ -312,7 +566,7 @@ async function fetchFredSeries(
  * FRED Daily Bronze Ingestion
  * 
  * Runs daily at 10:00 AM ET (3PM UTC) after FRED updates.
- * Ingests 76 FRED series with Bronze contract compliance.
+ * Ingests all configured FRED series plus any series already present in raw.fred_observations_1d.
  */
 export const fredDaily = inngest.createFunction(
   { 
@@ -336,7 +590,7 @@ export const fredDaily = inngest.createFunction(
     let rowsInserted = 0;
     let rowsSkipped = 0;
     let rowsQuarantined = 0;
-    const results: { series: string; status: string; value?: number; tags?: string[] }[] = [];
+    let results: FredIngestResult[] = [];
 
     try {
       // Step 1: Create ingest run record
@@ -346,117 +600,36 @@ export const fredDaily = inngest.createFunction(
 
       logger.info(`Started ingest run: ${runId}`);
 
-      // Step 2: Process each FRED series
-      for (const series of FRED_SERIES) {
-        await step.run(`ingest-${series.id}`, async () => {
-          rowsAttempted++;
+      const seriesIndex = await step.run("load-series-index", async () => {
+        const dbSeriesIds = await fetchDbSeriesIds(client);
+        const dbTags = await fetchDbSeriesTags(client);
+        return buildDynamicSegments(dbSeriesIds, dbTags);
+      });
 
-          try {
-            // Fetch from FRED API
-            const obs = await fetchFredSeries(series.id, apiKey);
+      logger.info(
+        `Loaded ${seriesIndex.totalSeries} series across ${seriesIndex.segments.length} segments`
+      );
+      if (seriesIndex.missingTags.length > 0) {
+        logger.warn(
+          `Series missing tags (skipped): ${seriesIndex.missingTags.join(", ")}`
+        );
+      }
 
-            if (!obs) {
-              results.push({ series: series.id, status: "no_data" });
-              rowsSkipped++;
-              return;
-            }
-
-            const value = parseFloat(obs.value);
-
-            // Validate value
-            if (isNaN(value)) {
-              await quarantineRecord(
-                client,
-                runId!,
-                "raw.fred_observations_1d",
-                { series_id: series.id, date: obs.date, raw_value: obs.value },
-                ["Invalid numeric value: " + obs.value],
-                "error"
-              );
-              results.push({ series: series.id, status: "quarantined_invalid_value" });
-              rowsQuarantined++;
-              return;
-            }
-
-            // Compute row hash for idempotency
-            const rowHash = computeRowHash(series.id, obs.date, value);
-
-            // Check if exact same data already exists (skip duplicate)
-            if (await hashExists(client, rowHash)) {
-              results.push({ series: series.id, status: "skipped_duplicate" });
-              rowsSkipped++;
-              return;
-            }
-
-            // Check for revision (same series+date, different value)
-            const existing = await getLatestRevision(client, series.id, obs.date);
-            let revisionNo = 1;
-            let supersedesId: number | null = null;
-
-            if (existing && existing.value !== value) {
-              revisionNo = existing.revisionNo + 1;
-              // Note: Would need to fetch the ID to set supersedes_id
-              // For now, we rely on revision_no ordering
-            }
-
-            // Insert new observation (append-only)
-            await client.query(
-              `INSERT INTO raw.fred_observations_1d (
-                 series_id,
-                 value,
-                 event_date,
-                 knowledge_time,
-                 revision_no,
-                 is_preliminary,
-                 validation_status,
-                 source,
-                 source_url,
-                 ingestion_batch_id,
-                 row_hash,
-                 specialist_tags
-               ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11)`,
-              [
-                series.id,
-                value,
-                obs.date,
-                revisionNo,
-                false, // FRED data is generally final
-                "validated",
-                "fred_api",
-                `https://fred.stlouisfed.org/series/${series.id}`,
-                runId,
-                rowHash,
-                series.tags,
-              ]
-            );
-
-            results.push({
-              series: series.id,
-              status: revisionNo > 1 ? "inserted_revision" : "inserted",
-              value,
-              tags: series.tags,
-            });
-            rowsInserted++;
-
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            
-            await quarantineRecord(
-              client,
-              runId!,
-              "raw.fred_observations_1d",
-              { series_id: series.id, error: errorMsg },
-              ["Fetch/insert error: " + errorMsg],
-              "error"
-            );
-
-            results.push({ series: series.id, status: "error" });
-            rowsQuarantined++;
-          }
-
-          // Rate limit: FRED allows ~120 requests/minute
-          await new Promise((resolve) => setTimeout(resolve, 100)); // FRED allows 120/min, 100ms is safe
+      // Step 2: Fetch and process FRED series in segmented batches
+      for (const segment of seriesIndex.segments) {
+        const segmentSummary = await step.run(`fetch-${segment.name}`, async () => {
+          return await ingestFredSegment(client, runId!, apiKey, segment.series);
         });
+
+        rowsAttempted += segmentSummary.attempted;
+        rowsInserted += segmentSummary.inserted;
+        rowsSkipped += segmentSummary.skipped;
+        rowsQuarantined += segmentSummary.quarantined;
+        results.push(...segmentSummary.results);
+
+        logger.info(
+          `Segment ${segment.name}: attempted=${segmentSummary.attempted}, inserted=${segmentSummary.inserted}, skipped=${segmentSummary.skipped}, quarantined=${segmentSummary.quarantined}`
+        );
       }
 
       // Step 3: Update ingest run with final counts

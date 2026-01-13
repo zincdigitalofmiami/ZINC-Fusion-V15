@@ -97,7 +97,7 @@ export const yahooEod = inngest.createFunction(
             status: "success",
             close: quote.regularMarketPrice,
           });
-        } catch (error) {
+        } catch {
           results.push({
             symbol: config.db,
             status: "error",
