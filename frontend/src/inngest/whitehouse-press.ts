@@ -138,7 +138,7 @@ async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
     const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
     const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
     const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/);
-    const descMatch = itemXml.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>|<description>(.*?)<\/description>/s);
+    const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>|<description>([\s\S]*?)<\/description>/);
 
     if (titleMatch && linkMatch) {
       items.push({

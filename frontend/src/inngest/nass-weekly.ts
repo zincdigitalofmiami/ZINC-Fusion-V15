@@ -67,12 +67,29 @@ export const nassWeekly = inngest.createFunction(
 
       const data = await step.run("fetch-api", async () => {
         const currentYear = new Date().getFullYear();
-        const response = await fetch(
-          `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`
-        );
-        if (!response.ok) throw new Error(`NASS API error: ${response.status}`);
-        const json = await response.json();
-        return json.data || [];
+        const stats = ["PRODUCTION", "YIELD", "AREA PLANTED"];
+        interface NASSRow {
+          year: number;
+          commodity_desc: string;
+          statisticcat_desc: string;
+          Value: string;
+          short_desc: string;
+        }
+        const allData: NASSRow[] = [];
+
+        for (const stat of stats) {
+          const url = `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=${encodeURIComponent(stat)}`;
+          const response = await fetch(url);
+          if (!response.ok) {
+            console.error(`NASS API error for ${stat}: ${response.status}`);
+            continue;
+          }
+          const json = await response.json();
+          if (json.data) {
+            allData.push(...json.data);
+          }
+        }
+        return allData;
       });
 
       logger.info(`Fetched ${data.length} records from NASS API`);
