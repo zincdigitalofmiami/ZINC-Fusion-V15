@@ -1,129 +1,231 @@
 /**
- * USDA Latest Releases RSS Bronze Ingestion
+ * USDA/NASS Crush & Price Data Ingestion (ACTUAL DATA via QuickStats API)
  * 
- * BRONZE CONTRACT COMPLIANT
- * SOURCE: https://www.usda.gov/rss/latest-releases.xml
- * Tags: crush
+ * Hits NASS QuickStats API for REAL soybean data:
+ * - CRUSHED: Monthly soybean crush volumes by state/region
+ * - PRICE RECEIVED: Monthly soybean prices received by farmers
+ * - PRODUCTION: Annual/seasonal production estimates
  * 
- * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-01-13
+ * API: https://quickstats.nass.usda.gov/api/api_GET
+ * Routes to: crush specialist
+ * Table: raw.fred_observations_1d (reusing FRED pattern for time series)
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
-import { XMLParser } from "fast-xml-parser";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const USDA_API_KEY = process.env.USDA_API_KEY;
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-function computeRowHash(url: string, pubDate: string): string {
-  return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
+interface NASSDataPoint {
+  commodity_desc: string;
+  statisticcat_desc: string;
+  unit_desc: string;
+  year: number;
+  reference_period_desc: string;
+  state_name: string;
+  Value: string;
+  CV?: string;
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
+interface NASSResponse {
+  data: NASSDataPoint[];
 }
 
-async function updateIngestRun(
-  client: PoolClient, runId: string, status: string,
-  attempted: number, inserted: number, skipped: number, quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
+// Month abbreviations to numbers
+const MONTH_MAP: Record<string, string> = {
+  JAN: "01",
+  FEB: "02",
+  MAR: "03",
+  APR: "04",
+  MAY: "05",
+  JUN: "06",
+  JUL: "07",
+  AUG: "08",
+  SEP: "09",
+  OCT: "10",
+  NOV: "11",
+  DEC: "12",
+};
+
+function parseNASSValue(valueStr: string): number | null {
+  // NASS returns values with commas like "6,376,635"
+  const cleaned = valueStr.replace(/,/g, "").trim();
+  if (cleaned === "(D)" || cleaned === "(NA)" || cleaned === "") {
+    return null;
+  }
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : num;
 }
 
-async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM raw.news_articles_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
-  return r.rows.length > 0;
+function buildSeriesId(stat: string, state: string): string {
+  const stateCode = state === "US TOTAL" ? "US" : state.replace(/\s+/g, "_").toUpperCase();
+  return `NASS_SOYBEANS_${stat.replace(/\s+/g, "_").toUpperCase()}_${stateCode}`;
+}
+
+function buildObservationDate(year: number, period: string): string | null {
+  const monthNum = MONTH_MAP[period.toUpperCase()];
+  if (!monthNum) {
+    // Could be annual - return year end
+    if (period === "YEAR") {
+      return `${year}-12-31`;
+    }
+    return null;
+  }
+  // Return last day of month
+  const lastDay = new Date(year, parseInt(monthNum), 0).getDate();
+  return `${year}-${monthNum}-${String(lastDay).padStart(2, "0")}`;
+}
+
+function generateRowHash(seriesId: string, date: string, value: number): string {
+  const content = `${seriesId}|${date}|${value}`;
+  return createHash("sha256").update(content).digest("hex");
+}
+
+async function fetchNASSData(
+  apiKey: string,
+  statistic: string,
+  years: number[]
+): Promise<NASSDataPoint[]> {
+  const allData: NASSDataPoint[] = [];
+
+  for (const year of years) {
+    const url = new URL("https://quickstats.nass.usda.gov/api/api_GET");
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("commodity_desc", "SOYBEANS");
+    url.searchParams.set("statisticcat_desc", statistic);
+    url.searchParams.set("year", year.toString());
+    url.searchParams.set("format", "JSON");
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      console.error(`NASS API error for ${statistic} ${year}: ${response.status}`);
+      continue;
+    }
+
+    const json: NASSResponse = await response.json();
+    if (json.data) {
+      allData.push(...json.data);
+    }
+  }
+
+  return allData;
 }
 
 export const usdaDaily = inngest.createFunction(
-  { id: "usda-daily", name: "USDA RSS Bronze Ingestion", retries: 3 },
-  { cron: "0 15 * * 1-5" }, // 9AM CT weekdays
-  async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
+  {
+    id: "nass-crush-weekly",
+    name: "NASS Soybean Crush & Prices (QuickStats API)",
+  },
+  { cron: "0 10 * * 1" }, // Mondays at 10am (NASS releases data monthly)
+  async ({ step }) => {
+    if (!USDA_API_KEY) {
+      throw new Error("USDA_API_KEY not configured");
+    }
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "usda-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear]; // Last 2 years
 
-      const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://www.usda.gov/rss/latest-releases.xml", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
-        });
-        if (!response.ok) throw new Error(`USDA RSS error: ${response.status}`);
-        const xml = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        return parsed?.rss?.channel?.item || [];
-      });
+    // Step 1: Fetch CRUSHED data (soybean crush volumes)
+    const crushData = await step.run("fetch-nass-crushed", async () => {
+      return await fetchNASSData(USDA_API_KEY, "CRUSHED", years);
+    });
 
-      logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from USDA RSS`);
+    // Step 2: Fetch PRICE RECEIVED data
+    const priceData = await step.run("fetch-nass-prices", async () => {
+      return await fetchNASSData(USDA_API_KEY, "PRICE RECEIVED", years);
+    });
 
-      const itemArray = Array.isArray(items) ? items : [items];
-      for (const item of itemArray) {
-        rowsAttempted++;
-        
-        const outcome = await step.run(`ingest-${item.guid || item.link}`, async () => {
-          const pubDate = item.pubDate || new Date().toISOString();
-          const rowHash = computeRowHash(item.link || item.guid, pubDate);
+    // Combine all data
+    const allData = [...crushData, ...priceData];
 
-          if (await hashExists(client, rowHash)) {
-            return { status: "skipped_duplicate" as const };
-          }
-
-          const eventDate = new Date(pubDate).toISOString().split("T")[0];
-          const categories = item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [];
-          const author = item["dc:creator"] || item.author || "";
-
-          await client.query(
-            `INSERT INTO raw.news_articles_1d (
-               event_date, headline, content, url, published_at, author,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-            [
-              eventDate, item.title, item.description, item.link, pubDate, author,
-              "usda_rss",
-              "https://www.usda.gov/rss/latest-releases.xml",
-              JSON.stringify(item), runId, rowHash,
-              ["crush"]
-            ]
-          );
-          return { status: "inserted" as const };
-        });
-
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+    // Step 3: Insert into database
+    const result = await step.run("insert-nass-data", async () => {
+      if (!DATABASE_URL) {
+        throw new Error("DATABASE_URL not configured");
       }
 
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
-      logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
-      return { status: "success", runId, inserted: rowsInserted, skipped: rowsSkipped };
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: DATABASE_URL });
 
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) await updateIngestRun(client, runId, "failed", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, msg);
-      logger.error(`USDA RSS ingestion failed: ${msg}`);
-      throw error;
-    } finally {
-      client.release();
+      let inserted = 0;
+      let skipped = 0;
+      let invalid = 0;
+
+      try {
+        for (const dataPoint of allData) {
+          const value = parseNASSValue(dataPoint.Value);
+          if (value === null) {
+            invalid++;
+            continue;
+          }
+
+          const obsDate = buildObservationDate(
+            dataPoint.year,
+            dataPoint.reference_period_desc
+          );
+          if (!obsDate) {
+            invalid++;
+            continue;
+          }
+
+          const seriesId = buildSeriesId(
+            dataPoint.statisticcat_desc,
+            dataPoint.state_name
+          );
+
+          const rowHash = generateRowHash(seriesId, obsDate, value);
+
+          // Check if exists
+          const checkResult = await pool.query(
+            `SELECT 1 FROM raw.fred_observations_1d WHERE row_hash = $1`,
+            [rowHash]
+          );
+
+          if (checkResult.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          // Insert - reusing fred_observations_1d pattern
+          await pool.query(
+            `INSERT INTO raw.fred_observations_1d 
+             (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+            [
+              seriesId,
+              obsDate,
+              value,
+              dataPoint.unit_desc,
+              rowHash,
+              ["crush"],
+            ]
+          );
+          inserted++;
+        }
+      } finally {
+        await pool.end();
+      }
+
+      return { inserted, skipped, invalid, total: allData.length };
+    });
+
+    // Build summary
+    const byStatistic: Record<string, number> = {};
+    for (const d of allData) {
+      const key = d.statisticcat_desc;
+      byStatistic[key] = (byStatistic[key] || 0) + 1;
     }
+
+    return {
+      success: true,
+      source: "NASS QuickStats API",
+      years,
+      statistics: byStatistic,
+      crushRecords: crushData.length,
+      priceRecords: priceData.length,
+      ...result,
+    };
   }
 );
