@@ -41,6 +41,9 @@ interface FredSegmentConfig {
   cron: string;
   series: FredSeriesConfig[];
   rateLimitMs?: number;
+  fetchTimeoutMs?: number;
+  fetchRetries?: number;
+  fetchBackoffMs?: number;
   retries?: number;
 }
 
@@ -169,6 +172,13 @@ const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
 ];
 
 const DEFAULT_FRED_RATE_LIMIT_MS = 500;
+const DEFAULT_FRED_FETCH_TIMEOUT_MS = 15000;
+const DEFAULT_FRED_FETCH_RETRIES = 2;
+const DEFAULT_FRED_FETCH_BACKOFF_MS = 750;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
   fed: {
@@ -178,7 +188,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - Fed",
     cron: "0 11 * * 1-5",
     series: FRED_FED_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 500,
+    fetchTimeoutMs: 15000,
+    fetchRetries: 2,
   },
   fx: {
     segment: "fx",
@@ -187,7 +199,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - FX",
     cron: "5 11 * * 1-5",
     series: FRED_FX_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 500,
+    fetchTimeoutMs: 15000,
+    fetchRetries: 2,
   },
   energy: {
     segment: "energy",
@@ -197,6 +211,8 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     cron: "10 11 * * 1-5",
     series: FRED_ENERGY_SERIES,
     rateLimitMs: 450,
+    fetchTimeoutMs: 12000,
+    fetchRetries: 2,
   },
   biofuel: {
     segment: "biofuel",
@@ -205,7 +221,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - Biofuel",
     cron: "15 11 * * 1-5",
     series: FRED_BIOFUEL_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 350,
+    fetchTimeoutMs: 10000,
+    fetchRetries: 2,
   },
   crush: {
     segment: "crush",
@@ -215,6 +233,8 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     cron: "20 11 * * 1-5",
     series: FRED_CRUSH_SERIES,
     rateLimitMs: 450,
+    fetchTimeoutMs: 12000,
+    fetchRetries: 2,
   },
   palm: {
     segment: "palm",
@@ -223,7 +243,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - Palm",
     cron: "25 11 * * 1-5",
     series: FRED_PALM_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 350,
+    fetchTimeoutMs: 10000,
+    fetchRetries: 2,
   },
   volatility: {
     segment: "volatility",
@@ -232,7 +254,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - Volatility",
     cron: "30 11 * * 1-5",
     series: FRED_VOLATILITY_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 400,
+    fetchTimeoutMs: 12000,
+    fetchRetries: 2,
   },
   trump_effect: {
     segment: "trump_effect",
@@ -241,7 +265,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - Trump Effect",
     cron: "35 11 * * 1-5",
     series: FRED_TRUMP_EFFECT_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 400,
+    fetchTimeoutMs: 10000,
+    fetchRetries: 2,
   },
   china: {
     segment: "china",
@@ -250,7 +276,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - China",
     cron: "40 11 * * 1-5",
     series: FRED_CHINA_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 400,
+    fetchTimeoutMs: 12000,
+    fetchRetries: 2,
   },
   general: {
     segment: "general",
@@ -259,7 +287,9 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     displayName: "FRED Daily - General",
     cron: "45 11 * * 1-5",
     series: FRED_GENERAL_SERIES,
-    rateLimitMs: 450,
+    rateLimitMs: 350,
+    fetchTimeoutMs: 10000,
+    fetchRetries: 2,
   },
 };
 
@@ -381,31 +411,111 @@ interface FredApiResponse {
   observations?: FredObservation[];
 }
 
+interface FredFetchOptions {
+  timeoutMs: number;
+  retries: number;
+  backoffMs: number;
+}
+
+type FredFetchResult =
+  | { status: "ok"; observation: FredObservation }
+  | { status: "no_data" }
+  | { status: "not_found" };
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || (status >= 500 && status <= 599);
+}
+
+function isNotFoundResponse(status: number, bodyText: string): boolean {
+  if (status === 404) return true;
+  if (status !== 400) return false;
+  const lowered = bodyText.toLowerCase();
+  return lowered.includes("series") && lowered.includes("not");
+}
+
+function getRetryDelayMs(retryAfter: string | null, attempt: number, baseBackoffMs: number): number {
+  const retryAfterSeconds = retryAfter ? Number(retryAfter) : Number.NaN;
+  const baseDelay = Number.isFinite(retryAfterSeconds)
+    ? retryAfterSeconds * 1000
+    : baseBackoffMs * Math.pow(2, attempt);
+  const jitter = Math.floor(Math.random() * 250);
+  return baseDelay + jitter;
+}
+
 /**
  * Fetch latest observation from FRED API
  */
 async function fetchFredSeries(
   seriesId: string,
-  apiKey: string
-): Promise<FredObservation | null> {
+  apiKey: string,
+  options: FredFetchOptions
+): Promise<FredFetchResult> {
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=5`;
+  let attempt = 0;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
-  }
+  while (true) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
 
-  const json: FredApiResponse = await response.json();
-  const observations = json.observations || [];
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      const bodyText = await response.text();
 
-  // Find first valid observation (skip "." values)
-  for (const obs of observations) {
-    if (obs.value !== "." && obs.value !== "") {
-      return obs;
+      if (!response.ok) {
+        if (isNotFoundResponse(response.status, bodyText)) {
+          return { status: "not_found" };
+        }
+
+        if (isRetryableStatus(response.status) && attempt < options.retries) {
+          const delayMs = getRetryDelayMs(
+            response.headers.get("retry-after"),
+            attempt,
+            options.backoffMs
+          );
+          attempt += 1;
+          await sleep(delayMs);
+          continue;
+        }
+
+        throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
+      }
+
+      if (!bodyText) {
+        return { status: "no_data" };
+      }
+
+      let json: FredApiResponse;
+      try {
+        json = JSON.parse(bodyText) as FredApiResponse;
+      } catch (error) {
+        throw new Error(
+          `FRED API invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      const observations = json.observations || [];
+
+      // Find first valid observation (skip "." values)
+      for (const obs of observations) {
+        if (obs.value !== "." && obs.value !== "") {
+          return { status: "ok", observation: obs };
+        }
+      }
+
+      return { status: "no_data" };
+    } catch (error) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      if ((isAbort || error instanceof TypeError) && attempt < options.retries) {
+        const delayMs = getRetryDelayMs(null, attempt, options.backoffMs);
+        attempt += 1;
+        await sleep(delayMs);
+        continue;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
   }
-
-  return null;
 }
 
 // =============================================================================
@@ -417,7 +527,7 @@ async function ingestFredSegment(
   runId: string,
   apiKey: string,
   seriesList: FredSeriesConfig[],
-  rateLimitMs: number
+  options: FredFetchOptions & { rateLimitMs: number }
 ): Promise<FredSegmentSummary> {
   const results: FredIngestResult[] = [];
   let attempted = 0;
@@ -429,14 +539,21 @@ async function ingestFredSegment(
     attempted++;
 
     try {
-      const obs = await fetchFredSeries(series.id, apiKey);
+      const fetchResult = await fetchFredSeries(series.id, apiKey, options);
 
-      if (!obs) {
+      if (fetchResult.status === "not_found") {
+        results.push({ series: series.id, status: "not_found" });
+        skipped++;
+        continue;
+      }
+
+      if (fetchResult.status === "no_data") {
         results.push({ series: series.id, status: "no_data" });
         skipped++;
         continue;
       }
 
+      const obs = fetchResult.observation;
       const value = parseFloat(obs.value);
 
       if (isNaN(value)) {
@@ -521,7 +638,7 @@ async function ingestFredSegment(
       quarantined++;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, rateLimitMs));
+    await sleep(options.rateLimitMs);
   }
 
   return {
@@ -569,12 +686,20 @@ function createFredSegmentJob(config: FredSegmentConfig) {
 
         const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
           const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
+          const timeoutMs = config.fetchTimeoutMs ?? DEFAULT_FRED_FETCH_TIMEOUT_MS;
+          const retries = config.fetchRetries ?? DEFAULT_FRED_FETCH_RETRIES;
+          const backoffMs = config.fetchBackoffMs ?? DEFAULT_FRED_FETCH_BACKOFF_MS;
           return await ingestFredSegment(
             client,
             runId!,
             apiKey,
             config.series,
-            rateLimitMs
+            {
+              rateLimitMs,
+              timeoutMs,
+              retries,
+              backoffMs,
+            }
           );
         });
 
