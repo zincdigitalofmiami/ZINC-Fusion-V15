@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["analytics", "gold", "metadata", "model", "ops", "raw", "silver", "training"]
+  schemas  = ["analytics", "archive", "features", "forecasts", "gold", "metadata", "model", "ops", "raw", "silver", "training"]
 }
 
 model CftcCot1w {
@@ -1864,12 +1864,14 @@ model cftc_cits_1w {
   ingestion_batch_id      String?   @db.Uuid
   row_hash                String?
   specialist_tags         String[]  @default([])
+  event_date              DateTime  @db.Date
 
   @@unique([report_date, contract_code, report_type])
   @@index([row_hash], map: "idx_cftc_cits_row_hash")
   @@index([report_date], map: "idx_cits_date")
   @@index([report_date, symbol], map: "idx_cits_date_symbol")
   @@index([symbol], map: "idx_cits_symbol")
+  @@index([event_date], map: "idx_cftc_cits_event_date")
   @@schema("raw")
 }
 
@@ -1925,6 +1927,7 @@ model legislation_federal_register_1d {
   ingestion_batch_id                    String?                           @db.Uuid
   row_hash                              String
   specialist_tags                       String[]
+  source                                String?
   legislation_federal_register_1d       legislation_federal_register_1d?  @relation("legislation_federal_register_1dTolegislation_federal_register_1d", fields: [supersedes_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   other_legislation_federal_register_1d legislation_federal_register_1d[] @relation("legislation_federal_register_1dTolegislation_federal_register_1d")
 
@@ -1932,6 +1935,164 @@ model legislation_federal_register_1d {
   @@index([event_date], map: "idx_fed_reg_event_date")
   @@index([row_hash], map: "idx_fed_reg_row_hash")
   @@index([specialist_tags], map: "idx_fed_reg_tags", type: Gin)
+  @@schema("raw")
+}
+
+model aei_articles_event {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date         DateTime  @db.Date
+  title              String?
+  description        String?
+  link               String?
+  pub_date           DateTime? @db.Timestamptz(6)
+  guid               String?
+  author             String?
+  categories         String[]
+  knowledge_time     DateTime  @default(now()) @db.Timestamptz(6)
+  revision_no        Int       @default(1)
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated")
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String
+  specialist_tags    String[]
+  source             String?
+
+  @@index([row_hash], map: "idx_aei_hash")
+  @@index([specialist_tags], map: "idx_aei_tags", type: Gin)
+  @@schema("raw")
+}
+
+model cbp_trade_event {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date         DateTime  @db.Date
+  title              String?
+  description        String?
+  link               String?
+  pub_date           DateTime? @db.Timestamptz(6)
+  guid               String?
+  knowledge_time     DateTime  @default(now()) @db.Timestamptz(6)
+  revision_no        Int       @default(1)
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated")
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String
+  specialist_tags    String[]
+  source             String?
+
+  @@index([row_hash], map: "idx_cbp_trade_hash")
+  @@index([specialist_tags], map: "idx_cbp_trade_tags", type: Gin)
+  @@schema("raw")
+}
+
+model conab_news_event {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date         DateTime  @db.Date
+  title              String?
+  description        String?
+  link               String?
+  pub_date           DateTime? @db.Timestamptz(6)
+  guid               String?
+  knowledge_time     DateTime  @default(now()) @db.Timestamptz(6)
+  revision_no        Int       @default(1)
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated")
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String
+  specialist_tags    String[]
+  source             String?
+
+  @@index([row_hash], map: "idx_conab_hash")
+  @@index([specialist_tags], map: "idx_conab_tags", type: Gin)
+  @@schema("raw")
+}
+
+model farmdoc_articles_event {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date         DateTime  @db.Date
+  title              String?
+  description        String?
+  link               String?
+  pub_date           DateTime? @db.Timestamptz(6)
+  guid               String?
+  author             String?
+  categories         String[]
+  knowledge_time     DateTime  @default(now()) @db.Timestamptz(6)
+  revision_no        Int       @default(1)
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated")
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String
+  specialist_tags    String[]
+  source             String?
+
+  @@index([row_hash], map: "idx_farmdoc_hash")
+  @@index([specialist_tags], map: "idx_farmdoc_tags", type: Gin)
+  @@schema("raw")
+}
+
+model ice_releases_event {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date         DateTime  @db.Date
+  title              String?
+  description        String?
+  link               String?
+  pub_date           DateTime? @db.Timestamptz(6)
+  guid               String?
+  knowledge_time     DateTime  @default(now()) @db.Timestamptz(6)
+  revision_no        Int       @default(1)
+  is_preliminary     Boolean?  @default(false)
+  validation_status  String?   @default("validated")
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String
+  specialist_tags    String[]
+  source             String?
+
+  @@index([row_hash], map: "idx_ice_releases_hash")
+  @@index([specialist_tags], map: "idx_ice_releases_tags", type: Gin)
+  @@schema("raw")
+}
+
+model nyfed_rates_1d {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_date           DateTime         @db.Date
+  rate_type            String
+  percent_rate         Decimal?         @db.Decimal(10, 6)
+  percentile_1         Decimal?         @db.Decimal(10, 6)
+  percentile_25        Decimal?         @db.Decimal(10, 6)
+  percentile_75        Decimal?         @db.Decimal(10, 6)
+  percentile_99        Decimal?         @db.Decimal(10, 6)
+  volume_billions      Decimal?         @db.Decimal(12, 3)
+  footnote_id          String?
+  knowledge_time       DateTime         @default(now()) @db.Timestamptz(6)
+  revision_no          Int              @default(1)
+  supersedes_id        String?          @db.Uuid
+  is_preliminary       Boolean?         @default(false)
+  validation_status    String?          @default("validated")
+  quality_score        Decimal?         @default(1.0) @db.Decimal(3, 2)
+  anomaly_flags        String[]         @default([])
+  source_url           String?
+  raw_payload          Json?
+  ingestion_batch_id   String?          @db.Uuid
+  row_hash             String
+  specialist_tags      String[]
+  source               String?
+  nyfed_rates_1d       nyfed_rates_1d?  @relation("nyfed_rates_1dTonyfed_rates_1d", fields: [supersedes_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_nyfed_rates_1d nyfed_rates_1d[] @relation("nyfed_rates_1dTonyfed_rates_1d")
+
+  @@index([row_hash], map: "idx_nyfed_row_hash")
+  @@index([specialist_tags], map: "idx_nyfed_tags", type: Gin)
+  @@index([event_date], map: "idx_nyfed_event_date")
+  @@index([rate_type], map: "idx_nyfed_rate_type")
   @@schema("raw")
 }
 
@@ -1958,10 +2119,12 @@ model news_articles_event {
   ingestion_batch_id String?   @db.Uuid
   row_hash           String?
   specialist_tags    String[]  @default([])
+  event_date         DateTime  @db.Date
 
   @@index([archived_at], map: "idx_archive_date")
   @@index([original_id], map: "idx_archive_original_id")
   @@index([row_hash], map: "idx_newsarticlesevent_row_hash")
+  @@index([event_date], map: "idx_news_articles_event_date")
   @@schema("raw")
 }
 
@@ -1993,9 +2156,11 @@ model usda_nass_event {
   ingestion_batch_id String?   @db.Uuid
   row_hash           String?
   specialist_tags    String[]  @default([])
+  event_date         DateTime  @db.Date
 
   @@unique([commodity_desc, short_desc, year, state_alpha], map: "usda_nass_1y_commodity_desc_short_desc_year_state_alpha_key")
   @@index([row_hash], map: "idx_usdanassevent_row_hash")
+  @@index([event_date], map: "idx_usda_nass_event_date")
   @@schema("raw")
 }
 
@@ -2020,9 +2185,11 @@ model whitehouse_actions_event {
   ingestion_batch_id String?   @db.Uuid
   row_hash           String?
   specialist_tags    String[]  @default([])
+  event_date         DateTime  @db.Date
 
   @@unique([action_date, action_type, title])
   @@index([row_hash], map: "idx_whitehouseactionsevent_row_hash")
+  @@index([event_date], map: "idx_whitehouse_actions_event_date")
   @@schema("raw")
 }
 
@@ -2059,4 +2226,245 @@ model news_scored_1d {
   @@index([canonical_bucket], map: "idx_silver_news_canonical")
   @@index([published_at], map: "idx_silver_news_published")
   @@schema("silver")
+}
+
+model zl_price_1h {
+  timestamp  DateTime @id @db.Timestamptz(6)
+  open       Decimal  @db.Decimal(10, 4)
+  high       Decimal  @db.Decimal(10, 4)
+  low        Decimal  @db.Decimal(10, 4)
+  close      Decimal  @db.Decimal(10, 4)
+  volume     BigInt   @default(0)
+  source     String   @default("yahoo") @db.VarChar(50)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp(sort: Desc)], map: "idx_zl_price_1h_ts")
+  @@schema("analytics")
+}
+
+model public_intraday_prices {
+  id             Int       @id(map: "intraday_prices_pkey") @default(autoincrement())
+  symbol         String    @db.VarChar(20)
+  timestamp      DateTime  @db.Timestamptz(6)
+  open           Float
+  high           Float
+  low            Float
+  close          Float
+  volume         Int?
+  previous_close Float?
+  change         Float?
+  change_percent Float?
+  day_high       Float?
+  day_low        Float?
+  source         String?   @default("yahoo") @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([symbol, timestamp], map: "intraday_prices_symbol_timestamp_key")
+  @@index([symbol], map: "idx_intraday_symbol")
+  @@index([symbol, timestamp], map: "idx_intraday_symbol_ts")
+  @@index([timestamp], map: "idx_intraday_ts")
+  @@schema("archive")
+}
+
+model public_latest_prices {
+  id             Int       @id(map: "latest_prices_pkey") @default(autoincrement())
+  symbol         String    @unique(map: "latest_prices_symbol_key") @db.VarChar(20)
+  price          Float
+  previous_close Float?
+  change         Float?
+  change_percent Float?
+  day_high       Float?
+  day_low        Float?
+  day_open       Float?
+  volume         Int?
+  timestamp      DateTime  @db.Timestamptz(6)
+  market_state   String?   @db.VarChar(20)
+  source         String?   @default("yahoo") @db.VarChar(50)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([symbol], map: "idx_latest_symbol")
+  @@schema("archive")
+}
+
+model trump_effect_1d {
+  id                     Int       @id @default(autoincrement())
+  as_of_date             DateTime  @unique @db.Date
+  eo_count_7d            Int?      @default(0)
+  eo_count_30d           Int?      @default(0)
+  proclamation_count_7d  Int?      @default(0)
+  proclamation_count_30d Int?      @default(0)
+  nomination_count_7d    Int?      @default(0)
+  nomination_count_30d   Int?      @default(0)
+  memorandum_count_7d    Int?      @default(0)
+  memorandum_count_30d   Int?      @default(0)
+  total_actions_7d       Int?      @default(0)
+  total_actions_30d      Int?      @default(0)
+  avg_sentiment_7d       Float?
+  avg_sentiment_30d      Float?
+  action_velocity        Float?
+  action_acceleration    Float?
+  weighted_action_score  Float?
+  created_at             DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([as_of_date], map: "idx_trump_effect_as_of_date")
+  @@schema("features")
+}
+
+model ai_decision_1d {
+  id                Int       @id @default(autoincrement())
+  forecast_date     DateTime  @db.Date
+  horizon_days      Int
+  opp               Float?
+  ruin              Float?
+  calibrated_p10    Float?
+  calibrated_p90    Float?
+  coverage_error    Float?
+  regime            String?   @db.VarChar(20)
+  regime_multiplier Float?    @default(1.0)
+  urgency_score     Float?
+  posture_label     String?   @db.VarChar(20)
+  posture_message   String?
+  narrative         String?
+  top_driver_1      String?   @db.VarChar(50)
+  top_driver_2      String?   @db.VarChar(50)
+  top_driver_3      String?   @db.VarChar(50)
+  recommended_pace  String?   @db.VarChar(20)
+  model_version     String?   @db.VarChar(50)
+  ai_model          String?   @db.VarChar(50)
+  generated_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([forecast_date, horizon_days])
+  @@index([forecast_date], map: "idx_ai_decision_forecast_date")
+  @@schema("forecasts")
+}
+
+model core_cone_1d {
+  id            Int       @id @default(autoincrement())
+  forecast_date DateTime  @db.Date
+  horizon_days  Int
+  target_date   DateTime  @db.Date
+  p10           Float
+  p50           Float
+  p90           Float
+  model_version String?   @default("chronos2-v1") @db.VarChar(50)
+  config_hash   String?   @db.VarChar(64)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([forecast_date, horizon_days])
+  @@index([forecast_date], map: "idx_core_cone_forecast_date")
+  @@schema("forecasts")
+}
+
+model core_mc_1d {
+  id            Int       @id @default(autoincrement())
+  forecast_date DateTime  @db.Date
+  horizon_days  Int
+  s0            Float
+  q10           Float
+  q50           Float
+  q90           Float
+  mu_annual     Float?
+  sigma_annual  Float?
+  mc_p10_final  Float?
+  mc_p50_final  Float?
+  mc_p90_final  Float?
+  mc_min_p10    Float?
+  mc_max_p90    Float?
+  opp           Float?
+  ruin          Float?
+  var_95        Float?
+  cvar_95       Float?
+  runs          Int?      @default(5000)
+  seed          Int?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([forecast_date, horizon_days])
+  @@index([forecast_date], map: "idx_core_mc_forecast_date")
+  @@schema("forecasts")
+}
+
+model forecast_quantiles {
+  id            Int       @id @default(autoincrement())
+  model_name    String
+  horizon       Int
+  forecast_date DateTime  @db.Date
+  target_date   DateTime  @db.Date
+  symbol        String?   @default("ZL")
+  p10           Decimal?  @db.Decimal(18, 6)
+  p50           Decimal?  @db.Decimal(18, 6)
+  p90           Decimal?  @db.Decimal(18, 6)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("forecasts")
+}
+
+model garch_forecasts {
+  id              Int       @id @default(autoincrement())
+  symbol          String    @db.VarChar(20)
+  as_of_date      DateTime  @db.Date
+  horizon         Int
+  conditional_vol Float
+  annualized_vol  Float
+  var_01          Float?
+  var_05          Float?
+  cvar_05         Float?
+  vol_lower       Float?
+  vol_upper       Float?
+  model_type      String?   @db.VarChar(50)
+  model_version   String?   @db.VarChar(100)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([symbol, as_of_date, horizon, model_version])
+  @@index([as_of_date], map: "idx_garch_forecast_date")
+  @@index([symbol], map: "idx_garch_forecast_symbol")
+  @@schema("forecasts")
+}
+
+model horizon_reconciliation_1d {
+  id                  Int       @id @default(autoincrement())
+  forecast_date       DateTime  @unique @db.Date
+  tactical_posture    String?   @db.VarChar(20)
+  short_posture       String?   @db.VarChar(20)
+  medium_posture      String?   @db.VarChar(20)
+  strategic_posture   String?   @db.VarChar(20)
+  conflict_flag       Boolean?  @default(false)
+  reconciled_guidance String?
+  priority_horizon    Int?
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+
+  @@schema("forecasts")
+}
+
+model monte_carlo_runs {
+  id            Int      @id @default(autoincrement())
+  symbol        String
+  as_of_date    DateTime
+  horizon       Int
+  num_sims      Int
+  percentiles   Json
+  correlations  Json?
+  model_version String
+  created_at    DateTime @default(now())
+
+  @@unique([symbol, as_of_date, horizon, model_version])
+  @@index([as_of_date])
+  @@index([horizon])
+  @@index([symbol])
+  @@schema("forecasts")
+}
+
+model probability_distributions {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar(20)
+  as_of_date    DateTime  @db.Date
+  horizon       Int
+  percentile    Float
+  value         Float
+  model_version String?   @db.VarChar(100)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([symbol, as_of_date, horizon, percentile])
+  @@index([as_of_date], map: "idx_prob_dist_date")
+  @@index([symbol], map: "idx_prob_dist_symbol")
+  @@schema("forecasts")
 }

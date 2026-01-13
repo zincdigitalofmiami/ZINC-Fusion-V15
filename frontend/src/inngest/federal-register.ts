@@ -33,7 +33,7 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
 
 // Database connection pool
@@ -147,7 +147,7 @@ function computeRowHash(documentNumber: string, pubDate: string): string {
 /**
  * Create a new ingest run record
  */
-async function createIngestRun(client: any, jobName: string): Promise<string> {
+async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at)
      VALUES ($1, 'running', NOW())
@@ -161,7 +161,7 @@ async function createIngestRun(client: any, jobName: string): Promise<string> {
  * Update ingest run with final counts
  */
 async function updateIngestRun(
-  client: any,
+  client: PoolClient,
   runId: string,
   status: string,
   rowsAttempted: number,
@@ -188,7 +188,7 @@ async function updateIngestRun(
  * Quarantine an invalid record
  */
 async function quarantineRecord(
-  client: any,
+  client: PoolClient,
   runId: string,
   sourceTable: string,
   payload: object,
@@ -206,7 +206,7 @@ async function quarantineRecord(
 /**
  * Check if row hash already exists in database
  */
-async function hashExists(client: any, rowHash: string): Promise<boolean> {
+async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
   const result = await client.query(
     `SELECT 1 FROM raw.legislation_federal_register_1d WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
@@ -339,9 +339,7 @@ export const federalRegisterDaily = inngest.createFunction(
 
       // Step 3: Process each document
       for (const doc of documents) {
-        await step.run(`ingest-${doc.document_number}`, async () => {
-          rowsAttempted++;
-
+        const outcome = await step.run(`ingest-${doc.document_number}`, async () => {
           try {
             // Validate required fields
             if (!doc.document_number || !doc.publication_date) {
@@ -353,9 +351,7 @@ export const federalRegisterDaily = inngest.createFunction(
                 ["Missing required fields: document_number or publication_date"],
                 "error"
               );
-              results.push({ docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" });
-              rowsQuarantined++;
-              return;
+              return { docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" as const };
             }
 
             // Compute row hash for idempotency
@@ -363,9 +359,7 @@ export const federalRegisterDaily = inngest.createFunction(
 
             // Check if exact same data already exists (skip duplicate)
             if (await hashExists(client, rowHash)) {
-              results.push({ docNumber: doc.document_number, status: "skipped_duplicate" });
-              rowsSkipped++;
-              return;
+              return { docNumber: doc.document_number, status: "skipped_duplicate" as const };
             }
 
             // Extract agencies
@@ -394,12 +388,13 @@ export const federalRegisterDaily = inngest.createFunction(
                  revision_no,
                  is_preliminary,
                  validation_status,
+                 source,
                  source_url,
                  raw_payload,
                  ingestion_batch_id,
                  row_hash,
                  specialist_tags
-               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 1, false, 'validated', $9, $10, $11, $12, $13)`,
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 1, false, 'validated', $9, $10, $11, $12, $13, $14)`,
               [
                 doc.publication_date,      // event_date
                 doc.document_number,       // document_number
@@ -409,6 +404,7 @@ export const federalRegisterDaily = inngest.createFunction(
                 agencies,                  // agency[]
                 doc.publication_date,      // publication_date
                 doc.effective_on,          // effective_date
+                "federal_register_api",    // source
                 doc.html_url,              // source_url
                 JSON.stringify(doc),       // raw_payload
                 runId,                     // ingestion_batch_id
@@ -417,12 +413,7 @@ export const federalRegisterDaily = inngest.createFunction(
               ]
             );
 
-            results.push({
-              docNumber: doc.document_number,
-              status: "inserted",
-              tags,
-            });
-            rowsInserted++;
+            return { docNumber: doc.document_number, status: "inserted" as const, tags };
 
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
@@ -436,10 +427,19 @@ export const federalRegisterDaily = inngest.createFunction(
               "error"
             );
 
-            results.push({ docNumber: doc.document_number, status: "error" });
-            rowsQuarantined++;
+            return { docNumber: doc.document_number || "UNKNOWN", status: "error" as const };
           }
         });
+
+        rowsAttempted++;
+        results.push(outcome);
+        if (outcome.status === "inserted") {
+          rowsInserted++;
+        } else if (outcome.status === "skipped_duplicate") {
+          rowsSkipped++;
+        } else {
+          rowsQuarantined++;
+        }
       }
 
       // Step 4: Update ingest run with final counts

@@ -11,7 +11,7 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
 
@@ -24,7 +24,7 @@ function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
 }
 
-async function createIngestRun(client: any, jobName: string): Promise<string> {
+async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
     [jobName]
@@ -33,7 +33,7 @@ async function createIngestRun(client: any, jobName: string): Promise<string> {
 }
 
 async function updateIngestRun(
-  client: any, runId: string, status: string,
+  client: PoolClient, runId: string, status: string,
   attempted: number, inserted: number, skipped: number, quarantined: number,
   errorMessage?: string
 ): Promise<void> {
@@ -44,7 +44,7 @@ async function updateIngestRun(
   );
 }
 
-async function hashExists(client: any, table: string, hash: string): Promise<boolean> {
+async function hashExists(client: PoolClient, table: string, hash: string): Promise<boolean> {
   const r = await client.query(`SELECT 1 FROM ${table} WHERE row_hash=$1 LIMIT 1`, [hash]);
   return r.rows.length > 0;
 }
@@ -72,6 +72,7 @@ export const conabNewsDaily = inngest.createFunction(
             revision_no INTEGER NOT NULL DEFAULT 1,
             is_preliminary BOOLEAN DEFAULT false,
             validation_status TEXT DEFAULT 'validated',
+            source TEXT,
             source_url TEXT,
             raw_payload JSONB,
             ingestion_batch_id UUID,
@@ -102,15 +103,13 @@ export const conabNewsDaily = inngest.createFunction(
 
       const itemArray = Array.isArray(items) ? items : (items ? [items] : []);
       for (const item of itemArray) {
-        await step.run(`ingest-${item.guid || item.link || item.id}`, async () => {
-          rowsAttempted++;
+        const outcome = await step.run(`ingest-${item.guid || item.link || item.id}`, async () => {
           const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
           const link = item.link?.["@_href"] || item.link || "";
           const rowHash = computeRowHash(link || item.guid || item.id, pubDate);
 
           if (await hashExists(client, "raw.conab_news_event", rowHash)) {
-            rowsSkipped++;
-            return;
+            return { status: "skipped_duplicate" as const };
           }
 
           const eventDate = new Date(pubDate).toISOString().split("T")[0];
@@ -120,17 +119,25 @@ export const conabNewsDaily = inngest.createFunction(
           await client.query(
             `INSERT INTO raw.conab_news_event (
                event_date, title, description, link, pub_date, guid,
-               source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
             [
               eventDate, title, description, link, pubDate, item.guid || item.id,
+              "conab_rss",
               "https://www.conab.gov.br/rss",
               JSON.stringify(item), runId, rowHash,
               ["crush", "china"]
             ]
           );
-          rowsInserted++;
+          return { status: "inserted" as const };
         });
+
+        rowsAttempted++;
+        if (outcome.status === "inserted") {
+          rowsInserted++;
+        } else {
+          rowsSkipped++;
+        }
       }
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));

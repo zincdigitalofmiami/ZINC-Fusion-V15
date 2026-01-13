@@ -3,13 +3,13 @@ const prisma = new PrismaClient();
 
 async function audit() {
   const tables = [
-    { name: 'raw.market_futures_1d', dateCol: 'trade_date' },
-    { name: 'raw.market_futures_1h', dateCol: 'bar_time' },
-    { name: 'raw.fx_spot_1d', dateCol: 'trade_date' },
-    { name: 'raw.fred_observations_1d', dateCol: 'date' },
-    { name: 'raw.cftc_cot_1w', dateCol: 'report_date' },
-    { name: 'raw.whitehouse_actions_event', dateCol: 'publication_date' },
-    { name: 'raw.legislation_federal_register_1d', dateCol: 'publication_date' },
+    { name: 'raw.market_futures_1d', dateCol: 'event_date' },
+    { name: 'raw.market_futures_1h', dateCol: 'event_time' },
+    { name: 'raw.fx_spot_1d', dateCol: 'event_date' },
+    { name: 'raw.fred_observations_1d', dateCol: 'event_date' },
+    { name: 'raw.cftc_cot_1w', dateCol: 'event_date' },
+    { name: 'raw.whitehouse_actions_event', dateCol: 'event_date' },
+    { name: 'raw.legislation_federal_register_1d', dateCol: 'event_date' },
     { name: 'ops.ingest_run', dateCol: 'started_at' }
   ];
   
