@@ -24,3 +24,4 @@ export { whitehouseDaily } from "./whitehouse-press";
 export { usdaDaily } from "./usda-press";
 export { eiaDaily } from "./eia-today";
 export { nassWeekly } from "./nass-weekly";
+export { glideVegasSync } from "./glide-vegas";

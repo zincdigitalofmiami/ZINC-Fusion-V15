@@ -1,8 +1,8 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { 
-  zlPrice, 
-  yahooEod, 
+import {
+  zlPrice,
+  yahooEod,
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -13,7 +13,7 @@ import {
   fredDailyTrumpEffect,
   fredDailyChina,
   fredDailyGeneral,
-  cftcWeekly, 
+  cftcWeekly,
   federalRegisterDaily,
   nyfedDaily,
   cbpTradeDaily,
@@ -25,6 +25,7 @@ import {
   usdaDaily,
   eiaDaily,
   nassWeekly,
+  glideVegasSync,
 } from "@/inngest/functions";
 
 /**
@@ -91,6 +92,7 @@ export const { GET, POST, PUT } = serve({
     usdaDaily,
     eiaDaily,
     nassWeekly,
+    glideVegasSync,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
