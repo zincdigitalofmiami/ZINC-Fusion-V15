@@ -14,9 +14,9 @@ interface PriceData {
 
 // Simplified ranges as requested: 1M, 3M, 6M
 const TIME_RANGES = [
-  { id: '1M', label: '1M', interval: '1h', range: '1mo' },
-  { id: '3M', label: '3M', interval: '1d', range: '3mo' },
-  { id: '6M', label: '6M', interval: '1d', range: '6mo' },
+  { id: '1M', label: '1 Month', interval: '1h', range: '1mo' },
+  { id: '3M', label: '3 Month', interval: '1d', range: '3mo' },
+  { id: '6M', label: '6 Month', interval: '1d', range: '6mo' },
 ]
 
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
