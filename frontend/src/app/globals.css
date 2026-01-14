@@ -964,7 +964,7 @@ html, body {
   align-items: center;
   position: relative;
   background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-  margin-top: 108px;
+  padding-top: 128px;
 }
 
 .hero-container {
