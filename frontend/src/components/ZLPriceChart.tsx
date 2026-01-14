@@ -112,19 +112,19 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
     
     areaSeries.setData(sortedData)
 
-    // 4. Add horizontal price line (dotted behind, solid forward)
+    // 4. Add horizontal price line (dotted behind, solid forward to axis)
     if (sortedData.length > 0 && lastPrice !== null) {
       const lastDataTime = sortedData[sortedData.length - 1].time
       const firstDataTime = sortedData[0].time
       
-      // Calculate future time (add ~15% more time to the right)
+      // Calculate future time to extend to far right edge
       const timeSpan = lastDataTime - firstDataTime
-      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.15)) as UTCTimestamp
+      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.25)) as UTCTimestamp
 
-      // Dotted line for historical (behind)
+      // Dotted line for historical (behind) - thicker dots
       const dottedLine = chart.addSeries(LineSeries, {
-        color: 'rgba(255, 255, 255, 0.4)',
-        lineWidth: 1,
+        color: 'rgba(255, 255, 255, 0.5)',
+        lineWidth: 3,
         lineStyle: LineStyle.Dotted,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
@@ -135,9 +135,9 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
         { time: lastDataTime, value: lastPrice },
       ])
 
-      // Solid line for future (forward)
+      // Solid line for future (forward to axis)
       const solidLine = chart.addSeries(LineSeries, {
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: 'rgba(255, 255, 255, 0.9)',
         lineWidth: 2,
         lineStyle: LineStyle.Solid,
         priceLineVisible: false,
