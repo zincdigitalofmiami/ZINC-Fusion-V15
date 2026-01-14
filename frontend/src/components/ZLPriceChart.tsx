@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createChart, CandlestickSeries, ColorType } from 'lightweight-charts'
+import { createChart, AreaSeries, ColorType, IChartApi } from 'lightweight-charts'
 
 interface PriceData {
   timestamp: string
@@ -12,149 +12,143 @@ interface PriceData {
   volume: number
 }
 
-// Yahoo Finance API intervals and ranges
+// Simplified ranges as requested: 1M, 3M, 6M
 const TIME_RANGES = [
-  { id: '1D', label: '1D', interval: '5m', range: '1d' },
-  { id: '1W', label: '1W', interval: '15m', range: '5d' },
-  { id: '1M', label: '1M', interval: '1h', range: '1mo' },
-  { id: '3M', label: '3M', interval: '1d', range: '3mo' },
-  { id: '6M', label: '6M', interval: '1d', range: '6mo' },
-  { id: '1Y', label: '1Y', interval: '1wk', range: '1y' },
+  { id: '1M', label: '1 Month', interval: '1h', range: '1mo' },
+  { id: '3M', label: '3 Month', interval: '1d', range: '3mo' },
+  { id: '6M', label: '6 Month', interval: '1d', range: '6mo' },
 ]
 
-export function ZLPriceChart({ height = 600 }: { height?: number }) {
+export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
-  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[2])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const chartRef = useRef<IChartApi | null>(null)
+  
+  // Default to 1 Month view to match short-term focus usually, or 3M as requested
+  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[1])
   const [priceData, setPriceData] = useState<PriceData[]>([])
-  const [livePrice, setLivePrice] = useState<number | null>(null)
-
-  const latestPrice = livePrice || (priceData.length > 0 ? priceData[priceData.length - 1].close : null)
-  const firstPrice = priceData.length > 0 ? priceData[0].close : null
-  const pctChange = firstPrice ? ((latestPrice! - firstPrice) / firstPrice) * 100 : 0
-  const isPositive = pctChange >= 0
 
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
-      setError(null)
       try {
         const res = await fetch(`/api/zl/yahoo?interval=${selectedRange.interval}&range=${selectedRange.range}`)
         if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
-        if (json.error) throw new Error(json.error)
-        setPriceData(json.data || [])
-        setLivePrice(json.regularMarketPrice)
+        if (json.data) {
+          setPriceData(json.data)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error')
-        setPriceData([])
-      } finally {
-        setLoading(false)
+        console.error('Fetch error:', err)
       }
     }
     fetchData()
-    const interval = setInterval(fetchData, 60000)
-    return () => clearInterval(interval)
   }, [selectedRange])
 
-  // Create chart
+  // Initialize & Update Chart
   useEffect(() => {
     if (!chartContainerRef.current || priceData.length === 0) return
 
-    const containerWidth = chartContainerRef.current.clientWidth
-
-    // Dedupe and sort data
-    const dataMap = new Map<number, { time: number; open: number; high: number; low: number; close: number }>()
-    for (const d of priceData) {
-      const time = Math.floor(new Date(d.timestamp).getTime() / 1000)
-      dataMap.set(time, { time, open: d.open, high: d.high, low: d.low, close: d.close })
+    // Clean up previous chart
+    if (chartRef.current) {
+      chartRef.current.remove()
     }
-    const sortedData = Array.from(dataMap.values()).sort((a, b) => a.time - b.time)
-    const barCount = sortedData.length
 
-    // Calculate bar spacing to fill width consistently (like TradingView)
-    // Target: bars should use ~80% of width, leave some padding
-    const targetBarWidth = (containerWidth * 0.85) / barCount
-    const barSpacing = Math.max(2, Math.min(12, targetBarWidth))
-
+    // 1. Configure Chart (No interactions, clean style)
     const chart = createChart(chartContainerRef.current, {
-      width: containerWidth,
+      width: chartContainerRef.current.clientWidth,
       height: height,
       layout: {
-        background: { type: ColorType.Solid, color: '#131722' },
-        textColor: '#d1d4dc',
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: '#525252',
+        attributionLogo: false,
       },
       grid: {
-        vertLines: { color: '#1e222d' },
-        horzLines: { color: '#1e222d' },
+        vertLines: { visible: false },
+        // Very light grid (barely visible)
+        horzLines: { color: 'rgba(255, 255, 255, 0.06)' },
+      },
+      // Disable ALL mouse control
+      handleScroll: false,
+      handleScale: false,
+      crosshair: {
+        vertLine: { visible: false, labelVisible: false },
+        horzLine: { visible: false, labelVisible: false },
       },
       timeScale: {
-        barSpacing: barSpacing,
-        rightOffset: 5,
+        visible: true,
+        borderVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+        timeVisible: true,
+      },
+      rightPriceScale: {
+        borderVisible: false,
       },
     })
+    
+    chartRef.current = chart
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+    // 2. Add Area Series (Pink #ef4444 with gradient)
+    const areaSeries = chart.addSeries(AreaSeries, {
+      lineColor: '#ef4444', 
+      topColor: 'rgba(239, 68, 68, 0.4)',  // Pink 40% opacity
+      bottomColor: 'rgba(239, 68, 68, 0.0)', // Fade to transparent
+      lineWidth: 2,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
     })
 
-    candlestickSeries.setData(sortedData as any)
+    // 3. Transform Data
+    const dataMap = new Map<number, { time: number; value: number }>()
+    for (const d of priceData) {
+      const time = Math.floor(new Date(d.timestamp).getTime() / 1000)
+      // AreaSeries uses 'value'
+      dataMap.set(time, { time, value: d.close })
+    }
+    const sortedData = Array.from(dataMap.values()).sort((a, b) => a.time - b.time)
+    
+    areaSeries.setData(sortedData)
+
+    // 4. Auto-Adjust to fill view
     chart.timeScale().fitContent()
 
-    // Resize handler
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth })
-      }
-    }
-    window.addEventListener('resize', handleResize)
+    // 5. Reactive Resize
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (entries.length === 0 || !entries[0].target) return
+      const newRect = entries[0].contentRect
+      chart.applyOptions({ width: newRect.width })
+      chart.timeScale().fitContent()
+    })
+    resizeObserver.observe(chartContainerRef.current)
 
     return () => {
-      window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       chart.remove()
     }
   }, [priceData, height])
 
-  if (error) {
-    return <div className="flex items-center justify-center text-red-400" style={{ height }}>{error}</div>
-  }
-
   return (
-    <div className="relative bg-[#131722]">
-      {/* Range buttons */}
-      <div className="absolute top-2 left-2 z-10 flex gap-1">
-        {TIME_RANGES.map(range => (
+    <div className="relative w-full border border-white/5 bg-[#0b0f1a] rounded-xl overflow-hidden">
+      
+      {/* Header / Controls */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        {TIME_RANGES.map((range) => (
           <button
             key={range.id}
             onClick={() => setSelectedRange(range)}
-            className={`px-2 py-1 text-xs rounded ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
               selectedRange.id === range.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-[#2a2e39] text-gray-300 hover:bg-[#363a45]'
+                ? 'bg-[#ef4444] text-white shadow-lg' // Active Pink
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
             {range.label}
           </button>
         ))}
-        {loading && <span className="text-xs text-gray-500 ml-2">Loading...</span>}
       </div>
 
-      {/* Price display */}
-      <div className="absolute top-2 right-2 z-10 text-right">
-        <div className="text-xl font-bold text-white">${latestPrice?.toFixed(2)}</div>
-        <div className={`text-sm ${isPositive ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
-          {isPositive ? '+' : ''}{pctChange.toFixed(2)}%
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div ref={chartContainerRef} />
+      {/* Chart Container */}
+      <div ref={chartContainerRef} className="w-full" style={{ height }} />
     </div>
   )
 }
