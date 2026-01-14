@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createChart, AreaSeries, ColorType, IChartApi, UTCTimestamp } from 'lightweight-charts'
+import { createChart, AreaSeries, LineSeries, ColorType, IChartApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 
 interface PriceData {
   timestamp: string
@@ -14,18 +14,19 @@ interface PriceData {
 
 // Simplified ranges as requested: 1M, 3M, 6M
 const TIME_RANGES = [
-  { id: '1M', label: '1 Month', interval: '1h', range: '1mo' },
-  { id: '3M', label: '3 Month', interval: '1d', range: '3mo' },
-  { id: '6M', label: '6 Month', interval: '1d', range: '6mo' },
+  { id: '1M', label: '1M', interval: '1h', range: '1mo' },
+  { id: '3M', label: '3M', interval: '1d', range: '3mo' },
+  { id: '6M', label: '6M', interval: '1d', range: '6mo' },
 ]
 
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   
-  // Default to 1 Month view to match short-term focus usually, or 3M as requested
+  // Default to 3M view
   const [selectedRange, setSelectedRange] = useState(TIME_RANGES[1])
   const [priceData, setPriceData] = useState<PriceData[]>([])
+  const [lastPrice, setLastPrice] = useState<number | null>(null)
 
   // Fetch data
   useEffect(() => {
@@ -36,6 +37,10 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
         const json = await res.json()
         if (json.data) {
           setPriceData(json.data)
+          // Get last price for the horizontal line
+          if (json.data.length > 0) {
+            setLastPrice(json.data[json.data.length - 1].close)
+          }
         }
       } catch (err) {
         console.error('Fetch error:', err)
@@ -64,10 +69,8 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       },
       grid: {
         vertLines: { visible: false },
-        // Very light grid (barely visible)
         horzLines: { color: 'rgba(255, 255, 255, 0.06)' },
       },
-      // Disable ALL mouse control
       handleScroll: false,
       handleScale: false,
       crosshair: {
@@ -78,8 +81,9 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
         visible: true,
         borderVisible: false,
         fixLeftEdge: true,
-        fixRightEdge: true,
+        fixRightEdge: false, // Allow space on right
         timeVisible: true,
+        rightOffset: 12, // Pull last data point away from edge
       },
       rightPriceScale: {
         borderVisible: false,
@@ -91,8 +95,8 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
     // 2. Add Area Series (Pink #ef4444 with gradient)
     const areaSeries = chart.addSeries(AreaSeries, {
       lineColor: '#ef4444', 
-      topColor: 'rgba(239, 68, 68, 0.4)',  // Pink 40% opacity
-      bottomColor: 'rgba(239, 68, 68, 0.0)', // Fade to transparent
+      topColor: 'rgba(239, 68, 68, 0.4)',
+      bottomColor: 'rgba(239, 68, 68, 0.0)',
       lineWidth: 2,
       priceLineVisible: false,
       crosshairMarkerVisible: false,
@@ -102,17 +106,54 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
     const dataMap = new Map<number, { time: UTCTimestamp; value: number }>()
     for (const d of priceData) {
       const time = Math.floor(new Date(d.timestamp).getTime() / 1000) as UTCTimestamp
-      // AreaSeries uses 'value'
       dataMap.set(time, { time, value: d.close })
     }
     const sortedData = Array.from(dataMap.values()).sort((a, b) => a.time - b.time)
     
     areaSeries.setData(sortedData)
 
-    // 4. Auto-Adjust to fill view
+    // 4. Add horizontal price line (dotted behind, solid forward)
+    if (sortedData.length > 0 && lastPrice !== null) {
+      const lastDataTime = sortedData[sortedData.length - 1].time
+      const firstDataTime = sortedData[0].time
+      
+      // Calculate future time (add ~15% more time to the right)
+      const timeSpan = lastDataTime - firstDataTime
+      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.15)) as UTCTimestamp
+
+      // Dotted line for historical (behind)
+      const dottedLine = chart.addSeries(LineSeries, {
+        color: 'rgba(255, 255, 255, 0.4)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        lastValueVisible: false,
+      })
+      dottedLine.setData([
+        { time: firstDataTime, value: lastPrice },
+        { time: lastDataTime, value: lastPrice },
+      ])
+
+      // Solid line for future (forward)
+      const solidLine = chart.addSeries(LineSeries, {
+        color: 'rgba(255, 255, 255, 0.8)',
+        lineWidth: 2,
+        lineStyle: LineStyle.Solid,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        lastValueVisible: false,
+      })
+      solidLine.setData([
+        { time: lastDataTime, value: lastPrice },
+        { time: futureTime, value: lastPrice },
+      ])
+    }
+
+    // 5. Auto-Adjust to fill view
     chart.timeScale().fitContent()
 
-    // 5. Reactive Resize
+    // 6. Reactive Resize
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries.length === 0 || !entries[0].target) return
       const newRect = entries[0].contentRect
@@ -125,20 +166,20 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       resizeObserver.disconnect()
       chart.remove()
     }
-  }, [priceData, height])
+  }, [priceData, height, lastPrice])
 
   return (
     <div className="relative w-full border border-white/5 bg-[#0b0f1a] rounded-xl overflow-hidden">
       
-      {/* Header / Controls */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
+      {/* Time Range Buttons - Right Side */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-1">
         {TIME_RANGES.map((range) => (
           <button
             key={range.id}
             onClick={() => setSelectedRange(range)}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
               selectedRange.id === range.id
-                ? 'bg-[#ef4444] text-white shadow-lg' // Active Pink
+                ? 'bg-[#ef4444] text-white shadow-lg'
                 : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
