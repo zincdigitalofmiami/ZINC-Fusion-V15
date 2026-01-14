@@ -363,27 +363,33 @@ function FilterToggle({
 
 function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
   const isProspect = opportunity.status === 'prospect'
-  const statusColor = isProspect ? STATUS_COLORS.prospect : STATUS_COLORS.customer
+  const accentColor = isProspect ? STATUS_COLORS.prospect : '#2dd4bf' // teal for customers
 
   return (
     <div style={{ 
       display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      padding: '20px 24px',
+      alignItems: 'stretch',
       background: 'rgba(255, 255, 255, 0.02)',
       border: '1px solid rgba(255, 255, 255, 0.08)',
       borderRadius: '0px', // squared
       transition: 'all 0.2s ease',
+      overflow: 'hidden',
     }}>
-      {/* Status Dot */}
+      {/* Left Accent Bar */}
       <div style={{
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
-        background: statusColor,
+        width: '4px',
+        background: accentColor,
         flexShrink: 0,
       }} />
+      
+      {/* Content */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '20px 24px',
+        flex: 1,
+      }}>
 
       {/* Main Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -442,6 +448,7 @@ function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
       }}>
         Intel
       </button>
+      </div>
     </div>
   )
 }
@@ -454,22 +461,28 @@ function AtRiskRow({ customer }: { customer: AtRiskCustomer }) {
   return (
     <div style={{ 
       display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      padding: '20px 24px',
+      alignItems: 'stretch',
       background: 'rgba(255, 255, 255, 0.02)',
       border: '1px solid rgba(255, 255, 255, 0.08)',
       borderRadius: '0px', // squared
       transition: 'all 0.2s ease',
+      overflow: 'hidden',
     }}>
-      {/* Status Dot (amber) */}
+      {/* Left Accent Bar (amber) */}
       <div style={{
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
+        width: '4px',
         background: STATUS_COLORS.atRisk,
         flexShrink: 0,
       }} />
+      
+      {/* Content */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '20px 24px',
+        flex: 1,
+      }}>
 
       {/* Main Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -526,6 +539,7 @@ function AtRiskRow({ customer }: { customer: AtRiskCustomer }) {
       }}>
         Intel
       </button>
+      </div>
     </div>
   )
 }
