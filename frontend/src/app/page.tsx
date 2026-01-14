@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link'
+import { NeuralSphere } from '@/components/viz/NeuralSphere'
 
 export default function HomePage() {
   return (
@@ -26,27 +29,20 @@ export default function HomePage() {
                 <div className="stat-label">Specialists</div>
               </div>
               <div className="stat-item">
-                <div className="stat-number">87%</div>
-                <div className="stat-label">Confidence</div>
+                <div className="stat-number">52</div>
+                <div className="stat-label">Models</div>
               </div>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="data-cube">
-              <div className="cube-face front">
-                <div className="data-points">
-                  <div className="data-point"></div>
-                  <div className="data-point"></div>
-                  <div className="data-point"></div>
-                  <div className="data-point"></div>
-                </div>
-              </div>
-              <div className="cube-face back"></div>
-              <div className="cube-face right"></div>
-              <div className="cube-face left"></div>
-              <div className="cube-face top"></div>
-              <div className="cube-face bottom"></div>
-            </div>
+          <div className="hero-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <NeuralSphere 
+              size={450} 
+              color="#2962ff" 
+              particleColor="#ffffff"
+              wireframeOpacity={0.12}
+              particleCount={100}
+              rotationSpeed={0.0008}
+            />
           </div>
         </div>
       </section>
@@ -251,230 +247,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Signal Preview */}
-      <section className="signal-preview">
-        <div className="preview-container">
-          <h2 className="preview-title">Current Signal</h2>
-          <p className="preview-subtitle">
-            Multi-horizon forecast with probabilistic confidence bands
-          </p>
-          <div className="signal-display">
-            <div className="big-four-gauges">
-              <div className="gauge-container">
-                <div className="gauge-title">1 Week</div>
-                <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                  <defs>
-                    <linearGradient id="gaugeGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ef5350" />
-                      <stop offset="25%" stopColor="#ffb74d" />
-                      <stop offset="50%" stopColor="#ffd54f" />
-                      <stop offset="75%" stopColor="#81c784" />
-                      <stop offset="100%" stopColor="#2962FF" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 10 60 A 50 50 0 0 1 110 60"
-                    fill="none"
-                    stroke="url(#gaugeGrad1)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1="60"
-                    y1="60"
-                    x2="60"
-                    y2="20"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    transform="rotate(45 60 60)"
-                  />
-                  <circle cx="60" cy="60" r="4" fill="white" />
-                </svg>
-                <div className="gauge-subtext">BUY</div>
-                <div className="weight-contribution">$43.20 (+0.8%)</div>
-              </div>
-
-              <div className="gauge-container">
-                <div className="gauge-title">1 Month</div>
-                <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                  <defs>
-                    <linearGradient id="gaugeGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ef5350" />
-                      <stop offset="25%" stopColor="#ffb74d" />
-                      <stop offset="50%" stopColor="#ffd54f" />
-                      <stop offset="75%" stopColor="#81c784" />
-                      <stop offset="100%" stopColor="#2962FF" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 10 60 A 50 50 0 0 1 110 60"
-                    fill="none"
-                    stroke="url(#gaugeGrad2)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1="60"
-                    y1="60"
-                    x2="60"
-                    y2="20"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    transform="rotate(30 60 60)"
-                  />
-                  <circle cx="60" cy="60" r="4" fill="white" />
-                </svg>
-                <div className="gauge-subtext">BUY</div>
-                <div className="weight-contribution">$44.10 (+2.9%)</div>
-              </div>
-
-              <div className="gauge-container">
-                <div className="gauge-title">3 Month</div>
-                <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                  <defs>
-                    <linearGradient id="gaugeGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ef5350" />
-                      <stop offset="25%" stopColor="#ffb74d" />
-                      <stop offset="50%" stopColor="#ffd54f" />
-                      <stop offset="75%" stopColor="#81c784" />
-                      <stop offset="100%" stopColor="#2962FF" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 10 60 A 50 50 0 0 1 110 60"
-                    fill="none"
-                    stroke="url(#gaugeGrad3)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1="60"
-                    y1="60"
-                    x2="60"
-                    y2="20"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    transform="rotate(-10 60 60)"
-                  />
-                  <circle cx="60" cy="60" r="4" fill="white" />
-                </svg>
-                <div className="gauge-subtext">HOLD</div>
-                <div className="weight-contribution">$42.50 (-0.8%)</div>
-              </div>
-
-              <div className="gauge-container">
-                <div className="gauge-title">6 Month</div>
-                <svg className="gauge-hz-svg" viewBox="0 0 120 70">
-                  <defs>
-                    <linearGradient id="gaugeGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ef5350" />
-                      <stop offset="25%" stopColor="#ffb74d" />
-                      <stop offset="50%" stopColor="#ffd54f" />
-                      <stop offset="75%" stopColor="#81c784" />
-                      <stop offset="100%" stopColor="#2962FF" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M 10 60 A 50 50 0 0 1 110 60"
-                    fill="none"
-                    stroke="url(#gaugeGrad4)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1="60"
-                    y1="60"
-                    x2="60"
-                    y2="20"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    transform="rotate(-30 60 60)"
-                  />
-                  <circle cx="60" cy="60" r="4" fill="white" />
-                </svg>
-                <div className="gauge-subtext">WAIT</div>
-                <div className="weight-contribution">$41.80 (-2.5%)</div>
-              </div>
-            </div>
-
-            <div className="current-signal">
-              <div className="signal-item">
-                <div className="signal-value" style={{ color: '#2962FF' }}>
-                  BUY
-                </div>
-                <div className="signal-label">Composite Signal</div>
-              </div>
-              <div className="signal-item">
-                <div className="signal-value">$42.85</div>
-                <div className="signal-label">Current Price</div>
-              </div>
-              <div className="signal-item">
-                <div className="signal-value" style={{ color: '#2962FF' }}>
-                  +2.4%
-                </div>
-                <div className="signal-label">Expected Return</div>
-              </div>
-              <div className="signal-item">
-                <div className="signal-value">87%</div>
-                <div className="signal-label">Confidence</div>
-              </div>
-            </div>
-
-            <Link href="/dashboard" className="view-dashboard-link">
-              View Full Dashboard
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Primary Chart */}
-      <section className="primary-chart">
-        <div className="grid-container">
-          <div className="chart-header">
-            <div>
-              <h3 className="chart-title">ZL Continuous — Soybean Oil</h3>
-              <p className="chart-subtitle">
-                Daily OHLCV with forecast overlay
-              </p>
-            </div>
-            <div className="time-range-toggle">
-              <button className="range-btn">1W</button>
-              <button className="range-btn active">1M</button>
-              <button className="range-btn">3M</button>
-              <button className="range-btn">6M</button>
-              <button className="range-btn">1Y</button>
-            </div>
-          </div>
-          <Link href="/dashboard" className="chart-area">
-            {/* Chart will be rendered here by lightweight-charts */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                opacity: 0.5,
-              }}
-            >
-              Interactive chart — click to view dashboard
-            </div>
-            <div className="chart-cta">
-              Click to expand
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-              </svg>
-            </div>
-          </Link>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="cta-section">
         <div className="cta-container">
@@ -492,7 +264,7 @@ export default function HomePage() {
       <footer className="footer">
         <div className="footer-container">
           <p className="footer-text">
-            © 2025 ZINC FUSION. Proprietary commodity intelligence system.
+            © 2026 ZINC FUSION. Proprietary commodity intelligence system.
           </p>
         </div>
       </footer>

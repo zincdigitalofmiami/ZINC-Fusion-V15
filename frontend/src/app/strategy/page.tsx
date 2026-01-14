@@ -7,30 +7,11 @@ import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalcu
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, TrendingUp, AlertTriangle, BrainCircuit } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle } from 'lucide-react';
 
 export default function StrategyPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pb-20 animate-in fade-in duration-700">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">STRATEGY ENGINE</h1>
-          <p className="text-slate-500 text-xs font-mono mt-1 tracking-wider">
-            XAI DRIVER ATTRIBUTION • SCENARIO ANALYSIS • REGIME DETECTION
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-xs font-mono text-cyan-400 flex items-center gap-2">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500"></span>
-            </span>
-            MODEL: FUSION-V15-XAI
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
 
       {/* Top HUD: Current Posture */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -94,55 +75,32 @@ export default function StrategyPage() {
         </div>
       </div>
 
-      {/* Regime Analysis Chart (NEW - BOSS) */}
+      {/* Regime Analysis Chart */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-purple-500">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">
             Regime Analysis
           </h3>
-          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-            MARKET PHASES
-          </span>
         </div>
         <RegimeAnalysisChart height={300} />
       </div>
 
       {/* Driver Attribution - FusionBrain Bubbles */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 pl-1 border-l-4 border-cyan-500">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-              Driver Attribution (XAI Weights)
-            </h3>
-          </div>
-          <div className="text-[10px] text-slate-600 font-mono">
-            D3 FORCE GRAPH • REAL-TIME
-          </div>
+        <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-cyan-500">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Driver Attribution
+          </h3>
         </div>
         
         <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
           <FusionBrain />
-          
-          {/* Legend Overlay */}
-          <div className="absolute bottom-4 left-4 pointer-events-none">
-            <div className="p-3 bg-black/60 backdrop-blur-sm border border-white/10 rounded-lg max-w-xs">
-              <h4 className="text-[10px] font-bold text-white mb-2 uppercase tracking-wider">
-                Explainable Drivers
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[9px] rounded border border-red-500/20">Trade Policy</span>
-                <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-[9px] rounded border border-cyan-500/20">Technicals</span>
-                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[9px] rounded border border-emerald-500/20">Supply Flows</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Analysis Tools Grid */}
       <div className="grid grid-cols-12 gap-6 mb-8">
-        {/* Factor Waterfall + Impact Calculator */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ContractImpactCalculator />
@@ -151,7 +109,6 @@ export default function StrategyPage() {
           <ProbabilityHeatmap />
         </div>
 
-        {/* Weather Risk */}
         <div className="col-span-12 lg:col-span-4">
           <WeatherRiskArray />
         </div>
@@ -159,7 +116,7 @@ export default function StrategyPage() {
 
       {/* Risk Footer */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-colors">
+        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle size={14} className="text-red-400" />
             <span className="text-xs font-bold text-red-400">TRUMP TARIFFS</span>
@@ -168,7 +125,7 @@ export default function StrategyPage() {
             EPU index &gt; 175. High probability of retaliatory impacts on soy complex.
           </p>
         </div>
-        <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+        <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
           <div className="flex items-center gap-2 mb-2">
             <Shield size={14} className="text-amber-400" />
             <span className="text-xs font-bold text-amber-400">BRAZIL HARVEST</span>
@@ -177,7 +134,7 @@ export default function StrategyPage() {
             Early harvest reports suggest record yield. Potential price dampener in Q2.
           </p>
         </div>
-        <div className="p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors">
+        <div className="p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5">
           <div className="flex items-center gap-2 mb-2">
             <Zap size={14} className="text-cyan-400" />
             <span className="text-xs font-bold text-cyan-400">BIOFUEL POLICY</span>

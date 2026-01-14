@@ -343,11 +343,23 @@ html, body {
    ========================================================================== */
 
 .main-content {
-  margin-top: 128px;
-  padding: 40px;
+  padding-top: 140px;
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-bottom: 40px;
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* Page content wrapper - clears fixed header */
+.page-content {
+  padding-top: 140px;
+}
+
+/* Global page padding to account for fixed header + status bar */
+.page-wrapper {
+  padding-top: 140px;
 }
 
 .page-header {

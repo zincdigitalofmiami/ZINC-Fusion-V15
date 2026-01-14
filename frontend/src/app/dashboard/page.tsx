@@ -6,44 +6,15 @@ import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
 import { SignalGauge } from '@/components/ui/SignalGauge';
 import { MarketCommentary } from '@/components/ui/MarketCommentary';
 import { QuantAdminSidebar } from '@/components/layout/QuantAdminSidebar';
-import { AlertTriangle, Menu, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function DashboardPage() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   return (
-    <div className="min-h-screen animate-in fade-in duration-500 p-6 space-y-6 pb-20 bg-[#0a0a0a]">
+    <div className="min-h-screen p-6 pt-36 space-y-6 pb-20 bg-[#0a0a0a]">
       
       <QuantAdminSidebar isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
-
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            STRATEGY COMMAND
-          </h1>
-          <p className="text-slate-500 mt-1 font-mono text-xs tracking-wider">
-            SOYBEAN OIL FUTURES • MULTI-HORIZON INTELLIGENCE
-          </p>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE
-            </div>
-            <div className="text-slate-600">|</div>
-            <div>ZL1! • $51.70</div>
-          </div>
-          
-          <button 
-            onClick={() => setIsAdminOpen(true)}
-            className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors"
-          >
-            <Menu size={18} />
-          </button>
-        </div>
-      </div>
 
       {/* SECTION 1: Chris's TOP 4 Key Drivers */}
       <ChrisTop4Drivers />

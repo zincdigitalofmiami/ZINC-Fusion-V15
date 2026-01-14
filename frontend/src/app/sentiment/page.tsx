@@ -6,7 +6,7 @@ import { MessageSquare, Twitter, TrendingUp, AlertOctagon, Scale } from 'lucide-
 
 export default function SentimentPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pb-20 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20 animate-in fade-in duration-700">
       
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
