@@ -12,11 +12,11 @@ interface PriceData {
   volume: number
 }
 
-// Simplified ranges as requested: 1M, 3M, 6M
+// Time ranges using Prisma database
 const TIME_RANGES = [
-  { id: '1M', label: '1 Month', interval: '1h', range: '1mo' },
-  { id: '3M', label: '3 Month', interval: '1d', range: '3mo' },
-  { id: '6M', label: '6 Month', interval: '1d', range: '6mo' },
+  { id: '1M', label: '1 Month', days: 30 },
+  { id: '3M', label: '3 Month', days: 90 },
+  { id: '6M', label: '6 Month', days: 180 },
 ]
 
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
@@ -32,7 +32,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/zl/yahoo?interval=${selectedRange.interval}&range=${selectedRange.range}`)
+        const res = await fetch(`/api/zl/price-1d?days=${selectedRange.days}`)
         if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
         if (json.data) {
