@@ -14,9 +14,7 @@ interface PriceData {
 
 // Time ranges using daily bars from Prisma
 const TIME_RANGES = [
-  { id: '1M', label: '1 Month', days: 30 },
   { id: '3M', label: '3 Month', days: 90 },
-  { id: '6M', label: '6 Month', days: 180 },
 ]
 
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
@@ -24,7 +22,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartRef = useRef<IChartApi | null>(null)
   
   // Default to 3M view
-  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[1])
+  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[0])
   const [priceData, setPriceData] = useState<PriceData[]>([])
   const [lastPrice, setLastPrice] = useState<number | null>(null)
 
@@ -121,9 +119,9 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       const lastDataTime = sortedData[sortedData.length - 1].time
       const firstDataTime = sortedData[0].time
       
-      // Calculate future time to extend to far right edge
+      // Calculate future time - extend much further to reach vertical axis
       const timeSpan = lastDataTime - firstDataTime
-      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.25)) as UTCTimestamp
+      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.5)) as UTCTimestamp
 
       // Dotted line for historical (behind) - thicker dots
       const dottedLine = chart.addSeries(LineSeries, {
@@ -139,7 +137,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
         { time: lastDataTime, value: lastPrice },
       ])
 
-      // Solid line for future (forward to axis)
+      // Solid line for future (forward to vertical axis)
       const solidLine = chart.addSeries(LineSeries, {
         color: 'rgba(255, 255, 255, 0.9)',
         lineWidth: 2,
@@ -193,7 +191,14 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       </div>
 
       {/* Chart Container */}
-      <div ref={chartContainerRef} className="w-full" style={{ height }} />
+      <div ref={chartContainerRef} className="w-full relative" style={{ height }}>
+        {/* Watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="text-white/[0.03] text-6xl font-bold tracking-wider">
+            ZINC FUSION
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
