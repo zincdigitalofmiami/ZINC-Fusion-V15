@@ -171,8 +171,8 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   return (
     <div className="relative w-full border border-white/5 bg-[#0b0f1a] rounded-xl overflow-hidden">
       
-      {/* Time Range Buttons - Right Side */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
+      {/* Time Range Buttons - Left Side */}
+      <div className="absolute top-4 left-4 z-10 flex gap-2">
         {TIME_RANGES.map((range) => (
           <button
             key={range.id}
