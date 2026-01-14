@@ -578,6 +578,32 @@ MC performance tuned for speed without turning outputs into noisy garbage
 
 
 
+### SoT v2: Prisma Cloud Readiness (Pre-Training)
+
+Preflight report (generated from PROD `DATABASE_URL`):
+- `Docs/PRETRAINING_READINESS_2026_01_14.md`
+- Generator: `scripts/pretrain_readiness_audit.py`
+
+Current verdict (2026-01-14): **NOT READY**.
+- `training.core_matrix_1d` exists but is empty (L0 core blocked)
+- `training.specialist_*_1d` tables exist but are missing `target_{H}d` columns (L0 specialists blocked)
+- Several raw inputs are stale (weather/RIN/FX/COT/USDA export sales/WASDE)
+- `metadata.symbol_mapping` covers `7/104` `raw.market_futures_1d` symbols (governance gap; not always a hard blocker)
+
+### SoT v2: Model Plan + Code Location
+
+SoT v2 model catalog + naming (52-model stack):
+- `scripts/v2_training/MODEL_CATALOG.md`
+- `scripts/v2_training/README.md`
+
+### Pre-Training Validation Commands
+
+```bash
+# Read-only DB readiness check (fails non-zero if blockers exist)
+python3 scripts/pretrain_readiness_audit.py --strict
+
+# Repo guardrail: detect synthetic/placeholder patterns in code
+python3 scripts/guard_no_synthetic_code.py
 ```
 
 ## Getting Started
