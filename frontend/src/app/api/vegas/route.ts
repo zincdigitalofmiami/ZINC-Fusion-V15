@@ -166,8 +166,8 @@ async function getRestaurants(): Promise<NextResponse> {
     // Po4Zg = Delivery Day
     // U0Jf2 = Oil Product
     // s8tNr = Status
-    // zPYNY = Fryer count
     // Ie35Z = Chef/Contact name
+    // Fryers link via: fryer.2uBBn = restaurant.glide_row_id
     const results = await query<VegasRestaurant>(`
       SELECT
         r.id,
@@ -176,10 +176,12 @@ async function getRestaurants(): Promise<NextResponse> {
         'Restaurant' as category,
         NULL as current_oil_lbs,
         COALESCE(r.data->>'Po4Zg', '') as delivery_day,
-        (r.data->>'zPYNY')::int as fryers,
+        COUNT(f.id)::int as fryers,
         r.data
       FROM ops.vegas_restaurants r
       LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'2Ca0T'
+      LEFT JOIN ops.vegas_fryers f ON f.data->>'2uBBn' = r.glide_row_id
+      GROUP BY r.id, r.data, c.data->>'Name'
       ORDER BY name
       LIMIT 200
     `)
