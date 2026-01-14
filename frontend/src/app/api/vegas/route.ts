@@ -160,23 +160,33 @@ async function getStats(): Promise<NextResponse> {
 
 async function getRestaurants(): Promise<NextResponse> {
   try {
+    // Glide uses cryptic field IDs - mapping:
+    // MHXYO = Restaurant Name
+    // 2Ca0T = Casino/Location Reference ID  
+    // Po4Zg = Delivery Day
+    // U0Jf2 = Oil Product
+    // s8tNr = Status
+    // zPYNY = Fryer count
+    // Ie35Z = Chef/Contact name
     const results = await query<VegasRestaurant>(`
       SELECT
-        id,
-        COALESCE(data->>'Name', data->>'name', 'Unknown') as name,
-        COALESCE(data->>'Location', data->>'location', 'Las Vegas') as location,
-        COALESCE(data->>'Category', data->>'category', 'Restaurant') as category,
-        (data->>'current_oil_lbs')::float as current_oil_lbs,
-        COALESCE(data->>'delivery_day', data->>'DeliveryDay', '') as delivery_day,
-        (data->>'fryers')::int as fryers,
-        data
-      FROM ops.vegas_restaurants
+        r.id,
+        COALESCE(r.data->>'MHXYO', r.data->>'Name', 'Unknown') as name,
+        COALESCE(c.data->>'Name', 'Las Vegas') as location,
+        'Restaurant' as category,
+        NULL as current_oil_lbs,
+        COALESCE(r.data->>'Po4Zg', '') as delivery_day,
+        (r.data->>'zPYNY')::int as fryers,
+        r.data
+      FROM ops.vegas_restaurants r
+      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'2Ca0T'
       ORDER BY name
       LIMIT 200
     `)
 
     return NextResponse.json({ restaurants: results, count: results.length })
-  } catch {
+  } catch (error) {
+    console.error('getRestaurants error:', error)
     return NextResponse.json({ restaurants: [], count: 0 })
   }
 }
