@@ -20,6 +20,7 @@ export { iceReleasesDaily } from "./ice-releases";
 export { farmdocRinsDaily } from "./farmdoc-rins";
 export { aeiTradeDaily } from "./aei-trade";
 export { conabNewsDaily } from "./conab-news";
+export { barchartZlNewsDaily } from "./barchart-zl-news";
 export { whitehouseDaily } from "./whitehouse-press";
 export { usdaDaily } from "./usda-press";
 export { eiaDaily } from "./eia-today";

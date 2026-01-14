@@ -217,7 +217,7 @@ export function ForecastCone({
               borderRadius: '4px',
             }}
             labelStyle={{ color: '#d1d4dc' }}
-            formatter={(value: number) => [value.toFixed(2), 'Price']}
+            formatter={(value) => [typeof value === 'number' ? value.toFixed(2) : '', 'Price']}
           />
         </ComposedChart>
       </ResponsiveContainer>

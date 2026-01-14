@@ -160,8 +160,8 @@ export function ForwardCurve({ data, spotPrice, height = 180 }: ForwardCurveProp
               padding: '8px 12px',
             }}
             labelStyle={{ color: '#d1d4dc', fontWeight: 'bold' }}
-            formatter={(value: number) => [
-              <span className="text-[#2962ff]">{value.toFixed(4)}</span>,
+            formatter={(value) => [
+              <span key="v" className="text-[#2962ff]">{typeof value === 'number' ? value.toFixed(4) : ''}</span>,
               'Price'
             ]}
           />

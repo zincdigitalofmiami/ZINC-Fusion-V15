@@ -161,11 +161,11 @@ export function SeasonalsChart({
               padding: '8px 12px',
             }}
             labelStyle={{ color: '#d1d4dc', marginBottom: 4 }}
-            formatter={(value: number, name: string) => {
-              const year = name.replace('y', '');
+            formatter={(value, name) => {
+              const year = String(name).replace('y', '');
               const color = YEAR_COLORS[parseInt(year)] || '#787b86';
               return [
-                <span style={{ color }}>{value?.toFixed(2)}%</span>,
+                <span key="v" style={{ color }}>{typeof value === 'number' ? value.toFixed(2) : ''}%</span>,
                 year,
               ];
             }}

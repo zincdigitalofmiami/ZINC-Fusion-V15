@@ -176,17 +176,12 @@ async function getRestaurants(): Promise<NextResponse> {
         COALESCE(c.data->>'Name', 'Las Vegas') as location,
         'Restaurant' as category,
         NULL as current_oil_lbs,
-        COALESCE(r.data->>'${restaurantFields.deliveryDay}', '') as delivery_day,
-        COALESCE(
-          CASE
-            WHEN (r.data->>'${restaurantFields.fryerCount}') ~ '^[0-9]+$' THEN (r.data->>'${restaurantFields.fryerCount}')::int
-          END,
-          COUNT(f.id)::int
-        ) as fryers,
+        COALESCE(r.data->>'${restaurantFields.scheduleParameters}', '') as delivery_day,
+        COUNT(f.id)::int as fryers,
         r.data
       FROM ops.vegas_restaurants r
-      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoRefId}'
-      LEFT JOIN ops.vegas_fryers f ON f.data->>'${fryerFields.restaurantRefId}' = r.glide_row_id
+      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
+      LEFT JOIN ops.vegas_fryers f ON f.data->>'${fryerFields.restaurantId}' = r.glide_row_id
       GROUP BY r.id, r.data, c.data->>'Name'
       ORDER BY name
       LIMIT 200

@@ -158,7 +158,7 @@ export function ZLCandlestickChart({
       const atr = atrSum / atrPeriod
       const mid = candleData[i].close
       bandData.push({
-        time: candleData[i].time,
+        time: candleData[i].time as UTCTimestamp,
         p10: mid - (atr * bandMultiplier),
         p90: mid + (atr * bandMultiplier),
         mid: mid,
@@ -194,7 +194,7 @@ export function ZLCandlestickChart({
         lineColor: 'transparent',
         topColor: COLORS.bandFill,
         bottomColor: 'transparent',
-        lineWidth: 0,
+        lineWidth: 1,
         priceLineVisible: false,
         crosshairMarkerVisible: false,
         lastValueVisible: false,
