@@ -12,11 +12,11 @@ interface PriceData {
   volume: number
 }
 
-// Time ranges using Prisma database
+// Time ranges using Prisma database - 15m intraday
 const TIME_RANGES = [
-  { id: '1M', label: '1 Month', days: 30 },
-  { id: '3M', label: '3 Month', days: 90 },
-  { id: '6M', label: '6 Month', days: 180 },
+  { id: '1M', label: '1 Month', hours: 720 },
+  { id: '3M', label: '3 Month', hours: 2160 },
+  { id: '6M', label: '6 Month', hours: 4320 },
 ]
 
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
@@ -32,14 +32,23 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/zl/price-1d?days=${selectedRange.days}`)
+        const res = await fetch(`/api/zl/intraday?hours=${selectedRange.hours}`)
         if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
-        if (json.data) {
-          setPriceData(json.data)
+        if (json.bars) {
+          // Convert bars to PriceData format
+          const converted = json.bars.map((bar: any) => ({
+            timestamp: new Date(bar.time * 1000).toISOString(),
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close,
+            volume: bar.volume,
+          }))
+          setPriceData(converted)
           // Get last price for the horizontal line
-          if (json.data.length > 0) {
-            setLastPrice(json.data[json.data.length - 1].close)
+          if (converted.length > 0) {
+            setLastPrice(converted[converted.length - 1].close)
           }
         }
       } catch (err) {
