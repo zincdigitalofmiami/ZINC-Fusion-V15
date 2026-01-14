@@ -28,3 +28,5 @@ python3 scripts/pretrain_readiness_audit.py --strict
 ```
 and resolve blockers (core matrix population, target columns, stale inputs).
 
+### Best-Practices Review
+See `Docs/SOT_V2_TRAINING_BEST_PRACTICES_REVIEW_2026_01_14.md` for a pre-execution review of the SoT v2 training plan and the explicit decisions/gates to lock before training.

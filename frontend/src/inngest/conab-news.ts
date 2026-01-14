@@ -58,30 +58,9 @@ export const conabNewsDaily = inngest.createFunction(
     let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
 
     try {
-      await step.run("ensure-table", async () => {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS raw.conab_news_event (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            event_date DATE NOT NULL,
-            title TEXT,
-            description TEXT,
-            link TEXT,
-            pub_date TIMESTAMPTZ,
-            guid TEXT,
-            knowledge_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            revision_no INTEGER NOT NULL DEFAULT 1,
-            is_preliminary BOOLEAN DEFAULT false,
-            validation_status TEXT DEFAULT 'validated',
-            source TEXT,
-            source_url TEXT,
-            raw_payload JSONB,
-            ingestion_batch_id UUID,
-            row_hash TEXT NOT NULL,
-            specialist_tags TEXT[] NOT NULL
-          )
-        `);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_conab_hash ON raw.conab_news_event(row_hash)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_conab_tags ON raw.conab_news_event USING GIN(specialist_tags)`);
+      await step.run("assert-table", async () => {
+        // Fail loudly if the table doesn't exist (no silent DDL in prod).
+        await client.query(`SELECT 1 FROM raw.conab_news_event LIMIT 1`);
       });
 
       runId = await step.run("create-ingest-run", () => createIngestRun(client, "conab-news-daily"));
@@ -103,16 +82,24 @@ export const conabNewsDaily = inngest.createFunction(
 
       const itemArray = Array.isArray(items) ? items : (items ? [items] : []);
       for (const item of itemArray) {
-        const outcome = await step.run(`ingest-${item.guid || item.link || item.id}`, async () => {
-          const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
-          const link = item.link?.["@_href"] || item.link || "";
-          const rowHash = computeRowHash(link || item.guid || item.id, pubDate);
+        const stepId = String(item.guid || item.id || item.link?.["@_href"] || item.link || "unknown");
+        const outcome = await step.run(`ingest-${stepId}`, async () => {
+          const pubDate: string | undefined = item.pubDate || item.published || item.updated;
+          if (!pubDate) return { status: "quarantined_missing_pub_date" as const };
+
+          const link: string | undefined = item.link?.["@_href"] || item.link || item.guid || item.id;
+          if (!link) return { status: "quarantined_missing_link" as const };
+
+          const parsed = new Date(pubDate);
+          if (Number.isNaN(parsed.getTime())) return { status: "quarantined_bad_pub_date" as const };
+
+          const rowHash = computeRowHash(link, pubDate);
 
           if (await hashExists(client, "raw.conab_news_event", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 
-          const eventDate = new Date(pubDate).toISOString().split("T")[0];
+          const eventDate = parsed.toISOString().split("T")[0];
           const title = item.title?.["#text"] || item.title || "";
           const description = item.description || item.summary?.["#text"] || item.summary || item.content?.["#text"] || "";
 
@@ -133,11 +120,9 @@ export const conabNewsDaily = inngest.createFunction(
         });
 
         rowsAttempted++;
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+        if (outcome.status === "inserted") rowsInserted++;
+        else if (outcome.status === "skipped_duplicate") rowsSkipped++;
+        else rowsQuarantined++;
       }
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));

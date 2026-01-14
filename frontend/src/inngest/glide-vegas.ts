@@ -9,8 +9,7 @@ const pool = new Pool({
 // Glide API Configuration
 const GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables";
 const GLIDE_APP_ID = "6nvONp42nj5tLQmMcqF3";
-const GLIDE_BEARER_TOKEN =
-  process.env.GLIDE_BEARER_TOKEN || "460c9ee4-edcb-43cc-86b5-929e2bb94351";
+const GLIDE_BEARER_TOKEN = process.env.GLIDE_BEARER_TOKEN;
 
 // Table IDs from Glide
 const GLIDE_TABLES: Record<string, string> = {
@@ -26,6 +25,10 @@ interface GlideRow {
 }
 
 async function fetchGlideTable(tableId: string): Promise<GlideRow[]> {
+  if (!GLIDE_BEARER_TOKEN) {
+    throw new Error("GLIDE_BEARER_TOKEN not configured");
+  }
+
   const response = await fetch(GLIDE_API_ENDPOINT, {
     method: "POST",
     headers: {
@@ -57,22 +60,24 @@ async function syncTableToPostgres(
 
   const client = await pool.connect();
   const fullTable = `ops.vegas_${tableName}`;
+  const shortTable = `vegas_${tableName}`;
 
   try {
     await client.query("BEGIN");
 
-    // Create schema if not exists
-    await client.query("CREATE SCHEMA IF NOT EXISTS ops");
-
-    // Create table if not exists
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS ${fullTable} (
-        id SERIAL PRIMARY KEY,
-        glide_row_id TEXT,
-        data JSONB NOT NULL,
-        ingested_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
+    // Fail loudly if the expected table doesn't exist (no silent DDL in prod).
+    const exists = await client.query(
+      `SELECT 1
+       FROM information_schema.tables
+       WHERE table_schema='ops' AND table_name=$1
+       LIMIT 1`,
+      [shortTable]
+    );
+    if (exists.rows.length === 0) {
+      throw new Error(
+        `Missing table ${fullTable}. Create ops.vegas_* tables via explicit migration; ingestion will not auto-create schemas/tables.`
+      );
+    }
 
     // Truncate for full refresh
     await client.query(`TRUNCATE TABLE ${fullTable}`);

@@ -117,40 +117,9 @@ export const nyfedDaily = inngest.createFunction(
     const results: { rateType: string; status: string; rate?: number }[] = [];
 
     try {
-      // Step 1: Ensure table exists
-      await step.run("ensure-table", async () => {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS raw.nyfed_rates_1d (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            event_date DATE NOT NULL,
-            rate_type TEXT NOT NULL,
-            percent_rate NUMERIC(10,6),
-            percentile_1 NUMERIC(10,6),
-            percentile_25 NUMERIC(10,6),
-            percentile_75 NUMERIC(10,6),
-            percentile_99 NUMERIC(10,6),
-            volume_billions NUMERIC(12,3),
-            footnote_id TEXT,
-            -- Bronze columns
-            knowledge_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            revision_no INTEGER NOT NULL DEFAULT 1,
-            supersedes_id UUID REFERENCES raw.nyfed_rates_1d(id),
-            is_preliminary BOOLEAN DEFAULT false,
-            validation_status TEXT DEFAULT 'validated',
-            quality_score NUMERIC(3,2) DEFAULT 1.0,
-            anomaly_flags TEXT[] DEFAULT '{}',
-            source TEXT,
-            source_url TEXT,
-            raw_payload JSONB,
-            ingestion_batch_id UUID,
-            row_hash TEXT NOT NULL,
-            specialist_tags TEXT[] NOT NULL
-          )
-        `);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_nyfed_row_hash ON raw.nyfed_rates_1d(row_hash)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_nyfed_tags ON raw.nyfed_rates_1d USING GIN(specialist_tags)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_nyfed_event_date ON raw.nyfed_rates_1d(event_date)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_nyfed_rate_type ON raw.nyfed_rates_1d(rate_type)`);
+      await step.run("assert-table", async () => {
+        // Fail loudly if the table doesn't exist (no silent DDL in prod).
+        await client.query(`SELECT 1 FROM raw.nyfed_rates_1d LIMIT 1`);
       });
 
       // Step 2: Create ingest run
@@ -176,10 +145,19 @@ export const nyfedDaily = inngest.createFunction(
       for (const rate of rates) {
         const outcome = await step.run(`ingest-${rate.type}`, async () => {
           if (!rate.effectiveDate || !rate.type) {
-            return { rateType: rate.type || "UNKNOWN", status: "skipped_invalid" as const };
+            return { rateType: rate.type || "UNKNOWN", status: "quarantined_missing_keys" as const };
           }
 
-          const rowHash = computeRowHash(rate.type, rate.effectiveDate, rate.percentRate || 0);
+          if (typeof rate.percentRate !== "number" || !Number.isFinite(rate.percentRate)) {
+            return { rateType: rate.type, status: "quarantined_missing_rate" as const };
+          }
+
+          const parsedDate = new Date(rate.effectiveDate);
+          if (Number.isNaN(parsedDate.getTime())) {
+            return { rateType: rate.type, status: "quarantined_bad_date" as const };
+          }
+
+          const rowHash = computeRowHash(rate.type, rate.effectiveDate, rate.percentRate);
 
           if (await hashExists(client, "raw.nyfed_rates_1d", rowHash)) {
             return { rateType: rate.type, status: "skipped_duplicate" as const };
@@ -217,11 +195,9 @@ export const nyfedDaily = inngest.createFunction(
 
         rowsAttempted++;
         results.push(outcome);
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+        if (outcome.status === "inserted") rowsInserted++;
+        else if (outcome.status === "skipped_duplicate") rowsSkipped++;
+        else rowsQuarantined++;
       }
 
       // Step 5: Complete ingest run

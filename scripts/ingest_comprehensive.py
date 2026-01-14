@@ -99,9 +99,9 @@ def ingest_fred_series(conn, filepath: Path, series_id: str, date_col: str, valu
             execute_batch(
                 cur,
                 """
-                INSERT INTO "raw"."fred_observations_1d" (series_id, as_of_date, value, source)
+                INSERT INTO "raw"."fred_observations_1d" (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 records,
                 page_size=1000
@@ -175,9 +175,9 @@ def ingest_corn_soybean_stats(conn, downloads: Path) -> int:
                         execute_batch(
                             cur,
                             """
-                            INSERT INTO "raw"."fred_observations_1d" (series_id, as_of_date, value, source)
+                            INSERT INTO "raw"."fred_observations_1d" (series_id, event_date, value, source)
                             VALUES (%s, %s, %s, %s)
-                            ON CONFLICT (series_id, as_of_date) DO NOTHING
+                            ON CONFLICT DO NOTHING
                             """,
                             records,
                             page_size=500
@@ -232,9 +232,9 @@ def ingest_corn_soybean_stats(conn, downloads: Path) -> int:
                                 execute_batch(
                                     cur,
                                     """
-                                    INSERT INTO "raw"."fred_observations_1d" (series_id, as_of_date, value, source)
+                                    INSERT INTO "raw"."fred_observations_1d" (series_id, event_date, value, source)
                                     VALUES (%s, %s, %s, %s)
-                                    ON CONFLICT (series_id, as_of_date) DO NOTHING
+                                    ON CONFLICT DO NOTHING
                                     """,
                                     records,
                                     page_size=500
@@ -285,9 +285,9 @@ def ingest_financial_crisis(conn, downloads: Path) -> int:
                     execute_batch(
                         cur,
                         """
-                        INSERT INTO "raw"."fred_observations_1d" (series_id, as_of_date, value, source)
+                        INSERT INTO "raw"."fred_observations_1d" (series_id, event_date, value, source)
                         VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (series_id, as_of_date) DO NOTHING
+                        ON CONFLICT DO NOTHING
                         """,
                         records,
                         page_size=1000
@@ -350,9 +350,9 @@ def ingest_biofuel_eia(conn, downloads: Path) -> int:
                     execute_batch(
                         cur,
                         """
-                        INSERT INTO "raw"."fred_observations_1d" (series_id, as_of_date, value, source)
+                        INSERT INTO "raw"."fred_observations_1d" (series_id, event_date, value, source)
                         VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (series_id, as_of_date) DO NOTHING
+                        ON CONFLICT DO NOTHING
                         """,
                         records,
                         page_size=500
@@ -432,9 +432,9 @@ def ingest_futures_ohlcv(conn, filepath: Path, symbol: str, source: str = "CSV")
                 cur,
                 """
                 INSERT INTO "raw"."market_futures_1d"
-                (symbol, as_of_date, open, high, low, close, volume, source)
+                (symbol, event_date, open, high, low, close, volume, source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (as_of_date, symbol) DO NOTHING
+                ON CONFLICT (event_date, symbol) DO NOTHING
                 """,
                 records,
                 page_size=500

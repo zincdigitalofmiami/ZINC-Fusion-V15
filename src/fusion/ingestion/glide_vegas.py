@@ -18,9 +18,11 @@ API Configuration (LOCKED - DO NOT CHANGE):
 """
 
 import os
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any
+import math
 
 import pandas as pd
 import requests
@@ -35,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables"
 GLIDE_APP_ID = "6262JQJdNjhra79M25e4"
-GLIDE_BEARER_TOKEN = os.getenv("GLIDE_BEARER_TOKEN", "460c9ee4-edcb-43cc-86b5-929e2bb94351")
+GLIDE_BEARER_TOKEN = os.getenv("GLIDE_BEARER_TOKEN")
 
 # Table IDs (8 data sources - LOCKED CONFIGURATION)
 GLIDE_TABLES = {
@@ -66,6 +68,8 @@ class GlideAPIClient:
     """
 
     def __init__(self):
+        if not GLIDE_BEARER_TOKEN:
+            raise ValueError("GLIDE_BEARER_TOKEN not configured")
         self.headers = {
             "Authorization": f"Bearer {GLIDE_BEARER_TOKEN}",
             "Content-Type": "application/json",
@@ -176,45 +180,64 @@ def save_to_postgres(
         logger.warning(f"⚠️ No data to save to {table_name}")
         return 0
 
-    # Sanitize column names
-    df = df.copy()
-    df.columns = [sanitize_column_name(col) for col in df.columns]
-
-    # Add metadata
-    df["ingested_at"] = datetime.now(timezone.utc)
-    df["source_table_id"] = source_table_id
-
     # Build table reference
     full_table = f"{POSTGRES_SCHEMA}.{table_name}"
 
     conn = get_write_connection()
     try:
         with conn.cursor() as cur:
-            # Create table if not exists (auto-detect schema from DataFrame)
-            # For now, we'll create simple text columns for all fields
-            columns = df.columns.tolist()
-            col_defs = ", ".join([f'"{c}" TEXT' for c in columns if c not in ("ingested_at",)])
-            col_defs += ', "ingested_at" TIMESTAMPTZ'
-
-            cur.execute(f"""
-                CREATE TABLE IF NOT EXISTS {full_table} (
-                    {col_defs}
+            # Fail loudly if ops.vegas_* tables aren't present (no silent DDL in prod).
+            schema, tbl = full_table.split(".", 1)
+            cur.execute(
+                """
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema=%s AND table_name=%s
+                LIMIT 1
+                """,
+                (schema, tbl),
+            )
+            if cur.fetchone() is None:
+                raise RuntimeError(
+                    f"Missing table {full_table}. Create ops.vegas_* tables via explicit migration; this script will not auto-create schemas/tables."
                 )
-            """)
 
             # Truncate existing data (full refresh)
             cur.execute(f"TRUNCATE TABLE {full_table}")
 
-            # Insert new data
-            cols = ", ".join([f'"{c}"' for c in columns])
-            placeholders = ", ".join(["%s"] * len(columns))
-            insert_sql = f"INSERT INTO {full_table} ({cols}) VALUES ({placeholders})"
+            # Insert as JSON rows (stable schema: glide_row_id + data JSONB + ingested_at).
+            def normalize(v: Any) -> Any:
+                if v is None:
+                    return None
+                if isinstance(v, float) and math.isnan(v):
+                    return None
+                if pd.isna(v):
+                    return None
+                # Convert numpy scalars to native python.
+                if hasattr(v, "item"):
+                    try:
+                        return v.item()
+                    except Exception:
+                        return v
+                return v
 
-            # Convert DataFrame to list of tuples
-            records = [tuple(str(v) if pd.notna(v) else None for v in row) for row in df.values]
+            records: list[tuple[Any, str]] = []
+            for _, row in df.iterrows():
+                row_dict = {k: normalize(v) for k, v in row.to_dict().items()}
+                glide_row_id = row_dict.get("$rowID") or row_dict.get("glide_row_id")
+                # Attach provenance in-payload (not schema).
+                row_dict["_source_table_id"] = source_table_id
+                row_dict["_synced_at"] = datetime.now(timezone.utc).isoformat()
+                records.append((glide_row_id, json.dumps(row_dict)))
 
             from psycopg2.extras import execute_batch
-            execute_batch(cur, insert_sql, records, page_size=1000)
+
+            execute_batch(
+                cur,
+                f'INSERT INTO {full_table} (glide_row_id, data, ingested_at) VALUES (%s, %s::jsonb, NOW())',
+                records,
+                page_size=1000,
+            )
 
         conn.commit()
         logger.info(f"✅ Saved {len(df)} rows to {full_table}")

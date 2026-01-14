@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Vegas Intel Page - Sales Command Center
+ * Vegas Intel Page - Kevin's Sales Command Center
  * 
- * Data Source: Glide API → ops.vegas_* tables → /api/vegas
- * Design: TradingView aesthetic - BIG charts, BIG cards, breathing room
+ * SPEC: /Docs/VEGAS_INTEL_SPEC_LOCKED.md
+ * 
+ * Layout:
+ * 1. Event Cards (horizontal row, same slice as stat cards)
+ * 2. Opportunities (full-width rows, existing customers + prospects)
+ * 3. At Risk (full-width rows, churn alerts)
  */
 
 // =============================================================================
@@ -18,11 +22,7 @@ interface VegasStats {
   casinos: number
   fryers: number
   export_list: number
-  shifts: number
-  total_customers: number
   last_sync: string | null
-  status?: string
-  message?: string
 }
 
 interface Restaurant {
@@ -30,19 +30,64 @@ interface Restaurant {
   name: string
   location: string
   category: string
-  current_oil_lbs: number | null
-  delivery_day: string
   fryers: number | null
+  delivery_day: string
   data: Record<string, unknown>
 }
 
-interface Casino {
+// Placeholder until we build the event system
+interface VegasEvent {
+  id: string
+  name: string
+  attendance: number
+  startDate: string
+  endDate: string
+  daysUntil: number
+  color: string
+}
+
+// Placeholder until we build the model
+interface Opportunity {
   id: number
   name: string
-  event_calendar: string
-  premium_tier: boolean
-  data: Record<string, unknown>
+  casino: string
+  status: 'customer' | 'prospect'
+  eventMatch: 'HIGH' | 'MEDIUM' | 'LOW'
+  projectedMin: number
+  projectedMax: number
+  fryers: number | null
+  oneLiner: string
 }
+
+interface AtRiskCustomer {
+  id: number
+  name: string
+  casino: string
+  daysSinceOrder: number
+  pattern: string
+  oneLiner: string
+}
+
+// =============================================================================
+// Status Colors (soft, not harsh)
+// =============================================================================
+
+const STATUS_COLORS = {
+  customer: '#4ade80',  // soft green
+  prospect: '#b91c1c',  // maroon
+  atRisk: '#fbbf24',    // amber
+}
+
+// =============================================================================
+// Mock Data (will be replaced with API calls)
+// =============================================================================
+
+const MOCK_EVENTS: VegasEvent[] = [
+  { id: '1', name: 'CES 2026', attendance: 180000, startDate: '2026-01-07', endDate: '2026-01-10', daysUntil: 10, color: '#2962FF' },
+  { id: '2', name: 'UFC 312', attendance: 22000, startDate: '2026-01-18', endDate: '2026-01-18', daysUntil: 18, color: '#4ade80' },
+  { id: '3', name: 'F1 VEGAS', attendance: 315000, startDate: '2026-03-15', endDate: '2026-03-17', daysUntil: 60, color: '#ffb464' },
+  { id: '4', name: 'MAGIC CON', attendance: 45000, startDate: '2026-02-24', endDate: '2026-02-27', daysUntil: 41, color: '#ef5350' },
+]
 
 // =============================================================================
 // Main Component
@@ -51,401 +96,466 @@ interface Casino {
 export default function VegasIntelPage() {
   const [stats, setStats] = useState<VegasStats | null>(null)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [casinos, setCasinos] = useState<Casino[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<string | null>('1') // CES selected by default
+  const [filter, setFilter] = useState<'all' | 'customers' | 'prospects'>('all')
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch stats
         const statsRes = await fetch('/api/vegas?view=stats')
         const statsData = await statsRes.json()
         setStats(statsData)
 
-        // Fetch restaurants
         const restRes = await fetch('/api/vegas?view=restaurants')
         const restData = await restRes.json()
         setRestaurants(restData.restaurants || [])
-
-        // Fetch casinos
-        const casinoRes = await fetch('/api/vegas?view=casinos')
-        const casinoData = await casinoRes.json()
-        setCasinos(casinoData.casinos || [])
-
       } catch (err) {
-        setError(String(err))
+        console.error('Failed to fetch Vegas data:', err)
       } finally {
         setLoading(false)
       }
     }
-
     fetchData()
   }, [])
 
-  // Not synced state
-  const notSynced = stats?.status === 'not_synced' || stats?.total_customers === 0
+  // Transform restaurants into opportunities (placeholder logic)
+  const opportunities: Opportunity[] = restaurants.slice(0, 8).map((r, i) => ({
+    id: r.id,
+    name: r.name,
+    casino: r.location || 'Las Vegas',
+    status: i < 6 ? 'customer' : 'prospect',
+    eventMatch: i < 3 ? 'HIGH' : i < 6 ? 'MEDIUM' : 'HIGH',
+    projectedMin: 20 + (i * 5),
+    projectedMax: 35 + (i * 5),
+    fryers: r.fryers,
+    oneLiner: i < 6 
+      ? "Prime corridor. Event crowd is their demo."
+      : "You don't have them. Money on the table.",
+  }))
+
+  // Mock at-risk data (placeholder)
+  const atRiskCustomers: AtRiskCustomer[] = [
+    { id: 999, name: 'Wynn Buffet', casino: 'Wynn', daysSinceOrder: 18, pattern: 'weekly → silent', oneLiner: "Something's wrong. Call today." },
+    { id: 998, name: 'Aria Café', casino: 'Aria', daysSinceOrder: 14, pattern: 'bi-weekly → silent', oneLiner: "They went quiet. Find out why." },
+  ]
+
+  // Filter opportunities
+  const filteredOpportunities = opportunities.filter(o => {
+    if (filter === 'all') return true
+    if (filter === 'customers') return o.status === 'customer'
+    if (filter === 'prospects') return o.status === 'prospect'
+    return true
+  })
+
+  const selectedEventData = MOCK_EVENTS.find(e => e.id === selectedEvent)
+  const headline = selectedEventData 
+    ? `${selectedEventData.name} is ${selectedEventData.daysUntil} days out. ${selectedEventData.attendance.toLocaleString()} people. Here's your play.`
+    : "Select an event to see your opportunities."
 
   return (
-    <div className="main-content" style={{ maxWidth: '1800px' }}>
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: '48px' }}>
-        <h1 className="page-title" style={{ fontSize: '36px' }}>Vegas Intel</h1>
-        <p className="page-subtitle" style={{ fontSize: '18px', opacity: 0.7 }}>
-          Sales command center — Real customer data from US Oil Solutions Glide
+    <div className="main-content" style={{ maxWidth: '1400px' }}>
+      
+      {/* ================================================================
+          PAGE HEADER
+          ================================================================ */}
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px' }}>
+          Vegas Intel
+        </h1>
+        <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)' }}>
+          {headline}
         </p>
-        {stats?.last_sync && (
-          <p style={{ fontSize: '12px', opacity: 0.5, marginTop: '8px' }}>
-            Last sync: {new Date(stats.last_sync).toLocaleString()}
-          </p>
-        )}
       </div>
 
-      {/* Data Not Synced Alert */}
-      {notSynced && (
-        <div className="alert-banner" style={{ marginBottom: '40px', padding: '24px' }}>
-          <div style={{ fontSize: '14px' }}>
-            <strong>Data Not Synced</strong> — Run the Glide ingestion script to populate Vegas customer data:
-          </div>
-          <code style={{ 
-            display: 'block', 
-            marginTop: '12px', 
-            padding: '12px', 
-            background: 'rgba(0,0,0,0.3)', 
-            borderRadius: '8px',
-            fontFamily: 'monospace'
-          }}>
-            cd /Volumes/Satechi\ Hub/ZINC-FUSION-V15 && python -m fusion.ingestion.glide_vegas
-          </code>
-        </div>
-      )}
-
-      {/* BIG Stats Cards - TradingView Style */}
+      {/* ================================================================
+          SECTION 1: EVENT CARDS (Same slice as stat cards)
+          ================================================================ */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(4, 1fr)', 
-        gap: '32px', 
-        marginBottom: '60px' 
+        gap: '24px', 
+        marginBottom: '48px' 
       }}>
-        <StatCard 
-          value={stats?.restaurants || 0} 
-          label="Restaurants" 
-          color="#2962FF" 
-          loading={loading}
-        />
-        <StatCard 
-          value={stats?.casinos || 0} 
-          label="Casinos" 
-          color="#81c784" 
-          loading={loading}
-        />
-        <StatCard 
-          value={stats?.fryers || 0} 
-          label="Fryers" 
-          color="#ffb464" 
-          loading={loading}
-        />
-        <StatCard 
-          value={stats?.export_list || 0} 
-          label="Customer Records" 
-          color="#ef5350" 
-          loading={loading}
-        />
+        {MOCK_EVENTS.map((event) => (
+          <EventCard 
+            key={event.id} 
+            event={event} 
+            selected={selectedEvent === event.id}
+            onClick={() => setSelectedEvent(event.id)}
+          />
+        ))}
       </div>
 
-      {/* Two Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '40px' }}>
-        
-        {/* Left: Customer List (BIG CARD) */}
-        <div className="card-elevated" style={{ padding: '32px' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '32px' 
+      {/* ================================================================
+          SECTION 2: OPPORTUNITIES
+          ================================================================ */}
+      <div style={{ marginBottom: '48px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '16px' 
+        }}>
+          <h2 style={{ 
+            fontSize: '12px', 
+            fontWeight: 600, 
+            textTransform: 'uppercase', 
+            letterSpacing: '1px',
+            opacity: 0.6 
           }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 600 }}>Restaurant Customers</h2>
-            <span style={{ fontSize: '14px', opacity: 0.5 }}>
-              {restaurants.length} accounts
-            </span>
-          </div>
+            OPPORTUNITIES
+          </h2>
+          <FilterToggle value={filter} onChange={setFilter} />
+        </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {loading ? (
-            <LoadingState />
-          ) : restaurants.length === 0 ? (
-            <EmptyState message="No restaurant data synced yet" />
+            <LoadingRow />
+          ) : filteredOpportunities.length === 0 ? (
+            <EmptyRow message="No opportunities match your filter" />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {restaurants.slice(0, 10).map((r) => (
-                <RestaurantCard key={r.id} restaurant={r} />
-              ))}
-              {restaurants.length > 10 && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '16px', 
-                  opacity: 0.5 
-                }}>
-                  + {restaurants.length - 10} more restaurants
-                </div>
-              )}
-            </div>
+            filteredOpportunities.map((opp) => (
+              <OpportunityRow key={opp.id} opportunity={opp} />
+            ))
           )}
         </div>
+      </div>
 
-        {/* Right: Casinos & Quick Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
-          {/* Casino Partners */}
-          <div className="card-elevated" style={{ padding: '28px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px' }}>
-              Casino Partners
-            </h2>
-            {loading ? (
-              <LoadingState />
-            ) : casinos.length === 0 ? (
-              <EmptyState message="No casino data synced yet" />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {casinos.slice(0, 8).map((c) => (
-                  <CasinoCard key={c.id} casino={c} />
-                ))}
-              </div>
-            )}
-          </div>
+      {/* ================================================================
+          SECTION 3: AT RISK
+          ================================================================ */}
+      <div>
+        <h2 style={{ 
+          fontSize: '12px', 
+          fontWeight: 600, 
+          textTransform: 'uppercase', 
+          letterSpacing: '1px',
+          opacity: 0.6,
+          marginBottom: '16px' 
+        }}>
+          AT RISK
+        </h2>
 
-          {/* Market Talking Points */}
-          <div className="card" style={{ padding: '28px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '24px' }}>
-              Sales Talking Points
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <TalkingPoint 
-                type="bullish" 
-                title="BULLISH POINT"
-                text="EPA RVO rule expected to boost biodiesel demand 15%. Lock in supply now before Q1 price surge."
-              />
-              <TalkingPoint 
-                type="urgency"
-                title="URGENCY DRIVER" 
-                text="Trump tariff threats creating uncertainty. Secure contracts before potential trade disruption."
-              />
-              <TalkingPoint 
-                type="value"
-                title="VALUE PROP" 
-                text="Our AI forecasts show 87% confidence in near-term price support. Ideal timing for annual contracts."
-              />
-            </div>
-          </div>
-
-          {/* Sync Status */}
-          <div className="card" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', opacity: 0.8 }}>
-              Data Sources
-            </h3>
-            <div style={{ fontSize: '12px', lineHeight: 2 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.6 }}>Restaurants</span>
-                <span style={{ color: stats?.restaurants ? '#81c784' : '#ef5350' }}>
-                  {stats?.restaurants || 0} rows
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.6 }}>Casinos</span>
-                <span style={{ color: stats?.casinos ? '#81c784' : '#ef5350' }}>
-                  {stats?.casinos || 0} rows
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.6 }}>Fryers</span>
-                <span style={{ color: stats?.fryers ? '#81c784' : '#ef5350' }}>
-                  {stats?.fryers || 0} rows
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.6 }}>Export List</span>
-                <span style={{ color: stats?.export_list ? '#81c784' : '#ef5350' }}>
-                  {stats?.export_list || 0} rows
-                </span>
-              </div>
-            </div>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {atRiskCustomers.map((customer) => (
+            <AtRiskRow key={customer.id} customer={customer} />
+          ))}
         </div>
       </div>
 
-      {error && (
-        <div style={{ 
-          marginTop: '40px', 
-          padding: '20px', 
-          background: 'rgba(239, 83, 80, 0.1)', 
-          border: '1px solid rgba(239, 83, 80, 0.3)',
-          borderRadius: '12px',
-          color: '#ef5350'
-        }}>
-          Error: {error}
-        </div>
-      )}
     </div>
   )
 }
 
 // =============================================================================
-// Sub-Components
+// EVENT CARD (Same slice as stat cards - colored left border)
 // =============================================================================
 
-function StatCard({ value, label, color, loading }: { 
-  value: number
-  label: string
-  color: string
-  loading: boolean 
+function EventCard({ 
+  event, 
+  selected, 
+  onClick 
+}: { 
+  event: VegasEvent
+  selected: boolean
+  onClick: () => void 
 }) {
   return (
-    <div className="card-elevated" style={{ 
-      padding: '40px', 
-      textAlign: 'center',
-      borderLeft: `4px solid ${color}`
-    }}>
+    <div 
+      onClick={onClick}
+      style={{ 
+        background: selected 
+          ? 'rgba(255, 255, 255, 0.05)' 
+          : 'rgba(255, 255, 255, 0.02)',
+        border: selected 
+          ? '1px solid rgba(255, 255, 255, 0.2)' 
+          : '1px solid rgba(255, 255, 255, 0.08)',
+        borderLeft: `4px solid ${event.color}`,
+        borderRadius: '0px', // squared
+        padding: '32px 24px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+    >
       <div style={{ 
-        fontSize: '56px', 
+        fontSize: '48px', 
         fontWeight: 700, 
-        color,
+        color: event.color,
         lineHeight: 1,
-        marginBottom: '16px'
+        marginBottom: '12px'
       }}>
-        {loading ? '—' : value.toLocaleString()}
+        {event.attendance.toLocaleString()}
       </div>
-      <div style={{ fontSize: '14px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px' }}>
-        {label}
-      </div>
-    </div>
-  )
-}
-
-function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
-  const initials = restaurant.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-  
-  return (
-    <div style={{ 
-      display: 'flex', 
-      gap: '20px', 
-      padding: '20px', 
-      background: 'rgba(255, 255, 255, 0.02)', 
-      border: '1px solid rgba(255, 255, 255, 0.08)', 
-      borderRadius: '12px',
-      transition: 'all 0.2s ease'
-    }}>
       <div style={{ 
-        width: '52px', 
-        height: '52px', 
-        borderRadius: '12px', 
-        background: 'rgba(41, 98, 255, 0.15)', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        fontWeight: 700, 
-        fontSize: '18px',
-        color: '#2962FF',
-        flexShrink: 0
+        fontSize: '14px', 
+        fontWeight: 600,
+        marginBottom: '4px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px'
       }}>
-        {initials}
+        {event.name}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '6px' }}>
-          {restaurant.name}
-        </div>
-        <div style={{ fontSize: '13px', opacity: 0.6 }}>
-          {restaurant.location} • {restaurant.category}
-        </div>
-        {restaurant.delivery_day && (
-          <div style={{ fontSize: '12px', opacity: 0.5, marginTop: '4px' }}>
-            Delivery: {restaurant.delivery_day}
-          </div>
-        )}
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        {restaurant.fryers && (
-          <div style={{ fontSize: '12px', opacity: 0.5 }}>
-            {restaurant.fryers} fryer{restaurant.fryers > 1 ? 's' : ''}
-          </div>
-        )}
-        {restaurant.current_oil_lbs && (
-          <div style={{ fontWeight: 600, color: '#81c784', fontSize: '14px' }}>
-            {restaurant.current_oil_lbs.toLocaleString()} lbs
-          </div>
-        )}
+      <div style={{ 
+        fontSize: '12px', 
+        opacity: 0.5,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px'
+      }}>
+        {event.daysUntil} DAYS
       </div>
     </div>
   )
 }
 
-function CasinoCard({ casino }: { casino: Casino }) {
+// =============================================================================
+// FILTER TOGGLE
+// =============================================================================
+
+function FilterToggle({ 
+  value, 
+  onChange 
+}: { 
+  value: 'all' | 'customers' | 'prospects'
+  onChange: (v: 'all' | 'customers' | 'prospects') => void 
+}) {
+  const options = [
+    { key: 'all', label: 'All' },
+    { key: 'customers', label: 'Customers' },
+    { key: 'prospects', label: 'Prospects' },
+  ] as const
+
   return (
     <div style={{ 
       display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      padding: '16px', 
-      background: 'rgba(255, 255, 255, 0.02)', 
-      borderRadius: '10px'
+      gap: '4px',
+      background: 'rgba(255,255,255,0.05)',
+      padding: '4px',
+      borderRadius: '4px'
     }}>
-      <div>
-        <div style={{ fontWeight: 600, marginBottom: '4px' }}>{casino.name}</div>
-        {casino.event_calendar && (
-          <div style={{ fontSize: '11px', opacity: 0.5 }}>{casino.event_calendar}</div>
-        )}
-      </div>
-      {casino.premium_tier && (
-        <span style={{ 
-          padding: '4px 10px', 
-          background: 'rgba(255, 180, 100, 0.2)', 
-          borderRadius: '4px', 
-          fontSize: '10px', 
-          fontWeight: 600, 
-          color: '#ffb464',
-          textTransform: 'uppercase'
-        }}>
-          Premium
-        </span>
-      )}
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          onClick={() => onChange(opt.key)}
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: 500,
+            border: 'none',
+            borderRadius: '2px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: value === opt.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+            color: value === opt.key ? '#fff' : 'rgba(255,255,255,0.6)',
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   )
 }
 
-function TalkingPoint({ type, title, text }: { type: string; title: string; text: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    bullish: { bg: 'rgba(41, 98, 255, 0.1)', text: '#2962FF' },
-    urgency: { bg: 'rgba(255, 180, 100, 0.1)', text: '#ffb464' },
-    value: { bg: 'rgba(255, 255, 255, 0.05)', text: 'rgba(255,255,255,0.8)' }
-  }
-  const c = colors[type] || colors.value
+// =============================================================================
+// OPPORTUNITY ROW (Full width, squared, clean)
+// =============================================================================
 
-  return (
-    <div style={{ padding: '16px', background: c.bg, borderRadius: '10px' }}>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: c.text, marginBottom: '10px' }}>
-        {title}
-      </div>
-      <div style={{ fontSize: '14px', lineHeight: 1.6 }}>
-        &ldquo;{text}&rdquo;
-      </div>
-    </div>
-  )
-}
+function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
+  const isProspect = opportunity.status === 'prospect'
+  const statusColor = isProspect ? STATUS_COLORS.prospect : STATUS_COLORS.customer
 
-function LoadingState() {
-  return (
-    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-      Loading data...
-    </div>
-  )
-}
-
-function EmptyState({ message }: { message: string }) {
   return (
     <div style={{ 
-      padding: '60px 40px', 
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      padding: '20px 24px',
+      background: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: '0px', // squared
+      transition: 'all 0.2s ease',
+    }}>
+      {/* Status Dot */}
+      <div style={{
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        background: statusColor,
+        flexShrink: 0,
+      }} />
+
+      {/* Main Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          marginBottom: '6px' 
+        }}>
+          <span style={{ fontSize: '15px', fontWeight: 600 }}>
+            {opportunity.casino} - {opportunity.name}
+          </span>
+          {isProspect && (
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              padding: '2px 8px',
+              background: 'rgba(185, 28, 28, 0.2)',
+              color: '#f87171',
+              borderRadius: '2px',
+            }}>
+              PROSPECT
+            </span>
+          )}
+        </div>
+        <div style={{ 
+          fontSize: '12px', 
+          opacity: 0.5,
+          marginBottom: '8px'
+        }}>
+          CES match: {opportunity.eventMatch} │ Projected: +{opportunity.projectedMin}-{opportunity.projectedMax}% │ {opportunity.fryers || '?'} fryers
+        </div>
+        <div style={{ 
+          fontSize: '13px', 
+          opacity: 0.7,
+          fontStyle: 'italic'
+        }}>
+          "{opportunity.oneLiner}"
+        </div>
+      </div>
+
+      {/* Intel Button */}
+      <button style={{
+        padding: '8px 16px',
+        fontSize: '12px',
+        fontWeight: 600,
+        background: 'transparent',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: '2px',
+        color: 'rgba(255,255,255,0.8)',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        flexShrink: 0,
+      }}>
+        Intel
+      </button>
+    </div>
+  )
+}
+
+// =============================================================================
+// AT RISK ROW
+// =============================================================================
+
+function AtRiskRow({ customer }: { customer: AtRiskCustomer }) {
+  return (
+    <div style={{ 
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      padding: '20px 24px',
+      background: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: '0px', // squared
+      transition: 'all 0.2s ease',
+    }}>
+      {/* Status Dot (amber) */}
+      <div style={{
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        background: STATUS_COLORS.atRisk,
+        flexShrink: 0,
+      }} />
+
+      {/* Main Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          marginBottom: '6px' 
+        }}>
+          <span style={{ fontSize: '15px', fontWeight: 600 }}>
+            {customer.casino} - {customer.name}
+          </span>
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            padding: '2px 8px',
+            background: 'rgba(251, 191, 36, 0.2)',
+            color: '#fbbf24',
+            borderRadius: '2px',
+          }}>
+            {customer.daysSinceOrder} DAYS
+          </span>
+        </div>
+        <div style={{ 
+          fontSize: '12px', 
+          opacity: 0.5,
+          marginBottom: '8px'
+        }}>
+          Last order: {customer.daysSinceOrder} days ago │ Pattern: {customer.pattern}
+        </div>
+        <div style={{ 
+          fontSize: '13px', 
+          opacity: 0.7,
+          fontStyle: 'italic'
+        }}>
+          "{customer.oneLiner}"
+        </div>
+      </div>
+
+      {/* Intel Button */}
+      <button style={{
+        padding: '8px 16px',
+        fontSize: '12px',
+        fontWeight: 600,
+        background: 'transparent',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: '2px',
+        color: 'rgba(255,255,255,0.8)',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        flexShrink: 0,
+      }}>
+        Intel
+      </button>
+    </div>
+  )
+}
+
+// =============================================================================
+// UTILITY COMPONENTS
+// =============================================================================
+
+function LoadingRow() {
+  return (
+    <div style={{ 
+      padding: '40px', 
       textAlign: 'center', 
       opacity: 0.5,
       background: 'rgba(255,255,255,0.02)',
-      borderRadius: '12px'
+      border: '1px solid rgba(255,255,255,0.08)',
+    }}>
+      Loading...
+    </div>
+  )
+}
+
+function EmptyRow({ message }: { message: string }) {
+  return (
+    <div style={{ 
+      padding: '40px', 
+      textAlign: 'center', 
+      opacity: 0.5,
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.08)',
     }}>
       {message}
     </div>

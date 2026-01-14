@@ -13,6 +13,8 @@ export {
   fredDailyGeneral,
 } from "./fred-daily";
 export { cftcWeekly } from "./cftc-weekly";
+export { fxSpotDaily } from "./fx-spot-daily";
+export { noaaWeatherDaily } from "./noaa-weather-daily";
 export { federalRegisterDaily } from "./federal-register";
 export { nyfedDaily } from "./nyfed-daily";
 export { cbpTradeDaily } from "./cbp-trade";
@@ -23,6 +25,7 @@ export { conabNewsDaily } from "./conab-news";
 export { barchartZlNewsDaily } from "./barchart-zl-news";
 export { whitehouseDaily } from "./whitehouse-press";
 export { usdaDaily } from "./usda-press";
+export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
 export { eiaDaily } from "./eia-today";
 export { nassWeekly } from "./nass-weekly";
 export { glideVegasSync } from "./glide-vegas";

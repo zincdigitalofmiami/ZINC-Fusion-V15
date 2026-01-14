@@ -583,10 +583,10 @@ def load_cot_data(conn) -> pd.DataFrame:
     logger.info("Loading CFTC COT data...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT report_date, symbol, open_interest, managed_money_net,
+            SELECT event_date AS as_of_date, symbol, open_interest, managed_money_net,
                    managed_money_net_pct_oi, prod_merc_net, prod_merc_net_pct_oi
             FROM "raw"."cftc_cot_1w"
-            ORDER BY report_date, symbol
+            ORDER BY event_date, symbol
         """)
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["as_of_date", "symbol", "oi", "mm_net", "mm_pct", "prod_net", "prod_pct"])
@@ -615,15 +615,30 @@ def load_usda_exports(conn) -> pd.DataFrame:
     logger.info("Loading USDA export sales...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT report_date,
-                SUM(CASE WHEN commodity = 'Soybeans' THEN net_sales_mt END) as usda_soy_net_sales,
-                SUM(CASE WHEN commodity = 'Soybeans' THEN exports_mt END) as usda_soy_exports,
-                SUM(CASE WHEN commodity = 'Soybean Oil' THEN net_sales_mt END) as usda_zl_net_sales,
-                SUM(CASE WHEN commodity = 'Soybean Oil' THEN exports_mt END) as usda_zl_exports,
-                SUM(CASE WHEN commodity = 'Soybean Meal' THEN net_sales_mt END) as usda_zm_net_sales
-            FROM "raw"."usda_export_sales_1w"
-            GROUP BY report_date
-            ORDER BY report_date
+            WITH per_commodity AS (
+                SELECT
+                    event_date AS as_of_date,
+                    commodity,
+                    COALESCE(
+                        MAX(CASE WHEN destination_country = 'TOTAL' THEN net_sales_mt END),
+                        SUM(net_sales_mt)
+                    ) AS net_sales_mt,
+                    COALESCE(
+                        MAX(CASE WHEN destination_country = 'TOTAL' THEN exports_mt END),
+                        SUM(exports_mt)
+                    ) AS exports_mt
+                FROM "raw"."usda_export_sales_1w"
+                GROUP BY event_date, commodity
+            )
+            SELECT as_of_date,
+                MAX(CASE WHEN commodity = 'Soybeans' THEN net_sales_mt END) as usda_soy_net_sales,
+                MAX(CASE WHEN commodity = 'Soybeans' THEN exports_mt END) as usda_soy_exports,
+                MAX(CASE WHEN commodity = 'Soybean Oil' THEN net_sales_mt END) as usda_zl_net_sales,
+                MAX(CASE WHEN commodity = 'Soybean Oil' THEN exports_mt END) as usda_zl_exports,
+                MAX(CASE WHEN commodity = 'Soybean Meal' THEN net_sales_mt END) as usda_zm_net_sales
+            FROM per_commodity
+            GROUP BY as_of_date
+            ORDER BY as_of_date
         """)
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["as_of_date", "usda_soy_net_sales", "usda_soy_exports",
@@ -638,15 +653,15 @@ def load_wasde_data(conn) -> pd.DataFrame:
     logger.info("Loading USDA WASDE data...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT report_date,
+            SELECT event_date AS as_of_date,
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'production' THEN value END) as wasde_soy_production,
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'exports' THEN value END) as wasde_soy_exports,
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'ending_stocks' THEN value END) as wasde_soy_stocks,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'production' THEN value END) as wasde_zl_production,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'exports' THEN value END) as wasde_zl_exports
             FROM "raw"."usda_wasde_1m"
-            GROUP BY report_date
-            ORDER BY report_date
+            GROUP BY event_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["as_of_date", "wasde_soy_production", "wasde_soy_exports",

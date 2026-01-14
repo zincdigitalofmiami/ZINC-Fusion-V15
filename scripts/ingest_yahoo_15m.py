@@ -72,7 +72,7 @@ def get_previous_close(conn) -> Optional[float]:
                 """
                 SELECT close FROM raw.market_futures_1d 
                 WHERE symbol = 'ZL' 
-                ORDER BY as_of_date DESC 
+                ORDER BY event_date DESC 
                 LIMIT 1
             """
             )

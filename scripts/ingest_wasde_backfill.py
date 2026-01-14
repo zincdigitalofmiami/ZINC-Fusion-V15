@@ -92,10 +92,10 @@ def load_wasde_csv(filepath: str) -> pd.DataFrame:
 def transform_row(row: pd.Series) -> dict:
     """Transform one CSV row to DB format."""
     # Parse report_month (YYYY-MM) to date (first of month)
-    report_date = datetime.strptime(row["report_month"], "%Y-%m").date()
+    event_date = datetime.strptime(row["report_month"], "%Y-%m").date()
 
     return {
-        "report_date": report_date,
+        "event_date": event_date,
         "commodity": row["commodity"],
         "country": REGION_TO_COUNTRY[row["region"]],
         "metric": ITEM_TO_METRIC[row["item"]],
@@ -110,9 +110,9 @@ def get_existing_dates(conn, cutoff_date: str = "2020-01-01") -> set:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT DISTINCT report_date 
+        SELECT DISTINCT event_date 
         FROM raw.usda_wasde_1m 
-        WHERE report_date < %s
+        WHERE event_date < %s
     """,
         (cutoff_date,),
     )
@@ -137,7 +137,7 @@ def insert_rows(conn, rows: list, batch_size: int = 1000) -> int:
             values_list.append("(%s, %s, %s, %s, %s, %s, %s, NOW())")
             params.extend(
                 [
-                    row["report_date"],
+                    row["event_date"],
                     row["commodity"],
                     row["country"],
                     row["metric"],
@@ -149,7 +149,7 @@ def insert_rows(conn, rows: list, batch_size: int = 1000) -> int:
 
         sql = f"""
             INSERT INTO raw.usda_wasde_1m 
-            (report_date, commodity, country, metric, value, unit, source, ingested_at)
+            (event_date, commodity, country, metric, value, unit, source, ingested_at)
             VALUES {', '.join(values_list)}
             ON CONFLICT DO NOTHING
         """
@@ -183,7 +183,7 @@ def main():
     # Check current state BEFORE
     cur = conn.cursor()
     cur.execute(
-        "SELECT COUNT(*), MIN(report_date), MAX(report_date) FROM raw.usda_wasde_1m"
+        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM raw.usda_wasde_1m"
     )
     before = cur.fetchone()
     print(f"\nBEFORE: {before[0]} rows, {before[1]} to {before[2]}")
@@ -226,7 +226,7 @@ def main():
     seen = set()
     unique_rows = []
     for row in rows:
-        key = (row["report_date"], row["commodity"], row["country"], row["metric"])
+        key = (row["event_date"], row["commodity"], row["country"], row["metric"])
         if key not in seen:
             seen.add(key)
             unique_rows.append(row)
@@ -240,7 +240,7 @@ def main():
 
     # Check state AFTER
     cur.execute(
-        "SELECT COUNT(*), MIN(report_date), MAX(report_date) FROM raw.usda_wasde_1m"
+        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM raw.usda_wasde_1m"
     )
     after = cur.fetchone()
     print(f"\nAFTER: {after[0]} rows, {after[1]} to {after[2]}")

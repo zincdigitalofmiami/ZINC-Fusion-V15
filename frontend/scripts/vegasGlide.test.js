@@ -31,9 +31,8 @@ test('detectGlideFieldDrift returns no missing fields for complete rows', () => 
   const rows = [
     {
       [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.name]: 'Gordon Ramsay Pub',
-      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.casinoRefId]: 'casino_123',
-      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.deliveryDay]: 'Daily',
-      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.fryerCount]: '20',
+      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.casinoId]: 'casino_123',
+      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.scheduleParameters]: 'Daily',
     },
   ]
 
@@ -47,7 +46,7 @@ test('detectGlideFieldDrift returns no missing fields for complete rows', () => 
 test('assertNoGlideFieldDrift throws GlideSchemaDriftError when required fields are missing', () => {
   const rows = [
     {
-      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.casinoRefId]: 'casino_123',
+      [vegasGlide.VEGAS_GLIDE_FIELDS.restaurants.casinoId]: 'casino_123',
     },
   ]
 
@@ -77,4 +76,3 @@ test('assertNoGlideFieldDrift does not throw for empty result sets', () => {
     })
   )
 })
-

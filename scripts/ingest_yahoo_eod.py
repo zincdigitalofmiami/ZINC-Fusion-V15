@@ -98,7 +98,7 @@ def download_yahoo_data(
 ) -> pd.DataFrame:
     """Download OHLCV data from Yahoo Finance.
 
-    Returns DataFrame with columns: symbol, as_of_date, open, high, low, close, volume
+    Returns DataFrame with columns: symbol, event_date, open, high, low, close, volume
     """
     try:
         import yfinance as yf
@@ -187,7 +187,7 @@ def _process_ticker_df(canonical: str, df: pd.DataFrame) -> List[dict]:
     rows = []
     for _, row in df.iterrows():
         try:
-            as_of = pd.to_datetime(row[date_col]).date()
+            event_date = pd.to_datetime(row[date_col]).date()
             o = float(row["Open"]) if pd.notna(row.get("Open")) else None
             h = float(row["High"]) if pd.notna(row.get("High")) else None
             l = float(row["Low"]) if pd.notna(row.get("Low")) else None
@@ -201,7 +201,7 @@ def _process_ticker_df(canonical: str, df: pd.DataFrame) -> List[dict]:
             rows.append(
                 {
                     "symbol": canonical,
-                    "as_of_date": as_of,
+                    "event_date": event_date,
                     "open": o,
                     "high": h,
                     "low": l,
@@ -225,7 +225,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
         return 0, 0
 
     # Filter to only dates after Databento cutoff
-    df = df[df["as_of_date"] > DATABENTO_CUTOFF].copy()
+    df = df[df["event_date"] > DATABENTO_CUTOFF].copy()
 
     if df.empty:
         logger.info(f"No rows after cutoff date {DATABENTO_CUTOFF}")
@@ -247,9 +247,9 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
     # - Skip existing non-Yahoo rows (preserve Databento)
     upsert_sql = """
         INSERT INTO raw.market_futures_1d
-            (symbol, as_of_date, open, high, low, close, volume, source, ingested_at)
+            (event_date, symbol, open, high, low, close, volume, source, ingested_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (symbol, as_of_date)
+        ON CONFLICT (event_date, symbol)
         DO UPDATE SET
             open = EXCLUDED.open,
             high = EXCLUDED.high,
@@ -263,8 +263,8 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
 
     records = [
         (
+            row["event_date"],
             row["symbol"],
-            row["as_of_date"],
             row["open"],
             row["high"],
             row["low"],

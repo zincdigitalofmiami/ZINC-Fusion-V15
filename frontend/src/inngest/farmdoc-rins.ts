@@ -58,32 +58,9 @@ export const farmdocRinsDaily = inngest.createFunction(
     let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
 
     try {
-      await step.run("ensure-table", async () => {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS raw.farmdoc_articles_event (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            event_date DATE NOT NULL,
-            title TEXT,
-            description TEXT,
-            link TEXT,
-            pub_date TIMESTAMPTZ,
-            guid TEXT,
-            author TEXT,
-            categories TEXT[],
-            knowledge_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            revision_no INTEGER NOT NULL DEFAULT 1,
-            is_preliminary BOOLEAN DEFAULT false,
-            validation_status TEXT DEFAULT 'validated',
-            source TEXT,
-            source_url TEXT,
-            raw_payload JSONB,
-            ingestion_batch_id UUID,
-            row_hash TEXT NOT NULL,
-            specialist_tags TEXT[] NOT NULL
-          )
-        `);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_farmdoc_hash ON raw.farmdoc_articles_event(row_hash)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_farmdoc_tags ON raw.farmdoc_articles_event USING GIN(specialist_tags)`);
+      await step.run("assert-table", async () => {
+        // Fail loudly if the table doesn't exist (no silent DDL in prod).
+        await client.query(`SELECT 1 FROM raw.farmdoc_articles_event LIMIT 1`);
       });
 
       runId = await step.run("create-ingest-run", () => createIngestRun(client, "farmdoc-rins-daily"));
@@ -104,15 +81,24 @@ export const farmdocRinsDaily = inngest.createFunction(
 
       const itemArray = Array.isArray(items) ? items : [items];
       for (const item of itemArray) {
-        const outcome = await step.run(`ingest-${item.guid || item.link}`, async () => {
-          const pubDate = item.pubDate || new Date().toISOString();
-          const rowHash = computeRowHash(item.link || item.guid, pubDate);
+        const stepId = String(item.guid || item.link || "unknown");
+        const outcome = await step.run(`ingest-${stepId}`, async () => {
+          const pubDate: string | undefined = item.pubDate;
+          if (!pubDate) return { status: "quarantined_missing_pub_date" as const };
+
+          const link: string | undefined = item.link || item.guid;
+          if (!link) return { status: "quarantined_missing_link" as const };
+
+          const parsed = new Date(pubDate);
+          if (Number.isNaN(parsed.getTime())) return { status: "quarantined_bad_pub_date" as const };
+
+          const rowHash = computeRowHash(link, pubDate);
 
           if (await hashExists(client, "raw.farmdoc_articles_event", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 
-          const eventDate = new Date(pubDate).toISOString().split("T")[0];
+          const eventDate = parsed.toISOString().split("T")[0];
           const categories = item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [];
           const author = item["dc:creator"] || item.author || "";
 
@@ -134,11 +120,9 @@ export const farmdocRinsDaily = inngest.createFunction(
         });
 
         rowsAttempted++;
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+        if (outcome.status === "inserted") rowsInserted++;
+        else if (outcome.status === "skipped_duplicate") rowsSkipped++;
+        else rowsQuarantined++;
       }
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
