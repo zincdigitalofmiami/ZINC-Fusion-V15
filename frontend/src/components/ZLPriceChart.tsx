@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createChart, AreaSeries, ColorType, IChartApi } from 'lightweight-charts'
+import { createChart, AreaSeries, ColorType, IChartApi, UTCTimestamp } from 'lightweight-charts'
 
 interface PriceData {
   timestamp: string
@@ -99,9 +99,9 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
     })
 
     // 3. Transform Data
-    const dataMap = new Map<number, { time: number; value: number }>()
+    const dataMap = new Map<number, { time: UTCTimestamp; value: number }>()
     for (const d of priceData) {
-      const time = Math.floor(new Date(d.timestamp).getTime() / 1000)
+      const time = Math.floor(new Date(d.timestamp).getTime() / 1000) as UTCTimestamp
       // AreaSeries uses 'value'
       dataMap.set(time, { time, value: d.close })
     }
