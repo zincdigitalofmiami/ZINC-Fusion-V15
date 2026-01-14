@@ -21,8 +21,6 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   
-  // Default to 3M view
-  const [selectedRange, setSelectedRange] = useState(TIME_RANGES[0])
   const [priceData, setPriceData] = useState<PriceData[]>([])
   const [lastPrice, setLastPrice] = useState<number | null>(null)
 
@@ -30,7 +28,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/zl/price-1d?days=${selectedRange.days}`)
+        const res = await fetch(`/api/zl/price-1d?days=90`)
         if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
         if (json.data) {
@@ -49,7 +47,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
     // Refresh every 15 minutes (900000ms) to update current day bar
     const interval = setInterval(fetchData, 900000)
     return () => clearInterval(interval)
-  }, [selectedRange])
+  }, [])
 
   // Initialize & Update Chart
   useEffect(() => {
@@ -119,9 +117,9 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       const lastDataTime = sortedData[sortedData.length - 1].time
       const firstDataTime = sortedData[0].time
       
-      // Calculate future time - extend much further to reach vertical axis
+      // Calculate future time - extend to reach right axis edge
       const timeSpan = lastDataTime - firstDataTime
-      const futureTime = (lastDataTime + Math.floor(timeSpan * 0.5)) as UTCTimestamp
+      const futureTime = (lastDataTime + Math.floor(timeSpan * 1.0)) as UTCTimestamp
 
       // Dotted line for historical (behind) - thicker dots
       const dottedLine = chart.addSeries(LineSeries, {
@@ -173,30 +171,11 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
   return (
     <div className="relative w-full border border-white/5 bg-[#0b0f1a] rounded-xl overflow-hidden">
       
-      {/* Time Range Buttons - Left Side */}
-      <div className="absolute top-4 left-4 z-10 flex gap-2">
-        {TIME_RANGES.map((range) => (
-          <button
-            key={range.id}
-            onClick={() => setSelectedRange(range)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              selectedRange.id === range.id
-                ? 'bg-[#ef4444] text-white shadow-lg'
-                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            {range.label}
-          </button>
-        ))}
-      </div>
-
       {/* Chart Container */}
       <div ref={chartContainerRef} className="w-full relative" style={{ height }}>
         {/* Watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <div className="text-white/[0.03] text-6xl font-bold tracking-wider">
-            ZINC FUSION
-          </div>
+          <img src="/chart_watermark.svg" alt="" className="opacity-[0.03] h-1/2" style={{ aspectRatio: 'auto' }} />
         </div>
       </div>
     </div>
