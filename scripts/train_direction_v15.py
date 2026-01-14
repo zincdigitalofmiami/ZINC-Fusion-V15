@@ -121,10 +121,10 @@ def load_multi_symbol_ohlcv(conn, symbols: List[str]) -> Dict[str, pd.DataFrame]
     result = {}
     for sym in symbols:
         query = f"""
-            SELECT as_of_date as timestamp, open, high, low, close, volume
+            SELECT event_date as timestamp, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
             WHERE symbol = '{sym}'
-            ORDER BY as_of_date
+            ORDER BY event_date
         """
         df = pd.read_sql(query, conn)
         df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.normalize()
@@ -246,34 +246,14 @@ def compute_specialist_features(ohlcv_data: Dict[str, pd.DataFrame], fred_df: pd
     specialists["volatility"] = vol_df
     logger.info(f"   volatility: {len(vol_df)} rows, {len(vol_df.columns)} features")
 
-    # === CHINA SPECIALIST (placeholder - needs Dalian data) ===
-    china_df = pd.DataFrame(index=zl.index)
-    china_df["placeholder"] = 0
-    specialists["china"] = china_df
-
-    # === TARIFF SPECIALIST (placeholder - needs trade policy data) ===
-    tariff_df = pd.DataFrame(index=zl.index)
-    tariff_df["placeholder"] = 0
-    specialists["tariff"] = tariff_df
-
-    # === BIOFUEL SPECIALIST (placeholder - needs RIN data) ===
-    biofuel_df = pd.DataFrame(index=zl.index)
-    biofuel_df["placeholder"] = 0
-    specialists["biofuel"] = biofuel_df
-
-    # === PALM SPECIALIST (placeholder - needs CPO data) ===
+    # === PALM SPECIALIST (CPO proxy if available) ===
     palm_df = pd.DataFrame(index=zl.index)
     if "CPO" in ohlcv_data:
         cpo = ohlcv_data["CPO"]
         palm_df = palm_df.join(cpo[["cpo_close"]], how="left")
         palm_df["zl_cpo_spread"] = zl["zl_close"] - palm_df["cpo_close"]
-    palm_df["placeholder"] = 0
-    specialists["palm"] = palm_df
-
-    # === SUBSTITUTES SPECIALIST (placeholder) ===
-    subs_df = pd.DataFrame(index=zl.index)
-    subs_df["placeholder"] = 0
-    specialists["substitutes"] = subs_df
+    if not palm_df.empty and len(palm_df.columns) > 0:
+        specialists["palm"] = palm_df
 
     return specialists
 
@@ -319,7 +299,7 @@ def prepare_full_dataset(conn, horizon: int, min_date: str = "2005-01-01") -> Tu
     for bucket, spec_df in specialist_features.items():
         if bucket in ["crush", "fed", "fx", "energy", "volatility"]:  # Active specialists
             for col in spec_df.columns:
-                if col not in df.columns and col != "placeholder":
+                if col not in df.columns:
                     df[f"spec_{bucket}_{col}"] = spec_df[col]
 
     # Create targets

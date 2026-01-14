@@ -12,30 +12,14 @@ interface TopicNode extends d3.SimulationNodeDatum {
   sentiment: number; // -1 to 1
 }
 
-const MOCK_TOPICS = [
-  { id: '1', topic: 'Tariffs', volume: 85, sentiment: -0.8 },
-  { id: '2', topic: 'Drought', volume: 60, sentiment: -0.6 },
-  { id: '3', topic: 'RVO Rule', volume: 95, sentiment: 0.9 },
-  { id: '4', topic: 'China Buy', volume: 40, sentiment: 0.4 },
-  { id: '5', topic: 'Strike', volume: 30, sentiment: -0.5 },
-  { id: '6', topic: 'Yields', volume: 75, sentiment: 0.2 },
-  { id: '7', topic: 'Biofuel', volume: 55, sentiment: 0.7 },
-  { id: '8', topic: 'Inflation', volume: 25, sentiment: -0.3 },
-  { id: '9', topic: 'Export Sales', volume: 45, sentiment: 0.5 },
-];
-
-const INITIAL_NODES: TopicNode[] = MOCK_TOPICS.map(t => ({
-  ...t,
-  x: 0,
-  y: 0,
-}));
+const INITIAL_NODES: TopicNode[] = [];
 
 export function OrganicTopicCloud() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<TopicNode[]>(INITIAL_NODES);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || nodes.length === 0) return;
     const { clientWidth, clientHeight } = containerRef.current;
 
     // Center init
@@ -62,6 +46,11 @@ export function OrganicTopicCloud() {
 
   return (
     <div ref={containerRef} className="relative w-full h-[400px] overflow-hidden bg-[#0a0a0a] rounded-xl border border-white/5">
+       {nodes.length === 0 && (
+         <div className="absolute inset-0 z-10 flex items-center justify-center">
+           <div className="text-sm text-slate-400">No sentiment/topic data available.</div>
+         </div>
+       )}
        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1e293b]/10 via-[#0a0a0a] to-[#0a0a0a]" />
       
       {nodes.map((node) => {

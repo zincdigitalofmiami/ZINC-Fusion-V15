@@ -490,9 +490,9 @@ HEADERS = {
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        raise ValueError("DATABASE_URL or POSTGRES_URL not found in environment")
+        raise ValueError("DATABASE_URL not found in environment")
     return psycopg2.connect(database_url)
 
 
@@ -512,12 +512,12 @@ def insert_article(conn, article: Dict[str, Any]) -> bool:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO "raw"."news_articles_1d"
-                (as_of_date, headline, content, source, bucket_name, zl_sentiment,
+                (event_date, published_at, headline, content, source, bucket_name, zl_sentiment,
                  is_trump_related, content_hash, url, ingested_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (content_hash) DO NOTHING
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (
-                article["as_of_date"],
+                article["event_date"],
+                article["published_at"],
                 article["headline"][:500] if article["headline"] else None,
                 article["content"][:10000] if article["content"] else None,
                 article["source"],
@@ -534,47 +534,38 @@ def insert_article(conn, article: Dict[str, Any]) -> bool:
 
 
 def ensure_schema(conn):
-    """Ensure required columns and indexes exist."""
+    """Verify required columns exist (no implicit DDL)."""
+    required = {
+        "event_date",
+        "published_at",
+        "headline",
+        "content",
+        "source",
+        "bucket_name",
+        "zl_sentiment",
+        "is_trump_related",
+        "content_hash",
+        "url",
+        "ingested_at",
+    }
+
     with conn.cursor() as cur:
-        # Check if content_hash column exists
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'raw' AND table_name = 'news_articles_1d'
-            AND column_name = 'content_hash'
-        """)
-        if not cur.fetchone():
-            logger.info("Adding content_hash column and indexes...")
-            cur.execute("""
-                ALTER TABLE "raw"."news_articles_1d"
-                ADD COLUMN IF NOT EXISTS content_hash VARCHAR(64),
-                ADD COLUMN IF NOT EXISTS url TEXT,
-                ADD COLUMN IF NOT EXISTS ingested_at TIMESTAMPTZ DEFAULT NOW()
-            """)
-            conn.commit()
+            """
+        )
+        cols = {r[0] for r in cur.fetchall()}
 
-            # Create unique constraint for deduplication
-            try:
-                cur.execute("""
-                    ALTER TABLE "raw"."news_articles_1d"
-                    ADD CONSTRAINT news_content_hash_unique UNIQUE (content_hash)
-                """)
-            except:
-                pass  # Constraint may already exist
-
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_news_content_hash
-                ON "raw"."news_articles_1d" (content_hash)
-            """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_news_source
-                ON "raw"."news_articles_1d" (source)
-            """)
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_news_as_of_date
-                ON "raw"."news_articles_1d" (as_of_date DESC)
-            """)
-            conn.commit()
-            logger.info("Schema updated successfully")
+    missing = sorted(required - cols)
+    if missing:
+        raise SystemExit(
+            "raw.news_articles_1d missing required columns: "
+            + ", ".join(missing)
+            + ". Schema changes require explicit approval."
+        )
 
 
 # =============================================================================
@@ -645,8 +636,11 @@ def process_article(headline: str, content: str, source: Dict, url: str = None, 
     if trump_related and source["specialist"] != "trump_effect":
         bucket = "trump_effect"
 
+    published_at = pub_date or datetime.now()
+
     return {
-        "as_of_date": (pub_date or datetime.now()).date(),
+        "event_date": published_at.date(),
+        "published_at": published_at,
         "headline": headline,
         "content": content[:10000] if content else None,
         "source": source["source_id"],

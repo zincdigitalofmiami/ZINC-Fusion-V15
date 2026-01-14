@@ -40,9 +40,9 @@ LOCAL_DATA_DIR = Path(__file__).parent.parent / "data" / "training_cache"
 # Tables to sync for training
 TRAINING_TABLES = {
     # Raw data for feature engineering
-    "raw.market_futures_1d": {"key": "as_of_date", "incremental": True},
+    "raw.market_futures_1d": {"key": "event_date", "incremental": True},
     "raw.market_futures_1h": {"key": "ts_event", "incremental": True},
-    "raw.fred_observations_1d": {"key": "as_of_date", "incremental": True},
+    "raw.fred_observations_1d": {"key": "event_date", "incremental": True},
     # Specialist tables for specialist model training
     "training.specialist_crush_1d": {"key": "as_of_date", "incremental": True},
     "training.specialist_crush_1h": {"key": "ts_event", "incremental": True},

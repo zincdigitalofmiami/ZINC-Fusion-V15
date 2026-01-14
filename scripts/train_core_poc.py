@@ -258,12 +258,12 @@ def load_base_data(conn, start_date: str) -> pd.DataFrame:
         cur.execute(
             """
             SELECT
-                as_of_date as timestamp,
+                event_date as timestamp,
                 open, high, low, close, volume
             FROM "raw"."market_futures_1d"
             WHERE symbol = 'ZL'
-              AND as_of_date >= %s
-            ORDER BY as_of_date
+              AND event_date >= %s
+            ORDER BY event_date
         """,
             (start_date,),
         )

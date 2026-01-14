@@ -80,12 +80,11 @@ QUANTILE_LEVELS = [0.1, 0.5, 0.9]
 
 # =============================================================================
 # DATA ALIGNMENT STRATEGY:
-# All horizons use DAILY data from 2000+ with ALL sources
+# All horizons use DAILY data from 2020+ with ALL sources
 # =============================================================================
-# Let AutoGluon handle sparse/missing data - it's designed for this.
-# FRED goes back to 1800s - include ALL of it.
-# If 2000+ ALL fails, fallback is 2000+ full-coverage only.
-CORE_START_DATE = "2000-01-01"  # All horizons use 2000+ daily
+# 2020+ ensures complete coverage - no forward-fill required.
+# All data sources have full coverage from 2020 onward.
+CORE_START_DATE = "2020-01-01"  # All horizons use 2020+ daily (complete coverage)
 
 # ALL sources included for ALL horizons:
 # - Market futures (all symbols)
@@ -236,10 +235,10 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
+            SELECT symbol, event_date as ts_event, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
-            WHERE as_of_date >= %s
-            ORDER BY as_of_date, symbol
+            WHERE event_date >= %s
+            ORDER BY event_date, symbol
         """,
             (start_date,),
         )
@@ -623,9 +622,9 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     # Load all FRED data
     fred_long = pd.read_sql(
         """
-        SELECT as_of_date, series_id, value
+        SELECT event_date as as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
-        ORDER BY as_of_date, series_id
+        ORDER BY event_date, series_id
     """,
         conn,
     )
@@ -712,11 +711,11 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             """
             SELECT
                 station_id,
-                as_of_date,
+                event_date as as_of_date,
                 tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
                 awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms
             FROM "raw"."weather_noaa_1d"
-            ORDER BY as_of_date, station_id
+            ORDER BY event_date, station_id
         """
         )
         weather_cols = [desc[0] for desc in cur.description]
@@ -783,10 +782,10 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT series_id, as_of_date, value
+            SELECT series_id, event_date as as_of_date, value
             FROM "raw"."fred_observations_1d"
             WHERE series_id IN %s
-            ORDER BY as_of_date, series_id
+            ORDER BY event_date, series_id
         """,
             (tuple(fx_series),),
         )
@@ -1007,9 +1006,9 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, rin_type, price
+            SELECT event_date as as_of_date, rin_type, price
             FROM "raw"."epa_rin_prices_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """
         )
         rin_rows = cur.fetchall()
@@ -1042,7 +1041,7 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             """
             SELECT
                 id,
-                as_of_date,
+                event_date as as_of_date,
                 headline,
                 content,
                 source,
@@ -1050,7 +1049,7 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
                 zl_sentiment,
                 is_trump_related
             FROM "raw"."news_articles_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """
         )
         news_rows = cur.fetchall()

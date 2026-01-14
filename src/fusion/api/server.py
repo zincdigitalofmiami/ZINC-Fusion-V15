@@ -94,10 +94,10 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
         """
         SELECT as_of_date, close
         FROM (
-            SELECT as_of_date, close
+            SELECT event_date AS as_of_date, close
             FROM raw.market_futures_1d
             WHERE symbol = ?
-            ORDER BY as_of_date DESC
+            ORDER BY event_date DESC
             LIMIT 2
         ) t
         ORDER BY as_of_date ASC
@@ -140,16 +140,14 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
 
 def _table_exists(schema: str, table: str) -> bool:
     """Check if a table exists in Postgres."""
-    qb = get_query_builder()
-    pg_table = qb.table(f"{schema}.{table}")
     rows = _fetch_rows(
         """
         SELECT 1
         FROM information_schema.tables
-        WHERE table_name = ?
+        WHERE table_schema = ? AND table_name = ?
         LIMIT 1
         """,
-        [pg_table],
+        [schema, table],
     )
     return bool(rows)
 
@@ -160,15 +158,13 @@ def _first_existing_column(
     """Find first existing column from candidates in Postgres."""
     backend = get_backend()
     if backend == "postgres":
-        qb = get_query_builder()
-        pg_table = qb.table(f"{schema}.{table}")
         cols = _fetch_rows(
             """
             SELECT column_name
             FROM information_schema.columns
-            WHERE table_name = ?
+            WHERE table_schema = ? AND table_name = ?
             """,
-            [pg_table],
+            [schema, table],
         )
     else:
         cols = _fetch_rows(
@@ -344,12 +340,9 @@ def overview_models() -> Dict[str, Any]:
 
     # Raw data statistics - handle Postgres table structure
     market_1h = {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
-    if backend == "postgres":
-        # Postgres doesn't have market_futures_1h separately - skip for now
-        pass
-    elif _table_exists("raw", "market_futures_1h"):
+    if _table_exists("raw", "market_futures_1h"):
         market_1h_date_col = _first_existing_column(
-            "raw", "market_futures_1h", ["as_of_date", "ts_event", "timestamp"]
+            "raw", "market_futures_1h", ["event_time", "ts_event", "timestamp", "as_of_date"]
         )
         if market_1h_date_col:
             market_1h = _fetch_rows(
@@ -371,125 +364,117 @@ def overview_models() -> Dict[str, Any]:
             )[0]
 
     if backend == "postgres":
-        # Postgres uses flat table names
         raw_data: dict[str, Any] = {
             "fred": _fetch_rows(
                 """
                 SELECT COUNT(*)::bigint as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT series_id)::bigint as series
-                FROM fred_observations_1d
+                FROM raw.fred_observations_1d
                 """
             )[0],
             "fx_spot": _fetch_rows(
                 """
                 SELECT COUNT(*)::bigint as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT pair)::bigint as symbols
-                FROM fx_spot_1d
+                FROM raw.fx_spot_1d
                 """
             )[0],
             "market_futures_1d": _fetch_rows(
                 """
                 SELECT COUNT(*)::bigint as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT symbol)::bigint as symbols
-                FROM market_futures_1d
+                FROM raw.market_futures_1d
                 """
             )[0],
             "market_futures_1h": market_1h,
             "epa_rin_prices_1d": _fetch_rows(
                 """
                 SELECT COUNT(*)::bigint as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT rin_type)::bigint as rin_types
-                FROM epa_rin_prices_1d
+                FROM raw.epa_rin_prices_1d
                 """
             )[0],
             "weather_observations_1d": (
                 _fetch_rows(
                     """
                 SELECT COUNT(*)::bigint as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT station_id)::bigint as stations
-                FROM weather_noaa_1d
+                FROM raw.weather_noaa_1d
                 """
                 )[0]
-                if _table_exists("raw", "weather_observations_1d")
+                if _table_exists("raw", "weather_noaa_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
             ),
         }
     else:
         raw_data = {
-            "fred": (
-                _fetch_rows(
-                    """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                       COUNT(DISTINCT series_id)::BIGINT as series
-                FROM raw.fred_observations_1d
-                """
-                )[0]
+	            "fred": (
+	                _fetch_rows(
+	                    """
+	                SELECT COUNT(*)::BIGINT as rows,
+	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+	                       COUNT(DISTINCT series_id)::BIGINT as series
+	                FROM raw.fred_observations_1d
+	                """
+	                )[0]
                 if _table_exists("raw", "fred_observations_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "series": 0}
             ),
-            "fx_spot": (
-                _fetch_rows(
-                    """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                       COUNT(DISTINCT symbol)::BIGINT as symbols
-                FROM raw.fx_spot_1d
-                """
-                )[0]
-                if _table_exists("raw", "fx_spot_1d")
+	            "fx_spot": (
+	                _fetch_rows(
+	                    """
+	                SELECT COUNT(*)::BIGINT as rows,
+	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+	                       COUNT(DISTINCT pair)::BIGINT as symbols
+	                FROM raw.fx_spot_1d
+	                """
+	                )[0]
+	                if _table_exists("raw", "fx_spot_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
             ),
-            "market_futures_1d": (
-                _fetch_rows(
-                    """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                       COUNT(DISTINCT symbol)::BIGINT as symbols
-                FROM raw.market_futures_1d
-                """
-                )[0]
+	            "market_futures_1d": (
+	                _fetch_rows(
+	                    """
+	                SELECT COUNT(*)::BIGINT as rows,
+	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+	                       COUNT(DISTINCT symbol)::BIGINT as symbols
+	                FROM raw.market_futures_1d
+	                """
+	                )[0]
                 if _table_exists("raw", "market_futures_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
             ),
             "market_futures_1h": market_1h,
-            "epa_rin_prices_1d": (
-                _fetch_rows(
-                    """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
-                FROM raw.epa_rin_prices_1d
-                """
-                )[0]
+	            "epa_rin_prices_1d": (
+	                _fetch_rows(
+	                    """
+	                SELECT COUNT(*)::BIGINT as rows,
+	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+	                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
+	                FROM raw.epa_rin_prices_1d
+	                """
+	                )[0]
                 if _table_exists("raw", "epa_rin_prices_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0}
             ),
-            "weather_observations_1d": (
-                _fetch_rows(
-                    """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date,
-                       COUNT(DISTINCT station_id)::BIGINT as stations,
-                       COUNT(DISTINCT variable_id)::BIGINT as variables
-                FROM raw.weather_observations_1d
-                """
-                )[0]
-                if _table_exists("raw", "weather_observations_1d")
-                else {
-                    "rows": 0,
-                    "start_date": None,
-                    "end_date": None,
-                    "stations": 0,
-                    "variables": 0,
-                }
-            ),
-        }
+	            "weather_observations_1d": (
+	                _fetch_rows(
+	                    """
+	                SELECT COUNT(*)::BIGINT as rows,
+	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+	                       COUNT(DISTINCT station_id)::BIGINT as stations
+	                FROM raw.weather_noaa_1d
+	                """
+	                )[0]
+	                if _table_exists("raw", "weather_noaa_1d")
+	                else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
+	            ),
+	        }
 
     archive_snapshot: list[dict[str, Any]] = []
     # Postgres doesn't have archive schema - skip for now
@@ -556,10 +541,10 @@ def market_zl(
         """
         SELECT as_of_date, close
         FROM (
-            SELECT as_of_date, close
+            SELECT event_date AS as_of_date, close
             FROM raw.market_futures_1d
             WHERE symbol = ?
-            ORDER BY as_of_date DESC
+            ORDER BY event_date DESC
             LIMIT ?
         ) t
         ORDER BY as_of_date ASC
@@ -1099,10 +1084,10 @@ def zl_live() -> Dict[str, Any]:
         # Fallback to daily data if no intraday available
         daily_rows = _fetch_rows(
             """
-            SELECT as_of_date, close
+            SELECT event_date AS as_of_date, close
             FROM raw.market_futures_1d
             WHERE symbol = 'ZL'
-            ORDER BY as_of_date DESC
+            ORDER BY event_date DESC
             LIMIT 2
             """
         )

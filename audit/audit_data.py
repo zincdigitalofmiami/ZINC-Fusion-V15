@@ -18,15 +18,15 @@ print('=' * 70)
 
 # Table name -> (date column, description)
 tables = [
-    ('raw.market_futures_1d', 'as_of_date', 'Daily futures OHLCV'),
-    ('raw.fred_observations_1d', 'as_of_date', 'FRED economic indicators'),
-    ('raw.weather_noaa_1d', 'as_of_date', 'NOAA weather data'),
-    ('raw.fx_spot_1d', 'as_of_date', 'FX spot rates'),
-    ('raw.cftc_cot_1w', 'report_date', 'CFTC COT positioning'),
-    ('raw.usda_export_sales_1w', 'report_date', 'USDA export sales'),
-    ('raw.usda_wasde_1m', 'report_date', 'USDA WASDE fundamentals'),
-    ('raw.epa_rin_prices_1d', 'as_of_date', 'EPA RIN prices'),
-    ('raw.news_articles_1d', 'as_of_date', 'News sentiment'),
+    ('raw.market_futures_1d', 'event_date', 'Daily futures OHLCV'),
+    ('raw.fred_observations_1d', 'event_date', 'FRED economic indicators'),
+    ('raw.weather_noaa_1d', 'event_date', 'NOAA weather data'),
+    ('raw.fx_spot_1d', 'event_date', 'FX spot rates'),
+    ('raw.cftc_cot_1w', 'event_date', 'CFTC COT positioning'),
+    ('raw.usda_export_sales_1w', 'event_date', 'USDA export sales'),
+    ('raw.usda_wasde_1m', 'event_date', 'USDA WASDE fundamentals'),
+    ('raw.epa_rin_prices_1d', 'event_date', 'EPA RIN prices'),
+    ('raw.news_articles_1d', 'event_date', 'News sentiment'),
 ]
 
 print()

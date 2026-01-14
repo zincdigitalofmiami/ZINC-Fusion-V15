@@ -64,7 +64,7 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
                </div>
                
                <MenuItem icon={<Database size={16} />} label="Database Health" status="Healthy" />
-               <MenuItem icon={<Cpu size={16} />} label="Model Registry" status="Active" />
+               <MenuItem icon={<Cpu size={16} />} label="Model Registry" status="Active" href={process.env.NEXT_PUBLIC_MLFLOW_UI_URL || "http://localhost:5000"} external />
                <MenuItem icon={<Activity size={16} />} label="Job Status" status="Idle" />
 
                <div className="px-3 py-2 text-xs font-bold text-slate-600 uppercase tracking-widest mt-6 mb-1">
@@ -110,9 +110,21 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
   );
 }
 
-function MenuItem({ icon, label, status }: { icon: React.ReactNode, label: string, status?: string }) {
-    return (
-        <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition-all group">
+function MenuItem({
+    icon,
+    label,
+    status,
+    href,
+    external
+}: {
+    icon: React.ReactNode;
+    label: string;
+    status?: string;
+    href?: string;
+    external?: boolean;
+}) {
+    const content = (
+        <>
             <div className="flex items-center gap-3">
                 <div className="text-slate-500 group-hover:text-blue-400 transition-colors">{icon}</div>
                 <span className="text-sm font-medium">{label}</span>
@@ -125,6 +137,25 @@ function MenuItem({ icon, label, status }: { icon: React.ReactNode, label: strin
                     {status}
                 </span>
             )}
+        </>
+    );
+
+    if (href) {
+        return (
+            <a
+                href={href}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noopener noreferrer" : undefined}
+                className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
+            >
+                {content}
+            </a>
+        );
+    }
+
+    return (
+        <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition-all group">
+            {content}
         </button>
-    )
+    );
 }

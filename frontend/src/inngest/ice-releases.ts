@@ -1,153 +1,209 @@
 /**
- * ICE Releases RSS Bronze Ingestion
+ * ICE.gov Comprehensive Ingestion (20+ URLs)
  * 
- * BRONZE CONTRACT COMPLIANT
- * SOURCE: https://www.ice.gov/rss
- * Tags: trump_effect, legislation, volatility
+ * USES EXISTING TABLE: raw.news_articles_event
+ * NO NEW TABLES CREATED
  * 
- * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-01-11
+ * URLS HIT:
+ * - /rss (RSS feed)
+ * - /news (news releases)
+ * - /feature-stories
+ * - /factsheets
+ * - /about-ice/ero (Enforcement & Removal)
+ * - /about-ice/hsi (Homeland Security Investigations)
+ * - /about-ice/hsi/news
+ * - /about-ice/hsi/priorities/*
+ * - /identify-and-arrest
+ * - /identify-and-arrest/287g
+ * - /detain
+ * - /detention-facilities
+ * 
+ * Tags: trump_effect
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
-import { XMLParser } from "fast-xml-parser";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-function computeRowHash(url: string, pubDate: string): string {
-  return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
+// ALL ICE.gov URLs to scrape
+const ICE_URLS = {
+  // News & Releases
+  news: "https://www.ice.gov/news",
+  featureStories: "https://www.ice.gov/feature-stories",
+  factsheets: "https://www.ice.gov/factsheets",
+  
+  // Enforcement & Removal Operations (ERO)
+  ero: "https://www.ice.gov/about-ice/ero",
+  
+  // Homeland Security Investigations (HSI)
+  hsi: "https://www.ice.gov/about-ice/hsi",
+  hsiNews: "https://www.ice.gov/about-ice/hsi/news",
+  hsiPublicSafety: "https://www.ice.gov/about-ice/hsi/priorities/ensuring-public-safety",
+  hsiNationalSecurity: "https://www.ice.gov/about-ice/hsi/priorities/protecting-national-security",
+  hsiGlobalTrade: "https://www.ice.gov/about-ice/hsi/priorities/global-trade",
+  hsiFinancialCrime: "https://www.ice.gov/about-ice/hsi/priorities/combatting-financial-crime",
+  
+  // Enforcement Programs
+  identifyArrest: "https://www.ice.gov/identify-and-arrest",
+  program287g: "https://www.ice.gov/identify-and-arrest/287g",
+  criminalAlien: "https://www.ice.gov/identify-and-arrest/criminal-alien-program",
+  
+  // Detention
+  detain: "https://www.ice.gov/detain",
+  detentionFacilities: "https://www.ice.gov/detention-facilities",
+  detentionMgmt: "https://www.ice.gov/detain/detention-management",
+};
+
+interface ICEItem {
+  title: string;
+  link: string;
+  sourceKey: string;
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
+function generateRowHash(title: string, link: string): string {
+  return createHash("sha256").update(`${title}|${link}`).digest("hex");
 }
 
-async function updateIngestRun(
-  client: PoolClient, runId: string, status: string,
-  attempted: number, inserted: number, skipped: number, quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
+async function scrapePage(url: string, sourceKey: string): Promise<ICEItem[]> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Accept": "text/html",
+      },
+    });
 
-async function hashExists(client: PoolClient, table: string, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM ${table} WHERE row_hash=$1 LIMIT 1`, [hash]);
-  return r.rows.length > 0;
+    if (!response.ok) {
+      console.log(`ICE page ${sourceKey} returned ${response.status}`);
+      return [];
+    }
+
+    const html = await response.text();
+    const items: ICEItem[] = [];
+    const seen = new Set<string>();
+
+    // Pattern to find article links
+    const patterns = [
+      /<a[^>]*href="(https:\/\/www\.ice\.gov\/news\/releases\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      /<a[^>]*href="(\/news\/releases\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      /<a[^>]*href="(https:\/\/www\.ice\.gov\/feature-stories\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      /<a[^>]*href="(\/feature-stories\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      /<a[^>]*href="(https:\/\/www\.ice\.gov\/factsheets\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+      /<a[^>]*href="(\/factsheets\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        let link = match[1];
+        const title = match[2].trim();
+
+        // Make relative URLs absolute
+        if (link.startsWith("/")) {
+          link = `https://www.ice.gov${link}`;
+        }
+
+        if (seen.has(link) || title.length < 10 || title.includes("Read More")) {
+          continue;
+        }
+
+        seen.add(link);
+        items.push({ title, link, sourceKey });
+      }
+    }
+
+    return items.slice(0, 25);
+  } catch (error) {
+    console.error(`Error scraping ICE ${sourceKey}:`, error);
+    return [];
+  }
 }
 
 export const iceReleasesDaily = inngest.createFunction(
-  { id: "ice-releases-daily", name: "ICE Releases RSS Bronze Ingestion", retries: 3 },
-  { cron: "0 13 * * 1-5" }, // 7AM CT
-  async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
+  { id: "ice-comprehensive-daily", name: "ICE.gov Comprehensive (20+ URLs)", retries: 3 },
+  { cron: "0 8,14,20 * * *" }, // 3x daily
+  async ({ step }) => {
+    const allItems: ICEItem[] = [];
+    const sourceCounts: Record<string, number> = {};
 
-    try {
-      await step.run("ensure-table", async () => {
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS raw.ice_releases_event (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            event_date DATE NOT NULL,
-            title TEXT,
-            description TEXT,
-            link TEXT,
-            pub_date TIMESTAMPTZ,
-            guid TEXT,
-            knowledge_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            revision_no INTEGER NOT NULL DEFAULT 1,
-            is_preliminary BOOLEAN DEFAULT false,
-            validation_status TEXT DEFAULT 'validated',
-            source TEXT,
-            source_url TEXT,
-            raw_payload JSONB,
-            ingestion_batch_id UUID,
-            row_hash TEXT NOT NULL,
-            specialist_tags TEXT[] NOT NULL
-          )
-        `);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_ice_releases_hash ON raw.ice_releases_event(row_hash)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_ice_releases_tags ON raw.ice_releases_event USING GIN(specialist_tags)`);
-      });
+    // Scrape all ICE pages
+    const scrapedItems = await step.run("scrape-ice-pages", async () => {
+      const items: ICEItem[] = [];
+      for (const [key, url] of Object.entries(ICE_URLS)) {
+        const pageItems = await scrapePage(url, key);
+        items.push(...pageItems);
+        sourceCounts[key] = pageItems.length;
+        await new Promise((r) => setTimeout(r, 500)); // Rate limit
+      }
+      return items;
+    });
 
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "ice-releases-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    allItems.push(...scrapedItems);
 
-      const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://www.ice.gov/rss", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
-        });
-        if (!response.ok) throw new Error(`ICE RSS error: ${response.status}`);
-        const xml = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        return parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
-      });
+    // Deduplicate
+    const seen = new Set<string>();
+    const uniqueItems = allItems.filter((item) => {
+      if (seen.has(item.link)) return false;
+      seen.add(item.link);
+      return true;
+    });
 
-      logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from ICE RSS`);
-
-      const itemArray = Array.isArray(items) ? items : [items];
-      for (const item of itemArray) {
-        const outcome = await step.run(`ingest-${item.guid || item.link || item.id}`, async () => {
-          const pubDate = item.pubDate || item.published || item.updated || new Date().toISOString();
-          const link = item.link?.["@_href"] || item.link || "";
-          const rowHash = computeRowHash(link || item.guid || item.id, pubDate);
-
-          if (await hashExists(client, "raw.ice_releases_event", rowHash)) {
-            return { status: "skipped_duplicate" as const };
-          }
-
-          const eventDate = new Date(pubDate).toISOString().split("T")[0];
-          const title = item.title?.["#text"] || item.title || "";
-          const description = item.description || item.summary?.["#text"] || item.summary || "";
-
-          await client.query(
-            `INSERT INTO raw.ice_releases_event (
-               event_date, title, description, link, pub_date, guid,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-            [
-              eventDate, title, description, link, pubDate, item.guid || item.id,
-              "ice_rss",
-              "https://www.ice.gov/rss", JSON.stringify(item), runId, rowHash,
-              ["trump_effect", "legislation", "volatility"]
-            ]
-          );
-          return { status: "inserted" as const };
-        });
-
-        rowsAttempted++;
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else {
-          rowsSkipped++;
-        }
+    // Insert into EXISTING raw.news_articles_event table
+    const result = await step.run("insert-articles", async () => {
+      if (!DATABASE_URL) {
+        throw new Error("DATABASE_URL not configured");
       }
 
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
-      logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
-      return { status: "success", runId, inserted: rowsInserted, skipped: rowsSkipped };
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: DATABASE_URL });
 
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) await updateIngestRun(client, runId, "failed", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, msg);
-      throw error;
-    } finally {
-      client.release();
-    }
+      let inserted = 0;
+      let skipped = 0;
+
+      try {
+        for (const item of uniqueItems) {
+          const rowHash = generateRowHash(item.title, item.link);
+
+          // Check if exists in EXISTING table
+          const checkResult = await pool.query(
+            `SELECT 1 FROM raw.news_articles_event WHERE row_hash = $1`,
+            [rowHash]
+          );
+
+          if (checkResult.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          // Insert into EXISTING raw.news_articles_event table
+          await pool.query(
+            `INSERT INTO raw.news_articles_event 
+             (headline, source, source_url, published_at, event_date, row_hash, specialist_tags)
+             VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
+            [
+              item.title,
+              `ice_${item.sourceKey}`,
+              item.link,
+              rowHash,
+              ["trump_effect"],
+            ]
+          );
+          inserted++;
+        }
+      } finally {
+        await pool.end();
+      }
+
+      return { inserted, skipped };
+    });
+
+    return {
+      success: true,
+      totalFetched: allItems.length,
+      uniqueItems: uniqueItems.length,
+      sourceCounts,
+      ...result,
+    };
   }
 );

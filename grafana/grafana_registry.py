@@ -419,14 +419,14 @@ class GrafanaRegistry:
         from datetime import date
 
         sources = [
-            ("Market Futures (1D)", "raw.market_futures_1d", "as_of_date"),
-            ("FRED Economic", "raw.fred_observations_1d", "as_of_date"),
-            ("FX Spot", "raw.fx_spot_1d", "as_of_date"),
-            ("CFTC COT", "raw.cftc_cot_1w", "report_date"),
-            ("Weather NOAA", "raw.weather_noaa_1d", "as_of_date"),
-            ("EPA RIN", "raw.epa_rin_prices_1d", "as_of_date"),
-            ("USDA Exports", "raw.usda_export_sales_1w", "report_date"),
-            ("USDA WASDE", "raw.usda_wasde_1m", "report_date"),
+            ("Market Futures (1D)", "raw.market_futures_1d", "event_date"),
+            ("FRED Economic", "raw.fred_observations_1d", "event_date"),
+            ("FX Spot", "raw.fx_spot_1d", "event_date"),
+            ("CFTC COT", "raw.cftc_cot_1w", "event_date"),
+            ("Weather NOAA", "raw.weather_noaa_1d", "event_date"),
+            ("EPA RIN", "raw.epa_rin_prices_1d", "event_date"),
+            ("USDA Exports", "raw.usda_export_sales_1w", "event_date"),
+            ("USDA WASDE", "raw.usda_wasde_1m", "event_date"),
             ("News Articles", "raw.news_articles_1d", "published_at"),
         ]
 

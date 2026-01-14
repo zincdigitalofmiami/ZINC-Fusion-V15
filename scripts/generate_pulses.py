@@ -121,7 +121,7 @@ class PulseGenerator:
         # Build signal snapshot for prompt
         signal_snapshot = self._build_signal_snapshot(domain, result['sources'])
 
-        # Build event stream (placeholder - would come from news sources)
+        # Build event stream from available sources (no synthetic events)
         event_stream = self._build_event_stream(domain, result['sources'])
 
         # Receipt IDs for evidence
@@ -185,7 +185,6 @@ class PulseGenerator:
     ) -> List[str]:
         """
         Build event stream from news sources.
-        Placeholder - would parse actual news data.
         """
         events = []
 
@@ -230,8 +229,7 @@ class PulseGenerator:
 
         if self.dry_run:
             logger.info(f"[DRY RUN] Would call {self.model} with prompt ({len(prompt)} chars)")
-            # Return mock pulse for dry run
-            return self._mock_pulse(domain, as_of_ts)
+            return None
 
         # Call AI model
         try:
@@ -306,24 +304,6 @@ class PulseGenerator:
 
         else:
             raise ValueError("No AI API key available (OPENAI_API_KEY or ANTHROPIC_API_KEY)")
-
-    def _mock_pulse(self, domain: str, as_of_ts: datetime) -> Dict[str, Any]:
-        """Generate mock pulse for dry run testing."""
-        return {
-            'domain': domain,
-            'as_of_ts': as_of_ts.isoformat(),
-            'tl_dr': f"Mock pulse for {domain} - dry run mode",
-            'quantitative_analysis': {
-                'primary_forecast': {
-                    'horizon_1w': {'direction': 0, 'pressure_cents': 0.0, 'edge': 0.5},
-                    'horizon_1m': {'direction': 0, 'pressure_cents': 0.0, 'edge': 0.5},
-                    'horizon_3m': {'direction': 0, 'pressure_cents': 0.0, 'edge': 0.5},
-                    'horizon_6m': {'direction': 0, 'pressure_cents': 0.0, 'edge': 0.5}
-                }
-            },
-            'driver_attribution': {'mock_driver': 1.0},
-            'regime_assessment': {'current': 'mock', 'volatility_regime': 'normal'}
-        }
 
     async def store_pulse(
         self,

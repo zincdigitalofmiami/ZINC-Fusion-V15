@@ -64,8 +64,7 @@ from src.fusion.validation.all_data_policy import (
 # LOGGING SETUP
 # =============================================================================
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -103,25 +102,48 @@ KNOWN_COVARIATES = [
 # Tactical past covariates (technicals - for tabular models)
 TACTICAL_PAST_COVARIATES = [
     # Elite technicals
-    "rsi_14", "rsi_7", "macd", "macd_signal", "macd_hist",
-    "bb_upper", "bb_lower", "bb_pct", "atr_14",
-    "adx_14", "cci_20", "willr_14", "mfi_14",
-    "obv", "vwap", "keltner_upper", "keltner_lower",
+    "rsi_14",
+    "rsi_7",
+    "macd",
+    "macd_signal",
+    "macd_hist",
+    "bb_upper",
+    "bb_lower",
+    "bb_pct",
+    "atr_14",
+    "adx_14",
+    "cci_20",
+    "willr_14",
+    "mfi_14",
+    "obv",
+    "vwap",
+    "keltner_upper",
+    "keltner_lower",
     # Volatility proxies
-    "intraday_range", "garman_klass_vol", "parkinson_vol",
-    "close_to_close_vol", "overnight_gap",
+    "intraday_range",
+    "garman_klass_vol",
+    "parkinson_vol",
+    "close_to_close_vol",
+    "overnight_gap",
 ]
 
 # Strategic past covariates (fundamentals + technicals)
 STRATEGIC_PAST_COVARIATES = [
     # Fundamentals
-    "crush_spread", "bopo_spread", "rin_d4_price",
-    "wasde_ending_stocks", "wasde_production",
-    "export_sales_net", "cot_managed_money_net",
+    "crush_spread",
+    "bopo_spread",
+    "rin_d4_price",
+    "wasde_ending_stocks",
+    "wasde_production",
+    "export_sales_net",
+    "cot_managed_money_net",
     # Weather
-    "precip_anom", "temp_anom",
+    "precip_anom",
+    "temp_anom",
     # Macro
-    "dxy_index", "wti_crude", "vix",
+    "dxy_index",
+    "wti_crude",
+    "vix",
 ]
 
 
@@ -129,9 +151,11 @@ STRATEGIC_PAST_COVARIATES = [
 # HORIZON SPECIFICATION
 # =============================================================================
 
+
 @dataclass(frozen=True)
 class HorizonSpec:
     """Specification for a single horizon."""
+
     name: str
     prediction_length: int
     mode: str  # "tactical" or "strategic"
@@ -156,6 +180,7 @@ HORIZON_SPECS = {
 # =============================================================================
 # HARDWARE DETECTION
 # =============================================================================
+
 
 def detect_device(prefer_mps: bool = True) -> str:
     """
@@ -187,6 +212,7 @@ def detect_device(prefer_mps: bool = True) -> str:
 # =============================================================================
 # HYPERPARAMETER FACTORIES
 # =============================================================================
+
 
 def get_tactical_hyperparameters(device: str) -> Dict:
     """
@@ -255,6 +281,7 @@ def get_strategic_hyperparameters(device: str) -> Dict:
 # DATA LOADING
 # =============================================================================
 
+
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
     database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
@@ -264,31 +291,52 @@ def get_postgres_connection():
 
 
 def load_base_data(conn, start_date: str) -> pd.DataFrame:
-    """Load daily ZL data with OHLCV."""
-    logger.info(f"Loading ZL daily data from {start_date}...")
+    """
+    Load ALL FUTURES DATA (ALL SYMBOLS) - not just ZL.
+
+    ALL DATA POLICY: Load every symbol, pivot wide, AutoGluon figures out relevance.
+    """
+    logger.info(f"Loading ALL FUTURES DATA from {start_date}...")
 
     with conn.cursor() as cur:
-        cur.execute("""
+        # Load ALL symbols
+        cur.execute(
+            """
             SELECT
-                as_of_date as timestamp,
+                event_date,
+                symbol,
                 open, high, low, close, volume
             FROM "raw"."market_futures_1d"
-            WHERE symbol = 'ZL'
-              AND as_of_date >= %s
-            ORDER BY as_of_date
-        """, (start_date,))
+            WHERE event_date >= %s
+            ORDER BY event_date, symbol
+        """,
+            (start_date,),
+        )
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
 
-    df = pd.DataFrame(rows, columns=columns)
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df["item_id"] = "ZL"
+    raw_df = pd.DataFrame(rows, columns=columns)
+    raw_df["event_date"] = pd.to_datetime(raw_df["event_date"])
 
-    # Target is close price
-    df["target"] = df["close"]
+    # Pivot ALL symbols wide (OHLCV for each symbol)
+    pivoted_dfs = []
+    for metric in ["open", "high", "low", "close", "volume"]:
+        pivot = raw_df.pivot(index="event_date", columns="symbol", values=metric)
+        pivot.columns = [f"{sym}_{metric}" for sym in pivot.columns]
+        pivoted_dfs.append(pivot)
 
-    logger.info(f"   Loaded {len(df):,} rows")
-    return df
+    df_wide = pd.concat(pivoted_dfs, axis=1)
+    df_wide = df_wide.reset_index()
+    df_wide.rename(columns={"event_date": "timestamp"}, inplace=True)
+
+    # Target is ZL close
+    df_wide["target"] = df_wide["ZL_close"]
+    df_wide["item_id"] = "ZL"
+
+    logger.info(f"   Loaded {len(df_wide):,} rows × {len(df_wide.columns)} columns")
+    logger.info(f"   Symbols: {len([c for c in df_wide.columns if '_close' in c])}")
+
+    return df_wide
 
 
 def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -306,6 +354,142 @@ def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
     days_in_month = ts.dt.daysinmonth
     day = ts.dt.day
     df["days_to_expiry"] = (15 - day).clip(lower=0)
+
+    return df
+
+
+def load_all_fred(conn, start_date: str) -> pd.DataFrame:
+    """Load ALL FRED series from raw.fred_observations_1d."""
+    logger.info(f"Loading ALL FRED from {start_date}...")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT series_id, event_date, value
+            FROM "raw"."fred_observations_1d"
+            WHERE event_date >= %s
+            ORDER BY event_date
+        """,
+            (start_date,),
+        )
+        rows = cur.fetchall()
+
+    df = pd.DataFrame(rows, columns=["series_id", "event_date", "value"])
+    df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+
+    # Pivot to wide format
+    pivoted = df.pivot_table(
+        index="event_date", columns="series_id", values="value", aggfunc="last"
+    )
+
+    # Prefix with fred_
+    pivoted.columns = [f"fred_{c.lower()}" for c in pivoted.columns]
+
+    # Forward fill gaps
+    pivoted = pivoted.ffill()
+
+    logger.info(f"   Loaded {len(pivoted):,} rows, {len(pivoted.columns)} FRED series")
+
+    return pivoted
+
+
+def load_all_fx_spot(conn, start_date: str) -> pd.DataFrame:
+    """Load ALL FX spot from raw.fx_spot_1d."""
+    logger.info(f"Loading ALL FX spot from {start_date}...")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT event_date, pair, close
+            FROM "raw"."fx_spot_1d"
+            WHERE event_date >= %s
+            ORDER BY event_date
+        """,
+            (start_date,),
+        )
+        rows = cur.fetchall()
+
+    df = pd.DataFrame(rows, columns=["event_date", "pair", "close"])
+    df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+
+    # Pivot to wide format
+    pivoted = df.pivot_table(
+        index="event_date", columns="pair", values="close", aggfunc="last"
+    )
+
+    # Prefix with fx_
+    pivoted.columns = [f"fx_{c.lower()}" for c in pivoted.columns]
+
+    # Forward fill gaps
+    pivoted = pivoted.ffill()
+
+    logger.info(f"   Loaded {len(pivoted):,} rows, {len(pivoted.columns)} FX pairs")
+
+    return pivoted
+
+
+def load_cftc_cot(conn, start_date: str) -> pd.DataFrame:
+    """Load ALL CFTC COT data from raw.cftc_cot_1w."""
+    logger.info(f"Loading CFTC COT from {start_date}...")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT *
+            FROM "raw"."cftc_cot_1w"
+            WHERE event_date >= %s
+            ORDER BY event_date
+        """,
+            (start_date,),
+        )
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+
+    df = pd.DataFrame(rows, columns=columns)
+    if "event_date" in df.columns:
+        df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+        df = df.set_index("event_date")
+
+    # Prefix columns with cot_
+    df.columns = [f"cot_{c}" if not c.startswith("cot_") else c for c in df.columns]
+
+    logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)} COT columns")
+
+    return df
+
+
+def load_weather(conn, start_date: str) -> pd.DataFrame:
+    """Load weather data from raw.weather_noaa_1d."""
+    logger.info(f"Loading weather from {start_date}...")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT *
+            FROM "raw"."weather_noaa_1d"
+            WHERE event_date >= %s
+            ORDER BY event_date
+        """,
+            (start_date,),
+        )
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+
+    if not rows:
+        logger.warning("   No weather data found")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows, columns=columns)
+    if "event_date" in df.columns:
+        df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+        df = df.set_index("event_date")
+
+    # Prefix with weather_
+    df.columns = [
+        f"weather_{c}" if not c.startswith("weather_") else c for c in df.columns
+    ]
+
+    logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)} weather columns")
 
     return df
 
@@ -346,30 +530,70 @@ def add_technical_features(df: pd.DataFrame) -> pd.DataFrame:
     df["bb_pct"] = (close - df["bb_lower"]) / (df["bb_upper"] - df["bb_lower"])
 
     # ATR
-    tr = pd.concat([
-        high - low,
-        (high - close.shift()).abs(),
-        (low - close.shift()).abs()
-    ], axis=1).max(axis=1)
+    tr = pd.concat(
+        [high - low, (high - close.shift()).abs(), (low - close.shift()).abs()], axis=1
+    ).max(axis=1)
     df["atr_14"] = tr.rolling(14).mean()
 
     # Volatility proxies
     df["intraday_range"] = (high - low) / close
-    df["garman_klass_vol"] = np.sqrt(
-        0.5 * np.log(high / low) ** 2 -
-        (2 * np.log(2) - 1) * np.log(close / close.shift()) ** 2
-    ).rolling(20).mean()
-    df["parkinson_vol"] = np.sqrt(
-        np.log(high / low) ** 2 / (4 * np.log(2))
-    ).rolling(20).mean()
+    df["garman_klass_vol"] = (
+        np.sqrt(
+            0.5 * np.log(high / low) ** 2
+            - (2 * np.log(2) - 1) * np.log(close / close.shift()) ** 2
+        )
+        .rolling(20)
+        .mean()
+    )
+    df["parkinson_vol"] = (
+        np.sqrt(np.log(high / low) ** 2 / (4 * np.log(2))).rolling(20).mean()
+    )
     df["close_to_close_vol"] = close.pct_change().rolling(20).std() * np.sqrt(252)
     df["overnight_gap"] = (df["open"] / close.shift() - 1).abs()
 
-    # Additional indicators (simplified)
-    df["adx_14"] = 50.0  # Placeholder - would need full DI+/DI- calc
-    df["cci_20"] = (close - sma20) / (0.015 * close.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean()))
-    df["willr_14"] = -100 * (high.rolling(14).max() - close) / (high.rolling(14).max() - low.rolling(14).min())
-    df["mfi_14"] = 50.0  # Placeholder - needs typical price * volume
+    # Additional indicators
+    # ADX (Average Directional Index)
+    up_move = high.diff()
+    down_move = low.shift(1) - low
+    plus_dm = up_move.where((up_move > down_move) & (up_move > 0), 0.0)
+    minus_dm = down_move.where((down_move > up_move) & (down_move > 0), 0.0)
+    tr_adx = pd.concat(
+        [
+            high - low,
+            (high - close.shift()).abs(),
+            (low - close.shift()).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    atr_14_adx = tr_adx.ewm(alpha=1 / 14, adjust=False).mean()
+    plus_di = 100 * plus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14_adx.replace(
+        0, np.nan
+    )
+    minus_di = (
+        100
+        * minus_dm.ewm(alpha=1 / 14, adjust=False).mean()
+        / atr_14_adx.replace(0, np.nan)
+    )
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    df["adx_14"] = dx.ewm(alpha=1 / 14, adjust=False).mean()
+    df["cci_20"] = (close - sma20) / (
+        0.015 * close.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean())
+    )
+    df["willr_14"] = (
+        -100
+        * (high.rolling(14).max() - close)
+        / (high.rolling(14).max() - low.rolling(14).min())
+    )
+    # MFI (Money Flow Index)
+    typical_price = (high + low + close) / 3.0
+    money_flow = typical_price * volume
+    tp_diff = typical_price.diff()
+    positive_flow = money_flow.where(tp_diff > 0, 0.0)
+    negative_flow = money_flow.where(tp_diff < 0, 0.0)
+    positive_mf = positive_flow.rolling(14).sum()
+    negative_mf = negative_flow.rolling(14).sum().abs()
+    mf_ratio = positive_mf / negative_mf.replace(0, np.nan)
+    df["mfi_14"] = 100 - (100 / (1 + mf_ratio))
     df["obv"] = (np.sign(close.diff()) * volume).cumsum()
     df["vwap"] = (close * volume).cumsum() / volume.cumsum()
     df["keltner_upper"] = close.ewm(span=20).mean() + 2 * df["atr_14"]
@@ -384,33 +608,41 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
 
     # Load FRED data
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT series_id, as_of_date, value
+        cur.execute(
+            """
+            SELECT series_id, event_date, value
             FROM "raw"."fred_observations_1d"
             WHERE series_id IN ('DCOILWTICO', 'VIXCLS', 'DTWEXBGS')
-            ORDER BY as_of_date
-        """)
+            ORDER BY event_date
+        """
+        )
         fred_rows = cur.fetchall()
 
     if fred_rows:
         fred_df = pd.DataFrame(fred_rows, columns=["series_id", "timestamp", "value"])
         fred_df["timestamp"] = pd.to_datetime(fred_df["timestamp"])
-        fred_pivot = fred_df.pivot(index="timestamp", columns="series_id", values="value")
-        fred_pivot = fred_pivot.rename(columns={
-            "DCOILWTICO": "wti_crude",
-            "VIXCLS": "vix",
-            "DTWEXBGS": "dxy_index",
-        })
+        fred_pivot = fred_df.pivot(
+            index="timestamp", columns="series_id", values="value"
+        )
+        fred_pivot = fred_pivot.rename(
+            columns={
+                "DCOILWTICO": "wti_crude",
+                "VIXCLS": "vix",
+                "DTWEXBGS": "dxy_index",
+            }
+        )
         df = df.merge(fred_pivot, left_on="timestamp", right_index=True, how="left")
 
     # Load COT data
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT report_date, managed_money_net
+        cur.execute(
+            """
+            SELECT event_date, managed_money_net
             FROM "raw"."cftc_cot_1w"
             WHERE symbol = 'ZL'
-            ORDER BY report_date
-        """)
+            ORDER BY event_date
+        """
+        )
         cot_rows = cur.fetchall()
 
     if cot_rows:
@@ -420,34 +652,45 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
             df.sort_values("timestamp"),
             cot_df.sort_values("timestamp"),
             on="timestamp",
-            direction="backward"
+            direction="backward",
         )
 
     # Calculate crush spread (ZS - ZL - ZM proxy)
     with conn.cursor() as cur:
-        cur.execute("""
-            SELECT as_of_date, symbol, close
+        cur.execute(
+            """
+            SELECT event_date, symbol, close
             FROM "raw"."market_futures_1d"
             WHERE symbol IN ('ZS', 'ZM')
-            ORDER BY as_of_date
-        """)
+            ORDER BY event_date
+        """
+        )
         soy_rows = cur.fetchall()
 
     if soy_rows:
         soy_df = pd.DataFrame(soy_rows, columns=["timestamp", "symbol", "close"])
         soy_df["timestamp"] = pd.to_datetime(soy_df["timestamp"])
         soy_pivot = soy_df.pivot(index="timestamp", columns="symbol", values="close")
-        soy_pivot["crush_spread"] = soy_pivot.get("ZS", 0) * 0.022 - soy_pivot.get("ZM", 0) * 0.011
+        soy_pivot["crush_spread"] = (
+            soy_pivot.get("ZS", 0) * 0.022 - soy_pivot.get("ZM", 0) * 0.011
+        )
         df = df.merge(
             soy_pivot[["crush_spread"]],
             left_on="timestamp",
             right_index=True,
-            how="left"
+            how="left",
         )
 
     # Fill placeholders for missing fundamentals
-    for col in ["bopo_spread", "rin_d4_price", "wasde_ending_stocks",
-                "wasde_production", "export_sales_net", "precip_anom", "temp_anom"]:
+    for col in [
+        "bopo_spread",
+        "rin_d4_price",
+        "wasde_ending_stocks",
+        "wasde_production",
+        "export_sales_net",
+        "precip_anom",
+        "temp_anom",
+    ]:
         if col not in df.columns:
             df[col] = np.nan
 
@@ -502,7 +745,9 @@ def prepare_training_data(
     if spec.is_tactical:
         original_len = len(df)
         df = slice_rolling_window(df, TACTICAL_ROLLING_YEARS)
-        logger.info(f"   Rolling window: {original_len:,} -> {len(df):,} rows ({TACTICAL_ROLLING_YEARS}y)")
+        logger.info(
+            f"   Rolling window: {original_len:,} -> {len(df):,} rows ({TACTICAL_ROLLING_YEARS}y)"
+        )
 
     # Forward-fill and back-fill NaNs
     df = df.ffill().bfill()
@@ -518,6 +763,7 @@ def prepare_training_data(
 # =============================================================================
 # TRAINING
 # =============================================================================
+
 
 def train_horizon(
     conn,
@@ -611,6 +857,7 @@ def train_horizon(
 # MAIN
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Train V15 Core Models (Quant Standard)"
@@ -619,18 +866,13 @@ def main():
         "--horizon",
         type=str,
         default="all",
-        help="Horizon to train: 5, 21, 63, 126, or 'all'"
+        help="Horizon to train: 5, 21, 63, 126, or 'all'",
     )
     parser.add_argument(
-        "--time-limit",
-        type=int,
-        default=None,
-        help="Time limit per horizon in seconds"
+        "--time-limit", type=int, default=None, help="Time limit per horizon in seconds"
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Prepare data but skip training"
+        "--dry-run", action="store_true", help="Prepare data but skip training"
     )
 
     args = parser.parse_args()
@@ -639,7 +881,9 @@ def main():
     log_file = PROJECT_ROOT / "logs" / f"train_v15_{datetime.now():%Y%m%d_%H%M%S}.log"
     log_file.parent.mkdir(exist_ok=True)
     file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    )
     logger.addHandler(file_handler)
 
     logger.info("=" * 60)
@@ -657,7 +901,11 @@ def main():
 
     logger.info(f"Horizons: {horizons}")
     logger.info(f"Device: {device}")
-    logger.info(f"Time limit: {args.time_limit}s per horizon" if args.time_limit else "No time limit")
+    logger.info(
+        f"Time limit: {args.time_limit}s per horizon"
+        if args.time_limit
+        else "No time limit"
+    )
     logger.info(f"Dry run: {args.dry_run}")
 
     # Connect to database

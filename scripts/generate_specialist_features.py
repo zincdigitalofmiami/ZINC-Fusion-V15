@@ -516,10 +516,10 @@ def load_all_market_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     logger.info(f"Loading daily market futures >= {start_date}...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT symbol, as_of_date, open, high, low, close, volume
+            SELECT symbol, event_date AS as_of_date, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
-            WHERE as_of_date >= %s
-            ORDER BY as_of_date, symbol
+            WHERE event_date >= %s
+            ORDER BY event_date, symbol
         """, (start_date,))
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
@@ -535,9 +535,9 @@ def load_fred_data(conn) -> pd.DataFrame:
 
     # Load long format
     fred_long = pd.read_sql("""
-        SELECT as_of_date, series_id, value
+        SELECT event_date AS as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
-        ORDER BY as_of_date, series_id
+        ORDER BY event_date, series_id
     """, conn)
     logger.info(f"  Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
 
@@ -566,7 +566,7 @@ def load_fx_data(conn) -> pd.DataFrame:
     """Load FX spot data and pivot wide."""
     logger.info("Loading FX spot data...")
     with conn.cursor() as cur:
-        cur.execute('SELECT pair, as_of_date, rate FROM "raw"."fx_spot_1d" ORDER BY as_of_date')
+        cur.execute('SELECT pair, event_date AS as_of_date, rate FROM "raw"."fx_spot_1d" ORDER BY event_date')
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["pair", "as_of_date", "rate"])
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
@@ -661,9 +661,9 @@ def load_rin_data(conn) -> pd.DataFrame:
     logger.info("Loading EPA RIN data...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date, rin_type, price
+            SELECT event_date AS as_of_date, rin_type, price
             FROM "raw"."epa_rin_prices_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["as_of_date", "rin_type", "price"])
@@ -681,7 +681,7 @@ def load_weather_data(conn) -> pd.DataFrame:
     logger.info("Loading weather data...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date,
+            SELECT event_date AS as_of_date,
                 -- Core temperature & precipitation (existing)
                 AVG(tavg_c) as weather_tavg_global,
                 AVG(prcp_mm) as weather_prcp_global,
@@ -700,8 +700,8 @@ def load_weather_data(conn) -> pd.DataFrame:
                 AVG(CASE WHEN country = 'United States' THEN rhav_pct END) as weather_humidity_us,
                 AVG(CASE WHEN country = 'Brazil' THEN rhav_pct END) as weather_humidity_brazil
             FROM "raw"."weather_noaa_1d"
-            GROUP BY as_of_date
-            ORDER BY as_of_date
+            GROUP BY event_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
 
@@ -751,15 +751,15 @@ def load_news_data(conn) -> pd.DataFrame:
     logger.info("Loading news sentiment...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date,
+            SELECT event_date AS as_of_date,
                 AVG(sentiment_score) as news_sentiment_avg,
                 COUNT(*) as news_article_count,
                 SUM(CASE WHEN zl_sentiment = 'bullish' THEN 1 ELSE 0 END) as news_bullish_count,
                 SUM(CASE WHEN zl_sentiment = 'bearish' THEN 1 ELSE 0 END) as news_bearish_count,
                 SUM(CASE WHEN is_trump_related THEN 1 ELSE 0 END) as news_trump_count
             FROM "raw"."news_articles_1d"
-            GROUP BY as_of_date
-            ORDER BY as_of_date
+            GROUP BY event_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["as_of_date", "news_sentiment_avg", "news_article_count",

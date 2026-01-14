@@ -7,24 +7,28 @@ Pulls REAL customer/restaurant/fryer data from US Oil Solutions' Glide app.
 ⚠️  GLIDE IS READ-ONLY ⚠️
 - This script ONLY READS from Glide API (never writes back)
 - Glide = US Oil Solutions' production system - DO NOT MODIFY
-- Data flow: Glide (READ ONLY) → Prisma PostgreSQL → Frontend
+- Data flow: Glide (READ ONLY) → ops.vegas_* PostgreSQL → /api/vegas → Frontend
 
 Configuration:
 - Endpoint: https://api.glideapp.io/api/function/queryTables
 - App ID: 6262JQJdNjhra79M25e4
 - Bearer Token: Set GLIDE_BEARER_TOKEN env var
 
-Tables synced (8 sources):
-1. vegas_restaurants (151 rows) - Restaurant master data
-2. vegas_casinos (31 rows) - Casino event data  
-3. vegas_fryers (421 rows) - Fryer capacity (FOUNDATION)
-4. vegas_export_list (3,176 rows) - Customer exports
-5. vegas_scheduled_reports (28 rows) - Report schedules
-6. vegas_shifts (148 rows) - Delivery shifts
-7. vegas_shift_casinos (440 rows) - Casino shift schedules
-8. vegas_shift_restaurants (1,233 rows) - Restaurant shift schedules
+Tables synced (8 sources → ops schema):
+1. ops.vegas_restaurants (151 rows) - Restaurant master data
+2. ops.vegas_casinos (31 rows) - Casino event data  
+3. ops.vegas_fryers (421 rows) - Fryer capacity (FOUNDATION)
+4. ops.vegas_export_list (3,176 rows) - Customer exports
+5. ops.vegas_scheduled_reports (28 rows) - Report schedules
+6. ops.vegas_shifts (148 rows) - Delivery shifts
+7. ops.vegas_shift_casinos (440 rows) - Casino shift schedules
+8. ops.vegas_shift_restaurants (1,233 rows) - Restaurant shift schedules
 
 Total: ~5,628 rows of real customer data
+
+Usage:
+  python scripts/ingest_glide_vegas.py           # Full sync
+  python scripts/ingest_glide_vegas.py --dry-run # Test API only
 """
 
 import os
@@ -137,7 +141,7 @@ def query_glide_table(table_id: str) -> list[dict[str, Any]]:
 
 def create_vegas_schema(conn) -> None:
     """
-    Create the raw.vegas_* tables if they don't exist.
+    Create the ops.vegas_* tables if they don't exist.
     Uses JSONB for flexible schema since Glide columns can vary.
     """
     cursor = conn.cursor()
@@ -145,7 +149,7 @@ def create_vegas_schema(conn) -> None:
     for table_key, table_name in POSTGRES_TABLES.items():
         # Drop and recreate to handle schema changes
         cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS raw.{table_name} (
+            CREATE TABLE IF NOT EXISTS ops.{table_name} (
                 id SERIAL PRIMARY KEY,
                 glide_row_id VARCHAR(255),
                 data JSONB NOT NULL,
@@ -157,7 +161,7 @@ def create_vegas_schema(conn) -> None:
         # Create index on glide_row_id for upserts
         cursor.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_{table_name}_glide_row_id 
-            ON raw.{table_name}(glide_row_id)
+            ON ops.{table_name}(glide_row_id)
         """)
     
     conn.commit()
@@ -167,7 +171,7 @@ def create_vegas_schema(conn) -> None:
 
 def upsert_vegas_data(conn, table_key: str, rows: list[dict[str, Any]]) -> int:
     """
-    Upsert Glide data into Postgres.
+    Upsert Glide data into Postgres ops schema.
     Uses JSONB storage for flexibility.
     Returns number of rows upserted.
     """
@@ -179,7 +183,7 @@ def upsert_vegas_data(conn, table_key: str, rows: list[dict[str, Any]]) -> int:
     cursor = conn.cursor()
     
     # Clear existing data (full refresh)
-    cursor.execute(f"TRUNCATE raw.{table_name} RESTART IDENTITY")
+    cursor.execute(f"TRUNCATE ops.{table_name} RESTART IDENTITY")
     
     # Insert all rows
     count = 0
@@ -191,7 +195,7 @@ def upsert_vegas_data(conn, table_key: str, rows: list[dict[str, Any]]) -> int:
         sanitized_row = {sanitize_column_name(k): v for k, v in row.items()}
         
         cursor.execute(f"""
-            INSERT INTO raw.{table_name} (glide_row_id, data, source_table_id)
+            INSERT INTO ops.{table_name} (glide_row_id, data, source_table_id)
             VALUES (%s, %s, %s)
         """, (glide_row_id, json.dumps(sanitized_row), source_table_id))
         count += 1
@@ -229,7 +233,7 @@ def ingest_all_vegas_data(dry_run: bool = False) -> dict[str, int]:
             
             if not dry_run:
                 count = upsert_vegas_data(conn, table_key, rows)
-                print(f"   ✅ Saved {count} rows to raw.{POSTGRES_TABLES[table_key]}")
+                print(f"   ✅ Saved {count} rows to ops.{POSTGRES_TABLES[table_key]}")
                 results[table_key] = count
             else:
                 # Show sample data in dry run

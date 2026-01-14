@@ -89,8 +89,9 @@ PROJECT_ROOT = Path(__file__).parent.parent
 LOCAL_MLRUNS = PROJECT_ROOT / "mlruns"
 MODELS_DIR = PROJECT_ROOT / "models"
 
-# MLflow tracking (local SQLite)
+# MLflow tracking (server or local SQLite fallback)
 LOCAL_MLFLOW_URI = f"sqlite:///{LOCAL_MLRUNS / 'mlflow.db'}"
+SERVER_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
 
 # Model Registry naming convention
 REGISTRY_PREFIX = "zinc-fusion"
@@ -238,10 +239,27 @@ class ModelCard:
 
 
 def get_tracking_uri() -> str:
-    """Get MLflow tracking URI (local SQLite)."""
-    LOCAL_MLRUNS.mkdir(exist_ok=True)
-    logger.info(f"Using local MLflow: {LOCAL_MLFLOW_URI}")
-    return LOCAL_MLFLOW_URI
+    """Get MLflow tracking URI from env or default to server."""
+    uri = SERVER_MLFLOW_URI
+
+    # Try server first, fallback to local SQLite if unavailable
+    if uri.startswith("http"):
+        try:
+            import requests
+            resp = requests.get(f"{uri}/health", timeout=2)
+            if resp.status_code == 200:
+                logger.info(f"MLflow server connected: {uri}")
+                return uri
+        except Exception:
+            pass
+
+        # Server unavailable, fallback to local SQLite
+        logger.warning(f"MLflow server unavailable at {uri}, falling back to local SQLite")
+        LOCAL_MLRUNS.mkdir(exist_ok=True)
+        uri = LOCAL_MLFLOW_URI
+
+    logger.info(f"MLflow tracking URI: {uri}")
+    return uri
 
 
 def get_client() -> MlflowClient:

@@ -179,10 +179,10 @@ def load_market_data(conn) -> pd.DataFrame:
 
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date, close
+            SELECT event_date AS as_of_date, close
             FROM "raw"."market_futures_1d"
             WHERE symbol = 'ZL'
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
 

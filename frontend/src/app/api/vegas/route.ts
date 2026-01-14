@@ -6,6 +6,12 @@
  */
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import {
+  assertNoGlideFieldDrift,
+  GlideSchemaDriftError,
+  VEGAS_GLIDE_FIELDS,
+  VEGAS_GLIDE_REQUIRED_FIELDS,
+} from '@/lib/vegasGlide'
 
 // =============================================================================
 // Types
@@ -160,35 +166,54 @@ async function getStats(): Promise<NextResponse> {
 
 async function getRestaurants(): Promise<NextResponse> {
   try {
-    // Glide uses cryptic field IDs - mapping:
-    // MHXYO = Restaurant Name
-    // 2Ca0T = Casino/Location Reference ID  
-    // Po4Zg = Delivery Day
-    // U0Jf2 = Oil Product
-    // s8tNr = Status
-    // Ie35Z = Chef/Contact name
-    // Fryers link via: fryer.2uBBn = restaurant.glide_row_id
+    const restaurantFields = VEGAS_GLIDE_FIELDS.restaurants
+    const fryerFields = VEGAS_GLIDE_FIELDS.fryers
+
     const results = await query<VegasRestaurant>(`
       SELECT
         r.id,
-        COALESCE(r.data->>'MHXYO', r.data->>'Name', 'Unknown') as name,
+        COALESCE(r.data->>'${restaurantFields.name}', r.data->>'Name', 'Unknown') as name,
         COALESCE(c.data->>'Name', 'Las Vegas') as location,
         'Restaurant' as category,
         NULL as current_oil_lbs,
-        COALESCE(r.data->>'Po4Zg', '') as delivery_day,
-        COUNT(f.id)::int as fryers,
+        COALESCE(r.data->>'${restaurantFields.deliveryDay}', '') as delivery_day,
+        COALESCE(
+          CASE
+            WHEN (r.data->>'${restaurantFields.fryerCount}') ~ '^[0-9]+$' THEN (r.data->>'${restaurantFields.fryerCount}')::int
+          END,
+          COUNT(f.id)::int
+        ) as fryers,
         r.data
       FROM ops.vegas_restaurants r
-      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'2Ca0T'
-      LEFT JOIN ops.vegas_fryers f ON f.data->>'2uBBn' = r.glide_row_id
+      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoRefId}'
+      LEFT JOIN ops.vegas_fryers f ON f.data->>'${fryerFields.restaurantRefId}' = r.glide_row_id
       GROUP BY r.id, r.data, c.data->>'Name'
       ORDER BY name
       LIMIT 200
     `)
 
+    assertNoGlideFieldDrift({
+      entity: 'ops.vegas_restaurants',
+      rows: results.map((r) => r.data),
+      requiredFields: VEGAS_GLIDE_REQUIRED_FIELDS.restaurants,
+      hint: 'Update frontend/src/lib/vegasGlide.ts with the new Glide field IDs.',
+    })
+
     return NextResponse.json({ restaurants: results, count: results.length })
   } catch (error) {
     console.error('getRestaurants error:', error)
+    if (error instanceof GlideSchemaDriftError) {
+      return NextResponse.json(
+        {
+          error: 'Glide schema drift detected',
+          entity: error.entity,
+          missing_fields: error.missingFields,
+          details: error.message,
+        },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({ restaurants: [], count: 0 })
   }
 }

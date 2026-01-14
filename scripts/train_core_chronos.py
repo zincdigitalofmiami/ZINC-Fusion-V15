@@ -241,10 +241,10 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
+            SELECT symbol, event_date as ts_event, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
-            WHERE as_of_date >= %s
-            ORDER BY as_of_date, symbol
+            WHERE event_date >= %s
+            ORDER BY event_date, symbol
         """,
             (start_date,),
         )
@@ -674,9 +674,9 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     # Load all FRED data
     fred_long = pd.read_sql(
         """
-        SELECT as_of_date, series_id, value
+        SELECT event_date as as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
-        ORDER BY as_of_date, series_id
+        ORDER BY event_date, series_id
     """,
         conn,
     )
@@ -763,11 +763,11 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             """
             SELECT
                 station_id,
-                as_of_date,
+                event_date as as_of_date,
                 tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
                 awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms
             FROM "raw"."weather_noaa_1d"
-            ORDER BY as_of_date, station_id
+            ORDER BY event_date, station_id
         """
         )
         weather_cols = [desc[0] for desc in cur.description]
@@ -829,15 +829,15 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
         "DEXHKUS",
         "DEXKOUS",
         "DEXSIUS",
-        "DEXTAUS",
+            "DEXTAUS",
     ]
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT series_id, as_of_date, value
+            SELECT series_id, event_date as as_of_date, value
             FROM "raw"."fred_observations_1d"
             WHERE series_id IN %s
-            ORDER BY as_of_date, series_id
+            ORDER BY event_date, series_id
         """,
             (tuple(fx_series),),
         )
@@ -1058,9 +1058,9 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, rin_type, price
+            SELECT event_date as as_of_date, rin_type, price
             FROM "raw"."epa_rin_prices_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """
         )
         rin_rows = cur.fetchall()
@@ -1093,7 +1093,7 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
             """
             SELECT
                 id,
-                as_of_date,
+                event_date as as_of_date,
                 headline,
                 content,
                 source,
@@ -1101,7 +1101,7 @@ def load_training_data(conn, horizon: int = 5) -> pd.DataFrame:
                 zl_sentiment,
                 is_trump_related
             FROM "raw"."news_articles_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """
         )
         news_rows = cur.fetchall()

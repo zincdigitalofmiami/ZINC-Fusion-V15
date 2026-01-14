@@ -694,6 +694,12 @@ DATABENTO_API_KEY="db-..."         # Databento API key
 
 # Economic Data
 FRED_API_KEY="your_fred_api_key"   # FRED API key
+
+# MLflow (for experiment tracking)
+MLFLOW_TRACKING_URI=http://localhost:5001
+MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+AWS_ACCESS_KEY_ID=mlflow
+AWS_SECRET_ACCESS_KEY=mlflow123
 ```
 
 Load environment variables before running:
@@ -723,8 +729,36 @@ Run tests using pytest:
 pytest tests/ -v
 ```
 
+## MLflow Experiment Tracking
+
+ZINC Fusion V15 uses MLflow for experiment tracking and model registry.
+
+### Quick Start
+
+```bash
+# Start MLflow stack (PostgreSQL + MinIO + MLflow)
+./scripts/start-mlflow.sh
+```
+
+### Access Points
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| MLflow UI | http://localhost:5001 | None |
+| MinIO Console | http://localhost:9001 | mlflow / mlflow123 |
+
+### Sync Prisma Data to MLflow
+
+```bash
+DATABASE_URL="postgres://..." python scripts/sync_prisma_to_mlflow.py --all
+```
+
+See [Docs/MLFLOW_SETUP.md](./Docs/MLFLOW_SETUP.md) for full documentation.
+
 ## Documentation
 
+- **MLflow Setup**: `Docs/MLFLOW_SETUP.md` - Experiment tracking configuration
+- **Docker Config**: `docker/README.md` - Docker Compose stack documentation
 - **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
 - **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants
 - **Prisma Docs**: [https://www.prisma.io/docs](https://www.prisma.io/docs)

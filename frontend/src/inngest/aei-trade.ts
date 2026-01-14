@@ -1,14 +1,37 @@
 /**
- * AEI Trade Policy RSS Bronze Ingestion
+ * AEI Think Tank RSS Ingestion (Multiple Feeds)
  * 
  * BRONZE CONTRACT COMPLIANT
- * SOURCE: https://www.aei.org/tag/trade-policy/feed/
- * Tags: tariff, trump_effect
+ * SOURCES (all /tag/{topic}/feed/):
+ * - trade-policy → tariff, trump_effect
+ * - tariffs → tariff
+ * - china → china, tariff
+ * - international-trade → tariff
+ * - energy → energy
+ * - economy → fed
+ * - monetary-policy → fed
+ * - federal-reserve → fed
+ * - trump → trump_effect
+ * - regulation → trump_effect
  * 
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-01-11
+ * @version 2.0.0
+ * @date 2026-01-13
  */
+
+// Feed configs with specialist tags
+const AEI_FEEDS = [
+  { topic: "trade-policy", tags: ["tariff", "trump_effect"] },
+  { topic: "tariffs", tags: ["tariff"] },
+  { topic: "china", tags: ["china", "tariff"] },
+  { topic: "international-trade", tags: ["tariff"] },
+  { topic: "energy", tags: ["energy"] },
+  { topic: "economy", tags: ["fed"] },
+  { topic: "monetary-policy", tags: ["fed"] },
+  { topic: "federal-reserve", tags: ["fed"] },
+  { topic: "trump", tags: ["trump_effect"] },
+  { topic: "regulation", tags: ["trump_effect"] },
+];
 
 import { inngest } from "./client";
 import { Pool, type PoolClient } from "pg";

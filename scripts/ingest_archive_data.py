@@ -24,7 +24,7 @@ except ImportError:
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL not found in environment")
     return psycopg2.connect(database_url)
@@ -134,12 +134,12 @@ def ingest_corn_stats(conn, filepath: Path) -> int:
                 cur,
                 """
                 INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 [(r[0], r[1], r[2], r[3]) for r in records],
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 
@@ -233,12 +233,12 @@ def ingest_soybean_stats(conn, filepath: Path) -> int:
                 cur,
                 """
                 INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 records,
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 
@@ -296,12 +296,12 @@ def ingest_financial_crisis(conn, filepath: Path) -> int:
                 cur,
                 """
                 INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 records,
-                page_size=1000
+                page_size=1000,
             )
             inserted = cur.rowcount
 
@@ -367,12 +367,12 @@ def ingest_biofuel_data(conn, filepath: Path) -> int:
                 cur,
                 """
                 INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT DO NOTHING
                 """,
                 records,
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 
@@ -445,12 +445,12 @@ def ingest_cme_futures(conn, folder: Path, symbol: str) -> int:
                         cur,
                         """
                         INSERT INTO "raw"."market_futures_1d"
-                        (symbol, as_of_date, open, high, low, close, volume, source)
+                        (symbol, event_date, open, high, low, close, volume, source)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (symbol, as_of_date) DO NOTHING
+                        ON CONFLICT (event_date, symbol) DO NOTHING
                         """,
                         records,
-                        page_size=500
+                        page_size=500,
                     )
                     total_inserted += cur.rowcount
 

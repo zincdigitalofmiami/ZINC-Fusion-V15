@@ -122,7 +122,7 @@ def analyze_market_futures() -> Dict[str, Any]:
     """Analyze market_futures_1d table in raw schema"""
     print("Analyzing raw.market_futures_1d...")
 
-    metrics = analyze_table_metrics('raw', 'market_futures_1d', 'as_of_date')
+    metrics = analyze_table_metrics('raw', 'market_futures_1d', 'event_date')
 
     # Symbol coverage
     symbols = get_distinct_values('raw', 'market_futures_1d', 'symbol')
@@ -140,8 +140,8 @@ def analyze_market_futures() -> Dict[str, Any]:
         query = f"""
             SELECT
                 COUNT(*) as records,
-                MIN(as_of_date) as start_date,
-                MAX(as_of_date) as end_date
+                MIN(event_date) as start_date,
+                MAX(event_date) as end_date
             FROM raw.market_futures_1d
             WHERE symbol = %s
         """
@@ -160,7 +160,7 @@ def analyze_fred_observations() -> Dict[str, Any]:
     """Analyze fred_observations_1d table in raw schema"""
     print("Analyzing raw.fred_observations_1d...")
 
-    metrics = analyze_table_metrics('raw', 'fred_observations_1d', 'as_of_date')
+    metrics = analyze_table_metrics('raw', 'fred_observations_1d', 'event_date')
 
     # Series coverage
     series_list = get_distinct_values('raw', 'fred_observations_1d', 'series_id')
@@ -178,8 +178,8 @@ def analyze_fred_observations() -> Dict[str, Any]:
             SELECT
                 COUNT(*) as records,
                 COUNT(value) as non_null_values,
-                MIN(as_of_date) as start_date,
-                MAX(as_of_date) as end_date
+                MIN(event_date) as start_date,
+                MAX(event_date) as end_date
             FROM raw.fred_observations_1d
             WHERE series_id = %s
         """
@@ -207,7 +207,7 @@ def analyze_weather_noaa() -> Dict[str, Any]:
     """Analyze weather_noaa_1d table"""
     print("Analyzing raw.weather_noaa_1d...")
 
-    metrics = analyze_table_metrics('raw', 'weather_noaa_1d', 'as_of_date')
+    metrics = analyze_table_metrics('raw', 'weather_noaa_1d', 'event_date')
 
     # Station coverage
     stations = get_distinct_values('raw', 'weather_noaa_1d', 'station_id')
@@ -234,8 +234,8 @@ def analyze_weather_noaa() -> Dict[str, Any]:
                     SELECT
                         COUNT(DISTINCT station_id) as station_count,
                         COUNT(*) as records,
-                        MIN(as_of_date) as start_date,
-                        MAX(as_of_date) as end_date
+                        MIN(event_date) as start_date,
+                        MAX(event_date) as end_date
                     FROM raw.weather_noaa_1d
                     WHERE region = %s
                 """
@@ -255,7 +255,7 @@ def analyze_cftc_cot() -> Dict[str, Any]:
     """Analyze cftc_cot_1w table in raw schema"""
     print("Analyzing raw.cftc_cot_1w...")
 
-    metrics = analyze_table_metrics('raw', 'cftc_cot_1w', 'report_date')
+    metrics = analyze_table_metrics('raw', 'cftc_cot_1w', 'event_date')
 
     # Symbol coverage
     symbols = get_distinct_values('raw', 'cftc_cot_1w', 'symbol')
@@ -274,8 +274,8 @@ def analyze_cftc_cot() -> Dict[str, Any]:
         query = """
             SELECT
                 COUNT(*) as records,
-                MIN(report_date) as start_date,
-                MAX(report_date) as end_date
+                MIN(event_date) as start_date,
+                MAX(event_date) as end_date
             FROM raw.cftc_cot_1w
             WHERE symbol = %s
         """
@@ -345,7 +345,7 @@ def analyze_usda_tables() -> Dict[str, Any]:
     results = {}
 
     # Export sales
-    export_metrics = analyze_table_metrics('raw', 'usda_export_sales_1w', 'report_date')
+    export_metrics = analyze_table_metrics('raw', 'usda_export_sales_1w', 'event_date')
     commodities = get_distinct_values('raw', 'usda_export_sales_1w', 'commodity')
     export_metrics['commodities'] = commodities
     export_metrics['commodity_count'] = len(commodities)
@@ -358,7 +358,7 @@ def analyze_usda_tables() -> Dict[str, Any]:
     results['export_sales'] = export_metrics
 
     # WASDE
-    wasde_metrics = analyze_table_metrics('raw', 'usda_wasde_1m', 'report_date')
+    wasde_metrics = analyze_table_metrics('raw', 'usda_wasde_1m', 'event_date')
     commodities = get_distinct_values('raw', 'usda_wasde_1m', 'commodity')
     wasde_metrics['commodities'] = commodities
     wasde_metrics['commodity_count'] = len(commodities)
@@ -780,16 +780,16 @@ def main():
 
         # Duplicates
         duplicates = {}
-        duplicates['market_futures'] = check_duplicates('raw', 'market_futures_1d', ['as_of_date', 'symbol'])
-        duplicates['cftc_cot'] = check_duplicates('raw', 'cftc_cot_1w', ['report_date', 'symbol'])
-        duplicates['fred_observations'] = check_duplicates('raw', 'fred_observations_1d', ['as_of_date', 'series_id'])
+        duplicates['market_futures'] = check_duplicates('raw', 'market_futures_1d', ['event_date', 'symbol'])
+        duplicates['cftc_cot'] = check_duplicates('raw', 'cftc_cot_1w', ['event_date', 'symbol'])
+        duplicates['fred_observations'] = check_duplicates('raw', 'fred_observations_1d', ['event_date', 'series_id'])
         quality_issues['duplicates'] = duplicates
 
         # Gaps
         gaps = {}
         print("  Detecting date gaps...")
-        gaps['market_futures'] = detect_data_gaps('raw', 'market_futures_1d', 'as_of_date', 'symbol')
-        gaps['fred_observations'] = detect_data_gaps('raw', 'fred_observations_1d', 'as_of_date')
+        gaps['market_futures'] = detect_data_gaps('raw', 'market_futures_1d', 'event_date', 'symbol')
+        gaps['fred_observations'] = detect_data_gaps('raw', 'fred_observations_1d', 'event_date')
         quality_issues['gaps'] = gaps
 
         audit_results['quality_issues'] = quality_issues

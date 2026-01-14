@@ -150,7 +150,7 @@ def get_existing_dates(conn, symbol: str) -> set:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date FROM raw.market_futures_1d
+            SELECT event_date FROM raw.market_futures_1d
             WHERE symbol = %s
             """,
             (symbol,),
@@ -211,9 +211,9 @@ def insert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
         execute_values(
             cur,
             """
-            INSERT INTO raw.market_futures_1d (as_of_date, symbol, open, high, low, close, volume, source, ingested_at)
+            INSERT INTO raw.market_futures_1d (event_date, symbol, open, high, low, close, volume, source, ingested_at)
             VALUES %s
-            ON CONFLICT (as_of_date, symbol) DO UPDATE SET
+            ON CONFLICT (event_date, symbol) DO UPDATE SET
                 open = EXCLUDED.open,
                 high = EXCLUDED.high,
                 low = EXCLUDED.low,
@@ -263,7 +263,7 @@ def main():
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT COUNT(*), MIN(as_of_date)::text, MAX(as_of_date)::text
+                SELECT COUNT(*), MIN(event_date)::text, MAX(event_date)::text
                 FROM raw.market_futures_1d WHERE symbol = %s
                 """,
                 (symbol,),

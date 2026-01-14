@@ -87,9 +87,9 @@ def load_all_futures(conn) -> pd.DataFrame:
     logger.info("Loading ALL futures from raw.market_futures_1d...")
 
     query = """
-        SELECT as_of_date, symbol, open, high, low, close, volume
+        SELECT event_date AS as_of_date, symbol, open, high, low, close, volume
         FROM "raw"."market_futures_1d"
-        ORDER BY as_of_date, symbol
+        ORDER BY event_date, symbol
     """
 
     df = pd.read_sql(query, conn)
@@ -117,9 +117,9 @@ def load_all_fred(conn) -> pd.DataFrame:
     logger.info("Loading ALL FRED from raw.fred_observations_1d...")
 
     query = """
-        SELECT series_id, as_of_date, value
+        SELECT series_id, event_date AS as_of_date, value
         FROM "raw"."fred_observations_1d"
-        ORDER BY as_of_date
+        ORDER BY event_date
     """
 
     df = pd.read_sql(query, conn)
@@ -149,9 +149,9 @@ def load_all_fx_spot(conn) -> pd.DataFrame:
     logger.info("Loading ALL FX spot from raw.fx_spot_1d...")
 
     query = """
-        SELECT as_of_date, pair, close
+        SELECT event_date AS as_of_date, pair, close
         FROM "raw"."fx_spot_1d"
-        ORDER BY as_of_date
+        ORDER BY event_date
     """
 
     df = pd.read_sql(query, conn)
@@ -191,14 +191,15 @@ def load_cftc_cot(conn) -> pd.DataFrame:
 
     query = """
         SELECT * FROM "raw"."cftc_cot_1w"
-        ORDER BY as_of_date
+        ORDER BY event_date
     """
 
     df = pd.read_sql(query, conn)
 
-    if "as_of_date" in df.columns:
-        df["as_of_date"] = pd.to_datetime(df["as_of_date"]).dt.normalize()
-        df = df.set_index("as_of_date")
+    if "event_date" in df.columns:
+        df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+        df = df.set_index("event_date")
+        df.index.name = "as_of_date"
 
     # Prefix columns with cot_
     df.columns = [f"cot_{c}" if not c.startswith("cot_") else c for c in df.columns]
@@ -226,14 +227,15 @@ def load_weather(conn) -> pd.DataFrame:
 
     query = """
         SELECT * FROM "raw"."weather_noaa_1d"
-        ORDER BY as_of_date
+        ORDER BY event_date
     """
 
     df = pd.read_sql(query, conn)
 
-    if "as_of_date" in df.columns:
-        df["as_of_date"] = pd.to_datetime(df["as_of_date"]).dt.normalize()
-        df = df.set_index("as_of_date")
+    if "event_date" in df.columns:
+        df["event_date"] = pd.to_datetime(df["event_date"]).dt.normalize()
+        df = df.set_index("event_date")
+        df.index.name = "as_of_date"
 
     # Prefix columns with wx_
     df.columns = [f"wx_{c}" if not c.startswith("wx_") else c for c in df.columns]

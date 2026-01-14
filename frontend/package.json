@@ -10,7 +10,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0"
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
+    "test": "node --test scripts/vegasGlide.test.js"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

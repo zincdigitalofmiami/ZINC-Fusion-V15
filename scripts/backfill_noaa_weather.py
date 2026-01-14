@@ -222,9 +222,9 @@ def get_noaa_token() -> str:
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        raise ValueError("DATABASE_URL or POSTGRES_URL not found in environment")
+        raise ValueError("DATABASE_URL not found in environment")
     return psycopg2.connect(database_url)
 
 
@@ -316,52 +316,50 @@ def fetch_station_data(
 
 
 def create_weather_table(conn):
-    """Create/update weather_noaa table with proper schema in raw schema."""
+    """Verify raw.weather_noaa_1d exists and matches expected columns (read-only)."""
     with conn.cursor() as cur:
-        # Ensure raw schema exists and use it
-        cur.execute("CREATE SCHEMA IF NOT EXISTS raw")
-        cur.execute("SET search_path TO raw")
-        # Add new columns if needed
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS raw.weather_noaa_1d (
-                id SERIAL PRIMARY KEY,
-                station_id VARCHAR(50) NOT NULL,
-                as_of_date DATE NOT NULL,
-                tavg_c DOUBLE PRECISION,
-                tmin_c DOUBLE PRECISION,
-                tmax_c DOUBLE PRECISION,
-                prcp_mm DOUBLE PRECISION,
-                snow_mm DOUBLE PRECISION,
-                awnd_ms DOUBLE PRECISION,
-                region VARCHAR(100),
-                country VARCHAR(10),
-                specialist_bucket VARCHAR(50),
-                ingested_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(station_id, as_of_date)
-            )
-        """)
+        cur.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'raw' AND table_name = 'weather_noaa_1d'
+            """
+        )
+        cols = {r[0] for r in cur.fetchall()}
 
-        # Add missing columns if table exists
-        for col, dtype in [
-            ('awnd_ms', 'DOUBLE PRECISION'),
-            ('specialist_bucket', 'VARCHAR(50)'),
-            ('country', 'VARCHAR(10)'),
-            ('snwd_mm', 'DOUBLE PRECISION'),
-            ('evap_mm', 'DOUBLE PRECISION'),
-            ('rhav_pct', 'DOUBLE PRECISION'),
-            ('wsfg_ms', 'DOUBLE PRECISION'),
-        ]:
-            try:
-                cur.execute(f'ALTER TABLE "raw"."weather_noaa_1d" ADD COLUMN IF NOT EXISTS {col} {dtype}')
-            except:
-                conn.rollback()
+    if not cols:
+        raise SystemExit(
+            "raw.weather_noaa_1d not found. Schema creation is blocked by policy; "
+            "create the table via Prisma/migration with explicit approval."
+        )
 
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_date ON "raw"."weather_noaa_1d"(as_of_date)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_region ON "raw"."weather_noaa_1d"(region)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_weather_bucket ON "raw"."weather_noaa_1d"(specialist_bucket)')
+    expected = {
+        "station_id",
+        "event_date",
+        "tavg_c",
+        "tmin_c",
+        "tmax_c",
+        "prcp_mm",
+        "snow_mm",
+        "awnd_ms",
+        "snwd_mm",
+        "evap_mm",
+        "rhav_pct",
+        "wsfg_ms",
+        "region",
+        "country",
+        "specialist_bucket",
+        "ingested_at",
+    }
+    missing = sorted(expected - cols)
+    if missing:
+        raise SystemExit(
+            "raw.weather_noaa_1d missing required columns: "
+            + ", ".join(missing)
+            + ". Schema changes require explicit approval."
+        )
 
-    conn.commit()
-    logger.info("  Weather table ready")
+    logger.info("  raw.weather_noaa_1d schema verified")
 
 
 def load_weather_data(
@@ -381,22 +379,10 @@ def load_weather_data(
 
     insert_query = """
         INSERT INTO "raw"."weather_noaa_1d"
-        (station_id, as_of_date, tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm, awnd_ms,
+        (station_id, event_date, tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm, awnd_ms,
          snwd_mm, evap_mm, rhav_pct, wsfg_ms,
          region, country, specialist_bucket, ingested_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (station_id, as_of_date)
-        DO UPDATE SET
-            tavg_c = EXCLUDED.tavg_c,
-            tmin_c = EXCLUDED.tmin_c,
-            tmax_c = EXCLUDED.tmax_c,
-            prcp_mm = EXCLUDED.prcp_mm,
-            snow_mm = EXCLUDED.snow_mm,
-            awnd_ms = EXCLUDED.awnd_ms,
-            snwd_mm = EXCLUDED.snwd_mm,
-            evap_mm = EXCLUDED.evap_mm,
-            rhav_pct = EXCLUDED.rhav_pct,
-            wsfg_ms = EXCLUDED.wsfg_ms
     """
 
     # NOAA scale factors - different elements have different scales
@@ -414,11 +400,30 @@ def load_weather_data(
         scale = NOAA_SCALE.get(element_code, 0.1)
         return float(val) * scale
 
+    # Raw layer is immutable: insert only for missing (station_id, event_date) keys.
+    min_dt = df["date"].min()
+    max_dt = df["date"].max()
+    existing_dates = set()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT event_date
+            FROM "raw"."weather_noaa_1d"
+            WHERE station_id = %s AND event_date BETWEEN %s AND %s
+            """,
+            (station_info["id"], min_dt, max_dt),
+        )
+        for (dt,) in cur.fetchall():
+            existing_dates.add(dt.date() if hasattr(dt, "date") else dt)
+
     batch = []
     for _, row in df.iterrows():
+        row_date = row["date"]
+        if row_date in existing_dates:
+            continue
         batch.append((
             station_info['id'],
-            row['date'],
+            row_date,
             safe_float(row.get('TAVG'), 'TAVG'),
             safe_float(row.get('TMIN'), 'TMIN'),
             safe_float(row.get('TMAX'), 'TMAX'),
@@ -434,6 +439,9 @@ def load_weather_data(
             specialist_bucket,
             datetime.now()
         ))
+
+    if not batch:
+        return 0
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -538,7 +546,7 @@ def backfill_all(
         # Verification
         if not dry_run:
             with conn.cursor() as cur:
-                cur.execute('SELECT COUNT(*), MIN(as_of_date), MAX(as_of_date) FROM "raw"."weather_noaa_1d"')
+                cur.execute('SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM "raw"."weather_noaa_1d"')
                 count, min_date, max_date = cur.fetchone()
                 logger.info(f"\nDatabase: {count:,} rows ({min_date} to {max_date})")
 

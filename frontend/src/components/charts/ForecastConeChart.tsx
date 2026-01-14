@@ -10,84 +10,25 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine
 } from 'recharts';
 
 interface ForecastConeProps {
-  data?: any[]; // Allow passing real data later
+  data?: any[];
 }
 
-// Generate high-quality mock data for the design preview
-const generateMockData = () => {
-  const data = [];
-  let price = 48.00;
-  
-  // Historical (Past 30 days)
-  for (let i = -30; i <= 0; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    price = price + (Math.random() - 0.5) * 0.5;
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price: Number(price.toFixed(2)),
-      p10: null,
-      p50: null,
-      p90: null,
-      type: 'historical'
-    });
-  }
-
-  // Forecast (Next 21 days)
-  let p50 = price;
-  let spread = 0.5;
-  for (let i = 1; i <= 21; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    p50 = p50 + 0.1; // Gentle uptrend
-    spread += 0.15; // Widening cone based on uncertainty
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price: null,
-      p50: Number(p50.toFixed(2)),
-      p10: Number((p50 - spread).toFixed(2)),
-      p90: Number((p50 + spread).toFixed(2)),
-      type: 'forecast'
-    });
-  }
-  return data;
-};
-
 export function ForecastConeChart({ data }: ForecastConeProps) {
-  const chartData = data || generateMockData();
+  const chartData = data ?? [];
+
+  if (!chartData.length) {
+    return (
+      <div className="w-full h-[400px] bg-[#0a0a0a] rounded-xl border border-white/5 p-4 flex items-center justify-center">
+        <div className="text-sm text-slate-400">No forecast data available.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-[400px] bg-[#0a0a0a] rounded-xl border border-white/5 p-4 relative">
-        <div className="absolute top-4 left-4 z-10">
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                <span className="text-xs font-mono text-blue-500 tracking-wider">LIVE FORECAST (L0-L3)</span>
-            </div>
-            <div className="text-2xl font-bold text-white mt-1">
-                48.25 <span className="text-sm font-normal text-emerald-400">+1.2%</span>
-            </div>
-        </div>
-
-        {/* Legend */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
-                <div className="w-3 h-[2px] bg-slate-400"></div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider">Historical</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="w-3 h-[2px] bg-blue-500 border-dashed border-b"></div>
-                <span className="text-[10px] text-blue-400 uppercase tracking-wider">P50 Forecast</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500/10 border border-blue-500/20 rounded-sm"></div>
-                <span className="text-[10px] text-blue-400/60 uppercase tracking-wider">Confidence (P10-P90)</span>
-            </div>
-        </div>
-
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 60, right: 30, left: 0, bottom: 0 }}>
           <defs>

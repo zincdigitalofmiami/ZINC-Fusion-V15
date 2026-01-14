@@ -4,6 +4,11 @@ ZINC-FUSION-V15: Migration 002 - Bootstrap Trump Effect Data (FIXED)
 Uses price returns from tariff-related symbols as proxy for policy signal
 """
 
+raise SystemExit(
+    "Disabled: scripts/run_migration_002.py bootstraps synthetic Trump Effect data and performs destructive deletes. "
+    "Per zero-tolerance policy, use scripts/refresh_trump_effect_features.py (real source) instead."
+)
+
 import os
 import psycopg2
 import json

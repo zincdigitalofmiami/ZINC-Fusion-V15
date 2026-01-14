@@ -1,22 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ZLPriceChart } from '@/components/ZLPriceChart';
+import { ZLCandlestickChart } from '@/components/ZLCandlestickChart';
+import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
 import { SignalGauge } from '@/components/ui/SignalGauge';
-import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalculator';
 import { MarketCommentary } from '@/components/ui/MarketCommentary';
-import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
-import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
-import { FusionBrain } from '@/components/viz/FusionBrain';
-import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
 import { QuantAdminSidebar } from '@/components/layout/QuantAdminSidebar';
-import { BrainCircuit, Wind, TrendingUp, AlertTriangle, Menu, Activity } from 'lucide-react';
+import { AlertTriangle, Menu, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function DashboardPage() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   return (
-    <div className="min-h-screen animate-in fade-in duration-500 p-6 space-y-8 pb-20 bg-[#0a0a0a]">
+    <div className="min-h-screen animate-in fade-in duration-500 p-6 space-y-6 pb-20 bg-[#0a0a0a]">
       
       <QuantAdminSidebar isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
 
@@ -26,144 +22,144 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
             STRATEGY COMMAND
           </h1>
-          <p className="text-slate-400 mt-1 font-mono text-sm tracking-wide">
-             ALTERNATIVE DATA INTELLIGENCE // MULTI-HORIZON XAI
+          <p className="text-slate-500 mt-1 font-mono text-xs tracking-wider">
+            SOYBEAN OIL FUTURES • MULTI-HORIZON INTELLIGENCE
           </p>
         </div>
         <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
+          <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
             <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                LIVE FEED
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE
             </div>
-            <div>UPDATED: 14:02 CST</div>
-            </div>
-            
-            <button 
-                onClick={() => setIsAdminOpen(true)}
-                className="p-2 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors border border-transparent hover:border-white/10"
-            >
-                <Menu size={20} />
-            </button>
+            <div className="text-slate-600">|</div>
+            <div>ZL1! • $51.70</div>
+          </div>
+          
+          <button 
+            onClick={() => setIsAdminOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors"
+          >
+            <Menu size={18} />
+          </button>
         </div>
       </div>
 
-      {/* SECTION 1: ZL PRICE CHART */}
-      <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-1 shadow-2xl shadow-black/50">
-          <ZLPriceChart height={700} />
+      {/* SECTION 1: Chris's TOP 4 Key Drivers */}
+      <ChrisTop4Drivers />
+
+      {/* SECTION 2: Main Price Chart with Probability Bands */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 pl-1 border-l-4 border-emerald-500">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Price Action
+          </h3>
+        </div>
+        <ZLCandlestickChart height={450} showBands={true} />
       </div>
 
-      {/* SECTION 1.5: HORIZON SIGNALS (Moved Up) */}
-      <div>
-        <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-blue-500">
-            <h3 className="text-xl font-bold text-white">
-                Multi-Horizon Signals
-            </h3>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                ACTIVE
-            </span>
+      {/* SECTION 3: Multi-Horizon Signals */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pl-1 border-l-4 border-blue-500">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Multi-Horizon Signals
+          </h3>
+          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            4 HORIZONS
+          </span>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <SignalGauge 
-                horizon="1 Week" 
-                value={65} 
-                trend="bullish" 
-                p10={46.20} 
-                p90={48.90} 
-                confidence="High"
-            />
-            <SignalGauge 
-                horizon="1 Month" 
-                value={45} 
-                trend="neutral" 
-                p10={44.50} 
-                p90={50.10} 
-                confidence="Med"
-            />
-            <SignalGauge 
-                horizon="3 Months" 
-                value={30} 
-                trend="bearish" 
-                p10={40.20} 
-                p90={49.50} 
-                confidence="Low"
-            />
-            <SignalGauge 
-                horizon="6 Months" 
-                value={25} 
-                trend="bearish" 
-                p10={38.10} 
-                p90={47.80} 
-                confidence="Low"
-            />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <SignalGauge 
+            horizon="1 Week" 
+            value={65} 
+            trend="bullish" 
+            p10={46.20} 
+            p90={48.90} 
+            confidence="High"
+          />
+          <SignalGauge 
+            horizon="1 Month" 
+            value={45} 
+            trend="neutral" 
+            p10={44.50} 
+            p90={50.10} 
+            confidence="Med"
+          />
+          <SignalGauge 
+            horizon="3 Months" 
+            value={30} 
+            trend="bearish" 
+            p10={40.20} 
+            p90={49.50} 
+            confidence="Low"
+          />
+          <SignalGauge 
+            horizon="6 Months" 
+            value={25} 
+            trend="bearish" 
+            p10={38.10} 
+            p90={47.80} 
+            confidence="Low"
+          />
         </div>
       </div>
 
-      {/* SECTION 2: QUANT OPERATIONAL LAYER */}
-      <div className="grid grid-cols-12 gap-6">
+      {/* SECTION 4: Bottom Row - Risks + Commentary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Left Column: Tools & Drivers (8) */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+        {/* Active Risks */}
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-5">
+          <h3 className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
+            <AlertTriangle size={14} className="text-amber-400" />
+            Active Market Risks
+          </h3>
+          <div className="space-y-3">
+            <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg group hover:bg-red-500/10 transition-colors">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-red-400 text-xs font-bold flex items-center gap-1.5">
+                  <TrendingDown size={12} />
+                  TRUMP TARIFFS
+                </span>
+                <span className="text-red-400/70 text-[10px] font-mono">HIGH PROB</span>
+              </div>
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                EPU index &gt; 175. China retaliation scenarios pricing in.
+              </p>
+            </div>
             
-            {/* Impact & Waterfall Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ContractImpactCalculator />
-                <FactorWaterfall prevPrice={49.20} currentPrice={49.65} />
+            <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg group hover:bg-blue-500/10 transition-colors">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-blue-400 text-xs font-bold flex items-center gap-1.5">
+                  <TrendingUp size={12} />
+                  BIOFUEL MANDATE
+                </span>
+                <span className="text-blue-400/70 text-[10px] font-mono">MED IMPACT</span>
+              </div>
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                EPA RVO decision pending. Upside surprise priced at 35%.
+              </p>
             </div>
 
-            {/* Heatmap */}
-            <ProbabilityHeatmap />
-
-            {/* Brain (Force Graph) */}
-            <div className="h-[400px] border border-white/5 rounded-xl overflow-hidden bg-black/20">
-                 <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">Global Causal Network</span>
-                    <BrainCircuit size={14} className="text-purple-400" />
-                 </div>
-                 <FusionBrain />
+            <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg group hover:bg-amber-500/10 transition-colors">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-amber-400 text-xs font-bold flex items-center gap-1.5">
+                  <AlertTriangle size={12} />
+                  BRAZIL WEATHER
+                </span>
+                <span className="text-amber-400/70 text-[10px] font-mono">MONITORING</span>
+              </div>
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                La Niña conditions developing. Crop stress indicators elevated.
+              </p>
             </div>
+          </div>
         </div>
 
-        {/* Right Column: Commentary & Risks (4) */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-            
-            {/* Weather Risk Array (New Hi-Def Component) */}
-            <WeatherRiskArray />
-
-            {/* Quick Stats / Active Risks */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-6">
-                <h3 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-amber-400" />
-                    Active Risks
-                </h3>
-                <div className="space-y-3">
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-amber-400 text-xs font-bold">TRUMP TARIFFS</span>
-                            <span className="text-amber-400 text-xs">HIGH PROB</span>
-                        </div>
-                        <p className="text-slate-400 text-xs">EPU index &gt; 175. China retaliation likely.</p>
-                    </div>
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-blue-400 text-xs font-bold">BIOFUEL MANDATE</span>
-                            <span className="text-blue-400 text-xs">MED IMPACT</span>
-                        </div>
-                        <p className="text-slate-400 text-xs">EPA waiver discussions in progress.</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Market Commentary */}
-            <MarketCommentary />
-        </div>
-
+        {/* Market Commentary */}
+        <MarketCommentary />
       </div>
 
-
-      {/* Bottom Section: Horizon Gauges (Moved Up) */}
-      
     </div>
   );
 }

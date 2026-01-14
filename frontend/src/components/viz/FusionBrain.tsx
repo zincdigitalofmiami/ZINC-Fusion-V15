@@ -21,39 +21,9 @@ interface Link extends d3.SimulationLinkDatum<Node> {
   value: number; // Correlation strength 0-1
 }
 
-const SPECIALISTS = [
-  { id: 'crush', label: 'Crush Spreads', group: 'fundamental', icon: Wheat },
-  { id: 'china', label: 'China Demand', group: 'geopolitics', icon: Globe },
-  { id: 'trump', label: 'Trade Policy', group: 'macro', icon: AlertTriangle },
-  { id: 'energy', label: 'Energy/Crude', group: 'fundamental', icon: Zap },
-  { id: 'fed', label: 'Macro/Rates', group: 'macro', icon: DollarSign },
-  { id: 'technicals', label: 'Tech Momentum', group: 'technical', icon: TrendingUp },
-  { id: 'biofuel', label: 'Biofuel RVO', group: 'policy', icon: Droplet },
-  { id: 'palm', label: 'Palm/VegOil', group: 'substitute', icon: Droplet },
-  { id: 'sat', label: 'Sat/Crop Health', group: 'alt-data', icon: Network },
-  { id: 'substitutes', label: 'Global Supply', group: 'fundamental', icon: Activity },
-];
-
-const INITIAL_NODES: Node[] = SPECIALISTS.map(s => ({
-  ...s,
-  val: s.group === 'technical' ? 45 : s.group === 'geopolitics' ? 35 : 25, // Fixed value for hydration stability
-  status: s.id === 'china' || s.id === 'trump' ? 'critical' : s.group === 'technical' ? 'active' : 'calm',
-  x: 0,
-  y: 0
-}));
-
-// Mock correlations (L2 discovery)
-const INITIAL_LINKS: Link[] = [
-  { source: 'trump', target: 'china', value: 0.95 },
-  { source: 'energy', target: 'biofuel', value: 0.8 },
-  { source: 'crush', target: 'biofuel', value: 0.7 },
-  { source: 'fed', target: 'energy', value: 0.6 },  // Rates impact energy
-  { source: 'china', target: 'palm', value: 0.6 },
-  { source: 'technicals', target: 'sat', value: 0.5 }, // Price confirming data
-  { source: 'sat', target: 'china', value: 0.8 },      // Sat verifying inventory
-  { source: 'substitutes', target: 'palm', value: 0.9 },
-  { source: 'substitutes', target: 'biofuel', value: 0.7 }
-];
+const SPECIALISTS: any[] = [];
+const INITIAL_NODES: Node[] = [];
+const INITIAL_LINKS: Link[] = [];
 
 export function FusionBrain() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +33,7 @@ export function FusionBrain() {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || nodes.length === 0) return;
 
     const { clientWidth, clientHeight } = containerRef.current;
     
@@ -102,6 +72,11 @@ export function FusionBrain() {
 
   return (
     <div ref={containerRef} className="relative w-full h-[600px] overflow-hidden bg-[#0a0a0a] rounded-xl border border-white/5 shadow-2xl">
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+          <div className="text-sm text-slate-400">No causal network data available.</div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1e293b]/20 via-[#0a0a0a] to-[#0a0a0a]" />
       
       <svg className="absolute inset-0 w-full h-full pointer-events-none">

@@ -152,44 +152,29 @@ def load_forecast_data(conn, horizon: int) -> Dict:
 
 def load_monte_carlo_metrics(conn, horizon: int, as_of_date: datetime) -> Dict:
     """Load Monte Carlo risk metrics."""
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT var_05, cvar_05, prob_up, prob_up_5pct, prob_down_5pct
-                FROM risk_metrics
-                WHERE horizon = %s AND as_of_date::date = %s::date
-                ORDER BY as_of_date DESC
-                LIMIT 1
-            """, (horizon, as_of_date))
-            row = cur.fetchone()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT var_05, cvar_05, prob_up, prob_up_5pct, prob_down_5pct
+            FROM risk_metrics
+            WHERE horizon = %s AND as_of_date::date = %s::date
+            ORDER BY as_of_date DESC
+            LIMIT 1
+            """,
+            (horizon, as_of_date),
+        )
+        row = cur.fetchone()
 
-        if not row:
-            # Return defaults if no MC data yet
-            return {
-                'var_05': -0.05,
-                'cvar_05': -0.08,
-                'prob_up': 0.50,
-                'prob_up_5pct': 0.20,
-                'prob_down_5pct': 0.20,
-            }
+    if not row:
+        raise ValueError(f"No Monte Carlo risk metrics for horizon={horizon} as_of_date={as_of_date}")
 
-        return {
-            'var_05': float(row[0]),
-            'cvar_05': float(row[1]),
-            'prob_up': float(row[2]),
-            'prob_up_5pct': float(row[3]),
-            'prob_down_5pct': float(row[4]),
-        }
-    except Exception:
-        # Table may not exist yet
-        conn.rollback()
-        return {
-            'var_05': -0.05,
-            'cvar_05': -0.08,
-            'prob_up': 0.50,
-            'prob_up_5pct': 0.20,
-            'prob_down_5pct': 0.20,
-        }
+    return {
+        'var_05': float(row[0]),
+        'cvar_05': float(row[1]),
+        'prob_up': float(row[2]),
+        'prob_up_5pct': float(row[3]),
+        'prob_down_5pct': float(row[4]),
+    }
 
 
 def load_monte_carlo_percentiles(conn, horizon: int, as_of_date: datetime) -> Dict:
@@ -205,15 +190,16 @@ def load_monte_carlo_percentiles(conn, horizon: int, as_of_date: datetime) -> Di
         row = cur.fetchone()
 
     if not row or not row[0]:
-        # Fallback: estimate from forecast spread
-        return {'mc_p5': None, 'mc_p95': None}
+        raise ValueError(f"No Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}")
 
     percentiles = row[0]
     # Get terminal values (last element of each percentile array)
     mc_p5 = percentiles.get('5', [None])[-1] if '5' in percentiles else None
     mc_p95 = percentiles.get('95', [None])[-1] if '95' in percentiles else None
+    if mc_p5 is None or mc_p95 is None:
+        raise ValueError(f"Malformed Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}")
 
-    return {'mc_p5': mc_p5, 'mc_p95': mc_p95}
+    return {'mc_p5': float(mc_p5), 'mc_p95': float(mc_p95)}
 
 
 def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) -> List[Dict]:
@@ -230,12 +216,7 @@ def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) 
             rows = cur.fetchall()
 
         if not rows:
-            # Return placeholder drivers
-            return [
-                {'name': 'core_p50', 'impact': 0.0, 'direction': 'neutral'},
-                {'name': 'crush_p50', 'impact': 0.0, 'direction': 'neutral'},
-                {'name': 'china_p50', 'impact': 0.0, 'direction': 'neutral'},
-            ]
+            return []
 
         return [
             {'name': row[0], 'impact': float(row[1]), 'direction': 'positive' if row[1] > 0 else 'negative'}
@@ -244,11 +225,7 @@ def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) 
     except Exception:
         # Table may not exist yet
         conn.rollback()
-        return [
-            {'name': 'core_p50', 'impact': 0.0, 'direction': 'neutral'},
-            {'name': 'crush_p50', 'impact': 0.0, 'direction': 'neutral'},
-            {'name': 'china_p50', 'impact': 0.0, 'direction': 'neutral'},
-        ]
+        return []
 
 
 def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
@@ -267,23 +244,13 @@ def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
         rows = cur.fetchall()
 
     if not rows:
-        return {
-            'dissent_index': 0.0,
-            'specialist_std': 0.0,
-            'most_bullish': 'unknown',
-            'most_bearish': 'unknown',
-        }
+        raise ValueError(f"No OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}")
 
     preds = {row[0]: float(row[1]) for row in rows}
     values = list(preds.values())
 
     if len(values) < 2:
-        return {
-            'dissent_index': 0.0,
-            'specialist_std': 0.0,
-            'most_bullish': 'unknown',
-            'most_bearish': 'unknown',
-        }
+        raise ValueError(f"Insufficient OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}")
 
     import numpy as np
     specialist_std = float(np.std(values))
@@ -306,28 +273,26 @@ def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
 
 def load_regime(conn, as_of_date: datetime) -> Dict:
     """Load current volatility regime."""
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT regime
-                FROM "analytics"."vol_regimes"
-                WHERE as_of_date <= %s
-                ORDER BY as_of_date DESC
-                LIMIT 1
-            """, (as_of_date,))
-            row = cur.fetchone()
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT regime, COALESCE(smoothed_prob, regime_prob)
+            FROM "analytics"."vol_regimes"
+            WHERE symbol = 'ZL' AND as_of_date <= %s
+            ORDER BY as_of_date DESC
+            LIMIT 1
+            """,
+            (as_of_date,),
+        )
+        row = cur.fetchone()
 
-        if not row:
-            return {'regime': 'normal', 'regime_confidence': 0.5}
+    if not row or not row[0] or row[1] is None:
+        raise ValueError(f"No regime data in analytics.vol_regimes for as_of_date={as_of_date}")
 
-        return {
-            'regime': row[0] or 'normal',
-            'regime_confidence': 0.75,  # Default confidence when not stored
-        }
-    except Exception:
-        # Table may not exist yet
-        conn.rollback()
-        return {'regime': 'normal', 'regime_confidence': 0.5}
+    return {
+        'regime': row[0],
+        'regime_confidence': float(row[1]),
+    }
 
 
 def load_historical_analogs(conn, horizon: int, as_of_date: datetime, top_n: int = 3) -> List[Dict]:
@@ -391,8 +356,8 @@ def gather_synthesis_input(conn, horizon: int) -> SynthesisInput:
         p50=forecast['p50'],
         p90=forecast['p90'],
         horizon_days=horizon,
-        mc_p5=mc_percentiles.get('mc_p5') or forecast['p10'] * 0.95,
-        mc_p95=mc_percentiles.get('mc_p95') or forecast['p90'] * 1.05,
+        mc_p5=mc_percentiles['mc_p5'],
+        mc_p95=mc_percentiles['mc_p95'],
         prob_up=mc_metrics['prob_up'],
         prob_up_5pct=mc_metrics['prob_up_5pct'],
         prob_down_5pct=mc_metrics['prob_down_5pct'],
@@ -554,15 +519,7 @@ def parse_llm_response(raw_response: str) -> SynthesisOutput:
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
         logger.error(f"Raw response: {raw_response[:500]}...")
-        # Return a fallback
-        return SynthesisOutput(
-            summary="Unable to generate synthesis due to parsing error.",
-            risks=[{"risk": "Parsing error", "probability": "N/A", "context": str(e)}],
-            opportunities=[],
-            invalidation_triggers=["Fix LLM response format"],
-            confidence_level="low",
-            raw_response=raw_response,
-        )
+        raise
 
     return SynthesisOutput(
         summary=data.get("summary", "No summary available."),
@@ -578,25 +535,6 @@ def save_synthesis(conn, input_data: SynthesisInput, output: SynthesisOutput) ->
     """Save synthesis output to analytics.llm_synthesis table."""
 
     with conn.cursor() as cur:
-        # Create table if not exists
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS "analytics"."llm_synthesis" (
-                id SERIAL PRIMARY KEY,
-                as_of_date DATE NOT NULL,
-                horizon INTEGER NOT NULL,
-                symbol VARCHAR(20) DEFAULT 'ZL',
-                input_data JSONB NOT NULL,
-                summary TEXT NOT NULL,
-                risks JSONB NOT NULL,
-                opportunities JSONB NOT NULL,
-                invalidation_triggers JSONB,
-                confidence_level VARCHAR(20),
-                model_used VARCHAR(50),
-                created_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(as_of_date, horizon, symbol)
-            )
-        """)
-
         # Upsert
         cur.execute("""
             INSERT INTO "analytics"."llm_synthesis"
@@ -631,7 +569,7 @@ def save_synthesis(conn, input_data: SynthesisInput, output: SynthesisOutput) ->
     return 1
 
 
-def generate_synthesis(horizon: int, dry_run: bool = False) -> SynthesisOutput:
+def generate_synthesis(horizon: int, dry_run: bool = False) -> Optional[SynthesisOutput]:
     """Generate LLM synthesis for a given horizon."""
     logger.info("=" * 60)
     logger.info(f"L5-C LLM SYNTHESIS @ {horizon}d")
@@ -657,16 +595,7 @@ def generate_synthesis(horizon: int, dry_run: bool = False) -> SynthesisOutput:
             logger.info("-" * 40)
             logger.info(prompt[:1000] + "..." if len(prompt) > 1000 else prompt)
             logger.info("-" * 40)
-
-            # Return mock output for dry run
-            return SynthesisOutput(
-                summary=f"[DRY RUN] Mock synthesis for {horizon}d horizon.",
-                risks=[{"risk": "Mock risk", "probability": "50%", "context": "Testing"}],
-                opportunities=[{"opportunity": "Mock opportunity", "probability": "50%", "context": "Testing"}],
-                invalidation_triggers=["Mock trigger"],
-                confidence_level="medium",
-                raw_response="[DRY RUN - NO API CALL]",
-            )
+            return None
 
         # Call LLM
         logger.info("  Calling LLM API...")

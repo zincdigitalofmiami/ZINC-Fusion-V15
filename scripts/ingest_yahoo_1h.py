@@ -30,7 +30,9 @@ import psycopg2
 from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -68,8 +70,8 @@ def download_zl_1h(days_back: int = 7) -> pd.DataFrame:
 
     ticker = yf.Ticker(YAHOO_TICKER)
     df = ticker.history(
-        start=start.strftime('%Y-%m-%d'),
-        end=end.strftime('%Y-%m-%d'),
+        start=start.strftime("%Y-%m-%d"),
+        end=end.strftime("%Y-%m-%d"),
         interval="1h",
         auto_adjust=False,
         actions=False,
@@ -100,14 +102,16 @@ def download_zl_1h(days_back: int = 7) -> pd.DataFrame:
             if c is None:
                 continue
 
-            rows.append({
-                "timestamp": ts,
-                "open": o,
-                "high": h,
-                "low": low_val,
-                "close": c,
-                "volume": v,
-            })
+            rows.append(
+                {
+                    "timestamp": ts,
+                    "open": o,
+                    "high": h,
+                    "low": low_val,
+                    "close": c,
+                    "volume": v,
+                }
+            )
         except Exception as e:
             logger.warning(f"Error processing row: {e}")
             continue
@@ -146,8 +150,16 @@ def upsert_to_analytics(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
     now = datetime.now(timezone.utc)
     records = [
-        (row["timestamp"], row["open"], row["high"], row["low"], 
-         row["close"], row["volume"], SOURCE_VALUE, now)
+        (
+            row["timestamp"],
+            row["open"],
+            row["high"],
+            row["low"],
+            row["close"],
+            row["volume"],
+            SOURCE_VALUE,
+            now,
+        )
         for _, row in df.iterrows()
     ]
 
@@ -161,8 +173,15 @@ def upsert_to_analytics(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest Yahoo 1h data for ZL")
-    parser.add_argument("--days-back", type=int, default=7, help=f"Days to look back (max {YAHOO_1H_LIMIT_DAYS})")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be done")
+    parser.add_argument(
+        "--days-back",
+        type=int,
+        default=7,
+        help=f"Days to look back (max {YAHOO_1H_LIMIT_DAYS})",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show what would be done"
+    )
     args = parser.parse_args()
 
     logger.info("=" * 60)

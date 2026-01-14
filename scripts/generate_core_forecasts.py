@@ -242,12 +242,12 @@ def load_base_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
-                as_of_date as timestamp,
+                event_date as timestamp,
                 open, high, low, close, volume
             FROM "raw"."market_futures_1d"
             WHERE symbol = 'ZL'
-              AND as_of_date >= %s
-            ORDER BY as_of_date
+              AND event_date >= %s
+            ORDER BY event_date
         """, (start_date,))
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
@@ -340,10 +340,37 @@ def add_technical_features(df: pd.DataFrame) -> pd.DataFrame:
     df["overnight_gap"] = (df["open"] / close.shift() - 1).abs()
 
     # Additional indicators
-    df["adx_14"] = 50.0  # Placeholder
+    # ADX (Average Directional Index)
+    up_move = high.diff()
+    down_move = low.shift(1) - low
+    plus_dm = up_move.where((up_move > down_move) & (up_move > 0), 0.0)
+    minus_dm = down_move.where((down_move > up_move) & (down_move > 0), 0.0)
+    tr = pd.concat(
+        [
+            high - low,
+            (high - close.shift()).abs(),
+            (low - close.shift()).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    atr_14 = tr.ewm(alpha=1 / 14, adjust=False).mean()
+    plus_di = 100 * plus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14.replace(0, np.nan)
+    minus_di = 100 * minus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14.replace(0, np.nan)
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    df["adx_14"] = dx.ewm(alpha=1 / 14, adjust=False).mean()
     df["cci_20"] = (close - sma20) / (0.015 * close.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean()))
     df["willr_14"] = -100 * (high.rolling(14).max() - close) / (high.rolling(14).max() - low.rolling(14).min())
-    df["mfi_14"] = 50.0  # Placeholder
+    # MFI (Money Flow Index)
+    typical_price = (high + low + close) / 3.0
+    volume_filled = volume.fillna(0)
+    money_flow = typical_price * volume_filled
+    tp_diff = typical_price.diff()
+    positive_flow = money_flow.where(tp_diff > 0, 0.0)
+    negative_flow = money_flow.where(tp_diff < 0, 0.0)
+    positive_mf = positive_flow.rolling(14).sum()
+    negative_mf = negative_flow.rolling(14).sum().abs()
+    mf_ratio = positive_mf / negative_mf.replace(0, np.nan)
+    df["mfi_14"] = 100 - (100 / (1 + mf_ratio))
     df["obv"] = (np.sign(close.diff()) * volume).cumsum()
     df["vwap"] = (close * volume).cumsum() / volume.cumsum()
     df["keltner_upper"] = close.ewm(span=20).mean() + 2 * df["atr_14"]
@@ -359,10 +386,10 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
     # Load FRED data
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT series_id, as_of_date, value
+            SELECT series_id, event_date as timestamp, value
             FROM "raw"."fred_observations_1d"
             WHERE series_id IN ('DCOILWTICO', 'VIXCLS', 'DTWEXBGS')
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         fred_rows = cur.fetchall()
 
@@ -400,10 +427,10 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
     # Calculate crush spread (ZS - ZL - ZM proxy)
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date, symbol, close
+            SELECT event_date as timestamp, symbol, close
             FROM "raw"."market_futures_1d"
             WHERE symbol IN ('ZS', 'ZM')
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         soy_rows = cur.fetchall()
 
@@ -527,10 +554,10 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("1. Loading ALL market futures (wide pivot)...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT symbol, as_of_date as ts_event, open, high, low, close, volume
+            SELECT symbol, event_date as ts_event, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
-            WHERE as_of_date >= %s
-            ORDER BY as_of_date, symbol
+            WHERE event_date >= %s
+            ORDER BY event_date, symbol
         """, (start_date,))
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
@@ -603,9 +630,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("2. Loading FRED economic data...")
 
     fred_long = pd.read_sql("""
-        SELECT as_of_date, series_id, value
+        SELECT event_date as as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
-        ORDER BY as_of_date, series_id
+        ORDER BY event_date, series_id
     """, conn)
     fred_long["as_of_date"] = pd.to_datetime(fred_long["as_of_date"])
     logger.info(f"   Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
@@ -652,11 +679,11 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("3. Loading NOAA weather data...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT station_id, as_of_date,
+            SELECT station_id, event_date as as_of_date,
                    tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
                    awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms
             FROM "raw"."weather_noaa_1d"
-            ORDER BY as_of_date, station_id
+            ORDER BY event_date, station_id
         """)
         weather_cols = [desc[0] for desc in cur.description]
         weather_rows = cur.fetchall()
@@ -682,9 +709,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("4. Loading FX spot data from fx_spot_1d...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT pair, as_of_date, rate
+            SELECT pair, event_date as as_of_date, rate
             FROM "raw"."fx_spot_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         fx_rows = cur.fetchall()
     fx_df = pd.DataFrame(fx_rows, columns=["pair", "as_of_date", "rate"])
@@ -808,9 +835,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("8. Loading EPA RIN prices...")
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date, rin_type, price
+            SELECT event_date as as_of_date, rin_type, price
             FROM "raw"."epa_rin_prices_1d"
-            ORDER BY as_of_date
+            ORDER BY event_date
         """)
         rin_rows = cur.fetchall()
     rin_df = pd.DataFrame(rin_rows, columns=["as_of_date", "rin_type", "price"])
@@ -830,9 +857,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT as_of_date, zl_sentiment, is_trump_related
+                SELECT event_date as as_of_date, zl_sentiment, is_trump_related
                 FROM "raw"."news_articles_1d"
-                ORDER BY as_of_date
+                ORDER BY event_date
             """)
             news_rows = cur.fetchall()
 

@@ -1,8 +1,39 @@
 # ZINC-FUSION-V15 Knowledge Base
 
-**Created:** 2026-01-05
-**Last Updated:** 2026-01-06 (Session 3)
+**Created:** 2026-01-05  
+**Last Updated:** 2026-01-13 (Architecture Correction)  
 **Purpose:** Persistent memory for agent continuity - nothing forgotten/lost
+
+---
+
+## 🚨 CRITICAL UPDATE: January 13, 2026
+
+**ARCHITECTURE FUNDAMENTALLY CORRECTED**
+
+A critical flaw in the original architecture was discovered and corrected:
+
+**Previous (WRONG):** Single Core model @ 126d feeding all L1 meta-learners (5d, 21d, 63d, 126d)  
+**Current (CORRECT):** Horizon-aligned Core models - each horizon gets its own Core + Specialists + L1
+
+**Impact:** 
+- Previous: 15 models (1 Core + 11 Specialists + 3 Meta)
+- Current: **52 models** (4 Core + 44 Specialists + 4 Meta)
+
+**Why this matters:** In stacking ensembles, OOF predictions MUST target the same horizon as the meta-learner. Mixing horizons creates target mismatch and degrades forecast quality.
+
+**See Section 4 for full details and research validation.**
+
+### Key Architectural Principles (Learned From This Correction)
+
+1. **Horizon Alignment Law:** In stacking ensembles, base model predictions and meta-learner targets MUST match exactly. No exceptions.
+
+2. **Direct Method Superiority:** Separate models per horizon outperform recursive approaches (validated by Bhansali 1996, Findley 1983/1985, Kang 2003).
+
+3. **OOF Integrity:** Out-of-fold predictions are the training signal for meta-learners. Corrupt the OOF, corrupt the ensemble.
+
+4. **No Shortcuts:** What seemed like an optimization (1 Core feeds all horizons) was actually architectural debt. The "expensive" path (52 models) is the correct path.
+
+5. **Research Over Intuition:** When building novel architectures, validate against academic consensus and production systems (DoorDash ELITE, AutoGluon Multi-Layer).
 
 ---
 
@@ -184,6 +215,54 @@ trump_effect: USEPUINDXD, USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV, CHNMAINLANDTPU
 
 ## 4. MODEL ARCHITECTURE
 
+### 🚨 CRITICAL ARCHITECTURE CORRECTION (Jan 13, 2026)
+
+**Status:** ARCHITECTURE LOCKED — Changes require governance approval  
+**Supersedes:** ZINC_FUSION_V15_PREDICTOR_ARCHITECTURE_LOCKED.md, CORE_ARCHITECTURE_V3_FIXED.md
+
+#### The Discovery
+After months of development, a fundamental architecture flaw was identified: **Core model horizon MUST match L1 meta-learner target horizon** for proper OOF alignment in stacking ensembles.
+
+The previous architecture assumed a single Core model at 126d could feed all L1 meta-learners (5d, 21d, 63d, 126d). **This is mathematically incorrect for stacking ensembles.**
+
+#### Why This Matters
+In stacking ensembles:
+1. Base models produce Out-of-Fold (OOF) predictions during training
+2. Meta-learner trains on: `[Base_OOF_predictions] → [Actual_Target]`
+3. **OOF predictions MUST predict the same target as the meta-learner**
+4. Mixing horizons (Core_126d OOF with L1_21d target) creates target mismatch
+5. Meta-learner learns nonsense weights when inputs/outputs are misaligned
+
+**Example of the error:**
+- ❌ WRONG: Core_126d predicts "ZL price in 126 days" → feeds L1_21d targeting "ZL price in 21 days"
+  - Meta-learner tries to learn: `f(price_126d_prediction) → price_21d_actual`
+  - **This is incoherent.** The meta-learner cannot learn meaningful weights.
+
+- ✅ RIGHT: Core_21d predicts "ZL price in 21 days" → feeds L1_21d targeting "ZL price in 21 days"
+  - Meta-learner learns: `f(price_21d_prediction) → price_21d_actual`
+  - Aligned signals. Meta-learner learns optimal fusion weights.
+
+#### Research Validation
+| Source | Finding |
+|--------|---------|
+| Bhansali (1996) | Direct method (separate model per horizon) produces optimal, asymptotically efficient forecasts |
+| Findley (1983, 1985) | Multi-step direct forecasts outperform recursive approaches for longer horizons |
+| Kang (2003) | Multi-period forecasting using different models for different horizons improves RMSE/MAE |
+| Meta-Learner Study (2024) | 77% of datasets require 2+ different models across prediction horizons |
+| DoorDash ELITE | "Each base learner has strengths at discrete periods along forecasting horizon" |
+
+#### Correct Architecture: 52 Models
+
+| Horizon | L0 Core | L0 Specialists | L1 Meta | Subtotal |
+|---------|---------|----------------|---------|----------|
+| 5d | 1 | 11 | 1 | 13 |
+| 21d | 1 | 11 | 1 | 13 |
+| 63d | 1 | 11 | 1 | 13 |
+| 126d | 1 | 11 | 1 | 13 |
+| **TOTAL** | **4** | **44** | **4** | **52** |
+
+Each horizon (5d, 21d, 63d, 126d) has an independent, self-contained prediction stack.
+
 ### The Hierarchy of Truth
 ```
 DATA QUALITY         →  Everything else is downstream
@@ -201,14 +280,122 @@ DASHBOARD BEAUTY      →  Lipstick on a pig without good data
 **Shit in, shit out. Data is everything.**
 
 ### Horizons (Integer Only)
-| Horizon | Mode | Business Purpose |
-|---------|------|------------------|
-| 5 | Tactical | Operational procurement timing |
-| 21 | Tactical | Near-term hedging |
-| 63 | **Strategic** | Quarterly planning |
-| 126 | **Strategic** | Semi-annual contracts |
+| Horizon | Mode | Business Purpose | Model Configuration |
+|---------|------|------------------|---------------------|
+| 5 | Tactical | Operational procurement timing | Chronos-Bolt-Small (zero-shot) |
+| 21 | Tactical | Near-term hedging | Chronos-Bolt-Small (zero-shot) |
+| 63 | **Strategic** | Quarterly planning | Chronos-2 + LoRA (300 steps) |
+| 126 | **Strategic** | Semi-annual contracts | Chronos-2 + LoRA (500 steps) |
+
+### Per-Horizon Architecture (LOCKED)
+
+Each horizon gets its own complete stack:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              L0 LAYER (12 Models per Horizon)               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐    ┌────────────────────────────────────┐│
+│  │    CORE      │    │      11 SPECIALISTS                ││
+│  │ TimesSeries  │    │      TabularPredictor              ││
+│  │  Predictor   │    │   problem_type="quantile"          ││
+│  │              │    │   quantile_levels=[0.10, 0.50, 0.90]││
+│  │ Outputs:     │    │                                    ││
+│  │ - core_p10   │    │   CRUSH, CHINA, FX, FED, TARIFF,   ││
+│  │ - core_p50   │    │   ENERGY, BIOFUEL, PALM,           ││
+│  │ - core_p90   │    │   VOLATILITY, SUBSTITUTES, TRUMP   ││
+│  │              │    │                                    ││
+│  │ Target:      │    │   Each outputs: {name}_p10/p50/p90 ││
+│  │ ZL @ t+H     │    │   ALL Target: ZL @ t+H (same)      ││
+│  └──────────────┘    └────────────────────────────────────┘│
+│                                                             │
+│  TOTAL L0 OUTPUT: 36 OOF Columns (12 models × 3 quantiles) │
+│  ALL predicting same target: ZL price at t+H                │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│            L1 META-LEARNER (1 per Horizon)                  │
+├─────────────────────────────────────────────────────────────┤
+│  TabularPredictor                                           │
+│  problem_type="quantile"                                    │
+│  quantile_levels=[0.10, 0.50, 0.90]                        │
+│                                                             │
+│  Input Features:                                            │
+│  ├── 36 OOF columns from L0 (horizon-aligned)               │
+│  ├── Regime features (VIX level, DXY, term structure)       │
+│  └── Calendar features (WASDE week, FOMC week, expiry)      │
+│                                                             │
+│  Target: ZL price at t+H (SAME as all L0 models)           │
+│  Output: Final P10/P50/P90 for horizon H                    │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│             L2 POST-MODEL INTELLIGENCE                      │
+├─────────────────────────────────────────────────────────────┤
+│  A. Conformal Calibration → Honest P10/P90 coverage        │
+│  B. Regime Gate → Stable/Elevated/Crisis classification     │
+│  C. Time-to-Touch → OPP/RUIN barrier probabilities          │
+│  D. Coverage Urgency Index → Decision metric for Chris      │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   L3 RISK ENGINE                            │
+├─────────────────────────────────────────────────────────────┤
+│  Monte Carlo Simulation (10,000 runs)                       │
+│  ├── VaR / CVaR calculations                                │
+│  ├── Scenario stress testing                                │
+│  └── Probability cone generation                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Model Specifications (One per Horizon)
+
+| Horizon | Predictor | prediction_length | Model | Fine-tuning | Est. Time |
+|---------|-----------|-------------------|-------|-------------|-----------|
+| 5d | TimeSeriesPredictor | 5 | Chronos-Bolt-Small | Zero-shot | ~10 min |
+| 21d | TimeSeriesPredictor | 21 | Chronos-Bolt-Small | Zero-shot | ~15 min |
+| 63d | TimeSeriesPredictor | 63 | Chronos-2 | LoRA (300 steps) | ~45 min |
+| 126d | TimeSeriesPredictor | 126 | Chronos-2 | LoRA (500 steps) | ~90 min |
+
+**Configuration (Mac M4 Pro):**
+```python
+# Tactical horizons (5d, 21d) - Zero-shot
+CORE_CONFIG_TACTICAL = {
+    "Chronos2": {
+        "model_path": "autogluon/chronos-bolt-small",
+        "context_length": 512,
+        "batch_size": 32,
+        "device": "cpu",  # MPS NOT supported
+        "fine_tune": False,
+    }
+}
+
+# Strategic horizons (63d, 126d) - LoRA fine-tuning
+CORE_CONFIG_STRATEGIC = {
+    "Chronos2": {
+        "context_length": 1024,
+        "batch_size": 16,
+        "device": "cpu",
+        "fine_tune": True,
+        "fine_tune_mode": "lora",
+        "fine_tune_lr": 5e-5,
+        "fine_tune_steps": 500,  # 300 for 63d
+        "fine_tune_batch_size": 4,
+        "fine_tune_context_length": 512,
+        "fine_tune_lora_config": {"r": 8, "lora_alpha": 16},
+    }
+}
+```
 
 ### Tactical vs Strategic Training
+
+**⚠️ DEPRECATED - See Per-Horizon Architecture Above**
+
+This section preserved for reference only. The new architecture uses horizon-aligned models.
 
 **Tactical (5d/21d):**
 - Chronos-Bolt (small, fast, 64-day context)
@@ -245,7 +432,195 @@ models/core_chronos2/
 
 ## 4A. CORE + SPECIALIST ARCHITECTURE (CRITICAL)
 
-### CORE = The Oracle (Kitchen Sink)
+### 11 SPECIALISTS (TabularPredictor)
+
+**44 models total:** 11 Specialists × 4 Horizons. Each specialist trained separately per horizon.
+
+| Specialist | Domain | Weight Range | Primary Features |
+|------------|--------|--------------|------------------|
+| CRUSH | Crush economics | 28-35% | board_crush, oil_share, zl_zs_ratio, nopa_utilization |
+| CHINA | China demand | 16-22% | china_soy_imports, dalian_close, usd_cny, china_pmi |
+| FX | Currency effects | 8-12% | dxy_close, usd_brl, usd_ars, em_currency_index |
+| FED | Monetary policy | 6-10% | fed_funds_rate, treasury_10y, real_rates, fomc_sentiment |
+| TARIFF | Trade policy | 5-12% | tariff_rate_china, trade_war_index, policy_uncertainty |
+| ENERGY | Energy complex | 10-14% | cl_close, ho_close, boho_spread, crack_321 |
+| BIOFUEL | Renewable mandates | 6-10% | rvo_biodiesel, d4_rin_price, blender_margin |
+| PALM | Substitution | 8-14% | palm_cif_rotterdam, palm_zl_spread, indo_export_levy |
+| VOLATILITY | Vol regime | 4-8% | zl_iv_atm, vix_close, ovx_close, garch_forecast |
+| SUBSTITUTES | Alt oils | 4-8% | canola_close, sunflower_price, zl_canola_spread |
+| TRUMP | Political vol | 3-10% | policy_uncertainty_index, tweet_sentiment, executive_order_count |
+
+**Configuration:**
+```python
+from autogluon.tabular import TabularPredictor
+
+def train_specialist(
+    name: str,
+    horizon: int,
+    train_data: pd.DataFrame,
+    feature_cols: list[str],
+) -> TabularPredictor:
+    """Train specialist for specific horizon."""
+    
+    target_col = f"target_{horizon}d"  # ZL price at t+horizon
+    
+    predictor = TabularPredictor(
+        label=target_col,
+        problem_type="quantile",
+        quantile_levels=[0.10, 0.50, 0.90],
+        path=f"models/specialists/{name}_{horizon}d/",
+    )
+    
+    predictor.fit(
+        train_data=train_data[feature_cols + [target_col]],
+        presets="best_quality",
+        time_limit=1800,
+        num_bag_folds=8,
+        num_stack_levels=1,
+        calibrate=True,
+        hyperparameters={
+            "GBM": [{"extra_trees": True}, {}],
+            "CAT": {},
+            "XGB": {},
+        },
+    )
+    
+    return predictor
+```
+
+### L1 Meta-Learner Input Matrix
+
+**42 input features per horizon, ALL predicting the same target:**
+
+```
+L1 Input Matrix (for horizon H):
+├── core_p10, core_p50, core_p90           (3 cols) - Core @ H
+├── crush_p10, crush_p50, crush_p90        (3 cols) - Crush @ H
+├── china_p10, china_p50, china_p90        (3 cols) - China @ H
+├── fx_p10, fx_p50, fx_p90                 (3 cols) - FX @ H
+├── fed_p10, fed_p50, fed_p90              (3 cols) - Fed @ H
+├── tariff_p10, tariff_p50, tariff_p90     (3 cols) - Tariff @ H
+├── energy_p10, energy_p50, energy_p90     (3 cols) - Energy @ H
+├── biofuel_p10, biofuel_p50, biofuel_p90  (3 cols) - Biofuel @ H
+├── palm_p10, palm_p50, palm_p90           (3 cols) - Palm @ H
+├── vol_p10, vol_p50, vol_p90              (3 cols) - Volatility @ H
+├── subs_p10, subs_p50, subs_p90           (3 cols) - Substitutes @ H
+├── trump_p10, trump_p50, trump_p90        (3 cols) - Trump @ H
+├── regime_vix, regime_dxy, regime_term    (3 cols) - Regime features
+└── is_wasde_week, is_fomc_week, is_expiry (3 cols) - Calendar
+────────────────────────────────────────────────────
+TOTAL: 42 input features
+TARGET: ZL price at t+H
+```
+
+**Configuration:**
+```python
+def train_meta_learner(
+    horizon: int,
+    oof_matrix: pd.DataFrame,
+) -> TabularPredictor:
+    """Train L1 meta-learner for specific horizon."""
+    
+    target_col = f"target_{horizon}d"
+    
+    predictor = TabularPredictor(
+        label=target_col,
+        problem_type="quantile",
+        quantile_levels=[0.10, 0.50, 0.90],
+        path=f"models/meta/L1_{horizon}d/",
+    )
+    
+    predictor.fit(
+        train_data=oof_matrix,
+        presets="high_quality",
+        time_limit=3600,
+        num_bag_folds=8,
+        num_stack_levels=1,
+        calibrate=True,
+        hyperparameters={
+            "GBM": {},
+            "CAT": {},
+        },
+    )
+    
+    return predictor
+```
+
+### Training Pipeline (Dependency Order)
+
+```
+Phase 1: L0 Training (can parallelize within phase)
+├── Core_5d   ─┐
+├── Core_21d  ─┼── TimeSeriesPredictor (sequential recommended)
+├── Core_63d  ─┤
+├── Core_126d ─┘
+│
+├── Crush_5d, Crush_21d, Crush_63d, Crush_126d   ─┐
+├── China_5d, China_21d, China_63d, China_126d   ─┤
+├── FX_5d, FX_21d, FX_63d, FX_126d               ─┤
+├── Fed_5d, Fed_21d, Fed_63d, Fed_126d           ─┼── TabularPredictor
+├── Tariff_5d, Tariff_21d, Tariff_63d, Tariff_126d ─┤   (can parallelize)
+├── Energy_5d, Energy_21d, Energy_63d, Energy_126d ─┤
+├── Biofuel_5d, Biofuel_21d, Biofuel_63d, Biofuel_126d ─┤
+├── Palm_5d, Palm_21d, Palm_63d, Palm_126d       ─┤
+├── Vol_5d, Vol_21d, Vol_63d, Vol_126d           ─┤
+├── Subs_5d, Subs_21d, Subs_63d, Subs_126d       ─┤
+└── Trump_5d, Trump_21d, Trump_63d, Trump_126d   ─┘
+
+Phase 2: OOF Collection
+└── Join all OOF predictions into meta_inputs_{horizon}d tables
+
+Phase 3: L1 Training (can parallelize)
+├── L1_5d
+├── L1_21d
+├── L1_63d
+└── L1_126d
+
+Phase 4: Deployment
+└── refit_full() on all models → Production artifacts
+```
+
+**Time Estimates (Mac M4 Pro):**
+| Component | Count | Time Each | Total |
+|-----------|-------|-----------|-------|
+| Core (tactical) | 2 | 15 min | 30 min |
+| Core (strategic) | 2 | 70 min | 2.3 hrs |
+| Specialists | 44 | 20 min | 14.7 hrs |
+| Meta-Learners | 4 | 30 min | 2 hrs |
+| **TOTAL** | **52** | | **~19 hrs** |
+
+**Weekly Retraining Schedule:**
+- Saturday 6:00 AM ET → Training begins
+- Saturday 8:30 AM ET → Core models complete
+- Sunday 2:00 AM ET → Specialists complete  
+- Sunday 4:00 AM ET → Meta-learners complete
+- Sunday 5:00 AM ET → Validation & deployment
+- Sunday 6:00 AM ET → Production forecasts available
+
+### Hardware Requirements
+
+**Mac M4 Pro (Primary Development Machine):**
+
+| Resource | Requirement | Notes |
+|----------|-------------|-------|
+| RAM | 16 GB minimum | 32 GB recommended for parallel training |
+| CPU | M4 Pro (12 cores) | All Chronos-2 runs on CPU (MPS not supported) |
+| Storage | 50 GB free | Model artifacts + data |
+| Time | ~19 hours | Full pipeline, sequential |
+
+**Optimization Strategies:**
+- Parallelize specialists (4 at a time with 16GB RAM)
+- Run overnight (Saturday 6AM ET start → Sunday completion)
+- Cloud GPU for strategic Core models if budget allows
+
+**Device Configuration:**
+- ❌ **DO NOT use MPS (Apple Silicon GPU)** - Chronos-2 not supported
+- ✅ Use `device="cpu"` for all TimeSeriesPredictor models
+- ✅ Use default device for TabularPredictor (automatic)
+
+### CORE = The Oracle (Kitchen Sink) [DEPRECATED CONCEPT]
+
+**⚠️ The concept below is replaced by horizon-aligned architecture. Each horizon now gets its own Core model.**
 - Receives **ALL** data from all sources
 - AutoGluon 1.5 does its own feature selection
 - Produces the authoritative ZL forecast
@@ -402,7 +777,146 @@ MILITARY_ACTION (NEW - Venezuela 2026)
 
 ---
 
-## 6. DOWNLOADED DATA (Jan 4, 2026)
+## 6. DATABASE SCHEMAS FOR 52-MODEL ARCHITECTURE
+
+### OOF Tables (48 total: 4 Core + 44 Specialists)
+
+**Pattern:** One table per model per horizon
+
+```sql
+-- Core OOF Tables (4 total)
+CREATE TABLE training.oof_core_5d_1d (
+    date DATE PRIMARY KEY,
+    core_p10 FLOAT,
+    core_p50 FLOAT,
+    core_p90 FLOAT,
+    target_5d FLOAT,  -- Actual ZL price at t+5
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE training.oof_core_21d_1d (
+    date DATE PRIMARY KEY,
+    core_p10 FLOAT,
+    core_p50 FLOAT,
+    core_p90 FLOAT,
+    target_21d FLOAT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ... similar for 63d, 126d
+
+-- Specialist OOF Tables (44 total: 11 specialists × 4 horizons)
+CREATE TABLE training.oof_crush_5d_1d (
+    date DATE PRIMARY KEY,
+    crush_p10 FLOAT,
+    crush_p50 FLOAT,
+    crush_p90 FLOAT,
+    target_5d FLOAT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE training.oof_china_5d_1d (
+    date DATE PRIMARY KEY,
+    china_p10 FLOAT,
+    china_p50 FLOAT,
+    china_p90 FLOAT,
+    target_5d FLOAT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ... repeat for all 11 specialists × 4 horizons
+```
+
+### Meta Input Tables (4 total: one per horizon)
+
+**Joined OOF for L1 training:**
+
+```sql
+-- Meta input table for 5d horizon
+CREATE TABLE training.meta_inputs_5d_1d (
+    date DATE PRIMARY KEY,
+    -- Core OOF (3 cols)
+    core_p10 FLOAT, core_p50 FLOAT, core_p90 FLOAT,
+    -- Specialist OOF (11 × 3 = 33 columns)
+    crush_p10 FLOAT, crush_p50 FLOAT, crush_p90 FLOAT,
+    china_p10 FLOAT, china_p50 FLOAT, china_p90 FLOAT,
+    fx_p10 FLOAT, fx_p50 FLOAT, fx_p90 FLOAT,
+    fed_p10 FLOAT, fed_p50 FLOAT, fed_p90 FLOAT,
+    tariff_p10 FLOAT, tariff_p50 FLOAT, tariff_p90 FLOAT,
+    energy_p10 FLOAT, energy_p50 FLOAT, energy_p90 FLOAT,
+    biofuel_p10 FLOAT, biofuel_p50 FLOAT, biofuel_p90 FLOAT,
+    palm_p10 FLOAT, palm_p50 FLOAT, palm_p90 FLOAT,
+    vol_p10 FLOAT, vol_p50 FLOAT, vol_p90 FLOAT,
+    subs_p10 FLOAT, subs_p50 FLOAT, subs_p90 FLOAT,
+    trump_p10 FLOAT, trump_p50 FLOAT, trump_p90 FLOAT,
+    -- Regime features (3 cols)
+    regime_vix FLOAT, regime_dxy FLOAT, regime_term FLOAT,
+    -- Calendar features (3 cols)
+    is_wasde_week BOOLEAN, is_fomc_week BOOLEAN, is_expiry BOOLEAN,
+    -- Target
+    target_5d FLOAT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ... repeat for 21d, 63d, 126d
+```
+
+### Production Forecast Tables (4 total)
+
+```sql
+CREATE TABLE forecasts.production_5d_1d (
+    forecast_date DATE,
+    as_of_date DATE,
+    p10 FLOAT,
+    p50 FLOAT,
+    p90 FLOAT,
+    model_version VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (forecast_date, as_of_date)
+);
+
+CREATE TABLE forecasts.production_21d_1d (
+    forecast_date DATE,
+    as_of_date DATE,
+    p10 FLOAT,
+    p50 FLOAT,
+    p90 FLOAT,
+    model_version VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (forecast_date, as_of_date)
+);
+
+-- ... similar for 63d, 126d
+```
+
+### Validation Checklist
+
+**Pre-Training:**
+- [ ] All 4 Core models configured with matching prediction_length
+- [ ] All 44 Specialists configured with matching target horizon
+- [ ] problem_type="quantile" on ALL models (Core, Specialists, Meta)
+- [ ] quantile_levels=[0.10, 0.50, 0.90] consistent everywhere
+- [ ] device="cpu" for Chronos-2 (MPS not supported)
+- [ ] OOF tables created for all 48 L0 models
+- [ ] Meta input tables created for all 4 horizons
+
+**Post-Training:**
+- [ ] OOF predictions extracted from all L0 models
+- [ ] All OOF columns predict correct horizon target
+- [ ] Meta input matrices joined correctly
+- [ ] L1 models trained on aligned OOF data
+- [ ] Pinball loss metrics logged
+- [ ] Conformal calibration produces 90% coverage
+
+**Deployment:**
+- [ ] refit_full() called on all 52 models
+- [ ] Production artifacts saved to model registry
+- [ ] Forecasts generated for all 4 horizons
+- [ ] Dashboard updated with new predictions
+
+---
+
+## 7. DOWNLOADED DATA (Jan 4, 2026)
 
 ### Ready for Ingestion
 
@@ -916,16 +1430,41 @@ SANCTIONS, EXPORT_CONTROLS, TRADE_DEAL, EXECUTIVE_ACTION, TWEET_THREAT
 
 ## 13. PIPELINE STATE (L0 → L3)
 
-### Current State
-| Layer | Status | Blocker |
-|-------|--------|---------|
-| L0: Core OOF | ✅ Populated | - |
-| L0: Specialist OOF | ❌ Not generated | Specialists have data, no OOF tables |
-| L1: Meta-learner | ❌ Can't train | Waiting on specialist OOFs |
-| L2: Fusion | ❌ Waiting | Needs L1 |
-| L3: Monte Carlo | ❌ Waiting | Needs L2 |
+### Current State (52-Model Architecture)
 
-### Specialist Table Status (training schema)
+| Layer | Models Required | Status | Blocker |
+|-------|-----------------|--------|---------|
+| L0: Core (4 horizons) | 4 | ⚠️ Partial | Need horizon-aligned retraining |
+| L0: Specialists (11 × 4) | 44 | ❌ Not generated | Need horizon-aligned OOF tables |
+| L1: Meta-learners | 4 | ❌ Can't train | Waiting on all 48 L0 OOFs |
+| L2: Post-Model Intelligence | 4 | ❌ Waiting | Needs L1 |
+| L3: Risk Engine | 4 | ❌ Waiting | Needs L2 |
+
+**CRITICAL:** Previous architecture (single Core @ 126d) is invalid. All 52 models must be retrained with horizon alignment.
+
+### OOF Table Requirements (48 tables)
+
+**Core OOF Tables (4 tables):**
+- [ ] training.oof_core_5d_1d
+- [ ] training.oof_core_21d_1d
+- [ ] training.oof_core_63d_1d
+- [ ] training.oof_core_126d_1d
+
+**Specialist OOF Tables (44 tables = 11 specialists × 4 horizons):**
+
+For each specialist (crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes, trump):
+- [ ] training.oof_{specialist}_5d_1d
+- [ ] training.oof_{specialist}_21d_1d
+- [ ] training.oof_{specialist}_63d_1d
+- [ ] training.oof_{specialist}_126d_1d
+
+**Meta Input Tables (4 tables):**
+- [ ] training.meta_inputs_5d_1d
+- [ ] training.meta_inputs_21d_1d
+- [ ] training.meta_inputs_63d_1d
+- [ ] training.meta_inputs_126d_1d
+
+### Specialist Feature Status (training schema)
 | Specialist | OHLCV Data | OOF Generated | Dashboard Ready |
 |------------|------------|---------------|-----------------|
 | crush | ✅ 23,487 rows | ❌ | ❌ |
@@ -940,27 +1479,40 @@ SANCTIONS, EXPORT_CONTROLS, TRADE_DEAL, EXECUTIVE_ACTION, TWEET_THREAT
 | volatility | ✅ 35,088 rows | ❌ | ❌ |
 | **trump_effect** | ❌ **0 rows** | ❌ | ❌ |
 
-### The Path Forward
-1. **Fix trump_effect data** (empty table)
-2. **Generate Specialist OOFs** (all 11)
-3. **Train L1 Meta-learner**
-4. **Build L2 Fusion with regime detection**
-5. **Implement L3 Monte Carlo**
-6. **Dashboard integration**
+### The Path Forward (52-Model Architecture)
+
+1. **Create OOF table schemas** (48 tables: 4 Core + 44 Specialists)
+2. **Retrain Core models** (4 models, one per horizon with matching prediction_length)
+3. **Train Specialists** (44 models: 11 specialists × 4 horizons)
+4. **Extract OOF predictions** (All 48 L0 models)
+5. **Build meta input matrices** (4 tables with 42 features each)
+6. **Train L1 Meta-learners** (4 models)
+7. **Implement L2 Post-Model Intelligence** (conformal calibration, regime gates)
+8. **Build L3 Risk Engine** (Monte Carlo simulation)
+9. **Dashboard integration** (All 4 horizons)
 
 ---
 
-## 14. NEXT STEPS
+## 14. NEXT STEPS (Updated for 52-Model Architecture)
 
+**CRITICAL PRIORITY: Architecture Migration**
+1. ☐ **Create database schemas for 52-model architecture** (48 OOF + 4 meta input + 4 production tables)
+2. ☐ **Implement Core training scripts** (4 scripts, one per horizon)
+3. ☐ **Implement Specialist training scripts** (11 × 4 = 44 training runs)
+4. ☐ **Implement L1 meta-learner training** (4 scripts)
+5. ☐ **Validate horizon alignment** (ensure all OOF predictions match target horizons)
+
+**Data Quality Improvements:**
+6. ☐ **Populate trump_effect specialist table** (currently 0 rows)
+7. ☐ **Create WASDE backfill ingestion script** (20 years missing)
+8. ☐ **Ingest Brazil INMET weather data** (downloaded, not ingested)
+9. ☐ **Implement position change velocity features** (CFTC derivatives)
+
+**Previous Milestones (Completed):**
 1. ☑ Examined feature engineering code (COMPLETE)
 2. ☑ Mapped specialist bucket → feature module relationships (COMPLETE)
 3. ☑ Documented Core + Specialist architecture (COMPLETE)
-4. ☐ **Populate trump_effect specialist table** (PRIORITY)
-5. ☐ **Generate Specialist OOFs for all 11 Specialists**
-6. ☐ **Create WASDE backfill ingestion script**
-7. ☐ **Ingest Brazil INMET weather data**
-8. ☐ **Implement position change velocity features**
-9. ☐ **Train L1 Meta-learner on combined OOFs**
+4. ☑ **DISCOVERED AND CORRECTED CRITICAL ARCHITECTURE FLAW** (Jan 13, 2026)
 
 ---
 

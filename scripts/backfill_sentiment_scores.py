@@ -2,12 +2,11 @@
 """
 ZINC-FUSION Sentiment Scoring Backfill
 ======================================
-Scores all news articles and populates silver/training layers.
+Scores all news articles and populates `silver.news_scored_1d`.
 
 Fixes:
 1. sentiment_score column (100% NULL → scored)
-2. training.specialist_trump_effect_1d (empty → populated)
-3. China bucket contamination (adds is_zl_relevant filter)
+2. China bucket contamination (adds is_zl_relevant filter)
 
 Run: python scripts/backfill_sentiment_scores.py
 """
@@ -129,10 +128,10 @@ def is_zl_relevant(title: str, content: str) -> bool:
     relevant_count = sum(1 for kw in ZL_RELEVANT_KEYWORDS if kw in text)
     return relevant_count >= 1
 
-def get_canonical_bucket(raw_bucket: str) -> str:
+def get_canonical_bucket(raw_bucket: str) -> Optional[str]:
     """Map raw bucket to canonical Big-11."""
     if not raw_bucket:
-        return "crush"  # Default
+        return None
     
     raw_lower = raw_bucket.lower().strip()
     
@@ -145,107 +144,34 @@ def get_canonical_bucket(raw_bucket: str) -> str:
         if key.lower() in raw_lower or raw_lower in key.lower():
             return canonical
     
-    return "crush"  # Default fallback
-
-# =============================================================================
-# SCHEMA CREATION
-# =============================================================================
-
-SILVER_NEWS_SCHEMA = """
-CREATE TABLE IF NOT EXISTS silver.news_scored_1d (
-    id SERIAL PRIMARY KEY,
-    raw_id INTEGER REFERENCES raw.news_articles_1d(id),
-    published_at TIMESTAMP,
-    
-    -- Original and normalized buckets
-    raw_bucket VARCHAR(100),
-    canonical_bucket VARCHAR(50),
-    
-    -- Sentiment scores
-    sentiment_score DECIMAL(6,4),  -- -1 to +1 overall impact
-    sentiment_direction VARCHAR(20),  -- bullish/bearish/uncertain
-    sentiment_confidence DECIMAL(4,3),  -- 0 to 1
-    
-    -- ZL-specific
-    is_zl_relevant BOOLEAN DEFAULT TRUE,
-    zl_impact_score DECIMAL(6,4),
-    
-    -- Multi-bucket routing (article can affect multiple specialists)
-    affects_crush BOOLEAN DEFAULT FALSE,
-    affects_china BOOLEAN DEFAULT FALSE,
-    affects_fx BOOLEAN DEFAULT FALSE,
-    affects_fed BOOLEAN DEFAULT FALSE,
-    affects_tariff BOOLEAN DEFAULT FALSE,
-    affects_energy BOOLEAN DEFAULT FALSE,
-    affects_biofuel BOOLEAN DEFAULT FALSE,
-    affects_palm BOOLEAN DEFAULT FALSE,
-    affects_volatility BOOLEAN DEFAULT FALSE,
-    affects_substitutes BOOLEAN DEFAULT FALSE,
-    affects_trump_effect BOOLEAN DEFAULT FALSE,
-    
-    -- Dashboard metadata
-    headline VARCHAR(500),
-    source VARCHAR(100),
-    word_count INTEGER,
-    matched_categories JSONB,
-    
-    -- Processing metadata
-    scored_at TIMESTAMP DEFAULT NOW(),
-    scoring_model VARCHAR(50) DEFAULT 'rule-based-v1',
-    
-    UNIQUE(raw_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_silver_news_published ON silver.news_scored_1d(published_at);
-CREATE INDEX IF NOT EXISTS idx_silver_news_canonical ON silver.news_scored_1d(canonical_bucket);
-CREATE INDEX IF NOT EXISTS idx_silver_news_trump ON silver.news_scored_1d(affects_trump_effect) WHERE affects_trump_effect = TRUE;
-"""
-
-TRUMP_EFFECT_SCHEMA = """
-CREATE TABLE IF NOT EXISTS training.specialist_trump_effect_1d (
-    id SERIAL PRIMARY KEY,
-    as_of_date DATE NOT NULL,
-    
-    -- Daily aggregates
-    article_count INTEGER DEFAULT 0,
-    bullish_count INTEGER DEFAULT 0,
-    bearish_count INTEGER DEFAULT 0,
-    uncertain_count INTEGER DEFAULT 0,
-    
-    -- Sentiment metrics
-    avg_sentiment DECIMAL(6,4),
-    max_sentiment DECIMAL(6,4),
-    min_sentiment DECIMAL(6,4),
-    sentiment_std DECIMAL(6,4),
-    
-    -- Derived features
-    sentiment_7d_ma DECIMAL(6,4),
-    sentiment_momentum DECIMAL(6,4),  -- today vs 7d avg
-    
-    -- Metadata
-    updated_at TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(as_of_date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_trump_effect_date ON training.specialist_trump_effect_1d(as_of_date);
-"""
+    return None
 
 # =============================================================================
 # MAIN PROCESSING
 # =============================================================================
 
 def create_schemas(conn):
-    """Create silver and training tables if not exist."""
+    """Verify required tables exist (no implicit DDL)."""
+    required_tables = [
+        ("silver", "news_scored_1d"),
+        ("raw", "news_articles_1d"),
+    ]
+
     with conn.cursor() as cur:
-        logger.info("Creating silver.news_scored_1d...")
-        cur.execute(SILVER_NEWS_SCHEMA)
-        
-        logger.info("Creating training.specialist_trump_effect_1d...")
-        cur.execute(TRUMP_EFFECT_SCHEMA)
-        
-        conn.commit()
-    logger.info("Schemas created successfully")
+        for schema, table in required_tables:
+            cur.execute(
+                """
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = %s AND table_name = %s
+                """,
+                (schema, table),
+            )
+            if not cur.fetchone():
+                raise SystemExit(
+                    f"Missing required table: {schema}.{table}. "
+                    "Schema creation is blocked by policy; create via Prisma/migration with explicit approval."
+                )
 
 def fetch_all_articles(conn) -> List[Dict]:
     """Fetch all articles from raw layer."""
@@ -291,7 +217,8 @@ def score_article(article: Dict) -> Dict:
     }
     
     # Primary bucket
-    affects[canonical] = True
+    if canonical and canonical in affects:
+        affects[canonical] = True
     
     # Check for trump_effect
     if article.get("is_trump_related") or "trump" in f"{title} {body}".lower():
@@ -301,8 +228,15 @@ def score_article(article: Dict) -> Dict:
     for match in result.get("matches", []):
         bucket = match.get("alert_bucket", "")
         mapped = get_canonical_bucket(bucket)
-        if mapped in affects:
+        if mapped and mapped in affects:
             affects[mapped] = True
+    
+    convictions = [
+        float(match.get("conviction"))
+        for match in result.get("matches", [])
+        if match.get("conviction") is not None
+    ]
+    sentiment_confidence = max(convictions) if convictions else None
     
     return {
         "raw_id": article["id"],
@@ -311,9 +245,9 @@ def score_article(article: Dict) -> Dict:
         "canonical_bucket": canonical,
         "sentiment_score": result.get("impact_score", 0),
         "sentiment_direction": result.get("overall_direction", "uncertain"),
-        "sentiment_confidence": 0.5,  # Rule-based default
+        "sentiment_confidence": sentiment_confidence,
         "is_zl_relevant": zl_relevant,
-        "zl_impact_score": result.get("impact_score", 0) if zl_relevant else 0,
+        "zl_impact_score": result.get("impact_score", 0) if zl_relevant else None,
         "affects_crush": affects["crush"],
         "affects_china": affects["china"],
         "affects_fx": affects["fx"],
@@ -369,68 +303,11 @@ def insert_scored_articles(conn, scored: List[Dict]):
     conn.commit()
 
 def populate_trump_effect_training(conn):
-    """Aggregate trump_effect articles into training features."""
-    logger.info("Populating training.specialist_trump_effect_1d...")
-    
-    with conn.cursor() as cur:
-        # Aggregate daily from silver layer
-        cur.execute("""
-            INSERT INTO training.specialist_trump_effect_1d (
-                as_of_date, article_count, bullish_count, bearish_count, uncertain_count,
-                avg_sentiment, max_sentiment, min_sentiment, sentiment_std
-            )
-            SELECT 
-                DATE(published_at) as as_of_date,
-                COUNT(*) as article_count,
-                COUNT(*) FILTER (WHERE sentiment_direction = 'bullish') as bullish_count,
-                COUNT(*) FILTER (WHERE sentiment_direction = 'bearish') as bearish_count,
-                COUNT(*) FILTER (WHERE sentiment_direction = 'uncertain') as uncertain_count,
-                AVG(sentiment_score) as avg_sentiment,
-                MAX(sentiment_score) as max_sentiment,
-                MIN(sentiment_score) as min_sentiment,
-                STDDEV(sentiment_score) as sentiment_std
-            FROM silver.news_scored_1d
-            WHERE affects_trump_effect = TRUE
-              AND is_zl_relevant = TRUE
-            GROUP BY DATE(published_at)
-            ON CONFLICT (as_of_date) DO UPDATE SET
-                article_count = EXCLUDED.article_count,
-                bullish_count = EXCLUDED.bullish_count,
-                bearish_count = EXCLUDED.bearish_count,
-                uncertain_count = EXCLUDED.uncertain_count,
-                avg_sentiment = EXCLUDED.avg_sentiment,
-                max_sentiment = EXCLUDED.max_sentiment,
-                min_sentiment = EXCLUDED.min_sentiment,
-                sentiment_std = EXCLUDED.sentiment_std,
-                updated_at = NOW()
-        """)
-        
-        # Calculate 7-day moving averages
-        cur.execute("""
-            UPDATE training.specialist_trump_effect_1d t
-            SET 
-                sentiment_7d_ma = sub.ma_7d,
-                sentiment_momentum = t.avg_sentiment - sub.ma_7d
-            FROM (
-                SELECT 
-                    as_of_date,
-                    AVG(avg_sentiment) OVER (
-                        ORDER BY as_of_date 
-                        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
-                    ) as ma_7d
-                FROM training.specialist_trump_effect_1d
-            ) sub
-            WHERE t.as_of_date = sub.as_of_date
-        """)
-        
-        conn.commit()
-    
-    # Get count
-    with conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM training.specialist_trump_effect_1d")
-        count = cur.fetchone()[0]
-    
-    logger.info(f"Trump effect training table populated: {count} rows")
+    """Disabled: training.specialist_trump_effect_1d schema is not managed here."""
+    raise SystemExit(
+        "Disabled: this script does not populate training.specialist_trump_effect_1d. "
+        "Use scripts/refresh_trump_effect_features.py or src/fusion/features/trump_effect.py instead."
+    )
 
 def update_raw_sentiment_scores(conn):
     """Backfill sentiment_score column in raw.news_articles_1d."""
@@ -495,10 +372,7 @@ def main():
         insert_scored_articles(conn, scored)
         logger.info(f"Inserted {len(scored)} scored articles")
         
-        # 5. Populate trump_effect training table
-        populate_trump_effect_training(conn)
-        
-        # 6. Backfill raw sentiment scores
+        # 5. Backfill raw sentiment scores
         update_raw_sentiment_scores(conn)
         
         logger.info("=" * 60)

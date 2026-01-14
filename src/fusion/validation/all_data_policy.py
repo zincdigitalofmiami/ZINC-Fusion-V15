@@ -64,15 +64,15 @@ MIN_FEATURES_126D = 600
 REQUIRED_DATA_SOURCES = {
     # Table name -> (min_rows, description, date_column)
     # NOTE: Hourly data removed - all training uses daily data only
-    "market_futures_1d": (100_000, "Daily futures (83 symbols)", "as_of_date"),
-    "fred_observations_1d": (100_000, "FRED economic (long format, 111+ series)", "as_of_date"),
-    "weather_noaa_1d": (500, "NOAA weather (US/Brazil/Argentina)", "as_of_date"),
-    "fx_spot_1d": (10_000, "Spot FX (30 pairs)", "as_of_date"),
-    "cftc_cot_1w": (500, "CFTC COT positioning", "report_date"),
-    "usda_export_sales_1w": (100, "USDA export sales", "report_date"),
-    "usda_wasde_1m": (50, "USDA WASDE", "report_date"),
-    "epa_rin_prices_1d": (50, "EPA RIN prices", "as_of_date"),
-    "news_articles_1d": (50, "News sentiment", "as_of_date"),
+    "market_futures_1d": (100_000, "Daily futures (83 symbols)", "event_date"),
+    "fred_observations_1d": (100_000, "FRED economic (long format, 111+ series)", "event_date"),
+    "weather_noaa_1d": (500, "NOAA weather (US/Brazil/Argentina)", "event_date"),
+    "fx_spot_1d": (10_000, "Spot FX (30 pairs)", "event_date"),
+    "cftc_cot_1w": (500, "CFTC COT positioning", "event_date"),
+    "usda_export_sales_1w": (100, "USDA export sales", "event_date"),
+    "usda_wasde_1m": (50, "USDA WASDE", "event_date"),
+    "epa_rin_prices_1d": (50, "EPA RIN prices", "event_date"),
+    "news_articles_1d": (50, "News sentiment", "event_date"),
 }
 
 # Feature category expectations (for validation)
