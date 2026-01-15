@@ -68,14 +68,8 @@ interface Opportunity {
   oneLiner: string
 }
 
-interface AtRiskCustomer {
-  id: number
-  name: string
-  casino: string
-  daysSinceOrder: number
-  pattern: string
-  oneLiner: string
-}
+// AtRiskCustomer interface removed - no real data to compute at-risk status yet
+// Will be added back when shift/order history data is available from Glide
 
 // =============================================================================
 // Status Colors
@@ -84,7 +78,6 @@ interface AtRiskCustomer {
 const STATUS_COLORS = {
   customer: '#2dd4bf',  // teal
   prospect: '#b91c1c',  // maroon
-  atRisk: '#fbbf24',    // amber
 }
 
 // =============================================================================
@@ -167,22 +160,8 @@ export default function VegasIntelPage() {
     }
   })
 
-  // At-risk: Customers with high capacity but need status verification
-  const atRiskCustomers: AtRiskCustomer[] = restaurants
-    .filter(r => {
-      const hasSchedule = r.service_frequency && r.service_frequency.trim() !== ''
-      // High-value customers (>3 fryers or >200 lbs capacity) to watch
-      return hasSchedule && (r.fryer_count > 3 || (r.total_capacity_lbs && r.total_capacity_lbs > 200))
-    })
-    .slice(0, 3)
-    .map(r => ({
-      id: r.id,
-      name: r.name,
-      casino: r.casino || 'Las Vegas',
-      daysSinceOrder: 0, // Would be computed from shift data when available
-      pattern: r.service_frequency || 'unknown',
-      oneLiner: `${r.fryer_count} fryers (${r.total_capacity_lbs || 0} lbs). ${r.contact_person ? `Contact: ${r.contact_person}` : 'Verify recent orders.'}`,
-    }))
+  // At-risk section removed - requires real shift/order history data to compute
+  // Cannot show "days since order" without actual last_order_date from Glide shifts
 
   // Filter opportunities
   const filteredOpportunities = opportunities.filter(o => {
@@ -284,30 +263,11 @@ export default function VegasIntelPage() {
       </div>
 
       {/* ================================================================
-          SECTION 3: AT RISK
+          SECTION 3: AT RISK - Disabled until shift/order data available
           ================================================================ */}
-      <div>
-        <h2 style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          opacity: 0.6,
-          marginBottom: '16px'
-        }}>
-          AT RISK ({atRiskCustomers.length})
-        </h2>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {atRiskCustomers.length === 0 ? (
-            <EmptyRow message="No at-risk customers detected" />
-          ) : (
-            atRiskCustomers.map((customer) => (
-              <AtRiskRow key={customer.id} customer={customer} />
-            ))
-          )}
-        </div>
-      </div>
+      {/* At-risk detection requires last_order_date from Glide shifts
+          to calculate days since order and detect churn patterns.
+          Will be enabled when shift data linkage is complete. */}
 
     </div>
   )
@@ -528,95 +488,9 @@ function OpportunityRow({ opportunity, selectedEvent }: { opportunity: Opportuni
 }
 
 // =============================================================================
-// AT RISK ROW
+// AT RISK ROW - Disabled until shift/order data available
 // =============================================================================
-
-function AtRiskRow({ customer }: { customer: AtRiskCustomer }) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'stretch',
-      background: 'rgba(255, 255, 255, 0.02)',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '0px',
-      transition: 'all 0.2s ease',
-      overflow: 'hidden',
-    }}>
-      {/* Left Accent Bar (amber) */}
-      <div style={{
-        width: '4px',
-        background: STATUS_COLORS.atRisk,
-        flexShrink: 0,
-      }} />
-
-      {/* Content */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        padding: '20px 24px',
-        flex: 1,
-      }}>
-
-      {/* Main Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '6px'
-        }}>
-          <span style={{ fontSize: '15px', fontWeight: 600 }}>
-            {customer.casino} - {customer.name}
-          </span>
-          <span style={{
-            fontSize: '10px',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            padding: '2px 8px',
-            background: 'rgba(251, 191, 36, 0.2)',
-            color: '#fbbf24',
-            borderRadius: '2px',
-          }}>
-            CHECK STATUS
-          </span>
-        </div>
-        <div style={{
-          fontSize: '12px',
-          opacity: 0.5,
-          marginBottom: '8px'
-        }}>
-          Schedule: {customer.pattern}
-        </div>
-        <div style={{
-          fontSize: '13px',
-          opacity: 0.7,
-          fontStyle: 'italic'
-        }}>
-          "{customer.oneLiner}"
-        </div>
-      </div>
-
-      {/* Intel Button */}
-      <button style={{
-        padding: '8px 16px',
-        fontSize: '12px',
-        fontWeight: 600,
-        background: 'transparent',
-        border: '1px solid rgba(255,255,255,0.2)',
-        borderRadius: '2px',
-        color: 'rgba(255,255,255,0.8)',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        flexShrink: 0,
-      }}>
-        Intel
-      </button>
-      </div>
-    </div>
-  )
-}
+// AtRiskRow component removed - requires real last_order_date data to function
 
 // =============================================================================
 // UTILITY COMPONENTS
