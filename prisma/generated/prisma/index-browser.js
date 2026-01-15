@@ -2029,6 +2029,165 @@ exports.Prisma.Probability_distributionsScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.VegasRestaurantScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasCasinoScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasFryerScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasExportListScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasScheduledReportScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftCasinoScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasShiftRestaurantScalarFieldEnum = {
+  id: 'id',
+  glideRowId: 'glideRowId',
+  data: 'data',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.VegasEventScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  name: 'name',
+  eventType: 'eventType',
+  venue: 'venue',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  attendance: 'attendance',
+  attendanceMin: 'attendanceMin',
+  attendanceMax: 'attendanceMax',
+  source: 'source',
+  sourceUrl: 'sourceUrl',
+  rawPayload: 'rawPayload',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VegasEventProfileScalarFieldEnum = {
+  id: 'id',
+  eventType: 'eventType',
+  displayName: 'displayName',
+  primaryDemo: 'primaryDemo',
+  psychographic: 'psychographic',
+  cuisineAffinity: 'cuisineAffinity',
+  avgSpendTier: 'avgSpendTier',
+  peakDiningHours: 'peakDiningHours',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VegasCasinoProfileScalarFieldEnum = {
+  id: 'id',
+  casinoName: 'casinoName',
+  vibe: 'vibe',
+  pullFactor: 'pullFactor',
+  targetDemo: 'targetDemo',
+  tier: 'tier',
+  corridor: 'corridor',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VegasCuisineMatchScalarFieldEnum = {
+  id: 'id',
+  eventType: 'eventType',
+  cuisineType: 'cuisineType',
+  affinityScore: 'affinityScore',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VegasIntelSheetScalarFieldEnum = {
+  id: 'id',
+  sheetId: 'sheetId',
+  restaurantId: 'restaurantId',
+  eventId: 'eventId',
+  sheetType: 'sheetType',
+  headline: 'headline',
+  content: 'content',
+  shareableUrl: 'shareableUrl',
+  pdfUrl: 'pdfUrl',
+  viewCount: 'viewCount',
+  lastViewedAt: 'lastViewedAt',
+  sentAt: 'sentAt',
+  sentTo: 'sentTo',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VegasCustomerScoreScalarFieldEnum = {
+  id: 'id',
+  restaurantId: 'restaurantId',
+  casinoId: 'casinoId',
+  isCustomer: 'isCustomer',
+  priorityScore: 'priorityScore',
+  atRiskScore: 'atRiskScore',
+  daysSinceOrder: 'daysSinceOrder',
+  orderPattern: 'orderPattern',
+  volumeTrend: 'volumeTrend',
+  lastOrderDate: 'lastOrderDate',
+  avgOrderValue: 'avgOrderValue',
+  fryerCount: 'fryerCount',
+  eventImpactScore: 'eventImpactScore',
+  oneLiner: 'oneLiner',
+  computedAt: 'computedAt'
+};
+
+exports.Prisma.VegasActivityLogScalarFieldEnum = {
+  id: 'id',
+  activityType: 'activityType',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  userId: 'userId',
+  details: 'details',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2166,7 +2325,22 @@ exports.Prisma.ModelName = {
   garch_forecasts: 'garch_forecasts',
   horizon_reconciliation_1d: 'horizon_reconciliation_1d',
   monte_carlo_runs: 'monte_carlo_runs',
-  probability_distributions: 'probability_distributions'
+  probability_distributions: 'probability_distributions',
+  VegasRestaurant: 'VegasRestaurant',
+  VegasCasino: 'VegasCasino',
+  VegasFryer: 'VegasFryer',
+  VegasExportList: 'VegasExportList',
+  VegasScheduledReport: 'VegasScheduledReport',
+  VegasShift: 'VegasShift',
+  VegasShiftCasino: 'VegasShiftCasino',
+  VegasShiftRestaurant: 'VegasShiftRestaurant',
+  VegasEvent: 'VegasEvent',
+  VegasEventProfile: 'VegasEventProfile',
+  VegasCasinoProfile: 'VegasCasinoProfile',
+  VegasCuisineMatch: 'VegasCuisineMatch',
+  VegasIntelSheet: 'VegasIntelSheet',
+  VegasCustomerScore: 'VegasCustomerScore',
+  VegasActivityLog: 'VegasActivityLog'
 };
 
 /**

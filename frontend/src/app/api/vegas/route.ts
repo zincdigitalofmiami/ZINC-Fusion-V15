@@ -29,12 +29,15 @@ interface VegasStats {
 
 interface VegasRestaurant {
   id: number
+  glide_row_id: string
   name: string
-  location: string
-  category: string
-  current_oil_lbs: number | null
-  delivery_day: string
-  fryers: number | null
+  casino: string
+  contact_person: string | null
+  service_frequency: string | null
+  oil_type: string | null
+  status: string | null
+  fryer_count: number
+  total_capacity_lbs: number | null
   data: Record<string, unknown>
 }
 
@@ -76,6 +79,8 @@ export async function GET(request: Request) {
         return await getFryers()
       case 'customers':
         return await getCustomers()
+      case 'events':
+        return await getEvents()
       case 'all':
         return await getAllData()
       default:
@@ -93,6 +98,75 @@ export async function GET(request: Request) {
 // =============================================================================
 // Data Fetchers
 // =============================================================================
+
+interface VegasEventRow {
+  event_id: string
+  name: string
+  event_type: string | null
+  venue: string | null
+  start_date: string
+  end_date: string | null
+  attendance: number | null
+  attendance_min: number | null
+  attendance_max: number | null
+  days_until: number
+}
+
+async function getEvents(): Promise<NextResponse> {
+  try {
+    // Get upcoming events ordered by start date
+    const results = await query<VegasEventRow>(`
+      SELECT
+        event_id,
+        name,
+        event_type,
+        venue,
+        start_date::text,
+        end_date::text,
+        attendance,
+        attendance_min,
+        attendance_max,
+        (start_date - CURRENT_DATE)::int as days_until
+      FROM ops.vegas_events
+      WHERE is_active = true
+        AND start_date >= CURRENT_DATE
+      ORDER BY start_date ASC
+      LIMIT 50
+    `)
+
+    // Assign colors based on event type
+    const getEventColor = (eventType: string | null): string => {
+      switch (eventType) {
+        case 'CONVENTION_TECH': return '#2962FF'  // blue
+        case 'UFC': return '#4ade80'              // green
+        case 'F1': return '#ff6b35'               // orange
+        case 'EDM_FESTIVAL': return '#a855f7'     // purple
+        case 'TRADE_SHOW': return '#14b8a6'       // teal
+        case 'SPORTS': return '#22c55e'           // green
+        default: return '#6b7280'                 // gray
+      }
+    }
+
+    const events = results.map(e => ({
+      id: e.event_id,
+      name: e.name,
+      eventType: e.event_type,
+      venue: e.venue,
+      attendance: e.attendance || e.attendance_min || 0,
+      attendanceMin: e.attendance_min,
+      attendanceMax: e.attendance_max,
+      startDate: e.start_date,
+      endDate: e.end_date,
+      daysUntil: e.days_until,
+      color: getEventColor(e.event_type)
+    }))
+
+    return NextResponse.json({ events, count: events.length })
+  } catch (error) {
+    console.error('getEvents error:', error)
+    return NextResponse.json({ events: [], count: 0 })
+  }
+}
 
 async function getStats(): Promise<NextResponse> {
   try {
@@ -172,17 +246,20 @@ async function getRestaurants(): Promise<NextResponse> {
     const results = await query<VegasRestaurant>(`
       SELECT
         r.id,
+        r.glide_row_id,
         COALESCE(r.data->>'${restaurantFields.name}', r.data->>'Name', 'Unknown') as name,
-        COALESCE(c.data->>'Name', 'Las Vegas') as location,
-        'Restaurant' as category,
-        NULL as current_oil_lbs,
-        COALESCE(r.data->>'${restaurantFields.scheduleParameters}', '') as delivery_day,
-        COUNT(f.id)::int as fryers,
+        COALESCE(c.data->>'Name', 'Las Vegas') as casino,
+        r.data->>'${restaurantFields.primaryContactName}' as contact_person,
+        r.data->>'${restaurantFields.scheduleParameters}' as service_frequency,
+        r.data->>'${restaurantFields.oilType}' as oil_type,
+        r.data->>'${restaurantFields.status}' as status,
+        COUNT(f.id)::int as fryer_count,
+        SUM((f.data->>'${fryerFields.capacity}')::numeric)::int as total_capacity_lbs,
         r.data
       FROM ops.vegas_restaurants r
       LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
       LEFT JOIN ops.vegas_fryers f ON f.data->>'${fryerFields.restaurantId}' = r.glide_row_id
-      GROUP BY r.id, r.data, c.data->>'Name'
+      GROUP BY r.id, r.glide_row_id, r.data, c.data->>'Name'
       ORDER BY name
       LIMIT 200
     `)
