@@ -34,9 +34,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="hero-visual" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="hero-visual">
             <NeuralSphere 
-              size={450} 
+              size={900} 
               color="#2962ff" 
               particleColor="#ffffff"
               wireframeOpacity={0.12}

@@ -965,6 +965,7 @@ html, body {
   position: relative;
   background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   padding-top: 128px;
+  overflow: hidden;
 }
 
 .hero-container {
@@ -975,9 +976,11 @@ html, body {
   grid-template-columns: 1fr 1fr;
   gap: 80px;
   align-items: center;
+  position: relative;
 }
 
 .hero-content {
+  position: relative;
   z-index: 2;
 }
 
@@ -1614,11 +1617,15 @@ html, body {
    ========================================================================== */
 
 .hero-visual {
-  position: relative;
-  height: 600px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .data-cube {

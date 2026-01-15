@@ -19,6 +19,14 @@ mlruns/
 # Data directories (generated at runtime)
 data/
 
+# Internal Vegas Intel assets (local only)
+Docs/Vegas Intel*
+scripts/cluster/
+scripts/load_predicthq_events.mjs
+scripts/load_predicthq_full.mjs
+frontend/src/components/viz/NeuralSphere.tsx.DISABLED
+frontend/src/components/viz/NeuralSphere.tsx.REMOVED
+
 # Generated documentation
 *.docx
 *.pdf
