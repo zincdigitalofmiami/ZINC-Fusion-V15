@@ -1,5 +1,5 @@
 # ZINC-FUSION-V15: Pre-Training Readiness Audit (SoT v2)
-- Generated at: 2026-01-15T03:35:37.436547+00:00
+- Generated at: 2026-01-15T05:31:42.374004+00:00
 - Today (local): 2026-01-14
 
 ## Metadata Coverage
@@ -12,10 +12,10 @@
 - Market futures (1d): 432,152 rows | 1968-12-05 → 2026-01-09 | stale=5d
 - FRED observations (1d): 513,587 rows | 1866-12-31 → 2026-12-31 | stale=-351d (future-dated)
 - FX spot (1d): 59,168 rows | 1971-01-04 → 2026-01-09 | stale=5d
-- CFTC COT (1w): 18,372 rows | 2006-06-13 → 2025-12-30 | stale=15d
+- CFTC COT (1w): 18,381 rows | 2006-06-13 → 2026-01-06 | stale=8d
 - NOAA weather (1d): 220,976 rows | 2005-01-01 → 2026-01-14 | stale=0d
-- USDA export sales (1w): 9,712 rows | 1998-12-17 → 2025-12-25 | stale=20d
-- USDA WASDE (1m): 12,548 rows | 1964-01-01 → 2025-12-12 | stale=33d
+- USDA export sales (1w): 9,732 rows | 1998-12-17 → 2026-01-01 | stale=13d
+- USDA WASDE (1m): 12,608 rows | 1964-01-01 → 2026-01-12 | stale=2d
 - EPA RIN prices (1d): 208 rows | 2024-12-23 → 2025-12-15 | stale=30d
 - News (event): 3,218 rows | 2017-05-08 → 2026-01-14 | stale=0d
 - White House actions (event): 41 rows | 2025-09-01 → 2026-01-13 | stale=1d
@@ -77,7 +77,6 @@
 - Pre-training ready: NO
 
 ### Blockers
-- raw.usda_wasde_1m stale 33d (>31d)
 - raw.epa_rin_prices_1d stale 30d (>28d)
 - training.core_matrix_1d is empty (cannot train L0 core)
 - training.specialist_crush_1d missing targets: target_126d, target_21d, target_5d, target_63d

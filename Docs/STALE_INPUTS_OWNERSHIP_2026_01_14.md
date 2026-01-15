@@ -29,19 +29,17 @@ Tables verified:
 |------|------:|--------------------------|--------|
 | `raw.fx_spot_1d` | ~5d | `frontend/src/inngest/fx-spot-daily.ts` | ✅ Inngest-owned (via FRED API); insert-only idempotent |
 | `raw.weather_noaa_1d` | ~0d | `frontend/src/inngest/openmeteo-weather-daily.ts` + `frontend/src/inngest/noaa-weather-daily.ts` | ✅ Inngest-owned (Open-Meteo for `OM_*` + `OPENMETEO:*`; NOAA CDO for `GHCND:*`) |
-| `raw.usda_wasde_1m` | ~33d | ❌ none for ongoing updates | `scripts/ingest_wasde_backfill.py` exists (backfill-only); **`www.usda.gov` is non-responsive from our runtime**, so an alternate stable host/source is required for automation |
-| `raw.epa_rin_prices_1d` | ~30d | ❌ none found | EPA “RIN Trades and Price Information” is embedded in **Qlik** (`edap.epa.gov`) with iframe sheets; extraction requires a dedicated Qlik exporter (no simple HTML table/CSV link) |
+| `raw.usda_wasde_1m` | ~2d | `frontend/src/inngest/usda-wasde-monthly.ts` | ✅ Inngest-owned (Cornell WASDE XML mirror); insert-only idempotent |
+| `raw.epa_rin_prices_1d` | ~30d | `frontend/src/inngest/epa-rin-prices-daily.ts` | ✅ Inngest-owned (EPA Qlik JSON-RPC over WebSocket); insert-only idempotent |
 
 ### Warnings (still important for “ALL DATA” policy)
 
 | Table | Stale | Ingestion owner in repo | Status |
 |------|------:|--------------------------|--------|
-| `raw.cftc_cot_1w` | ~15d | `frontend/src/inngest/cftc-weekly.ts` | ✅ Bronze-compliant (no `ON CONFLICT`; row_hash + existence checks) |
-| `raw.usda_export_sales_1w` | ~20d | `frontend/src/inngest/usda-export-sales-weekly.ts` | ✅ Inngest-owned (FAS report parser); insert-only idempotent |
+| `raw.cftc_cot_1w` | ~8d | `frontend/src/inngest/cftc-weekly.ts` | ✅ Bronze-compliant (no `ON CONFLICT`; row_hash + existence checks) |
+| `raw.usda_export_sales_1w` | ~13d | `frontend/src/inngest/usda-export-sales-weekly.ts` | ✅ Inngest-owned (FAS report parser); insert-only idempotent |
 
 ## Immediate Execution Implications
 
-1) Weather + FX are now “Inngest-first” and refreshed; remaining staleness blockers are **WASDE** and **RIN prices**.
-2) For the remaining blockers, the repo currently has **no scheduled ingestion path**:
-   - WASDE: automation is blocked by `www.usda.gov` being non-responsive from our runtime.
-   - RIN prices: the EPA page embeds a Qlik app (`edap.epa.gov`) and needs a Qlik extraction strategy (or an alternate licensed source).
+1) Weather + FX are now “Inngest-first” and refreshed; WASDE now has a stable ingestion path via Cornell mirror.
+2) RIN prices have an ingestion owner, but EPA Qlik currently reports a latest transfer-week date of `11/24/2025` (data appears to update monthly), so the strict `stale_days_fail=28` gate may still trip until EPA publishes newer weeks.

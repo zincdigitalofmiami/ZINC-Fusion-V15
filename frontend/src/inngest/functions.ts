@@ -30,3 +30,5 @@ export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
 export { eiaDaily } from "./eia-today";
 export { nassWeekly } from "./nass-weekly";
 export { glideVegasSync } from "./glide-vegas";
+export { epaRinPricesDaily } from "./epa-rin-prices-daily";
+export { usdaWasdeMonthly } from "./usda-wasde-monthly";

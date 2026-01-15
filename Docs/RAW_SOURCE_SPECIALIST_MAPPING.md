@@ -306,8 +306,8 @@ frontend/src/inngest/
 
 | Table | Source | Inngest Job | Tags | Status |
 |-------|--------|-------------|------|--------|
-| `raw.usda_wasde_1m` | USDA | TBD | crush, china | ✅ EXISTS |
-| `raw.usda_export_sales_1w` | USDA FAS | TBD | crush, china | ✅ EXISTS |
+| `raw.usda_wasde_1m` | USDA (Cornell mirror) | `usda-wasde-monthly.ts` | crush, china | ✅ EXISTS |
+| `raw.usda_export_sales_1w` | USDA FAS | `usda-export-sales-weekly.ts` | crush, china | ✅ EXISTS |
 | `raw.agriculture_nopa_1m` | NOPA | TBD | crush | ❌ MISSING |
 | `raw.agriculture_conab_1w` | CONAB | TBD | crush | ❌ MISSING |
 
@@ -317,7 +317,7 @@ frontend/src/inngest/
 
 | Table | Source | Inngest Job | Tags | Status |
 |-------|--------|-------------|------|--------|
-| `raw.epa_rin_prices_1d` | EPA | TBD | biofuel | ✅ EXISTS |
+| `raw.epa_rin_prices_1d` | EPA (Qlik) | `epa-rin-prices-daily.ts` | biofuel | ✅ EXISTS |
 | `raw.energy_eia_inventories_1w` | EIA | TBD | energy | ❌ MISSING |
 | `raw.energy_eia_production_1m` | EIA | TBD | energy, biofuel | ❌ MISSING |
 

@@ -79,8 +79,8 @@ Several “required” raw sources are stale, and not all are currently owned by
 - ✅ `raw.weather_noaa_1d` → `frontend/src/inngest/noaa-weather-daily.ts` (NOAA CDO for `GHCND:*`; insert-only idempotent)
 - ✅ `raw.usda_export_sales_1w` → `frontend/src/inngest/usda-export-sales-weekly.ts` (FAS report parser; insert-only idempotent)
 - ✅ `raw.cftc_cot_1w` → `frontend/src/inngest/cftc-weekly.ts` (row_hash + event/symbol existence checks; no `ON CONFLICT`)
-- ❌ `raw.usda_wasde_1m` has no scheduled Inngest owner today (backfill-only scripts exist; ongoing source needs confirmation)
-- ❌ `raw.epa_rin_prices_1d` has no real-time ingestion owner in `frontend/src/inngest/` (must be added or explicitly de-scoped)
+- ✅ `raw.usda_wasde_1m` is Inngest-owned via Cornell WASDE XML mirror (`frontend/src/inngest/usda-wasde-monthly.ts`).
+- ✅ `raw.epa_rin_prices_1d` is Inngest-owned via EPA Qlik (`frontend/src/inngest/epa-rin-prices-daily.ts`), but the EPA Qlik dataset currently reports a latest transfer-week date of `11/24/2025` (monthly updates), so freshness gates may still flag it until EPA publishes newer weeks.
 
 Additional drift to resolve before running any backfills:
 - Some legacy scripts still reference `report_date` / `as_of_date` against `raw.*`; core pipeline scripts have been standardized on the Prisma contract (`raw` → `event_date`, derived/training → `as_of_date`). Treat `*.backup.*` files as inactive.

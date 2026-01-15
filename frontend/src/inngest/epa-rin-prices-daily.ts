@@ -1,0 +1,365 @@
+import { inngest } from "./client";
+import { createHash } from "crypto";
+import { Pool, type PoolClient } from "pg";
+
+const EPA_RIN_PAGE_URL =
+  "https://www.epa.gov/fuels-registration-reporting-and-compliance-help/rin-trades-and-price-information";
+
+const EPA_QLIK_APP_ID = "73b2b6a5-70c6-4820-b3fa-186ac094f10d";
+const EPA_QLIK_WS_URL = `wss://edap.epa.gov/public/app/${EPA_QLIK_APP_ID}`;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+function computeRowHash(parts: string[]): string {
+  return createHash("sha256").update(parts.join("|")).digest("hex");
+}
+
+function parseUsDateToIso(dateText: string): string {
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(dateText.trim());
+  if (!match) {
+    throw new Error(`Unexpected date format from EPA Qlik: ${JSON.stringify(dateText)}`);
+  }
+  const month = match[1].padStart(2, "0");
+  const day = match[2].padStart(2, "0");
+  const year = match[3];
+  return `${year}-${month}-${day}`;
+}
+
+function parseNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const num = Number(trimmed);
+  return Number.isFinite(num) ? num : null;
+}
+
+async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
+  const result = await client.query(
+    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+    [jobName]
+  );
+  return result.rows[0].id;
+}
+
+async function updateIngestRun(
+  client: PoolClient,
+  runId: string,
+  status: string,
+  attempted: number,
+  inserted: number,
+  skipped: number,
+  quarantined: number,
+  errorMessage?: string
+): Promise<void> {
+  await client.query(
+    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
+    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
+  );
+}
+
+type PendingRpc = {
+  resolve: (value: unknown) => void;
+  reject: (err: Error) => void;
+  timeout: ReturnType<typeof setTimeout>;
+};
+
+class QlikRpcClient {
+  private ws: WebSocket | null = null;
+  private nextId = 1;
+  private pending = new Map<number, PendingRpc>();
+
+  async connect(url: string): Promise<void> {
+    if (typeof WebSocket !== "function") {
+      throw new Error("Global WebSocket is not available in this runtime (need Node >= 20).");
+    }
+
+    this.ws = new WebSocket(url);
+
+    await new Promise<void>((resolve, reject) => {
+      const onOpen = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("EPA Qlik WebSocket connection failed"));
+      };
+      const onClose = () => {
+        cleanup();
+        reject(new Error("EPA Qlik WebSocket closed before opening"));
+      };
+      const cleanup = () => {
+        this.ws?.removeEventListener("open", onOpen as any);
+        this.ws?.removeEventListener("error", onError as any);
+        this.ws?.removeEventListener("close", onClose as any);
+      };
+
+      this.ws?.addEventListener("open", onOpen as any);
+      this.ws?.addEventListener("error", onError as any);
+      this.ws?.addEventListener("close", onClose as any);
+    });
+
+    this.ws.addEventListener("message", (event: any) => {
+      try {
+        const data = typeof event?.data === "string" ? event.data : String(event?.data);
+        const msg = JSON.parse(data);
+        const id = msg?.id;
+        if (!id || !this.pending.has(id)) return;
+        const pending = this.pending.get(id)!;
+        this.pending.delete(id);
+        clearTimeout(pending.timeout);
+        if (msg?.error) {
+          pending.reject(new Error(msg.error.message || "EPA Qlik RPC error"));
+          return;
+        }
+        pending.resolve(msg.result);
+      } catch {
+        return;
+      }
+    });
+  }
+
+  async call<T>(handle: number, method: string, params: unknown[], timeoutMs = 30_000): Promise<T> {
+    if (!this.ws) throw new Error("EPA Qlik WebSocket is not connected");
+    const id = this.nextId++;
+    const payload = { jsonrpc: "2.0", id, handle, method, params };
+
+    return await new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`EPA Qlik RPC timeout: ${method}`));
+      }, timeoutMs);
+
+      this.pending.set(id, { resolve: (value) => resolve(value as T), reject, timeout });
+      this.ws!.send(JSON.stringify(payload));
+    });
+  }
+
+  close(): void {
+    if (!this.ws) return;
+    try {
+      this.ws.close();
+    } finally {
+      this.ws = null;
+      for (const [id, pending] of this.pending.entries()) {
+        clearTimeout(pending.timeout);
+        pending.reject(new Error(`EPA Qlik RPC canceled: ${id}`));
+      }
+      this.pending.clear();
+    }
+  }
+}
+
+type RinPricePoint = {
+  isoDate: string;
+  rinType: string;
+  price: number;
+  qlikLastReloadTime: string;
+};
+
+async function fetchRinPricesFromQlik(): Promise<{ lastReloadTime: string; points: RinPricePoint[] }> {
+  const rpc = new QlikRpcClient();
+  try {
+    await rpc.connect(EPA_QLIK_WS_URL);
+    const openRes = await rpc.call<any>(-1, "OpenDoc", [EPA_QLIK_APP_ID, "", "", "", false]);
+    const docHandle: number | undefined = openRes?.qReturn?.qHandle;
+    if (!docHandle) throw new Error("EPA Qlik OpenDoc returned no doc handle");
+
+    const appLayoutRes = await rpc.call<any>(docHandle, "GetAppLayout", []);
+    const lastReloadTime: string | undefined = appLayoutRes?.qLayout?.qLastReloadTime;
+    if (!lastReloadTime) throw new Error("EPA Qlik did not provide qLastReloadTime");
+
+    const cubeDef = {
+      qInfo: { qType: "epa_rin_prices_extract" },
+      qHyperCubeDef: {
+        qDimensions: [
+          {
+            qDef: {
+              qFieldDefs: ["=[Price_Transfer Date by week.autoCalendar.Date]"],
+              qFieldLabels: ["Transfer Date by Week"],
+            },
+          },
+          {
+            qDef: {
+              qFieldDefs: ["=Price_FUEL_CD_TXT"],
+              qFieldLabels: ["Fuel (D Code)"],
+            },
+          },
+        ],
+        qMeasures: [
+          {
+            qDef: {
+              qLabel: "RIN Price",
+              qDef: 'Sum({$<[Price_FUEL_CD]={"3","4","5","6"}>}Price_INTERMEDIATE_PRICE)/Sum({$<[Price_FUEL_CD]={"3","4","5","6"}>}Price_TOTAL_RINS)',
+            },
+          },
+        ],
+      },
+    };
+
+    const sessionRes = await rpc.call<any>(docHandle, "CreateSessionObject", [cubeDef]);
+    const cubeHandle: number | undefined = sessionRes?.qReturn?.qHandle;
+    if (!cubeHandle) throw new Error("EPA Qlik CreateSessionObject returned no handle");
+
+    const layoutRes = await rpc.call<any>(cubeHandle, "GetLayout", []);
+    const qSize = layoutRes?.qLayout?.qHyperCube?.qSize;
+    if (!qSize || typeof qSize.qcy !== "number") throw new Error("EPA Qlik cube has no qSize");
+
+    const dataRes = await rpc.call<any>(cubeHandle, "GetHyperCubeData", [
+      "/qHyperCubeDef",
+      [{ qTop: 0, qLeft: 0, qHeight: qSize.qcy, qWidth: 3 }],
+    ]);
+
+    const matrix: any[] | undefined = dataRes?.qDataPages?.[0]?.qMatrix;
+    if (!Array.isArray(matrix)) throw new Error("EPA Qlik cube returned no data matrix");
+
+    const points: RinPricePoint[] = [];
+    for (const row of matrix) {
+      const dateText = row?.[0]?.qText;
+      const rinType = row?.[1]?.qText;
+      const priceRaw = row?.[2]?.qText ?? row?.[2]?.qNum;
+
+      if (typeof dateText !== "string" || typeof rinType !== "string") continue;
+      if (!["D3", "D4", "D5", "D6"].includes(rinType)) continue;
+      const price = parseNumber(priceRaw);
+      if (price === null) continue;
+
+      points.push({
+        isoDate: parseUsDateToIso(dateText),
+        rinType,
+        price,
+        qlikLastReloadTime: lastReloadTime,
+      });
+    }
+
+    return { lastReloadTime, points };
+  } finally {
+    rpc.close();
+  }
+}
+
+export const epaRinPricesDaily = inngest.createFunction(
+  { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Bronze Ingestion", retries: 3 },
+  { cron: "30 14 * * 1-5" },
+  async ({ step, logger }) => {
+    const client = await pool.connect();
+    let runId: string | null = null;
+    let rowsAttempted = 0;
+    let rowsInserted = 0;
+    let rowsSkipped = 0;
+    let rowsQuarantined = 0;
+
+    try {
+      await step.run("assert-tables", async () => {
+        await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
+        await client.query("SELECT 1 FROM raw.epa_rin_prices_1d LIMIT 1");
+      });
+
+      runId = await step.run("create-ingest-run", () =>
+        createIngestRun(client, "epa-rin-prices-daily")
+      );
+
+      const { lastReloadTime, points } = await step.run("fetch-epa-qlik", async () => {
+        return await fetchRinPricesFromQlik();
+      });
+
+      logger.info(`EPA Qlik last reload: ${lastReloadTime}, points: ${points.length}`);
+
+      const existingKeys = await step.run("load-existing-keys", async () => {
+        const r = await client.query(
+          `SELECT rin_type, event_date::date
+           FROM raw.epa_rin_prices_1d
+           WHERE source = 'epa_qlik_public'`
+        );
+        return r.rows.map((row) => `${row.rin_type}|${row.event_date}`);
+      });
+
+      const existing = new Set(existingKeys);
+
+      for (const p of points) {
+        rowsAttempted++;
+        const key = `${p.rinType}|${p.isoDate}`;
+        if (existing.has(key)) {
+          rowsSkipped++;
+          continue;
+        }
+
+        const rowHash = computeRowHash([
+          "epa_qlik_public",
+          EPA_RIN_PAGE_URL,
+          p.rinType,
+          p.isoDate,
+          String(p.price),
+          p.qlikLastReloadTime,
+        ]);
+
+        const rawPayload = {
+          source: "epa_qlik_public",
+          app_id: EPA_QLIK_APP_ID,
+          qlik_last_reload_time: p.qlikLastReloadTime,
+          transfer_week_date: p.isoDate,
+          rin_type: p.rinType,
+          price: p.price,
+        };
+
+        await client.query(
+          `INSERT INTO raw.epa_rin_prices_1d
+             (rin_type, event_date, price, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, knowledge_time)
+           VALUES
+             ($1, $2::date, $3, $4, $5, $6::jsonb, $7, $8, $9, $10::timestamptz)`,
+          [
+            p.rinType,
+            p.isoDate,
+            p.price,
+            "epa_qlik_public",
+            EPA_RIN_PAGE_URL,
+            JSON.stringify(rawPayload),
+            runId,
+            rowHash,
+            ["biofuel"],
+            p.qlikLastReloadTime,
+          ]
+        );
+
+        existing.add(key);
+        rowsInserted++;
+      }
+
+      await step.run("complete", () =>
+        updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined)
+      );
+
+      return {
+        status: "success",
+        runId,
+        qlikLastReloadTime: lastReloadTime,
+        attempted: rowsAttempted,
+        inserted: rowsInserted,
+        skipped: rowsSkipped,
+        quarantined: rowsQuarantined,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (runId) {
+        await updateIngestRun(
+          client,
+          runId,
+          "failed",
+          rowsAttempted,
+          rowsInserted,
+          rowsSkipped,
+          rowsQuarantined,
+          msg
+        );
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+);
