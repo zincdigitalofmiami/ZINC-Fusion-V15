@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const rows = await query<PriceRow>(`
       SELECT 
-        as_of_date::text as date,
+        event_date::text as date,
         open,
         high,
         low,
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         volume::int
       FROM raw.market_futures_1d
       WHERE symbol = 'ZL'
-      ORDER BY as_of_date DESC
+      ORDER BY event_date DESC
       LIMIT $1
     `, [days])
 
