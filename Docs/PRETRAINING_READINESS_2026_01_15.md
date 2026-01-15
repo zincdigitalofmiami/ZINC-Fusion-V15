@@ -1,5 +1,5 @@
 # ZINC-FUSION-V15: Pre-Training Readiness Audit (SoT v2)
-- Generated at: 2026-01-15T05:31:42.374004+00:00
+- Generated at: 2026-01-15T05:53:12.944753+00:00
 - Today (local): 2026-01-14
 
 ## Metadata Coverage
@@ -94,7 +94,5 @@
 ### Warnings
 - metadata.symbol_mapping missing 97/104 symbols for raw.market_futures_1d
 - raw.fred_observations_1d: has future-dated max 2026-12-31
-- raw.cftc_cot_1w stale 15d (>14d)
-- raw.usda_export_sales_1w stale 20d (>14d)
 - raw.fred_observations_1d has 8 future-dated rows
 - features.trump_effect_1d lags raw.whitehouse_actions_event (2026-01-09 < 2026-01-13)

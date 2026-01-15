@@ -836,7 +836,20 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     with conn.cursor() as cur:
         cur.execute("""
             SELECT event_date as as_of_date, rin_type, price
-            FROM "raw"."epa_rin_prices_1d"
+            FROM (
+                SELECT DISTINCT ON (event_date, rin_type)
+                    event_date, rin_type, price, source, created_at
+                FROM "raw"."epa_rin_prices_1d"
+                ORDER BY
+                    event_date,
+                    rin_type,
+                    CASE source
+                        WHEN 'epa_qlik_public' THEN 0
+                        WHEN 'epa_api' THEN 1
+                        ELSE 2
+                    END,
+                    created_at DESC
+            ) t
             ORDER BY event_date
         """)
         rin_rows = cur.fetchall()

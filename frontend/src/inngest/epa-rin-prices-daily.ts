@@ -264,11 +264,49 @@ export const epaRinPricesDaily = inngest.createFunction(
         createIngestRun(client, "epa-rin-prices-daily")
       );
 
+      const dbMaxSourceDate = await step.run("db-max-event-date-source", async () => {
+        const r = await client.query(
+          "SELECT MAX(event_date)::date AS max_date FROM raw.epa_rin_prices_1d WHERE source = 'epa_qlik_public'"
+        );
+        return r.rows?.[0]?.max_date ?? null;
+      });
+
+      const dbMaxOverallDate = await step.run("db-max-event-date-overall", async () => {
+        const r = await client.query(
+          "SELECT MAX(event_date)::date AS max_date FROM raw.epa_rin_prices_1d"
+        );
+        return r.rows?.[0]?.max_date ?? null;
+      });
+
       const { lastReloadTime, points } = await step.run("fetch-epa-qlik", async () => {
         return await fetchRinPricesFromQlik();
       });
 
-      logger.info(`EPA Qlik last reload: ${lastReloadTime}, points: ${points.length}`);
+      const qlikMaxIso =
+        points.length > 0
+          ? points.reduce((mx, p) => (p.isoDate > mx ? p.isoDate : mx), points[0].isoDate)
+          : null;
+
+      logger.info(
+        `EPA Qlik last reload: ${lastReloadTime}, qlik_max=${qlikMaxIso ?? "n/a"}, db_max_source=${dbMaxSourceDate ?? "n/a"}, db_max_overall=${dbMaxOverallDate ?? "n/a"}`
+      );
+
+      if (dbMaxSourceDate && qlikMaxIso && qlikMaxIso <= String(dbMaxSourceDate)) {
+        await step.run("complete-noop", () =>
+          updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined)
+        );
+        return {
+          status: "no_new_data",
+          runId,
+          qlikLastReloadTime: lastReloadTime,
+          qlikMaxIsoDate: qlikMaxIso,
+          dbMaxDate: String(dbMaxSourceDate),
+          attempted: rowsAttempted,
+          inserted: rowsInserted,
+          skipped: rowsSkipped,
+          quarantined: rowsQuarantined,
+        };
+      }
 
       const existingKeys = await step.run("load-existing-keys", async () => {
         const r = await client.query(
@@ -281,7 +319,27 @@ export const epaRinPricesDaily = inngest.createFunction(
 
       const existing = new Set(existingKeys);
 
+      const rowsToInsert: Array<
+        [
+          string,
+          string,
+          number,
+          string,
+          string,
+          string,
+          string,
+          string,
+          string[],
+          string,
+        ]
+      > = [];
+
       for (const p of points) {
+        if (dbMaxSourceDate && p.isoDate <= String(dbMaxSourceDate)) {
+          rowsSkipped++;
+          continue;
+        }
+
         rowsAttempted++;
         const key = `${p.rinType}|${p.isoDate}`;
         if (existing.has(key)) {
@@ -307,27 +365,50 @@ export const epaRinPricesDaily = inngest.createFunction(
           price: p.price,
         };
 
-        await client.query(
-          `INSERT INTO raw.epa_rin_prices_1d
-             (rin_type, event_date, price, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, knowledge_time)
-           VALUES
-             ($1, $2::date, $3, $4, $5, $6::jsonb, $7, $8, $9, $10::timestamptz)`,
-          [
-            p.rinType,
-            p.isoDate,
-            p.price,
-            "epa_qlik_public",
-            EPA_RIN_PAGE_URL,
-            JSON.stringify(rawPayload),
-            runId,
-            rowHash,
-            ["biofuel"],
-            p.qlikLastReloadTime,
-          ]
-        );
+        rowsToInsert.push([
+          p.rinType,
+          p.isoDate,
+          p.price,
+          "epa_qlik_public",
+          EPA_RIN_PAGE_URL,
+          JSON.stringify(rawPayload),
+          runId!,
+          rowHash,
+          ["biofuel"],
+          p.qlikLastReloadTime,
+        ]);
 
         existing.add(key);
-        rowsInserted++;
+      }
+
+      if (rowsToInsert.length > 0) {
+        await step.run("insert-batches", async () => {
+          const cols =
+            "(rin_type, event_date, price, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, knowledge_time)";
+          const batchSize = 500;
+          const perRow = 10;
+
+          for (let i = 0; i < rowsToInsert.length; i += batchSize) {
+            const batch = rowsToInsert.slice(i, i + batchSize);
+            const values: string[] = [];
+            const params: any[] = [];
+
+            for (let r = 0; r < batch.length; r++) {
+              const base = r * perRow;
+              values.push(
+                `($${base + 1}, $${base + 2}::date, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}::timestamptz)`
+              );
+              params.push(...batch[r]);
+            }
+
+            await client.query(
+              `INSERT INTO raw.epa_rin_prices_1d ${cols} VALUES ${values.join(",")}`,
+              params
+            );
+          }
+        });
+
+        rowsInserted += rowsToInsert.length;
       }
 
       await step.run("complete", () =>
