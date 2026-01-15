@@ -2033,6 +2033,7 @@ exports.Prisma.VegasRestaurantScalarFieldEnum = {
   id: 'id',
   glideRowId: 'glideRowId',
   data: 'data',
+  cuisineType: 'cuisineType',
   ingestedAt: 'ingestedAt'
 };
 
@@ -2188,6 +2189,28 @@ exports.Prisma.VegasActivityLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.VegasCuisineAffinityScalarFieldEnum = {
+  id: 'id',
+  eventCategory: 'eventCategory',
+  cuisineType: 'cuisineType',
+  affinityScore: 'affinityScore',
+  reasoning: 'reasoning',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.VegasDailySpendScalarFieldEnum = {
+  id: 'id',
+  impactDate: 'impactDate',
+  spendConcerts: 'spendConcerts',
+  spendConferences: 'spendConferences',
+  spendExpos: 'spendExpos',
+  spendFestivals: 'spendFestivals',
+  spendPerformingArts: 'spendPerformingArts',
+  spendSports: 'spendSports',
+  spendTotal: 'spendTotal',
+  importedAt: 'importedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2340,7 +2363,9 @@ exports.Prisma.ModelName = {
   VegasCuisineMatch: 'VegasCuisineMatch',
   VegasIntelSheet: 'VegasIntelSheet',
   VegasCustomerScore: 'VegasCustomerScore',
-  VegasActivityLog: 'VegasActivityLog'
+  VegasActivityLog: 'VegasActivityLog',
+  VegasCuisineAffinity: 'VegasCuisineAffinity',
+  VegasDailySpend: 'VegasDailySpend'
 };
 
 /**

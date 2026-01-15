@@ -44,15 +44,23 @@ interface Restaurant {
 interface VegasEvent {
   id: string
   name: string
-  eventType: string | null
+  description: string | null
+  category: string | null
   venue: string | null
   attendance: number
-  attendanceMin: number | null
-  attendanceMax: number | null
   startDate: string
   endDate: string | null
   daysUntil: number
   color: string
+  // ZFusion scoring (from event intelligence data)
+  rank: number | null
+  localRank: number | null
+  predictedSpend: number | null
+  hospitalitySpend: number | null
+  // Venue geo
+  latitude: number | null
+  longitude: number | null
+  address: string | null
 }
 
 interface Opportunity {
@@ -66,6 +74,34 @@ interface Opportunity {
   fryer_count: number
   total_capacity_lbs: number | null
   oneLiner: string
+}
+
+// ZFusion opportunity from the scoring API
+interface ZFusionOpportunity {
+  restaurant_id: number
+  restaurant_name: string
+  casino_name: string
+  cuisine_type: string
+  affinity_score: number
+  spend_share: number
+  phq_multiplier: number
+  zfusion_score: number
+  reasoning: string
+}
+
+interface ZFusionResponse {
+  event: {
+    id: string
+    category: string
+    attendance: number
+    rank: number
+    localRank: number
+    hospitalitySpend: number
+    categorySpend: number
+    phqMultiplier: number
+  }
+  opportunities: ZFusionOpportunity[]
+  count: number
 }
 
 // AtRiskCustomer interface removed - no real data to compute at-risk status yet
@@ -92,6 +128,32 @@ export default function VegasIntelPage() {
   const [eventsLoading, setEventsLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'customers' | 'prospects'>('all')
+
+  // ZFusion scoring state
+  const [zfusionData, setZfusionData] = useState<ZFusionResponse | null>(null)
+  const [zfusionLoading, setZfusionLoading] = useState(false)
+
+  // Fetch ZFusion scores when event changes
+  useEffect(() => {
+    async function fetchZFusion() {
+      if (!selectedEvent) return
+
+      setZfusionLoading(true)
+      try {
+        const res = await fetch(`/api/vegas?view=zfusion&eventId=${selectedEvent}`)
+        const data = await res.json()
+        if (data.opportunities) {
+          setZfusionData(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch ZFusion scores:', err)
+      } finally {
+        setZfusionLoading(false)
+      }
+    }
+
+    fetchZFusion()
+  }, [selectedEvent])
 
   useEffect(() => {
     async function fetchData() {
@@ -172,8 +234,17 @@ export default function VegasIntelPage() {
   })
 
   const selectedEventData = events.find(e => e.id === selectedEvent)
+
+  // Format spend for headline
+  const formatSpendHeadline = (spend: number | null): string => {
+    if (!spend) return ''
+    if (spend >= 1000000) return `$${(spend / 1000000).toFixed(1)}M in F&B spend projected.`
+    if (spend >= 1000) return `$${Math.round(spend / 1000)}K in F&B spend projected.`
+    return ''
+  }
+
   const headline = selectedEventData
-    ? `${selectedEventData.name} is ${selectedEventData.daysUntil} days out. ${selectedEventData.attendance.toLocaleString()} people. Here's your play.`
+    ? `${selectedEventData.name} is ${selectedEventData.daysUntil} days out. ${selectedEventData.attendance.toLocaleString()} people. ${formatSpendHeadline(selectedEventData.hospitalitySpend)} Here's your play.`
     : events.length === 0
       ? "Loading upcoming events..."
       : "Select an event to see opportunities."
@@ -228,7 +299,7 @@ export default function VegasIntelPage() {
       </div>
 
       {/* ================================================================
-          SECTION 2: OPPORTUNITIES (Real data from Glide)
+          SECTION 2: ZFUSION OPPORTUNITIES (Scored by cuisine affinity + spend)
           ================================================================ */}
       <div style={{ marginBottom: '48px' }}>
         <div style={{
@@ -244,19 +315,24 @@ export default function VegasIntelPage() {
             letterSpacing: '1px',
             opacity: 0.6
           }}>
-            OPPORTUNITIES ({filteredOpportunities.length})
+            ZFUSION OPPORTUNITIES {zfusionData ? `(${zfusionData.count})` : ''}
+            {zfusionData?.event && (
+              <span style={{ marginLeft: '12px', opacity: 0.5, fontWeight: 400 }}>
+                {selectedEventData?.category} → ${(zfusionData.event.categorySpend / 1000000).toFixed(1)}M F&B pool
+              </span>
+            )}
           </h2>
           <FilterToggle value={filter} onChange={setFilter} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {loading ? (
+          {zfusionLoading ? (
             <LoadingRow />
-          ) : filteredOpportunities.length === 0 ? (
-            <EmptyRow message="No opportunities match your filter" />
+          ) : !zfusionData || zfusionData.opportunities.length === 0 ? (
+            <EmptyRow message="Select an event to see ZFusion opportunities" />
           ) : (
-            filteredOpportunities.slice(0, 15).map((opp) => (
-              <OpportunityRow key={opp.id} opportunity={opp} selectedEvent={selectedEventData} />
+            zfusionData.opportunities.slice(0, 20).map((opp) => (
+              <ZFusionRow key={opp.restaurant_id} opportunity={opp} />
             ))
           )}
         </div>
@@ -286,6 +362,14 @@ function EventCard({
   selected: boolean
   onClick: () => void
 }) {
+  // Format F&B spend for display
+  const formatSpend = (spend: number | null): string => {
+    if (!spend) return '-'
+    if (spend >= 1000000) return `$${(spend / 1000000).toFixed(1)}M`
+    if (spend >= 1000) return `$${(spend / 1000).toFixed(0)}K`
+    return `$${spend}`
+  }
+
   return (
     <div
       onClick={onClick}
@@ -298,43 +382,93 @@ function EventCard({
           : '1px solid rgba(255, 255, 255, 0.08)',
         borderLeft: `4px solid ${event.color}`,
         borderRadius: '0px',
-        padding: '32px 24px',
-        textAlign: 'center',
+        padding: '24px 20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
       }}
     >
+      {/* Event Name */}
       <div style={{
-        fontSize: '48px',
+        fontSize: '13px',
+        fontWeight: 600,
+        marginBottom: '8px',
+        lineHeight: 1.3,
+        minHeight: '34px',
+      }}>
+        {event.name}
+      </div>
+
+      {/* Attendance - Hero Number */}
+      <div style={{
+        fontSize: '36px',
         fontWeight: 700,
         color: event.color,
         lineHeight: 1,
-        marginBottom: '12px'
+        marginBottom: '4px'
       }}>
         {event.attendance.toLocaleString()}
       </div>
       <div style={{
-        fontSize: '14px',
-        fontWeight: 600,
-        marginBottom: '4px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px'
-      }}>
-        {event.name}
-      </div>
-      <div style={{
-        fontSize: '12px',
+        fontSize: '10px',
         opacity: 0.5,
         textTransform: 'uppercase',
-        letterSpacing: '0.5px'
+        letterSpacing: '0.5px',
+        marginBottom: '12px'
       }}>
-        {event.daysUntil} DAYS
+        ATTENDANCE
+      </div>
+
+      {/* ZFusion Scoring Row */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        marginTop: '8px',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '16px', fontWeight: 600 }}>{event.rank || '-'}</div>
+          <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase' }}>Rank</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '16px', fontWeight: 600 }}>{event.localRank || '-'}</div>
+          <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase' }}>Local</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: '#4ade80' }}>
+            {formatSpend(event.hospitalitySpend)}
+          </div>
+          <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase' }}>F&B</div>
+        </div>
+      </div>
+
+      {/* Date & Venue */}
+      <div style={{
+        fontSize: '11px',
+        opacity: 0.6,
+        marginTop: '8px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <span>{event.daysUntil} days</span>
+        <span style={{
+          background: 'rgba(255,255,255,0.1)',
+          padding: '2px 6px',
+          borderRadius: '2px',
+          fontSize: '10px',
+        }}>
+          {event.category || 'event'}
+        </span>
       </div>
       {event.venue && (
         <div style={{
           fontSize: '10px',
           opacity: 0.4,
-          marginTop: '8px'
+          marginTop: '6px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}>
           {event.venue}
         </div>
@@ -482,6 +616,141 @@ function OpportunityRow({ opportunity, selectedEvent }: { opportunity: Opportuni
       }}>
         Intel
       </button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// ZFUSION ROW - Scored opportunities with spend share and reasoning
+// =============================================================================
+
+function ZFusionRow({ opportunity }: { opportunity: ZFusionOpportunity }) {
+  // Color based on ZFusion score
+  const scoreColor = opportunity.zfusion_score >= 70 ? '#4ade80' // green
+    : opportunity.zfusion_score >= 40 ? '#fbbf24' // yellow
+    : '#f87171' // red
+
+  // Format spend share
+  const formatSpend = (spend: number): string => {
+    if (spend >= 1000000) return `$${(spend / 1000000).toFixed(1)}M`
+    if (spend >= 1000) return `$${Math.round(spend / 1000)}K`
+    return `$${spend}`
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'stretch',
+      background: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: '0px',
+      transition: 'all 0.2s ease',
+      overflow: 'hidden',
+    }}>
+      {/* Left Accent Bar - ZFusion score color */}
+      <div style={{
+        width: '4px',
+        background: scoreColor,
+        flexShrink: 0,
+      }} />
+
+      {/* Content */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '16px 24px',
+        flex: 1,
+      }}>
+        {/* ZFusion Score Badge */}
+        <div style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '4px',
+          background: `${scoreColor}15`,
+          border: `1px solid ${scoreColor}40`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: scoreColor }}>
+            {opportunity.zfusion_score}
+          </div>
+          <div style={{ fontSize: '8px', opacity: 0.6, textTransform: 'uppercase' }}>
+            ZF Score
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '4px'
+          }}>
+            <span style={{ fontSize: '15px', fontWeight: 600 }}>
+              {opportunity.casino_name} - {opportunity.restaurant_name}
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              padding: '2px 8px',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '2px',
+            }}>
+              {opportunity.cuisine_type}
+            </span>
+          </div>
+          <div style={{
+            fontSize: '12px',
+            opacity: 0.5,
+            marginBottom: '6px'
+          }}>
+            Affinity: {opportunity.affinity_score}/100 │ PHQ Multiplier: {opportunity.phq_multiplier.toFixed(2)}x
+          </div>
+          <div style={{
+            fontSize: '13px',
+            opacity: 0.7,
+            fontStyle: 'italic'
+          }}>
+            "{opportunity.reasoning}"
+          </div>
+        </div>
+
+        {/* Spend Share */}
+        <div style={{
+          textAlign: 'right',
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: '#4ade80' }}>
+            {formatSpend(opportunity.spend_share)}
+          </div>
+          <div style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase' }}>
+            Projected Share
+          </div>
+        </div>
+
+        {/* Intel Button */}
+        <button style={{
+          padding: '8px 16px',
+          fontSize: '12px',
+          fontWeight: 600,
+          background: 'transparent',
+          border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: '2px',
+          color: 'rgba(255,255,255,0.8)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          flexShrink: 0,
+        }}>
+          Intel
+        </button>
       </div>
     </div>
   )

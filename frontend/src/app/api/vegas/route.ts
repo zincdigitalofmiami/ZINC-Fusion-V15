@@ -66,6 +66,7 @@ interface VegasFryer {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const view = searchParams.get('view') || 'stats'
+  const eventId = searchParams.get('eventId')
 
   try {
     switch (view) {
@@ -81,6 +82,15 @@ export async function GET(request: Request) {
         return await getCustomers()
       case 'events':
         return await getEvents()
+      case 'zfusion':
+        // ZFusion scoring for a specific event
+        if (!eventId) {
+          return NextResponse.json({ error: 'eventId parameter required' }, { status: 400 })
+        }
+        return await getZFusionScores(eventId)
+      case 'daily-spend':
+        // Daily F&B spend forecast
+        return await getDailySpend()
       case 'all':
         return await getAllData()
       default:
@@ -102,63 +112,85 @@ export async function GET(request: Request) {
 interface VegasEventRow {
   event_id: string
   name: string
-  event_type: string | null
+  description: string | null
+  category: string | null
   venue: string | null
   start_date: string
   end_date: string | null
   attendance: number | null
-  attendance_min: number | null
-  attendance_max: number | null
   days_until: number
+  // ZFusion scoring fields
+  rank: number | null
+  local_rank: number | null
+  predicted_event_spend: number | null
+  spend_hospitality: number | null
+  // Venue geo
+  latitude: number | null
+  longitude: number | null
+  formatted_address: string | null
+}
+
+// Color mapping for event categories (from loaded data)
+const EVENT_COLORS: Record<string, string> = {
+  'expos': '#2962FF',           // blue - conventions, trade shows
+  'conferences': '#14b8a6',     // teal
+  'concerts': '#a855f7',        // purple
+  'sports': '#22c55e',          // green
+  'festivals': '#ff6b35',       // orange
+  'performing-arts': '#f59e0b', // amber
+  'community': '#06b6d4',       // cyan
 }
 
 async function getEvents(): Promise<NextResponse> {
   try {
-    // Get upcoming events ordered by start date
+    // Get upcoming events with ZFusion scoring, ordered by F&B spend impact
     const results = await query<VegasEventRow>(`
       SELECT
-        event_id,
-        name,
-        event_type,
-        venue,
-        start_date::text,
-        end_date::text,
-        attendance,
-        attendance_min,
-        attendance_max,
-        (start_date - CURRENT_DATE)::int as days_until
-      FROM ops.vegas_events
-      WHERE is_active = true
-        AND start_date >= CURRENT_DATE
-      ORDER BY start_date ASC
+        e.event_id,
+        e.name,
+        e.description,
+        e.category,
+        e.venue,
+        e.start_date::text,
+        e.end_date::text,
+        e.attendance,
+        (e.start_date - CURRENT_DATE)::int as days_until,
+        e.rank,
+        e.local_rank,
+        e.predicted_event_spend::numeric::integer as predicted_event_spend,
+        e.spend_hospitality::numeric::integer as spend_hospitality,
+        v.latitude::float as latitude,
+        v.longitude::float as longitude,
+        v.formatted_address
+      FROM ops.vegas_events e
+      LEFT JOIN ops.vegas_event_venues ev ON ev.event_id = e.event_id AND ev.is_primary = true
+      LEFT JOIN ops.vegas_venues v ON v.venue_id = ev.venue_id
+      WHERE e.is_active = true
+        AND e.start_date >= CURRENT_DATE
+      ORDER BY e.spend_hospitality DESC NULLS LAST, e.start_date ASC
       LIMIT 50
     `)
-
-    // Assign colors based on event type
-    const getEventColor = (eventType: string | null): string => {
-      switch (eventType) {
-        case 'CONVENTION_TECH': return '#2962FF'  // blue
-        case 'UFC': return '#4ade80'              // green
-        case 'F1': return '#ff6b35'               // orange
-        case 'EDM_FESTIVAL': return '#a855f7'     // purple
-        case 'TRADE_SHOW': return '#14b8a6'       // teal
-        case 'SPORTS': return '#22c55e'           // green
-        default: return '#6b7280'                 // gray
-      }
-    }
 
     const events = results.map(e => ({
       id: e.event_id,
       name: e.name,
-      eventType: e.event_type,
+      description: e.description,
+      category: e.category,
       venue: e.venue,
-      attendance: e.attendance || e.attendance_min || 0,
-      attendanceMin: e.attendance_min,
-      attendanceMax: e.attendance_max,
+      attendance: e.attendance || 0,
       startDate: e.start_date,
       endDate: e.end_date,
       daysUntil: e.days_until,
-      color: getEventColor(e.event_type)
+      color: EVENT_COLORS[e.category || ''] || '#6b7280',
+      // ZFusion scoring
+      rank: e.rank,
+      localRank: e.local_rank,
+      predictedSpend: e.predicted_event_spend,
+      hospitalitySpend: e.spend_hospitality,
+      // Venue geo
+      latitude: e.latitude,
+      longitude: e.longitude,
+      address: e.formatted_address,
     }))
 
     return NextResponse.json({ events, count: events.length })
@@ -375,5 +407,251 @@ async function getAllData(): Promise<NextResponse> {
       stats: { restaurants: 0, casinos: 0, fryers: 0 },
       sample: { restaurants: [], casinos: [], fryers: [] }
     })
+  }
+}
+
+// =============================================================================
+// ZFusion Scoring - Calculate opportunity scores for restaurants
+// Formula: Expected Spend × Cuisine Affinity × PHQ Signal → ZFusion Score
+// =============================================================================
+
+interface ZFusionOpportunity {
+  restaurant_id: number
+  restaurant_name: string
+  casino_name: string
+  cuisine_type: string
+  affinity_score: number
+  spend_share: number        // Restaurant's projected share of F&B spend
+  phq_multiplier: number     // 0.5-2.0 based on rank/local_rank
+  zfusion_score: number      // Final composite score
+  reasoning: string          // Why this restaurant benefits
+}
+
+async function getZFusionScores(eventId: string): Promise<NextResponse> {
+  try {
+    // Get the event details first
+    const eventResults = await query<{
+      event_id: string
+      category: string
+      attendance: number
+      rank: number
+      local_rank: number
+      spend_hospitality: number
+      start_date: string
+    }>(`
+      SELECT
+        event_id,
+        category,
+        attendance,
+        rank,
+        local_rank,
+        spend_hospitality::numeric::integer as spend_hospitality,
+        start_date::text
+      FROM ops.vegas_events
+      WHERE event_id = $1
+    `, [eventId])
+
+    if (eventResults.length === 0) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    const event = eventResults[0]
+    const eventCategory = event.category || 'concerts' // Default fallback
+
+    // Get daily spend for this event's date and category
+    const spendResults = await query<{
+      spend_concerts: number
+      spend_conferences: number
+      spend_expos: number
+      spend_festivals: number
+      spend_performing_arts: number
+      spend_sports: number
+      spend_total: number
+    }>(`
+      SELECT
+        spend_concerts, spend_conferences, spend_expos,
+        spend_festivals, spend_performing_arts, spend_sports,
+        spend_total
+      FROM ops.vegas_daily_spend
+      WHERE impact_date = $1::date
+    `, [event.start_date])
+
+    // Get the category-specific spend (use event's hospitality spend as fallback)
+    let categorySpend = event.spend_hospitality || 0
+    if (spendResults.length > 0) {
+      const spendMap: Record<string, number> = {
+        'concerts': spendResults[0].spend_concerts,
+        'conferences': spendResults[0].spend_conferences,
+        'expos': spendResults[0].spend_expos,
+        'festivals': spendResults[0].spend_festivals,
+        'performing-arts': spendResults[0].spend_performing_arts,
+        'sports': spendResults[0].spend_sports,
+      }
+      categorySpend = spendMap[eventCategory] || categorySpend
+    }
+
+    // Calculate PHQ multiplier (0.5-2.0 based on rank signals)
+    // Higher rank = more important event = higher multiplier
+    const rankScore = Math.min(100, event.rank || 50) / 100
+    const localRankScore = Math.min(100, event.local_rank || 50) / 100
+    const phqMultiplier = 0.5 + (rankScore * 0.75) + (localRankScore * 0.75) // 0.5 to 2.0 range
+
+    // Get all restaurants with their cuisine types and calculate ZFusion scores
+    const restaurantFields = VEGAS_GLIDE_FIELDS.restaurants
+
+    const opportunities = await query<ZFusionOpportunity>(`
+      WITH cuisine_totals AS (
+        -- Get sum of affinity scores for this event category (for proportional distribution)
+        SELECT SUM(affinity_score) as total_affinity
+        FROM ops.vegas_cuisine_affinity
+        WHERE event_category = $1
+      ),
+      restaurant_scores AS (
+        SELECT
+          r.id as restaurant_id,
+          COALESCE(r.data->>'${restaurantFields.name}', 'Unknown') as restaurant_name,
+          COALESCE(c.data->>'Name', 'Las Vegas') as casino_name,
+          COALESCE(r.cuisine_type, 'general') as cuisine_type,
+          COALESCE(ca.affinity_score, 30) as affinity_score,
+          ca.reasoning,
+          ct.total_affinity
+        FROM ops.vegas_restaurants r
+        LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
+        LEFT JOIN ops.vegas_cuisine_affinity ca
+          ON ca.cuisine_type = COALESCE(r.cuisine_type, 'general')
+          AND ca.event_category = $1
+        CROSS JOIN cuisine_totals ct
+        WHERE r.cuisine_type IS NOT NULL
+          AND r.cuisine_type != 'service'  -- Exclude back-of-house operations
+      )
+      SELECT
+        restaurant_id,
+        restaurant_name,
+        casino_name,
+        cuisine_type,
+        affinity_score,
+        -- Spend share = (affinity / total_affinity) × category_spend
+        ROUND(
+          (affinity_score::float / NULLIF(total_affinity, 0)::float) * $2
+        )::integer as spend_share,
+        $3::float as phq_multiplier,
+        -- ZFusion Score = spend_share × phq_multiplier (normalized to 0-100)
+        ROUND(
+          LEAST(100,
+            ((affinity_score::float / NULLIF(total_affinity, 0)::float) * $2 / 10000) * $3
+          )
+        )::integer as zfusion_score,
+        COALESCE(reasoning, 'General dining option') as reasoning
+      FROM restaurant_scores
+      ORDER BY zfusion_score DESC, affinity_score DESC
+      LIMIT 50
+    `, [eventCategory, categorySpend, phqMultiplier])
+
+    return NextResponse.json({
+      event: {
+        id: event.event_id,
+        category: eventCategory,
+        attendance: event.attendance,
+        rank: event.rank,
+        localRank: event.local_rank,
+        hospitalitySpend: event.spend_hospitality,
+        categorySpend,
+        phqMultiplier: Math.round(phqMultiplier * 100) / 100,
+      },
+      opportunities,
+      count: opportunities.length,
+    })
+
+  } catch (error) {
+    console.error('getZFusionScores error:', error)
+    return NextResponse.json({ error: 'Failed to calculate ZFusion scores', details: String(error) }, { status: 500 })
+  }
+}
+
+// =============================================================================
+// Daily Spend Summary - For dashboard sparklines and heat calendar
+// =============================================================================
+
+interface DailySpendRow {
+  impact_date: string
+  spend_concerts: number
+  spend_conferences: number
+  spend_expos: number
+  spend_festivals: number
+  spend_performing_arts: number
+  spend_sports: number
+  spend_total: number
+  top_category: string
+  event_count: number
+}
+
+async function getDailySpend(): Promise<NextResponse> {
+  try {
+    const results = await query<DailySpendRow>(`
+      SELECT
+        ds.impact_date::text,
+        ds.spend_concerts,
+        ds.spend_conferences,
+        ds.spend_expos,
+        ds.spend_festivals,
+        ds.spend_performing_arts,
+        ds.spend_sports,
+        ds.spend_total,
+        -- Find the dominant category for each day
+        CASE
+          WHEN GREATEST(spend_concerts, spend_conferences, spend_expos, spend_festivals, spend_performing_arts, spend_sports) = spend_expos THEN 'expos'
+          WHEN GREATEST(spend_concerts, spend_conferences, spend_expos, spend_festivals, spend_performing_arts, spend_sports) = spend_concerts THEN 'concerts'
+          WHEN GREATEST(spend_concerts, spend_conferences, spend_expos, spend_festivals, spend_performing_arts, spend_sports) = spend_sports THEN 'sports'
+          WHEN GREATEST(spend_concerts, spend_conferences, spend_expos, spend_festivals, spend_performing_arts, spend_sports) = spend_conferences THEN 'conferences'
+          WHEN GREATEST(spend_concerts, spend_conferences, spend_expos, spend_festivals, spend_performing_arts, spend_sports) = spend_festivals THEN 'festivals'
+          ELSE 'performing-arts'
+        END as top_category,
+        -- Count events for this day
+        COALESCE((
+          SELECT COUNT(DISTINCT event_id)::int
+          FROM ops.vegas_events
+          WHERE start_date = ds.impact_date
+            AND is_active = true
+        ), 0) as event_count
+      FROM ops.vegas_daily_spend ds
+      WHERE ds.impact_date >= CURRENT_DATE
+      ORDER BY ds.impact_date
+      LIMIT 90
+    `)
+
+    // Calculate summary stats
+    const totalSpend = results.reduce((sum, r) => sum + (r.spend_total || 0), 0)
+    const avgDailySpend = results.length > 0 ? Math.round(totalSpend / results.length) : 0
+    const peakDay = results.reduce((max, r) => (r.spend_total || 0) > (max.spend_total || 0) ? r : max, results[0])
+
+    return NextResponse.json({
+      daily: results.map(r => ({
+        date: r.impact_date,
+        total: r.spend_total,
+        concerts: r.spend_concerts,
+        conferences: r.spend_conferences,
+        expos: r.spend_expos,
+        festivals: r.spend_festivals,
+        performingArts: r.spend_performing_arts,
+        sports: r.spend_sports,
+        topCategory: r.top_category,
+        eventCount: r.event_count,
+        color: EVENT_COLORS[r.top_category] || '#6b7280',
+      })),
+      summary: {
+        totalSpend,
+        avgDailySpend,
+        peakDay: peakDay ? {
+          date: peakDay.impact_date,
+          spend: peakDay.spend_total,
+          category: peakDay.top_category,
+        } : null,
+        daysLoaded: results.length,
+      },
+    })
+
+  } catch (error) {
+    console.error('getDailySpend error:', error)
+    return NextResponse.json({ daily: [], summary: null })
   }
 }

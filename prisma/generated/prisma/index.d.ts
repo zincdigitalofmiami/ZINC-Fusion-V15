@@ -618,6 +618,16 @@ export type VegasCustomerScore = $Result.DefaultSelection<Prisma.$VegasCustomerS
  * 
  */
 export type VegasActivityLog = $Result.DefaultSelection<Prisma.$VegasActivityLogPayload>
+/**
+ * Model VegasCuisineAffinity
+ * 
+ */
+export type VegasCuisineAffinity = $Result.DefaultSelection<Prisma.$VegasCuisineAffinityPayload>
+/**
+ * Model VegasDailySpend
+ * 
+ */
+export type VegasDailySpend = $Result.DefaultSelection<Prisma.$VegasDailySpendPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1945,6 +1955,26 @@ export class PrismaClient<
     * ```
     */
   get vegasActivityLog(): Prisma.VegasActivityLogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.vegasCuisineAffinity`: Exposes CRUD operations for the **VegasCuisineAffinity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more VegasCuisineAffinities
+    * const vegasCuisineAffinities = await prisma.vegasCuisineAffinity.findMany()
+    * ```
+    */
+  get vegasCuisineAffinity(): Prisma.VegasCuisineAffinityDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.vegasDailySpend`: Exposes CRUD operations for the **VegasDailySpend** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more VegasDailySpends
+    * const vegasDailySpends = await prisma.vegasDailySpend.findMany()
+    * ```
+    */
+  get vegasDailySpend(): Prisma.VegasDailySpendDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2499,7 +2529,9 @@ export namespace Prisma {
     VegasCuisineMatch: 'VegasCuisineMatch',
     VegasIntelSheet: 'VegasIntelSheet',
     VegasCustomerScore: 'VegasCustomerScore',
-    VegasActivityLog: 'VegasActivityLog'
+    VegasActivityLog: 'VegasActivityLog',
+    VegasCuisineAffinity: 'VegasCuisineAffinity',
+    VegasDailySpend: 'VegasDailySpend'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2515,7 +2547,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "cftcCot1w" | "epaRinPrices1d" | "fredObservations1d" | "fxSpot1d" | "marketFutures1d" | "marketFutures1h" | "newsArticles1d" | "optionsFutures1d" | "usdaExportSales1w" | "usdaWasde1m" | "weatherNoaa1d" | "yahooEquity1d" | "coreFeatures" | "optionsFeatures" | "optionsGreeks" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistBiofuel1d" | "specialistBiofuel1h" | "specialistChina1d" | "specialistChina1h" | "specialistCrush1d" | "specialistCrush1h" | "specialistEnergy1d" | "specialistEnergy1h" | "specialistFed1d" | "specialistFed1h" | "specialistFx1d" | "specialistFx1h" | "specialistPalm1d" | "specialistPalm1h" | "specialistSubstitutes1d" | "specialistSubstitutes1h" | "specialistTariff1d" | "specialistTariff1h" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "specialistVolatility1d" | "specialistVolatility1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "zlLive" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "fxRates1d" | "futuresPrices1d" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_intraday" | "elite_indicators_1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "cftc_cits_1w" | "fred_series_static" | "legislation_federal_register_1d" | "aei_articles_event" | "cbp_trade_event" | "conab_news_event" | "farmdoc_articles_event" | "ice_releases_event" | "nyfed_rates_1d" | "news_articles_event" | "usda_nass_event" | "whitehouse_actions_event" | "news_scored_1d" | "zl_price_1h" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "ai_decision_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog"
+      modelProps: "cftcCot1w" | "epaRinPrices1d" | "fredObservations1d" | "fxSpot1d" | "marketFutures1d" | "marketFutures1h" | "newsArticles1d" | "optionsFutures1d" | "usdaExportSales1w" | "usdaWasde1m" | "weatherNoaa1d" | "yahooEquity1d" | "coreFeatures" | "optionsFeatures" | "optionsGreeks" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistBiofuel1d" | "specialistBiofuel1h" | "specialistChina1d" | "specialistChina1h" | "specialistCrush1d" | "specialistCrush1h" | "specialistEnergy1d" | "specialistEnergy1h" | "specialistFed1d" | "specialistFed1h" | "specialistFx1d" | "specialistFx1h" | "specialistPalm1d" | "specialistPalm1h" | "specialistSubstitutes1d" | "specialistSubstitutes1h" | "specialistTariff1d" | "specialistTariff1h" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "specialistVolatility1d" | "specialistVolatility1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "zlLive" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "fxRates1d" | "futuresPrices1d" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_intraday" | "elite_indicators_1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "cftc_cits_1w" | "fred_series_static" | "legislation_federal_register_1d" | "aei_articles_event" | "cbp_trade_event" | "conab_news_event" | "farmdoc_articles_event" | "ice_releases_event" | "nyfed_rates_1d" | "news_articles_event" | "usda_nass_event" | "whitehouse_actions_event" | "news_scored_1d" | "zl_price_1h" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "ai_decision_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11473,6 +11505,154 @@ export namespace Prisma {
           }
         }
       }
+      VegasCuisineAffinity: {
+        payload: Prisma.$VegasCuisineAffinityPayload<ExtArgs>
+        fields: Prisma.VegasCuisineAffinityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.VegasCuisineAffinityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.VegasCuisineAffinityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          findFirst: {
+            args: Prisma.VegasCuisineAffinityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.VegasCuisineAffinityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          findMany: {
+            args: Prisma.VegasCuisineAffinityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>[]
+          }
+          create: {
+            args: Prisma.VegasCuisineAffinityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          createMany: {
+            args: Prisma.VegasCuisineAffinityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.VegasCuisineAffinityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>[]
+          }
+          delete: {
+            args: Prisma.VegasCuisineAffinityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          update: {
+            args: Prisma.VegasCuisineAffinityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          deleteMany: {
+            args: Prisma.VegasCuisineAffinityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.VegasCuisineAffinityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.VegasCuisineAffinityUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>[]
+          }
+          upsert: {
+            args: Prisma.VegasCuisineAffinityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasCuisineAffinityPayload>
+          }
+          aggregate: {
+            args: Prisma.VegasCuisineAffinityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateVegasCuisineAffinity>
+          }
+          groupBy: {
+            args: Prisma.VegasCuisineAffinityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<VegasCuisineAffinityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.VegasCuisineAffinityCountArgs<ExtArgs>
+            result: $Utils.Optional<VegasCuisineAffinityCountAggregateOutputType> | number
+          }
+        }
+      }
+      VegasDailySpend: {
+        payload: Prisma.$VegasDailySpendPayload<ExtArgs>
+        fields: Prisma.VegasDailySpendFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.VegasDailySpendFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.VegasDailySpendFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          findFirst: {
+            args: Prisma.VegasDailySpendFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.VegasDailySpendFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          findMany: {
+            args: Prisma.VegasDailySpendFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>[]
+          }
+          create: {
+            args: Prisma.VegasDailySpendCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          createMany: {
+            args: Prisma.VegasDailySpendCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.VegasDailySpendCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>[]
+          }
+          delete: {
+            args: Prisma.VegasDailySpendDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          update: {
+            args: Prisma.VegasDailySpendUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          deleteMany: {
+            args: Prisma.VegasDailySpendDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.VegasDailySpendUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.VegasDailySpendUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>[]
+          }
+          upsert: {
+            args: Prisma.VegasDailySpendUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VegasDailySpendPayload>
+          }
+          aggregate: {
+            args: Prisma.VegasDailySpendAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateVegasDailySpend>
+          }
+          groupBy: {
+            args: Prisma.VegasDailySpendGroupByArgs<ExtArgs>
+            result: $Utils.Optional<VegasDailySpendGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.VegasDailySpendCountArgs<ExtArgs>
+            result: $Utils.Optional<VegasDailySpendCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -11702,6 +11882,8 @@ export namespace Prisma {
     vegasIntelSheet?: VegasIntelSheetOmit
     vegasCustomerScore?: VegasCustomerScoreOmit
     vegasActivityLog?: VegasActivityLogOmit
+    vegasCuisineAffinity?: VegasCuisineAffinityOmit
+    vegasDailySpend?: VegasDailySpendOmit
   }
 
   /* Types for Logging */
@@ -137442,12 +137624,14 @@ export namespace Prisma {
   export type VegasRestaurantMinAggregateOutputType = {
     id: number | null
     glideRowId: string | null
+    cuisineType: string | null
     ingestedAt: Date | null
   }
 
   export type VegasRestaurantMaxAggregateOutputType = {
     id: number | null
     glideRowId: string | null
+    cuisineType: string | null
     ingestedAt: Date | null
   }
 
@@ -137455,6 +137639,7 @@ export namespace Prisma {
     id: number
     glideRowId: number
     data: number
+    cuisineType: number
     ingestedAt: number
     _all: number
   }
@@ -137471,12 +137656,14 @@ export namespace Prisma {
   export type VegasRestaurantMinAggregateInputType = {
     id?: true
     glideRowId?: true
+    cuisineType?: true
     ingestedAt?: true
   }
 
   export type VegasRestaurantMaxAggregateInputType = {
     id?: true
     glideRowId?: true
+    cuisineType?: true
     ingestedAt?: true
   }
 
@@ -137484,6 +137671,7 @@ export namespace Prisma {
     id?: true
     glideRowId?: true
     data?: true
+    cuisineType?: true
     ingestedAt?: true
     _all?: true
   }
@@ -137578,6 +137766,7 @@ export namespace Prisma {
     id: number
     glideRowId: string
     data: JsonValue
+    cuisineType: string | null
     ingestedAt: Date | null
     _count: VegasRestaurantCountAggregateOutputType | null
     _avg: VegasRestaurantAvgAggregateOutputType | null
@@ -137604,6 +137793,7 @@ export namespace Prisma {
     id?: boolean
     glideRowId?: boolean
     data?: boolean
+    cuisineType?: boolean
     ingestedAt?: boolean
   }, ExtArgs["result"]["vegasRestaurant"]>
 
@@ -137611,6 +137801,7 @@ export namespace Prisma {
     id?: boolean
     glideRowId?: boolean
     data?: boolean
+    cuisineType?: boolean
     ingestedAt?: boolean
   }, ExtArgs["result"]["vegasRestaurant"]>
 
@@ -137618,6 +137809,7 @@ export namespace Prisma {
     id?: boolean
     glideRowId?: boolean
     data?: boolean
+    cuisineType?: boolean
     ingestedAt?: boolean
   }, ExtArgs["result"]["vegasRestaurant"]>
 
@@ -137625,10 +137817,11 @@ export namespace Prisma {
     id?: boolean
     glideRowId?: boolean
     data?: boolean
+    cuisineType?: boolean
     ingestedAt?: boolean
   }
 
-  export type VegasRestaurantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "glideRowId" | "data" | "ingestedAt", ExtArgs["result"]["vegasRestaurant"]>
+  export type VegasRestaurantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "glideRowId" | "data" | "cuisineType" | "ingestedAt", ExtArgs["result"]["vegasRestaurant"]>
 
   export type $VegasRestaurantPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "VegasRestaurant"
@@ -137637,6 +137830,7 @@ export namespace Prisma {
       id: number
       glideRowId: string
       data: Prisma.JsonValue
+      cuisineType: string | null
       ingestedAt: Date | null
     }, ExtArgs["result"]["vegasRestaurant"]>
     composites: {}
@@ -138064,6 +138258,7 @@ export namespace Prisma {
     readonly id: FieldRef<"VegasRestaurant", 'Int'>
     readonly glideRowId: FieldRef<"VegasRestaurant", 'String'>
     readonly data: FieldRef<"VegasRestaurant", 'Json'>
+    readonly cuisineType: FieldRef<"VegasRestaurant", 'String'>
     readonly ingestedAt: FieldRef<"VegasRestaurant", 'DateTime'>
   }
     
@@ -153362,6 +153557,2174 @@ export namespace Prisma {
 
 
   /**
+   * Model VegasCuisineAffinity
+   */
+
+  export type AggregateVegasCuisineAffinity = {
+    _count: VegasCuisineAffinityCountAggregateOutputType | null
+    _avg: VegasCuisineAffinityAvgAggregateOutputType | null
+    _sum: VegasCuisineAffinitySumAggregateOutputType | null
+    _min: VegasCuisineAffinityMinAggregateOutputType | null
+    _max: VegasCuisineAffinityMaxAggregateOutputType | null
+  }
+
+  export type VegasCuisineAffinityAvgAggregateOutputType = {
+    id: number | null
+    affinityScore: number | null
+  }
+
+  export type VegasCuisineAffinitySumAggregateOutputType = {
+    id: number | null
+    affinityScore: number | null
+  }
+
+  export type VegasCuisineAffinityMinAggregateOutputType = {
+    id: number | null
+    eventCategory: string | null
+    cuisineType: string | null
+    affinityScore: number | null
+    reasoning: string | null
+    createdAt: Date | null
+  }
+
+  export type VegasCuisineAffinityMaxAggregateOutputType = {
+    id: number | null
+    eventCategory: string | null
+    cuisineType: string | null
+    affinityScore: number | null
+    reasoning: string | null
+    createdAt: Date | null
+  }
+
+  export type VegasCuisineAffinityCountAggregateOutputType = {
+    id: number
+    eventCategory: number
+    cuisineType: number
+    affinityScore: number
+    reasoning: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type VegasCuisineAffinityAvgAggregateInputType = {
+    id?: true
+    affinityScore?: true
+  }
+
+  export type VegasCuisineAffinitySumAggregateInputType = {
+    id?: true
+    affinityScore?: true
+  }
+
+  export type VegasCuisineAffinityMinAggregateInputType = {
+    id?: true
+    eventCategory?: true
+    cuisineType?: true
+    affinityScore?: true
+    reasoning?: true
+    createdAt?: true
+  }
+
+  export type VegasCuisineAffinityMaxAggregateInputType = {
+    id?: true
+    eventCategory?: true
+    cuisineType?: true
+    affinityScore?: true
+    reasoning?: true
+    createdAt?: true
+  }
+
+  export type VegasCuisineAffinityCountAggregateInputType = {
+    id?: true
+    eventCategory?: true
+    cuisineType?: true
+    affinityScore?: true
+    reasoning?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type VegasCuisineAffinityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VegasCuisineAffinity to aggregate.
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasCuisineAffinities to fetch.
+     */
+    orderBy?: VegasCuisineAffinityOrderByWithRelationInput | VegasCuisineAffinityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: VegasCuisineAffinityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasCuisineAffinities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasCuisineAffinities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned VegasCuisineAffinities
+    **/
+    _count?: true | VegasCuisineAffinityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: VegasCuisineAffinityAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: VegasCuisineAffinitySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: VegasCuisineAffinityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: VegasCuisineAffinityMaxAggregateInputType
+  }
+
+  export type GetVegasCuisineAffinityAggregateType<T extends VegasCuisineAffinityAggregateArgs> = {
+        [P in keyof T & keyof AggregateVegasCuisineAffinity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateVegasCuisineAffinity[P]>
+      : GetScalarType<T[P], AggregateVegasCuisineAffinity[P]>
+  }
+
+
+
+
+  export type VegasCuisineAffinityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VegasCuisineAffinityWhereInput
+    orderBy?: VegasCuisineAffinityOrderByWithAggregationInput | VegasCuisineAffinityOrderByWithAggregationInput[]
+    by: VegasCuisineAffinityScalarFieldEnum[] | VegasCuisineAffinityScalarFieldEnum
+    having?: VegasCuisineAffinityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: VegasCuisineAffinityCountAggregateInputType | true
+    _avg?: VegasCuisineAffinityAvgAggregateInputType
+    _sum?: VegasCuisineAffinitySumAggregateInputType
+    _min?: VegasCuisineAffinityMinAggregateInputType
+    _max?: VegasCuisineAffinityMaxAggregateInputType
+  }
+
+  export type VegasCuisineAffinityGroupByOutputType = {
+    id: number
+    eventCategory: string
+    cuisineType: string
+    affinityScore: number
+    reasoning: string | null
+    createdAt: Date | null
+    _count: VegasCuisineAffinityCountAggregateOutputType | null
+    _avg: VegasCuisineAffinityAvgAggregateOutputType | null
+    _sum: VegasCuisineAffinitySumAggregateOutputType | null
+    _min: VegasCuisineAffinityMinAggregateOutputType | null
+    _max: VegasCuisineAffinityMaxAggregateOutputType | null
+  }
+
+  type GetVegasCuisineAffinityGroupByPayload<T extends VegasCuisineAffinityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<VegasCuisineAffinityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof VegasCuisineAffinityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], VegasCuisineAffinityGroupByOutputType[P]>
+            : GetScalarType<T[P], VegasCuisineAffinityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type VegasCuisineAffinitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventCategory?: boolean
+    cuisineType?: boolean
+    affinityScore?: boolean
+    reasoning?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["vegasCuisineAffinity"]>
+
+  export type VegasCuisineAffinitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventCategory?: boolean
+    cuisineType?: boolean
+    affinityScore?: boolean
+    reasoning?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["vegasCuisineAffinity"]>
+
+  export type VegasCuisineAffinitySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventCategory?: boolean
+    cuisineType?: boolean
+    affinityScore?: boolean
+    reasoning?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["vegasCuisineAffinity"]>
+
+  export type VegasCuisineAffinitySelectScalar = {
+    id?: boolean
+    eventCategory?: boolean
+    cuisineType?: boolean
+    affinityScore?: boolean
+    reasoning?: boolean
+    createdAt?: boolean
+  }
+
+  export type VegasCuisineAffinityOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "eventCategory" | "cuisineType" | "affinityScore" | "reasoning" | "createdAt", ExtArgs["result"]["vegasCuisineAffinity"]>
+
+  export type $VegasCuisineAffinityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "VegasCuisineAffinity"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      eventCategory: string
+      cuisineType: string
+      affinityScore: number
+      reasoning: string | null
+      createdAt: Date | null
+    }, ExtArgs["result"]["vegasCuisineAffinity"]>
+    composites: {}
+  }
+
+  type VegasCuisineAffinityGetPayload<S extends boolean | null | undefined | VegasCuisineAffinityDefaultArgs> = $Result.GetResult<Prisma.$VegasCuisineAffinityPayload, S>
+
+  type VegasCuisineAffinityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<VegasCuisineAffinityFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: VegasCuisineAffinityCountAggregateInputType | true
+    }
+
+  export interface VegasCuisineAffinityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['VegasCuisineAffinity'], meta: { name: 'VegasCuisineAffinity' } }
+    /**
+     * Find zero or one VegasCuisineAffinity that matches the filter.
+     * @param {VegasCuisineAffinityFindUniqueArgs} args - Arguments to find a VegasCuisineAffinity
+     * @example
+     * // Get one VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends VegasCuisineAffinityFindUniqueArgs>(args: SelectSubset<T, VegasCuisineAffinityFindUniqueArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one VegasCuisineAffinity that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {VegasCuisineAffinityFindUniqueOrThrowArgs} args - Arguments to find a VegasCuisineAffinity
+     * @example
+     * // Get one VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends VegasCuisineAffinityFindUniqueOrThrowArgs>(args: SelectSubset<T, VegasCuisineAffinityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first VegasCuisineAffinity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityFindFirstArgs} args - Arguments to find a VegasCuisineAffinity
+     * @example
+     * // Get one VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends VegasCuisineAffinityFindFirstArgs>(args?: SelectSubset<T, VegasCuisineAffinityFindFirstArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first VegasCuisineAffinity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityFindFirstOrThrowArgs} args - Arguments to find a VegasCuisineAffinity
+     * @example
+     * // Get one VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends VegasCuisineAffinityFindFirstOrThrowArgs>(args?: SelectSubset<T, VegasCuisineAffinityFindFirstOrThrowArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more VegasCuisineAffinities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all VegasCuisineAffinities
+     * const vegasCuisineAffinities = await prisma.vegasCuisineAffinity.findMany()
+     * 
+     * // Get first 10 VegasCuisineAffinities
+     * const vegasCuisineAffinities = await prisma.vegasCuisineAffinity.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const vegasCuisineAffinityWithIdOnly = await prisma.vegasCuisineAffinity.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends VegasCuisineAffinityFindManyArgs>(args?: SelectSubset<T, VegasCuisineAffinityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a VegasCuisineAffinity.
+     * @param {VegasCuisineAffinityCreateArgs} args - Arguments to create a VegasCuisineAffinity.
+     * @example
+     * // Create one VegasCuisineAffinity
+     * const VegasCuisineAffinity = await prisma.vegasCuisineAffinity.create({
+     *   data: {
+     *     // ... data to create a VegasCuisineAffinity
+     *   }
+     * })
+     * 
+     */
+    create<T extends VegasCuisineAffinityCreateArgs>(args: SelectSubset<T, VegasCuisineAffinityCreateArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many VegasCuisineAffinities.
+     * @param {VegasCuisineAffinityCreateManyArgs} args - Arguments to create many VegasCuisineAffinities.
+     * @example
+     * // Create many VegasCuisineAffinities
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends VegasCuisineAffinityCreateManyArgs>(args?: SelectSubset<T, VegasCuisineAffinityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many VegasCuisineAffinities and returns the data saved in the database.
+     * @param {VegasCuisineAffinityCreateManyAndReturnArgs} args - Arguments to create many VegasCuisineAffinities.
+     * @example
+     * // Create many VegasCuisineAffinities
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many VegasCuisineAffinities and only return the `id`
+     * const vegasCuisineAffinityWithIdOnly = await prisma.vegasCuisineAffinity.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends VegasCuisineAffinityCreateManyAndReturnArgs>(args?: SelectSubset<T, VegasCuisineAffinityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a VegasCuisineAffinity.
+     * @param {VegasCuisineAffinityDeleteArgs} args - Arguments to delete one VegasCuisineAffinity.
+     * @example
+     * // Delete one VegasCuisineAffinity
+     * const VegasCuisineAffinity = await prisma.vegasCuisineAffinity.delete({
+     *   where: {
+     *     // ... filter to delete one VegasCuisineAffinity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends VegasCuisineAffinityDeleteArgs>(args: SelectSubset<T, VegasCuisineAffinityDeleteArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one VegasCuisineAffinity.
+     * @param {VegasCuisineAffinityUpdateArgs} args - Arguments to update one VegasCuisineAffinity.
+     * @example
+     * // Update one VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends VegasCuisineAffinityUpdateArgs>(args: SelectSubset<T, VegasCuisineAffinityUpdateArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more VegasCuisineAffinities.
+     * @param {VegasCuisineAffinityDeleteManyArgs} args - Arguments to filter VegasCuisineAffinities to delete.
+     * @example
+     * // Delete a few VegasCuisineAffinities
+     * const { count } = await prisma.vegasCuisineAffinity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends VegasCuisineAffinityDeleteManyArgs>(args?: SelectSubset<T, VegasCuisineAffinityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VegasCuisineAffinities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many VegasCuisineAffinities
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends VegasCuisineAffinityUpdateManyArgs>(args: SelectSubset<T, VegasCuisineAffinityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VegasCuisineAffinities and returns the data updated in the database.
+     * @param {VegasCuisineAffinityUpdateManyAndReturnArgs} args - Arguments to update many VegasCuisineAffinities.
+     * @example
+     * // Update many VegasCuisineAffinities
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more VegasCuisineAffinities and only return the `id`
+     * const vegasCuisineAffinityWithIdOnly = await prisma.vegasCuisineAffinity.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends VegasCuisineAffinityUpdateManyAndReturnArgs>(args: SelectSubset<T, VegasCuisineAffinityUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one VegasCuisineAffinity.
+     * @param {VegasCuisineAffinityUpsertArgs} args - Arguments to update or create a VegasCuisineAffinity.
+     * @example
+     * // Update or create a VegasCuisineAffinity
+     * const vegasCuisineAffinity = await prisma.vegasCuisineAffinity.upsert({
+     *   create: {
+     *     // ... data to create a VegasCuisineAffinity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the VegasCuisineAffinity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends VegasCuisineAffinityUpsertArgs>(args: SelectSubset<T, VegasCuisineAffinityUpsertArgs<ExtArgs>>): Prisma__VegasCuisineAffinityClient<$Result.GetResult<Prisma.$VegasCuisineAffinityPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of VegasCuisineAffinities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityCountArgs} args - Arguments to filter VegasCuisineAffinities to count.
+     * @example
+     * // Count the number of VegasCuisineAffinities
+     * const count = await prisma.vegasCuisineAffinity.count({
+     *   where: {
+     *     // ... the filter for the VegasCuisineAffinities we want to count
+     *   }
+     * })
+    **/
+    count<T extends VegasCuisineAffinityCountArgs>(
+      args?: Subset<T, VegasCuisineAffinityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], VegasCuisineAffinityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a VegasCuisineAffinity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends VegasCuisineAffinityAggregateArgs>(args: Subset<T, VegasCuisineAffinityAggregateArgs>): Prisma.PrismaPromise<GetVegasCuisineAffinityAggregateType<T>>
+
+    /**
+     * Group by VegasCuisineAffinity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasCuisineAffinityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends VegasCuisineAffinityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: VegasCuisineAffinityGroupByArgs['orderBy'] }
+        : { orderBy?: VegasCuisineAffinityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, VegasCuisineAffinityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetVegasCuisineAffinityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the VegasCuisineAffinity model
+   */
+  readonly fields: VegasCuisineAffinityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for VegasCuisineAffinity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__VegasCuisineAffinityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the VegasCuisineAffinity model
+   */
+  interface VegasCuisineAffinityFieldRefs {
+    readonly id: FieldRef<"VegasCuisineAffinity", 'Int'>
+    readonly eventCategory: FieldRef<"VegasCuisineAffinity", 'String'>
+    readonly cuisineType: FieldRef<"VegasCuisineAffinity", 'String'>
+    readonly affinityScore: FieldRef<"VegasCuisineAffinity", 'Int'>
+    readonly reasoning: FieldRef<"VegasCuisineAffinity", 'String'>
+    readonly createdAt: FieldRef<"VegasCuisineAffinity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * VegasCuisineAffinity findUnique
+   */
+  export type VegasCuisineAffinityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasCuisineAffinity to fetch.
+     */
+    where: VegasCuisineAffinityWhereUniqueInput
+  }
+
+  /**
+   * VegasCuisineAffinity findUniqueOrThrow
+   */
+  export type VegasCuisineAffinityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasCuisineAffinity to fetch.
+     */
+    where: VegasCuisineAffinityWhereUniqueInput
+  }
+
+  /**
+   * VegasCuisineAffinity findFirst
+   */
+  export type VegasCuisineAffinityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasCuisineAffinity to fetch.
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasCuisineAffinities to fetch.
+     */
+    orderBy?: VegasCuisineAffinityOrderByWithRelationInput | VegasCuisineAffinityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VegasCuisineAffinities.
+     */
+    cursor?: VegasCuisineAffinityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasCuisineAffinities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasCuisineAffinities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VegasCuisineAffinities.
+     */
+    distinct?: VegasCuisineAffinityScalarFieldEnum | VegasCuisineAffinityScalarFieldEnum[]
+  }
+
+  /**
+   * VegasCuisineAffinity findFirstOrThrow
+   */
+  export type VegasCuisineAffinityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasCuisineAffinity to fetch.
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasCuisineAffinities to fetch.
+     */
+    orderBy?: VegasCuisineAffinityOrderByWithRelationInput | VegasCuisineAffinityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VegasCuisineAffinities.
+     */
+    cursor?: VegasCuisineAffinityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasCuisineAffinities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasCuisineAffinities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VegasCuisineAffinities.
+     */
+    distinct?: VegasCuisineAffinityScalarFieldEnum | VegasCuisineAffinityScalarFieldEnum[]
+  }
+
+  /**
+   * VegasCuisineAffinity findMany
+   */
+  export type VegasCuisineAffinityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasCuisineAffinities to fetch.
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasCuisineAffinities to fetch.
+     */
+    orderBy?: VegasCuisineAffinityOrderByWithRelationInput | VegasCuisineAffinityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing VegasCuisineAffinities.
+     */
+    cursor?: VegasCuisineAffinityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasCuisineAffinities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasCuisineAffinities.
+     */
+    skip?: number
+    distinct?: VegasCuisineAffinityScalarFieldEnum | VegasCuisineAffinityScalarFieldEnum[]
+  }
+
+  /**
+   * VegasCuisineAffinity create
+   */
+  export type VegasCuisineAffinityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * The data needed to create a VegasCuisineAffinity.
+     */
+    data: XOR<VegasCuisineAffinityCreateInput, VegasCuisineAffinityUncheckedCreateInput>
+  }
+
+  /**
+   * VegasCuisineAffinity createMany
+   */
+  export type VegasCuisineAffinityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many VegasCuisineAffinities.
+     */
+    data: VegasCuisineAffinityCreateManyInput | VegasCuisineAffinityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VegasCuisineAffinity createManyAndReturn
+   */
+  export type VegasCuisineAffinityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * The data used to create many VegasCuisineAffinities.
+     */
+    data: VegasCuisineAffinityCreateManyInput | VegasCuisineAffinityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VegasCuisineAffinity update
+   */
+  export type VegasCuisineAffinityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * The data needed to update a VegasCuisineAffinity.
+     */
+    data: XOR<VegasCuisineAffinityUpdateInput, VegasCuisineAffinityUncheckedUpdateInput>
+    /**
+     * Choose, which VegasCuisineAffinity to update.
+     */
+    where: VegasCuisineAffinityWhereUniqueInput
+  }
+
+  /**
+   * VegasCuisineAffinity updateMany
+   */
+  export type VegasCuisineAffinityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update VegasCuisineAffinities.
+     */
+    data: XOR<VegasCuisineAffinityUpdateManyMutationInput, VegasCuisineAffinityUncheckedUpdateManyInput>
+    /**
+     * Filter which VegasCuisineAffinities to update
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * Limit how many VegasCuisineAffinities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasCuisineAffinity updateManyAndReturn
+   */
+  export type VegasCuisineAffinityUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * The data used to update VegasCuisineAffinities.
+     */
+    data: XOR<VegasCuisineAffinityUpdateManyMutationInput, VegasCuisineAffinityUncheckedUpdateManyInput>
+    /**
+     * Filter which VegasCuisineAffinities to update
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * Limit how many VegasCuisineAffinities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasCuisineAffinity upsert
+   */
+  export type VegasCuisineAffinityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * The filter to search for the VegasCuisineAffinity to update in case it exists.
+     */
+    where: VegasCuisineAffinityWhereUniqueInput
+    /**
+     * In case the VegasCuisineAffinity found by the `where` argument doesn't exist, create a new VegasCuisineAffinity with this data.
+     */
+    create: XOR<VegasCuisineAffinityCreateInput, VegasCuisineAffinityUncheckedCreateInput>
+    /**
+     * In case the VegasCuisineAffinity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<VegasCuisineAffinityUpdateInput, VegasCuisineAffinityUncheckedUpdateInput>
+  }
+
+  /**
+   * VegasCuisineAffinity delete
+   */
+  export type VegasCuisineAffinityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+    /**
+     * Filter which VegasCuisineAffinity to delete.
+     */
+    where: VegasCuisineAffinityWhereUniqueInput
+  }
+
+  /**
+   * VegasCuisineAffinity deleteMany
+   */
+  export type VegasCuisineAffinityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VegasCuisineAffinities to delete
+     */
+    where?: VegasCuisineAffinityWhereInput
+    /**
+     * Limit how many VegasCuisineAffinities to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasCuisineAffinity without action
+   */
+  export type VegasCuisineAffinityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasCuisineAffinity
+     */
+    select?: VegasCuisineAffinitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasCuisineAffinity
+     */
+    omit?: VegasCuisineAffinityOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model VegasDailySpend
+   */
+
+  export type AggregateVegasDailySpend = {
+    _count: VegasDailySpendCountAggregateOutputType | null
+    _avg: VegasDailySpendAvgAggregateOutputType | null
+    _sum: VegasDailySpendSumAggregateOutputType | null
+    _min: VegasDailySpendMinAggregateOutputType | null
+    _max: VegasDailySpendMaxAggregateOutputType | null
+  }
+
+  export type VegasDailySpendAvgAggregateOutputType = {
+    id: number | null
+    spendConcerts: number | null
+    spendConferences: number | null
+    spendExpos: number | null
+    spendFestivals: number | null
+    spendPerformingArts: number | null
+    spendSports: number | null
+    spendTotal: number | null
+  }
+
+  export type VegasDailySpendSumAggregateOutputType = {
+    id: number | null
+    spendConcerts: number | null
+    spendConferences: number | null
+    spendExpos: number | null
+    spendFestivals: number | null
+    spendPerformingArts: number | null
+    spendSports: number | null
+    spendTotal: number | null
+  }
+
+  export type VegasDailySpendMinAggregateOutputType = {
+    id: number | null
+    impactDate: Date | null
+    spendConcerts: number | null
+    spendConferences: number | null
+    spendExpos: number | null
+    spendFestivals: number | null
+    spendPerformingArts: number | null
+    spendSports: number | null
+    spendTotal: number | null
+    importedAt: Date | null
+  }
+
+  export type VegasDailySpendMaxAggregateOutputType = {
+    id: number | null
+    impactDate: Date | null
+    spendConcerts: number | null
+    spendConferences: number | null
+    spendExpos: number | null
+    spendFestivals: number | null
+    spendPerformingArts: number | null
+    spendSports: number | null
+    spendTotal: number | null
+    importedAt: Date | null
+  }
+
+  export type VegasDailySpendCountAggregateOutputType = {
+    id: number
+    impactDate: number
+    spendConcerts: number
+    spendConferences: number
+    spendExpos: number
+    spendFestivals: number
+    spendPerformingArts: number
+    spendSports: number
+    spendTotal: number
+    importedAt: number
+    _all: number
+  }
+
+
+  export type VegasDailySpendAvgAggregateInputType = {
+    id?: true
+    spendConcerts?: true
+    spendConferences?: true
+    spendExpos?: true
+    spendFestivals?: true
+    spendPerformingArts?: true
+    spendSports?: true
+    spendTotal?: true
+  }
+
+  export type VegasDailySpendSumAggregateInputType = {
+    id?: true
+    spendConcerts?: true
+    spendConferences?: true
+    spendExpos?: true
+    spendFestivals?: true
+    spendPerformingArts?: true
+    spendSports?: true
+    spendTotal?: true
+  }
+
+  export type VegasDailySpendMinAggregateInputType = {
+    id?: true
+    impactDate?: true
+    spendConcerts?: true
+    spendConferences?: true
+    spendExpos?: true
+    spendFestivals?: true
+    spendPerformingArts?: true
+    spendSports?: true
+    spendTotal?: true
+    importedAt?: true
+  }
+
+  export type VegasDailySpendMaxAggregateInputType = {
+    id?: true
+    impactDate?: true
+    spendConcerts?: true
+    spendConferences?: true
+    spendExpos?: true
+    spendFestivals?: true
+    spendPerformingArts?: true
+    spendSports?: true
+    spendTotal?: true
+    importedAt?: true
+  }
+
+  export type VegasDailySpendCountAggregateInputType = {
+    id?: true
+    impactDate?: true
+    spendConcerts?: true
+    spendConferences?: true
+    spendExpos?: true
+    spendFestivals?: true
+    spendPerformingArts?: true
+    spendSports?: true
+    spendTotal?: true
+    importedAt?: true
+    _all?: true
+  }
+
+  export type VegasDailySpendAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VegasDailySpend to aggregate.
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasDailySpends to fetch.
+     */
+    orderBy?: VegasDailySpendOrderByWithRelationInput | VegasDailySpendOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: VegasDailySpendWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasDailySpends from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasDailySpends.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned VegasDailySpends
+    **/
+    _count?: true | VegasDailySpendCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: VegasDailySpendAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: VegasDailySpendSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: VegasDailySpendMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: VegasDailySpendMaxAggregateInputType
+  }
+
+  export type GetVegasDailySpendAggregateType<T extends VegasDailySpendAggregateArgs> = {
+        [P in keyof T & keyof AggregateVegasDailySpend]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateVegasDailySpend[P]>
+      : GetScalarType<T[P], AggregateVegasDailySpend[P]>
+  }
+
+
+
+
+  export type VegasDailySpendGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VegasDailySpendWhereInput
+    orderBy?: VegasDailySpendOrderByWithAggregationInput | VegasDailySpendOrderByWithAggregationInput[]
+    by: VegasDailySpendScalarFieldEnum[] | VegasDailySpendScalarFieldEnum
+    having?: VegasDailySpendScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: VegasDailySpendCountAggregateInputType | true
+    _avg?: VegasDailySpendAvgAggregateInputType
+    _sum?: VegasDailySpendSumAggregateInputType
+    _min?: VegasDailySpendMinAggregateInputType
+    _max?: VegasDailySpendMaxAggregateInputType
+  }
+
+  export type VegasDailySpendGroupByOutputType = {
+    id: number
+    impactDate: Date
+    spendConcerts: number
+    spendConferences: number
+    spendExpos: number
+    spendFestivals: number
+    spendPerformingArts: number
+    spendSports: number
+    spendTotal: number | null
+    importedAt: Date | null
+    _count: VegasDailySpendCountAggregateOutputType | null
+    _avg: VegasDailySpendAvgAggregateOutputType | null
+    _sum: VegasDailySpendSumAggregateOutputType | null
+    _min: VegasDailySpendMinAggregateOutputType | null
+    _max: VegasDailySpendMaxAggregateOutputType | null
+  }
+
+  type GetVegasDailySpendGroupByPayload<T extends VegasDailySpendGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<VegasDailySpendGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof VegasDailySpendGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], VegasDailySpendGroupByOutputType[P]>
+            : GetScalarType<T[P], VegasDailySpendGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type VegasDailySpendSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impactDate?: boolean
+    spendConcerts?: boolean
+    spendConferences?: boolean
+    spendExpos?: boolean
+    spendFestivals?: boolean
+    spendPerformingArts?: boolean
+    spendSports?: boolean
+    spendTotal?: boolean
+    importedAt?: boolean
+  }, ExtArgs["result"]["vegasDailySpend"]>
+
+  export type VegasDailySpendSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impactDate?: boolean
+    spendConcerts?: boolean
+    spendConferences?: boolean
+    spendExpos?: boolean
+    spendFestivals?: boolean
+    spendPerformingArts?: boolean
+    spendSports?: boolean
+    spendTotal?: boolean
+    importedAt?: boolean
+  }, ExtArgs["result"]["vegasDailySpend"]>
+
+  export type VegasDailySpendSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    impactDate?: boolean
+    spendConcerts?: boolean
+    spendConferences?: boolean
+    spendExpos?: boolean
+    spendFestivals?: boolean
+    spendPerformingArts?: boolean
+    spendSports?: boolean
+    spendTotal?: boolean
+    importedAt?: boolean
+  }, ExtArgs["result"]["vegasDailySpend"]>
+
+  export type VegasDailySpendSelectScalar = {
+    id?: boolean
+    impactDate?: boolean
+    spendConcerts?: boolean
+    spendConferences?: boolean
+    spendExpos?: boolean
+    spendFestivals?: boolean
+    spendPerformingArts?: boolean
+    spendSports?: boolean
+    spendTotal?: boolean
+    importedAt?: boolean
+  }
+
+  export type VegasDailySpendOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "impactDate" | "spendConcerts" | "spendConferences" | "spendExpos" | "spendFestivals" | "spendPerformingArts" | "spendSports" | "spendTotal" | "importedAt", ExtArgs["result"]["vegasDailySpend"]>
+
+  export type $VegasDailySpendPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "VegasDailySpend"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      impactDate: Date
+      spendConcerts: number
+      spendConferences: number
+      spendExpos: number
+      spendFestivals: number
+      spendPerformingArts: number
+      spendSports: number
+      spendTotal: number | null
+      importedAt: Date | null
+    }, ExtArgs["result"]["vegasDailySpend"]>
+    composites: {}
+  }
+
+  type VegasDailySpendGetPayload<S extends boolean | null | undefined | VegasDailySpendDefaultArgs> = $Result.GetResult<Prisma.$VegasDailySpendPayload, S>
+
+  type VegasDailySpendCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<VegasDailySpendFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: VegasDailySpendCountAggregateInputType | true
+    }
+
+  export interface VegasDailySpendDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['VegasDailySpend'], meta: { name: 'VegasDailySpend' } }
+    /**
+     * Find zero or one VegasDailySpend that matches the filter.
+     * @param {VegasDailySpendFindUniqueArgs} args - Arguments to find a VegasDailySpend
+     * @example
+     * // Get one VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends VegasDailySpendFindUniqueArgs>(args: SelectSubset<T, VegasDailySpendFindUniqueArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one VegasDailySpend that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {VegasDailySpendFindUniqueOrThrowArgs} args - Arguments to find a VegasDailySpend
+     * @example
+     * // Get one VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends VegasDailySpendFindUniqueOrThrowArgs>(args: SelectSubset<T, VegasDailySpendFindUniqueOrThrowArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first VegasDailySpend that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendFindFirstArgs} args - Arguments to find a VegasDailySpend
+     * @example
+     * // Get one VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends VegasDailySpendFindFirstArgs>(args?: SelectSubset<T, VegasDailySpendFindFirstArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first VegasDailySpend that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendFindFirstOrThrowArgs} args - Arguments to find a VegasDailySpend
+     * @example
+     * // Get one VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends VegasDailySpendFindFirstOrThrowArgs>(args?: SelectSubset<T, VegasDailySpendFindFirstOrThrowArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more VegasDailySpends that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all VegasDailySpends
+     * const vegasDailySpends = await prisma.vegasDailySpend.findMany()
+     * 
+     * // Get first 10 VegasDailySpends
+     * const vegasDailySpends = await prisma.vegasDailySpend.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const vegasDailySpendWithIdOnly = await prisma.vegasDailySpend.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends VegasDailySpendFindManyArgs>(args?: SelectSubset<T, VegasDailySpendFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a VegasDailySpend.
+     * @param {VegasDailySpendCreateArgs} args - Arguments to create a VegasDailySpend.
+     * @example
+     * // Create one VegasDailySpend
+     * const VegasDailySpend = await prisma.vegasDailySpend.create({
+     *   data: {
+     *     // ... data to create a VegasDailySpend
+     *   }
+     * })
+     * 
+     */
+    create<T extends VegasDailySpendCreateArgs>(args: SelectSubset<T, VegasDailySpendCreateArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many VegasDailySpends.
+     * @param {VegasDailySpendCreateManyArgs} args - Arguments to create many VegasDailySpends.
+     * @example
+     * // Create many VegasDailySpends
+     * const vegasDailySpend = await prisma.vegasDailySpend.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends VegasDailySpendCreateManyArgs>(args?: SelectSubset<T, VegasDailySpendCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many VegasDailySpends and returns the data saved in the database.
+     * @param {VegasDailySpendCreateManyAndReturnArgs} args - Arguments to create many VegasDailySpends.
+     * @example
+     * // Create many VegasDailySpends
+     * const vegasDailySpend = await prisma.vegasDailySpend.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many VegasDailySpends and only return the `id`
+     * const vegasDailySpendWithIdOnly = await prisma.vegasDailySpend.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends VegasDailySpendCreateManyAndReturnArgs>(args?: SelectSubset<T, VegasDailySpendCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a VegasDailySpend.
+     * @param {VegasDailySpendDeleteArgs} args - Arguments to delete one VegasDailySpend.
+     * @example
+     * // Delete one VegasDailySpend
+     * const VegasDailySpend = await prisma.vegasDailySpend.delete({
+     *   where: {
+     *     // ... filter to delete one VegasDailySpend
+     *   }
+     * })
+     * 
+     */
+    delete<T extends VegasDailySpendDeleteArgs>(args: SelectSubset<T, VegasDailySpendDeleteArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one VegasDailySpend.
+     * @param {VegasDailySpendUpdateArgs} args - Arguments to update one VegasDailySpend.
+     * @example
+     * // Update one VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends VegasDailySpendUpdateArgs>(args: SelectSubset<T, VegasDailySpendUpdateArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more VegasDailySpends.
+     * @param {VegasDailySpendDeleteManyArgs} args - Arguments to filter VegasDailySpends to delete.
+     * @example
+     * // Delete a few VegasDailySpends
+     * const { count } = await prisma.vegasDailySpend.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends VegasDailySpendDeleteManyArgs>(args?: SelectSubset<T, VegasDailySpendDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VegasDailySpends.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many VegasDailySpends
+     * const vegasDailySpend = await prisma.vegasDailySpend.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends VegasDailySpendUpdateManyArgs>(args: SelectSubset<T, VegasDailySpendUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VegasDailySpends and returns the data updated in the database.
+     * @param {VegasDailySpendUpdateManyAndReturnArgs} args - Arguments to update many VegasDailySpends.
+     * @example
+     * // Update many VegasDailySpends
+     * const vegasDailySpend = await prisma.vegasDailySpend.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more VegasDailySpends and only return the `id`
+     * const vegasDailySpendWithIdOnly = await prisma.vegasDailySpend.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends VegasDailySpendUpdateManyAndReturnArgs>(args: SelectSubset<T, VegasDailySpendUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one VegasDailySpend.
+     * @param {VegasDailySpendUpsertArgs} args - Arguments to update or create a VegasDailySpend.
+     * @example
+     * // Update or create a VegasDailySpend
+     * const vegasDailySpend = await prisma.vegasDailySpend.upsert({
+     *   create: {
+     *     // ... data to create a VegasDailySpend
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the VegasDailySpend we want to update
+     *   }
+     * })
+     */
+    upsert<T extends VegasDailySpendUpsertArgs>(args: SelectSubset<T, VegasDailySpendUpsertArgs<ExtArgs>>): Prisma__VegasDailySpendClient<$Result.GetResult<Prisma.$VegasDailySpendPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of VegasDailySpends.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendCountArgs} args - Arguments to filter VegasDailySpends to count.
+     * @example
+     * // Count the number of VegasDailySpends
+     * const count = await prisma.vegasDailySpend.count({
+     *   where: {
+     *     // ... the filter for the VegasDailySpends we want to count
+     *   }
+     * })
+    **/
+    count<T extends VegasDailySpendCountArgs>(
+      args?: Subset<T, VegasDailySpendCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], VegasDailySpendCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a VegasDailySpend.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends VegasDailySpendAggregateArgs>(args: Subset<T, VegasDailySpendAggregateArgs>): Prisma.PrismaPromise<GetVegasDailySpendAggregateType<T>>
+
+    /**
+     * Group by VegasDailySpend.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VegasDailySpendGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends VegasDailySpendGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: VegasDailySpendGroupByArgs['orderBy'] }
+        : { orderBy?: VegasDailySpendGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, VegasDailySpendGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetVegasDailySpendGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the VegasDailySpend model
+   */
+  readonly fields: VegasDailySpendFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for VegasDailySpend.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__VegasDailySpendClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the VegasDailySpend model
+   */
+  interface VegasDailySpendFieldRefs {
+    readonly id: FieldRef<"VegasDailySpend", 'Int'>
+    readonly impactDate: FieldRef<"VegasDailySpend", 'DateTime'>
+    readonly spendConcerts: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendConferences: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendExpos: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendFestivals: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendPerformingArts: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendSports: FieldRef<"VegasDailySpend", 'Int'>
+    readonly spendTotal: FieldRef<"VegasDailySpend", 'Int'>
+    readonly importedAt: FieldRef<"VegasDailySpend", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * VegasDailySpend findUnique
+   */
+  export type VegasDailySpendFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasDailySpend to fetch.
+     */
+    where: VegasDailySpendWhereUniqueInput
+  }
+
+  /**
+   * VegasDailySpend findUniqueOrThrow
+   */
+  export type VegasDailySpendFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasDailySpend to fetch.
+     */
+    where: VegasDailySpendWhereUniqueInput
+  }
+
+  /**
+   * VegasDailySpend findFirst
+   */
+  export type VegasDailySpendFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasDailySpend to fetch.
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasDailySpends to fetch.
+     */
+    orderBy?: VegasDailySpendOrderByWithRelationInput | VegasDailySpendOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VegasDailySpends.
+     */
+    cursor?: VegasDailySpendWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasDailySpends from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasDailySpends.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VegasDailySpends.
+     */
+    distinct?: VegasDailySpendScalarFieldEnum | VegasDailySpendScalarFieldEnum[]
+  }
+
+  /**
+   * VegasDailySpend findFirstOrThrow
+   */
+  export type VegasDailySpendFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasDailySpend to fetch.
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasDailySpends to fetch.
+     */
+    orderBy?: VegasDailySpendOrderByWithRelationInput | VegasDailySpendOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VegasDailySpends.
+     */
+    cursor?: VegasDailySpendWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasDailySpends from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasDailySpends.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VegasDailySpends.
+     */
+    distinct?: VegasDailySpendScalarFieldEnum | VegasDailySpendScalarFieldEnum[]
+  }
+
+  /**
+   * VegasDailySpend findMany
+   */
+  export type VegasDailySpendFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter, which VegasDailySpends to fetch.
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VegasDailySpends to fetch.
+     */
+    orderBy?: VegasDailySpendOrderByWithRelationInput | VegasDailySpendOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing VegasDailySpends.
+     */
+    cursor?: VegasDailySpendWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VegasDailySpends from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VegasDailySpends.
+     */
+    skip?: number
+    distinct?: VegasDailySpendScalarFieldEnum | VegasDailySpendScalarFieldEnum[]
+  }
+
+  /**
+   * VegasDailySpend create
+   */
+  export type VegasDailySpendCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * The data needed to create a VegasDailySpend.
+     */
+    data: XOR<VegasDailySpendCreateInput, VegasDailySpendUncheckedCreateInput>
+  }
+
+  /**
+   * VegasDailySpend createMany
+   */
+  export type VegasDailySpendCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many VegasDailySpends.
+     */
+    data: VegasDailySpendCreateManyInput | VegasDailySpendCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VegasDailySpend createManyAndReturn
+   */
+  export type VegasDailySpendCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * The data used to create many VegasDailySpends.
+     */
+    data: VegasDailySpendCreateManyInput | VegasDailySpendCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VegasDailySpend update
+   */
+  export type VegasDailySpendUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * The data needed to update a VegasDailySpend.
+     */
+    data: XOR<VegasDailySpendUpdateInput, VegasDailySpendUncheckedUpdateInput>
+    /**
+     * Choose, which VegasDailySpend to update.
+     */
+    where: VegasDailySpendWhereUniqueInput
+  }
+
+  /**
+   * VegasDailySpend updateMany
+   */
+  export type VegasDailySpendUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update VegasDailySpends.
+     */
+    data: XOR<VegasDailySpendUpdateManyMutationInput, VegasDailySpendUncheckedUpdateManyInput>
+    /**
+     * Filter which VegasDailySpends to update
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * Limit how many VegasDailySpends to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasDailySpend updateManyAndReturn
+   */
+  export type VegasDailySpendUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * The data used to update VegasDailySpends.
+     */
+    data: XOR<VegasDailySpendUpdateManyMutationInput, VegasDailySpendUncheckedUpdateManyInput>
+    /**
+     * Filter which VegasDailySpends to update
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * Limit how many VegasDailySpends to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasDailySpend upsert
+   */
+  export type VegasDailySpendUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * The filter to search for the VegasDailySpend to update in case it exists.
+     */
+    where: VegasDailySpendWhereUniqueInput
+    /**
+     * In case the VegasDailySpend found by the `where` argument doesn't exist, create a new VegasDailySpend with this data.
+     */
+    create: XOR<VegasDailySpendCreateInput, VegasDailySpendUncheckedCreateInput>
+    /**
+     * In case the VegasDailySpend was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<VegasDailySpendUpdateInput, VegasDailySpendUncheckedUpdateInput>
+  }
+
+  /**
+   * VegasDailySpend delete
+   */
+  export type VegasDailySpendDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+    /**
+     * Filter which VegasDailySpend to delete.
+     */
+    where: VegasDailySpendWhereUniqueInput
+  }
+
+  /**
+   * VegasDailySpend deleteMany
+   */
+  export type VegasDailySpendDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VegasDailySpends to delete
+     */
+    where?: VegasDailySpendWhereInput
+    /**
+     * Limit how many VegasDailySpends to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * VegasDailySpend without action
+   */
+  export type VegasDailySpendDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VegasDailySpend
+     */
+    select?: VegasDailySpendSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the VegasDailySpend
+     */
+    omit?: VegasDailySpendOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -155606,6 +157969,7 @@ export namespace Prisma {
     id: 'id',
     glideRowId: 'glideRowId',
     data: 'data',
+    cuisineType: 'cuisineType',
     ingestedAt: 'ingestedAt'
   };
 
@@ -155804,6 +158168,34 @@ export namespace Prisma {
   };
 
   export type VegasActivityLogScalarFieldEnum = (typeof VegasActivityLogScalarFieldEnum)[keyof typeof VegasActivityLogScalarFieldEnum]
+
+
+  export const VegasCuisineAffinityScalarFieldEnum: {
+    id: 'id',
+    eventCategory: 'eventCategory',
+    cuisineType: 'cuisineType',
+    affinityScore: 'affinityScore',
+    reasoning: 'reasoning',
+    createdAt: 'createdAt'
+  };
+
+  export type VegasCuisineAffinityScalarFieldEnum = (typeof VegasCuisineAffinityScalarFieldEnum)[keyof typeof VegasCuisineAffinityScalarFieldEnum]
+
+
+  export const VegasDailySpendScalarFieldEnum: {
+    id: 'id',
+    impactDate: 'impactDate',
+    spendConcerts: 'spendConcerts',
+    spendConferences: 'spendConferences',
+    spendExpos: 'spendExpos',
+    spendFestivals: 'spendFestivals',
+    spendPerformingArts: 'spendPerformingArts',
+    spendSports: 'spendSports',
+    spendTotal: 'spendTotal',
+    importedAt: 'importedAt'
+  };
+
+  export type VegasDailySpendScalarFieldEnum = (typeof VegasDailySpendScalarFieldEnum)[keyof typeof VegasDailySpendScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -167102,6 +169494,7 @@ export namespace Prisma {
     id?: IntFilter<"VegasRestaurant"> | number
     glideRowId?: StringFilter<"VegasRestaurant"> | string
     data?: JsonFilter<"VegasRestaurant">
+    cuisineType?: StringNullableFilter<"VegasRestaurant"> | string | null
     ingestedAt?: DateTimeNullableFilter<"VegasRestaurant"> | Date | string | null
   }
 
@@ -167109,6 +169502,7 @@ export namespace Prisma {
     id?: SortOrder
     glideRowId?: SortOrder
     data?: SortOrder
+    cuisineType?: SortOrderInput | SortOrder
     ingestedAt?: SortOrderInput | SortOrder
   }
 
@@ -167119,6 +169513,7 @@ export namespace Prisma {
     OR?: VegasRestaurantWhereInput[]
     NOT?: VegasRestaurantWhereInput | VegasRestaurantWhereInput[]
     data?: JsonFilter<"VegasRestaurant">
+    cuisineType?: StringNullableFilter<"VegasRestaurant"> | string | null
     ingestedAt?: DateTimeNullableFilter<"VegasRestaurant"> | Date | string | null
   }, "id" | "glideRowId">
 
@@ -167126,6 +169521,7 @@ export namespace Prisma {
     id?: SortOrder
     glideRowId?: SortOrder
     data?: SortOrder
+    cuisineType?: SortOrderInput | SortOrder
     ingestedAt?: SortOrderInput | SortOrder
     _count?: VegasRestaurantCountOrderByAggregateInput
     _avg?: VegasRestaurantAvgOrderByAggregateInput
@@ -167141,6 +169537,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"VegasRestaurant"> | number
     glideRowId?: StringWithAggregatesFilter<"VegasRestaurant"> | string
     data?: JsonWithAggregatesFilter<"VegasRestaurant">
+    cuisineType?: StringNullableWithAggregatesFilter<"VegasRestaurant"> | string | null
     ingestedAt?: DateTimeNullableWithAggregatesFilter<"VegasRestaurant"> | Date | string | null
   }
 
@@ -168099,6 +170496,145 @@ export namespace Prisma {
     userId?: StringNullableWithAggregatesFilter<"VegasActivityLog"> | string | null
     details?: JsonNullableWithAggregatesFilter<"VegasActivityLog">
     createdAt?: DateTimeNullableWithAggregatesFilter<"VegasActivityLog"> | Date | string | null
+  }
+
+  export type VegasCuisineAffinityWhereInput = {
+    AND?: VegasCuisineAffinityWhereInput | VegasCuisineAffinityWhereInput[]
+    OR?: VegasCuisineAffinityWhereInput[]
+    NOT?: VegasCuisineAffinityWhereInput | VegasCuisineAffinityWhereInput[]
+    id?: IntFilter<"VegasCuisineAffinity"> | number
+    eventCategory?: StringFilter<"VegasCuisineAffinity"> | string
+    cuisineType?: StringFilter<"VegasCuisineAffinity"> | string
+    affinityScore?: IntFilter<"VegasCuisineAffinity"> | number
+    reasoning?: StringNullableFilter<"VegasCuisineAffinity"> | string | null
+    createdAt?: DateTimeNullableFilter<"VegasCuisineAffinity"> | Date | string | null
+  }
+
+  export type VegasCuisineAffinityOrderByWithRelationInput = {
+    id?: SortOrder
+    eventCategory?: SortOrder
+    cuisineType?: SortOrder
+    affinityScore?: SortOrder
+    reasoning?: SortOrderInput | SortOrder
+    createdAt?: SortOrderInput | SortOrder
+  }
+
+  export type VegasCuisineAffinityWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    eventCategory_cuisineType?: VegasCuisineAffinityEventCategoryCuisineTypeCompoundUniqueInput
+    AND?: VegasCuisineAffinityWhereInput | VegasCuisineAffinityWhereInput[]
+    OR?: VegasCuisineAffinityWhereInput[]
+    NOT?: VegasCuisineAffinityWhereInput | VegasCuisineAffinityWhereInput[]
+    eventCategory?: StringFilter<"VegasCuisineAffinity"> | string
+    cuisineType?: StringFilter<"VegasCuisineAffinity"> | string
+    affinityScore?: IntFilter<"VegasCuisineAffinity"> | number
+    reasoning?: StringNullableFilter<"VegasCuisineAffinity"> | string | null
+    createdAt?: DateTimeNullableFilter<"VegasCuisineAffinity"> | Date | string | null
+  }, "id" | "eventCategory_cuisineType">
+
+  export type VegasCuisineAffinityOrderByWithAggregationInput = {
+    id?: SortOrder
+    eventCategory?: SortOrder
+    cuisineType?: SortOrder
+    affinityScore?: SortOrder
+    reasoning?: SortOrderInput | SortOrder
+    createdAt?: SortOrderInput | SortOrder
+    _count?: VegasCuisineAffinityCountOrderByAggregateInput
+    _avg?: VegasCuisineAffinityAvgOrderByAggregateInput
+    _max?: VegasCuisineAffinityMaxOrderByAggregateInput
+    _min?: VegasCuisineAffinityMinOrderByAggregateInput
+    _sum?: VegasCuisineAffinitySumOrderByAggregateInput
+  }
+
+  export type VegasCuisineAffinityScalarWhereWithAggregatesInput = {
+    AND?: VegasCuisineAffinityScalarWhereWithAggregatesInput | VegasCuisineAffinityScalarWhereWithAggregatesInput[]
+    OR?: VegasCuisineAffinityScalarWhereWithAggregatesInput[]
+    NOT?: VegasCuisineAffinityScalarWhereWithAggregatesInput | VegasCuisineAffinityScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"VegasCuisineAffinity"> | number
+    eventCategory?: StringWithAggregatesFilter<"VegasCuisineAffinity"> | string
+    cuisineType?: StringWithAggregatesFilter<"VegasCuisineAffinity"> | string
+    affinityScore?: IntWithAggregatesFilter<"VegasCuisineAffinity"> | number
+    reasoning?: StringNullableWithAggregatesFilter<"VegasCuisineAffinity"> | string | null
+    createdAt?: DateTimeNullableWithAggregatesFilter<"VegasCuisineAffinity"> | Date | string | null
+  }
+
+  export type VegasDailySpendWhereInput = {
+    AND?: VegasDailySpendWhereInput | VegasDailySpendWhereInput[]
+    OR?: VegasDailySpendWhereInput[]
+    NOT?: VegasDailySpendWhereInput | VegasDailySpendWhereInput[]
+    id?: IntFilter<"VegasDailySpend"> | number
+    impactDate?: DateTimeFilter<"VegasDailySpend"> | Date | string
+    spendConcerts?: IntFilter<"VegasDailySpend"> | number
+    spendConferences?: IntFilter<"VegasDailySpend"> | number
+    spendExpos?: IntFilter<"VegasDailySpend"> | number
+    spendFestivals?: IntFilter<"VegasDailySpend"> | number
+    spendPerformingArts?: IntFilter<"VegasDailySpend"> | number
+    spendSports?: IntFilter<"VegasDailySpend"> | number
+    spendTotal?: IntNullableFilter<"VegasDailySpend"> | number | null
+    importedAt?: DateTimeNullableFilter<"VegasDailySpend"> | Date | string | null
+  }
+
+  export type VegasDailySpendOrderByWithRelationInput = {
+    id?: SortOrder
+    impactDate?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrderInput | SortOrder
+    importedAt?: SortOrderInput | SortOrder
+  }
+
+  export type VegasDailySpendWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    impactDate?: Date | string
+    AND?: VegasDailySpendWhereInput | VegasDailySpendWhereInput[]
+    OR?: VegasDailySpendWhereInput[]
+    NOT?: VegasDailySpendWhereInput | VegasDailySpendWhereInput[]
+    spendConcerts?: IntFilter<"VegasDailySpend"> | number
+    spendConferences?: IntFilter<"VegasDailySpend"> | number
+    spendExpos?: IntFilter<"VegasDailySpend"> | number
+    spendFestivals?: IntFilter<"VegasDailySpend"> | number
+    spendPerformingArts?: IntFilter<"VegasDailySpend"> | number
+    spendSports?: IntFilter<"VegasDailySpend"> | number
+    spendTotal?: IntNullableFilter<"VegasDailySpend"> | number | null
+    importedAt?: DateTimeNullableFilter<"VegasDailySpend"> | Date | string | null
+  }, "id" | "impactDate">
+
+  export type VegasDailySpendOrderByWithAggregationInput = {
+    id?: SortOrder
+    impactDate?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrderInput | SortOrder
+    importedAt?: SortOrderInput | SortOrder
+    _count?: VegasDailySpendCountOrderByAggregateInput
+    _avg?: VegasDailySpendAvgOrderByAggregateInput
+    _max?: VegasDailySpendMaxOrderByAggregateInput
+    _min?: VegasDailySpendMinOrderByAggregateInput
+    _sum?: VegasDailySpendSumOrderByAggregateInput
+  }
+
+  export type VegasDailySpendScalarWhereWithAggregatesInput = {
+    AND?: VegasDailySpendScalarWhereWithAggregatesInput | VegasDailySpendScalarWhereWithAggregatesInput[]
+    OR?: VegasDailySpendScalarWhereWithAggregatesInput[]
+    NOT?: VegasDailySpendScalarWhereWithAggregatesInput | VegasDailySpendScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    impactDate?: DateTimeWithAggregatesFilter<"VegasDailySpend"> | Date | string
+    spendConcerts?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendConferences?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendExpos?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendFestivals?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendPerformingArts?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendSports?: IntWithAggregatesFilter<"VegasDailySpend"> | number
+    spendTotal?: IntNullableWithAggregatesFilter<"VegasDailySpend"> | number | null
+    importedAt?: DateTimeNullableWithAggregatesFilter<"VegasDailySpend"> | Date | string | null
   }
 
   export type CftcCot1wCreateInput = {
@@ -181260,6 +183796,7 @@ export namespace Prisma {
   export type VegasRestaurantCreateInput = {
     glideRowId: string
     data: JsonNullValueInput | InputJsonValue
+    cuisineType?: string | null
     ingestedAt?: Date | string | null
   }
 
@@ -181267,12 +183804,14 @@ export namespace Prisma {
     id?: number
     glideRowId: string
     data: JsonNullValueInput | InputJsonValue
+    cuisineType?: string | null
     ingestedAt?: Date | string | null
   }
 
   export type VegasRestaurantUpdateInput = {
     glideRowId?: StringFieldUpdateOperationsInput | string
     data?: JsonNullValueInput | InputJsonValue
+    cuisineType?: NullableStringFieldUpdateOperationsInput | string | null
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -181280,6 +183819,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     glideRowId?: StringFieldUpdateOperationsInput | string
     data?: JsonNullValueInput | InputJsonValue
+    cuisineType?: NullableStringFieldUpdateOperationsInput | string | null
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -181287,12 +183827,14 @@ export namespace Prisma {
     id?: number
     glideRowId: string
     data: JsonNullValueInput | InputJsonValue
+    cuisineType?: string | null
     ingestedAt?: Date | string | null
   }
 
   export type VegasRestaurantUpdateManyMutationInput = {
     glideRowId?: StringFieldUpdateOperationsInput | string
     data?: JsonNullValueInput | InputJsonValue
+    cuisineType?: NullableStringFieldUpdateOperationsInput | string | null
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -181300,6 +183842,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     glideRowId?: StringFieldUpdateOperationsInput | string
     data?: JsonNullValueInput | InputJsonValue
+    cuisineType?: NullableStringFieldUpdateOperationsInput | string | null
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
@@ -182323,6 +184866,154 @@ export namespace Prisma {
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     details?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasCuisineAffinityCreateInput = {
+    eventCategory: string
+    cuisineType: string
+    affinityScore: number
+    reasoning?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type VegasCuisineAffinityUncheckedCreateInput = {
+    id?: number
+    eventCategory: string
+    cuisineType: string
+    affinityScore: number
+    reasoning?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type VegasCuisineAffinityUpdateInput = {
+    eventCategory?: StringFieldUpdateOperationsInput | string
+    cuisineType?: StringFieldUpdateOperationsInput | string
+    affinityScore?: IntFieldUpdateOperationsInput | number
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasCuisineAffinityUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    eventCategory?: StringFieldUpdateOperationsInput | string
+    cuisineType?: StringFieldUpdateOperationsInput | string
+    affinityScore?: IntFieldUpdateOperationsInput | number
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasCuisineAffinityCreateManyInput = {
+    id?: number
+    eventCategory: string
+    cuisineType: string
+    affinityScore: number
+    reasoning?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type VegasCuisineAffinityUpdateManyMutationInput = {
+    eventCategory?: StringFieldUpdateOperationsInput | string
+    cuisineType?: StringFieldUpdateOperationsInput | string
+    affinityScore?: IntFieldUpdateOperationsInput | number
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasCuisineAffinityUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    eventCategory?: StringFieldUpdateOperationsInput | string
+    cuisineType?: StringFieldUpdateOperationsInput | string
+    affinityScore?: IntFieldUpdateOperationsInput | number
+    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasDailySpendCreateInput = {
+    impactDate: Date | string
+    spendConcerts?: number
+    spendConferences?: number
+    spendExpos?: number
+    spendFestivals?: number
+    spendPerformingArts?: number
+    spendSports?: number
+    spendTotal?: number | null
+    importedAt?: Date | string | null
+  }
+
+  export type VegasDailySpendUncheckedCreateInput = {
+    id?: number
+    impactDate: Date | string
+    spendConcerts?: number
+    spendConferences?: number
+    spendExpos?: number
+    spendFestivals?: number
+    spendPerformingArts?: number
+    spendSports?: number
+    spendTotal?: number | null
+    importedAt?: Date | string | null
+  }
+
+  export type VegasDailySpendUpdateInput = {
+    impactDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    spendConcerts?: IntFieldUpdateOperationsInput | number
+    spendConferences?: IntFieldUpdateOperationsInput | number
+    spendExpos?: IntFieldUpdateOperationsInput | number
+    spendFestivals?: IntFieldUpdateOperationsInput | number
+    spendPerformingArts?: IntFieldUpdateOperationsInput | number
+    spendSports?: IntFieldUpdateOperationsInput | number
+    spendTotal?: NullableIntFieldUpdateOperationsInput | number | null
+    importedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasDailySpendUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    impactDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    spendConcerts?: IntFieldUpdateOperationsInput | number
+    spendConferences?: IntFieldUpdateOperationsInput | number
+    spendExpos?: IntFieldUpdateOperationsInput | number
+    spendFestivals?: IntFieldUpdateOperationsInput | number
+    spendPerformingArts?: IntFieldUpdateOperationsInput | number
+    spendSports?: IntFieldUpdateOperationsInput | number
+    spendTotal?: NullableIntFieldUpdateOperationsInput | number | null
+    importedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasDailySpendCreateManyInput = {
+    id?: number
+    impactDate: Date | string
+    spendConcerts?: number
+    spendConferences?: number
+    spendExpos?: number
+    spendFestivals?: number
+    spendPerformingArts?: number
+    spendSports?: number
+    spendTotal?: number | null
+    importedAt?: Date | string | null
+  }
+
+  export type VegasDailySpendUpdateManyMutationInput = {
+    impactDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    spendConcerts?: IntFieldUpdateOperationsInput | number
+    spendConferences?: IntFieldUpdateOperationsInput | number
+    spendExpos?: IntFieldUpdateOperationsInput | number
+    spendFestivals?: IntFieldUpdateOperationsInput | number
+    spendPerformingArts?: IntFieldUpdateOperationsInput | number
+    spendSports?: IntFieldUpdateOperationsInput | number
+    spendTotal?: NullableIntFieldUpdateOperationsInput | number | null
+    importedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type VegasDailySpendUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    impactDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    spendConcerts?: IntFieldUpdateOperationsInput | number
+    spendConferences?: IntFieldUpdateOperationsInput | number
+    spendExpos?: IntFieldUpdateOperationsInput | number
+    spendFestivals?: IntFieldUpdateOperationsInput | number
+    spendPerformingArts?: IntFieldUpdateOperationsInput | number
+    spendSports?: IntFieldUpdateOperationsInput | number
+    spendTotal?: NullableIntFieldUpdateOperationsInput | number | null
+    importedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -190771,6 +193462,7 @@ export namespace Prisma {
     id?: SortOrder
     glideRowId?: SortOrder
     data?: SortOrder
+    cuisineType?: SortOrder
     ingestedAt?: SortOrder
   }
 
@@ -190781,12 +193473,14 @@ export namespace Prisma {
   export type VegasRestaurantMaxOrderByAggregateInput = {
     id?: SortOrder
     glideRowId?: SortOrder
+    cuisineType?: SortOrder
     ingestedAt?: SortOrder
   }
 
   export type VegasRestaurantMinOrderByAggregateInput = {
     id?: SortOrder
     glideRowId?: SortOrder
+    cuisineType?: SortOrder
     ingestedAt?: SortOrder
   }
 
@@ -191367,6 +194061,109 @@ export namespace Prisma {
 
   export type VegasActivityLogSumOrderByAggregateInput = {
     id?: SortOrder
+  }
+
+  export type VegasCuisineAffinityEventCategoryCuisineTypeCompoundUniqueInput = {
+    eventCategory: string
+    cuisineType: string
+  }
+
+  export type VegasCuisineAffinityCountOrderByAggregateInput = {
+    id?: SortOrder
+    eventCategory?: SortOrder
+    cuisineType?: SortOrder
+    affinityScore?: SortOrder
+    reasoning?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VegasCuisineAffinityAvgOrderByAggregateInput = {
+    id?: SortOrder
+    affinityScore?: SortOrder
+  }
+
+  export type VegasCuisineAffinityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    eventCategory?: SortOrder
+    cuisineType?: SortOrder
+    affinityScore?: SortOrder
+    reasoning?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VegasCuisineAffinityMinOrderByAggregateInput = {
+    id?: SortOrder
+    eventCategory?: SortOrder
+    cuisineType?: SortOrder
+    affinityScore?: SortOrder
+    reasoning?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type VegasCuisineAffinitySumOrderByAggregateInput = {
+    id?: SortOrder
+    affinityScore?: SortOrder
+  }
+
+  export type VegasDailySpendCountOrderByAggregateInput = {
+    id?: SortOrder
+    impactDate?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrder
+    importedAt?: SortOrder
+  }
+
+  export type VegasDailySpendAvgOrderByAggregateInput = {
+    id?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrder
+  }
+
+  export type VegasDailySpendMaxOrderByAggregateInput = {
+    id?: SortOrder
+    impactDate?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrder
+    importedAt?: SortOrder
+  }
+
+  export type VegasDailySpendMinOrderByAggregateInput = {
+    id?: SortOrder
+    impactDate?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrder
+    importedAt?: SortOrder
+  }
+
+  export type VegasDailySpendSumOrderByAggregateInput = {
+    id?: SortOrder
+    spendConcerts?: SortOrder
+    spendConferences?: SortOrder
+    spendExpos?: SortOrder
+    spendFestivals?: SortOrder
+    spendPerformingArts?: SortOrder
+    spendSports?: SortOrder
+    spendTotal?: SortOrder
   }
 
   export type CftcCot1wCreateanomalyFlagsInput = {

@@ -2478,13 +2478,15 @@ model probability_distributions {
 // =============================================================================
 
 model VegasRestaurant {
-  id         Int       @id @default(autoincrement())
-  glideRowId String    @unique @map("glide_row_id") @db.VarChar(100)
-  data       Json      @db.JsonB
-  ingestedAt DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  id          Int       @id @default(autoincrement())
+  glideRowId  String    @unique @map("glide_row_id") @db.VarChar(100)
+  data        Json      @db.JsonB
+  cuisineType String?   @map("cuisine_type") @db.VarChar(50)
+  ingestedAt  DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
 
   @@index([glideRowId], map: "idx_vegas_restaurants_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_restaurants_ingested_at")
+  @@index([cuisineType], map: "idx_vegas_restaurants_cuisine")
   @@map("vegas_restaurants")
   @@schema("ops")
 }
@@ -2715,5 +2717,47 @@ model VegasActivityLog {
   @@index([entityType, entityId], map: "idx_vegas_activity_log_entity")
   @@index([createdAt], map: "idx_vegas_activity_log_created")
   @@map("vegas_activity_log")
+  @@schema("ops")
+}
+
+// =============================================================================
+// VEGAS INTEL - Event-Cuisine Affinity Scores (PredictHQ-derived)
+// Maps 6 event categories × 14 cuisine types with affinity scores (0-100)
+// =============================================================================
+
+model VegasCuisineAffinity {
+  id            Int       @id @default(autoincrement())
+  eventCategory String    @map("event_category") @db.VarChar(50)
+  cuisineType   String    @map("cuisine_type") @db.VarChar(50)
+  affinityScore Int       @map("affinity_score")
+  reasoning     String?   @db.Text
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([eventCategory, cuisineType])
+  @@index([eventCategory], map: "idx_vegas_cuisine_affinity_category")
+  @@index([cuisineType], map: "idx_vegas_cuisine_affinity_cuisine")
+  @@map("vegas_cuisine_affinity")
+  @@schema("ops")
+}
+
+// =============================================================================
+// VEGAS INTEL - Daily F&B Spend by Event Category (PredictHQ-derived)
+// Pre-aggregated data for fast dashboard queries (90-day rolling window)
+// =============================================================================
+
+model VegasDailySpend {
+  id                  Int       @id @default(autoincrement())
+  impactDate          DateTime  @unique @map("impact_date") @db.Date
+  spendConcerts       Int       @default(0) @map("spend_concerts")
+  spendConferences    Int       @default(0) @map("spend_conferences")
+  spendExpos          Int       @default(0) @map("spend_expos")
+  spendFestivals      Int       @default(0) @map("spend_festivals")
+  spendPerformingArts Int       @default(0) @map("spend_performing_arts")
+  spendSports         Int       @default(0) @map("spend_sports")
+  spendTotal          Int?      @map("spend_total") // Generated column in DB
+  importedAt          DateTime? @default(now()) @map("imported_at") @db.Timestamptz(6)
+
+  @@index([impactDate], map: "idx_vegas_daily_spend_date")
+  @@map("vegas_daily_spend")
   @@schema("ops")
 }
