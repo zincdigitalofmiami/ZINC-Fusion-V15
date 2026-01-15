@@ -11,7 +11,8 @@ NAMING CONTRACT:
 
 Usage:
     python scripts/fix_naming_contract.py --dry-run
-    python scripts/fix_naming_contract.py
+    python scripts/fix_naming_contract.py --execute
+    python scripts/fix_naming_contract.py --execute --allow-drops
 """
 
 import os
@@ -174,13 +175,36 @@ def audit_final_state(conn):
 
 def main():
     parser = argparse.ArgumentParser(description="Fix naming contract violations")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without executing")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview without executing (default; required unless --execute is set)",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Apply changes to the database (DANGEROUS; requires explicit approval)",
+    )
+    parser.add_argument(
+        "--allow-drops",
+        action="store_true",
+        help="Allow DROP TABLE operations (DANGEROUS; requires explicit approval)",
+    )
     args = parser.parse_args()
+
+    if args.dry_run and args.execute:
+        raise SystemExit("Use either --dry-run or --execute (not both).")
+
+    # Safety default: never execute unless explicitly requested.
+    dry_run = not args.execute
 
     logger.info("=" * 60)
     logger.info("ZINC-FUSION-V15: Fix Naming Contract Violations")
     logger.info("=" * 60)
-    logger.info(f"Dry run: {args.dry_run}")
+    logger.info(f"Dry run: {dry_run}")
+    if not dry_run:
+        logger.warning("EXECUTION ENABLED: This will mutate the database schema.")
+        logger.warning("Ensure you have explicit approval before proceeding.")
 
     conn = get_postgres_connection()
 
@@ -188,15 +212,18 @@ def main():
         # Phase 1: Renames
         logger.info("\n--- PHASE 1: RENAMES ---")
         for (old_schema, old_table), (new_schema, new_table) in RENAMES:
-            rename_table(conn, old_schema, old_table, new_schema, new_table, args.dry_run)
+            rename_table(conn, old_schema, old_table, new_schema, new_table, dry_run)
 
         # Phase 2: Drops
         logger.info("\n--- PHASE 2: DROPS ---")
-        for schema, table in DROPS:
-            drop_table(conn, schema, table, args.dry_run)
+        if args.allow_drops:
+            for schema, table in DROPS:
+                drop_table(conn, schema, table, dry_run)
+        else:
+            logger.warning("Drops are disabled (use --allow-drops to enable).")
 
         # Phase 3: Audit
-        if not args.dry_run:
+        if not dry_run:
             audit_final_state(conn)
         else:
             logger.info("\n[DRY RUN] No changes made")

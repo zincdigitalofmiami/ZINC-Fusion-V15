@@ -7,6 +7,10 @@ Target: raw.worldbank_imports_1y
 Grain: Yearly (1y)
 
 Data: Imports of goods and services as % of GDP by country
+
+NOTE (Governance):
+- This script MUST NOT create/drop tables or perform any schema DDL.
+- If the destination table does not exist (or columns don't match), fail loudly.
 """
 
 import pandas as pd
@@ -37,58 +41,55 @@ def main():
     # Clean column names
     df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
 
-    # Create as_of_date (Jan 1 of each year)
-    df["as_of_date"] = pd.to_datetime(df["year"].astype(str) + "-01-01")
+    # Raw schema contract: event_date is canonical time key.
+    # For yearly data, use Jan 1 of the given year.
+    df["event_date"] = pd.to_datetime(df["year"].astype(str) + "-01-01").dt.date
 
     # Connect to database
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 
-    # Check if table exists
+    # Check table exists (no schema changes allowed here).
     cur.execute(
         """
         SELECT EXISTS (
-            SELECT FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'raw' AND table_name = 'worldbank_imports_1y'
         )
-    """
+        """
     )
-    table_exists = cur.fetchone()[0]
+    if not cur.fetchone()[0]:
+        raise RuntimeError(
+            "raw.worldbank_imports_1y does not exist. "
+            "Schema/table creation requires explicit approval; this script will not create it."
+        )
 
-    if table_exists:
-        cur.execute("SELECT COUNT(*) FROM raw.worldbank_imports_1y")
-        existing_count = cur.fetchone()[0]
-        print(f"⚠️  Table already exists with {existing_count} rows")
-        print("Dropping and recreating...")
-        cur.execute("DROP TABLE raw.worldbank_imports_1y")
-
-    # Create table
+    # Verify required columns exist (fail loudly on drift).
     cur.execute(
         """
-        CREATE TABLE raw.worldbank_imports_1y (
-            id SERIAL PRIMARY KEY,
-            as_of_date DATE NOT NULL,
-            country_code VARCHAR(10) NOT NULL,
-            country_name VARCHAR(100),
-            region VARCHAR(100),
-            sub_region VARCHAR(100),
-            intermediate_region VARCHAR(100),
-            indicator_code VARCHAR(50),
-            indicator_name VARCHAR(200),
-            year INTEGER NOT NULL,
-            imports_pct_gdp FLOAT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'raw' AND table_name = 'worldbank_imports_1y'
+        """
+    )
+    cols = {r[0] for r in cur.fetchall()}
+    required_cols = {
+        "event_date",
+        "country_code",
+        "country_name",
+        "region",
+        "sub_region",
+        "intermediate_region",
+        "indicator_code",
+        "indicator_name",
+        "year",
+        "imports_pct_gdp",
+    }
+    missing = sorted(required_cols - cols)
+    if missing:
+        raise RuntimeError(
+            f"raw.worldbank_imports_1y missing required columns: {', '.join(missing)}"
         )
-    """
-    )
-    cur.execute(
-        "CREATE INDEX idx_wb_imports_date ON raw.worldbank_imports_1y(as_of_date)"
-    )
-    cur.execute(
-        "CREATE INDEX idx_wb_imports_country ON raw.worldbank_imports_1y(country_code)"
-    )
-    conn.commit()
-    print("✅ Created table raw.worldbank_imports_1y")
 
     # Insert data in batches
     inserted = 0
@@ -98,12 +99,13 @@ def main():
         cur.execute(
             """
             INSERT INTO raw.worldbank_imports_1y 
-            (as_of_date, country_code, country_name, region, sub_region, 
+            (event_date, country_code, country_name, region, sub_region, 
              intermediate_region, indicator_code, indicator_name, year, imports_pct_gdp)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
         """,
             (
-                row["as_of_date"],
+                row["event_date"],
                 row["country_code"],
                 row["country_name"],
                 row["region"],
