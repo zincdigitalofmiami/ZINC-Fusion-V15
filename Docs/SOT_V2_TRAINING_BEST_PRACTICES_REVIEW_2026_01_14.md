@@ -66,8 +66,8 @@ This applies to:
 
 ## Current Blockers (From PROD Audit)
 
-See `Docs/PRETRAINING_READINESS_2026_01_14.md` for live DB state. Key blockers before training:
-- multiple **stale** raw inputs (weather / RIN / FX / WASDE)
+See `Docs/PRETRAINING_READINESS_2026_01_15.md` for latest live DB state. Key blockers before training:
+- multiple **stale** raw inputs (RIN / WASDE)
 - `training.core_matrix_1d` is empty
 - specialist tables exist but are missing `target_{H}d` columns (requires explicit schema approval)
 
@@ -75,7 +75,8 @@ See `Docs/PRETRAINING_READINESS_2026_01_14.md` for live DB state. Key blockers b
 
 Several “required” raw sources are stale, and not all are currently owned by an Inngest job:
 - ✅ `raw.fx_spot_1d` → `frontend/src/inngest/fx-spot-daily.ts` (FRED; insert-only idempotent)
-- ✅ `raw.weather_noaa_1d` → `frontend/src/inngest/noaa-weather-daily.ts` (NOAA CDO; insert-only idempotent)
+- ✅ `raw.weather_noaa_1d` → `frontend/src/inngest/openmeteo-weather-daily.ts` (Open-Meteo for `OM_*` + `OPENMETEO:*`; insert-only idempotent)
+- ✅ `raw.weather_noaa_1d` → `frontend/src/inngest/noaa-weather-daily.ts` (NOAA CDO for `GHCND:*`; insert-only idempotent)
 - ✅ `raw.usda_export_sales_1w` → `frontend/src/inngest/usda-export-sales-weekly.ts` (FAS report parser; insert-only idempotent)
 - ✅ `raw.cftc_cot_1w` → `frontend/src/inngest/cftc-weekly.ts` (row_hash + event/symbol existence checks; no `ON CONFLICT`)
 - ❌ `raw.usda_wasde_1m` has no scheduled Inngest owner today (backfill-only scripts exist; ongoing source needs confirmation)

@@ -15,6 +15,7 @@ export {
 export { cftcWeekly } from "./cftc-weekly";
 export { fxSpotDaily } from "./fx-spot-daily";
 export { noaaWeatherDaily } from "./noaa-weather-daily";
+export { openmeteoWeatherDaily } from "./openmeteo-weather-daily";
 export { federalRegisterDaily } from "./federal-register";
 export { nyfedDaily } from "./nyfed-daily";
 export { cbpTradeDaily } from "./cbp-trade";

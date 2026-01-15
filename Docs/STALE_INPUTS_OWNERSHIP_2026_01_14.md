@@ -27,10 +27,10 @@ Tables verified:
 
 | Table | Stale | Ingestion owner in repo | Status |
 |------|------:|--------------------------|--------|
-| `raw.fx_spot_1d` | ~19d | `frontend/src/inngest/fx-spot-daily.ts` | ✅ Inngest-owned (via FRED API); insert-only idempotent |
-| `raw.weather_noaa_1d` | ~25d | `frontend/src/inngest/noaa-weather-daily.ts` | ✅ Inngest-owned (NOAA CDO API); insert-only idempotent |
-| `raw.usda_wasde_1m` | ~33d | ❌ none for ongoing updates | `scripts/ingest_wasde_backfill.py` exists (backfill-only); no scheduled Inngest ingestion |
-| `raw.epa_rin_prices_1d` | ~30d | ❌ none found | Needs ingestion job (or explicit de-scope) |
+| `raw.fx_spot_1d` | ~5d | `frontend/src/inngest/fx-spot-daily.ts` | ✅ Inngest-owned (via FRED API); insert-only idempotent |
+| `raw.weather_noaa_1d` | ~0d | `frontend/src/inngest/openmeteo-weather-daily.ts` + `frontend/src/inngest/noaa-weather-daily.ts` | ✅ Inngest-owned (Open-Meteo for `OM_*` + `OPENMETEO:*`; NOAA CDO for `GHCND:*`) |
+| `raw.usda_wasde_1m` | ~33d | ❌ none for ongoing updates | `scripts/ingest_wasde_backfill.py` exists (backfill-only); **`www.usda.gov` is non-responsive from our runtime**, so an alternate stable host/source is required for automation |
+| `raw.epa_rin_prices_1d` | ~30d | ❌ none found | EPA “RIN Trades and Price Information” is embedded in **Qlik** (`edap.epa.gov`) with iframe sheets; extraction requires a dedicated Qlik exporter (no simple HTML table/CSV link) |
 
 ### Warnings (still important for “ALL DATA” policy)
 
@@ -41,5 +41,7 @@ Tables verified:
 
 ## Immediate Execution Implications
 
-1) We can proceed “Inngest-first” only for sources that actually have Inngest owners today (`cftc-weekly`), plus any new ingestion functions we add.
-2) For the remaining stale blockers, the repo currently has **no scheduled ingestion path** (WASDE updates, RIN prices). Those require explicit implementation decisions before freshness can be restored.
+1) Weather + FX are now “Inngest-first” and refreshed; remaining staleness blockers are **WASDE** and **RIN prices**.
+2) For the remaining blockers, the repo currently has **no scheduled ingestion path**:
+   - WASDE: automation is blocked by `www.usda.gov` being non-responsive from our runtime.
+   - RIN prices: the EPA page embeds a Qlik app (`edap.epa.gov`) and needs a Qlik extraction strategy (or an alternate licensed source).

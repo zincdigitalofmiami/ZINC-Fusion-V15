@@ -115,7 +115,8 @@ async function fetchNoaaStation(
   while (true) {
     const url = new URL(NOAA_BASE_URL);
     url.searchParams.set("datasetid", "GHCND");
-    url.searchParams.set("stationid", `GHCND:${stationId}`);
+    // `stationId` must be a valid NOAA station id (typically already prefixed with `GHCND:`).
+    url.searchParams.set("stationid", stationId);
     url.searchParams.set("startdate", startDate);
     url.searchParams.set("enddate", endDate);
     url.searchParams.set("datatypeid", DATATYPES.join(","));
@@ -151,6 +152,20 @@ async function fetchNoaaStation(
   return all;
 }
 
+function toNoaaStationId(stationId: string): string | null {
+  // Legacy/non-NOAA sources are stored in the same table; this job only handles NOAA CDO (GHCN-Daily).
+  if (stationId.startsWith("OM_")) return null;
+  if (stationId.startsWith("OPENMETEO:")) return null;
+
+  if (stationId.startsWith("GHCND:")) return stationId;
+
+  // Unknown namespaced identifiers (e.g., OPENMETEO:*) are not NOAA station ids.
+  if (stationId.includes(":")) return null;
+
+  // Treat bare station ids (e.g., USW00014933) as NOAA and prefix.
+  return `GHCND:${stationId}`;
+}
+
 export const noaaWeatherDaily = inngest.createFunction(
   { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3 },
   { cron: "0 13 * * 1-5" }, // 7AM CT weekdays
@@ -171,17 +186,22 @@ export const noaaWeatherDaily = inngest.createFunction(
       logger.info(`Started ingest run: ${runId}`);
 
       const stations = await step.run("load-stations", () => getStations(client));
-      logger.info(`Stations: ${stations.length}`);
+      const stationsNoaa = stations
+        .map((s) => ({ ...s, noaa_station_id: toNoaaStationId(s.station_id) }))
+        .filter((s) => s.noaa_station_id !== null) as Array<
+        (typeof stations)[number] & { noaa_station_id: string }
+      >;
+      logger.info(`Stations: ${stations.length} total, ${stationsNoaa.length} NOAA`);
 
       const today = new Date().toISOString().slice(0, 10);
       const endDate = addDays(today, -1); // avoid same-day partials
 
-      for (const station of stations) {
+      for (const station of stationsNoaa) {
         await step.run(`station-${station.station_id}`, async () => {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
           if (startDate > endDate) return;
 
-          const rows = await fetchNoaaStation(station.station_id, startDate, endDate);
+          const rows = await fetchNoaaStation(station.noaa_station_id, startDate, endDate);
           if (rows.length === 0) return;
 
           // Group by YYYY-MM-DD
@@ -264,4 +284,3 @@ export const noaaWeatherDaily = inngest.createFunction(
     }
   }
 );
-
