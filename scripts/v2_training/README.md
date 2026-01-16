@@ -7,6 +7,22 @@ Goals:
 - Use **Prisma Postgres** tables as the system of record (no local-only training outputs).
 - Enforce **no synthetic / no fallback** behavior: empty outputs are preferred over invented values.
 
+### Data Sources (LOCKED)
+| Source | Role | Status |
+|--------|------|--------|
+| Historical Backfill | 1990 → 2025-12-29 | ✅ COMPLETE |
+| Yahoo Finance | Daily topfill | ✅ Active |
+| FRED API | Macro indicators | ✅ Active |
+
+### Active Model Locations
+```
+models/
+├── core_v15/           # ACTIVE - Core models (5d, 21d, 63d)
+├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
+├── specialists/        # NOT YET TRAINED
+└── hunters/            # NOT YET TRAINED
+```
+
 ### Model Catalog
 See `scripts/v2_training/MODEL_CATALOG.md` for the full list of:
 - 52 horizon-aligned models (L0 core + 11 specialists × 4 horizons + L1 meta × 4 horizons)

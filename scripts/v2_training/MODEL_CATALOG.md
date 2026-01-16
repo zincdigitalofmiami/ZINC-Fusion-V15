@@ -5,6 +5,31 @@ This is the **explicit registry** of the SoT v2 training stack:
 - Quantiles trained: `p30`, `p50`, `p70`
 - Outer envelope: `p10_cal`, `p90_cal` (CQR / conformal calibration)
 
+## Data Sources (LOCKED)
+
+| Source | Role | Window | Status |
+|--------|------|--------|--------|
+| Historical Backfill | 1990 → 2025-12-29 | One-time | ✅ COMPLETE |
+| Yahoo Finance | Daily topfill | Ongoing | ✅ Active |
+| FRED API | Macro indicators | Ongoing | ✅ Active |
+
+## Active Model Locations
+
+```
+models/
+├── core_v15/           # ACTIVE - Production Core (5d, 21d, 63d trained)
+│   ├── horizon_5d/     # learner.pkl, predictor.pkl
+│   ├── horizon_21d/
+│   └── horizon_63d/
+├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
+│   ├── horizon_5d/
+│   ├── horizon_21d/
+│   ├── horizon_63d/
+│   └── horizon_126d/
+├── specialists/        # NOT YET TRAINED - Big 11 specialists
+└── hunters/            # NOT YET TRAINED - Opportunity hunters
+```
+
 ## Model ID Convention (Stable)
 
 All SoT v2 models use a consistent, horizon-qualified `model_id`:

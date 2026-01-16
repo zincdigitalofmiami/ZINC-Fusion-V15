@@ -56,8 +56,7 @@ These are the "how we operate" rules for assistants/agents working in this repo.
 
 Required in `.env`:
 - `DATABASE_URL` - Prisma Postgres connection string
-- `DATABENTO_API_KEY` - For market data ingestion
-- `FRED_API_KEY` - For economic data
+- `FRED_API_KEY` - For economic data (ongoing updates)
 
 ## Operational Contracts (Locked)
 
@@ -411,7 +410,8 @@ Use this context to judge whether proposed work improves forecast usefulness, re
 - **Testing:** `pytest`
 - **CI:** GitHub Actions in `.github/workflows/`
 - **ML tracking:** MLflow (local SQLite)
-- **Market Data:** Databento API (GLBX.MDP3 dataset)
+- **Market Data:** Yahoo Finance (daily topfill) + historical backfill (locked 2025-12-29)
+- **Macro Data:** FRED API (ongoing updates)
 
 ### Frontend / Vercel
 The dashboard is deployed on Vercel. The `frontend/` folder contains the Next.js app. Inngest functions run serverless on Vercel.
@@ -534,6 +534,46 @@ These notes exist to help agents/operators quickly unblock the L0→L1 pipeline 
 - Validator: `scripts/validate_core_oof.py`
 - Run: `python3 scripts/validate_core_oof.py`
 - Checks: row counts + date coverage, null counts, quantile ordering violations, recent model metadata, MAE/MAPE (with epsilon), empirical P10/P90 coverage.
+
+## Active Model Architecture (SoT v2)
+
+### Data Sources (LOCKED)
+| Source | Role | Cadence | Status |
+|--------|------|---------|--------|
+| **Historical Backfill** | 1990 → 2025-12-29 | One-time | ✅ Complete, LOCKED |
+| **Yahoo Finance** | Daily topfill (2025-12-30 → future) | Daily | ✅ Active |
+| **FRED API** | Macro indicators | Daily/Weekly/Monthly | ✅ Active |
+
+**Note:** Historical backfill was completed 2025-12-29. No additional historical data sources are required or planned.
+
+### Active Model Location
+```
+models/
+├── core_v15/           # ACTIVE - Production Core models
+│   ├── horizon_5d/     # Tactical (5d)
+│   ├── horizon_21d/    # Tactical (21d)  
+│   └── horizon_63d/    # Strategic (63d)
+├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
+│   ├── horizon_5d/
+│   ├── horizon_21d/
+│   ├── horizon_63d/
+│   └── horizon_126d/
+├── specialists/        # NOT YET TRAINED - Big 11 specialists
+└── hunters/            # NOT YET TRAINED - Opportunity hunters
+```
+
+### SoT v2 Training Stack (52 Models)
+- **L0 Core:** `zinc-fusion-v2-core-h{H}d` (4 horizons)
+- **L0 Specialists:** `zinc-fusion-v2-specialist-{bucket}-h{H}d` (11 buckets × 4 horizons = 44)
+- **L1 Meta:** `zinc-fusion-v2-meta-h{H}d` (4 horizons)
+- **L2/L3:** Calibration + Risk modules (non-model)
+
+**Full catalog:** `scripts/v2_training/MODEL_CATALOG.md`
+
+### Model Registry
+All trained models register in Prisma `model.model_registry` with:
+- `model_id`, `model_version`, `horizon_steps`
+- `trained_at`, `artifact_path`, `metrics_json`
 
 ## Workspace Hygiene (Generated Artifacts)
 

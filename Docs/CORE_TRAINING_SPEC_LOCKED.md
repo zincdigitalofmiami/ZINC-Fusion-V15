@@ -16,7 +16,24 @@ the ALL DATA policy and Light Train configuration.
 
 ---
 
-## 📊 HORIZON STRATEGY
+## � DATA SOURCES (LOCKED)
+
+### Source Architecture
+| Source | Role | Window | Status |
+|--------|------|--------|--------|
+| **Historical Backfill** | Market OHLCV (1990 → 2025-12-29) | One-time | ✅ COMPLETE, LOCKED |
+| **Yahoo Finance** | Daily topfill (2025-12-30 → future) | Daily | ✅ Active |
+| **FRED API** | Macro indicators | Daily/Weekly/Monthly | ✅ Active |
+
+**Historical backfill is COMPLETE.** No additional historical data sources are planned or required.
+
+### Ingestion Scripts
+- **Yahoo topfill:** `scripts/ingest_yahoo_eod.py` (runs daily)
+- **FRED update:** `scripts/ingest_fred_observations.py` (runs daily)
+
+---
+
+## �📊 HORIZON STRATEGY
 
 ### Tactical vs Strategic Split
 

@@ -4,13 +4,13 @@ ZINC-FUSION-V15: Yahoo Finance Daily EOD Ingestion
 
 Ingests daily OHLCV data from Yahoo Finance into raw.market_futures_1d.
 Uses the A+ conditional upsert pattern:
-  - NEVER overwrites Databento historical data
+  - NEVER overwrites historical backfill data (pre-2025-12-29)
   - CAN refresh existing Yahoo rows (for late corrections)
   - Fills gaps for new dates
 
-Handoff Model:
-  - Databento: 1990 → 2025-12-29 (historical backfill, locked)
-  - Yahoo: 2025-12-30 → future (daily updates)
+Data Sources:
+  - Historical backfill: 1990 → 2025-12-29 (COMPLETE, LOCKED)
+  - Yahoo Finance: 2025-12-30 → future (daily updates)
 
 Usage:
     # Default: fetch last 7 days
@@ -58,7 +58,8 @@ TARGET_TABLE = "raw.market_futures_1d"
 SOURCE_VALUE = "yahoo"
 
 # Handoff cutoff - Yahoo only handles dates AFTER this
-DATABENTO_CUTOFF = date(2025, 12, 29)
+# Historical backfill completed 2025-12-29, Yahoo topfills from 2025-12-30+
+HISTORICAL_CUTOFF = date(2025, 12, 29)
 
 
 def load_ticker_mapping(config_path: Path) -> Dict[str, str]:
@@ -224,11 +225,11 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
     if df.empty:
         return 0, 0
 
-    # Filter to only dates after Databento cutoff
-    df = df[df["event_date"] > DATABENTO_CUTOFF].copy()
+    # Filter to only dates after historical cutoff
+    df = df[df["event_date"] > HISTORICAL_CUTOFF].copy()
 
     if df.empty:
-        logger.info(f"No rows after cutoff date {DATABENTO_CUTOFF}")
+        logger.info(f"No rows after cutoff date {HISTORICAL_CUTOFF}")
         return 0, 0
 
     df["source"] = SOURCE_VALUE
@@ -244,7 +245,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
     # A+ conditional upsert:
     # - Insert new rows
     # - Update existing Yahoo rows (for corrections)
-    # - Skip existing non-Yahoo rows (preserve Databento)
+    # - Skip existing non-Yahoo rows (preserve historical backfill)
     upsert_sql = """
         INSERT INTO raw.market_futures_1d
             (event_date, symbol, open, high, low, close, volume, source, ingested_at)
@@ -331,16 +332,16 @@ def main():
         start_date = today - timedelta(days=args.days_back)
 
     # Enforce cutoff
-    if start_date <= DATABENTO_CUTOFF:
-        logger.warning(f"Start date {start_date} is before cutoff {DATABENTO_CUTOFF}")
-        start_date = DATABENTO_CUTOFF + timedelta(days=1)
+    if start_date <= HISTORICAL_CUTOFF:
+        logger.warning(f"Start date {start_date} is before cutoff {HISTORICAL_CUTOFF}")
+        start_date = HISTORICAL_CUTOFF + timedelta(days=1)
         logger.info(f"Adjusted start date to {start_date}")
 
     logger.info("=" * 60)
     logger.info("ZINC-FUSION-V15: Yahoo EOD Ingestion")
     logger.info("=" * 60)
     logger.info(f"Date range: {start_date} to {end_date}")
-    logger.info(f"Cutoff (Databento ends): {DATABENTO_CUTOFF}")
+    logger.info(f"Cutoff (historical backfill ends): {HISTORICAL_CUTOFF}")
     logger.info(f"Source tag: {SOURCE_VALUE}")
     if args.dry_run:
         logger.info("*** DRY RUN MODE ***")

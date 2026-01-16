@@ -36,7 +36,7 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 
 - **Big-11 Bucket Taxonomy**: Domain-specific specialists for Crush, China, FX, Fed, Tariff, Energy, Biofuel, Palm, Volatility, Substitutes, Trump Effect
 - **Prisma Postgres**: Cloud-hosted authoritative database for all training and operations
-- **Databento Integration**: Real-time and historical market data from CME Globex
+- **Data Pipeline**: Historical backfill (complete) + Yahoo Finance daily topfill + FRED macro indicators
 
 ### Business Impact
 
@@ -715,10 +715,7 @@ Required environment variables in `.env`:
 # Database (REQUIRED)
 DATABASE_URL="postgres://..."      # Prisma Postgres connection
 
-# Market Data
-DATABENTO_API_KEY="db-..."         # Databento API key
-
-# Economic Data
+# Economic Data (ongoing updates)
 FRED_API_KEY="your_fred_api_key"   # FRED API key
 
 # MLflow (for experiment tracking)
@@ -788,7 +785,7 @@ See [Docs/MLFLOW_SETUP.md](./Docs/MLFLOW_SETUP.md) for full documentation.
 - **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
 - **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants
 - **Prisma Docs**: [https://www.prisma.io/docs](https://www.prisma.io/docs)
-- **Databento Docs**: [https://databento.com/docs](https://databento.com/docs)
+- **FRED API Docs**: [https://fred.stlouisfed.org/docs/api/](https://fred.stlouisfed.org/docs/api/)
 
 ## License
 
