@@ -77,7 +77,7 @@ load_dotenv(".env.vercel")
 
 SPECIALIST_FEATURE_CONFIGS = {
     # =========================================================================
-    # CRUSH (28-35% weight) - Soybean complex fundamentals
+    # CRUSH - Soybean complex fundamentals
     # =========================================================================
     # This is THE most important specialist. Crush dynamics drive ZL pricing.
     "crush": {
@@ -119,7 +119,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # CHINA (16-22% weight) - Chinese import demand
+    # CHINA - Chinese import demand
     # =========================================================================
     # China buys 60%+ of global soybean trade. Copper = China demand proxy.
     "china": {
@@ -160,7 +160,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # ENERGY (10-14% weight) - Petroleum complex
+    # ENERGY - Petroleum complex
     # =========================================================================
     # Biodiesel economics: SoyOil competes with Heating Oil.
     "energy": {
@@ -200,12 +200,12 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # PALM (8-12% weight) - Palm oil complex
+    # PALM - Palm oil complex
     # =========================================================================
     # Palm is the world's largest vegetable oil. ZL competes with palm.
     "palm": {
         "description": "Palm oil complex - Malaysia/Indonesia production & spreads",
-        "symbols": ["ZL", "XK"],  # XK = Malaysian palm (CME)
+        "symbols": ["ZL", "CPO"],  # CPO = Crude Palm Oil (3,767 rows from 2010-2025)
         "primary_features": [
             "palm_oil_close",        # BMD palm close
             "palm_oil_front",        # Front month
@@ -239,7 +239,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # BIOFUEL (6-10% weight) - Renewable mandates
+    # BIOFUEL - Renewable mandates
     # =========================================================================
     # RFS/LCFS mandates drive soybean oil demand for biodiesel.
     "biofuel": {
@@ -279,7 +279,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # FX (3-5% weight) - Currency effects on trade
+    # FX - Currency effects on trade
     # =========================================================================
     # Dollar strength affects commodity pricing, BRL/CNY affect trade flows.
     "fx": {
@@ -316,7 +316,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # FED (2-4% weight) - Monetary policy impacts
+    # FED - Monetary policy impacts
     # =========================================================================
     # Rate policy affects commodity carry, financial conditions affect risk appetite.
     "fed": {
@@ -353,7 +353,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # TARIFF (3-5% weight) - Trade policy impacts
+    # TARIFF - Trade policy impacts
     # =========================================================================
     # Trade war regime, policy uncertainty, retaliation risk.
     "tariff": {
@@ -388,55 +388,49 @@ SPECIALIST_FEATURE_CONFIGS = {
     },
 
     # =========================================================================
-    # VOLATILITY (2-3% weight) - Market stress/fear
+    # VOLATILITY - Market stress/fear
     # =========================================================================
     # VIX, realized vol, term structure, correlation breakdown.
     "volatility": {
         "description": "Market stress - VIX, vol surfaces, correlation, skew",
         "symbols": ["ZL", "ES", "VX"],
         "primary_features": [
-            "vix",                   # VIX index
-            "ovx",                   # Oil vol index
-            "soybean_iv",            # ZL implied vol
+            "vix",                   # VIX index (VIXCLS)
+            "ovx",                   # Oil VIX (OVXCLS)
+            "stress_index",          # Financial Stress (STLFSI4)
             "realized_vol_20d",      # 20d realized vol
             "vol_risk_premium",      # IV - RV
-            "term_structure_slope",  # VX1/VX2 ratio
         ],
         "secondary_features": [
             "skew_index",            # Put skew
             "put_call_ratio",        # Options sentiment
             "vvix",                  # Vol of vol
             "correlation_index",     # Asset correlation
-            "stress_index",          # Financial stress
-            "liquidity_index",       # Market liquidity
-            "tail_risk_measure",     # Left tail risk
         ],
         "derived_indicators": [
             "vix_zscore",            # VIX z-score
+            "ovx_zscore",            # OVX z-score
             "vix_regime",            # low/normal/high/crisis
             "vol_bucket_signal",     # Composite signal
-            "vol_term_contango",     # Contango/backwardation
         ],
-        "fred_series": ["VIXCLS"],
+        "fred_series": ["VIXCLS", "OVXCLS", "STLFSI4"],  # VIX + Oil VIX + Stress Index
         "fx_pairs": [],  # Vol not FX sensitive
         "cot_symbols": ["ZL"],
         "include_rin": False,
         "include_trump_features": False,
-        "expected_features": 30,
+        "expected_features": 40,
     },
 
     # =========================================================================
-    # SUBSTITUTES (4-6% weight) - Competing vegetable oils
+    # SUBSTITUTES - Competing vegetable oils
     # =========================================================================
     # Canola, sunflower, rapeseed compete with soybean oil.
     "substitutes": {
         "description": "Competing oils - canola, sunflower, rapeseed spreads",
-        "symbols": ["ZL", "RS"],  # RS = Canola (ICE)
+        "symbols": ["ZL", "RS"],  # RS = Canola (ICE) - 3,575 rows from 2011
         "primary_features": [
-            "canola_close",          # ICE Canola
-            "sunflower_close",       # Sunflower price
-            "rapeseed_close",        # Matif Rapeseed
-            "cottonseed_oil_close",  # Cottonseed
+            "canola_close",          # ICE Canola (RS)
+            "sunflower_close",       # FRED PSUNOUSDM
             "zl_canola_spread",      # ZL - Canola
             "zl_sunflower_spread",   # ZL - Sunflower
         ],
@@ -444,21 +438,18 @@ SPECIALIST_FEATURE_CONFIGS = {
             "eu_rapeseed_production",# EU production
             "black_sea_sunflower",   # Ukraine/Russia
             "canola_crush_canada",   # Canada crush
-            "argentina_sunflower_crop",# Argentina
-            "india_import_policy",   # Import duties
-            "eu_biofuel_feedstock",  # RED II feedstock
         ],
         "derived_indicators": [
             "zl_canola_zscore",      # Spread z-score
-            "substitutes_regime",    # tight/normal/loose
+            "zl_sunflower_zscore",   # Spread z-score
             "substitutes_bucket_signal",# Composite
         ],
-        "fred_series": [],
+        "fred_series": ["PSUNOUSDM"],  # Sunflower Oil Price (427 rows from 1990)
         "fx_pairs": ["USDCAD", "EURUSD"],  # Canola/Rapeseed currencies
         "cot_symbols": ["ZL"],
         "include_rin": False,
         "include_trump_features": False,
-        "expected_features": 25,
+        "expected_features": 35,
     },
 
     # =========================================================================
@@ -466,7 +457,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     # =========================================================================
     # Trump is a REGIME: tariffs + EPA waivers + MFP + tweets.
     "trump_effect": {
-        "description": "Trump/policy regime - tariffs, EPA waivers, MFP, elections",
+        "description": "Trump/policy regime - tariffs, EPA waivers, MFP, WhiteHouse actions",
         "symbols": ["ZL", "ZS", "HG", "ES", "DX"],
         "primary_features": [
             # Binary regime flags
@@ -475,27 +466,28 @@ SPECIALIST_FEATURE_CONFIGS = {
             "china_tariff_active",   # 25% tariff on soybeans
             "phase_one_active",      # Trade deal in effect
             "mfp_active",            # MFP payments active
+            # WhiteHouse action counts
+            "wh_eo_count",           # Executive orders
+            "wh_trade_related",      # Trade-related actions
+            "wh_ag_related",         # Agriculture-related actions
         ],
         "secondary_features": [
             # Continuous regime scores
-            "epa_waiver_regime",     # SRE policy score (-5 to 0)
-            "trade_war_regime",      # Trade tension (-5 to +5)
+            "policy_uncertainty",    # USEPUINDXD
+            "trade_policy_uncertainty", # EPUTRADE
             "trump_regime_score",    # Composite score
             "days_to_election",      # Election cycle
-            "trump_2_anticipation",  # Market pricing Trump 2.0
-            "election_year",         # Is election year
         ],
         "derived_indicators": [
-            "days_since_tariff_announce",# Tariff timeline
-            "trump_volatility_impact",# VIX during Trump
+            "policy_uncertainty_zscore", # Uncertainty z-score
             "trump_bucket_signal",   # Composite signal
         ],
-        "fred_series": ["VIXCLS", "T10Y2Y"],
+        "fred_series": ["VIXCLS", "T10Y2Y", "USEPUINDXD", "EPUTRADE"],  # Policy uncertainty
         "fx_pairs": ["USDCNY", "USDBRL", "USDMXN"],
         "cot_symbols": ["ZL", "ZS"],
         "include_rin": True,  # EPA waivers affect RINs
         "include_trump_features": True,
-        "expected_features": 40,
+        "expected_features": 60,
     },
 }
 
@@ -527,6 +519,64 @@ def load_all_market_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
     logger.info(f"  Loaded {len(df):,} rows, {df['symbol'].nunique()} symbols")
     return df
+
+
+def load_market_data_by_tags(conn, bucket: str, start_date: str = "2000-01-01") -> pd.DataFrame:
+    """
+    Load market data filtered by specialist_tags.
+
+    This uses the specialist_tags array column to get data that BELONGS to this bucket,
+    rather than hardcoded symbol lists.
+    """
+    logger.info(f"Loading market data for bucket '{bucket}' via specialist_tags...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT symbol, event_date AS as_of_date, open, high, low, close, volume
+            FROM "raw"."market_futures_1d"
+            WHERE event_date >= %s
+              AND specialist_tags @> ARRAY[%s]
+            ORDER BY event_date, symbol
+        """, (start_date, bucket))
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+    df = pd.DataFrame(rows, columns=columns)
+    if not df.empty:
+        df["as_of_date"] = pd.to_datetime(df["as_of_date"])
+    logger.info(f"  Loaded {len(df):,} rows, {df['symbol'].nunique() if not df.empty else 0} symbols for '{bucket}'")
+    return df
+
+
+def load_fred_data_by_tags(conn, bucket: str) -> pd.DataFrame:
+    """
+    Load FRED data filtered by specialist_tags.
+    """
+    logger.info(f"Loading FRED data for bucket '{bucket}' via specialist_tags...")
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT event_date AS as_of_date, series_id, value
+            FROM "raw"."fred_observations_1d"
+            WHERE specialist_tags @> ARRAY[%s]
+            ORDER BY event_date, series_id
+        """, (bucket,))
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+
+    if not rows:
+        logger.info(f"  No FRED data tagged for '{bucket}'")
+        return pd.DataFrame(columns=["as_of_date"])
+
+    df = pd.DataFrame(rows, columns=columns)
+    # Pivot to wide format
+    df_wide = (
+        df.pivot(index="as_of_date", columns="series_id", values="value")
+        .sort_index()
+        .reset_index()
+    )
+    df_wide["as_of_date"] = pd.to_datetime(df_wide["as_of_date"])
+    # Prefix columns with fred_
+    df_wide.columns = ["as_of_date"] + [f"fred_{c}" for c in df_wide.columns[1:]]
+    logger.info(f"  Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} series for '{bucket}'")
+    return df_wide
 
 
 def load_fred_data(conn) -> pd.DataFrame:
@@ -775,8 +825,8 @@ def add_weather_staleness(df: pd.DataFrame, time_col: str = 'as_of_date') -> pd.
 
 
 def load_news_data(conn) -> pd.DataFrame:
-    """Load news sentiment data aggregated by date."""
-    logger.info("Loading news sentiment...")
+    """Load news sentiment data aggregated by date (legacy - global only)."""
+    logger.info("Loading news sentiment (global)...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT event_date AS as_of_date,
@@ -794,6 +844,115 @@ def load_news_data(conn) -> pd.DataFrame:
                                        "news_bullish_count", "news_bearish_count", "news_trump_count"])
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
     logger.info(f"  Loaded {len(df):,} dates")
+    return df
+
+
+def load_news_sentiment_by_bucket(conn) -> Dict[str, pd.DataFrame]:
+    """
+    Load BUCKET-SPECIFIC news sentiment from silver.news_scored_1d.
+
+    This uses the affects_* boolean columns to route news to appropriate buckets.
+    Returns a dict of {bucket_name: DataFrame} with aggregated sentiment features.
+    """
+    logger.info("Loading bucket-specific news sentiment from silver.news_scored_1d...")
+
+    # All 11 buckets that have affects_* flags
+    buckets = [
+        "crush", "china", "fx", "fed", "tariff", "energy",
+        "biofuel", "palm", "volatility", "substitutes", "trump_effect"
+    ]
+
+    result = {}
+
+    for bucket in buckets:
+        affects_col = f"affects_{bucket}"
+
+        with conn.cursor() as cur:
+            cur.execute(f"""
+                SELECT
+                    DATE(published_at) AS as_of_date,
+                    COUNT(*) as {bucket}_news_count,
+                    AVG(sentiment_score) as {bucket}_news_sentiment_avg,
+                    AVG(sentiment_confidence) as {bucket}_news_confidence_avg,
+                    AVG(zl_impact_score) as {bucket}_news_zl_impact_avg,
+                    SUM(CASE WHEN sentiment_direction = 'bullish' THEN 1 ELSE 0 END) as {bucket}_news_bullish,
+                    SUM(CASE WHEN sentiment_direction = 'bearish' THEN 1 ELSE 0 END) as {bucket}_news_bearish,
+                    SUM(CASE WHEN sentiment_direction = 'neutral' THEN 1 ELSE 0 END) as {bucket}_news_neutral
+                FROM "silver"."news_scored_1d"
+                WHERE {affects_col} = TRUE
+                GROUP BY DATE(published_at)
+                ORDER BY DATE(published_at)
+            """)
+            rows = cur.fetchall()
+
+        columns = [
+            "as_of_date",
+            f"{bucket}_news_count",
+            f"{bucket}_news_sentiment_avg",
+            f"{bucket}_news_confidence_avg",
+            f"{bucket}_news_zl_impact_avg",
+            f"{bucket}_news_bullish",
+            f"{bucket}_news_bearish",
+            f"{bucket}_news_neutral",
+        ]
+
+        df = pd.DataFrame(rows, columns=columns)
+        if not df.empty:
+            df["as_of_date"] = pd.to_datetime(df["as_of_date"])
+            # Add derived features
+            total_sentiment = df[f"{bucket}_news_bullish"] + df[f"{bucket}_news_bearish"] + df[f"{bucket}_news_neutral"]
+            df[f"{bucket}_news_bull_pct"] = df[f"{bucket}_news_bullish"] / total_sentiment.replace(0, 1) * 100
+            df[f"{bucket}_news_bear_pct"] = df[f"{bucket}_news_bearish"] / total_sentiment.replace(0, 1) * 100
+            df[f"{bucket}_news_net_sentiment"] = df[f"{bucket}_news_bullish"] - df[f"{bucket}_news_bearish"]
+
+        result[bucket] = df
+        logger.info(f"    {bucket}: {len(df):,} dates with news")
+
+    return result
+
+
+def load_whitehouse_actions(conn) -> pd.DataFrame:
+    """
+    Load WhiteHouse actions for trump_effect bucket.
+
+    Aggregates executive orders, proclamations, memoranda by date.
+    Returns features like action counts, EO counts, trade-related actions.
+    """
+    logger.info("Loading WhiteHouse actions...")
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                action_date AS as_of_date,
+                COUNT(*) as wh_action_count,
+                SUM(CASE WHEN action_type = 'executive_order' THEN 1 ELSE 0 END) as wh_eo_count,
+                SUM(CASE WHEN action_type = 'proclamation' THEN 1 ELSE 0 END) as wh_proclamation_count,
+                SUM(CASE WHEN action_type = 'memorandum' THEN 1 ELSE 0 END) as wh_memo_count,
+                SUM(CASE WHEN LOWER(title) LIKE '%tariff%' OR LOWER(title) LIKE '%trade%' THEN 1 ELSE 0 END) as wh_trade_related,
+                SUM(CASE WHEN LOWER(title) LIKE '%china%' OR LOWER(title) LIKE '%chinese%' THEN 1 ELSE 0 END) as wh_china_related,
+                SUM(CASE WHEN LOWER(title) LIKE '%soybean%' OR LOWER(title) LIKE '%agricult%' OR LOWER(title) LIKE '%farm%' THEN 1 ELSE 0 END) as wh_ag_related,
+                SUM(CASE WHEN LOWER(title) LIKE '%energy%' OR LOWER(title) LIKE '%oil%' OR LOWER(title) LIKE '%fuel%' THEN 1 ELSE 0 END) as wh_energy_related
+            FROM raw.whitehouse_actions_event
+            GROUP BY action_date
+            ORDER BY action_date
+        """)
+        rows = cur.fetchall()
+
+    columns = [
+        "as_of_date", "wh_action_count", "wh_eo_count", "wh_proclamation_count",
+        "wh_memo_count", "wh_trade_related", "wh_china_related",
+        "wh_ag_related", "wh_energy_related"
+    ]
+
+    df = pd.DataFrame(rows, columns=columns)
+    if not df.empty:
+        df["as_of_date"] = pd.to_datetime(df["as_of_date"])
+        # Add rolling counts
+        df["wh_eo_count_7d"] = df["wh_eo_count"].rolling(7).sum()
+        df["wh_eo_count_30d"] = df["wh_eo_count"].rolling(30).sum()
+        df["wh_trade_intensity_30d"] = df["wh_trade_related"].rolling(30).sum()
+
+    logger.info(f"  Loaded {len(df):,} dates with WhiteHouse actions")
     return df
 
 
@@ -1000,6 +1159,8 @@ def generate_bucket_features(
     rin_df: pd.DataFrame,
     weather_df: pd.DataFrame,
     news_df: pd.DataFrame,
+    news_by_bucket: Dict[str, pd.DataFrame] = None,
+    whitehouse_df: pd.DataFrame = None,
 ) -> pd.DataFrame:
     """
     Generate DOMAIN-SPECIFIC features for a specialist bucket.
@@ -1015,6 +1176,7 @@ def generate_bucket_features(
     - Trump features if include_trump_features=True
     - RIN data if include_rin=True
     - Weather if include_weather=True
+    - NEWS SENTIMENT specific to this bucket (from silver.news_scored_1d)
     """
     logger.info(f"  Generating DOMAIN-SPECIFIC features for: {bucket_name}")
 
@@ -1209,18 +1371,28 @@ def generate_bucket_features(
     elif bucket_name == "palm":
         # =====================================================================
         # PALM: Palm/soy spreads, inventory, production, weather (El Nino)
+        # Using actual CPO (Crude Palm Oil) data, NOT XK proxy
         # =====================================================================
-        if "xk_close" in zl_df.columns:
-            # Core spreads
-            zl_df["zl_palm_spread"] = zl_df["zl_close"] - zl_df["xk_close"]
-            zl_df["zl_palm_ratio"] = zl_df["zl_close"] / (zl_df["xk_close"] + 0.001)
+        if "cpo_close" in zl_df.columns:
+            # Core spreads - ZL vs actual CPO
+            zl_df["zl_palm_spread"] = zl_df["zl_close"] - zl_df["cpo_close"]
+            zl_df["zl_palm_ratio"] = zl_df["zl_close"] / (zl_df["cpo_close"] + 0.001)
             zl_df["zl_palm_zscore"] = (zl_df["zl_palm_spread"] - zl_df["zl_palm_spread"].rolling(252).mean()) / zl_df["zl_palm_spread"].rolling(252).std()
             zl_df["zl_palm_percentile"] = zl_df["zl_palm_spread"].rolling(252).rank(pct=True) * 100
 
-            # Palm momentum
-            zl_df["palm_momentum_5d"] = zl_df["xk_close"].pct_change(5) * 100
-            zl_df["palm_momentum_21d"] = zl_df["xk_close"].pct_change(21) * 100
+            # CPO price features
+            zl_df["cpo_sma_21"] = zl_df["cpo_close"].rolling(21).mean()
+            zl_df["cpo_sma_63"] = zl_df["cpo_close"].rolling(63).mean()
+            zl_df["cpo_price_vs_sma21"] = zl_df["cpo_close"] / zl_df["cpo_sma_21"] - 1
+            zl_df["cpo_price_vs_sma63"] = zl_df["cpo_close"] / zl_df["cpo_sma_63"] - 1
+
+            # Palm momentum (actual CPO)
+            zl_df["cpo_momentum_5d"] = zl_df["cpo_close"].pct_change(5) * 100
+            zl_df["cpo_momentum_21d"] = zl_df["cpo_close"].pct_change(21) * 100
             zl_df["zl_palm_spread_momentum"] = zl_df["zl_palm_spread"].diff(21)
+
+            # CPO volatility
+            zl_df["cpo_volatility_21d"] = zl_df["cpo_close"].pct_change(1).rolling(21).std() * np.sqrt(252)
 
             # Palm Bollinger bands
             palm_sma = zl_df["zl_palm_spread"].rolling(20).mean()
@@ -1230,7 +1402,7 @@ def generate_bucket_features(
             # Signal strength
             zl_df["palm_signal_strength"] = np.abs(zl_df["zl_palm_zscore"]).clip(0, 3) / 3 * 100
 
-            # Premium/discount flag
+            # Premium/discount flag (ZL vs CPO)
             zl_df["palm_premium_flag"] = (zl_df["zl_palm_ratio"] < 1.05).astype(int)
             zl_df["palm_discount_flag"] = (zl_df["zl_palm_ratio"] > 1.15).astype(int)
 
@@ -1287,13 +1459,37 @@ def generate_bucket_features(
             zl_df["vx_zscore"] = (zl_df["vx_close"] - zl_df["vx_close"].rolling(252).mean()) / zl_df["vx_close"].rolling(252).std()
             zl_df["vx_percentile"] = zl_df["vx_close"].rolling(252).rank(pct=True) * 100
 
-        # Composite
-        zl_df["vol_bucket_signal"] = zl_df["vol_zscore"]
-        zl_df["vol_signal_strength"] = np.abs(zl_df["vol_zscore"]).clip(0, 3) / 3 * 100
+        # Oil VIX (OVXCLS) - critical for energy/soybean oil volatility
+        if "fred_OVXCLS" in zl_df.columns:
+            zl_df["ovx"] = zl_df["fred_OVXCLS"]
+            zl_df["ovx_zscore"] = (zl_df["ovx"] - zl_df["ovx"].rolling(252).mean()) / zl_df["ovx"].rolling(252).std()
+            zl_df["ovx_percentile"] = zl_df["ovx"].rolling(252).rank(pct=True) * 100
+            zl_df["ovx_momentum_21d"] = zl_df["ovx"].pct_change(21) * 100
+            # OVX vs VIX spread (commodity vs equity fear)
+            if "fred_VIXCLS" in zl_df.columns:
+                zl_df["ovx_vix_spread"] = zl_df["ovx"] - zl_df["fred_VIXCLS"]
+                zl_df["ovx_vix_ratio"] = zl_df["ovx"] / (zl_df["fred_VIXCLS"] + 0.001)
+
+        # Financial Stress Index (STLFSI4)
+        if "fred_STLFSI4" in zl_df.columns:
+            zl_df["stress_index"] = zl_df["fred_STLFSI4"]
+            zl_df["stress_zscore"] = (zl_df["stress_index"] - zl_df["stress_index"].rolling(252).mean()) / zl_df["stress_index"].rolling(252).std()
+            zl_df["stress_regime_high"] = (zl_df["stress_index"] > 0).astype(int)  # >0 = stress
+            zl_df["stress_regime_crisis"] = (zl_df["stress_index"] > 2).astype(int)  # >2 = crisis
+
+        # Composite - combine multiple vol signals
+        vol_signals = [zl_df["vol_zscore"]]
+        if "ovx_zscore" in zl_df.columns:
+            vol_signals.append(zl_df["ovx_zscore"])
+        if "stress_zscore" in zl_df.columns:
+            vol_signals.append(zl_df["stress_zscore"])
+        zl_df["vol_bucket_signal"] = pd.concat(vol_signals, axis=1).mean(axis=1)
+        zl_df["vol_signal_strength"] = np.abs(zl_df["vol_bucket_signal"]).clip(0, 3) / 3 * 100
 
     elif bucket_name == "substitutes":
         # =====================================================================
-        # SUBSTITUTES: Canola, sunflower, rapeseed spreads
+        # SUBSTITUTES: Canola, sunflower spreads vs ZL
+        # RS = ICE Canola (3,575 rows), PSUNOUSDM = Sunflower (FRED, 427 rows)
         # =====================================================================
         if "rs_close" in zl_df.columns:
             # Canola spreads
@@ -1317,8 +1513,25 @@ def generate_bucket_features(
             # Canola tight flag (premium)
             zl_df["canola_tight_flag"] = (zl_df["zl_canola_spread"] < zl_df["zl_canola_spread"].rolling(252).quantile(0.2)).astype(int)
 
-            # Composite
-            zl_df["substitutes_bucket_signal"] = zl_df["zl_canola_zscore"]
+        # Sunflower oil from FRED (PSUNOUSDM)
+        if "fred_PSUNOUSDM" in zl_df.columns:
+            # Sunflower spreads (ZL vs sunflower price)
+            zl_df["zl_sunflower_spread"] = zl_df["zl_close"] - zl_df["fred_PSUNOUSDM"]
+            zl_df["zl_sunflower_ratio"] = zl_df["zl_close"] / (zl_df["fred_PSUNOUSDM"] + 0.001)
+            zl_df["zl_sunflower_zscore"] = (zl_df["zl_sunflower_spread"] - zl_df["zl_sunflower_spread"].rolling(252).mean()) / zl_df["zl_sunflower_spread"].rolling(252).std()
+
+            # Sunflower momentum
+            zl_df["sunflower_momentum_21d"] = zl_df["fred_PSUNOUSDM"].pct_change(21) * 100
+            zl_df["sunflower_price_vs_sma"] = zl_df["fred_PSUNOUSDM"] / zl_df["fred_PSUNOUSDM"].rolling(63).mean() - 1
+
+        # Composite signal (average of available signals)
+        signals = []
+        if "zl_canola_zscore" in zl_df.columns:
+            signals.append(zl_df["zl_canola_zscore"])
+        if "zl_sunflower_zscore" in zl_df.columns:
+            signals.append(zl_df["zl_sunflower_zscore"])
+        if signals:
+            zl_df["substitutes_bucket_signal"] = pd.concat(signals, axis=1).mean(axis=1)
 
     elif bucket_name == "fx":
         # =====================================================================
@@ -1368,6 +1581,49 @@ def generate_bucket_features(
 
         if "zm_close" in zl_df.columns:
             zl_df["zm_zscore"] = (zl_df["zm_close"] - zl_df["zm_close"].rolling(252).mean()) / zl_df["zm_close"].rolling(252).std()
+
+    elif bucket_name == "trump_effect":
+        # =====================================================================
+        # TRUMP_EFFECT: Policy regime dynamics, WhiteHouse actions, trade war
+        # Uses raw.whitehouse_actions_event for executive order tracking
+        # =====================================================================
+        # WhiteHouse actions (EOs, proclamations, memoranda)
+        if whitehouse_df is not None and not whitehouse_df.empty:
+            zl_df = zl_df.merge(whitehouse_df, on="as_of_date", how="left")
+            # Fill missing with 0 (no actions that day)
+            wh_cols = [c for c in zl_df.columns if c.startswith("wh_")]
+            for col in wh_cols:
+                zl_df[col] = zl_df[col].fillna(0)
+            logger.info(f"    + WhiteHouse: {len(wh_cols)} features")
+
+        # DJT stock proxy for Trump sentiment (from yahoo_equity_1d via market data)
+        if "djt_close" in zl_df.columns:
+            zl_df["djt_momentum_5d"] = zl_df["djt_close"].pct_change(5) * 100
+            zl_df["djt_momentum_21d"] = zl_df["djt_close"].pct_change(21) * 100
+            zl_df["djt_zscore"] = (zl_df["djt_close"] - zl_df["djt_close"].rolling(252).mean()) / zl_df["djt_close"].rolling(252).std()
+            zl_df["djt_volatility_21d"] = zl_df["djt_close"].pct_change(1).rolling(21).std() * np.sqrt(252)
+
+        # Policy uncertainty from FRED (USEPUINDXD)
+        if "fred_USEPUINDXD" in zl_df.columns:
+            zl_df["policy_uncertainty"] = zl_df["fred_USEPUINDXD"]
+            zl_df["policy_uncertainty_zscore"] = (zl_df["policy_uncertainty"] - zl_df["policy_uncertainty"].rolling(252).mean()) / zl_df["policy_uncertainty"].rolling(252).std()
+            zl_df["policy_uncertainty_high"] = (zl_df["policy_uncertainty"] > zl_df["policy_uncertainty"].rolling(252).quantile(0.8)).astype(int)
+
+        # Trade policy uncertainty from FRED (EPUTRADE)
+        if "fred_EPUTRADE" in zl_df.columns:
+            zl_df["trade_policy_uncertainty"] = zl_df["fred_EPUTRADE"]
+            zl_df["trade_policy_uncertainty_zscore"] = (zl_df["trade_policy_uncertainty"] - zl_df["trade_policy_uncertainty"].rolling(252).mean()) / zl_df["trade_policy_uncertainty"].rolling(252).std()
+
+        # Composite trump effect signal
+        signals = []
+        if "policy_uncertainty_zscore" in zl_df.columns:
+            signals.append(zl_df["policy_uncertainty_zscore"])
+        if "trade_policy_uncertainty_zscore" in zl_df.columns:
+            signals.append(zl_df["trade_policy_uncertainty_zscore"])
+        if signals:
+            zl_df["trump_bucket_signal"] = pd.concat(signals, axis=1).mean(axis=1)
+        else:
+            zl_df["trump_bucket_signal"] = 0
 
     # ==========================================================================
     # 4. ADD ONLY CONFIGURED FRED SERIES (not all 111!)
@@ -1434,6 +1690,25 @@ def generate_bucket_features(
     if include_trump:
         zl_df = add_trump_regime_features(zl_df)
         logger.info(f"    + Trump regime: 10+ features")
+
+    # ==========================================================================
+    # 11. ADD BUCKET-SPECIFIC NEWS SENTIMENT (from silver.news_scored_1d)
+    # ==========================================================================
+    # This is CRITICAL - news sentiment was loaded but NEVER merged before!
+    if news_by_bucket is not None and bucket_name in news_by_bucket:
+        bucket_news_df = news_by_bucket[bucket_name]
+        if not bucket_news_df.empty:
+            zl_df = zl_df.merge(bucket_news_df, on="as_of_date", how="left")
+            # Add rolling sentiment features
+            sentiment_col = f"{bucket_name}_news_sentiment_avg"
+            if sentiment_col in zl_df.columns:
+                # 5-day rolling sentiment average
+                zl_df[f"{bucket_name}_news_sentiment_5d"] = zl_df[sentiment_col].rolling(5).mean()
+                # 21-day rolling sentiment average
+                zl_df[f"{bucket_name}_news_sentiment_21d"] = zl_df[sentiment_col].rolling(21).mean()
+                # Sentiment momentum
+                zl_df[f"{bucket_name}_news_sentiment_momentum"] = zl_df[sentiment_col] - zl_df[f"{bucket_name}_news_sentiment_21d"]
+            logger.info(f"    + News sentiment: {len(bucket_news_df.columns)-1} features for {bucket_name}")
 
     # ==========================================================================
     # FORWARD-FILL AND CLEAN
@@ -1509,7 +1784,9 @@ def main():
         wasde_df = load_wasde_data(conn)
         rin_df = load_rin_data(conn)
         weather_df = load_weather_data(conn)
-        news_df = load_news_data(conn)
+        news_df = load_news_data(conn)  # Legacy global news
+        news_by_bucket = load_news_sentiment_by_bucket(conn)  # Bucket-specific news
+        whitehouse_df = load_whitehouse_actions(conn)  # WhiteHouse EOs/actions
 
         # Generate features for each bucket
         logger.info("\n" + "=" * 70)
@@ -1527,7 +1804,9 @@ def main():
 
             bucket_df = generate_bucket_features(
                 bucket_name, bucket_config,
-                market_df, fred_df, fx_df, cot_df, usda_df, wasde_df, rin_df, weather_df, news_df
+                market_df, fred_df, fx_df, cot_df, usda_df, wasde_df, rin_df, weather_df, news_df,
+                news_by_bucket=news_by_bucket,
+                whitehouse_df=whitehouse_df
             )
 
             save_specialist_features(conn, bucket_name, bucket_df, args.dry_run)

@@ -138,7 +138,7 @@ pulse_data = engine.validate_response(response.text)
 
 ## Database Storage (Prisma)
 
-Intel Drops are stored in the `intelligence.intel_drops` table:
+Intel Drops are stored in the `gold.intel_drops` table:
 
 ```prisma
 model IntelDrop {
@@ -153,13 +153,15 @@ model IntelDrop {
   top_drivers     Json
   regime_tags     String[]
   quality_flags   String[]
+  data_gaps       String[]
   receipts        Json?
-  payload         Json
+  quant_payload   Json
+  source_model    String?
   created_at      DateTime  @default(now())
   
   @@unique([as_of_ts, domain, horizon])
   @@map("intel_drops")
-  @@schema("intelligence")
+  @@schema("gold")
 }
 ```
 

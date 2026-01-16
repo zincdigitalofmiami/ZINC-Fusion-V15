@@ -2,7 +2,9 @@
 import psycopg2
 import os
 
-DATABASE_URL = "postgres://d687a7ec267e124a21607a1e5dd9a89d60c9a122d219e499e32f3eee42a858c0:sk_NLg8ZV3VJ61FPM0F_QHMe@db.prisma.io:5432/postgres?sslmode=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise SystemExit("DATABASE_URL not found in environment")
 conn = psycopg2.connect(DATABASE_URL)
 
 # Get one row to see the features structure

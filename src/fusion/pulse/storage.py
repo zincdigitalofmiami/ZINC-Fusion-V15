@@ -20,6 +20,19 @@ from .extractors import ExtractedFeatures
 # Database connection settings
 DATABASE_URL = os.environ.get('DATABASE_URL', os.environ.get('POSTGRES_URL'))
 
+def _parse_json(value: Any, default: Any) -> Any:
+    """Normalize jsonb values across drivers (asyncpg vs psycopg2)."""
+    if value is None:
+        return default
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return default
+    return default
+
 
 async def get_connection() -> asyncpg.Connection:
     """Get database connection from pool."""
@@ -102,14 +115,14 @@ async def insert_intel_drop(
         direction,
         pressure_cents,
         edge,
-        json.dumps(driver_weights),
+        driver_weights,
         top_drivers,
         regime_tags,
         quality_flags,
         data_gaps,
         narrative,
-        json.dumps(quant_payload),
-        json.dumps(receipts) if receipts else None,
+        quant_payload,
+        receipts,
         source_model,
         datetime.utcnow()
     )
@@ -238,14 +251,14 @@ async def get_latest_intel_drops(
             'direction': row['direction'],
             'pressure_cents': row['pressure_cents'],
             'edge': row['edge'],
-            'driver_weights': json.loads(row['driver_weights']) if row['driver_weights'] else {},
-            'top_drivers': row['top_drivers'],
+            'driver_weights': _parse_json(row['driver_weights'], {}),
+            'top_drivers': _parse_json(row['top_drivers'], []),
             'regime_tags': row['regime_tags'],
             'quality_flags': row['quality_flags'],
             'data_gaps': row['data_gaps'],
             'narrative': row['narrative'],
-            'quant_payload': json.loads(row['quant_payload']) if row['quant_payload'] else {},
-            'receipts': json.loads(row['receipts']) if row['receipts'] else None,
+            'quant_payload': _parse_json(row['quant_payload'], {}),
+            'receipts': _parse_json(row['receipts'], None),
             'source_model': row['source_model'],
             'created_at': row['created_at'].isoformat() if row['created_at'] else None
         }
@@ -288,14 +301,14 @@ async def get_intel_drop_by_id(
         'direction': row['direction'],
         'pressure_cents': row['pressure_cents'],
         'edge': row['edge'],
-        'driver_weights': json.loads(row['driver_weights']) if row['driver_weights'] else {},
-        'top_drivers': row['top_drivers'],
+        'driver_weights': _parse_json(row['driver_weights'], {}),
+        'top_drivers': _parse_json(row['top_drivers'], []),
         'regime_tags': row['regime_tags'],
         'quality_flags': row['quality_flags'],
         'data_gaps': row['data_gaps'],
         'narrative': row['narrative'],
-        'quant_payload': json.loads(row['quant_payload']) if row['quant_payload'] else {},
-        'receipts': json.loads(row['receipts']) if row['receipts'] else None,
+        'quant_payload': _parse_json(row['quant_payload'], {}),
+        'receipts': _parse_json(row['receipts'], None),
         'source_model': row['source_model'],
         'created_at': row['created_at'].isoformat() if row['created_at'] else None
     }
@@ -341,8 +354,8 @@ async def get_domain_history(
             'direction': row['direction'],
             'pressure_cents': row['pressure_cents'],
             'edge': row['edge'],
-            'driver_weights': json.loads(row['driver_weights']) if row['driver_weights'] else {},
-            'top_drivers': row['top_drivers'],
+            'driver_weights': _parse_json(row['driver_weights'], {}),
+            'top_drivers': _parse_json(row['top_drivers'], []),
             'regime_tags': row['regime_tags'],
             'created_at': row['created_at'].isoformat() if row['created_at'] else None
         }

@@ -184,58 +184,107 @@ class EliteIndicators:
 
         return self.df
 
+    def _division_safe_rsi(self, series: pd.Series, period: int) -> pd.Series:
+        """
+        Division-safe RSI computation.
+        
+        GUARANTEED: No NaN after warm-up period.
+        
+        Edge cases (per locked spec):
+        - avg_loss = 0 AND avg_gain > 0 → RSI = 100 (all gains)
+        - avg_gain = 0 AND avg_loss > 0 → RSI = 0 (all losses)
+        - avg_gain = 0 AND avg_loss = 0 → RSI = 50 (flat tape)
+        """
+        delta = series.diff()
+        gain = delta.where(delta > 0, 0.0)
+        loss = (-delta).where(delta < 0, 0.0)
+        
+        avg_gain = gain.rolling(period).mean()
+        avg_loss = loss.rolling(period).mean()
+        
+        # Initialize RSI with NaN
+        rsi = pd.Series(np.nan, index=series.index)
+        
+        # Apply division-safe logic element-wise
+        for i in range(period, len(series)):
+            ag = avg_gain.iloc[i]
+            al = avg_loss.iloc[i]
+            
+            # Handle edge cases explicitly
+            if pd.isna(ag) or pd.isna(al):
+                rsi.iloc[i] = np.nan  # Still in warm-up or bad data
+            elif al == 0 and ag > 0:
+                rsi.iloc[i] = 100.0  # All gains, no losses
+            elif ag == 0 and al > 0:
+                rsi.iloc[i] = 0.0    # All losses, no gains
+            elif ag == 0 and al == 0:
+                rsi.iloc[i] = 50.0   # Flat tape (no movement)
+            else:
+                rs = ag / al
+                rsi.iloc[i] = 100.0 - (100.0 / (1.0 + rs))
+        
+        return rsi
+
     def add_connors_rsi(self) -> pd.DataFrame:
         """
         Connors RSI (3, 2, 100) - Larry Connors' championship indicator.
 
         Three components:
-        1. RSI(3) of price
-        2. RSI(2) of up/down streak length
+        1. RSI(3) of price - DIVISION SAFE
+        2. RSI(2) of up/down streak length - DIVISION SAFE
         3. Percentile rank of 1-day ROC over 100 days
 
+        GUARANTEED: No NaN after warm-up (max lookback = 100 days).
+        
         Overbought: > 90, Oversold: < 10 (NOT 70/30!)
         """
         close = self.df[self.close_col]
 
-        # Component 1: RSI(3) of price
-        delta = close.diff()
-        gain = delta.where(delta > 0, 0)
-        loss = (-delta).where(delta < 0, 0)
-
-        avg_gain = gain.rolling(3).mean()
-        avg_loss = loss.rolling(3).mean()
-        rs = avg_gain / avg_loss.replace(0, np.nan)
-        rsi_3 = 100 - (100 / (1 + rs))
+        # Component 1: RSI(3) of price - DIVISION SAFE
+        rsi_3 = self._division_safe_rsi(close, period=3)
 
         # Component 2: Up/Down streak RSI(2)
-        streak = pd.Series(0, index=close.index, dtype=float)
+        streak = pd.Series(0.0, index=close.index, dtype=float)
         for i in range(1, len(close)):
-            if close.iloc[i] > close.iloc[i-1]:
+            if pd.isna(close.iloc[i]) or pd.isna(close.iloc[i-1]):
+                streak.iloc[i] = 0.0
+            elif close.iloc[i] > close.iloc[i-1]:
                 streak.iloc[i] = max(streak.iloc[i-1], 0) + 1
             elif close.iloc[i] < close.iloc[i-1]:
                 streak.iloc[i] = min(streak.iloc[i-1], 0) - 1
             else:
-                streak.iloc[i] = 0
+                streak.iloc[i] = 0.0  # Flat day resets streak
 
-        # RSI(2) of streak
-        streak_delta = streak.diff()
-        streak_gain = streak_delta.where(streak_delta > 0, 0)
-        streak_loss = (-streak_delta).where(streak_delta < 0, 0)
-
-        streak_avg_gain = streak_gain.rolling(2).mean()
-        streak_avg_loss = streak_loss.rolling(2).mean()
-        streak_rs = streak_avg_gain / streak_avg_loss.replace(0, np.nan)
-        rsi_streak = 100 - (100 / (1 + streak_rs))
+        # RSI(2) of streak - DIVISION SAFE
+        rsi_streak = self._division_safe_rsi(streak, period=2)
 
         # Component 3: ROC percentile rank over 100 days
+        # Bounded output: 0-100, no division issues
         roc_1d = close.pct_change(1) * 100
-        roc_percentile = roc_1d.rolling(100).apply(
-            lambda x: (x.iloc[-1] > x[:-1]).sum() / (len(x) - 1) * 100 if len(x) > 1 else 50,
-            raw=False
+        
+        def safe_percentile_rank(x):
+            """Percentile rank that never returns NaN after warm-up."""
+            if len(x) < 2:
+                return 50.0  # Neutral if insufficient data
+            current = x.iloc[-1]
+            past = x.iloc[:-1]
+            if pd.isna(current):
+                return 50.0
+            # Count how many past values current exceeds
+            count = (current > past).sum()
+            return (count / len(past)) * 100.0
+        
+        roc_percentile = roc_1d.rolling(100, min_periods=20).apply(
+            safe_percentile_rank, raw=False
         )
 
         # Combine: average of three components
-        self.df["connors_rsi"] = (rsi_3 + rsi_streak.fillna(50) + roc_percentile) / 3
+        # Use fillna(50) for any remaining edge cases (50 = neutral)
+        rsi_3_safe = rsi_3.fillna(50.0)
+        rsi_streak_safe = rsi_streak.fillna(50.0)
+        roc_pct_safe = roc_percentile.fillna(50.0)
+        
+        self.df["connors_rsi"] = (rsi_3_safe + rsi_streak_safe + roc_pct_safe) / 3.0
 
         # Signals at 90/10 levels (NOT 70/30)
         self.df["connors_rsi_overbought"] = (self.df["connors_rsi"] > 90).astype(int)
@@ -450,11 +499,11 @@ class EliteIndicators:
         close = self.df[self.close_col]
         volume = self.df[self.volume_col]
 
-        # Raw Force Index
+        # Raw Force Index: price_change * volume
         force_raw = close.diff() * volume
 
-        # Smooth with EMA
-        self.df["elder_force_index"] = force_raw.ewm(span=period, adjust=False).mean()
+        # Smooth with EMA (min_periods=5 for early data with volume gaps)
+        self.df["elder_force_index"] = force_raw.ewm(span=period, min_periods=5, adjust=False).mean()
 
         # Zero-line crossover signals
         efi = self.df["elder_force_index"]
@@ -524,8 +573,8 @@ class EliteIndicators:
         weights = np.array([np.exp(-((i - m) ** 2) / (2 * s * s)) for i in range(period)])
         weights = weights / weights.sum()
 
-        self.df["alma_50"] = close.rolling(period).apply(
-            lambda x: np.dot(x, weights), raw=True
+        self.df["alma_50"] = close.rolling(period, min_periods=25).apply(
+            lambda x: np.dot(x, weights[-len(x):] / weights[-len(x):].sum()), raw=True
         )
 
         # McGinley(100) - "Systemic Floor" for 126d horizon
@@ -622,8 +671,9 @@ class EliteIndicators:
         typical_price = (high + low + close) / 3
 
         for period in [14, 50]:
-            sma = typical_price.rolling(period).mean()
-            mad = typical_price.rolling(period).apply(
+            min_p = period // 2  # Require at least half the window
+            sma = typical_price.rolling(period, min_periods=min_p).mean()
+            mad = typical_price.rolling(period, min_periods=min_p).apply(
                 lambda x: np.abs(x - x.mean()).mean(), raw=True
             )
             self.df[f"cci_{period}"] = (typical_price - sma) / (0.015 * mad)
@@ -655,18 +705,19 @@ class EliteIndicators:
             abs(low - close.shift(1))
         ], axis=1).max(axis=1)
 
-        # ATR(10) and ATR(50)
-        self.df["atr_10"] = tr.rolling(10).mean()
-        self.df["atr_50"] = tr.rolling(50).mean()
+        # ATR(10) and ATR(50) with min_periods for sparse data
+        self.df["atr_10"] = tr.rolling(10, min_periods=5).mean()
+        self.df["atr_50"] = tr.rolling(50, min_periods=25).mean()
 
         # ATR Ratio: >1 = expanding, <1 = contracting
         self.df["atr_ratio"] = self.df["atr_10"] / self.df["atr_50"]
 
         # Garman-Klass Volatility (uses OHLC)
+        # GK = 0.5 * ln(H/L)^2 - (2*ln(2)-1) * ln(C/O)^2
         log_hl = np.log(high / low) ** 2
         log_co = np.log(close / open_p) ** 2
         gk_daily = 0.5 * log_hl - (2 * np.log(2) - 1) * log_co
-        self.df["garman_klass_vol"] = np.sqrt(gk_daily.rolling(20).mean() * 252) * 100
+        self.df["garman_klass_vol"] = np.sqrt(gk_daily.rolling(20, min_periods=10).mean() * 252) * 100
 
         # Yang-Zhang Volatility (handles overnight gaps)
         log_oc = np.log(open_p / close.shift(1))  # Overnight
@@ -682,16 +733,16 @@ class EliteIndicators:
 
         k = 0.34 / (1.34 + (21) / (21 - 1))
 
-        var_o = log_oc.rolling(20).var()
-        var_c = log_co.rolling(20).var()
-        var_rs = rs.rolling(20).mean()
+        var_o = log_oc.rolling(20, min_periods=10).var()
+        var_c = log_co.rolling(20, min_periods=10).var()
+        var_rs = rs.rolling(20, min_periods=10).mean()
 
         yz_var = var_o + k * var_c + (1 - k) * var_rs
         self.df["yang_zhang_vol"] = np.sqrt(yz_var * 252) * 100
 
         # Bollinger Band %B
-        bb_mid = close.rolling(20).mean()
-        bb_std = close.rolling(20).std()
+        bb_mid = close.rolling(20, min_periods=10).mean()
+        bb_std = close.rolling(20, min_periods=10).std()
         bb_upper = bb_mid + 2 * bb_std
         bb_lower = bb_mid - 2 * bb_std
         self.df["bb_percent_b"] = (close - bb_lower) / (bb_upper - bb_lower)
@@ -708,20 +759,25 @@ class EliteIndicators:
 
         CMF(21): Chaikin Money Flow - accumulation/distribution
         Volume Z-Score: Unusual volume detection
+
+        Uses min_periods to handle sparse volume data in early years.
+        This calculates the real formula over available observations.
         """
         high = self.df[self.high_col]
         low = self.df[self.low_col]
         close = self.df[self.close_col]
         volume = self.df[self.volume_col]
 
-        # Chaikin Money Flow (21 period)
+        # Chaikin Money Flow (21 period, min 10 observations)
+        # CMF = Sum(MF_Multiplier * Volume) / Sum(Volume)
         mf_multiplier = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
         mf_volume = mf_multiplier * volume
-        self.df["cmf_21"] = mf_volume.rolling(21).sum() / volume.rolling(21).sum()
+        self.df["cmf_21"] = mf_volume.rolling(21, min_periods=10).sum() / volume.rolling(21, min_periods=10).sum()
 
-        # Volume Z-Score (20 day)
-        vol_mean = volume.rolling(20).mean()
-        vol_std = volume.rolling(20).std()
+        # Volume Z-Score (20 day, min 10 observations)
+        # Z = (V - mean) / std
+        vol_mean = volume.rolling(20, min_periods=10).mean()
+        vol_std = volume.rolling(20, min_periods=10).std()
         self.df["volume_zscore"] = (volume - vol_mean) / vol_std
 
         # Unusual volume flag (>2 std)
