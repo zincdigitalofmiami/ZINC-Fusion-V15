@@ -79,6 +79,181 @@ EXPECTED_COLUMNS = [
 MINIMUM_ROWS = 6000  # Should have ~6,500 rows for 2000-2026
 EXPECTED_START_DATE = "2000-01-01"
 
+# Elite Completeness Contract (Locked)
+# Per spec: any indicator >5% null = FAIL, scattered nulls = FAIL
+MAX_NULL_RATE = 0.05  # 5%
+
+# Indicators that must pass the completeness contract
+# These are the three that were fixed for flat bars/zero volume
+COMPLETENESS_CONTRACT_INDICATORS = [
+    "connors_rsi",
+    "garman_klass_vol",
+    "cmf_21",
+    # Include all others for full validation
+    "hurst_exponent",
+    "fisher_transform",
+    "mcginley_dynamic",
+    "schaff_trend_cycle",
+    "rvi",
+    "elder_force_index",
+    "kama_10",
+    "hma_20",
+    "alma_50",
+    "rsi_2",
+    "rsi_14",
+    "atr_10",
+    "atr_50",
+    "yang_zhang_vol",
+    "bb_percent_b",
+    "volume_zscore",
+]
+
+
+def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
+    """
+    Elite Completeness Contract Enforcement.
+    
+    HARD FAIL conditions:
+    1. Any indicator with null rate > 5%
+    2. Any indicator with scattered nulls (non-contiguous after warm-up)
+    
+    Reports per indicator:
+    - total null rate
+    - warm-up length (count of initial contiguous nulls)
+    - scattered null count (nulls after warm-up)
+    
+    Returns:
+        (passed: bool, report: dict with per-indicator stats)
+    """
+    logger.info("Running Elite Completeness Contract audit...")
+    
+    report = {
+        "passed": True,
+        "failures": [],
+        "indicators": {}
+    }
+    
+    # Get total row count
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) FROM gold.elite_indicators_1d WHERE symbol = %s",
+            (symbol,)
+        )
+        total_rows = cur.fetchone()[0]
+    
+    if total_rows == 0:
+        logger.error("❌ No rows in gold.elite_indicators_1d")
+        return False, {"passed": False, "failures": ["No data"]}
+    
+    report["total_rows"] = total_rows
+    
+    # Check each indicator
+    for indicator in COMPLETENESS_CONTRACT_INDICATORS:
+        indicator_stats = {
+            "total_nulls": 0,
+            "null_rate": 0.0,
+            "warmup_length": 0,
+            "scattered_nulls": 0,
+            "passed": True,
+            "failure_reasons": []
+        }
+        
+        try:
+            # Get null count
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                    SELECT COUNT(*) 
+                    FROM gold.elite_indicators_1d 
+                    WHERE symbol = %s AND {indicator} IS NULL
+                    """,
+                    (symbol,)
+                )
+                null_count = cur.fetchone()[0]
+            
+            indicator_stats["total_nulls"] = null_count
+            indicator_stats["null_rate"] = null_count / total_rows
+            
+            # Check null rate threshold
+            if indicator_stats["null_rate"] > MAX_NULL_RATE:
+                indicator_stats["passed"] = False
+                indicator_stats["failure_reasons"].append(
+                    f"Null rate {indicator_stats['null_rate']:.1%} > {MAX_NULL_RATE:.0%} max"
+                )
+                report["passed"] = False
+                report["failures"].append(f"{indicator}: null rate {indicator_stats['null_rate']:.1%}")
+            
+            # Check for scattered nulls (nulls after initial contiguous warm-up)
+            if null_count > 0:
+                with conn.cursor() as cur:
+                    # Find the first non-null row (end of warm-up)
+                    cur.execute(
+                        f"""
+                        SELECT MIN(trade_date) 
+                        FROM gold.elite_indicators_1d 
+                        WHERE symbol = %s AND {indicator} IS NOT NULL
+                        """,
+                        (symbol,)
+                    )
+                    first_valid = cur.fetchone()[0]
+                    
+                    if first_valid:
+                        # Count warm-up nulls (before first valid)
+                        cur.execute(
+                            f"""
+                            SELECT COUNT(*) 
+                            FROM gold.elite_indicators_1d 
+                            WHERE symbol = %s 
+                              AND trade_date < %s 
+                              AND {indicator} IS NULL
+                            """,
+                            (symbol, first_valid)
+                        )
+                        warmup_nulls = cur.fetchone()[0]
+                        indicator_stats["warmup_length"] = warmup_nulls
+                        
+                        # Count scattered nulls (after first valid)
+                        cur.execute(
+                            f"""
+                            SELECT COUNT(*) 
+                            FROM gold.elite_indicators_1d 
+                            WHERE symbol = %s 
+                              AND trade_date >= %s 
+                              AND {indicator} IS NULL
+                            """,
+                            (symbol, first_valid)
+                        )
+                        scattered = cur.fetchone()[0]
+                        indicator_stats["scattered_nulls"] = scattered
+                        
+                        # Scattered nulls = HARD FAIL
+                        if scattered > 0:
+                            indicator_stats["passed"] = False
+                            indicator_stats["failure_reasons"].append(
+                                f"{scattered} scattered nulls after warm-up"
+                            )
+                            report["passed"] = False
+                            report["failures"].append(f"{indicator}: {scattered} scattered nulls")
+            
+        except Exception as e:
+            # Column might not exist
+            indicator_stats["passed"] = False
+            indicator_stats["failure_reasons"].append(f"Error: {e}")
+            logger.warning(f"   Could not check {indicator}: {e}")
+        
+        report["indicators"][indicator] = indicator_stats
+        
+        # Log result
+        status = "✅" if indicator_stats["passed"] else "❌"
+        logger.info(
+            f"   {status} {indicator}: "
+            f"null_rate={indicator_stats['null_rate']:.1%}, "
+            f"warmup={indicator_stats['warmup_length']}, "
+            f"scattered={indicator_stats['scattered_nulls']}"
+        )
+    
+    return report["passed"], report
+
 
 def validate_elite_indicators(conn, symbol: str) -> Tuple[bool, dict]:
     """
@@ -220,23 +395,43 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str]]:
         logger.info("✅ Database connected")
 
         valid, stats = validate_elite_indicators(conn, symbol)
-
-        conn.close()
-
-        if valid:
-            elite_version = get_elite_version(stats)
-            logger.info("=" * 60)
-            logger.info("✅ PHASE 2 COMPLETE - Elite indicators validated")
-            logger.info(f"   Rows: {stats['row_count']:,}")
-            logger.info(f"   Elite version: {elite_version}")
-            logger.info("=" * 60)
-            return True, elite_version
-        else:
+        
+        if not valid:
+            conn.close()
             logger.error("=" * 60)
             logger.error("❌ PHASE 2 FAILED - Elite indicators incomplete")
             logger.error("   Manual rebuild required via EliteIndicators.compute_all()")
             logger.error("=" * 60)
             return False, None
+        
+        # Run completeness contract audit (HARD GATE)
+        logger.info("")
+        logger.info("-" * 60)
+        completeness_passed, completeness_report = audit_elite_completeness(conn, symbol)
+        logger.info("-" * 60)
+        
+        conn.close()
+        
+        if not completeness_passed:
+            logger.error("=" * 60)
+            logger.error("❌ PHASE 2 FAILED - Elite Completeness Contract violated")
+            for failure in completeness_report.get("failures", []):
+                logger.error(f"   {failure}")
+            logger.error("")
+            logger.error("   Fix required: rebuild elite indicators with fixed code")
+            logger.error("   (connors_rsi, garman_klass_vol, cmf_21 must handle edge cases)")
+            logger.error("=" * 60)
+            return False, None
+
+        if valid and completeness_passed:
+            elite_version = get_elite_version(stats)
+            logger.info("=" * 60)
+            logger.info("✅ PHASE 2 COMPLETE - Elite indicators validated")
+            logger.info(f"   Rows: {stats['row_count']:,}")
+            logger.info(f"   Elite version: {elite_version}")
+            logger.info(f"   Completeness contract: PASSED")
+            logger.info("=" * 60)
+            return True, elite_version
 
     except Exception as e:
         logger.error(f"❌ PHASE 2 FAILED: {e}", exc_info=True)

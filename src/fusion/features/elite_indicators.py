@@ -689,7 +689,7 @@ class EliteIndicators:
         Advanced volatility indicators for regime detection.
 
         ATR Ratio: Expanding vs contracting volatility
-        Garman-Klass: More efficient than standard HV (uses OHLC)
+        Garman-Klass: More efficient than standard HV (uses OHLC) - FLAT BAR SAFE
         Yang-Zhang: Handles overnight gaps (perfect for futures)
         BB %B: Position within Bollinger Bands
         """
@@ -712,12 +712,51 @@ class EliteIndicators:
         # ATR Ratio: >1 = expanding, <1 = contracting
         self.df["atr_ratio"] = self.df["atr_10"] / self.df["atr_50"]
 
-        # Garman-Klass Volatility (uses OHLC)
+        # =====================================================================
+        # Garman-Klass Volatility - FLAT BAR SAFE
+        # =====================================================================
         # GK = 0.5 * ln(H/L)^2 - (2*ln(2)-1) * ln(C/O)^2
-        log_hl = np.log(high / low) ** 2
-        log_co = np.log(close / open_p) ** 2
-        gk_daily = 0.5 * log_hl - (2 * np.log(2) - 1) * log_co
-        self.df["garman_klass_vol"] = np.sqrt(gk_daily.rolling(20, min_periods=10).mean() * 252) * 100
+        #
+        # GUARANTEED: No NaN after warm-up, even on flat bars.
+        #
+        # Edge cases (per locked spec):
+        # - If H = L → ln(H/L) = 0 (zero range, not NaN)
+        # - If C = O → ln(C/O) = 0 (no intraday move)
+        # - Clamp negative variance to 0
+        # =====================================================================
+        
+        # Safe log(H/L): if H == L, result is 0 (not NaN or -inf)
+        hl_ratio = high / low
+        log_hl_safe = np.where(
+            (high == low) | (hl_ratio <= 0),
+            0.0,
+            np.log(hl_ratio)
+        )
+        log_hl_sq = log_hl_safe ** 2
+        
+        # Safe log(C/O): if C == O, result is 0
+        co_ratio = close / open_p
+        log_co_safe = np.where(
+            (close == open_p) | (co_ratio <= 0) | (open_p == 0),
+            0.0,
+            np.log(co_ratio)
+        )
+        log_co_sq = log_co_safe ** 2
+        
+        # GK daily variance (can be negative due to formula, clamp to 0)
+        gk_coeff = 2 * np.log(2) - 1  # ≈ 0.386
+        gk_daily = 0.5 * log_hl_sq - gk_coeff * log_co_sq
+        gk_daily = np.maximum(gk_daily, 0.0)  # Clamp negative to 0
+        
+        # Convert to pandas Series for rolling
+        gk_daily_series = pd.Series(gk_daily, index=self.df.index)
+        
+        # Rolling mean, then annualize and convert to percentage
+        gk_rolling = gk_daily_series.rolling(20, min_periods=10).mean()
+        
+        # sqrt of negative should not happen after clamp, but protect anyway
+        gk_rolling_safe = np.maximum(gk_rolling, 0.0)
+        self.df["garman_klass_vol"] = np.sqrt(gk_rolling_safe * 252) * 100
 
         # Yang-Zhang Volatility (handles overnight gaps)
         log_oc = np.log(open_p / close.shift(1))  # Overnight
@@ -757,7 +796,7 @@ class EliteIndicators:
         """
         Volume and flow indicators for institutional activity.
 
-        CMF(21): Chaikin Money Flow - accumulation/distribution
+        CMF(21): Chaikin Money Flow - accumulation/distribution - ZERO VOLUME SAFE
         Volume Z-Score: Unusual volume detection
 
         Uses min_periods to handle sparse volume data in early years.
@@ -768,11 +807,55 @@ class EliteIndicators:
         close = self.df[self.close_col]
         volume = self.df[self.volume_col]
 
-        # Chaikin Money Flow (21 period, min 10 observations)
+        # =====================================================================
+        # Chaikin Money Flow (21 period) - ZERO VOLUME SAFE
+        # =====================================================================
         # CMF = Sum(MF_Multiplier * Volume) / Sum(Volume)
-        mf_multiplier = ((close - low) - (high - close)) / (high - low).replace(0, np.nan)
-        mf_volume = mf_multiplier * volume
-        self.df["cmf_21"] = mf_volume.rolling(21, min_periods=10).sum() / volume.rolling(21, min_periods=10).sum()
+        #
+        # GUARANTEED: No NaN after warm-up, even in zero-volume eras.
+        #
+        # Edge cases (per locked spec):
+        # - If H = L → MFM = 0 (neutral, no range info)
+        # - If V = 0 → MFV = 0 (no flow if nothing traded)
+        # - If ΣV over window = 0 → CMF = 0 (neutral)
+        # =====================================================================
+        
+        # Money Flow Multiplier: (2*C - H - L) / (H - L)
+        # Safe version: if H == L, MFM = 0 (neutral positioning)
+        hl_range = high - low
+        mfm_raw = (2 * close - high - low) / hl_range
+        
+        # Where H == L, set MFM to 0 (neutral - no informative close location)
+        mf_multiplier = np.where(
+            hl_range == 0,
+            0.0,
+            mfm_raw
+        )
+        mf_multiplier = pd.Series(mf_multiplier, index=self.df.index)
+        
+        # Handle any NaN from division (shouldn't happen after fix, but safety)
+        mf_multiplier = mf_multiplier.fillna(0.0)
+        
+        # Money Flow Volume: MFM * V
+        # If V = 0, MFV = 0 by definition
+        volume_safe = volume.fillna(0.0)
+        mf_volume = mf_multiplier * volume_safe
+        
+        # Rolling sums
+        mfv_sum = mf_volume.rolling(21, min_periods=10).sum()
+        vol_sum = volume_safe.rolling(21, min_periods=10).sum()
+        
+        # CMF = MFV_sum / Vol_sum
+        # If vol_sum == 0, CMF = 0 (neutral - cannot infer flow without trades)
+        cmf = np.where(
+            vol_sum == 0,
+            0.0,
+            mfv_sum / vol_sum
+        )
+        self.df["cmf_21"] = pd.Series(cmf, index=self.df.index)
+        
+        # Fill any remaining NaN from warm-up with 0 after min_periods
+        # (warm-up NaN is expected, but scattered NaN is not)
 
         # Volume Z-Score (20 day, min 10 observations)
         # Z = (V - mean) / std
