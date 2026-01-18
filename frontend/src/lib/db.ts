@@ -1,6 +1,6 @@
 /**
  * Database client for Prisma Postgres
- * Queries silver.* tables directly at runtime - no repo dependency
+ * Queries institutional schema tables (mkt.*, econ.*, features.*, etc.) at runtime
  */
 import { Pool } from 'pg'
 

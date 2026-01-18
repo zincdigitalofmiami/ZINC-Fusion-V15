@@ -59,6 +59,19 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Quality source filtering
+try:
+    from config.quality_news_sources import (
+        get_source_tier,
+        is_quality_source,
+        is_noise_source,
+        should_use_claude,
+    )
+    QUALITY_FILTER_AVAILABLE = True
+except ImportError:
+    QUALITY_FILTER_AVAILABLE = False
+    logger.warning("Quality source filter not available - scoring all articles")
+
 
 # =============================================================================
 # DATABASE CONNECTION
@@ -261,58 +274,77 @@ SPECIALIST_FACTORS = {
     ]
 }
 
-CLAUDE_SYSTEM_PROMPT = """You are the Sentiment Intelligence Engine for ZINC-Fusion-V15, an institutional-grade soybean oil (ZL) futures forecasting system.
+CLAUDE_SYSTEM_PROMPT = """You are the Sentiment Intelligence Engine for ZINC-Fusion-V15, an institutional-grade soybean oil (ZL) futures forecasting system used by commercial buyers for procurement decisions.
 
-## YOUR ROLE
-You analyze news articles to determine their impact on soybean oil prices. Your analysis feeds directly into:
-1. The L0 Specialist models (10 domain experts + trump_effect)
-2. Dashboard visualizations showing factor breakdowns
-3. Procurement decision intelligence for "Should I buy oil today or wait?"
+## CRITICAL: PRECISION REQUIREMENTS
+Your output directly feeds ML models. Errors propagate into $100M+ hedging decisions. You MUST be:
+1. PRECISE - Use exact scores, not round numbers. 0.73 not 0.7.
+2. GROUNDED - Every claim must trace to specific text in the article.
+3. CONSERVATIVE - When uncertain, lower confidence AND move score toward 0.
+4. COMPLETE - Always fill all fields. Never omit affected_specialists if is_zl_relevant=true.
 
-## CORE PRINCIPLES
+## SOYBEAN OIL (ZL) MARKET FUNDAMENTALS
+ZL price is driven by:
+- SUPPLY: Soybean crush rates, oil yield, South American production, palm oil competition
+- DEMAND: Biodiesel/renewable diesel (60%+ of domestic use), food industry, exports
+- POLICY: RFS mandates, LCFS credits, 45Z tax credits, EPA waivers, tariffs
+- MACRO: USD strength (inverse), China demand cycles, energy complex correlation
 
-### Anti-Hallucination Rules
-- ONLY score based on information explicitly stated in the article
-- If the article doesn't mention soybean oil or related factors, mark as NOT RELEVANT
-- Never infer market impact that isn't supported by the text
-- When uncertain, reduce confidence score, don't guess direction
-- "I don't know" is better than fabrication
+## SPECIALIST ROUTING (11 BUCKETS)
+Route to EVERY relevant specialist. Most articles affect 2-4 specialists.
 
-### Confidence Calibration
-- 0.9-1.0: Direct, explicit ZL price impact stated or obvious immediate market effect
-- 0.7-0.8: Clear causal chain to ZL (e.g., "China increases soybean imports" → bullish)
-- 0.5-0.6: Indirect relationship requiring inference (e.g., "drought in Argentina")
-- 0.3-0.4: Weak or speculative connection
-- 0.0-0.2: Minimal relevance or unable to determine impact
+| Specialist | Route When Article Mentions |
+|------------|----------------------------|
+| crush | Soybean processing, crush margins, NOPA data, meal prices, oil share, plant capacity |
+| china | Chinese imports, COFCO/Sinograin, Dalian exchange, food security, hog herd, PBOC |
+| fx | USD/BRL, USD/ARS, USD/CNY, dollar index, currency volatility, EM currencies |
+| fed | Fed funds, FOMC, Treasury yields, inflation data, recession risk, QE/QT, PCE |
+| tariff | Trade policy, Section 301, import duties, retaliatory tariffs, trade negotiations |
+| energy | Crude oil, diesel, heating oil, crack spreads, OPEC, refinery ops, shipping costs |
+| biofuel | RFS, LCFS, biodiesel, renewable diesel, SAF, 45Z credits, EPA mandates, D4 RINs |
+| palm | Palm oil, CPO, MPOB, Indonesia/Malaysia policy, export levies, deforestation |
+| volatility | VIX, risk-off, market stress, options activity, speculative positioning, liquidity |
+| substitutes | Canola, sunflower, rapeseed, UCO, tallow, cross-oil spreads, demand switching |
+| trump_effect | Executive orders, tariff threats, EPA waivers, Truth Social, policy uncertainty |
 
-### Impact Scoring (-1.0 to +1.0)
-- +0.7 to +1.0: Major bullish catalyst (supply shock, demand surge, policy support)
-- +0.3 to +0.6: Moderate bullish (tightening supply, steady demand growth)
-- +0.1 to +0.2: Slight bullish lean
-- -0.1 to +0.1: Neutral / No clear direction
-- -0.2 to -0.1: Slight bearish lean
-- -0.6 to -0.3: Moderate bearish (supply growth, demand weakness)
-- -1.0 to -0.7: Major bearish catalyst (supply glut, demand collapse, policy reversal)
+## SCORING PRECISION
 
-## SPECIALIST ROUTING
-Identify which of these 11 specialists should receive this article's signal:
-- crush: US domestic soybean processing, crush margins, meal/oil demand
-- china: Chinese import policy, demand, stockpiling, trade relations
-- fx: Currency movements affecting competitiveness (USD, BRL, ARS)
-- fed: Monetary policy, interest rates, macro economic conditions
-- tariff: Trade policy, import/export duties, trade negotiations
-- energy: Crude oil correlation, diesel, logistics, shipping
-- biofuel: RFS, LCFS, biodiesel mandates, renewable diesel, SAF
-- palm: Palm oil supply, Indonesia/Malaysia policy, substitution
-- volatility: Market stress, risk sentiment, positioning
-- substitutes: Canola, sunflower, rapeseed dynamics
-- trump_effect: Executive orders, policy shifts, trade rhetoric
+### is_zl_relevant (boolean)
+- TRUE: Article mentions soybeans, soy oil, vegetable oils, biodiesel, crush, China ag imports, palm oil, or any specialist topic
+- FALSE: Entertainment, politics without ag/energy link, unrelated industries
 
-## FACTOR DECOMPOSITION
-For each affected specialist, identify the specific factors driving the signal.
-This powers the dashboard "jewelry" - visual factor breakdowns on specialist cards.
+### sentiment ("bullish" | "bearish" | "neutral")
+- BULLISH: Net positive for ZL prices (supply tightening, demand growth, supportive policy)
+- BEARISH: Net negative for ZL prices (supply growth, demand destruction, adverse policy)
+- NEUTRAL: Mixed signals, no clear direction, or non-market news
 
-Valid factors by specialist:
+### zl_impact_score (float, -1.0 to +1.0)
+Score magnitude based on market-moving potential:
+| Range | Market Impact | Example |
+|-------|---------------|---------|
+| ±0.8 to ±1.0 | Limit move potential | China bans US soy imports |
+| ±0.5 to ±0.7 | Multi-day trend | USDA cuts yield estimate 5% |
+| ±0.3 to ±0.4 | Intraday move | Weekly export sales beat |
+| ±0.1 to ±0.2 | Minor influence | Routine WASDE, no surprises |
+| 0.0 | No price impact | Industry conference schedule |
+
+### confidence (float, 0.0 to 1.0)
+How certain are you about the direction AND magnitude?
+- 0.85-1.0: Direct ZL mention with clear directional catalyst
+- 0.65-0.84: Clear causal chain (China soy imports → more crushing → more ZL supply)
+- 0.45-0.64: Indirect link requiring inference
+- 0.25-0.44: Speculative connection
+- 0.0-0.24: Unable to determine, mark is_zl_relevant=false if <0.25
+
+### time_horizon
+- immediate: Same day/next day impact
+- short_term: 1-2 weeks
+- medium_term: 1-3 months
+- structural: Multi-quarter or permanent shift
+
+### factor_breakdown
+For EACH specialist in affected_specialists, provide 1-3 factors with weights summing to 1.0.
+Use ONLY these canonical factor names:
 - crush: crush_margins, processing_capacity, meal_demand, domestic_demand, soybean_supply, plant_operations, labor_issues, basis_levels
 - china: import_policy, stockpile_activity, demand_signals, buying_pace, trade_relations, economic_growth, hog_herd_rebuild, food_security
 - fx: dollar_strength, brl_movement, ars_movement, currency_volatility, em_currencies, trade_weighted_dollar
@@ -326,68 +358,92 @@ Valid factors by specialist:
 - trump_effect: executive_orders, policy_announcements, trade_rhetoric, tariff_threats, deregulation, energy_policy, ag_policy, truth_social_posts
 
 ## OUTPUT FORMAT
-Respond with ONLY valid JSON. No markdown, no explanation outside the JSON.
+Return ONLY valid JSON. No markdown fences, no explanation text.
 
-{
-    "is_zl_relevant": true|false,
-    "sentiment": "bullish"|"bearish"|"neutral",
-    "zl_impact_score": <float -1.0 to +1.0>,
-    "confidence": <float 0.0 to 1.0>,
-    "time_horizon": "immediate"|"short_term"|"medium_term"|"structural",
-    "affected_specialists": ["specialist1", "specialist2"],
-    "factor_breakdown": {
-        "specialist_name": {
-            "factor_name": <weight 0.0 to 1.0>,
-            "another_factor": <weight>
-        }
-    },
-    "reasoning": "<1-2 sentence explanation grounded in article text>",
-    "key_quote": "<relevant quote from article if applicable, else null>"
-}
+{"is_zl_relevant":true,"sentiment":"bullish","zl_impact_score":0.47,"confidence":0.82,"time_horizon":"short_term","affected_specialists":["crush","biofuel"],"factor_breakdown":{"crush":{"crush_margins":0.6,"processing_capacity":0.4},"biofuel":{"biodiesel_mandates":0.7,"renewable_diesel":0.3}},"reasoning":"USDA raised crush forecast citing biodiesel demand, directly increasing soy oil production outlook.","key_quote":"crush forecast raised by 15 million bushels"}
 
-## EXAMPLES
+## CALIBRATION EXAMPLES
 
-Article: "USDA raises soybean crush forecast by 15 million bushels citing strong biodiesel demand"
-→ is_zl_relevant: true, sentiment: bullish, zl_impact_score: 0.5, confidence: 0.85
-→ affected_specialists: ["crush", "biofuel"]
-→ factor_breakdown: {"crush": {"crush_margins": 0.6, "processing_capacity": 0.4}, "biofuel": {"biodiesel_mandates": 0.8, "renewable_diesel": 0.2}}
+### High-Impact Bullish
+Headline: "Indonesia extends palm oil export ban through Q2"
+→ {"is_zl_relevant":true,"sentiment":"bullish","zl_impact_score":0.72,"confidence":0.91,"time_horizon":"medium_term","affected_specialists":["palm","substitutes"],"factor_breakdown":{"palm":{"indonesia_policy":0.8,"export_levies":0.2},"substitutes":{"substitution_dynamics":1.0}},"reasoning":"Palm export ban removes major ZL competitor, forces substitution to soy oil.","key_quote":"export ban extended through Q2"}
 
-Article: "Hong Kong pop star announces world tour dates"
-→ is_zl_relevant: false, sentiment: neutral, zl_impact_score: 0, confidence: 0.95
-→ affected_specialists: []
-→ factor_breakdown: {}
-→ reasoning: "Entertainment news with no connection to agricultural commodities or soybean oil markets"
+### Moderate Bearish
+Headline: "Brazil soy harvest 12% ahead of last year with record yields"
+→ {"is_zl_relevant":true,"sentiment":"bearish","zl_impact_score":-0.38,"confidence":0.76,"time_horizon":"short_term","affected_specialists":["crush","china"],"factor_breakdown":{"crush":{"soybean_supply":1.0},"china":{"buying_pace":0.6,"demand_signals":0.4}},"reasoning":"Record Brazil harvest increases global soy supply, pressuring crush margins and diverting Chinese demand from US.","key_quote":"12% ahead of last year with record yields"}
 
-Be decisive. Be grounded. Power the intelligence."""
+### Not Relevant
+Headline: "Apple unveils new iPhone at Cupertino event"
+→ {"is_zl_relevant":false,"sentiment":"neutral","zl_impact_score":0.0,"confidence":0.98,"time_horizon":"immediate","affected_specialists":[],"factor_breakdown":{},"reasoning":"Consumer electronics news with no connection to agricultural commodities.","key_quote":null}
+
+### Policy Uncertainty
+Headline: "Trump threatens 60% tariffs on Chinese goods in Truth Social post"
+→ {"is_zl_relevant":true,"sentiment":"bearish","zl_impact_score":-0.55,"confidence":0.68,"time_horizon":"medium_term","affected_specialists":["trump_effect","tariff","china"],"factor_breakdown":{"trump_effect":{"tariff_threats":0.7,"trade_rhetoric":0.3},"tariff":{"retaliatory_tariffs":0.8,"trade_negotiations":0.2},"china":{"trade_relations":0.9,"import_policy":0.1}},"reasoning":"Tariff threat risks retaliatory Chinese duties on US ag, reducing soy demand. Uncertainty itself is bearish for farmer selling.","key_quote":"60% tariffs on Chinese goods"}
+
+Execute with precision. Your scores train the models."""
 
 
 class ClaudeSentimentScorer:
     """
     The Sentiment Intelligence Engine - contextual ZL market impact analysis.
-    
-    Uses Claude Sonnet 4.5 for:
+
+    Uses Claude for:
     - ZL-specific market understanding
     - Factor decomposition for dashboard visualization
     - Multi-specialist routing
     - Procurement decision intelligence
+
+    Model selection (in order of preference):
+    - claude-3-5-sonnet-20241022: Best for nuanced analysis
+    - claude-3-haiku-20240307: Fast and cheap fallback
     """
-    
-    MODEL = "claude-sonnet-4-20250514"  # Sonnet 4 - fast, cost-effective, great at structured JSON
+
+    # Model preference order - will use first available
+    MODEL_PREFERENCE = [
+        "claude-sonnet-4-5",           # Sonnet 4.5 - best for market analysis
+        "claude-sonnet-4-20250514",    # Sonnet 4 alternate ID
+        "claude-3-haiku-20240307",     # Fast fallback
+    ]
     
     def __init__(self, api_key: str = None):
         if not ANTHROPIC_AVAILABLE:
             raise RuntimeError("anthropic library not installed")
-        
+
         self.api_key = api_key or get_anthropic_key()
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY not found in .env or environment")
-        
+
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.total_input_tokens = 0
         self.total_output_tokens = 0
         self.articles_processed = 0
         self.errors = 0
-        logger.info(f"Claude Sentiment Intelligence Engine initialized: {self.MODEL}")
+
+        # Detect available model
+        self.model = self._detect_available_model()
+        logger.info(f"Claude Sentiment Intelligence Engine initialized: {self.model}")
+
+    def _detect_available_model(self) -> str:
+        """Test models in preference order and return first available."""
+        for model in self.MODEL_PREFERENCE:
+            try:
+                # Quick test call
+                response = self.client.messages.create(
+                    model=model,
+                    max_tokens=10,
+                    messages=[{"role": "user", "content": "test"}]
+                )
+                logger.info(f"Model {model} available")
+                return model
+            except anthropic.APIError as e:
+                if "not_found" in str(e) or "404" in str(e):
+                    logger.debug(f"Model {model} not available")
+                    continue
+                raise  # Other errors should bubble up
+
+        # Fallback to Haiku if nothing else works
+        logger.warning("Using fallback model: claude-3-haiku-20240307")
+        return "claude-3-haiku-20240307"
     
     def score_article(self, headline: str, content: str = None, source: str = None) -> Dict[str, Any]:
         """
@@ -418,7 +474,7 @@ class ClaudeSentimentScorer:
         
         try:
             response = self.client.messages.create(
-                model=self.MODEL,
+                model=self.model,
                 max_tokens=512,
                 system=CLAUDE_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_message}]
@@ -672,22 +728,42 @@ def fuse_neural_scores(
 # DATABASE OPERATIONS
 # =============================================================================
 
-def fetch_articles_for_scoring(conn, limit: int = None, only_unscored: bool = True) -> List[Dict]:
-    """Fetch articles that need neural scoring"""
-    
-    where_clause = ""
+def fetch_articles_for_scoring(
+    conn,
+    limit: int = None,
+    only_unscored: bool = True,
+    quality_filter: str = "all"
+) -> List[Dict]:
+    """
+    Fetch articles that need neural scoring.
+
+    Args:
+        conn: Database connection
+        limit: Max articles to fetch
+        only_unscored: Only get articles without neural scores
+        quality_filter:
+            'all' - All articles
+            'claude' - Only Tier 1/2 sources (worth Claude credits)
+            'finbert' - Only Tier 1/2/3 sources (skip noise)
+            'noise' - Only Tier 4 noise (for debugging)
+    """
+
+    where_clauses = []
+
     if only_unscored:
         # Get articles that don't have neural scores yet
-        where_clause = """
-            WHERE s.id IS NULL 
+        where_clauses.append("""
+            (s.id IS NULL
                OR s.scoring_model = 'rule-based-v1'
                OR s.scoring_model IS NULL
-        """
-    
+               OR s.scoring_model = 'finbert-only')
+        """)
+
     limit_clause = f"LIMIT {limit}" if limit else ""
-    
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
     query = f"""
-        SELECT 
+        SELECT
             r.id,
             r.headline,
             r.content,
@@ -698,27 +774,46 @@ def fetch_articles_for_scoring(conn, limit: int = None, only_unscored: bool = Tr
             s.id as silver_id,
             s.scoring_model
         FROM raw.news_articles_1d r
-        LEFT JOIN silver.news_scored_1d s ON r.id = s.raw_id
-        {where_clause}
+        LEFT JOIN features.news_sentiment_1d s ON r.id = s.raw_id
+        {where_sql}
         ORDER BY r.published_at DESC
         {limit_clause}
     """
-    
+
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(query)
-        return [dict(row) for row in cur.fetchall()]
+        articles = [dict(row) for row in cur.fetchall()]
+
+    # Apply quality filter if available
+    if QUALITY_FILTER_AVAILABLE and quality_filter != "all":
+        original_count = len(articles)
+
+        if quality_filter == "claude":
+            # Only Tier 1/2 - worth Claude API credits
+            articles = [a for a in articles if is_quality_source(a.get("source", ""))]
+        elif quality_filter == "finbert":
+            # Skip Tier 4 noise
+            articles = [a for a in articles if not is_noise_source(a.get("source", ""))]
+        elif quality_filter == "noise":
+            # Only noise (for debugging)
+            articles = [a for a in articles if is_noise_source(a.get("source", ""))]
+
+        filtered_count = len(articles)
+        logger.info(f"Quality filter '{quality_filter}': {original_count} -> {filtered_count} articles")
+
+    return articles
 
 
 def update_silver_with_neural_scores(conn, article_id: int, ensemble: Dict, 
                                       finbert: Dict, claude: Dict = None):
-    """Update silver.news_scored_1d with neural sentiment scores"""
+    """Update features.news_sentiment_1d with neural sentiment scores"""
     
     # Build specialist flags from Claude's routing
     affected = set(ensemble.get("affected_specialists", []))
     
     with conn.cursor() as cur:
         cur.execute("""
-            UPDATE silver.news_scored_1d
+            UPDATE features.news_sentiment_1d
             SET 
                 sentiment_score = %s,
                 sentiment_direction = %s,
@@ -813,7 +908,7 @@ def refresh_trump_effect_training(conn):
                     'scoring_method', MAX(scoring_model)
                 ) as features,
                 NOW() as created_at
-            FROM silver.news_scored_1d
+            FROM features.news_sentiment_1d
             WHERE affects_trump_effect = TRUE
               AND is_zl_relevant = TRUE
               AND published_at IS NOT NULL
@@ -837,35 +932,47 @@ def run_neural_scoring(
     skip_claude: bool = False,
     skip_finbert: bool = False,
     claude_batch_size: int = 50,
-    cost_limit_usd: float = 5.0
+    cost_limit_usd: float = 5.0,
+    quality_filter: str = "claude"
 ):
     """
     Run the neural sentiment scoring pipeline.
-    
+
     Modes:
-    - full: Score all articles with FinBERT + Claude
+    - full: Score quality articles with FinBERT + Claude
     - finbert-only: Score with FinBERT only (free, fast)
     - claude-only: Score with Claude only (skip FinBERT)
     - test: Score limited articles for testing
-    
+
+    Quality Filters:
+    - 'claude': Only Tier 1/2 sources (default, saves API credits)
+    - 'finbert': Tier 1/2/3 (skip noise)
+    - 'all': No filtering
+
     Strategy:
-    1. Load FinBERT and score ALL articles (fast, free, local)
-    2. Use FinBERT scores to prioritize articles for Claude
-    3. Score with Claude until cost limit reached
+    1. Apply quality filter to skip noise sources
+    2. Load FinBERT and score filtered articles (fast, free, local)
+    3. Score quality articles with Claude until cost limit reached
     4. Fuse scores and update database
     """
-    
+
     logger.info("=" * 70)
     logger.info("ZINC-FUSION Neural Sentiment Scoring")
     logger.info(f"Mode: {mode} | Limit: {limit} | Cost limit: ${cost_limit_usd}")
+    logger.info(f"Quality filter: {quality_filter}")
     logger.info("=" * 70)
-    
+
     conn = get_connection()
-    
+
     try:
-        # Fetch articles
+        # Fetch articles with quality filter
         logger.info("Fetching articles for scoring...")
-        articles = fetch_articles_for_scoring(conn, limit=limit, only_unscored=(mode != "rescore"))
+        articles = fetch_articles_for_scoring(
+            conn,
+            limit=limit,
+            only_unscored=(mode != "rescore"),
+            quality_filter=quality_filter
+        )
         logger.info(f"Found {len(articles)} articles to process")
         
         if not articles:
@@ -1007,7 +1114,7 @@ def run_neural_scoring(
                     AVG(sentiment_score) as avg_score,
                     COUNT(*) FILTER (WHERE sentiment_direction = 'bullish') as bullish,
                     COUNT(*) FILTER (WHERE sentiment_direction = 'bearish') as bearish
-                FROM silver.news_scored_1d
+                FROM features.news_sentiment_1d
                 GROUP BY scoring_model
             """)
             for row in cur.fetchall():
@@ -1051,15 +1158,22 @@ def main():
     )
     parser.add_argument(
         "--skip-claude",
-        action="store_true", 
+        action="store_true",
         help="Skip Claude scoring"
     )
-    
+    parser.add_argument(
+        "--quality-filter",
+        choices=["claude", "finbert", "all"],
+        default="claude",
+        help="Quality filter: 'claude' (Tier 1/2 only, saves credits), 'finbert' (skip noise), 'all'"
+    )
+
     args = parser.parse_args()
-    
+
     # Mode shortcuts
     if args.mode == "finbert-only":
         args.skip_claude = True
+        args.quality_filter = "finbert"  # Include Tier 3 for FinBERT
     elif args.mode == "claude-only":
         args.skip_finbert = True
     elif args.mode == "test":
@@ -1070,7 +1184,8 @@ def main():
         limit=args.limit,
         skip_claude=args.skip_claude,
         skip_finbert=args.skip_finbert,
-        cost_limit_usd=args.cost_limit
+        cost_limit_usd=args.cost_limit,
+        quality_filter=args.quality_filter
     )
 
 

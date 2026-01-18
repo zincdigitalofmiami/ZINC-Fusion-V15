@@ -1,3 +1,8 @@
+# ⚠️ MIGRATION NOTICE: This script uses raw.news_articles_archive pattern.
+# v2 schema: archive.news_1d (see prisma/schema.prisma - archive schema)
+# TODO: Migrate archive table reference and verify archive schema exists.
+# Blocked on: archive schema table creation decision.
+
 #!/usr/bin/env python3
 """
 ZINC-FUSION-V15: Garbage Cleanup Maintenance Job
@@ -92,7 +97,7 @@ def consolidate_buckets(conn) -> int:
     with conn.cursor() as cur:
         for polluted, canonical in BUCKET_MAPPING.items():
             cur.execute("""
-                UPDATE silver.news_scored_1d SET canonical_bucket = %s
+                UPDATE features.news_sentiment_1d SET canonical_bucket = %s
                 WHERE raw_bucket = %s AND (canonical_bucket IS NULL OR canonical_bucket != %s)
             """, (canonical, polluted, canonical))
             updated += cur.rowcount
@@ -116,7 +121,7 @@ def archive_garbage(conn) -> int:
                         WHEN ABS(COALESCE(s.zl_impact_score, 0)) < %s THEN 'low_impact'
                         ELSE 'other' END
             FROM raw.news_articles_1d r
-            JOIN silver.news_scored_1d s ON r.id = s.raw_id
+            JOIN features.news_sentiment_1d s ON r.id = s.raw_id
             WHERE s.canonical_bucket = '0' OR s.is_zl_relevant = FALSE 
                OR ABS(COALESCE(s.zl_impact_score, 0)) < %s
             ON CONFLICT DO NOTHING
@@ -126,7 +131,7 @@ def archive_garbage(conn) -> int:
         if archived > 0:
             # Delete from silver and raw
             cur.execute("""
-                DELETE FROM silver.news_scored_1d
+                DELETE FROM features.news_sentiment_1d
                 WHERE canonical_bucket = '0' OR is_zl_relevant = FALSE 
                    OR ABS(COALESCE(zl_impact_score, 0)) < %s
             """, (GARBAGE_IMPACT_THRESHOLD,))
@@ -156,7 +161,7 @@ def get_stats(conn) -> dict:
     with conn.cursor() as cur:
         cur.execute("SELECT COUNT(*) FROM raw.news_articles_1d")
         stats["raw_articles"] = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM silver.news_scored_1d")
+        cur.execute("SELECT COUNT(*) FROM features.news_sentiment_1d")
         stats["silver_articles"] = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='raw' AND table_name='news_articles_archive'")
         if cur.fetchone()[0] > 0:
@@ -164,7 +169,7 @@ def get_stats(conn) -> dict:
             stats["archived_articles"] = cur.fetchone()[0]
         else:
             stats["archived_articles"] = 0
-        cur.execute("SELECT canonical_bucket, COUNT(*) FROM silver.news_scored_1d GROUP BY canonical_bucket ORDER BY COUNT(*) DESC")
+        cur.execute("SELECT canonical_bucket, COUNT(*) FROM features.news_sentiment_1d GROUP BY canonical_bucket ORDER BY COUNT(*) DESC")
         stats["buckets"] = {row[0]: row[1] for row in cur.fetchall()}
     return stats
 
@@ -185,7 +190,7 @@ def run_cleanup(do_purge: bool = False, dry_run: bool = False):
             logger.info("[DRY RUN - No changes made]")
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT COUNT(*) FROM silver.news_scored_1d
+                    SELECT COUNT(*) FROM features.news_sentiment_1d
                     WHERE canonical_bucket = '0' OR is_zl_relevant = FALSE 
                        OR ABS(COALESCE(zl_impact_score, 0)) < %s
                 """, (GARBAGE_IMPACT_THRESHOLD,))

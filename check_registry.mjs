@@ -6,18 +6,19 @@ async function check() {
   const prisma = new PrismaClient({ accelerateUrl: process.env.PRISMA_DATABASE_URL });
   
   try {
+    // Note: model_registry uses dataset_end_date (not training_end_date) and artifact_path (not model_path)
+    // specialist column doesn't exist - use model_type instead
     const modelReg = await prisma.$queryRaw`
-      SELECT 
+      SELECT
         model_name,
         model_type,
-        specialist,
         horizon,
         trained_at,
-        training_end_date,
+        dataset_end_date,
         status,
         mape,
         rmse,
-        model_path
+        artifact_path
       FROM model.model_registry
       ORDER BY trained_at DESC
     `;

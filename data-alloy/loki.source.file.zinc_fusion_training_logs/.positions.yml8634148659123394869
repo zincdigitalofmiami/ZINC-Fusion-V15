@@ -1,0 +1,97 @@
+positions:
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/dryrun_5d.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "8911"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/social_intel_20260103.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "29858"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/api_server.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "68023"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260103_171819.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "3524"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_21d_tactical_full.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "19798"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_212024.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "2512"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/dryrun_63d.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "8907"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260112_102841.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "596"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_212943.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "2498"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_5d_full_20260101_135101.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "14579"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/massive_options_soyb.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "12085"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_21d_full_20260101_135102.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "14549"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_126d_tactical_full.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "106329"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_211554.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "1986"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_5d_tactical_full.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "19746"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_126d_full.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "16524"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/dryrun_126d.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "8911"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_5d_full_retry.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "21381"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/dryrun_21d.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "8907"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_211608.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "1914"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260112_214414.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "672"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_126d_full_20260101_135105.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "14559"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_5d_train_20260102.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "15267"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/news_ingest_20260102.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "9887"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_212146.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "3786"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_212033.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "2512"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_5d_full_sequential.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "21068"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260102_212528.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "3793"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/core_63d_full_20260101_135104.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "14281"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_full_20251230_232649.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "23986"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260103_171705.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "2498"
+  ? path: /Volumes/Satechi Hub/ZINC-FUSION-V15/logs/train_v15_20260103_171721.log
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/training"}'
+  : "2498"

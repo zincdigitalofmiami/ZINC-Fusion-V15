@@ -17,7 +17,7 @@ Usage:
 
 Phases:
     1. Options Features (BLOCKING GATE)
-    2. Validate Gold Elite
+    2. Validate Elite (features)
     3. Build Core Matrix
     4. Create OOF Schema
     5. Pre-Flight Audit (MANDATORY GATE) - produces hash-bound artifact
@@ -105,7 +105,7 @@ def check_options_exist(symbol: str) -> bool:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT COUNT(*) FROM gold.options_features_1d
+                SELECT COUNT(*) FROM features.options_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -124,9 +124,9 @@ def check_preflight_passed(
     Check if Phase 5 passed with MATCHING hashes for current state.
 
     Hash-bound validation:
-    - core_matrix_hash: must match current core_matrix_curated_1d
-    - options_hash: must match current options_features_1d
-    - elite_hash: must match current elite_indicators_1d
+    - core_matrix_hash: must match current matrix_1d
+    - options_hash: must match current features.options_1d
+    - elite_hash: must match current features.elite_1d
     - config_hash: must match current config (horizons, quantiles, guardrails)
 
     Returns:
@@ -229,7 +229,7 @@ def run_pipeline(
             logger.info("Checking Phase 3 dependency: options features must exist...")
             if not check_options_exist(symbol):
                 logger.error(
-                    "❌ DEPENDENCY FAILED: gold.options_features_1d has no data"
+                    "❌ DEPENDENCY FAILED: features.options_1d has no data"
                 )
                 logger.error("   Run Phase 1 first: --start-phase 1 --stop-phase 1")
                 return False
@@ -263,7 +263,7 @@ def run_pipeline(
         "options_version": None,
         "elite_version": None,
         "matrix_version": None,
-        "core_run_hash": None,
+        "run_hash": None,
     }
 
     # Track Phase 5 audit result for Phase 6 validation
@@ -290,7 +290,7 @@ def run_pipeline(
     if start_phase <= 2 <= stop_phase:
         logger.info("")
         logger.info("=" * 70)
-        logger.info("PHASE 2: VALIDATE GOLD ELITE")
+        logger.info("PHASE 2: VALIDATE ELITE (FEATURES)")
         logger.info("=" * 70)
 
         success, elite_version = phase2_validate_gold_elite.run(symbol)
@@ -401,10 +401,10 @@ def run_pipeline(
                 logger.info("   ✅ Artifact hashes match current state - proceeding")
                 phase5_audit_result = current_audit
 
-        # Add core_run_hash to versions for lineage
+        # Add run_hash to versions for lineage
         import hashlib
 
-        versions["core_run_hash"] = hashlib.sha256(
+        versions["run_hash"] = hashlib.sha256(
             f"{versions.get('matrix_version', '')}_{run_id}".encode()
         ).hexdigest()[:16]
 
@@ -423,7 +423,7 @@ def run_pipeline(
     logger.info(f"Options version: {versions['options_version']}")
     logger.info(f"Elite version: {versions['elite_version']}")
     logger.info(f"Matrix version: {versions['matrix_version']}")
-    logger.info(f"Core run hash: {versions['core_run_hash']}")
+    logger.info(f"Run hash: {versions['run_hash']}")
     logger.info("=" * 70)
 
     return True
@@ -436,8 +436,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Phases:
-  1. Options Features - Compute IV/Greeks from raw options (BLOCKING GATE)
-  2. Validate Gold Elite - Verify elite indicators completeness
+  1. Options Features - Compute IV/Greeks from mkt options (BLOCKING GATE)
+  2. Validate Elite (features) - Verify elite indicators completeness
   3. Build Core Matrix - Assemble curated feature matrix (~213 features)
   4. Create OOF Schema - Define OOF table structure
   5. Pre-Flight Audit - MANDATORY validation gate (HARD FAIL)

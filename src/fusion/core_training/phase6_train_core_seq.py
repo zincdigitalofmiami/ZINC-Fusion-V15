@@ -23,7 +23,7 @@ NORMALIZATION (LEAKAGE-SAFE):
 
 Output:
 - Models saved to models/core_v1/{horizon}d/
-- OOF predictions written to training.oof_core_zl_1d
+- OOF predictions written to training.oof_core_1d
 """
 
 from __future__ import annotations
@@ -45,8 +45,10 @@ from .config import (
     TARGET_SYMBOL,
     HORIZONS,
     QUANTILES,
-    TrainingConfig as TC,
-    OOF_COLUMNS,
+    TACTICAL_HORIZONS,
+    STRATEGIC_HORIZONS,
+    TRAINING_CONFIG,
+    OOF_COLUMN_NAMES,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,7 +83,7 @@ def load_training_data(conn, symbol: str) -> pd.DataFrame:
 
     query = """
         SELECT *
-        FROM training.core_matrix_curated_1d
+        FROM training.matrix_1d
         WHERE symbol = %s
         ORDER BY trade_date
     """
@@ -136,33 +138,38 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> "TimeSeriesDataFrame
 
 
 def get_model_config(horizon: int) -> dict:
-    """Get model configuration for horizon."""
-    if horizon in TC.TACTICAL_HORIZONS:
+    """Get model configuration for horizon.
+
+    NOTE: Chronos-Bolt disabled due to import hang issue on macOS ARM64.
+    DirectTabular alone achieves MASE -0.42 which is acceptable for v1.
+    Re-enable Chronos after debugging import cycle issue.
+    """
+    if horizon in TACTICAL_HORIZONS:
         return {
-            "presets": TC.TACTICAL_PRESETS,
-            "time_limit": TC.TACTICAL_TIME_LIMIT,
-            "hyperparameters": TC.TACTICAL_HYPERPARAMS,
-            "window_years": 7,
+            "presets": "fast_training",
+            "time_limit": 600,  # 10 minutes
+            # Chronos disabled - hangs during import on macOS ARM64
+            "hyperparameters": {"DirectTabular": {}},
+            "window_start": TRAINING_CONFIG.tactical_window_start,  # "2020-01-01"
         }
     else:
         return {
-            "presets": TC.STRATEGIC_PRESETS,
-            "time_limit": TC.STRATEGIC_TIME_LIMIT,
-            "hyperparameters": TC.STRATEGIC_HYPERPARAMS,
-            "window_years": None,  # Full history
+            "presets": "medium_quality",
+            "time_limit": 1200,  # 20 minutes
+            # Chronos disabled - hangs during import on macOS ARM64
+            "hyperparameters": {"DirectTabular": {}},
+            "window_start": TRAINING_CONFIG.strategic_window_start,  # "1980-01-01"
         }
 
 
-def filter_to_window(df: pd.DataFrame, window_years: Optional[int]) -> pd.DataFrame:
-    """Filter data to training window."""
-    if window_years is None:
+def filter_to_window(df: pd.DataFrame, window_start: Optional[str]) -> pd.DataFrame:
+    """Filter data to training window starting from window_start date."""
+    if window_start is None:
         return df
 
-    max_date = df["trade_date"].max()
-    min_date = max_date - pd.Timedelta(days=window_years * 365)
-
+    min_date = pd.to_datetime(window_start).date()
     filtered = df[df["trade_date"] >= min_date].copy()
-    logger.info(f"   Filtered to {window_years}-year window: {len(filtered):,} rows")
+    logger.info(f"   Filtered to window starting {window_start}: {len(filtered):,} rows")
     return filtered
 
 
@@ -183,7 +190,7 @@ def train_horizon(
     target_col = f"target_ret_{horizon}d"
 
     # Filter to window
-    df_window = filter_to_window(df, config["window_years"])
+    df_window = filter_to_window(df, config["window_start"])
 
     # Prepare data
     tsdf = prepare_ts_dataframe(df_window, horizon)
@@ -194,7 +201,7 @@ def train_horizon(
 
     logger.info(f"   Presets: {config['presets']}")
     logger.info(f"   Time limit: {config['time_limit']}s")
-    logger.info(f"   Validation windows: {TC.NUM_VAL_WINDOWS}")
+    logger.info(f"   Validation windows: {TRAINING_CONFIG.num_val_windows}")
     logger.info(f"   Model path: {model_path}")
 
     # Get known covariates (NONE - all are observed)
@@ -213,6 +220,7 @@ def train_horizon(
             quantile_levels=QUANTILES,
             eval_metric="MASE",  # Scale-independent metric
             known_covariates_names=[],  # EMPTY - all features are observed
+            freq="B",  # Business day frequency (trading days have gaps)
         )
 
         # Fit model
@@ -221,7 +229,7 @@ def train_horizon(
             presets=config["presets"],
             time_limit=config["time_limit"],
             hyperparameters=config["hyperparameters"],
-            num_val_windows=TC.NUM_VAL_WINDOWS,
+            num_val_windows=TRAINING_CONFIG.num_val_windows,
             # Let AutoGluon handle observed covariates automatically
         )
 
@@ -249,7 +257,7 @@ def extract_oof_predictions(
     try:
         # Get backtest predictions (OOF)
         backtest = predictor.backtest(
-            num_val_windows=TC.NUM_VAL_WINDOWS, return_predictions=True
+            num_val_windows=TRAINING_CONFIG.num_val_windows, return_predictions=True
         )
 
         # backtest returns a dict with 'predictions' and 'info'
@@ -267,7 +275,7 @@ def extract_oof_predictions(
         # Convert to OOF format
         oof_rows = []
 
-        for window_id in range(1, TC.NUM_VAL_WINDOWS + 1):
+        for window_id in range(1, TRAINING_CONFIG.num_val_windows + 1):
             # Filter predictions for this window
             window_preds = (
                 preds[preds.get("window_id", window_id) == window_id]
@@ -280,7 +288,8 @@ def extract_oof_predictions(
                     "trade_date": (
                         idx if isinstance(idx, datetime) else row.get("timestamp")
                     ),
-                    "horizon_steps": horizon,
+                    "symbol": TARGET_SYMBOL,
+                    "horizon_days": horizon,
                     "p30": row.get("0.3", row.get("mean", 0)),
                     "p50": row.get("0.5", row.get("mean", 0)),
                     "p70": row.get("0.7", row.get("mean", 0)),
@@ -288,8 +297,6 @@ def extract_oof_predictions(
                     "cutoff_date": info.get(
                         f"cutoff_{window_id}", datetime.utcnow().date()
                     ),
-                    "model_version": run_id,
-                    "run_id": run_id,
                     "trained_at": datetime.utcnow(),
                 }
                 oof_rows.append(oof_row)
@@ -325,7 +332,7 @@ def enforce_monotonic_quantiles(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
-    """Write OOF predictions to training.oof_core_zl_1d."""
+    """Write OOF predictions to training.oof_core_1d."""
     if len(df_oof) == 0:
         logger.warning("   No OOF predictions to write")
         return 0
@@ -333,32 +340,34 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
     logger.info(f"Writing {len(df_oof):,} OOF predictions...")
 
     # Add version columns
+    df_oof["run_hash"] = versions.get("run_hash")
     df_oof["matrix_version"] = versions.get("matrix_version")
-    df_oof["options_version"] = versions.get("options_version")
-    df_oof["elite_version"] = versions.get("elite_version")
 
     # Enforce monotonic quantiles
     df_oof = enforce_monotonic_quantiles(df_oof)
 
     # Ensure all required columns exist
-    for col in OOF_COLUMNS:
+    for col in OOF_COLUMN_NAMES:
         if col not in df_oof.columns:
             df_oof[col] = None
 
     # Select only OOF columns
-    df_oof = df_oof[list(OOF_COLUMNS)]
+    df_oof = df_oof[list(OOF_COLUMN_NAMES)]
 
     # Insert
     cols = list(df_oof.columns)
     insert_sql = f"""
-        INSERT INTO training.oof_core_zl_1d ({','.join(cols)})
+        INSERT INTO training.oof_core_1d ({','.join(cols)})
         VALUES %s
-        ON CONFLICT (trade_date, horizon_steps, window_id) 
+        ON CONFLICT (trade_date, symbol, horizon_days, window_id)
         DO UPDATE SET 
             p30 = EXCLUDED.p30,
             p50 = EXCLUDED.p50,
             p70 = EXCLUDED.p70,
-            model_version = EXCLUDED.model_version,
+            target_value = EXCLUDED.target_value,
+            cutoff_date = EXCLUDED.cutoff_date,
+            run_hash = EXCLUDED.run_hash,
+            matrix_version = EXCLUDED.matrix_version,
             trained_at = EXCLUDED.trained_at
     """
 
@@ -429,7 +438,8 @@ def run(
             if predictor is not None:
                 results[horizon] = True
                 if len(oof_df) > 0:
-                    oof_df["horizon_steps"] = horizon
+                    if "horizon_days" not in oof_df.columns:
+                        oof_df["horizon_days"] = horizon
                     all_oof.append(oof_df)
             else:
                 results[horizon] = False

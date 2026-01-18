@@ -184,7 +184,7 @@ class CrowdBeliefsFeatureEngine:
             event_resolution_date,
             raw_betting_volume_usd,
             raw_liquidity_usd
-        FROM raw.crowd_beliefs_event
+        FROM alt.crowd_beliefs_event  -- TODO: Create table or remove feature
         WHERE %s = ANY(specialist_tags)
           AND DATE(captured_at) BETWEEN %s AND %s
         ORDER BY captured_at

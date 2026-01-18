@@ -257,38 +257,38 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         else:
             warnings.append("features.trump_effect_1d missing (trump_effect feature store unavailable)")
 
-        # silver.futures_prices_1d (canonical OHLCV)
+        # mkt.futures_1d (canonical OHLCV)
         if table_exists(cur, "silver", "futures_prices_1d"):
             cur.execute(
                 """
                 SELECT COUNT(*)::int, MIN(trade_date)::date, MAX(trade_date)::date
-                FROM silver.futures_prices_1d
+                FROM mkt.futures_1d
                 WHERE canonical_id='ZL'
                 """
             )
             cnt, mn, mx = cur.fetchone()
-            print_kv("silver.futures_prices_1d[ZL]", f"{cnt:,} rows | {mn} → {mx}")
+            print_kv("mkt.futures_1d[ZL]", f"{cnt:,} rows | {mn} → {mx}")
         else:
-            warnings.append("silver.futures_prices_1d missing (silver canonical prices unavailable)")
+            warnings.append("mkt.futures_1d missing (silver canonical prices unavailable)")
 
-        # gold.elite_indicators_1d (denormalized indicators)
+        # features.elite_1d (denormalized indicators)
         if table_exists(cur, "gold", "elite_indicators_1d"):
             cur.execute(
                 """
                 SELECT COUNT(*)::int, MIN(trade_date)::date, MAX(trade_date)::date
-                FROM gold.elite_indicators_1d
+                FROM features.elite_1d
                 WHERE symbol='ZL'
                 """
             )
             cnt, mn, mx = cur.fetchone()
-            cur.execute("SELECT COUNT(DISTINCT symbol)::int FROM gold.elite_indicators_1d")
+            cur.execute("SELECT COUNT(DISTINCT symbol)::int FROM features.elite_1d")
             distinct_symbols = int(cur.fetchone()[0])
             print_kv(
-                "gold.elite_indicators_1d[ZL]",
+                "features.elite_1d[ZL]",
                 f"{cnt:,} rows | {mn} → {mx} | symbols={distinct_symbols}",
             )
         else:
-            warnings.append("gold.elite_indicators_1d missing (gold indicators unavailable)")
+            warnings.append("features.elite_1d missing (gold indicators unavailable)")
 
         print()
 

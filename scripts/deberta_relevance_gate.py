@@ -292,7 +292,7 @@ def fetch_articles_for_scoring(conn, limit: int = None, only_unscored: bool = Tr
     query = f"""
         SELECT r.id, r.headline, r.content, r.source, r.bucket_name, r.published_at, s.id as silver_id
         FROM raw.news_articles_1d r
-        LEFT JOIN silver.news_scored_1d s ON r.id = s.raw_id
+        LEFT JOIN features.news_sentiment_1d s ON r.id = s.raw_id
         {where_clause}
         ORDER BY r.published_at DESC
         {limit_clause}
@@ -304,12 +304,12 @@ def fetch_articles_for_scoring(conn, limit: int = None, only_unscored: bool = Tr
 
 
 def upsert_silver_score(conn, raw_id: int, result: Dict[str, Any], headline: str, source: str):
-    """Insert or update silver.news_scored_1d with DeBERTa scores"""
+    """Insert or update features.news_sentiment_1d with DeBERTa scores"""
     affected = set(result.get("affected_specialists", []))
     
     with conn.cursor() as cur:
         cur.execute("""
-            INSERT INTO silver.news_scored_1d (
+            INSERT INTO features.news_sentiment_1d (
                 raw_id, headline, source, 
                 is_zl_relevant, zl_impact_score, sentiment_score, sentiment_direction,
                 canonical_bucket,
@@ -361,7 +361,7 @@ def get_bucket_distribution(conn) -> List[Dict]:
         cur.execute("""
             SELECT COALESCE(canonical_bucket, 'unassigned') as bucket, COUNT(*) as count,
                    ROUND(AVG(zl_impact_score)::numeric, 3) as avg_impact
-            FROM silver.news_scored_1d GROUP BY canonical_bucket ORDER BY count DESC
+            FROM features.news_sentiment_1d GROUP BY canonical_bucket ORDER BY count DESC
         """)
         return [dict(row) for row in cur.fetchall()]
 

@@ -9,6 +9,7 @@ import { QuantAdminSidebar } from './layout/QuantAdminSidebar'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/quant', label: 'Quant' },
   { href: '/strategy', label: 'Strategy' },
   { href: '/legislation', label: 'Legislation' },
   { href: '/sentiment', label: 'Sentiment' },

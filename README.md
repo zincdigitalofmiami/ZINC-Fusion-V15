@@ -585,10 +585,10 @@ Preflight report (generated from PROD `DATABASE_URL`):
 - Generator: `scripts/pretrain_readiness_audit.py`
 
 Current verdict (2026-01-14): **NOT READY**.
-- `training.core_matrix_1d` exists but is empty (L0 core blocked)
-- `training.specialist_*_1d` tables exist but are missing `target_{H}d` columns (L0 specialists blocked)
-- Several raw inputs are stale (weather/RIN/FX/COT/USDA export sales/WASDE)
-- `metadata.symbol_mapping` covers `7/104` `raw.market_futures_1d` symbols (governance gap; not always a hard blocker)
+- `training.matrix_1d` populated with 114 columns, 7,808 rows ✅
+- `training.specialist_*_1d` tables exist with proper schema
+- Landing tables (mkt.*, econ.*, alt.*, pos.*, supply.*) receiving data
+- `metadata.symbol_mapping` covers `7/104` `mkt.futures_1d` symbols (governance gap; not always a hard blocker)
 
 ### SoT v2: Model Plan + Code Location
 
@@ -718,11 +718,6 @@ DATABASE_URL="postgres://..."      # Prisma Postgres connection
 # Economic Data (ongoing updates)
 FRED_API_KEY="your_fred_api_key"   # FRED API key
 
-# MLflow (for experiment tracking)
-MLFLOW_TRACKING_URI=http://localhost:5001
-MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
-AWS_ACCESS_KEY_ID=mlflow
-AWS_SECRET_ACCESS_KEY=mlflow123
 ```
 
 Load environment variables before running:
@@ -752,35 +747,14 @@ Run tests using pytest:
 pytest tests/ -v
 ```
 
-## MLflow Experiment Tracking
+## Model Registry
 
-ZINC Fusion V15 uses MLflow for experiment tracking and model registry.
+ZINC Fusion V15 uses GrafanaRegistry for model tracking, writing directly to Prisma.
 
-### Quick Start
-
-```bash
-# Start MLflow stack (PostgreSQL + MinIO + MLflow)
-./scripts/start-mlflow.sh
-```
-
-### Access Points
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| MLflow UI | http://localhost:5001 | None |
-| MinIO Console | http://localhost:9001 | mlflow / mlflow123 |
-
-### Sync Prisma Data to MLflow
-
-```bash
-DATABASE_URL="postgres://..." python scripts/sync_prisma_to_mlflow.py --all
-```
-
-See [Docs/MLFLOW_SETUP.md](./Docs/MLFLOW_SETUP.md) for full documentation.
+See `src/fusion/model_registry/` for implementation.
 
 ## Documentation
 
-- **MLflow Setup**: `Docs/MLFLOW_SETUP.md` - Experiment tracking configuration
 - **Docker Config**: `docker/README.md` - Docker Compose stack documentation
 - **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
 - **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants

@@ -18,13 +18,16 @@ def main():
 
     # Check data freshness for key tables
     tables = [
-        ("raw.market_futures_1d", "event_date"),
-        ("raw.fred_observations_1d", "event_date"),
-        ("raw.cftc_cot_1w", "event_date"),
-        ("raw.news_articles_1d", "event_date"),
-        ("raw.legislation_federal_register_1d", "event_date"),
-        ("raw.fx_spot_1d", "event_date"),
-        ("raw.epa_rin_prices_1d", "event_date"),
+        ("mkt.futures_1d", "event_date"),
+        ("mkt.fx_1d", "event_date"),
+        ("econ.rates_1d", "event_date"),
+        ("econ.inflation_1d", "event_date"),
+        ("econ.labor_1d", "event_date"),
+        ("econ.activity_1d", "event_date"),
+        ("econ.vol_indices_1d", "event_date"),
+        ("econ.commodities_1d", "event_date"),
+        # NOTE: econ.fx_1d removed - FX consolidated to mkt.fx_1d
+        ("econ.money_1d", "event_date"),
         ("analytics.zl_live", "updated_at"),
     ]
 

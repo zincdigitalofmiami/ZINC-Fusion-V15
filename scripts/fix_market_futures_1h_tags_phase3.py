@@ -1,3 +1,7 @@
+# ⚠️ HISTORICAL: One-time fix for market futures 1h tags (Phase 3 migration).
+# This script was used during the 2026-01 migration and should not be run again.
+# References legacy raw.* tables that no longer exist.
+
 #!/usr/bin/env python3
 """
 Phase 3: Fix `raw.market_futures_1h` "general" specialist_tags (prod-safe).

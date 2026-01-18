@@ -60,13 +60,7 @@
     
     // === COPILOT (keep enabled) ===
     "github.copilot.enable": {
-        "*": true,
-        "plaintext": true,
-        "markdown": true,
-        "python": true,
-        "sql": true,
-        "prisma": true,
-        "scminput": false
+        "*": false
     },
 
     "prisma.enableCodeLens": true,

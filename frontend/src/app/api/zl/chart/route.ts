@@ -1,6 +1,6 @@
 /**
  * GET /api/zl/chart
- * Returns ZL daily OHLCV from raw.market_futures_1d (freshest daily data)
+ * Returns ZL daily OHLCV from mkt.futures_1d (freshest daily data)
  * Query params: days (default 365)
  * Runtime query - no repo dependency
  */
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         low,
         close,
         volume
-      FROM raw.market_futures_1d
+      FROM mkt.futures_1d
       WHERE symbol = 'ZL'
       ORDER BY event_date DESC
       LIMIT $1

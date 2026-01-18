@@ -402,8 +402,8 @@ def fetch_articles_for_scoring(conn, limit: int = None, priority: str = "high_si
             s.sentiment_direction as finbert_label,
             s.canonical_bucket,
             s.scoring_model
-        FROM raw.news_articles_1d r
-        JOIN silver.news_scored_1d s ON r.id = s.raw_id
+        FROM alt.news_1d r
+        JOIN features.news_sentiment_1d s ON r.id = s.raw_id
         WHERE s.scoring_model = 'finbert-only'
         {where_extra}
         ORDER BY {order_by}
@@ -473,7 +473,7 @@ def update_article_with_ai_score(conn, raw_id: int, ai_result: Dict, finbert_dat
     
     with conn.cursor() as cur:
         cur.execute("""
-            UPDATE silver.news_scored_1d
+            UPDATE features.news_sentiment_1d
             SET 
                 sentiment_score = %s,
                 sentiment_direction = %s,
@@ -542,7 +542,7 @@ def refresh_specialist_training(conn):
                     'ai_scored_count', COUNT(*) FILTER (WHERE scoring_model = 'finbert+ai_compute')
                 ) as features,
                 NOW() as created_at
-            FROM silver.news_scored_1d
+            FROM features.news_sentiment_1d
             WHERE affects_trump_effect = TRUE
               AND is_zl_relevant = TRUE
               AND published_at IS NOT NULL

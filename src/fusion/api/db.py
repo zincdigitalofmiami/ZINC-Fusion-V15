@@ -134,37 +134,57 @@ def get_connection():
     return psycopg2.connect(url)
 
 
-# Legacy table name mappings (for backward compatibility with old code)
+# V2 Institutional Schema Table Mappings
 # NOTE: TABLE_MAP is used by translate_query(), which performs literal string replacement.
 # Targets MUST stay schema-qualified to avoid relying on Postgres search_path.
+#
+# SCHEMA TAXONOMY (12 active + 1 deprecated):
+#   Landing: mkt, econ, alt, pos, supply
+#   Derived: features, training
+#   Output: model, forecasts, analytics
+#   Governance: metadata, ops
+#   Deprecated: archive (read-only)
+#
 TABLE_MAP = {
-    # Raw layer (canonical tables) - fully quoted to preserve schema
-    "raw.market_futures_1d": '"raw"."market_futures_1d"',
-    "raw.market_futures_1h": '"raw"."market_futures_1h"',  # FIXED: never map 1h -> 1d
-    "raw.fred_observations_1d": '"raw"."fred_observations_1d"',
-    "raw.fred_series_metadata": '"raw"."fred_series_metadata"',
-    "raw.fx_spot_1d": '"raw"."fx_spot_1d"',
-    # Weather: preserve legacy alias
-    "raw.weather_observations_1d": '"raw"."weather_noaa_1d"',  # legacy alias
-    "raw.weather_noaa_1d": '"raw"."weather_noaa_1d"',  # canonical
-    "raw.epa_rin_prices_1d": '"raw"."epa_rin_prices_1d"',
-    "raw.cftc_cot_1w": '"raw"."cftc_cot_1w"',
-    "raw.news_articles_1d": '"raw"."news_articles_1d"',
-    "raw.usda_export_sales_1w": '"raw"."usda_export_sales_1w"',
-    "raw.usda_wasde_1m": '"raw"."usda_wasde_1m"',
-    "raw.options_futures_1d": '"raw"."options_futures_1d"',
-    # REMOVED: raw.news_articles_event (table does not exist)
-    # REMOVED: raw.fred_economic_wide_1d (deprecated; migrate call sites first)
-    # Training / Model layer
-    "training.oof_core_zl_1d": '"model"."oof_predictions"',
-    "training.oof_specialist_combined_1d": '"model"."oof_predictions"',
-    "training.core_matrix_full_1d": '"training"."core_features"',
-    "training.cv_folds": '"model"."cv_folds"',
+    # Market data
+    "mkt.futures_1d": '"mkt"."futures_1d"',
+    "mkt.futures_1h": '"mkt"."futures_1h"',
+    "mkt.fx_1d": '"mkt"."fx_1d"',
+    "mkt.options_1d": '"mkt"."options_1d"',
+    # Economic data
+    "econ.rates_1d": '"econ"."rates_1d"',
+    "econ.inflation_1d": '"econ"."inflation_1d"',
+    "econ.labor_1d": '"econ"."labor_1d"',
+    # Alternative data
+    "alt.news_1d": '"alt"."news_1d"',
+    "alt.weather_1d": '"alt"."weather_1d"',
+    "alt.legislation_1d": '"alt"."legislation_1d"',
+    # Positioning
+    "pos.cftc_1w": '"pos"."cftc_1w"',
+    # Supply/Demand
+    "supply.usda_wasde_1m": '"supply"."usda_wasde_1m"',
+    "supply.usda_exports_1w": '"supply"."usda_exports_1w"',
+    "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
+    # Features
+    "features.elite_1d": '"features"."elite_1d"',
+    "features.options_1d": '"features"."options_1d"',
+    "features.weather_1d": '"features"."weather_1d"',
+    "features.intel_drops": '"features"."intel_drops"',
+    "features.news_sentiment_1d": '"features"."news_sentiment_1d"',
+    # Training
+    "training.matrix_1d": '"training"."matrix_1d"',
+    "training.oof_core_1d": '"training"."oof_core_1d"',
     "training.specialist_features": '"training"."specialist_features"',
-    "training.meta_ensemble": '"model"."meta_ensemble"',
-    # Analytics layer
-    "features.driver_scores_1d": '"analytics"."driver_scores"',
-    "specialist.drivers": '"analytics"."specialist_drivers"',
+    # Model registry
+    "model.training_runs": '"model"."training_runs"',
+    "model.model_registry": '"model"."model_registry"',
+    "model.oof_predictions": '"model"."oof_predictions"',
+    "model.cv_folds": '"model"."cv_folds"',
+    # Forecasts
+    "forecasts.forecast_quantiles": '"forecasts"."forecast_quantiles"',
+    # Analytics
+    "analytics.driver_scores": '"analytics"."driver_scores"',
+    "analytics.specialist_drivers": '"analytics"."specialist_drivers"',
 }
 
 
@@ -173,7 +193,7 @@ def translate_table(table_ref: str, backend: str = "postgres") -> str:
     Translate table reference to Postgres schema-qualified name.
 
     Args:
-        table_ref: Table reference (e.g., 'raw.market_futures_1d')
+        table_ref: Table reference (e.g., 'mkt.futures_1d')
         backend: Always 'postgres' (parameter kept for backward compatibility)
 
     Returns:
@@ -209,7 +229,7 @@ def translate_query(query: str, backend: str = "postgres") -> str:
     result = result.replace("::BIGINT", "::bigint")
 
     # Column name translations for Postgres schema differences
-    if "fx_spot_1d" in result:
+    if "fx_spot_1d" in result or '"mkt"."fx_1d"' in result or "mkt.fx_1d" in result:
         result = result.replace("COUNT(DISTINCT symbol)", "COUNT(DISTINCT pair)")
         result = result.replace("symbol,", "pair,")
         result = result.replace("WHERE symbol", "WHERE pair")

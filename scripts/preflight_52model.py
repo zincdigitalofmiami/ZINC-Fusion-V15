@@ -53,17 +53,17 @@ zl_full = safe_query("""
         MIN(event_date) as earliest_date,
         MAX(event_date) as latest_date,
         COUNT(CASE WHEN close IS NOT NULL THEN 1 END) as valid_closes
-    FROM raw.market_futures_1d
+    FROM mkt.futures_1d
     WHERE symbol = 'ZL'
 """)
 
 zl_2000 = safe_query("""
-    SELECT COUNT(*) as cnt FROM raw.market_futures_1d 
+    SELECT COUNT(*) as cnt FROM mkt.futures_1d 
     WHERE symbol = 'ZL' AND event_date >= '2000-01-01'
 """)
 
 zl_2020 = safe_query("""
-    SELECT COUNT(*) as cnt FROM raw.market_futures_1d 
+    SELECT COUNT(*) as cnt FROM mkt.futures_1d 
     WHERE symbol = 'ZL' AND event_date >= '2020-01-01'
 """)
 
@@ -103,7 +103,7 @@ crush_symbols = run_query("""
         COUNT(*) as rows,
         MIN(event_date) as start_date,
         MAX(event_date) as end_date
-    FROM raw.market_futures_1d
+    FROM mkt.futures_1d
     WHERE symbol IN ('ZL', 'ZS', 'ZM')
     GROUP BY symbol
     ORDER BY symbol
@@ -120,17 +120,17 @@ print("SECTION 3: SPECIALIST DATA SOURCES")
 print("=" * 80)
 
 specialist_checks = [
-    ("CRUSH", "raw.market_futures_1d WHERE symbol IN ('ZL','ZS','ZM')", "event_date"),
-    ("CHINA", "raw.usda_export_sales_1w", "event_date"),
-    ("FX", "raw.fx_spot_1d", "event_date"),
-    ("FED", "raw.fred_observations_1d WHERE series_id IN ('DFF','FEDFUNDS','T10Y2Y')", "event_date"),
-    ("TARIFF", "raw.news_articles_1d", "event_date"),
-    ("ENERGY", "raw.market_futures_1d WHERE symbol IN ('CL','HO','NG')", "event_date"),
-    ("BIOFUEL", "raw.epa_rin_prices_1d", "event_date"),
-    ("PALM", "raw.market_futures_1d WHERE symbol LIKE '%CPO%' OR symbol LIKE '%FCPO%'", "event_date"),
-    ("VOLATILITY", "raw.fred_observations_1d WHERE series_id='VIXCLS'", "event_date"),
-    ("SUBSTITUTES", "raw.market_futures_1d WHERE symbol IN ('ZC','ZW')", "event_date"),
-    ("TRUMP_EFFECT", "raw.whitehouse_actions_event", "action_date"),
+    ("CRUSH", "mkt.futures_1d WHERE symbol IN ('ZL','ZS','ZM')", "event_date"),
+    ("CHINA", "supply.usda_exports_1w", "event_date"),
+    ("FX", "mkt.fx_1d", "event_date"),
+    ("FED", "econ.rates_1d WHERE series_id IN ('DFF','FEDFUNDS','T10Y2Y')", "event_date"),
+    ("TARIFF", "alt.news_1d", "event_date"),
+    ("ENERGY", "mkt.futures_1d WHERE symbol IN ('CL','HO','NG')", "event_date"),
+    ("BIOFUEL", "supply.epa_rin_1d", "event_date"),
+    ("PALM", "mkt.futures_1d WHERE symbol LIKE '%CPO%' OR symbol LIKE '%FCPO%'", "event_date"),
+    ("VOLATILITY", "econ.rates_1d WHERE series_id='VIXCLS'", "event_date"),
+    ("SUBSTITUTES", "mkt.futures_1d WHERE symbol IN ('ZC','ZW')", "event_date"),
+    ("TRUMP_EFFECT", "alt.legislation_1d", "action_date"),
 ]
 
 for spec_name, table_filter, date_col in specialist_checks:
@@ -162,7 +162,7 @@ fred_stats = safe_query("""
         COUNT(*) as total_rows,
         MIN(event_date) as min_date,
         MAX(event_date) as max_date
-    FROM raw.fred_observations_1d
+    FROM econ.rates_1d
 """)
 
 if fred_stats:
@@ -174,7 +174,7 @@ if fred_stats:
 key_fred = ['DFF', 'FEDFUNDS', 'T10Y2Y', 'VIXCLS', 'DTWEXBGS', 'DEXBZUS', 'DEXCHUS', 'DCOILWTICO']
 fred_coverage = run_query("""
     SELECT series_id, COUNT(*) as cnt
-    FROM raw.fred_observations_1d
+    FROM econ.rates_1d
     WHERE series_id = ANY(%s)
     GROUP BY series_id
 """, (key_fred,))
@@ -200,7 +200,7 @@ cot_stats = safe_query("""
         COUNT(*) as total_rows,
         MIN(event_date) as min_date,
         MAX(event_date) as max_date
-    FROM raw.cftc_cot_1w
+    FROM pos.cftc_1w
 """)
 
 if cot_stats:
@@ -210,7 +210,7 @@ if cot_stats:
 
 # Check ZL specifically
 cot_zl = safe_query("""
-    SELECT COUNT(*) as cnt FROM raw.cftc_cot_1w WHERE symbol = 'ZL'
+    SELECT COUNT(*) as cnt FROM pos.cftc_1w WHERE symbol = 'ZL'
 """)
 print(f"\n  ZL positioning:    {cot_zl['cnt'] if cot_zl else 0:,} rows")
 
@@ -319,7 +319,7 @@ print("=" * 80)
 forecast_tables = [
     ("core_cone_1d", "forecast_date"),
     ("core_mc_1d", "forecast_date"),
-    ("ai_decision_1d", "forecast_date"),
+    ("forecast_summary_1d", "forecast_date"),
     ("forecast_quantiles", "forecast_date"),
     ("garch_forecasts", "as_of_date"),
 ]
@@ -380,7 +380,7 @@ try:
             COUNT(DISTINCT region) as regions,
             MIN(event_date) as min_date,
             MAX(event_date) as max_date
-        FROM raw.weather_noaa_1d
+        FROM alt.weather_1d
     """)
     if weather and weather['total_rows'] > 0:
         print(f"  Total rows:        {weather['total_rows']:,}")
@@ -396,7 +396,7 @@ except:
 try:
     regions = run_query("""
         SELECT region, COUNT(*) as cnt
-        FROM raw.weather_noaa_1d
+        FROM alt.weather_1d
         WHERE region IS NOT NULL
         GROUP BY region
         ORDER BY cnt DESC
@@ -416,13 +416,13 @@ print("SECTION 11: DATA FRESHNESS SUMMARY")
 print("=" * 80)
 
 freshness_checks = [
-    ("ZL Prices", "raw.market_futures_1d WHERE symbol='ZL'", "event_date"),
-    ("FRED Data", "raw.fred_observations_1d", "event_date"),
-    ("CFTC COT", "raw.cftc_cot_1w", "event_date"),
-    ("Weather", "raw.weather_noaa_1d", "event_date"),
-    ("News", "raw.news_articles_1d", "event_date"),
-    ("WhiteHouse", "raw.whitehouse_actions_event", "action_date"),
-    ("RIN Prices", "raw.epa_rin_prices_1d", "event_date"),
+    ("ZL Prices", "mkt.futures_1d WHERE symbol='ZL'", "event_date"),
+    ("FRED Data", "econ.rates_1d", "event_date"),
+    ("CFTC COT", "pos.cftc_1w", "event_date"),
+    ("Weather", "alt.weather_1d", "event_date"),
+    ("News", "alt.news_1d", "event_date"),
+    ("WhiteHouse", "alt.legislation_1d", "action_date"),
+    ("RIN Prices", "supply.epa_rin_1d", "event_date"),
 ]
 
 for name, table, date_col in freshness_checks:

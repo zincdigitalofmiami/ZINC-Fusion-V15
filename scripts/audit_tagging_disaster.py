@@ -1,3 +1,7 @@
+# ⚠️ HISTORICAL: Audit script for tagging disaster investigation (Jan 2026).
+# This script references legacy raw.* tables.
+# For current audits, use v2 schema tables (mkt/econ/alt/pos/supply).
+
 #!/usr/bin/env python3
 """Audit specialist tag disasters"""
 import os

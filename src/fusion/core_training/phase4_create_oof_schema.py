@@ -2,14 +2,14 @@
 Phase 4: Create OOF Schema
 ===========================
 
-Defines and creates the training.oof_core_zl_1d table for out-of-fold predictions.
+Defines and creates the training.oof_core_1d table for out-of-fold predictions.
 
 OOF Discipline (LOCKED):
 - One row per (trade_date, horizon_days, window_id)
 - MUST stamp window_id + cutoff_date for every prediction
 - Schema immutable after creation
-- core_run_hash REQUIRED for lineage
-- Column names: core_p30, core_p50, core_p70 (stable for L1 interface)
+- run_hash REQUIRED for lineage
+- Column names: p30, p50, p70 (stable for L1 interface)
 """
 
 from __future__ import annotations
@@ -33,56 +33,56 @@ logger = logging.getLogger(__name__)
 
 # DDL for OOF table - columns match config.OOF_COLUMNS exactly
 OOF_TABLE_DDL = """
-CREATE TABLE IF NOT EXISTS training.oof_core_zl_1d (
+CREATE TABLE IF NOT EXISTS training.oof_core_1d (
     -- Primary identifiers
     trade_date DATE NOT NULL,
+    symbol VARCHAR(20) NOT NULL DEFAULT 'ZL',
     horizon_days INTEGER NOT NULL,
     window_id INTEGER NOT NULL,
     cutoff_date DATE NOT NULL,
-    
+
     -- Quantile predictions (names stable for L1 interface)
-    core_p30 DOUBLE PRECISION NOT NULL,
-    core_p50 DOUBLE PRECISION NOT NULL,
-    core_p70 DOUBLE PRECISION NOT NULL,
-    
+    p30 DOUBLE PRECISION NOT NULL,
+    p50 DOUBLE PRECISION NOT NULL,
+    p70 DOUBLE PRECISION NOT NULL,
+
     -- Actuals for evaluation
     target_value DOUBLE PRECISION,
-    
+
     -- Model lineage (REQUIRED)
-    trained_at TIMESTAMP NOT NULL,
-    core_run_hash VARCHAR(64) NOT NULL,
-    
+    trained_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    run_hash VARCHAR(64) NOT NULL,
+
     -- Matrix lineage
     matrix_version VARCHAR(64),
-    options_version VARCHAR(64),
-    
+
     -- Governance
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    
-    PRIMARY KEY (trade_date, horizon_days, window_id)
+
+    PRIMARY KEY (trade_date, symbol, horizon_days, window_id)
 );
 
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_oof_core_horizon 
-    ON training.oof_core_zl_1d (horizon_days);
+    ON training.oof_core_1d (horizon_days);
     
 CREATE INDEX IF NOT EXISTS idx_oof_core_window 
-    ON training.oof_core_zl_1d (window_id, cutoff_date);
+    ON training.oof_core_1d (window_id, cutoff_date);
     
 CREATE INDEX IF NOT EXISTS idx_oof_core_run_hash 
-    ON training.oof_core_zl_1d (core_run_hash);
+    ON training.oof_core_1d (run_hash);
 
 -- Constraint: window_id must be positive
-ALTER TABLE training.oof_core_zl_1d
+ALTER TABLE training.oof_core_1d
     ADD CONSTRAINT chk_window_id_positive CHECK (window_id > 0);
     
 -- Constraint: horizon must be valid
-ALTER TABLE training.oof_core_zl_1d
+ALTER TABLE training.oof_core_1d
     ADD CONSTRAINT chk_horizon_valid CHECK (horizon_days IN (5, 21, 63, 126));
     
 -- Constraint: quantiles must be ordered (monotonic)
-ALTER TABLE training.oof_core_zl_1d
-    ADD CONSTRAINT chk_quantile_monotonic CHECK (core_p30 <= core_p50 AND core_p50 <= core_p70);
+ALTER TABLE training.oof_core_1d
+    ADD CONSTRAINT chk_quantile_monotonic CHECK (p30 <= p50 AND p50 <= p70);
 """
 
 # View for easy analysis
@@ -92,17 +92,17 @@ SELECT
     horizon_days,
     window_id,
     cutoff_date,
-    core_run_hash,
+    run_hash,
     COUNT(*) as row_count,
     MIN(trade_date) as min_date,
     MAX(trade_date) as max_date,
-    AVG(target_value - core_p50) as mean_error,
-    STDDEV(target_value - core_p50) as std_error,
+    AVG(target_value - p50) as mean_error,
+    STDDEV(target_value - p50) as std_error,
     -- Coverage metrics (what % of actuals fall within quantiles)
-    AVG(CASE WHEN target_value BETWEEN core_p30 AND core_p70 THEN 1.0 ELSE 0.0 END) as coverage_30_70
-FROM training.oof_core_zl_1d
+    AVG(CASE WHEN target_value BETWEEN p30 AND p70 THEN 1.0 ELSE 0.0 END) as coverage_30_70
+FROM training.oof_core_1d
 WHERE target_value IS NOT NULL
-GROUP BY horizon_days, window_id, cutoff_date, core_run_hash
+GROUP BY horizon_days, window_id, cutoff_date, run_hash
 ORDER BY horizon_days, window_id;
 """
 
@@ -135,7 +135,7 @@ def check_existing_table(conn) -> Tuple[bool, int]:
 
 def create_oof_table(conn) -> bool:
     """Create OOF table with constraints."""
-    logger.info("Creating training.oof_core_zl_1d table...")
+    logger.info("Creating training.oof_core_1d table...")
 
     with conn.cursor() as cur:
         # Split DDL into individual statements
@@ -212,7 +212,7 @@ def run() -> Tuple[bool, bool]:
     logger.info("=" * 60)
     logger.info(f"Target table: {OOF_TABLE_NAME}")
     logger.info(f"Horizons: {HORIZONS}")
-    logger.info(f"Quantile columns: core_p30, core_p50, core_p70")
+    logger.info("Quantile columns: p30, p50, p70")
     logger.info("=" * 60)
 
     try:

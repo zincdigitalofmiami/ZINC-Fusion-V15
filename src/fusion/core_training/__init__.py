@@ -23,8 +23,8 @@
 #
 # | Phase | Module | Description | Blocking |
 # |-------|--------|-------------|----------|
-# | 1 | phase1_options_features | Compute IV/Greeks from raw options | ✅ YES |
-# | 2 | phase2_validate_gold_elite | Verify elite indicators | No |
+# | 1 | phase1_options_features | Compute IV/Greeks from mkt options | ✅ YES |
+# | 2 | phase2_validate_gold_elite | Verify elite indicators (features) | No |
 # | 3 | phase3_build_core_matrix | Assemble ~213 features | No |
 # | 4 | phase4_create_oof_schema | Define OOF table | No |
 # | 5 | phase5_audit_preflight | Mandatory validation gate | ✅ YES |
@@ -42,9 +42,9 @@
 #
 # ## Output Tables
 #
-# - `gold.options_features_1d` - IV/Greeks
-# - `training.core_matrix_curated_1d` - Feature matrix
-# - `training.oof_core_zl_1d` - OOF predictions
+# - `features.options_1d` - IV/Greeks
+# - `training.matrix_1d` - Feature matrix
+# - `training.oof_core_1d` - OOF predictions
 #
 # ## Model Artifacts
 #

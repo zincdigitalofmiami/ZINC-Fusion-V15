@@ -2,8 +2,8 @@
 Phase 1: Options Features Computation
 =====================================
 
-Computes implied volatility and Greeks from raw.options_futures_1d.
-Writes to gold.options_features_1d.
+Computes implied volatility and Greeks from mkt.options_1d.
+Writes to features.options_1d.
 
 LOCKED SPECIFICATIONS:
 - IV computed via Black-Scholes model
@@ -151,19 +151,19 @@ def compute_greeks(
 
 
 def load_options_data(conn, symbol: str, start_date: str) -> pd.DataFrame:
-    """Load raw options data."""
+    """Load options data from mkt."""
     query = """
         SELECT 
             event_date,
-            symbol,
+            underlying as symbol,
             close as option_price,
             strike,
             expiration,
             option_type,
             open_interest,
             volume
-        FROM raw.options_futures_1d
-        WHERE symbol LIKE %s
+        FROM mkt.options_1d
+        WHERE underlying LIKE %s
           AND event_date >= %s
           AND close IS NOT NULL
           AND strike IS NOT NULL
@@ -182,12 +182,12 @@ def load_options_data(conn, symbol: str, start_date: str) -> pd.DataFrame:
 
 
 def load_futures_prices(conn, symbol: str, start_date: str) -> pd.DataFrame:
-    """Load underlying futures prices."""
+    """Load underlying futures prices from mkt."""
     query = """
         SELECT 
             event_date as trade_date,
             close as futures_price
-        FROM raw.market_futures_1d
+        FROM mkt.futures_1d
         WHERE symbol = %s
           AND event_date >= %s
           AND close IS NOT NULL
@@ -199,13 +199,13 @@ def load_futures_prices(conn, symbol: str, start_date: str) -> pd.DataFrame:
 
 
 def load_risk_free_rate(conn, start_date: str) -> pd.DataFrame:
-    """Load risk-free rate from FRED."""
+    """Load risk-free rate from econ.rates_1d."""
     series = OPTIONS_CONFIG.risk_free_rate_series
     query = """
         SELECT 
             event_date as trade_date,
             value / 100.0 as risk_free_rate
-        FROM raw.fred_observations_1d
+        FROM econ.rates_1d
         WHERE series_id = %s
           AND event_date >= %s
           AND value IS NOT NULL
@@ -401,9 +401,9 @@ def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def ensure_table_exists(conn):
-    """Create gold.options_features_1d if not exists."""
+    """Create features.options_1d if not exists."""
     create_sql = """
-    CREATE TABLE IF NOT EXISTS gold.options_features_1d (
+    CREATE TABLE IF NOT EXISTS features.options_1d (
         id SERIAL PRIMARY KEY,
         trade_date DATE NOT NULL,
         symbol VARCHAR(20) NOT NULL,
@@ -433,19 +433,19 @@ def ensure_table_exists(conn):
         options_version VARCHAR(64),
         UNIQUE(symbol, trade_date)
     );
-    CREATE INDEX IF NOT EXISTS idx_gold_options_trade_date 
-        ON gold.options_features_1d(trade_date);
-    CREATE INDEX IF NOT EXISTS idx_gold_options_symbol 
-        ON gold.options_features_1d(symbol);
+    CREATE INDEX IF NOT EXISTS idx_features_options_trade_date 
+        ON features.options_1d(trade_date);
+    CREATE INDEX IF NOT EXISTS idx_features_options_symbol 
+        ON features.options_1d(symbol);
     """
     with conn.cursor() as cur:
         cur.execute(create_sql)
         conn.commit()
-    logger.info("✅ Ensured gold.options_features_1d exists")
+    logger.info("✅ Ensured features.options_1d exists")
 
 
 def write_features(conn, df: pd.DataFrame, symbol: str, dry_run: bool = False) -> str:
-    """Write features to gold.options_features_1d. Returns version hash."""
+    """Write features to features.options_1d. Returns version hash."""
     if dry_run:
         logger.info(f"DRY RUN: Would write {len(df)} rows")
         logger.info(f"Sample:\n{df.head()}")
@@ -497,7 +497,7 @@ def write_features(conn, df: pd.DataFrame, symbol: str, dry_run: bool = False) -
 
     # Upsert
     insert_sql = f"""
-        INSERT INTO gold.options_features_1d ({', '.join(columns)})
+        INSERT INTO features.options_1d ({', '.join(columns)})
         VALUES %s
         ON CONFLICT (symbol, trade_date) DO UPDATE SET
             iv_atm = EXCLUDED.iv_atm,
@@ -532,7 +532,7 @@ def write_features(conn, df: pd.DataFrame, symbol: str, dry_run: bool = False) -
         execute_values(cur, insert_sql, values)
         conn.commit()
 
-    logger.info(f"✅ Wrote {len(df)} rows to gold.options_features_1d")
+    logger.info(f"✅ Wrote {len(df)} rows to features.options_1d")
     logger.info(f"   Options version: {version_hash}")
 
     return version_hash

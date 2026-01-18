@@ -2,7 +2,7 @@
 """
 ZINC-FUSION-V15: Yahoo Finance Daily EOD Ingestion
 
-Ingests daily OHLCV data from Yahoo Finance into raw.market_futures_1d.
+Ingests daily OHLCV data from Yahoo Finance into mkt.futures_1d.
 Uses the A+ conditional upsert pattern:
   - NEVER overwrites historical backfill data (pre-2025-12-29)
   - CAN refresh existing Yahoo rows (for late corrections)
@@ -54,7 +54,7 @@ load_dotenv()
 # Constants
 PROJECT_ROOT = Path(__file__).parent.parent
 CONFIG_PATH = PROJECT_ROOT / "config" / "yahoo_tickers.json"
-TARGET_TABLE = "raw.market_futures_1d"
+TARGET_TABLE = "mkt.futures_1d"
 SOURCE_VALUE = "yahoo"
 
 # Handoff cutoff - Yahoo only handles dates AFTER this
@@ -247,7 +247,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
     # - Update existing Yahoo rows (for corrections)
     # - Skip existing non-Yahoo rows (preserve historical backfill)
     upsert_sql = """
-        INSERT INTO raw.market_futures_1d
+        INSERT INTO mkt.futures_1d
             (event_date, symbol, open, high, low, close, volume, source, ingested_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (event_date, symbol)
@@ -259,7 +259,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
             volume = EXCLUDED.volume,
             source = EXCLUDED.source,
             ingested_at = EXCLUDED.ingested_at
-        WHERE raw.market_futures_1d.source = 'yahoo'
+        WHERE mkt.futures_1d.source = 'yahoo'
     """
 
     records = [

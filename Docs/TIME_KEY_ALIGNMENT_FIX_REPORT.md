@@ -2,6 +2,9 @@
 ## Date: 2026-01-14
 ## Status: FIXES APPLIED (CODE)
 
+> NOTE (2026-01-17): Schema v2 deprecates raw tables. Time-key alignment
+> should be revalidated for mkt/econ/features.
+
 ---
 
 ## PROBLEM STATEMENT

@@ -1,12 +1,12 @@
 """
-Phase 2: Validate Gold Elite Indicators
+Phase 2: Validate Elite Indicators (features)
 =======================================
 
-Verifies gold.elite_indicators_1d is populated and complete.
+Verifies features.elite_1d is populated and complete.
 Since data already exists (6,627 rows, 2000-2026), this phase validates
 rather than rebuilds.
 
-If validation fails, triggers rebuild from silver.futures_prices_1d
+If validation fails, triggers rebuild from mkt.futures_1d
 using EliteIndicators.compute_all().
 """
 
@@ -136,13 +136,13 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
     # Get total row count
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT COUNT(*) FROM gold.elite_indicators_1d WHERE symbol = %s",
+            "SELECT COUNT(*) FROM features.elite_1d WHERE symbol = %s",
             (symbol,)
         )
         total_rows = cur.fetchone()[0]
     
     if total_rows == 0:
-        logger.error("❌ No rows in gold.elite_indicators_1d")
+        logger.error("❌ No rows in features.elite_1d")
         return False, {"passed": False, "failures": ["No data"]}
     
     report["total_rows"] = total_rows
@@ -164,7 +164,7 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
                 cur.execute(
                     f"""
                     SELECT COUNT(*) 
-                    FROM gold.elite_indicators_1d 
+                    FROM features.elite_1d 
                     WHERE symbol = %s AND {indicator} IS NULL
                     """,
                     (symbol,)
@@ -190,7 +190,7 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
                     cur.execute(
                         f"""
                         SELECT MIN(trade_date) 
-                        FROM gold.elite_indicators_1d 
+                        FROM features.elite_1d 
                         WHERE symbol = %s AND {indicator} IS NOT NULL
                         """,
                         (symbol,)
@@ -202,7 +202,7 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
                         cur.execute(
                             f"""
                             SELECT COUNT(*) 
-                            FROM gold.elite_indicators_1d 
+                            FROM features.elite_1d 
                             WHERE symbol = %s 
                               AND trade_date < %s 
                               AND {indicator} IS NULL
@@ -216,7 +216,7 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
                         cur.execute(
                             f"""
                             SELECT COUNT(*) 
-                            FROM gold.elite_indicators_1d 
+                            FROM features.elite_1d 
                             WHERE symbol = %s 
                               AND trade_date >= %s 
                               AND {indicator} IS NULL
@@ -257,12 +257,12 @@ def audit_elite_completeness(conn, symbol: str) -> Tuple[bool, dict]:
 
 def validate_elite_indicators(conn, symbol: str) -> Tuple[bool, dict]:
     """
-    Validate gold.elite_indicators_1d completeness.
+    Validate features.elite_1d completeness.
 
     Returns:
         (valid: bool, stats: dict)
     """
-    logger.info("Validating gold.elite_indicators_1d...")
+    logger.info("Validating features.elite_1d...")
 
     stats = {}
 
@@ -275,7 +275,7 @@ def validate_elite_indicators(conn, symbol: str) -> Tuple[bool, dict]:
                 MIN(trade_date) as min_date,
                 MAX(trade_date) as max_date,
                 COUNT(DISTINCT trade_date) as unique_dates
-            FROM gold.elite_indicators_1d
+            FROM features.elite_1d
             WHERE symbol = %s
         """,
             (symbol,),
@@ -331,7 +331,7 @@ def validate_elite_indicators(conn, symbol: str) -> Tuple[bool, dict]:
                 cur.execute(
                     f"""
                     SELECT COUNT(*) 
-                    FROM gold.elite_indicators_1d
+                    FROM features.elite_1d
                     WHERE symbol = %s AND {col} IS NULL
                 """,
                     (symbol,),
@@ -351,7 +351,7 @@ def validate_elite_indicators(conn, symbol: str) -> Tuple[bool, dict]:
                 COALESCE(hurst_exponent::text, ''),
                 ''
             ))
-            FROM gold.elite_indicators_1d
+            FROM features.elite_1d
             WHERE symbol = %s
             ORDER BY trade_date
         """,

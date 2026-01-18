@@ -14,7 +14,7 @@ Usage:
 
     # For reads only:
     engine = get_read_engine()
-    df = pd.read_sql("SELECT * FROM raw.market_futures_1d", engine)
+    df = pd.read_sql("SELECT * FROM mkt.futures_1d", engine)
 
     # For writes only:
     conn = get_write_connection()
@@ -82,7 +82,7 @@ def get_read_engine() -> Engine:
 
     Usage:
         engine = get_read_engine()
-        df = pd.read_sql("SELECT * FROM raw.market_futures_1d", engine)
+        df = pd.read_sql("SELECT * FROM mkt.futures_1d", engine)
     """
     global _engine_cache
 

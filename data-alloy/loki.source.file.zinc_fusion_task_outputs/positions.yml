@@ -1,0 +1,61 @@
+positions:
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/b2febd8.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "6787"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/a7b9f8b.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "528431"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bc43f5f.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "3123"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/a5feced.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "466592"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/aff37ca.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "116986"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/ae54932.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "14349"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/ab0108a.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "555855"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/ba6c790.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "0"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/be49df3.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "734"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/b3371fd.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "13801"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bbbc6f6.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "61"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/b849ee8.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "736"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/ac323a1.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "263923"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/a171a59.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "513102"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bb092ff.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "32676"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/aa2abff.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "333409"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bcc6436.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "0"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bd2ab63.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "497"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/b91e4b5.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "6092"
+  ? path: /private/tmp/claude/-Volumes-Satechi-Hub-ZINC-FUSION-V15/tasks/bd361b2.output
+    labels: '{app="zinc-fusion", instance="Mac-M4-Pro.attlocal.net", job="zinc-fusion/task-output"}'
+  : "52"

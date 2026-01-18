@@ -257,7 +257,7 @@ export const epaRinPricesDaily = inngest.createFunction(
     try {
       await step.run("assert-tables", async () => {
         await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
-        await client.query("SELECT 1 FROM raw.epa_rin_prices_1d LIMIT 1");
+        await client.query("SELECT 1 FROM supply.epa_rin_1d LIMIT 1");
       });
 
       runId = await step.run("create-ingest-run", () =>
@@ -266,14 +266,14 @@ export const epaRinPricesDaily = inngest.createFunction(
 
       const dbMaxSourceDate = await step.run("db-max-event-date-source", async () => {
         const r = await client.query(
-          "SELECT MAX(event_date)::date AS max_date FROM raw.epa_rin_prices_1d WHERE source = 'epa_qlik_public'"
+          "SELECT MAX(event_date)::date AS max_date FROM supply.epa_rin_1d WHERE source = 'epa_qlik_public'"
         );
         return r.rows?.[0]?.max_date ?? null;
       });
 
       const dbMaxOverallDate = await step.run("db-max-event-date-overall", async () => {
         const r = await client.query(
-          "SELECT MAX(event_date)::date AS max_date FROM raw.epa_rin_prices_1d"
+          "SELECT MAX(event_date)::date AS max_date FROM supply.epa_rin_1d"
         );
         return r.rows?.[0]?.max_date ?? null;
       });
@@ -311,7 +311,7 @@ export const epaRinPricesDaily = inngest.createFunction(
       const existingKeys = await step.run("load-existing-keys", async () => {
         const r = await client.query(
           `SELECT rin_type, event_date::date
-           FROM raw.epa_rin_prices_1d
+           FROM supply.epa_rin_1d
            WHERE source = 'epa_qlik_public'`
         );
         return r.rows.map((row) => `${row.rin_type}|${row.event_date}`);
@@ -402,7 +402,7 @@ export const epaRinPricesDaily = inngest.createFunction(
             }
 
             await client.query(
-              `INSERT INTO raw.epa_rin_prices_1d ${cols} VALUES ${values.join(",")}`,
+              `INSERT INTO supply.epa_rin_1d ${cols} VALUES ${values.join(",")}`,
               params
             );
           }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Import Claude Opus 4.5 scores into silver.news_scored_1d
+Import Claude Opus 4.5 scores into features.news_sentiment_1d
 """
 
 import json
@@ -71,7 +71,7 @@ def import_opus_scores():
                 # Get existing finbert data to preserve it
                 cur.execute("""
                     SELECT matched_categories 
-                    FROM silver.news_scored_1d 
+                    FROM features.news_sentiment_1d 
                     WHERE raw_id = %s
                 """, (raw_id,))
                 
@@ -129,7 +129,7 @@ def import_opus_scores():
                 
                 # Update the record
                 cur.execute("""
-                    UPDATE silver.news_scored_1d
+                    UPDATE features.news_sentiment_1d
                     SET 
                         sentiment_score = %s,
                         sentiment_direction = %s,
@@ -188,7 +188,7 @@ def import_opus_scores():
                     COUNT(*) FILTER (WHERE sentiment_direction = 'bullish') as bullish,
                     COUNT(*) FILTER (WHERE sentiment_direction = 'bearish') as bearish,
                     COUNT(*) FILTER (WHERE sentiment_direction = 'neutral') as neutral
-                FROM silver.news_scored_1d
+                FROM features.news_sentiment_1d
                 GROUP BY scoring_model
                 ORDER BY count DESC
             """)

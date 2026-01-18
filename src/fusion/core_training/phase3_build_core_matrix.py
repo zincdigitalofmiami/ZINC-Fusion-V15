@@ -2,12 +2,17 @@
 Phase 3: Build Core Feature Matrix
 ===================================
 
-Assembles training.core_matrix_curated_1d from:
-- gold.elite_indicators_1d (27 elite indicators + OHLCV)
-- gold.options_features_1d (IV/Greeks from Phase 1)
-- raw.fred_observations_1d (macro series)
-- silver.fx_rates_1d (FX rates)
-- raw.weather_observations_1d (weather aggregates)
+Assembles training.matrix_1d from:
+- features.elite_1d (27 elite indicators + OHLCV)
+- features.options_1d (IV/Greeks from Phase 1)
+- features.weather_1d (weather aggregates)
+- econ.* tables (rates, inflation, labor, activity, vol_indices, commodities, fx, money)
+- mkt.fx_1d (FX rates)
+
+SCHEMA UPDATE 2026-01-17:
+- FRED data migrated from raw.fred_observations_1d to domain-specific econ.* tables
+- gold.* renamed to features.* (elite_1d, options_1d, weather_1d)
+- training.core_matrix_curated_1d renamed to training.matrix_1d
 
 Design Principles:
 - Blanket inclusion WITH enforced curation (120-350 features)
@@ -39,12 +44,12 @@ logger = logging.getLogger(__name__)
 
 
 def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
-    """Load gold.elite_indicators_1d for target symbol."""
-    logger.info("Loading elite indicators...")
+    """Load features.elite_1d for target symbol."""
+    logger.info("Loading elite indicators from features.elite_1d...")
 
     query = """
         SELECT *
-        FROM gold.elite_indicators_1d
+        FROM features.elite_1d
         WHERE symbol = %s
         ORDER BY trade_date
     """
@@ -54,13 +59,13 @@ def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
 
 
 def load_options_features(conn, symbol: str) -> pd.DataFrame:
-    """Load gold.options_features_1d (Phase 1 output)."""
-    logger.info("Loading options features...")
+    """Load features.options_1d (Phase 1 output)."""
+    logger.info("Loading options features from features.options_1d...")
 
     try:
         query = """
             SELECT *
-            FROM gold.options_features_1d
+            FROM features.options_1d
             WHERE symbol = %s
             ORDER BY trade_date
         """
@@ -73,21 +78,74 @@ def load_options_features(conn, symbol: str) -> pd.DataFrame:
 
 
 def load_fred_macro(conn) -> pd.DataFrame:
-    """Load FRED macro series and pivot to wide format."""
-    logger.info("Loading FRED macro series...")
+    """Load FRED macro series from econ.* tables and pivot to wide format.
+
+    NEW SCHEMA (2026-01-17):
+    FRED data is now split across domain-specific tables:
+    - econ.rates_1d (interest rates, yields, spreads)
+    - econ.inflation_1d (CPI, PCE)
+    - econ.labor_1d (payrolls, claims)
+    - econ.activity_1d (GDP, industrial production, sentiment)
+    - econ.vol_indices_1d (VIX, NFCI)
+    - econ.commodities_1d (commodity prices)
+    - mkt.fx_1d (FRED FX rates - consolidated, filtered by source='FRED')
+    - econ.money_1d (money supply, Fed balance sheet)
+    """
+    logger.info("Loading FRED macro series from econ.* tables...")
 
     FMC_INSTANCE = FMC()
     fred_series = list(FMC_INSTANCE.FRED_MACRO_SERIES)
     placeholders = ",".join(["%s"] * len(fred_series))
 
+    # UNION ALL from all econ tables
+    # Each table has same structure: series_id, event_date, value
     query = f"""
-        SELECT 
-            observation_date as trade_date,
+        WITH all_econ AS (
+            SELECT series_id, event_date, value FROM econ.rates_1d
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.inflation_1d
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.labor_1d
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.activity_1d
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.vol_indices_1d
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.commodities_1d
+            UNION ALL
+            -- FX consolidated to mkt.fx_1d - map pair back to series_id format
+            SELECT
+                CASE pair
+                    WHEN 'EUR/USD' THEN 'DEXUSEU'
+                    WHEN 'USD/JPY' THEN 'DEXJPUS'
+                    WHEN 'BRL/USD' THEN 'DEXBZUS'
+                    WHEN 'CNY/USD' THEN 'DEXCHUS'
+                    WHEN 'MXN/USD' THEN 'DEXMXUS'
+                    WHEN 'CAD/USD' THEN 'DEXCAUS'
+                    WHEN 'KRW/USD' THEN 'DEXKOUS'
+                    WHEN 'INR/USD' THEN 'DEXINUS'
+                    WHEN 'TWD/USD' THEN 'DEXTAUS'
+                    WHEN 'AUD/USD' THEN 'DEXUSAL'
+                    WHEN 'DXY_BROAD' THEN 'DTWEXBGS'
+                    WHEN 'DXY_AFE' THEN 'DTWEXAFEGS'
+                    WHEN 'DXY_EME' THEN 'DTWEXEMEGS'
+                    WHEN 'DXY_MAJOR' THEN 'DTWEXM'
+                    ELSE pair
+                END as series_id,
+                event_date,
+                rate as value
+            FROM mkt.fx_1d
+            WHERE source = 'FRED'
+            UNION ALL
+            SELECT series_id, event_date, value FROM econ.money_1d
+        )
+        SELECT DISTINCT ON (series_id, event_date)
+            event_date::date as trade_date,
             series_id,
             value
-        FROM raw.fred_observations_1d
+        FROM all_econ
         WHERE series_id IN ({placeholders})
-        ORDER BY observation_date, series_id
+        ORDER BY series_id, event_date
     """
 
     df = pd.read_sql(query, conn, params=tuple(fred_series))
@@ -108,24 +166,28 @@ def load_fred_macro(conn) -> pd.DataFrame:
 
 
 def load_fx_rates(conn) -> pd.DataFrame:
-    """Load FX rates from silver."""
-    logger.info("Loading FX rates...")
+    """Load FX rates from mkt."""
+    logger.info("Loading FX rates from mkt.fx_1d...")
 
     try:
+        # mkt.fx_1d uses pair and rate columns
+        # All 5 available pairs: BRL, CNY, EUR, GBP, JPY
         query = """
             SELECT 
-                trade_date,
-                symbol,
-                close as fx_rate
-            FROM silver.fx_rates_1d
-            WHERE symbol IN ('USDBRL', 'USDARS', 'USDCNY')
-            ORDER BY trade_date, symbol
+                event_date as trade_date,
+                pair,
+                rate as fx_rate
+            FROM mkt.fx_1d
+            WHERE pair IN ('USDBRL', 'USDCNY', 'USDEUR', 'USDGBP', 'USDJPY')
+            ORDER BY trade_date, pair
         """
         df = pd.read_sql(query, conn)
 
         # Pivot to wide format
         if len(df) > 0:
-            df_wide = df.pivot(index="trade_date", columns="symbol", values="fx_rate")
+            df_wide = df.pivot(
+                index="trade_date", columns="pair", values="fx_rate"
+            )
             df_wide = df_wide.reset_index()
             df_wide.columns = ["trade_date"] + [
                 f"fx_{col.lower()}" for col in df_wide.columns[1:]
@@ -142,45 +204,33 @@ def load_fx_rates(conn) -> pd.DataFrame:
 
 
 def load_weather_aggregates(conn) -> pd.DataFrame:
-    """Load weather data aggregated by region."""
-    logger.info("Loading weather aggregates...")
+    """Load weather data aggregated by region from features.weather_1d."""
+    logger.info("Loading weather aggregates from features.weather_1d...")
 
     FMC_INSTANCE = FMC()
 
     try:
-        regions = list(FMC_INSTANCE.WEATHER_REGIONS)
-
-        # Build region aggregation query
-        # Weather is aggregated at region level to avoid 57-column explosion
+        # Load pre-computed weather features from features layer
+        # features.weather_1d has regional aggregates (US, BR, AR) with:
+        # - Temperature (avg, min, max), precipitation, humidity, wind
+        # - Anomalies vs 30-day rolling mean
+        # - Growing degree days (GDD)
+        # - Rolling sums (7d, 14d precip)
         query = """
-            SELECT 
-                observation_date as trade_date,
-                region,
-                AVG(temp_avg) as temp_avg,
-                AVG(precip) as precip,
-                AVG(soil_moisture) as soil_moisture
-            FROM raw.weather_observations_1d
-            WHERE region = ANY(%s)
-            GROUP BY observation_date, region
-            ORDER BY observation_date, region
+            SELECT *
+            FROM features.weather_1d
+            ORDER BY trade_date
         """
 
-        df = pd.read_sql(query, conn, params=(regions,))
+        df = pd.read_sql(query, conn)
 
         if len(df) > 0:
-            # Pivot region to columns
-            df_temp = df.pivot(index="trade_date", columns="region", values="temp_avg")
-            df_precip = df.pivot(index="trade_date", columns="region", values="precip")
-
-            # Combine with prefix
-            df_temp.columns = [f"wx_{col}_temp" for col in df_temp.columns]
-            df_precip.columns = [f"wx_{col}_precip" for col in df_precip.columns]
-
-            df_wide = pd.concat([df_temp, df_precip], axis=1).reset_index()
+            # Drop id and created_at columns
+            df = df.drop(columns=["id", "created_at"], errors="ignore")
             logger.info(
-                f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} weather features"
+                f"   Loaded {len(df):,} rows, {len(df.columns)-1} weather features"
             )
-            return df_wide
+            return df
 
     except Exception as e:
         logger.warning(f"   Weather data not available: {e}")
@@ -269,49 +319,27 @@ def enforce_feature_guardrails(df: pd.DataFrame) -> Tuple[pd.DataFrame, bool]:
 
 
 def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
-    """Write matrix to training.core_matrix_curated_1d."""
-    logger.info("Writing to training.core_matrix_curated_1d...")
+    """Write matrix to training.matrix_1d."""
+    logger.info("Writing to training.matrix_1d...")
 
-    # Check if table exists
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT EXISTS (
-                SELECT 1 FROM information_schema.tables
-                WHERE table_schema = 'training'
-                  AND table_name = 'core_matrix_curated_1d'
-            )
-        """
-        )
-        table_exists = cur.fetchone()[0]
-
-    if table_exists:
-        # Clear existing data for this symbol
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                DELETE FROM training.core_matrix_curated_1d
-                WHERE symbol = %s
-            """,
-                (TARGET_SYMBOL,),
-            )
-            deleted = cur.rowcount
-            logger.info(f"   Cleared {deleted} existing rows")
-    else:
-        # Create table dynamically based on DataFrame columns
-        logger.info("   Creating training.core_matrix_curated_1d table...")
-        create_table_from_df(
-            conn, df, "training", "core_matrix_curated_1d", matrix_version
-        )
-
-    # Add metadata columns
+    # Add metadata columns first (before table creation)
     df["matrix_version"] = matrix_version
     df["created_at"] = datetime.utcnow()
+
+    # Always drop and recreate to ensure schema matches
+    # This table is rebuilt from scratch each time (immutable rebuild pattern)
+    with conn.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS training.matrix_1d CASCADE")
+        logger.info("   Dropped existing table (clean rebuild)")
+
+    # Create table dynamically based on DataFrame columns
+    logger.info("   Creating training.matrix_1d table...")
+    create_table_from_df(conn, df, "training", "matrix_1d", matrix_version)
 
     # Insert rows
     cols = list(df.columns)
     insert_sql = f"""
-        INSERT INTO training.core_matrix_curated_1d ({','.join(cols)})
+        INSERT INTO training.matrix_1d ({','.join(cols)})
         VALUES %s
     """
 
@@ -433,10 +461,12 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         # Create target columns (forward returns)
         df = create_target_columns(df)
 
-        # Forward-fill macro/fx data (they update less frequently)
+        # Forward-fill macro/fx/weather data (they update less frequently)
         logger.info("Forward-filling slow-updating series...")
         macro_cols = [
-            c for c in df.columns if c.startswith("fred_") or c.startswith("fx_")
+            c
+            for c in df.columns
+            if c.startswith("fred_") or c.startswith("fx_") or c.startswith("wx_")
         ]
         df[macro_cols] = df[macro_cols].fillna(method="ffill")
 

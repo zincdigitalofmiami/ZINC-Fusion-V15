@@ -1187,10 +1187,10 @@ if __name__ == "__main__":
         conn = psycopg2.connect(database_url)
         df = pd.read_sql(
             """
-            SELECT as_of_date as trade_date, symbol, open, high, low, close, volume
-            FROM raw.market_futures_1d
+            SELECT event_date as trade_date, symbol, open, high, low, close, volume
+            FROM mkt.futures_1d
             WHERE symbol = 'ZL'
-            ORDER BY as_of_date
+            ORDER BY event_date
         """,
             conn,
         )

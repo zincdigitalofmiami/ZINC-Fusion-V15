@@ -2,6 +2,8 @@
 ## Date: 2026-01-14
 ## Status: DRAFT - REQUIRES APPROVAL
 
+> NOTE (2026-01-17): Schema v2 is now the target; this proposal is legacy context.
+
 ---
 
 ## Executive Summary

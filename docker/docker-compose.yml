@@ -1,5 +1,6 @@
 services:
-  # Existing FastAPI service (optional - only if you need the API)
+  # FastAPI service for ZINC-FUSION
+  # MLflow removed 2026-01-18: GrafanaRegistry writes directly to Prisma
   fusion-api:
     build:
       context: .
@@ -8,92 +9,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-}
       FUSION_API_TOKEN: ${FUSION_API_TOKEN:-}
       FUSION_CORS_ORIGINS: ${FUSION_CORS_ORIGINS:-}
-      MLFLOW_TRACKING_URI: http://mlflow:5001
     ports:
       - "8000:8000"
-    depends_on:
-      - mlflow
     profiles:
       - api  # Only starts with: docker compose --profile api up
-
-  # PostgreSQL for MLflow backend store
-  mlflow-postgres:
-    image: postgres:15-alpine
-    container_name: mlflow-postgres
-    environment:
-      POSTGRES_USER: mlflow
-      POSTGRES_PASSWORD: mlflow
-      POSTGRES_DB: mlflow
-    volumes:
-      - mlflow-postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mlflow"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # MinIO for S3-compatible artifact storage
-  minio:
-    image: minio/minio:latest
-    container_name: mlflow-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: mlflow
-      MINIO_ROOT_PASSWORD: mlflow123
-    volumes:
-      - mlflow-minio-data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # MinIO bucket initialization
-  minio-init:
-    image: minio/mc:latest
-    container_name: mlflow-minio-init
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set myminio http://minio:9000 mlflow mlflow123;
-      mc mb myminio/mlflow-artifacts --ignore-existing;
-      exit 0;
-      "
-
-  # MLflow Tracking Server
-  mlflow:
-    build:
-      context: .
-      dockerfile: Dockerfile.mlflow
-    container_name: mlflow-server
-    depends_on:
-      mlflow-postgres:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-    environment:
-      MLFLOW_BACKEND_STORE_URI: postgresql://mlflow:mlflow@mlflow-postgres:5432/mlflow
-      MLFLOW_DEFAULT_ARTIFACT_ROOT: s3://mlflow-artifacts
-      AWS_ACCESS_KEY_ID: mlflow
-      AWS_SECRET_ACCESS_KEY: mlflow123
-      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
-    ports:
-      - "5001:5001"
-    command: >
-      mlflow server
-      --host 0.0.0.0
-      --port 5001
-      --backend-store-uri postgresql://mlflow:mlflow@mlflow-postgres:5432/mlflow
-      --default-artifact-root s3://mlflow-artifacts
-      --serve-artifacts
-
-volumes:
-  mlflow-postgres-data:
-  mlflow-minio-data:

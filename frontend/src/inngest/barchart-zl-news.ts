@@ -5,20 +5,22 @@
  *
  * Contract:
  * - Writes real, source-derived records only (no synthetic/fallback rows).
- * - Uses raw.event_date as canonical time key for raw schema.
+ * - Uses event_date as canonical time key for raw schema.
  * - Fails loudly if parsing breaks (better empty than wrong).
  */
 
 import { inngest } from "./client";
 import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
+import { classifySpecialists } from "../lib/specialist-classifier";
 
 const BARCHART_ZL_NEWS_URL = "https://www.barchart.com/futures/quotes/ZL*0/news";
 const BARCHART_CORE_API_NEWS_URL = "https://www.barchart.com/proxies/core-api/v1/news/stories";
 const BARCHART_SYMBOL = "ZL*0";
 const SOURCE = "barchart";
 const BUCKET_NAME = "barchart_zl";
-const TAGS = ["core", "crush"];
+// Dynamic tagging - ZL news always gets "crush", plus any detected from headline
+const DEFAULT_TAGS = ["crush"];
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -247,14 +249,14 @@ async function verifyRawNewsTable(client: PoolClient): Promise<void> {
   const missing = required.filter((c) => !cols.has(c));
   if (missing.length > 0) {
     throw new Error(
-      `raw.news_articles_event missing required columns: ${missing.join(", ")}`
+      `alt.news_1d missing required columns: ${missing.join(", ")}`
     );
   }
 }
 
 async function rowHashExists(client: PoolClient, rowHash: string): Promise<boolean> {
   const r = await client.query(
-    `SELECT 1 FROM raw.news_articles_event WHERE row_hash=$1 LIMIT 1`,
+    `SELECT 1 FROM alt.news_1d WHERE row_hash=$1 LIMIT 1`,
     [rowHash]
   );
   return r.rows.length > 0;
@@ -299,8 +301,13 @@ export const barchartZlNewsDaily = inngest.createFunction(
             return { status: "skipped_duplicate" as const };
           }
 
+          // Dynamic tagging using shared classifier
+          const detectedTags = classifySpecialists(article.headline);
+          // Ensure "crush" is always present for ZL news, merge with detected
+          const tags = Array.from(new Set([...DEFAULT_TAGS, ...detectedTags.filter(t => t !== "general")]));
+
           await client.query(
-            `INSERT INTO raw.news_articles_event (
+            `INSERT INTO alt.news_1d (
               event_date, headline, content, source, published_at, bucket_name,
               source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
@@ -315,7 +322,7 @@ export const barchartZlNewsDaily = inngest.createFunction(
               JSON.stringify(article.rawPayload),
               runId,
               article.rowHash,
-              TAGS,
+              tags,
             ]
           );
 

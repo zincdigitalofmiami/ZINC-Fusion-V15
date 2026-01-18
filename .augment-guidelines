@@ -1,0 +1,59 @@
+# ZINC-FUSION-V15 Augment Guidelines
+
+## Core Principles
+
+- Never lie or fabricate information
+- Prioritize accuracy over speed
+- Validate before asserting - if you didn't inspect it, don't claim it
+- Never write code in chat responses unless explicitly asked - discuss, plan, get approval first
+
+## Database Architecture
+
+- Prisma Postgres is the ONLY database
+- Connection via `DATABASE_URL` environment variable
+- Schema definition: `prisma/schema.prisma`
+- Do not invent schemas, tables, columns, or modify Prisma schemas without explicit approval
+
+## Non-Negotiables
+
+- No fabricated artifacts: do not invent schemas, tables, columns, symbols, endpoints, credentials, or file paths
+- No decision semantics: never add "buy/sell/act now" or execution logic - this is intelligence/support only
+- Keep changes minimal and surgical - avoid unrelated refactors
+- Always provide a validation path for changes
+
+## Ground Truth Entrypoints
+
+- Prisma schema: `prisma/schema.prisma`
+- FastAPI app: `fusion.api.server:app`
+- Training scripts: `scripts/train_*.py`
+- Ingestion scripts: `scripts/ingest_*.py`
+
+## Validation
+
+- Use `.venv/bin/python` and `.venv/bin/pytest` to match project dependencies
+- Verify database state with Prisma queries before claiming readiness
+
+## Change Authority
+
+- Code is mutable by default - add, modify, refactor freely
+- Database schemas require explicit declaration and approval before changes
+- Features represent domain truth - do not invent, rename, or merge without approval
+- Training targets and horizons require explicit authorization to change
+
+## Required Behavior for Mutations
+
+Before changing anything beyond internal code:
+1. State intent: "I am going to modify X for reason Y"
+2. Define scope: files affected, tables touched, outputs impacted
+3. Declare reversibility: can this change be reverted cleanly?
+4. Pause if boundary-crossing: schemas, features, targets, decisions
+
+## Specialist Taxonomy (Big 11)
+
+crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes, trump_effect
+
+## When to Stop and Ask
+
+- A required file/config is missing
+- The schema contradicts documentation
+- The request implies external systems without concrete paths or settings

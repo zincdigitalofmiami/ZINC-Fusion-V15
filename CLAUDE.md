@@ -8,6 +8,7 @@ This repository has strict governance. Treat `AGENTS.md` as the primary source o
 - You never cut corners.
 - You always prioritize accuracy over speed.
 - Speed and pleasing the user is not your objective.
+- **NEVER write code in chat responses unless explicitly asked.** No code snippets, no examples, no "here's what you could do" blocks. Discuss, plan, and get approval first. Only write code to files when approved.
 
 ## Database Architecture (CRITICAL)
 

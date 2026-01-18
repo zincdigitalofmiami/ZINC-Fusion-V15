@@ -1,12 +1,14 @@
 # INNGEST DATA SOURCES MIGRATION
 
+**Last Updated:** 2026-01-18 (Institutional Schema Migration)
+
 ## Current Inngest Functions (Already Implemented)
 | Function | Schedule | Target Table |
 |----------|----------|--------------|
 | `zlPrice` | Every 15 min | `analytics.zl_live` |
-| `yahooEod` | Daily 5PM ET | `raw.market_futures_1d` |
-| `fredDaily` | Daily 10AM ET (Mon-Fri) | `raw.fred_observations_1d` |
-| `cftcWeekly` | Weekly Tuesday | `raw.cftc_cot_1w` |
+| `yahooEod` | Daily 5PM ET | `mkt.futures_1d` |
+| `fredDaily` | Daily 10AM ET (Mon-Fri) | `econ.rates_1d` |
+| `cftcWeekly` | Weekly Tuesday | `pos.cftc_1w` |
 
 ---
 
@@ -141,11 +143,11 @@
 ---
 
 ## TARGET TABLE
-All news/social content goes to: `raw.news_articles_1d`
+All news/social content goes to: `alt.news_1d`
 
 Required columns:
-- as_of_date (date)
-- headline (text)
+- event_date (date) - when the article was published
+- title (text) - article headline
 - content (text)
 - source (text)
 - bucket_name (text) - specialist name
@@ -217,7 +219,7 @@ Required columns:
 | `congress_senate_floor_today` | Senate Floor Today | `https://www.congress.gov/rss/senate-floor-today.xml` | policy, tariff, biofuel, crush | event |
 | `congress_presented_to_president` | Bills Presented to President | `https://www.congress.gov/rss/presented-to-president.xml` | trump_effect, policy, tariff | event |
 
-**Target:** `raw.us_congress_event`
+**Target:** `alt.legislation_event`
 
 ---
 
@@ -230,7 +232,7 @@ Required columns:
 | `senate_ag_minority_news` | Senate Ag - Minority | `https://www.agriculture.senate.gov/newsroom/minority-news` | crush, biofuel, tariff | scrape |
 | `ways_means_trade_news` | Ways & Means - Trade | `https://waysandmeans.house.gov/news/` | tariff, trump_effect, policy | scrape |
 
-**Target:** `raw.us_congress_event`
+**Target:** `alt.legislation_event`
 
 **Filter Rules:**
 ```json
@@ -248,7 +250,7 @@ Required columns:
 |---------|------|-----|------|
 | `federal_register_targeted` | Federal Register (RULE + PRESDOCU) | `https://www.federalregister.gov/api/v1/documents.json` | api |
 
-**Target:** `raw.federal_register_event`
+**Target:** `alt.legislation_event`
 **Specialist Tags:** trump_effect, policy, tariff, biofuel, energy, crush
 
 **Filter Rules:**
@@ -273,7 +275,7 @@ Required columns:
 | `eia_steo` | Short-Term Energy Outlook | `https://www.eia.gov/rss/steo.xml` | _1m | energy |
 | `eia_petroleum` | Petroleum & Liquids | `https://www.eia.gov/rss/petroleum.xml` | _event | energy |
 
-**Target:** `raw.eia_*_event` or `raw.eia_*_1w`
+**Target:** `supply.eia_*_event` or `supply.eia_*_1w`
 
 **Note:** RSS for event detection only. Use EIA API for numeric inventory series.
 
@@ -287,7 +289,7 @@ Required columns:
 | `oira_eo_review` | OIRA EO Submissions | `https://www.reginfo.gov/public/do/eoReviewSearch` | scrape | trump_effect, policy |
 | `whitehouse_briefing` | White House Briefings | `https://www.whitehouse.gov/briefing-room/feed/` | rss | trump_effect, policy |
 
-**Target:** `raw.whitehouse_actions_event`, `raw.oira_regulatory_event`, `raw.govinfo_event`
+**Target:** `alt.legislation_event` (consolidated from whitehouse, oira, govinfo)
 
 ---
 
@@ -298,7 +300,7 @@ Required columns:
 | `biofuels_digest` | Biofuels Digest | `https://www.biofuelsdigest.com/bdigest/feed/` | rss | medium |
 | `clean_fuels_alliance` | Clean Fuels Alliance | `https://cleanfuels.org/feed/` | rss | low |
 
-**Target:** `raw.biofuel_policy_event`
+**Target:** `alt.legislation_event` (biofuel policy)
 
 ---
 
@@ -311,7 +313,7 @@ Required columns:
 | `jakarta_post` | Jakarta Post | `https://www.thejakartapost.com/rss` | rss | medium |
 | `mpob_malaysia` | MPOB Malaysia | `https://www.mpob.gov.my/rss` | rss | low |
 
-**Target:** `raw.palm_oil_news_event`, `raw.china_trade_news_event`
+**Target:** `alt.news_event` (palm oil, china trade)
 
 **⚠️ The Star has restrictive terms - HIGH risk unless licensed**
 
@@ -325,7 +327,7 @@ Required columns:
 | `scmp_commodities` | SCMP Commodities | Select from `https://www.scmp.com/rss` | rss | Pick topic feed |
 | `caixin_global` | Caixin Global | `https://www.caixinglobal.com/rss/feed.xml` | rss | May need verification |
 
-**Target:** `raw.china_trade_news_event`
+**Target:** `alt.news_event` (china trade)
 
 ---
 

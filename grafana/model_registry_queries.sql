@@ -57,7 +57,7 @@ SELECT
         WHEN hours_since_update < 48 THEN 'Warning'
         ELSE 'Stale'
     END as "Status"
-FROM model.data_quality_metrics
+FROM ops.data_quality_metrics
 WHERE as_of_date = CURRENT_DATE
 ORDER BY hours_since_update DESC;
 
@@ -65,7 +65,7 @@ ORDER BY hours_since_update DESC;
 -- Replace 'Market Futures (1H)' with desired source
 SELECT
     hours_since_update as "Hours"
-FROM model.data_quality_metrics
+FROM ops.data_quality_metrics
 WHERE as_of_date = CURRENT_DATE
   AND source = 'Market Futures (1H)';
 
@@ -100,7 +100,7 @@ SELECT
     ROUND(duration_seconds::numeric / 60, 1) as "Duration (min)",
     ROUND(mase::numeric, 4) as "MASE",
     started_at as "Started"
-FROM model.training_runs
+FROM ops.training_runs
 ORDER BY started_at DESC
 LIMIT 20;
 
@@ -132,14 +132,20 @@ ORDER BY prediction_date;
 -- ============================================================================
 
 -- Panel: Latest OOF Predictions (Table)
+-- Updated 2026-01-17: Use p30/p50/p70 OOF quantiles (no core prefix)
 SELECT
     specialist as "Model",
     horizon || 'd' as "Horizon",
     as_of_date as "Target Date",
-    ROUND(pred_p50::numeric, 2) as "Prediction",
+    ROUND(pred_p50::numeric, 2) as "P50",
+    ROUND(pred_p30::numeric, 2) as "P30",
+    ROUND(pred_p70::numeric, 2) as "P70",
     ROUND(actual::numeric, 2) as "Actual",
     ROUND(error::numeric, 2) as "Error",
-    CASE WHEN in_band THEN '✓' ELSE '✗' END as "In 80% Band"
+    CASE
+        WHEN actual >= pred_p30 AND actual <= pred_p70 THEN '✓'
+        ELSE '✗'
+    END as "In P30-P70 Band"
 FROM model.v_oof_predictions
 WHERE actual IS NOT NULL
 ORDER BY as_of_date DESC
@@ -150,8 +156,11 @@ SELECT
     specialist as "Model",
     horizon || 'd' as "Horizon",
     COUNT(*) as "Predictions",
-    SUM(CASE WHEN in_band THEN 1 ELSE 0 END) as "In Band",
-    ROUND(100.0 * SUM(CASE WHEN in_band THEN 1 ELSE 0 END) / COUNT(*), 1) as "Coverage %"
+    SUM(CASE WHEN actual >= pred_p30 AND actual <= pred_p70 THEN 1 ELSE 0 END) as "In Band",
+    ROUND(
+        100.0 * SUM(CASE WHEN actual >= pred_p30 AND actual <= pred_p70 THEN 1 ELSE 0 END) / COUNT(*),
+        1
+    ) as "P30-P70 Coverage %"
 FROM model.v_oof_predictions
 WHERE actual IS NOT NULL
 GROUP BY specialist, horizon
@@ -179,14 +188,14 @@ ORDER BY model_id;
 SELECT
     source as "Source",
     total_rows as "Rows"
-FROM model.data_quality_metrics
+FROM ops.data_quality_metrics
 WHERE as_of_date = CURRENT_DATE
 ORDER BY total_rows DESC;
 
 -- Panel: Stale Data Sources Count (Stat)
 SELECT
     COUNT(*) as "Stale Sources"
-FROM model.data_quality_metrics
+FROM ops.data_quality_metrics
 WHERE as_of_date = CURRENT_DATE
   AND is_stale = TRUE;
 
@@ -215,7 +224,7 @@ GROUP BY model_type;
 SELECT
     status as "Status",
     COUNT(*) as "Count"
-FROM model.training_runs
+FROM ops.training_runs
 WHERE started_at > NOW() - INTERVAL '30 days'
 GROUP BY status;
 
@@ -236,5 +245,5 @@ ORDER BY model_type;
 
 -- Variable: $data_source
 SELECT DISTINCT source as __text, source as __value
-FROM model.data_quality_metrics
+FROM ops.data_quality_metrics
 ORDER BY source;

@@ -103,14 +103,14 @@ def push_oof_predictions(conn, file_path: Path) -> dict:
 
 
 def push_forecasts(conn, file_path: Path) -> dict:
-    """Push forecast quantiles to model.forecast_quantiles."""
+    """Push forecast quantiles to forecasts.forecast_quantiles."""
     df = pd.read_parquet(file_path)
 
     rows = push_dataframe_to_table(
-        conn, df, "model", "forecast_quantiles", mode="append"
+        conn, df, "forecasts", "forecast_quantiles", mode="append"
     )
 
-    return {"table": "model.forecast_quantiles", "rows_pushed": rows}
+    return {"table": "forecasts.forecast_quantiles", "rows_pushed": rows}
 
 
 def push_driver_scores(conn, file_path: Path) -> dict:

@@ -1,7 +1,7 @@
 /**
  * FX Spot (1D) Bronze Ingestion via FRED
  *
- * Purpose: keep `raw.fx_spot_1d` fresh for Core/Specialists.
+ * Purpose: keep `mkt.fx_1d` fresh for Core/Specialists.
  * Zero tolerance: no synthetic data; fail loudly on missing config.
  */
 
@@ -57,7 +57,7 @@ async function updateIngestRun(
 
 async function eventPairExists(client: PoolClient, eventDate: string, pair: string): Promise<boolean> {
   const r = await client.query(
-    `SELECT 1 FROM raw.fx_spot_1d WHERE event_date=$1::date AND pair=$2 LIMIT 1`,
+    `SELECT 1 FROM mkt.fx_1d WHERE event_date=$1::date AND pair=$2 LIMIT 1`,
     [eventDate, pair]
   );
   return r.rows.length > 0;
@@ -65,7 +65,7 @@ async function eventPairExists(client: PoolClient, eventDate: string, pair: stri
 
 async function getMaxDate(client: PoolClient, pair: string): Promise<string | null> {
   const r = await client.query(
-    `SELECT MAX(event_date)::date::text as max_date FROM raw.fx_spot_1d WHERE pair=$1`,
+    `SELECT MAX(event_date)::date::text as max_date FROM mkt.fx_1d WHERE pair=$1`,
     [pair]
   );
   return r.rows[0]?.max_date ?? null;
@@ -153,7 +153,7 @@ export const fxSpotDaily = inngest.createFunction(
 
             const rowHash = computeRowHash(pair, eventDate, rate, seriesId);
             await client.query(
-              `INSERT INTO raw.fx_spot_1d
+              `INSERT INTO mkt.fx_1d
                 (pair, event_date, rate, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags)
                VALUES ($1, $2::date, $3, $4, $5, $6::jsonb, $7, $8, $9)`,
               [

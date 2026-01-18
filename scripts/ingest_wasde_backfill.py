@@ -2,7 +2,7 @@
 """
 WASDE Backfill Ingestion Script
 
-Ingests historical WASDE data (2010-2019) into raw.usda_wasde_1m
+Ingests historical WASDE data (2010-2019) into supply.usda_wasde_1m
 Careful mapping from downloaded CSV format to DB schema.
 
 RUNS ONE TIME ONLY - for backfill.
@@ -111,7 +111,7 @@ def get_existing_dates(conn, cutoff_date: str = "2020-01-01") -> set:
     cur.execute(
         """
         SELECT DISTINCT event_date 
-        FROM raw.usda_wasde_1m 
+        FROM supply.usda_wasde_1m 
         WHERE event_date < %s
     """,
         (cutoff_date,),
@@ -148,7 +148,7 @@ def insert_rows(conn, rows: list, batch_size: int = 1000) -> int:
             )
 
         sql = f"""
-            INSERT INTO raw.usda_wasde_1m 
+            INSERT INTO supply.usda_wasde_1m 
             (event_date, commodity, country, metric, value, unit, source, ingested_at)
             VALUES {', '.join(values_list)}
             ON CONFLICT DO NOTHING
@@ -183,7 +183,7 @@ def main():
     # Check current state BEFORE
     cur = conn.cursor()
     cur.execute(
-        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM raw.usda_wasde_1m"
+        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM supply.usda_wasde_1m"
     )
     before = cur.fetchone()
     print(f"\nBEFORE: {before[0]} rows, {before[1]} to {before[2]}")
@@ -240,7 +240,7 @@ def main():
 
     # Check state AFTER
     cur.execute(
-        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM raw.usda_wasde_1m"
+        "SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM supply.usda_wasde_1m"
     )
     after = cur.fetchone()
     print(f"\nAFTER: {after[0]} rows, {after[1]} to {after[2]}")

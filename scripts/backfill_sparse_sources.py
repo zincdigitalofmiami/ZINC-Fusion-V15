@@ -1,3 +1,6 @@
+# ⚠️ MIGRATION NOTICE: This script references raw.* tables.
+# TODO: Migrate to v2 schema tables (mkt/econ/alt/pos/supply) if still needed.
+
 #!/usr/bin/env python3
 """
 ZINC-FUSION-V15: Sparse Source Coverage Audit (READ ONLY)

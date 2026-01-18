@@ -2,7 +2,7 @@
 """
 ZINC-FUSION Sentiment Scoring Backfill
 ======================================
-Scores all news articles and populates `silver.news_scored_1d`.
+Scores all news articles and populates `features.news_sentiment_1d`.
 
 Fixes:
 1. sentiment_score column (100% NULL → scored)
@@ -286,7 +286,7 @@ def insert_scored_articles(conn, scored: List[Dict]):
     ]
     
     insert_sql = f"""
-        INSERT INTO silver.news_scored_1d ({', '.join(columns)})
+        INSERT INTO features.news_sentiment_1d ({', '.join(columns)})
         VALUES %s
         ON CONFLICT (raw_id) DO UPDATE SET
             sentiment_score = EXCLUDED.sentiment_score,
@@ -318,7 +318,7 @@ def update_raw_sentiment_scores(conn):
             UPDATE raw.news_articles_1d r
             SET sentiment_score = s.sentiment_score,
                 zl_sentiment = s.zl_impact_score
-            FROM silver.news_scored_1d s
+            FROM features.news_sentiment_1d s
             WHERE r.id = s.raw_id
         """)
         updated = cur.rowcount
@@ -368,7 +368,7 @@ def main():
         logger.info(f"Scoring complete: {trump_count} trump_effect, {irrelevant_count} marked irrelevant")
         
         # 4. Insert to silver layer
-        logger.info("Inserting to silver.news_scored_1d...")
+        logger.info("Inserting to features.news_sentiment_1d...")
         insert_scored_articles(conn, scored)
         logger.info(f"Inserted {len(scored)} scored articles")
         

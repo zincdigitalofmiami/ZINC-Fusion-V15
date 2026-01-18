@@ -1,3 +1,6 @@
+# ⚠️ HISTORICAL: 2020 coverage check script referencing raw.* tables.
+# For current checks, use v2 schema tables (mkt/econ/alt/pos/supply).
+
 #!/usr/bin/env python3
 import psycopg2, os
 from dotenv import load_dotenv

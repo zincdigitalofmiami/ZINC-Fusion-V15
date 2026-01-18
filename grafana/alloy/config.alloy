@@ -1,0 +1,163 @@
+// ============================================================================
+// ZINC-Fusion Grafana Alloy Configuration
+// ============================================================================
+// Collects system metrics for training run correlation
+//
+// SETUP:
+// 1. Get your Grafana Cloud credentials from:
+//    Grafana Cloud → Connections → Add new connection → macOS
+// 2. Copy the prometheus.remote_write URL and basic_auth from there
+// 3. Update the placeholders below
+// 4. Copy this to /opt/homebrew/etc/alloy/config.alloy
+// 5. Start with: brew services start alloy
+// ============================================================================
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ============================================================================
+// PROMETHEUS REMOTE WRITE (Grafana Cloud)
+// ============================================================================
+// Get these values from Grafana Cloud → Connections → Add new connection
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    // REPLACE with your Grafana Cloud Prometheus URL
+    // Format: https://prometheus-prod-XX-prod-XX-XXXX.grafana.net/api/prom/push
+    url = "REPLACE_WITH_YOUR_GRAFANA_CLOUD_PROMETHEUS_URL"
+
+    basic_auth {
+      // REPLACE with your Grafana Cloud instance ID (numeric)
+      username = "REPLACE_WITH_INSTANCE_ID"
+      // REPLACE with your Grafana Cloud API key
+      password = "REPLACE_WITH_API_KEY"
+    }
+  }
+}
+
+// ============================================================================
+// macOS SYSTEM METRICS
+// ============================================================================
+
+// CPU metrics - critical for seeing LSTM training load
+prometheus.scrape "node_cpu" {
+  targets = [
+    {"__address__" = "localhost:9100", "job" = "node"},
+  ]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "15s"
+}
+
+// Node exporter for comprehensive system metrics
+prometheus.exporter.unix "default" {
+  // macOS-specific collectors
+  set_collectors = [
+    "cpu",
+    "diskstats",
+    "filesystem",
+    "loadavg",
+    "meminfo",
+    "netdev",
+    "time",
+  ]
+}
+
+prometheus.scrape "unix_metrics" {
+  targets    = prometheus.exporter.unix.default.targets
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "15s"
+
+  // Add labels for filtering
+  job_name = "zinc-fusion-macos"
+}
+
+// ============================================================================
+// PROCESS METRICS (Python training processes)
+// ============================================================================
+
+// Monitor specific Python processes
+prometheus.exporter.process "python_training" {
+  track_children = true
+
+  matcher {
+    name = "{{.Comm}}"
+    cmdline = ["python.*train.*"]
+  }
+
+  matcher {
+    name = "{{.Comm}}"
+    cmdline = ["python.*ga_vmd_lstm.*"]
+  }
+}
+
+prometheus.scrape "process_metrics" {
+  targets    = prometheus.exporter.process.python_training.targets
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "10s"
+  job_name = "zinc-fusion-training-processes"
+}
+
+// ============================================================================
+// CUSTOM TRAINING METRICS (Optional - via pushgateway)
+// ============================================================================
+// If you want to push custom metrics from Python training scripts
+
+// prometheus.scrape "training_metrics" {
+//   targets = [
+//     {"__address__" = "localhost:9091", "job" = "training"},
+//   ]
+//   forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+//   scrape_interval = "10s"
+// }
+
+// ============================================================================
+// LOKI LOG COLLECTION (Training Logs)
+// ============================================================================
+// Collects training script output for correlation with metrics
+
+loki.write "grafana_cloud" {
+  endpoint {
+    // REPLACE with your Grafana Cloud Loki URL
+    // Format: https://logs-prod-XX.grafana.net/loki/api/v1/push
+    url = "REPLACE_WITH_YOUR_GRAFANA_CLOUD_LOKI_URL"
+
+    basic_auth {
+      username = "REPLACE_WITH_LOKI_USER_ID"
+      password = "REPLACE_WITH_API_KEY"
+    }
+  }
+}
+
+// Tail training log files
+local.file_match "training_logs" {
+  path_targets = [
+    {
+      __path__ = "/Volumes/Satechi Hub/ZINC-FUSION-V15/logs/*.log",
+      job      = "zinc-fusion-training",
+      host     = "macbook",
+    },
+  ]
+}
+
+loki.source.file "training_logs" {
+  targets    = local.file_match.training_logs.targets
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+// Tail system logs for MPS/GPU issues
+local.file_match "system_logs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/system.log",
+      job      = "macos-system",
+      host     = "macbook",
+    },
+  ]
+}
+
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.write.grafana_cloud.receiver]
+}

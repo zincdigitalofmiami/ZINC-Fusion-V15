@@ -84,35 +84,58 @@ DriverId = Literal[
 ]
 
 # =============================================================================
-# SCHEMA TAXONOMY (11 SCHEMAS - Medallion Architecture)
+# SCHEMA TAXONOMY (13 SCHEMAS - Institutional Architecture)
 # =============================================================================
 
+# Landing schemas: append-only source data
+LANDING_SCHEMAS: tuple[str, ...] = ("mkt", "econ", "alt", "pos", "supply")
+
+# Derived schemas: computed from landing
+DERIVED_SCHEMAS: tuple[str, ...] = ("features", "training")
+
+# Output schemas: model artifacts and predictions
+OUTPUT_SCHEMAS: tuple[str, ...] = ("model", "forecasts", "analytics")
+
+# Governance schemas: operations and metadata
+GOVERNANCE_SCHEMAS: tuple[str, ...] = ("metadata", "ops")
+
+# Deprecated: read-only legacy data
+DEPRECATED_SCHEMAS: tuple[str, ...] = ("archive",)
+
+# All schemas (canonical list)
 SCHEMAS: tuple[str, ...] = (
-    "raw",        # Bronze: Raw ingestion
-    "silver",     # Silver: Validated, cleansed (was curated)
-    "gold",       # Gold: Business-ready aggregates
-    "features",   # Feature engineering outputs
-    "training",   # Model training data
-    "forecasts",  # Model predictions
-    "monitoring", # Performance tracking
-    "specialist", # Specialist outputs
-    "weather",    # Domain-specific data
-    "metadata",   # Configuration
-    "archive",    # Legacy data
+    LANDING_SCHEMAS
+    + DERIVED_SCHEMAS
+    + OUTPUT_SCHEMAS
+    + GOVERNANCE_SCHEMAS
+    + DEPRECATED_SCHEMAS
 )
 
-SchemaName = Literal[
+# BANNED schemas - fail hard if detected in new code
+BANNED_SCHEMAS: tuple[str, ...] = (
     "raw",
-    "silver",
     "gold",
-    "features",
-    "training",
-    "forecasts",
+    "silver",
+    "bronze",
     "monitoring",
     "specialist",
     "weather",
+)
+
+SchemaName = Literal[
+    "mkt",
+    "econ",
+    "alt",
+    "pos",
+    "supply",  # Landing
+    "features",
+    "training",  # Derived
+    "model",
+    "forecasts",
+    "analytics",  # Output
     "metadata",
-    "archive",
+    "ops",  # Governance
+    "archive",  # Deprecated
 ]
 
 # =============================================================================
@@ -305,27 +328,30 @@ def get_allowed_economic_drivers(neural_driver_id: str) -> list[str]:
 # VALIDATION
 # =============================================================================
 
+
 def validate_config_compliance() -> dict[str, bool]:
     """
     Validate that all configurations meet overfitting control requirements.
-    
+
     Returns:
         Dict of check_name -> passed
     """
     checks = {}
-    
+
     # Specialist config checks
     cfg = SPECIALIST_CONFIG
     checks["specialist_bag_folds_sufficient"] = cfg.num_bag_folds >= 5
     checks["specialist_stack_levels_limited"] = cfg.num_stack_levels <= 1
     checks["specialist_no_holdout_leakage"] = cfg.holdout_frac is None
     checks["specialist_auto_stack_enabled"] = cfg.auto_stack is True
-    
+
     # Drift threshold checks
     dt = DRIFT_THRESHOLDS
     checks["drift_psi_hierarchy_valid"] = dt.psi_mild < dt.psi_moderate < dt.psi_severe
-    checks["drift_coverage_hierarchy_valid"] = dt.coverage_deviation_mild < dt.coverage_deviation_severe
-    
+    checks["drift_coverage_hierarchy_valid"] = (
+        dt.coverage_deviation_mild < dt.coverage_deviation_severe
+    )
+
     return checks
 
 

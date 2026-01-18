@@ -2,7 +2,7 @@
 """
 Rebuild Elite Indicators with Fixed Code
 
-This script recomputes gold.elite_indicators_1d using the fixed 
+This script recomputes features.elite_1d using the fixed 
 elite_indicators.py that handles edge cases:
 - connors_rsi: division-safe RSI (no NaN on flat tape)
 - garman_klass_vol: flat bar safe (H=L → 0, not NaN)
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_ohlcv_data(conn, symbol: str) -> pd.DataFrame:
-    """Load OHLCV data from raw.market_futures_1d."""
+    """Load OHLCV data from mkt.futures_1d."""
     logger.info(f"Loading OHLCV data for {symbol}...")
     
     query = """
@@ -56,7 +56,7 @@ def load_ohlcv_data(conn, symbol: str) -> pd.DataFrame:
             low,
             close,
             volume
-        FROM raw.market_futures_1d
+        FROM mkt.futures_1d
         WHERE symbol = %s
         ORDER BY event_date
     """
@@ -95,30 +95,28 @@ def compute_additional_features(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
     return df
 
 
-def write_to_gold(conn, df: pd.DataFrame, symbol: str) -> int:
-    """Write computed indicators to gold.elite_indicators_1d."""
-    logger.info("Writing to gold.elite_indicators_1d...")
+def write_to_features(conn, df: pd.DataFrame, symbol: str) -> int:
+    """Write computed indicators to features.elite_1d."""
+    logger.info("Writing to features.elite_1d...")
     
-    # Filter to only the columns we want to store
+    # Filter to only the columns that exist in DB
     keep_cols = [
         'trade_date', 'symbol',
         'open', 'high', 'low', 'close', 'volume',
         'returns_1d', 'log_returns_1d', 'range_pct',
         # Tier 1
         'hurst_exponent', 'hurst_regime',
-        'connors_rsi', 'connors_rsi_overbought', 'connors_rsi_oversold',
-        'fisher_transform', 'fisher_signal', 'fisher_overbought', 'fisher_oversold',
-        'mcginley_dynamic', 'mcginley_signal',
-        'ttm_squeeze_on', 'ttm_squeeze_momentum', 'ttm_squeeze_count',
-        'schaff_trend_cycle', 'stc_bullish', 'stc_bearish',
-        'rvi', 'rvi_signal', 'rvi_histogram',
-        'elder_force_index', 'efi_bullish', 'efi_bearish',
+        'connors_rsi',
+        'fisher_transform', 'fisher_signal',
+        'mcginley_dynamic',
+        'ttm_squeeze_on', 'ttm_squeeze_momentum',
+        'schaff_trend_cycle',
+        'rvi', 'rvi_signal',
+        'elder_force_index',
         # Tier 2
-        'kama_10', 'hma_20', 'alma_50', 'mcginley_100',
-        'price_vs_kama10_pct', 'price_vs_hma20_pct', 'price_vs_alma50_pct', 'price_vs_mcg100_pct',
-        'rsi_2', 'rsi_14', 'cumulative_rsi', 'rsi2_buy_signal', 'rsi2_sell_signal',
+        'kama_10', 'hma_20', 'alma_50',
+        'rsi_2', 'rsi_14', 'cumulative_rsi',
         'macd', 'macd_signal', 'macd_histogram',
-        'macd_fast', 'macd_fast_signal', 'macd_fast_histogram',
         'cci_14', 'cci_50',
         # Tier 3
         'atr_10', 'atr_50', 'atr_ratio',
@@ -130,7 +128,12 @@ def write_to_gold(conn, df: pd.DataFrame, symbol: str) -> int:
     # Keep only existing columns
     existing_cols = [c for c in keep_cols if c in df.columns]
     df_out = df[existing_cols].copy()
-    
+
+    # Cast boolean columns (DB expects bool, pandas has int)
+    for bool_col in ['ttm_squeeze_on', 'unusual_volume']:
+        if bool_col in df_out.columns:
+            df_out[bool_col] = df_out[bool_col].astype(bool)
+
     # Add metadata
     df_out['created_at'] = datetime.utcnow()
     
@@ -141,7 +144,7 @@ def write_to_gold(conn, df: pd.DataFrame, symbol: str) -> int:
     # Clear existing data
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM gold.elite_indicators_1d WHERE symbol = %s",
+            "DELETE FROM features.elite_1d WHERE symbol = %s",
             (symbol,)
         )
         deleted = cur.rowcount
@@ -150,7 +153,7 @@ def write_to_gold(conn, df: pd.DataFrame, symbol: str) -> int:
     # Insert new data
     cols = list(df_out.columns)
     insert_sql = f"""
-        INSERT INTO gold.elite_indicators_1d ({','.join(cols)})
+        INSERT INTO features.elite_1d ({','.join(cols)})
         VALUES %s
     """
     
@@ -185,7 +188,7 @@ def validate_null_rates(conn, symbol: str) -> dict:
                 COUNT(*) - COUNT(connors_rsi) as null_connors,
                 COUNT(*) - COUNT(garman_klass_vol) as null_gk,
                 COUNT(*) - COUNT(cmf_21) as null_cmf
-            FROM gold.elite_indicators_1d
+            FROM features.elite_1d
             WHERE symbol = %s
             """,
             (symbol,)
@@ -228,7 +231,7 @@ def check_scattered_nulls(conn, symbol: str) -> dict:
             cur.execute(
                 f"""
                 SELECT MIN(trade_date)
-                FROM gold.elite_indicators_1d
+                FROM features.elite_1d
                 WHERE symbol = %s AND {indicator} IS NOT NULL
                 """,
                 (symbol,)
@@ -240,7 +243,7 @@ def check_scattered_nulls(conn, symbol: str) -> dict:
                 cur.execute(
                     f"""
                     SELECT COUNT(*)
-                    FROM gold.elite_indicators_1d
+                    FROM features.elite_1d
                     WHERE symbol = %s 
                       AND trade_date >= %s 
                       AND {indicator} IS NULL
@@ -279,10 +282,10 @@ def main(dry_run: bool = False):
         # Load OHLCV data
         df = load_ohlcv_data(conn, TARGET_SYMBOL)
         
-        # Filter to 2000+ (matches existing gold table)
+        # Filter to 1980+ (expanded training window - 2026-01-16)
         from datetime import date
-        df = df[df['trade_date'] >= date(2000, 1, 1)].copy()
-        logger.info(f"   Filtered to 2000+: {len(df):,} rows")
+        df = df[df['trade_date'] >= date(1980, 1, 1)].copy()
+        logger.info(f"   Filtered to 1980+: {len(df):,} rows")
         
         # Compute elite indicators
         logger.info("")
@@ -307,9 +310,9 @@ def main(dry_run: bool = False):
                 logger.info(f"   {status} {indicator}: {null_count:,} nulls ({null_rate:.1%})")
             
         else:
-            # Write to gold table
+            # Write to features table
             logger.info("")
-            rows_written = write_to_gold(conn, df, TARGET_SYMBOL)
+            rows_written = write_to_features(conn, df, TARGET_SYMBOL)
             
             # Validate results
             logger.info("")

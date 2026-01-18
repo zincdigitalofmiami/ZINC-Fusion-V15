@@ -60,7 +60,7 @@ export const conabNewsDaily = inngest.createFunction(
     try {
       await step.run("assert-table", async () => {
         // Fail loudly if the table doesn't exist (no silent DDL in prod).
-        await client.query(`SELECT 1 FROM raw.conab_news_event LIMIT 1`);
+        await client.query(`SELECT 1 FROM alt.news_1d LIMIT 1`);
       });
 
       runId = await step.run("create-ingest-run", () => createIngestRun(client, "conab-news-daily"));
@@ -95,7 +95,7 @@ export const conabNewsDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(link, pubDate);
 
-          if (await hashExists(client, "raw.conab_news_event", rowHash)) {
+          if (await hashExists(client, "alt.news_1d", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 
@@ -104,7 +104,7 @@ export const conabNewsDaily = inngest.createFunction(
           const description = item.description || item.summary?.["#text"] || item.summary || item.content?.["#text"] || "";
 
           await client.query(
-            `INSERT INTO raw.conab_news_event (
+            `INSERT INTO alt.news_1d (
                event_date, title, description, link, pub_date, guid,
                source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,

@@ -849,12 +849,12 @@ def load_news_data(conn) -> pd.DataFrame:
 
 def load_news_sentiment_by_bucket(conn) -> Dict[str, pd.DataFrame]:
     """
-    Load BUCKET-SPECIFIC news sentiment from silver.news_scored_1d.
+    Load BUCKET-SPECIFIC news sentiment from features.news_sentiment_1d.
 
     This uses the affects_* boolean columns to route news to appropriate buckets.
     Returns a dict of {bucket_name: DataFrame} with aggregated sentiment features.
     """
-    logger.info("Loading bucket-specific news sentiment from silver.news_scored_1d...")
+    logger.info("Loading bucket-specific news sentiment from features.news_sentiment_1d...")
 
     # All 11 buckets that have affects_* flags
     buckets = [
@@ -932,7 +932,7 @@ def load_whitehouse_actions(conn) -> pd.DataFrame:
                 SUM(CASE WHEN LOWER(title) LIKE '%china%' OR LOWER(title) LIKE '%chinese%' THEN 1 ELSE 0 END) as wh_china_related,
                 SUM(CASE WHEN LOWER(title) LIKE '%soybean%' OR LOWER(title) LIKE '%agricult%' OR LOWER(title) LIKE '%farm%' THEN 1 ELSE 0 END) as wh_ag_related,
                 SUM(CASE WHEN LOWER(title) LIKE '%energy%' OR LOWER(title) LIKE '%oil%' OR LOWER(title) LIKE '%fuel%' THEN 1 ELSE 0 END) as wh_energy_related
-            FROM raw.whitehouse_actions_event
+            FROM alt.legislation_1d
             GROUP BY action_date
             ORDER BY action_date
         """)
@@ -1176,7 +1176,7 @@ def generate_bucket_features(
     - Trump features if include_trump_features=True
     - RIN data if include_rin=True
     - Weather if include_weather=True
-    - NEWS SENTIMENT specific to this bucket (from silver.news_scored_1d)
+    - NEWS SENTIMENT specific to this bucket (from features.news_sentiment_1d)
     """
     logger.info(f"  Generating DOMAIN-SPECIFIC features for: {bucket_name}")
 
@@ -1470,6 +1470,15 @@ def generate_bucket_features(
                 zl_df["ovx_vix_spread"] = zl_df["ovx"] - zl_df["fred_VIXCLS"]
                 zl_df["ovx_vix_ratio"] = zl_df["ovx"] / (zl_df["fred_VIXCLS"] + 0.001)
 
+        # Gold VIX (GVZCLS) - commodity vol cross-reference (available 2008+)
+        if "fred_GVZCLS" in zl_df.columns:
+            zl_df["gvz"] = zl_df["fred_GVZCLS"]
+            zl_df["gvz_zscore"] = (zl_df["gvz"] - zl_df["gvz"].rolling(252).mean()) / zl_df["gvz"].rolling(252).std()
+            zl_df["gvz_percentile"] = zl_df["gvz"].rolling(252).rank(pct=True) * 100
+            zl_df["gvz_momentum_21d"] = zl_df["gvz"].pct_change(21) * 100
+            # GVZ availability flag (null pre-2008)
+            zl_df["gvz_available"] = zl_df["gvz"].notna().astype(int)
+
         # Financial Stress Index (STLFSI4)
         if "fred_STLFSI4" in zl_df.columns:
             zl_df["stress_index"] = zl_df["fred_STLFSI4"]
@@ -1481,6 +1490,8 @@ def generate_bucket_features(
         vol_signals = [zl_df["vol_zscore"]]
         if "ovx_zscore" in zl_df.columns:
             vol_signals.append(zl_df["ovx_zscore"])
+        if "gvz_zscore" in zl_df.columns:
+            vol_signals.append(zl_df["gvz_zscore"])
         if "stress_zscore" in zl_df.columns:
             vol_signals.append(zl_df["stress_zscore"])
         zl_df["vol_bucket_signal"] = pd.concat(vol_signals, axis=1).mean(axis=1)
@@ -1585,7 +1596,7 @@ def generate_bucket_features(
     elif bucket_name == "trump_effect":
         # =====================================================================
         # TRUMP_EFFECT: Policy regime dynamics, WhiteHouse actions, trade war
-        # Uses raw.whitehouse_actions_event for executive order tracking
+        # Uses alt.legislation_1d for executive order tracking
         # =====================================================================
         # WhiteHouse actions (EOs, proclamations, memoranda)
         if whitehouse_df is not None and not whitehouse_df.empty:
@@ -1692,7 +1703,7 @@ def generate_bucket_features(
         logger.info(f"    + Trump regime: 10+ features")
 
     # ==========================================================================
-    # 11. ADD BUCKET-SPECIFIC NEWS SENTIMENT (from silver.news_scored_1d)
+    # 11. ADD BUCKET-SPECIFIC NEWS SENTIMENT (from features.news_sentiment_1d)
     # ==========================================================================
     # This is CRITICAL - news sentiment was loaded but NEVER merged before!
     if news_by_bucket is not None and bucket_name in news_by_bucket:

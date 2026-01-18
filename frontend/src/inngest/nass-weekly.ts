@@ -44,7 +44,7 @@ async function updateIngestRun(
 }
 
 async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM raw.fred_observations_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
+  const r = await client.query(`SELECT 1 FROM econ.rates_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
   return r.rows.length > 0;
 }
 
@@ -113,7 +113,7 @@ export const nassWeekly = inngest.createFunction(
           }
 
           await client.query(
-            `INSERT INTO raw.fred_observations_1d (
+            `INSERT INTO econ.rates_1d (
                event_date, series_id, value, source, source_url, raw_payload, 
                ingestion_batch_id, row_hash, specialist_tags
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,

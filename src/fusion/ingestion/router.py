@@ -696,7 +696,7 @@ FRED_SERIES_BUCKETS: Dict[str, SpecialistBucket] = {
     # TRUMP_EFFECT bucket (policy uncertainty + trade flow)
     "USEPUINDXD": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Daily)
     "USEPUINDXM": SpecialistBucket.TRUMP_EFFECT,  # US Economic Policy Uncertainty (Monthly)
-    "EPUTRADE": SpecialistBucket.TRUMP_EFFECT,  # Trade Policy Uncertainty
+    "EPUTRADE": SpecialistBucket.TARIFF,  # Trade Policy Uncertainty (per RAW_SOURCE_SPECIALIST_MAPPING.md)
     "EMVTRADEPOLEMV": SpecialistBucket.TRUMP_EFFECT,  # Equity Market Volatility: Trade Policy
     "CHNMAINLANDTPU": SpecialistBucket.TRUMP_EFFECT,  # China Trade Policy Uncertainty
     "B235RC1Q027SBEA": SpecialistBucket.TRUMP_EFFECT,  # Customs Duties (tariff receipts)

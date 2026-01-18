@@ -284,7 +284,7 @@ def update_scores():
             raw_id, ai_score, sentiment, confidence, is_zl_relevant, specialists, factor_breakdown, fb_correction, overlay = row
             
             # Get original FinBERT score for ensemble
-            cur.execute("SELECT sentiment_score FROM silver.news_scored_1d WHERE raw_id = %s", (raw_id,))
+            cur.execute("SELECT sentiment_score FROM features.news_sentiment_1d WHERE raw_id = %s", (raw_id,))
             result = cur.fetchone()
             fb_score = float(result[0]) if result else 0
             
@@ -336,7 +336,7 @@ def update_scores():
             
             # Update
             cur.execute("""
-                UPDATE silver.news_scored_1d
+                UPDATE features.news_sentiment_1d
                 SET 
                     sentiment_score = %s,
                     sentiment_direction = %s,

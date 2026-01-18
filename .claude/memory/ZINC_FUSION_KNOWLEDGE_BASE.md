@@ -106,26 +106,37 @@ A procurement intelligence system that's 95% right and 5% wrong is **worse** tha
 
 ## 2. DATABASE ARCHITECTURE (Prisma Postgres)
 
-### Medallion Architecture (Law)
+**Updated 2026-01-18:** Migrated from medallion (raw/silver/gold) to institutional schemas.
+
+### Institutional Schema Architecture (13 Schemas)
 
 ```
-EXTERNAL → RAW (Bronze) → SILVER (Canonical) → TRAINING → MODEL → ANALYTICS
-                ↑
-          metadata.instrument + metadata.symbol_mapping
+EXTERNAL → LANDING (mkt/econ/alt/pos/supply) → DERIVED (features/training) → OUTPUT (model/forecasts/analytics)
+                        ↑
+              metadata.instrument + metadata.symbol_mapping
 ```
 
-### Schema Purposes (14 total)
+### Schema Taxonomy
 
-| Schema | Layer | Purpose |
-|--------|-------|---------|
-| `raw` | Bronze | Immutable ingestion, append-only |
-| `silver` | Silver | Deduplicated canonical data with provenance |
-| `gold` | Gold | Aggregated business views |
-| `training` | Feature | Specialist staging + feature matrices |
-| `model` | ML | OOF, registry, forecasts |
-| `analytics` | Presentation | Dashboard tables: latest_prices, intraday_prices, metrics |
-| `metadata` | Control | Canonical instruments, symbol mappings |
-| `ops` | Infrastructure | data_source_registry, job health only |
+| Schema | Category | Purpose |
+|--------|----------|---------|
+| `mkt` | Landing | Market prices (futures, options, FX) - append-only |
+| `econ` | Landing | Economic indicators (FRED series by domain) - append-only |
+| `alt` | Landing | Alternative data (news, weather, legislation) - append-only |
+| `pos` | Landing | Positioning data (CFTC) - append-only |
+| `supply` | Landing | Supply/demand (USDA, EPA) - append-only |
+| `features` | Derived | Business-ready features - computed/rebuilt |
+| `training` | Derived | Matrices + OOF + specialist features - rebuilt on demand |
+| `model` | Output | Model registry + training runs - versioned |
+| `forecasts` | Output | Prediction outputs - versioned |
+| `analytics` | Output | Dashboard/presentation - real-time updates |
+| `metadata` | Governance | Canonical instruments + symbol mappings |
+| `ops` | Governance | Job health + ingestion registry |
+| `archive` | Deprecated | Legacy data - read-only |
+
+### BANNED Schemas (Hard Fail)
+
+- `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
 
 ### Analytics vs Ops Boundary
 
@@ -136,23 +147,23 @@ EXTERNAL → RAW (Bronze) → SILVER (Canonical) → TRAINING → MODEL → ANAL
 | dashboard_metrics | ingestion_health |
 | Any user-facing | Any infrastructure |
 
-### Raw Data Inventory (as of 2026-01-05)
+### Landing Data Inventory (as of 2026-01-18)
 
 | Table | Rows | Date Range | Gap Analysis |
 |-------|------|------------|--------------|
-| `raw.market_futures_1d` | 418,864 | ZL: 1970-2025, 87 symbols | ✅ UNIQUE constraint added |
-| `raw.market_futures_1h` | 4,967,276 | Multi-symbol | ✅ Strong (frozen, no Databento) |
-| `raw.fred_observations_1d` | 491,215 | 157 series | ⚠️ Backfill needed |
-| `raw.cftc_cot_1w` | 18,355 | 2006-2025, 24 commodities | ✅ Good |
-| `raw.cftc_cits_1w` | 34,428 | 2013-2025, 13 contracts | ✅ Good |
-| `raw.usda_wasde_1m` | 10,164 | **2010-2025** | ⚠️ BACKFILL PRIORITY |
-| `raw.usda_export_sales_1w` | 6,412 | 2020-2025 | ❌ BACKFILL PRIORITY |
-| `raw.weather_noaa_1d` | 215,320 | US stations | ✅ Good |
-| `raw.epa_rin_prices_1d` | 208 | Recent only | ⚠️ Limited |
-| `raw.fx_spot_1d` | 72,135 | 9 Yahoo pairs | ✅ UNIQUE constraint added, FRED removed |
-| `raw.yahoo_equity_1d` | 9,534 | DJT, FXI, KWEB | Trump proxy data |
-| `raw.news_articles_1d` | 5,264 | Event-driven | ⚠️ Coverage gaps |
-| `raw.options_futures_1d` | 28,648 | ZL options | ✅ Growing |
+| `mkt.futures_1d` | 418,864 | ZL: 1970-2025, 87 symbols | ✅ UNIQUE constraint added |
+| `mkt.futures_1h` | 4,967,276 | Multi-symbol | ✅ Strong (frozen, no Databento) |
+| `econ.rates_1d` | 491,215 | 157 series | ⚠️ Backfill needed |
+| `pos.cftc_1w` | 18,355 | 2006-2025, 24 commodities | ✅ Good |
+| `pos.cftc_cits_1w` | 34,428 | 2013-2025, 13 contracts | ✅ Good |
+| `supply.usda_wasde_1m` | 10,164 | **2010-2025** | ⚠️ BACKFILL PRIORITY |
+| `supply.usda_exports_1w` | 6,412 | 2020-2025 | ❌ BACKFILL PRIORITY |
+| `alt.weather_1d` | 215,320 | US stations | ✅ Good |
+| `supply.epa_rin_1d` | 208 | Recent only | ⚠️ Limited |
+| `mkt.fx_1d` | 72,135 | 9 Yahoo pairs | ✅ UNIQUE constraint added, FRED removed |
+| `mkt.yahoo_equity_1d` | 9,534 | DJT, FXI, KWEB | Trump proxy data |
+| `alt.news_1d` | 5,264 | Event-driven | ⚠️ Coverage gaps |
+| `mkt.options_1d` | 28,648 | ZL options | ✅ Growing |
 
 ### Training Data Inventory
 
@@ -977,11 +988,11 @@ wasde_is_release_day      # Binary flag (1 on release day, 0 otherwise)
 - Single daily training matrix
 
 ### Storage Layer (Prisma)
-Keep raw tables at **native source frequency**:
+Keep landing tables at **native source frequency**:
 ```
-raw.cftc_cot_1w          -- weekly rows, Friday timestamps
-raw.usda_wasde_1m        -- monthly rows, release date timestamps
-raw.market_futures_1d    -- daily rows
+pos.cftc_1w              -- weekly rows, Friday timestamps
+supply.usda_wasde_1m     -- monthly rows, release date timestamps
+mkt.futures_1d           -- daily rows
 ```
 
 ### Feature Engineering Layer
@@ -1121,9 +1132,10 @@ Each specialist weights fresh vs stale information differently:
 | Rule | Required | Forbidden |
 |------|----------|-----------|
 | Grain suffix | `_1h`, `_1d`, `_1w`, `_event`, `_static` | time-series without suffix |
-| Table naming | `raw.market_futures_1d` | names containing `ohlc` / `ohlcv` |
+| Table naming | `mkt.futures_1d` | names containing `ohlc` / `ohlcv` |
 | Horizons | integer `5`, `21`, `63`, `126` | string horizons `"1w"`, `"1m"` |
-| Quantile columns | `p10`, `p50`, `p90` | ad-hoc names like `q10`, `pred_p10` |
+| Quantile columns | `p10`, `p50`, `p90` or `p30`, `p50`, `p70` | ad-hoc names like `q10`, `pred_p10` |
+| Schema naming | Institutional: `mkt`, `econ`, `alt`, `pos`, `supply` | Legacy: `raw`, `gold`, `silver` |
 
 ---
 

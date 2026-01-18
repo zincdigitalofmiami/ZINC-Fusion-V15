@@ -1,5 +1,8 @@
 # ZINC-FUSION-V15: Data Schema Mapping
 
+> NOTE (2026-01-17): Schema v2 replaces raw/gold/silver with mkt/econ/features.
+> This document reflects legacy mapping until migration updates it.
+
 ## Overview
 
 This document defines the complete data architecture for ZINC-FUSION-V15, mapping all external data sources to:

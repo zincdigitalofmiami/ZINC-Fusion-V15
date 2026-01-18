@@ -72,7 +72,7 @@ export const yahooEod = inngest.createFunction(
         const client = await pool.connect();
         try {
           await client.query(
-            `INSERT INTO raw.market_futures_1d
+            `INSERT INTO mkt.futures_1d
               (event_date, symbol, open, high, low, close, volume, source, ingested_at)
              VALUES (CURRENT_DATE, $1, $2, $3, $4, $5, $6, 'yahoo_eod', NOW())
              ON CONFLICT (event_date, symbol) DO UPDATE SET

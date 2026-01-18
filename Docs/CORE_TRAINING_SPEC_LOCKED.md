@@ -4,6 +4,9 @@
 **Date:** January 9, 2026
 **Status:** LOCKED - DO NOT MODIFY WITHOUT FULL REVIEW
 
+> NOTE (2026-01-17): Schema v2 replaces raw/gold/silver with mkt/econ/features.
+> Table names in this doc are legacy until migration completes.
+
 ---
 
 ## 🎯 PURPOSE

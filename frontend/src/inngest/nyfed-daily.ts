@@ -119,7 +119,7 @@ export const nyfedDaily = inngest.createFunction(
     try {
       await step.run("assert-table", async () => {
         // Fail loudly if the table doesn't exist (no silent DDL in prod).
-        await client.query(`SELECT 1 FROM raw.nyfed_rates_1d LIMIT 1`);
+        await client.query(`SELECT 1 FROM econ.rates_1d LIMIT 1`);
       });
 
       // Step 2: Create ingest run
@@ -159,12 +159,12 @@ export const nyfedDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(rate.type, rate.effectiveDate, rate.percentRate);
 
-          if (await hashExists(client, "raw.nyfed_rates_1d", rowHash)) {
+          if (await hashExists(client, "econ.rates_1d", rowHash)) {
             return { rateType: rate.type, status: "skipped_duplicate" as const };
           }
 
           await client.query(
-            `INSERT INTO raw.nyfed_rates_1d (
+            `INSERT INTO econ.rates_1d (
                event_date, rate_type, percent_rate,
                percentile_1, percentile_25, percentile_75, percentile_99,
                volume_billions, footnote_id,

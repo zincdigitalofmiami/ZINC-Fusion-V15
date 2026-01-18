@@ -95,7 +95,7 @@ def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
         SELECT as_of_date, close
         FROM (
             SELECT event_date AS as_of_date, close
-            FROM raw.market_futures_1d
+            FROM mkt.futures_1d
             WHERE symbol = ?
             ORDER BY event_date DESC
             LIMIT 2
@@ -252,17 +252,17 @@ def overview_models() -> Dict[str, Any]:
             ORDER BY horizon
             """
         )
-    elif _table_exists("training", "oof_core_zl_1d"):
+    elif _table_exists("training", "oof_core_1d"):
         core["exists"] = True
         horizon_col = _first_existing_column(
-            "training", "oof_core_zl_1d", ["horizon_steps", "horizon_days"]
+            "training", "oof_core_1d", ["horizon_steps", "horizon_days"]
         )
         if horizon_col:
             core["by_horizon"] = _fetch_rows(
                 f"""
                 SELECT {horizon_col} as horizon, COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.oof_core_zl_1d
+                FROM training.oof_core_1d
                 GROUP BY 1
                 ORDER BY 1
                 """
@@ -272,7 +272,7 @@ def overview_models() -> Dict[str, Any]:
                 """
                 SELECT NULL as horizon, COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.oof_core_zl_1d
+                FROM training.oof_core_1d
                 """
             )
 
@@ -340,9 +340,9 @@ def overview_models() -> Dict[str, Any]:
 
     # Raw data statistics - handle Postgres table structure
     market_1h = {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
-    if _table_exists("raw", "market_futures_1h"):
+    if _table_exists("mkt", "futures_1h"):
         market_1h_date_col = _first_existing_column(
-            "raw", "market_futures_1h", ["event_time", "ts_event", "timestamp", "as_of_date"]
+            "mkt", "futures_1h", ["event_time", "ts_event", "timestamp", "as_of_date"]
         )
         if market_1h_date_col:
             market_1h = _fetch_rows(
@@ -350,7 +350,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN({market_1h_date_col}) as start_date, MAX({market_1h_date_col}) as end_date,
                        COUNT(DISTINCT symbol)::BIGINT as symbols
-                FROM raw.market_futures_1h
+                FROM mkt.futures_1h
                 """
             )[0]
         else:
@@ -359,7 +359,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::BIGINT as rows,
                        NULL as start_date, NULL as end_date,
                        COUNT(DISTINCT symbol)::BIGINT as symbols
-                FROM raw.market_futures_1h
+                FROM mkt.futures_1h
                 """
             )[0]
 
@@ -367,10 +367,28 @@ def overview_models() -> Dict[str, Any]:
         raw_data: dict[str, Any] = {
             "fred": _fetch_rows(
                 """
+                WITH all_econ AS (
+                    SELECT series_id, event_date FROM econ.rates_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.inflation_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.labor_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.activity_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.vol_indices_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.commodities_1d
+                    UNION ALL
+                    -- FX consolidated to mkt.fx_1d, map pair to series_id
+                    SELECT pair as series_id, event_date FROM mkt.fx_1d WHERE source = 'FRED'
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.money_1d
+                )
                 SELECT COUNT(*)::bigint as rows,
                        MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT series_id)::bigint as series
-                FROM raw.fred_observations_1d
+                FROM all_econ
                 """
             )[0],
             "fx_spot": _fetch_rows(
@@ -378,7 +396,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT pair)::bigint as symbols
-                FROM raw.fx_spot_1d
+                FROM mkt.fx_1d
                 """
             )[0],
             "market_futures_1d": _fetch_rows(
@@ -386,7 +404,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT symbol)::bigint as symbols
-                FROM raw.market_futures_1d
+                FROM mkt.futures_1d
                 """
             )[0],
             "market_futures_1h": market_1h,
@@ -395,7 +413,7 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT rin_type)::bigint as rin_types
-                FROM raw.epa_rin_prices_1d
+                FROM supply.epa_rin_1d
                 """
             )[0],
             "weather_observations_1d": (
@@ -404,77 +422,95 @@ def overview_models() -> Dict[str, Any]:
                 SELECT COUNT(*)::bigint as rows,
                        MIN(event_date) as start_date, MAX(event_date) as end_date,
                        COUNT(DISTINCT station_id)::bigint as stations
-                FROM raw.weather_noaa_1d
+                FROM alt.weather_1d
                 """
                 )[0]
-                if _table_exists("raw", "weather_noaa_1d")
+                if _table_exists("alt", "weather_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
             ),
         }
     else:
         raw_data = {
-	            "fred": (
-	                _fetch_rows(
-	                    """
-	                SELECT COUNT(*)::BIGINT as rows,
-	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
-	                       COUNT(DISTINCT series_id)::BIGINT as series
-	                FROM raw.fred_observations_1d
-	                """
-	                )[0]
-                if _table_exists("raw", "fred_observations_1d")
+            "fred": (
+                _fetch_rows(
+                    """
+                WITH all_econ AS (
+                    SELECT series_id, event_date FROM econ.rates_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.inflation_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.labor_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.activity_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.vol_indices_1d
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.commodities_1d
+                    UNION ALL
+                    -- FX consolidated to mkt.fx_1d, map pair to series_id
+                    SELECT pair as series_id, event_date FROM mkt.fx_1d WHERE source = 'FRED'
+                    UNION ALL
+                    SELECT series_id, event_date FROM econ.money_1d
+                )
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+                       COUNT(DISTINCT series_id)::BIGINT as series
+                FROM all_econ
+                """
+                )[0]
+                if _table_exists("econ", "rates_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "series": 0}
             ),
-	            "fx_spot": (
-	                _fetch_rows(
-	                    """
-	                SELECT COUNT(*)::BIGINT as rows,
-	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
-	                       COUNT(DISTINCT pair)::BIGINT as symbols
-	                FROM raw.fx_spot_1d
-	                """
-	                )[0]
-	                if _table_exists("raw", "fx_spot_1d")
+            "fx_spot": (
+                _fetch_rows(
+                    """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+                       COUNT(DISTINCT pair)::BIGINT as symbols
+                FROM mkt.fx_1d
+                """
+                )[0]
+                if _table_exists("mkt", "fx_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
             ),
-	            "market_futures_1d": (
-	                _fetch_rows(
-	                    """
-	                SELECT COUNT(*)::BIGINT as rows,
-	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
-	                       COUNT(DISTINCT symbol)::BIGINT as symbols
-	                FROM raw.market_futures_1d
-	                """
-	                )[0]
-                if _table_exists("raw", "market_futures_1d")
+            "market_futures_1d": (
+                _fetch_rows(
+                    """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+                       COUNT(DISTINCT symbol)::BIGINT as symbols
+                FROM mkt.futures_1d
+                """
+                )[0]
+                if _table_exists("mkt", "futures_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
             ),
             "market_futures_1h": market_1h,
-	            "epa_rin_prices_1d": (
-	                _fetch_rows(
-	                    """
+            "epa_rin_prices_1d": (
+                _fetch_rows(
+                    """
 	                SELECT COUNT(*)::BIGINT as rows,
 	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
 	                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
-	                FROM raw.epa_rin_prices_1d
+	                FROM supply.epa_rin_1d
 	                """
-	                )[0]
-                if _table_exists("raw", "epa_rin_prices_1d")
+                )[0]
+                if _table_exists("supply", "epa_rin_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0}
             ),
-	            "weather_observations_1d": (
-	                _fetch_rows(
-	                    """
+            "weather_observations_1d": (
+                _fetch_rows(
+                    """
 	                SELECT COUNT(*)::BIGINT as rows,
 	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
 	                       COUNT(DISTINCT station_id)::BIGINT as stations
-	                FROM raw.weather_noaa_1d
+	                FROM alt.weather_1d
 	                """
-	                )[0]
-	                if _table_exists("raw", "weather_noaa_1d")
-	                else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
-	            ),
-	        }
+                )[0]
+                if _table_exists("alt", "weather_1d")
+                else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}
+            ),
+        }
 
     archive_snapshot: list[dict[str, Any]] = []
     # Postgres doesn't have archive schema - skip for now
@@ -542,7 +578,7 @@ def market_zl(
         SELECT as_of_date, close
         FROM (
             SELECT event_date AS as_of_date, close
-            FROM raw.market_futures_1d
+            FROM mkt.futures_1d
             WHERE symbol = ?
             ORDER BY event_date DESC
             LIMIT ?
@@ -582,7 +618,7 @@ def forecast_quantiles(
         rows = _fetch_rows(
             """
             SELECT as_of_date, horizon_days, p10, p50, p90
-            FROM model.forecast_quantiles
+            FROM forecasts.forecast_quantiles
             WHERE symbol = ?
             ORDER BY as_of_date ASC
             """,
@@ -635,8 +671,8 @@ def sentiment_news(
 ) -> Dict[str, Any]:
     articles = _fetch_rows(
         """
-        SELECT article_id, published_at, source, title, content
-        FROM raw.news_articles_1d
+        SELECT article_id, published_at, source, headline as title, content
+        FROM alt.news_1d
         ORDER BY published_at DESC
         LIMIT ?
         """,
@@ -846,7 +882,7 @@ def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
             CAST(published_at AS DATE) AS as_of_date,
             AVG(sentiment_score) AS sentiment_score,
             COUNT(*) AS article_count
-        FROM raw.news_articles_1d
+        FROM alt.news_1d
         WHERE sentiment_score IS NOT NULL
         GROUP BY 1
         ORDER BY as_of_date DESC
@@ -1085,7 +1121,7 @@ def zl_live() -> Dict[str, Any]:
         daily_rows = _fetch_rows(
             """
             SELECT event_date AS as_of_date, close
-            FROM raw.market_futures_1d
+            FROM mkt.futures_1d
             WHERE symbol = 'ZL'
             ORDER BY event_date DESC
             LIMIT 2
@@ -1249,9 +1285,17 @@ def pulse_domains() -> Dict[str, Any]:
     """
     return {
         "domains": [
-            "CRUSH", "CHINA", "FX", "FED", "TARIFF",
-            "ENERGY", "BIOFUEL", "PALM", "VOLATILITY",
-            "SUBSTITUTES", "TRUMP_EFFECT"
+            "CRUSH",
+            "CHINA",
+            "FX",
+            "FED",
+            "TARIFF",
+            "ENERGY",
+            "BIOFUEL",
+            "PALM",
+            "VOLATILITY",
+            "SUBSTITUTES",
+            "TRUMP_EFFECT",
         ],
         "horizons": ["1W", "1M", "3M", "6M"],
         "domain_descriptions": {
@@ -1265,8 +1309,8 @@ def pulse_domains() -> Dict[str, Any]:
             "PALM": "Palm Oil Substitution (8-12% variance)",
             "VOLATILITY": "Financial Stress (2-3% variance)",
             "SUBSTITUTES": "Vegetable Oil Competition (4-6% variance)",
-            "TRUMP_EFFECT": "Political & Policy Volatility (5-10% regime-dependent)"
-        }
+            "TRUMP_EFFECT": "Political & Policy Volatility (5-10% regime-dependent)",
+        },
     }
 
 
@@ -1274,7 +1318,7 @@ def pulse_domains() -> Dict[str, Any]:
 def pulse_latest(
     domain: Optional[str] = None,
     horizon: Optional[str] = None,
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ) -> Dict[str, Any]:
     """
     Get the most recent Intel Drops.
@@ -1303,21 +1347,18 @@ def pulse_latest(
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             source_model, created_at
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE {where_sql}
         ORDER BY as_of_ts DESC, domain, horizon
         LIMIT ?
         """,
-        params + [limit]
+        params + [limit],
     )
 
     return {
         "drops": rows,
         "count": len(rows),
-        "filters": {
-            "domain": domain,
-            "horizon": horizon
-        }
+        "filters": {"domain": domain, "horizon": horizon},
     }
 
 
@@ -1332,10 +1373,10 @@ def pulse_drop_by_id(drop_id: int) -> Dict[str, Any]:
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             receipts, narrative, quant_payload, source_model, created_at
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE id = ?
         """,
-        [drop_id]
+        [drop_id],
     )
 
     if not rows:
@@ -1357,20 +1398,24 @@ def pulse_consensus(
     latest_rows = _fetch_rows(
         """
         SELECT MAX(as_of_ts) as latest_ts
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE horizon = ?
         """,
-        [horizon.upper()]
+        [horizon.upper()],
     )
 
-    latest_ts = latest_rows[0]["latest_ts"] if latest_rows and latest_rows[0]["latest_ts"] else None
+    latest_ts = (
+        latest_rows[0]["latest_ts"]
+        if latest_rows and latest_rows[0]["latest_ts"]
+        else None
+    )
 
     if not latest_ts:
         return {
             "horizon": horizon,
             "as_of_ts": None,
             "message": "No intel drops found for this horizon",
-            "domains": {}
+            "domains": {},
         }
 
     # Get all domains for this timestamp/horizon
@@ -1378,11 +1423,11 @@ def pulse_consensus(
         """
         SELECT
             domain, direction, pressure_cents, edge, top_drivers, regime_tags
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE as_of_ts = ? AND horizon = ?
         ORDER BY domain
         """,
-        [latest_ts, horizon.upper()]
+        [latest_ts, horizon.upper()],
     )
 
     domains = {}
@@ -1396,7 +1441,7 @@ def pulse_consensus(
             "pressure_cents": row["pressure_cents"],
             "edge": row["edge"],
             "top_drivers": row["top_drivers"],
-            "regime_tags": row["regime_tags"]
+            "regime_tags": row["regime_tags"],
         }
         total_direction += row["direction"]
         total_pressure += row["pressure_cents"]
@@ -1412,9 +1457,13 @@ def pulse_consensus(
             "direction": total_direction / n if n > 0 else 0,
             "pressure_cents": total_pressure / n if n > 0 else 0,
             "average_edge": total_edge / n if n > 0 else 0,
-            "signal": "BULLISH" if total_direction > 3 else "BEARISH" if total_direction < -3 else "NEUTRAL"
+            "signal": (
+                "BULLISH"
+                if total_direction > 3
+                else "BEARISH" if total_direction < -3 else "NEUTRAL"
+            ),
         },
-        "domains": domains
+        "domains": domains,
     }
 
 
@@ -1422,7 +1471,7 @@ def pulse_consensus(
 def pulse_domain_history(
     domain: str,
     horizon: str = Query("1W", description="Time horizon"),
-    days: int = Query(30, ge=1, le=365, description="Days of history")
+    days: int = Query(30, ge=1, le=365, description="Days of history"),
 ) -> Dict[str, Any]:
     """
     Get historical Intel Drops for a specific domain.
@@ -1432,13 +1481,13 @@ def pulse_domain_history(
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, created_at
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE domain = ?
           AND horizon = ?
           AND as_of_ts >= NOW() - INTERVAL '{days} days'
         ORDER BY as_of_ts ASC
         """,
-        [domain.upper(), horizon.upper()]
+        [domain.upper(), horizon.upper()],
     )
 
     return {
@@ -1446,15 +1495,19 @@ def pulse_domain_history(
         "horizon": horizon.upper(),
         "days": days,
         "history": rows,
-        "count": len(rows)
+        "count": len(rows),
     }
 
 
 @app.get("/api/pulse/signals")
 def pulse_signals(
-    direction: Optional[int] = Query(None, ge=-1, le=1, description="Filter by direction (-1, 0, 1)"),
-    min_edge: Optional[float] = Query(None, ge=0, le=1, description="Minimum edge threshold"),
-    horizon: Optional[str] = None
+    direction: Optional[int] = Query(
+        None, ge=-1, le=1, description="Filter by direction (-1, 0, 1)"
+    ),
+    min_edge: Optional[float] = Query(
+        None, ge=0, le=1, description="Minimum edge threshold"
+    ),
+    horizon: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Get actionable signals from Intel Drops.
@@ -1483,12 +1536,12 @@ def pulse_signals(
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             top_drivers, regime_tags, source_model
-        FROM gold.intel_drops
+        FROM features.intel_drops
         WHERE {where_sql}
         ORDER BY edge DESC, as_of_ts DESC
         LIMIT 50
         """,
-        params
+        params,
     )
 
     # Categorize by signal strength
@@ -1497,15 +1550,11 @@ def pulse_signals(
     weak_signals = [r for r in rows if r["edge"] < 0.5]
 
     return {
-        "filters": {
-            "direction": direction,
-            "min_edge": min_edge,
-            "horizon": horizon
-        },
+        "filters": {"direction": direction, "min_edge": min_edge, "horizon": horizon},
         "signals": {
             "strong": strong_signals,
             "moderate": moderate_signals,
-            "weak": weak_signals
+            "weak": weak_signals,
         },
-        "total_count": len(rows)
+        "total_count": len(rows),
     }

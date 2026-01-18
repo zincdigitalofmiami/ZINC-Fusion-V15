@@ -1,6 +1,6 @@
 /**
  * GET /api/zl/raw
- * Clean ZL OHLCV straight from raw.market_futures_1d
+ * Clean ZL OHLCV straight from mkt.futures_1d
  * Query params: days (default 365)
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         low,
         close,
         volume::int
-      FROM raw.market_futures_1d
+      FROM mkt.futures_1d
       WHERE symbol = 'ZL'
       ORDER BY event_date DESC
       LIMIT $1
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       symbol: 'ZL',
-      source: 'raw.market_futures_1d',
+      source: 'mkt.futures_1d',
       count: rows.length,
       data: rows.reverse()
     })

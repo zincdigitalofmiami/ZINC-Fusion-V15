@@ -2,6 +2,9 @@
 
 **Last Updated:** 2026-01-03
 
+> NOTE (2026-01-17): Schema v2 replaces raw/gold/silver with mkt/econ/features.
+> Legacy references below are pending migration.
+
 ## What's WORKING
 
 ### Core Models (in `models/core_v15/`)

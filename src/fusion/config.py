@@ -68,22 +68,42 @@ def get_historical_data_path() -> Path:
 
 
 # =============================================================================
-# SCHEMAS (Canonical - Medallion Architecture)
+# SCHEMAS (Institutional Architecture - 13 schemas)
 # =============================================================================
 
-# Schema Architecture (Medallion)
-SCHEMAS = [
-    "raw",  # Bronze: Raw ingestion
-    "silver",  # Silver: Validated, cleansed
-    "gold",  # Gold: Business aggregates
-    "features",  # Feature engineering
-    "training",  # Model training (specialists, oof, meta)
-    "forecasts",  # Predictions
-    "monitoring",  # Performance tracking
-    "specialist",  # Specialist metadata
-    "weather",  # Weather data source
-    "metadata",  # System metadata
-    "archive",  # Legacy tables
+# Landing schemas: append-only source data
+LANDING_SCHEMAS = ["mkt", "econ", "alt", "pos", "supply"]
+
+# Derived schemas: computed from landing
+DERIVED_SCHEMAS = ["features", "training"]
+
+# Output schemas: model artifacts and predictions
+OUTPUT_SCHEMAS = ["model", "forecasts", "analytics"]
+
+# Governance schemas: operations and metadata
+GOVERNANCE_SCHEMAS = ["metadata", "ops"]
+
+# Deprecated: read-only legacy data
+DEPRECATED_SCHEMAS = ["archive"]
+
+# All schemas (canonical list)
+SCHEMAS = (
+    LANDING_SCHEMAS
+    + DERIVED_SCHEMAS
+    + OUTPUT_SCHEMAS
+    + GOVERNANCE_SCHEMAS
+    + DEPRECATED_SCHEMAS
+)
+
+# BANNED schemas - fail hard if detected in new code
+BANNED_SCHEMAS = [
+    "raw",
+    "gold",
+    "silver",
+    "bronze",
+    "monitoring",
+    "specialist",
+    "weather",
 ]
 
 

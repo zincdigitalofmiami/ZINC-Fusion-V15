@@ -1,3 +1,6 @@
+# ⚠️ HISTORICAL: Legacy data check script referencing raw.* tables.
+# For current checks, use v2 schema tables (mkt/econ/alt/pos/supply).
+
 #!/usr/bin/env python3
 """Check what ALL DATA actually means."""
 import os

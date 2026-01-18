@@ -438,7 +438,7 @@ async function quarantineRecord(
  */
 async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
   const result = await client.query(
-    `SELECT 1 FROM raw.fred_observations_1d WHERE row_hash = $1 LIMIT 1`,
+    `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
   );
   return result.rows.length > 0;
@@ -454,7 +454,7 @@ async function getLatestRevision(
 ): Promise<{ value: number; revisionNo: number } | null> {
   const result = await client.query(
     `SELECT value, revision_no 
-     FROM raw.fred_observations_1d 
+     FROM econ.rates_1d 
      WHERE series_id = $1 AND event_date = $2
      ORDER BY revision_no DESC
      LIMIT 1`,
@@ -629,7 +629,7 @@ async function ingestFredSegment(
         await quarantineRecord(
           client,
           runId,
-          "raw.fred_observations_1d",
+          "econ.rates_1d",
           { series_id: series.id, date: obs.date, raw_value: obs.value },
           ["Invalid numeric value: " + obs.value],
           "error"
@@ -654,7 +654,7 @@ async function ingestFredSegment(
       }
 
       await client.query(
-        `INSERT INTO raw.fred_observations_1d (
+        `INSERT INTO econ.rates_1d (
            series_id,
            value,
            event_date,
@@ -697,7 +697,7 @@ async function ingestFredSegment(
       await quarantineRecord(
         client,
         runId,
-        "raw.fred_observations_1d",
+        "econ.rates_1d",
         { series_id: series.id, error: errorMsg },
         ["Fetch/insert error: " + errorMsg],
         "error"

@@ -2,6 +2,9 @@
 - Generated at: 2026-01-14T16:48:08.375770+00:00
 - Today (local): 2026-01-14
 
+> NOTE (2026-01-17): Schema v2 replaces raw/gold/silver with mkt/econ/features.
+> This audit reflects legacy tables and should be regenerated after migration.
+
 ## Metadata Coverage
 - metadata.symbol_mapping rows: 20
 - metadata.symbol_mapping canonical_id: 15

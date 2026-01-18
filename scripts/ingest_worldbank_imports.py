@@ -3,7 +3,7 @@
 Ingest World Bank Import Trade Data into Prisma Postgres
 
 Source: data/downloads/import_trade.csv
-Target: raw.worldbank_imports_1y
+Target: supply.worldbank_imports_1y
 Grain: Yearly (1y)
 
 Data: Imports of goods and services as % of GDP by country
@@ -54,13 +54,13 @@ def main():
         """
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'raw' AND table_name = 'worldbank_imports_1y'
+            WHERE table_schema = 'supply' AND table_name = 'worldbank_imports_1y'
         )
         """
     )
     if not cur.fetchone()[0]:
         raise RuntimeError(
-            "raw.worldbank_imports_1y does not exist. "
+            "supply.worldbank_imports_1y does not exist. "
             "Schema/table creation requires explicit approval; this script will not create it."
         )
 
@@ -69,7 +69,7 @@ def main():
         """
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_schema = 'raw' AND table_name = 'worldbank_imports_1y'
+        WHERE table_schema = 'supply' AND table_name = 'worldbank_imports_1y'
         """
     )
     cols = {r[0] for r in cur.fetchall()}
@@ -88,7 +88,7 @@ def main():
     missing = sorted(required_cols - cols)
     if missing:
         raise RuntimeError(
-            f"raw.worldbank_imports_1y missing required columns: {', '.join(missing)}"
+            f"supply.worldbank_imports_1y missing required columns: {', '.join(missing)}"
         )
 
     # Insert data in batches
@@ -98,7 +98,7 @@ def main():
     for _, row in df.iterrows():
         cur.execute(
             """
-            INSERT INTO raw.worldbank_imports_1y 
+            INSERT INTO supply.worldbank_imports_1y 
             (event_date, country_code, country_name, region, sub_region, 
              intermediate_region, indicator_code, indicator_name, year, imports_pct_gdp)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -127,15 +127,15 @@ def main():
 
     # Verification
     print("\n=== VERIFICATION ===")
-    cur.execute("SELECT COUNT(*) FROM raw.worldbank_imports_1y")
+    cur.execute("SELECT COUNT(*) FROM supply.worldbank_imports_1y")
     count = cur.fetchone()[0]
     print(f"Total rows in table: {count}")
 
-    cur.execute("SELECT COUNT(DISTINCT country_code) FROM raw.worldbank_imports_1y")
+    cur.execute("SELECT COUNT(DISTINCT country_code) FROM supply.worldbank_imports_1y")
     countries = cur.fetchone()[0]
     print(f"Unique countries: {countries}")
 
-    cur.execute("SELECT MIN(year), MAX(year) FROM raw.worldbank_imports_1y")
+    cur.execute("SELECT MIN(year), MAX(year) FROM supply.worldbank_imports_1y")
     year_range = cur.fetchone()
     print(f"Year range: {year_range[0]} - {year_range[1]}")
 
@@ -144,7 +144,7 @@ def main():
         """
         SELECT country_code, country_name, COUNT(*) as years, 
                ROUND(AVG(imports_pct_gdp)::numeric, 2) as avg_imports_pct
-        FROM raw.worldbank_imports_1y 
+        FROM supply.worldbank_imports_1y 
         WHERE country_code IN ('CHN', 'BRA', 'ARG', 'USA', 'IND', 'IDN', 'MYS')
         GROUP BY country_code, country_name
         ORDER BY avg_imports_pct DESC

@@ -1,5 +1,8 @@
 # Stale Inputs — Ownership + Column Reality (2026-01-14)
 
+> NOTE (2026-01-17): Schema v2 deprecates raw inputs. This document is legacy
+> until migrations move these sources into mkt/econ/features.
+
 This document maps **stale raw inputs** (from `Docs/PRETRAINING_READINESS_2026_01_14.md`) to their **actual ingestion owners**, and records **verified DB column reality** so we don’t run the wrong scripts.
 
 ## Verified DB Reality (PROD)

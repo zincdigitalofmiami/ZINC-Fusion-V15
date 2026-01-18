@@ -8,7 +8,7 @@ const pool = new Pool({
 
 /**
  * GET /api/zl/price-1d?days=90
- * Fetch daily OHLCV bars for ZL from raw.market_futures_1d
+ * Fetch daily OHLCV bars for ZL from mkt.futures_1d
  * 
  * Query params:
  * - days: number of days back (default 90)
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         close,
         volume,
         source
-      FROM raw.market_futures_1d
+      FROM mkt.futures_1d
       WHERE symbol = 'ZL'
         AND event_date >= CURRENT_DATE - INTERVAL '${clampedDays} days'
         AND event_date <= CURRENT_DATE

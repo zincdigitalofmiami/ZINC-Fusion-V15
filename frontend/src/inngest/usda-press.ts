@@ -8,7 +8,7 @@
  * 
  * API: https://quickstats.nass.usda.gov/api/api_GET
  * Routes to: crush specialist
- * Table: raw.fred_observations_1d (reusing FRED pattern for time series)
+ * Table: econ.rates_1d (reusing FRED pattern for time series)
  */
 
 import { inngest } from "./client";
@@ -179,7 +179,7 @@ export const usdaDaily = inngest.createFunction(
 
           // Check if exists
           const checkResult = await pool.query(
-            `SELECT 1 FROM raw.fred_observations_1d WHERE row_hash = $1`,
+            `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
             [rowHash]
           );
 
@@ -190,7 +190,7 @@ export const usdaDaily = inngest.createFunction(
 
           // Insert - reusing fred_observations_1d pattern
           await pool.query(
-            `INSERT INTO raw.fred_observations_1d 
+            `INSERT INTO econ.rates_1d 
              (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
              VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
             [

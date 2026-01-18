@@ -5,7 +5,7 @@ ZINC-FUSION-V15: Generate Forward Forecasts from Trained Core Model
 Forecast inference under governance. This script:
 1. Reads audit rows (NEVER writes them)
 2. Generates P10/P50/P90 quantiles
-3. Writes to model.forecast_quantiles
+3. Writes to forecasts.forecast_quantiles
 
 Execution Contract:
 - Audit gating is FIRST operation
@@ -46,8 +46,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -126,6 +125,7 @@ EXIT_DB_ERROR = 4
 # DATABASE CONNECTION
 # =============================================================================
 
+
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
     database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
@@ -138,6 +138,7 @@ def get_postgres_connection():
 # AUDIT GATING (FIRST OPERATION - HARD REQUIREMENT)
 # =============================================================================
 
+
 def check_audit_approval(conn, training_run_id: str) -> Tuple[bool, Optional[str]]:
     """
     Check if training run is approved in model_core_audit.
@@ -146,11 +147,14 @@ def check_audit_approval(conn, training_run_id: str) -> Tuple[bool, Optional[str
         (approved, failure_reason) - approved=True if final_approved=true
     """
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT final_approved, failure_reason, horizon
             FROM model.model_core_audit
             WHERE training_run_id = %s
-        """, (training_run_id,))
+        """,
+            (training_run_id,),
+        )
 
         row = cur.fetchone()
 
@@ -199,6 +203,7 @@ def enforce_audit_gate(conn, training_run_id: str) -> str:
 # TRAINING RUN ID HANDLING
 # =============================================================================
 
+
 def build_training_run_id(horizon: int, date_str: str, git_sha: str) -> str:
     """
     Build canonical training_run_id from components.
@@ -231,6 +236,7 @@ def parse_training_run_id(training_run_id: str) -> Tuple[int, str, str]:
 # DATA LOADING (PARITY WITH train_core_v15.py)
 # =============================================================================
 
+
 def load_base_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     """
     Load daily ZL data with OHLCV.
@@ -240,7 +246,8 @@ def load_base_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     logger.info(f"Loading ZL daily data from {start_date}...")
 
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
                 event_date as timestamp,
                 open, high, low, close, volume
@@ -248,7 +255,9 @@ def load_base_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
             WHERE symbol = 'ZL'
               AND event_date >= %s
             ORDER BY event_date
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
 
@@ -320,22 +329,24 @@ def add_technical_features(df: pd.DataFrame) -> pd.DataFrame:
     df["bb_pct"] = (close - df["bb_lower"]) / (df["bb_upper"] - df["bb_lower"])
 
     # ATR
-    tr = pd.concat([
-        high - low,
-        (high - close.shift()).abs(),
-        (low - close.shift()).abs()
-    ], axis=1).max(axis=1)
+    tr = pd.concat(
+        [high - low, (high - close.shift()).abs(), (low - close.shift()).abs()], axis=1
+    ).max(axis=1)
     df["atr_14"] = tr.rolling(14).mean()
 
     # Volatility proxies
     df["intraday_range"] = (high - low) / close
-    df["garman_klass_vol"] = np.sqrt(
-        0.5 * np.log(high / low) ** 2 -
-        (2 * np.log(2) - 1) * np.log(close / close.shift()) ** 2
-    ).rolling(20).mean()
-    df["parkinson_vol"] = np.sqrt(
-        np.log(high / low) ** 2 / (4 * np.log(2))
-    ).rolling(20).mean()
+    df["garman_klass_vol"] = (
+        np.sqrt(
+            0.5 * np.log(high / low) ** 2
+            - (2 * np.log(2) - 1) * np.log(close / close.shift()) ** 2
+        )
+        .rolling(20)
+        .mean()
+    )
+    df["parkinson_vol"] = (
+        np.sqrt(np.log(high / low) ** 2 / (4 * np.log(2))).rolling(20).mean()
+    )
     df["close_to_close_vol"] = close.pct_change().rolling(20).std() * np.sqrt(252)
     df["overnight_gap"] = (df["open"] / close.shift() - 1).abs()
 
@@ -354,12 +365,24 @@ def add_technical_features(df: pd.DataFrame) -> pd.DataFrame:
         axis=1,
     ).max(axis=1)
     atr_14 = tr.ewm(alpha=1 / 14, adjust=False).mean()
-    plus_di = 100 * plus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14.replace(0, np.nan)
-    minus_di = 100 * minus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14.replace(0, np.nan)
+    plus_di = (
+        100 * plus_dm.ewm(alpha=1 / 14, adjust=False).mean() / atr_14.replace(0, np.nan)
+    )
+    minus_di = (
+        100
+        * minus_dm.ewm(alpha=1 / 14, adjust=False).mean()
+        / atr_14.replace(0, np.nan)
+    )
     dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
     df["adx_14"] = dx.ewm(alpha=1 / 14, adjust=False).mean()
-    df["cci_20"] = (close - sma20) / (0.015 * close.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean()))
-    df["willr_14"] = -100 * (high.rolling(14).max() - close) / (high.rolling(14).max() - low.rolling(14).min())
+    df["cci_20"] = (close - sma20) / (
+        0.015 * close.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean())
+    )
+    df["willr_14"] = (
+        -100
+        * (high.rolling(14).max() - close)
+        / (high.rolling(14).max() - low.rolling(14).min())
+    )
     # MFI (Money Flow Index)
     typical_price = (high + low + close) / 3.0
     volume_filled = volume.fillna(0)
@@ -385,33 +408,41 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
 
     # Load FRED data
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT series_id, event_date as timestamp, value
             FROM "raw"."fred_observations_1d"
             WHERE series_id IN ('DCOILWTICO', 'VIXCLS', 'DTWEXBGS')
             ORDER BY event_date
-        """)
+        """
+        )
         fred_rows = cur.fetchall()
 
     if fred_rows:
         fred_df = pd.DataFrame(fred_rows, columns=["series_id", "timestamp", "value"])
         fred_df["timestamp"] = pd.to_datetime(fred_df["timestamp"])
-        fred_pivot = fred_df.pivot(index="timestamp", columns="series_id", values="value")
-        fred_pivot = fred_pivot.rename(columns={
-            "DCOILWTICO": "wti_crude",
-            "VIXCLS": "vix",
-            "DTWEXBGS": "dxy_index",
-        })
+        fred_pivot = fred_df.pivot(
+            index="timestamp", columns="series_id", values="value"
+        )
+        fred_pivot = fred_pivot.rename(
+            columns={
+                "DCOILWTICO": "wti_crude",
+                "VIXCLS": "vix",
+                "DTWEXBGS": "dxy_index",
+            }
+        )
         df = df.merge(fred_pivot, left_on="timestamp", right_index=True, how="left")
 
     # Load COT data
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT report_date, managed_money_net
             FROM "raw"."cftc_cot_1w"
             WHERE symbol = 'ZL'
             ORDER BY report_date
-        """)
+        """
+        )
         cot_rows = cur.fetchall()
 
     if cot_rows:
@@ -421,34 +452,45 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
             df.sort_values("timestamp"),
             cot_df.sort_values("timestamp"),
             on="timestamp",
-            direction="backward"
+            direction="backward",
         )
 
     # Calculate crush spread (ZS - ZL - ZM proxy)
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT event_date as timestamp, symbol, close
             FROM "raw"."market_futures_1d"
             WHERE symbol IN ('ZS', 'ZM')
             ORDER BY event_date
-        """)
+        """
+        )
         soy_rows = cur.fetchall()
 
     if soy_rows:
         soy_df = pd.DataFrame(soy_rows, columns=["timestamp", "symbol", "close"])
         soy_df["timestamp"] = pd.to_datetime(soy_df["timestamp"])
         soy_pivot = soy_df.pivot(index="timestamp", columns="symbol", values="close")
-        soy_pivot["crush_spread"] = soy_pivot.get("ZS", 0) * 0.022 - soy_pivot.get("ZM", 0) * 0.011
+        soy_pivot["crush_spread"] = (
+            soy_pivot.get("ZS", 0) * 0.022 - soy_pivot.get("ZM", 0) * 0.011
+        )
         df = df.merge(
             soy_pivot[["crush_spread"]],
             left_on="timestamp",
             right_index=True,
-            how="left"
+            how="left",
         )
 
     # Fill placeholders for missing fundamentals
-    for col in ["bopo_spread", "rin_d4_price", "wasde_ending_stocks",
-                "wasde_production", "export_sales_net", "precip_anom", "temp_anom"]:
+    for col in [
+        "bopo_spread",
+        "rin_d4_price",
+        "wasde_ending_stocks",
+        "wasde_production",
+        "export_sales_net",
+        "precip_anom",
+        "temp_anom",
+    ]:
         if col not in df.columns:
             df[col] = np.nan
 
@@ -465,55 +507,158 @@ def add_fundamental_features(conn, df: pd.DataFrame) -> pd.DataFrame:
 
 # FRED series lists (must match train_core_chronos.py exactly)
 FRED_DAILY = [
-    "TEDRATE", "SOFR", "DGS10", "DGS2", "DGS1", "DGS5", "DGS7", "DGS20", "DGS30",
-    "DGS1MO", "DGS3MO", "DGS6MO", "T10Y2Y", "T10Y3M", "T10YIE",
-    "DFII5", "DFII7", "DFII10", "DFII20", "DFII30",
-    "DPRIME", "DFF", "DTB3", "DTB6", "DBAA", "DAAA",
-    "DFEDTARL", "DFEDTARU",
-    "BAMLH0A0HYM2", "BAMLC0A0CM",
-    "DEXCHUS", "DEXUSEU", "DEXJPUS", "DEXUSUK", "DEXCAUS", "DEXMXUS",
-    "DEXBZUS", "DEXINUS", "DEXMAUS", "DEXKOUS", "DEXSIUS", "DEXTHUS", "DEXHKUS",
-    "DEXSZUS", "DEXSFUS", "DEXTAUS", "DEXUSAL", "DEXNOUS",
-    "DTWEXBGS", "DTWEXAFEGS", "DTWEXEMEGS", "DTWEXM",
-    "DCOILWTICO", "DCOILBRENTEU", "DHHNGSP", "DHOILNYH",
-    "VIXCLS", "NASDAQCOM",
+    "TEDRATE",
+    "SOFR",
+    "DGS10",
+    "DGS2",
+    "DGS1",
+    "DGS5",
+    "DGS7",
+    "DGS20",
+    "DGS30",
+    "DGS1MO",
+    "DGS3MO",
+    "DGS6MO",
+    "T10Y2Y",
+    "T10Y3M",
+    "T10YIE",
+    "DFII5",
+    "DFII7",
+    "DFII10",
+    "DFII20",
+    "DFII30",
+    "DPRIME",
+    "DFF",
+    "DTB3",
+    "DTB6",
+    "DBAA",
+    "DAAA",
+    "DFEDTARL",
+    "DFEDTARU",
+    "BAMLH0A0HYM2",
+    "BAMLC0A0CM",
+    "DEXCHUS",
+    "DEXUSEU",
+    "DEXJPUS",
+    "DEXUSUK",
+    "DEXCAUS",
+    "DEXMXUS",
+    "DEXBZUS",
+    "DEXINUS",
+    "DEXMAUS",
+    "DEXKOUS",
+    "DEXSIUS",
+    "DEXTHUS",
+    "DEXHKUS",
+    "DEXSZUS",
+    "DEXSFUS",
+    "DEXTAUS",
+    "DEXUSAL",
+    "DEXNOUS",
+    "DTWEXBGS",
+    "DTWEXAFEGS",
+    "DTWEXEMEGS",
+    "DTWEXM",
+    "DCOILWTICO",
+    "DCOILBRENTEU",
+    "DHHNGSP",
+    "DHOILNYH",
+    "VIXCLS",
+    "NASDAQCOM",
     "USEPUINDXD",
 ]
 FRED_WEEKLY = [
-    "GASREGW", "GASDESW",
-    "ICSA", "CCSA",
-    "NFCI", "STLFSI", "STLFSI4",
-    "WALCL", "WRESBAL",
-    "MORTGAGE30US", "RRPONTSYD",
+    "GASREGW",
+    "GASDESW",
+    "ICSA",
+    "CCSA",
+    "NFCI",
+    "STLFSI",
+    "STLFSI4",
+    "WALCL",
+    "WRESBAL",
+    "MORTGAGE30US",
+    "RRPONTSYD",
     "DDFUELUSGULF",
-    "SP500", "SP500_HISTORICAL",
+    "SP500",
 ]
 FRED_MONTHLY = [
-    "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE", "PCE", "CHNCPIALLMINMEI",
-    "PPIACO", "WPSFD49207", "WPSFD49502", "WPUFD49116", "WPUFD49207", "WPUSI012011",
-    "WPU06140341", "WPU01830171", "WPU057303",
+    "CPIAUCSL",
+    "CPILFESL",
+    "PCEPI",
+    "PCEPILFE",
+    "PCE",
+    "CHNCPIALLMINMEI",
+    "PPIACO",
+    "WPSFD49207",
+    "WPSFD49502",
+    "WPUFD49116",
+    "WPUFD49207",
+    "WPUSI012011",
+    "WPU06140341",
+    "WPU01830171",
+    "WPU057303",
     "PCU311224311224",
     "APU000074714",
-    "CUSR0000SAF11", "CUSR0000SETA01", "CUSR0000SETA02", "CUSR0000SETB01", "CUSR0000SAH1",
-    "UNRATE", "PAYEMS", "MANEMP", "AWHMAN", "CES0500000003", "JTSJOL",
-    "M2SL", "TOTRESNS", "BOGMBASE", "FEDFUNDS", "BUSLOANS",
-    "INDPRO", "DGORDER", "NEWORDER",
-    "RSAFS", "RSXFS", "DSPIC96", "UMCSENT", "MICH", "PSAVERT",
-    "HOUST", "PERMIT", "CSUSHPISA",
-    "BOPGSTB", "BOPGTB", "IEABC",
-    "CHNMAINLANDTPU", "MYAGM2CNM189N", "IMPCH",
-    "XTEXVA01CNM667S", "XTIMVA01CNM667S",
-    "PSOILUSDM", "PSOYBUSDM", "PPOILUSDM", "PROILUSDM", "PSUNOUSDM",
-    "PCOPPUSDM", "PMAIZMTUSDM", "PWHEAMTUSDM", "PRICENPQUSDM", "PNGASEUUSDM",
-    "USEPUINDXM", "EMVTRADEPOLEMV", "EPUTRADE",
+    "CUSR0000SAF11",
+    "CUSR0000SETA01",
+    "CUSR0000SETA02",
+    "CUSR0000SETB01",
+    "CUSR0000SAH1",
+    "UNRATE",
+    "PAYEMS",
+    "MANEMP",
+    "AWHMAN",
+    "CES0500000003",
+    "JTSJOL",
+    "M2SL",
+    "TOTRESNS",
+    "BOGMBASE",
+    "FEDFUNDS",
+    "BUSLOANS",
+    "INDPRO",
+    "DGORDER",
+    "NEWORDER",
+    "RSAFS",
+    "RSXFS",
+    "DSPIC96",
+    "UMCSENT",
+    "MICH",
+    "PSAVERT",
+    "HOUST",
+    "PERMIT",
+    "CSUSHPISA",
+    "BOPGSTB",
+    "BOPGTB",
+    "IEABC",
+    "CHNMAINLANDTPU",
+    "MYAGM2CNM189N",
+    "IMPCH",
+    "XTEXVA01CNM667S",
+    "XTIMVA01CNM667S",
+    "PSOILUSDM",
+    "PSOYBUSDM",
+    "PPOILUSDM",
+    "PROILUSDM",
+    "PSUNOUSDM",
+    "PCOPPUSDM",
+    "PMAIZMTUSDM",
+    "PWHEAMTUSDM",
+    "PRICENPQUSDM",
+    "PNGASEUUSDM",
+    "USEPUINDXM",
+    "EMVTRADEPOLEMV",
+    "EPUTRADE",
     "OVXCLS",
 ]
 FRED_QUARTERLY = [
-    "GDPC1", "GDP",
+    "GDPC1",
+    "GDP",
     "DRCCLACBS",
     "B235RC1Q027SBEA",
     "CHNGDPNQDSMEI",
-    "EXPGS", "IMPGS",
+    "EXPGS",
+    "IMPGS",
     "WPU01830161",
     "IR3TIB01CNM156N",
     "PPIFGS",
@@ -530,8 +675,13 @@ WEATHER_VARS = ["tavg_c", "tmin_c", "tmax_c", "prcp_mm", "snow_mm"]
 FX_FROM_SPOT_TABLE = True
 
 # COT metrics
-COT_METRICS = ["open_interest", "managed_money_net", "managed_money_net_pct_oi",
-               "prod_merc_net", "prod_merc_net_pct_oi"]
+COT_METRICS = [
+    "open_interest",
+    "managed_money_net",
+    "managed_money_net_pct_oi",
+    "prod_merc_net",
+    "prod_merc_net_pct_oi",
+]
 
 
 def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
@@ -553,12 +703,15 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("1. Loading ALL market futures (wide pivot)...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT symbol, event_date as ts_event, open, high, low, close, volume
             FROM "raw"."market_futures_1d"
             WHERE event_date >= %s
             ORDER BY event_date, symbol
-        """, (start_date,))
+        """,
+            (start_date,),
+        )
         columns = [desc[0] for desc in cur.description]
         rows = cur.fetchall()
     df_long = pd.DataFrame(rows, columns=columns)
@@ -581,7 +734,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     df = zl_data.reset_index()
     df["trade_date"] = df["ts_event"].dt.date
 
-    n_features = len([c for c in df.columns if c not in ["ts_event", "target", "trade_date"]])
+    n_features = len(
+        [c for c in df.columns if c not in ["ts_event", "target", "trade_date"]]
+    )
     logger.info(f"   Wide format: {len(df):,} rows, {n_features} symbol features")
 
     # =========================================================================
@@ -600,23 +755,31 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
 
         if high_col in df.columns and low_col in df.columns:
             df[f"{sym}_daily_range"] = df[high_col] - df[low_col]
-            df[f"{sym}_daily_range_pct"] = (df[high_col] - df[low_col]) / df[close_col].replace(0, np.nan)
+            df[f"{sym}_daily_range_pct"] = (df[high_col] - df[low_col]) / df[
+                close_col
+            ].replace(0, np.nan)
             vol_features_added += 2
 
         if open_col in df.columns:
             df[f"{sym}_overnight_gap"] = df[open_col] - df[close_col].shift(1)
             prev_close = df[close_col].shift(1)
-            df[f"{sym}_overnight_gap_pct"] = (df[open_col] - prev_close) / prev_close.replace(0, np.nan)
+            df[f"{sym}_overnight_gap_pct"] = (
+                df[open_col] - prev_close
+            ) / prev_close.replace(0, np.nan)
             vol_features_added += 2
 
         if high_col in df.columns and low_col in df.columns:
             daily_range = df[high_col] - df[low_col]
-            df[f"{sym}_close_location"] = (df[close_col] - df[low_col]) / daily_range.replace(0, np.nan)
+            df[f"{sym}_close_location"] = (
+                df[close_col] - df[low_col]
+            ) / daily_range.replace(0, np.nan)
             vol_features_added += 1
 
         if open_col in df.columns and high_col in df.columns and low_col in df.columns:
             daily_range = df[high_col] - df[low_col]
-            df[f"{sym}_body_ratio"] = abs(df[close_col] - df[open_col]) / daily_range.replace(0, np.nan)
+            df[f"{sym}_body_ratio"] = abs(
+                df[close_col] - df[open_col]
+            ) / daily_range.replace(0, np.nan)
             vol_features_added += 1
 
     logger.info(f"   Added {vol_features_added} volatility proxy features")
@@ -629,28 +792,39 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("2. Loading FRED economic data...")
 
-    fred_long = pd.read_sql("""
+    fred_long = pd.read_sql(
+        """
         SELECT event_date as as_of_date, series_id, value
         FROM "raw"."fred_observations_1d"
         ORDER BY event_date, series_id
-    """, conn)
+    """,
+        conn,
+    )
     fred_long["as_of_date"] = pd.to_datetime(fred_long["as_of_date"])
-    logger.info(f"   Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
+    logger.info(
+        f"   Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series"
+    )
 
-    daily_dates = pd.DataFrame({"as_of_date": pd.to_datetime(df["ts_event"].unique())}).sort_values("as_of_date")
+    daily_dates = pd.DataFrame(
+        {"as_of_date": pd.to_datetime(df["ts_event"].unique())}
+    ).sort_values("as_of_date")
 
     def merge_fred_group(series_list: list, freq_name: str) -> pd.DataFrame:
         group_data = fred_long[fred_long["series_id"].isin(series_list)]
         if group_data.empty:
             return pd.DataFrame()
-        pivoted = group_data.pivot_table(
-            index="as_of_date", columns="series_id", values="value", aggfunc="last"
-        ).sort_index().reset_index()
+        pivoted = (
+            group_data.pivot_table(
+                index="as_of_date", columns="series_id", values="value", aggfunc="last"
+            )
+            .sort_index()
+            .reset_index()
+        )
         merged = pd.merge_asof(
             daily_dates.sort_values("as_of_date"),
             pivoted.sort_values("as_of_date"),
             on="as_of_date",
-            direction="backward"
+            direction="backward",
         )
         actual_cols = [c for c in series_list if c in merged.columns]
         logger.info(f"   {freq_name}: {len(actual_cols)} series merged")
@@ -666,10 +840,14 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
         if not freq_df.empty:
             other_cols = [c for c in freq_df.columns if c != "as_of_date"]
             if other_cols:
-                fred_df = fred_df.merge(freq_df[["as_of_date"] + other_cols], on="as_of_date", how="left")
+                fred_df = fred_df.merge(
+                    freq_df[["as_of_date"] + other_cols], on="as_of_date", how="left"
+                )
 
     fred_df["trade_date"] = fred_df["as_of_date"].dt.date
-    fred_features = [c for c in fred_df.columns if c not in ("as_of_date", "trade_date")]
+    fred_features = [
+        c for c in fred_df.columns if c not in ("as_of_date", "trade_date")
+    ]
     fred_df[fred_features] = fred_df[fred_features].bfill()
     logger.info(f"   Combined: {len(fred_features)} FRED features")
 
@@ -678,13 +856,15 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("3. Loading NOAA weather data...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT station_id, event_date as as_of_date,
                    tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
                    awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms
             FROM "raw"."weather_noaa_1d"
             ORDER BY event_date, station_id
-        """)
+        """
+        )
         weather_cols = [desc[0] for desc in cur.description]
         weather_rows = cur.fetchall()
     weather_long = pd.DataFrame(weather_rows, columns=weather_cols)
@@ -708,16 +888,20 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("4. Loading FX spot data from fx_spot_1d...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT pair, event_date as as_of_date, rate
             FROM "raw"."fx_spot_1d"
             ORDER BY event_date
-        """)
+        """
+        )
         fx_rows = cur.fetchall()
     fx_df = pd.DataFrame(fx_rows, columns=["pair", "as_of_date", "rate"])
     fx_df["trade_date"] = pd.to_datetime(fx_df["as_of_date"]).dt.date
 
-    fx_wide = fx_df.pivot_table(index="trade_date", columns="pair", values="rate", aggfunc="last")
+    fx_wide = fx_df.pivot_table(
+        index="trade_date", columns="pair", values="rate", aggfunc="last"
+    )
     fx_wide.columns = [f"fx_{c}" for c in fx_wide.columns]
     fx_wide = fx_wide.reset_index()
     fx_wide = fx_wide.ffill().bfill()
@@ -728,17 +912,27 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("5. Loading CFTC COT positioning...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT report_date, symbol, open_interest, managed_money_net,
                    managed_money_net_pct_oi, prod_merc_net, prod_merc_net_pct_oi
             FROM "raw"."cftc_cot_1w"
             ORDER BY report_date, symbol
-        """)
+        """
+        )
         cot_rows = cur.fetchall()
-    cot_long = pd.DataFrame(cot_rows, columns=[
-        "report_date", "symbol", "open_interest", "managed_money_net",
-        "managed_money_net_pct_oi", "prod_merc_net", "prod_merc_net_pct_oi"
-    ])
+    cot_long = pd.DataFrame(
+        cot_rows,
+        columns=[
+            "report_date",
+            "symbol",
+            "open_interest",
+            "managed_money_net",
+            "managed_money_net_pct_oi",
+            "prod_merc_net",
+            "prod_merc_net_pct_oi",
+        ],
+    )
     cot_long["report_date"] = pd.to_datetime(cot_long["report_date"])
 
     cot_pivot_dfs = []
@@ -751,10 +945,14 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     cot_native = pd.concat(cot_pivot_dfs, axis=1).reset_index()
 
     cot_wide = pd.merge_asof(
-        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
-        cot_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(
+            trade_date=lambda x: pd.to_datetime(x["trade_date"])
+        ),
+        cot_native.rename(columns={"report_date": "trade_date"}).sort_values(
+            "trade_date"
+        ),
         on="trade_date",
-        direction="backward"
+        direction="backward",
     )
     cot_features = [c for c in cot_wide.columns if c.startswith("cot_")]
     cot_wide[cot_features] = cot_wide[cot_features].bfill()
@@ -766,7 +964,8 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("6. Loading USDA export sales...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT report_date,
                 SUM(CASE WHEN commodity = 'Soybeans' THEN net_sales_mt END) as usda_soy_net_sales,
                 SUM(CASE WHEN commodity = 'Soybeans' THEN exports_mt END) as usda_soy_exports,
@@ -776,19 +975,31 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
             FROM "raw"."usda_export_sales_1w"
             GROUP BY report_date
             ORDER BY report_date
-        """)
+        """
+        )
         usda_rows = cur.fetchall()
-    usda_native = pd.DataFrame(usda_rows, columns=[
-        "report_date", "usda_soy_net_sales", "usda_soy_exports",
-        "usda_zl_net_sales", "usda_zl_exports", "usda_zm_net_sales"
-    ])
+    usda_native = pd.DataFrame(
+        usda_rows,
+        columns=[
+            "report_date",
+            "usda_soy_net_sales",
+            "usda_soy_exports",
+            "usda_zl_net_sales",
+            "usda_zl_exports",
+            "usda_zm_net_sales",
+        ],
+    )
     usda_native["report_date"] = pd.to_datetime(usda_native["report_date"])
 
     usda_df = pd.merge_asof(
-        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
-        usda_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(
+            trade_date=lambda x: pd.to_datetime(x["trade_date"])
+        ),
+        usda_native.rename(columns={"report_date": "trade_date"}).sort_values(
+            "trade_date"
+        ),
         on="trade_date",
-        direction="backward"
+        direction="backward",
     )
     usda_features = [c for c in usda_df.columns if c.startswith("usda_")]
     usda_df[usda_features] = usda_df[usda_features].bfill()
@@ -800,7 +1011,8 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("7. Loading USDA WASDE...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT report_date,
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'production' THEN value END) as wasde_soy_production,
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'exports' THEN value END) as wasde_soy_exports,
@@ -810,19 +1022,31 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
             FROM "raw"."usda_wasde_1m"
             GROUP BY report_date
             ORDER BY report_date
-        """)
+        """
+        )
         wasde_rows = cur.fetchall()
-    wasde_native = pd.DataFrame(wasde_rows, columns=[
-        "report_date", "wasde_soy_production", "wasde_soy_exports",
-        "wasde_soy_stocks", "wasde_zl_production", "wasde_zl_exports"
-    ])
+    wasde_native = pd.DataFrame(
+        wasde_rows,
+        columns=[
+            "report_date",
+            "wasde_soy_production",
+            "wasde_soy_exports",
+            "wasde_soy_stocks",
+            "wasde_zl_production",
+            "wasde_zl_exports",
+        ],
+    )
     wasde_native["report_date"] = pd.to_datetime(wasde_native["report_date"])
 
     wasde_df = pd.merge_asof(
-        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(trade_date=lambda x: pd.to_datetime(x["trade_date"])),
-        wasde_native.rename(columns={"report_date": "trade_date"}).sort_values("trade_date"),
+        daily_dates.rename(columns={"as_of_date": "trade_date"}).assign(
+            trade_date=lambda x: pd.to_datetime(x["trade_date"])
+        ),
+        wasde_native.rename(columns={"report_date": "trade_date"}).sort_values(
+            "trade_date"
+        ),
         on="trade_date",
-        direction="backward"
+        direction="backward",
     )
     wasde_features = [c for c in wasde_df.columns if c.startswith("wasde_")]
     wasde_df[wasde_features] = wasde_df[wasde_features].bfill()
@@ -834,7 +1058,8 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     # =========================================================================
     logger.info("8. Loading EPA RIN prices...")
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT event_date as as_of_date, rin_type, price
             FROM (
                 SELECT DISTINCT ON (event_date, rin_type)
@@ -851,11 +1076,14 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
                     created_at DESC
             ) t
             ORDER BY event_date
-        """)
+        """
+        )
         rin_rows = cur.fetchall()
     rin_df = pd.DataFrame(rin_rows, columns=["as_of_date", "rin_type", "price"])
     rin_df["trade_date"] = pd.to_datetime(rin_df["as_of_date"]).dt.date
-    rin_wide = rin_df.pivot_table(index="trade_date", columns="rin_type", values="price", aggfunc="last")
+    rin_wide = rin_df.pivot_table(
+        index="trade_date", columns="rin_type", values="price", aggfunc="last"
+    )
     rin_wide.columns = [f"rin_{c}" for c in rin_wide.columns]
     rin_wide = rin_wide.reset_index()
     rin_features = [c for c in rin_wide.columns if c != "trade_date"]
@@ -869,26 +1097,39 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
     logger.info("9. Loading news sentiment...")
     try:
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT event_date as as_of_date, zl_sentiment, is_trump_related
                 FROM "raw"."news_articles_1d"
                 ORDER BY event_date
-            """)
+            """
+            )
             news_rows = cur.fetchall()
 
-        news_raw = pd.DataFrame(news_rows, columns=["as_of_date", "zl_sentiment", "is_trump_related"])
+        news_raw = pd.DataFrame(
+            news_rows, columns=["as_of_date", "zl_sentiment", "is_trump_related"]
+        )
         news_raw["trade_date"] = pd.to_datetime(news_raw["as_of_date"]).dt.date
 
-        news_agg = news_raw.groupby("trade_date").agg({
-            "zl_sentiment": "mean",
-            "is_trump_related": "sum",
-        })
+        news_agg = news_raw.groupby("trade_date").agg(
+            {
+                "zl_sentiment": "mean",
+                "is_trump_related": "sum",
+            }
+        )
         news_agg.columns = ["news_sentiment_avg", "news_trump_count"]
         news_agg = news_agg.reset_index()
         news_agg["news_article_count"] = news_raw.groupby("trade_date").size().values
 
         # Keep only the 3 columns the model expects
-        news_df = news_agg[["trade_date", "news_article_count", "news_sentiment_avg", "news_trump_count"]]
+        news_df = news_agg[
+            [
+                "trade_date",
+                "news_article_count",
+                "news_sentiment_avg",
+                "news_trump_count",
+            ]
+        ]
         news_df = news_df.fillna(0)
 
         logger.info(f"   Computed 3 news features (model expects exactly these)")
@@ -914,7 +1155,9 @@ def build_strategic_features(conn, start_date: str = "2000-01-01") -> pd.DataFra
 
     # Join Weather (lagged by 1 day)
     weather_df_lagged = weather_df.copy()
-    weather_df_lagged["trade_date"] = pd.to_datetime(weather_df_lagged["trade_date"]) + pd.Timedelta(days=1)
+    weather_df_lagged["trade_date"] = pd.to_datetime(
+        weather_df_lagged["trade_date"]
+    ) + pd.Timedelta(days=1)
     weather_df_lagged["trade_date"] = weather_df_lagged["trade_date"].dt.date
     df = df.merge(weather_df_lagged, on="trade_date", how="left")
     logger.info(f"  + Weather: {len(weather_features)} features (lagged 1d)")
@@ -1005,7 +1248,8 @@ def prepare_forecast_data(conn, horizon: int) -> Tuple[any, datetime]:
     # Tactical horizons use simpler feature set
     logger.info(f"Tactical horizon {horizon}d: Using simple feature set...")
     from datetime import timedelta
-    start_date = (datetime.now() - timedelta(days=7*365)).strftime("%Y-%m-%d")
+
+    start_date = (datetime.now() - timedelta(days=7 * 365)).strftime("%Y-%m-%d")
 
     # Load base data
     df = load_base_data(conn, start_date)
@@ -1041,6 +1285,7 @@ def prepare_forecast_data(conn, horizon: int) -> Tuple[any, datetime]:
 # MODEL LOADING
 # =============================================================================
 
+
 def load_predictor(horizon: int, training_run_id: str):
     """
     Load model artifacts and validate against training_run_id.
@@ -1066,7 +1311,9 @@ def load_predictor(horizon: int, training_run_id: str):
 
     # Validate prediction length matches horizon
     if predictor.prediction_length != horizon:
-        logger.error(f"Prediction length mismatch: {predictor.prediction_length} != {horizon}")
+        logger.error(
+            f"Prediction length mismatch: {predictor.prediction_length} != {horizon}"
+        )
         sys.exit(EXIT_MODEL_NOT_FOUND)
 
     return predictor
@@ -1076,7 +1323,10 @@ def load_predictor(horizon: int, training_run_id: str):
 # MODEL CHANGE DETECTION
 # =============================================================================
 
-def check_model_change(conn, horizon: int, training_run_id: str) -> Tuple[bool, Optional[str]]:
+
+def check_model_change(
+    conn, horizon: int, training_run_id: str
+) -> Tuple[bool, Optional[str]]:
     """
     Check if model has changed since last forecast.
 
@@ -1084,14 +1334,17 @@ def check_model_change(conn, horizon: int, training_run_id: str) -> Tuple[bool, 
         (needs_regeneration, previous_run_id)
     """
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT model_name, MAX(created_at)
-            FROM model.forecast_quantiles
+            FROM forecasts.forecast_quantiles
             WHERE horizon = %s
             GROUP BY model_name
             ORDER BY MAX(created_at) DESC
             LIMIT 1
-        """, (horizon,))
+        """,
+            (horizon,),
+        )
 
         row = cur.fetchone()
 
@@ -1110,6 +1363,7 @@ def check_model_change(conn, horizon: int, training_run_id: str) -> Tuple[bool, 
 # =============================================================================
 # FORECAST GENERATION
 # =============================================================================
+
 
 def validate_known_covariates(predictor) -> bool:
     """
@@ -1142,7 +1396,9 @@ def validate_known_covariates(predictor) -> bool:
     return True
 
 
-def generate_future_known_covariates(as_of_date: datetime, horizon: int) -> pd.DataFrame:
+def generate_future_known_covariates(
+    as_of_date: datetime, horizon: int
+) -> pd.DataFrame:
     """
     Generate known covariates (calendar features) for future prediction dates.
 
@@ -1153,16 +1409,16 @@ def generate_future_known_covariates(as_of_date: datetime, horizon: int) -> pd.D
 
     # Generate future business dates (B = business day)
     future_dates = pd.bdate_range(
-        start=as_of_date + pd.Timedelta(days=1),
-        periods=horizon,
-        freq="B"
+        start=as_of_date + pd.Timedelta(days=1), periods=horizon, freq="B"
     )
 
     # Create DataFrame with item_id and calendar features
-    df = pd.DataFrame({
-        "item_id": ["ZL"] * len(future_dates),
-        "timestamp": future_dates,
-    })
+    df = pd.DataFrame(
+        {
+            "item_id": ["ZL"] * len(future_dates),
+            "timestamp": future_dates,
+        }
+    )
 
     # Add calendar features (must match add_calendar_features exactly)
     ts = df["timestamp"]
@@ -1175,18 +1431,20 @@ def generate_future_known_covariates(as_of_date: datetime, horizon: int) -> pd.D
 
     # Convert to TimeSeriesDataFrame
     known_covariates = TimeSeriesDataFrame.from_data_frame(
-        df,
-        id_column="item_id",
-        timestamp_column="timestamp"
+        df, id_column="item_id", timestamp_column="timestamp"
     )
 
     logger.info(f"  Generated known_covariates for {len(future_dates)} future dates")
-    logger.info(f"  Future date range: {future_dates[0].date()} to {future_dates[-1].date()}")
+    logger.info(
+        f"  Future date range: {future_dates[0].date()} to {future_dates[-1].date()}"
+    )
 
     return known_covariates
 
 
-def generate_quantile_forecasts(predictor, ts_data, horizon: int, as_of_date: datetime) -> pd.DataFrame:
+def generate_quantile_forecasts(
+    predictor, ts_data, horizon: int, as_of_date: datetime
+) -> pd.DataFrame:
     """
     Generate P10/P50/P90 quantile forecasts.
 
@@ -1219,15 +1477,16 @@ def generate_quantile_forecasts(predictor, ts_data, horizon: int, as_of_date: da
 # WRITE PATH
 # =============================================================================
 
+
 def save_forecasts(
     conn,
     predictions: pd.DataFrame,
     horizon: int,
     training_run_id: str,
-    as_of_date: datetime
+    as_of_date: datetime,
 ) -> int:
     """
-    Save forecasts to model.forecast_quantiles.
+    Save forecasts to forecasts.forecast_quantiles.
 
     Enforces idempotency: replaces existing rows for same (model_name, horizon, forecast_date).
     """
@@ -1243,10 +1502,13 @@ def save_forecasts(
 
     # Clear existing forecasts for this model/horizon
     with conn.cursor() as cur:
-        cur.execute("""
-            DELETE FROM model.forecast_quantiles
+        cur.execute(
+            """
+            DELETE FROM forecasts.forecast_quantiles
             WHERE model_name = %s AND horizon = %s
-        """, (model_name, horizon))
+        """,
+            (model_name, horizon),
+        )
     conn.commit()
     logger.info(f"  Cleared existing forecasts for {model_name} @ {horizon}d")
 
@@ -1264,24 +1526,26 @@ def save_forecasts(
             symbol = "ZL"
 
         # Convert to date
-        if hasattr(target_date, 'date'):
+        if hasattr(target_date, "date"):
             target_date = target_date.date()
 
-        batch.append((
-            model_name,
-            horizon,
-            as_of_date.date(),
-            target_date,
-            symbol,
-            float(row[p10_col]) if pd.notna(row[p10_col]) else None,
-            float(row[p50_col]) if pd.notna(row[p50_col]) else None,
-            float(row[p90_col]) if pd.notna(row[p90_col]) else None,
-            created_at,
-        ))
+        batch.append(
+            (
+                model_name,
+                horizon,
+                as_of_date.date(),
+                target_date,
+                symbol,
+                float(row[p10_col]) if pd.notna(row[p10_col]) else None,
+                float(row[p50_col]) if pd.notna(row[p50_col]) else None,
+                float(row[p90_col]) if pd.notna(row[p90_col]) else None,
+                created_at,
+            )
+        )
 
     # Plain INSERT - idempotency already handled by DELETE above
     insert_query = """
-        INSERT INTO model.forecast_quantiles
+        INSERT INTO forecasts.forecast_quantiles
             (model_name, horizon, forecast_date, target_date, symbol, p10, p50, p90, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
@@ -1290,7 +1554,7 @@ def save_forecasts(
         execute_batch(cur, insert_query, batch, page_size=100)
     conn.commit()
 
-    logger.info(f"  Saved {len(batch)} forecasts to model.forecast_quantiles")
+    logger.info(f"  Saved {len(batch)} forecasts to forecasts.forecast_quantiles")
     return len(batch)
 
 
@@ -1298,10 +1562,9 @@ def save_forecasts(
 # MAIN EXECUTION
 # =============================================================================
 
+
 def generate_forecast_for_horizon(
-    conn,
-    training_run_id: str,
-    force: bool = False
+    conn, training_run_id: str, force: bool = False
 ) -> int:
     """
     Generate forecast for a single horizon (derived from training_run_id).
@@ -1360,7 +1623,9 @@ def generate_forecast_for_horizon(
     predictions = generate_quantile_forecasts(predictor, ts_data, horizon, as_of_date)
 
     # Step 8: Write to database
-    rows_written = save_forecasts(conn, predictions, horizon, training_run_id, as_of_date)
+    rows_written = save_forecasts(
+        conn, predictions, horizon, training_run_id, as_of_date
+    )
 
     logger.info(f"\n{'='*60}")
     logger.info(f"FORECAST COMPLETE: {training_run_id}")
@@ -1381,31 +1646,21 @@ def main():
     parser.add_argument(
         "--training-run-id",
         type=str,
-        help="Full training run ID (e.g., core_v15_21d_20260102_5cc6801)"
+        help="Full training run ID (e.g., core_v15_21d_20260102_5cc6801)",
     )
 
     # Option 2: Build training_run_id from components
     parser.add_argument(
-        "--horizon",
-        type=str,
-        help="Horizon in days (5, 21, 63) or 'all'"
+        "--horizon", type=str, help="Horizon in days (5, 21, 63) or 'all'"
     )
-    parser.add_argument(
-        "--date",
-        type=str,
-        help="Training date (YYYYMMDD)"
-    )
-    parser.add_argument(
-        "--git-sha",
-        type=str,
-        help="Git short SHA"
-    )
+    parser.add_argument("--date", type=str, help="Training date (YYYYMMDD)")
+    parser.add_argument("--git-sha", type=str, help="Git short SHA")
 
     # Flags
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Force regeneration even if model unchanged"
+        help="Force regeneration even if model unchanged",
     )
 
     args = parser.parse_args()
@@ -1423,7 +1678,9 @@ def main():
             horizon = int(args.horizon)
             training_run_ids = [build_training_run_id(horizon, args.date, args.git_sha)]
     else:
-        parser.error("Provide either --training-run-id or (--horizon, --date, --git-sha)")
+        parser.error(
+            "Provide either --training-run-id or (--horizon, --date, --git-sha)"
+        )
 
     # Connect to database
     try:

@@ -415,19 +415,19 @@ class GrafanaRegistry:
             conn.close()
 
     def refresh_data_quality(self):
-        """Refresh data_quality_metrics from raw tables."""
+        """Refresh data_quality_metrics from landing tables."""
         from datetime import date
 
         sources = [
-            ("Market Futures (1D)", "raw.market_futures_1d", "event_date"),
-            ("FRED Economic", "raw.fred_observations_1d", "event_date"),
-            ("FX Spot", "raw.fx_spot_1d", "event_date"),
-            ("CFTC COT", "raw.cftc_cot_1w", "event_date"),
-            ("Weather NOAA", "raw.weather_noaa_1d", "event_date"),
-            ("EPA RIN", "raw.epa_rin_prices_1d", "event_date"),
-            ("USDA Exports", "raw.usda_export_sales_1w", "event_date"),
-            ("USDA WASDE", "raw.usda_wasde_1m", "event_date"),
-            ("News Articles", "raw.news_articles_1d", "published_at"),
+            ("Market Futures (1D)", "mkt.futures_1d", "event_date"),
+            ("FRED Economic", "econ.rates_1d", "event_date"),
+            ("FX Spot", "mkt.fx_1d", "event_date"),
+            ("CFTC COT", "pos.cftc_1w", "event_date"),
+            ("Weather NOAA", "alt.weather_1d", "event_date"),
+            ("EPA RIN", "supply.epa_rin_1d", "event_date"),
+            ("USDA Exports", "supply.usda_exports_1w", "event_date"),
+            ("USDA WASDE", "supply.usda_wasde_1m", "event_date"),
+            ("News Articles", "alt.news_1d", "published_at"),
         ]
 
         conn = self._get_conn()

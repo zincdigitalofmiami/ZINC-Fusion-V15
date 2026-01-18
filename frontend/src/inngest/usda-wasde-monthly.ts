@@ -213,7 +213,7 @@ export const usdaWasdeMonthly = inngest.createFunction(
     try {
       await step.run("assert-tables", async () => {
         await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
-        await client.query("SELECT 1 FROM raw.usda_wasde_1m LIMIT 1");
+        await client.query("SELECT 1 FROM supply.usda_wasde_1m LIMIT 1");
       });
 
       runId = await step.run("create-ingest-run", async () => {
@@ -229,7 +229,7 @@ export const usdaWasdeMonthly = inngest.createFunction(
       const existingCount = await step.run("check-existing", async () => {
         const r = await client.query(
           `SELECT COUNT(*)::int AS n
-           FROM raw.usda_wasde_1m
+           FROM supply.usda_wasde_1m
            WHERE event_date = $1::date AND source = 'usda_wasde_cornell'`,
           [release.reportDate]
         );
@@ -265,7 +265,7 @@ export const usdaWasdeMonthly = inngest.createFunction(
             ]);
 
             await client.query(
-              `INSERT INTO raw.usda_wasde_1m
+              `INSERT INTO supply.usda_wasde_1m
                  (event_date, commodity, country, metric, value, unit, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at, knowledge_time)
                VALUES
                  ($1::date, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, NOW(), $13::timestamptz)`,

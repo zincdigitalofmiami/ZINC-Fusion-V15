@@ -1,7 +1,7 @@
 /**
  * NOAA Weather (1D) Bronze Ingestion
  *
- * Refreshes `raw.weather_noaa_1d` using NOAA CDO API (GHCN-Daily).
+ * Refreshes `alt.weather_1d` using NOAA CDO API (GHCN-Daily).
  * Pulls only incremental dates per station (no synthetic data, no schema creation).
  */
 
@@ -75,7 +75,7 @@ async function updateIngestRun(
 
 async function eventStationExists(client: PoolClient, stationId: string, eventDate: string): Promise<boolean> {
   const r = await client.query(
-    `SELECT 1 FROM raw.weather_noaa_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
+    `SELECT 1 FROM alt.weather_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
     [stationId, eventDate]
   );
   return r.rows.length > 0;
@@ -90,7 +90,7 @@ async function getStations(client: PoolClient): Promise<
             MAX(region)::text as region,
             MAX(country)::text as country,
             MAX(specialist_bucket)::text as specialist_bucket
-     FROM raw.weather_noaa_1d
+     FROM alt.weather_1d
      GROUP BY station_id
      ORDER BY station_id`
   );
@@ -233,7 +233,7 @@ export const noaaWeatherDaily = inngest.createFunction(
             const tags = station.specialist_bucket ? [station.specialist_bucket] : [];
 
             await client.query(
-              `INSERT INTO raw.weather_noaa_1d
+              `INSERT INTO alt.weather_1d
                 (station_id, event_date,
                  tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm, awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms,
                  region, country, specialist_bucket,

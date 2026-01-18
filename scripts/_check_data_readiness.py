@@ -18,7 +18,7 @@ print("=" * 60)
 cur.execute(
     """
     SELECT COUNT(*), MIN(event_date), MAX(event_date) 
-    FROM raw.market_futures_1d 
+    FROM mkt.futures_1d 
     WHERE symbol='ZL'
 """
 )
@@ -30,7 +30,7 @@ print(f"   Date range: {zl_min} to {zl_max}")
 cur.execute(
     """
     SELECT symbol, COUNT(*), MIN(event_date), MAX(event_date)
-    FROM raw.market_futures_1d 
+    FROM mkt.futures_1d 
     WHERE symbol IN ('ZS', 'ZM')
     GROUP BY symbol
 """
@@ -42,9 +42,26 @@ for symbol, count, min_date, max_date in cur.fetchall():
 # Check FRED series
 fred_series = ["DCOILWTICO", "VIXCLS", "DTWEXBGS"]
 cur.execute(
-    f"""
+    """
+    WITH econ AS (
+        SELECT series_id, event_date FROM econ.rates_1d
+        UNION ALL
+        SELECT series_id, event_date FROM econ.inflation_1d
+        UNION ALL
+        SELECT series_id, event_date FROM econ.labor_1d
+        UNION ALL
+        SELECT series_id, event_date FROM econ.activity_1d
+        UNION ALL
+        SELECT series_id, event_date FROM econ.vol_indices_1d
+        UNION ALL
+        SELECT series_id, event_date FROM econ.commodities_1d
+        UNION ALL
+        SELECT pair as series_id, event_date FROM mkt.fx_1d WHERE source = 'FRED'
+        UNION ALL
+        SELECT series_id, event_date FROM econ.money_1d
+    )
     SELECT series_id, COUNT(*), MIN(event_date), MAX(event_date)
-    FROM raw.fred_observations_1d 
+    FROM econ
     WHERE series_id IN %s
     GROUP BY series_id
 """,
@@ -61,24 +78,27 @@ if len(fred_results) < len(fred_series):
     for m in missing:
         print(f"   ❌ {m}: MISSING")
 
-# Check COT
-cur.execute(
+# Legacy COT (raw.cftc_cot_1w) - optional in schema v2
+try:
+    cur.execute(
+        """
+        SELECT COUNT(*), MIN(event_date), MAX(event_date)
+        FROM raw.cftc_cot_1w 
+        WHERE symbol='ZL'
     """
-    SELECT COUNT(*), MIN(event_date), MAX(event_date)
-    FROM raw.cftc_cot_1w 
-    WHERE symbol='ZL'
-"""
-)
-cot_count, cot_min, cot_max = cur.fetchone()
-print(f"\n✅ CFTC COT (ZL): {cot_count:,} rows")
-if cot_count > 0:
-    print(f"   Date range: {cot_min} to {cot_max}")
+    )
+    cot_count, cot_min, cot_max = cur.fetchone()
+    print(f"\n✅ Legacy CFTC COT (ZL): {cot_count:,} rows")
+    if cot_count > 0:
+        print(f"   Date range: {cot_min} to {cot_max}")
+except Exception:
+    print("\n⚠️  Legacy CFTC COT check skipped (raw.cftc_cot_1w not available)")
 
 # Check for 7 years of data (tactical requirement)
 cur.execute(
     """
     SELECT COUNT(*) 
-    FROM raw.market_futures_1d 
+    FROM mkt.futures_1d 
     WHERE symbol='ZL' 
       AND event_date >= CURRENT_DATE - INTERVAL '7 years'
 """

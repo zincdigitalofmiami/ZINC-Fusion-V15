@@ -7,13 +7,14 @@ async function check() {
   
   try {
     // Check OOF predictions by specialist
+    // Note: oof_predictions uses as_of_date, not event_date
     const oofStats = await prisma.$queryRaw`
-      SELECT 
+      SELECT
         specialist,
         horizon,
         COUNT(*)::int as row_count,
-        MIN(event_date)::date as earliest,
-        MAX(event_date)::date as latest
+        MIN(as_of_date)::date as earliest,
+        MAX(as_of_date)::date as latest
       FROM model.oof_predictions
       GROUP BY specialist, horizon
       ORDER BY specialist, horizon

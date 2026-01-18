@@ -3,7 +3,7 @@
 ZINC-FUSION-V15: WhiteHouse Actions Scraper
 
 Scrapes presidential actions from whitehouse.gov and populates
-raw.whitehouse_actions_event table.
+alt.legislation_1d table.
 
 Sources:
 - Executive Orders
@@ -18,6 +18,8 @@ import os
 import re
 import json
 import hashlib
+import sys
+from pathlib import Path
 import requests
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
@@ -25,6 +27,13 @@ import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Add src to path for shared tagging module
+_src_path = Path(__file__).parent.parent / "src"
+if str(_src_path) not in sys.path:
+    sys.path.insert(0, str(_src_path))
+
+from fusion.tagging import classify_specialists
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 HEADERS = {
@@ -175,10 +184,10 @@ def import_from_federal_register(conn) -> int:
             title,
             source_url,
             abstract
-        FROM raw.legislation_federal_register_1d
+        FROM alt.legislation_1d
         WHERE document_type = 'Presidential Document'
           AND NOT EXISTS (
-              SELECT 1 FROM raw.whitehouse_actions_event wae
+              SELECT 1 FROM alt.legislation_1d wae
               WHERE wae.title = legislation_federal_register_1d.title
                 AND wae.action_date = legislation_federal_register_1d.event_date
           )
@@ -209,7 +218,7 @@ def import_from_federal_register(conn) -> int:
         
         try:
             cur.execute("""
-                INSERT INTO raw.whitehouse_actions_event
+                INSERT INTO alt.legislation_1d
                 (action_date, action_type, title, url, summary, source_url, row_hash, 
                  event_date, scraped_at, validation_status, specialist_tags)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'validated', %s)
@@ -243,7 +252,7 @@ def main():
     print("✅ Connected to database")
     
     # Check current state
-    cur.execute("SELECT COUNT(*) FROM raw.whitehouse_actions_event")
+    cur.execute("SELECT COUNT(*) FROM alt.legislation_1d")
     existing_count = cur.fetchone()[0]
     print(f"📊 Current whitehouse_actions_event rows: {existing_count}")
     
@@ -309,28 +318,25 @@ def main():
         
         # Check if exists
         cur.execute(
-            "SELECT 1 FROM raw.whitehouse_actions_event WHERE row_hash = %s",
+            "SELECT 1 FROM alt.legislation_1d WHERE row_hash = %s",
             (row_hash,)
         )
         if cur.fetchone():
             skipped += 1
             continue
         
-        # Determine specialist tags
-        title_lower = action['title'].lower()
-        specialist_tags = ['trump_effect']
-        if any(w in title_lower for w in ['tariff', 'trade', 'import', 'export', 'china']):
-            specialist_tags.append('tariff')
-        if any(w in title_lower for w in ['china', 'chinese', 'beijing']):
-            specialist_tags.append('china')
-        if any(w in title_lower for w in ['oil', 'energy', 'petroleum', 'lng', 'gas']):
-            specialist_tags.append('energy')
-        if any(w in title_lower for w in ['biofuel', 'ethanol', 'biodiesel', 'renewable fuel']):
-            specialist_tags.append('biofuel')
+        # Determine specialist tags using shared classifier
+        specialist_tags = classify_specialists(action['title'])
+        # Whitehouse actions always get trump_effect tag
+        if 'trump_effect' not in specialist_tags:
+            specialist_tags.append('trump_effect')
+        # Remove "general" if other tags present
+        if len(specialist_tags) > 1 and 'general' in specialist_tags:
+            specialist_tags.remove('general')
         
         try:
             cur.execute("""
-                INSERT INTO raw.whitehouse_actions_event
+                INSERT INTO alt.legislation_1d
                 (action_date, action_type, title, url, source_url, row_hash, 
                  event_date, scraped_at, validation_status, specialist_tags)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), 'validated', %s)
@@ -367,7 +373,7 @@ def main():
             COUNT(*) as cnt,
             MIN(action_date) as min_date,
             MAX(action_date) as max_date
-        FROM raw.whitehouse_actions_event
+        FROM alt.legislation_1d
         GROUP BY action_type
         ORDER BY cnt DESC
     """)
@@ -381,7 +387,7 @@ def main():
     print(f"\n  Total: {total} actions")
     
     cur.execute("""
-        SELECT COUNT(*) FROM raw.whitehouse_actions_event
+        SELECT COUNT(*) FROM alt.legislation_1d
     """)
     final_count = cur.fetchone()[0]
     print(f"\n  Final table count: {final_count}")

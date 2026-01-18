@@ -120,382 +120,187 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.CftcCot1wScalarFieldEnum = {
+exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   id: 'id',
-  eventDate: 'eventDate',
+  tradeDate: 'tradeDate',
   symbol: 'symbol',
-  openInterest: 'openInterest',
-  prodMercLong: 'prodMercLong',
-  prodMercShort: 'prodMercShort',
-  swapLong: 'swapLong',
-  swapShort: 'swapShort',
-  managedMoneyLong: 'managedMoneyLong',
-  managedMoneyShort: 'managedMoneyShort',
-  otherReptLong: 'otherReptLong',
-  otherReptShort: 'otherReptShort',
-  nonreptLong: 'nonreptLong',
-  nonreptShort: 'nonreptShort',
-  prodMercNet: 'prodMercNet',
-  swapNet: 'swapNet',
-  managedMoneyNet: 'managedMoneyNet',
-  otherReptNet: 'otherReptNet',
-  nonreptNet: 'nonreptNet',
-  managedMoneyNetPctOi: 'managedMoneyNetPctOi',
-  prodMercNetPctOi: 'prodMercNetPctOi',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
-};
-
-exports.Prisma.EpaRinPrices1dScalarFieldEnum = {
-  id: 'id',
-  rinType: 'rinType',
-  eventDate: 'eventDate',
-  price: 'price',
+  hurst_exponent: 'hurst_exponent',
+  hurst_regime: 'hurst_regime',
+  connors_rsi: 'connors_rsi',
+  fisher_transform: 'fisher_transform',
+  fisher_signal: 'fisher_signal',
+  mcginley_dynamic: 'mcginley_dynamic',
+  ttm_squeeze_on: 'ttm_squeeze_on',
+  ttm_squeeze_momentum: 'ttm_squeeze_momentum',
+  schaff_trend_cycle: 'schaff_trend_cycle',
+  rvi: 'rvi',
+  rvi_signal: 'rvi_signal',
+  elder_force_index: 'elder_force_index',
+  kama_10: 'kama_10',
+  hma_20: 'hma_20',
+  alma_50: 'alma_50',
+  rsi_2: 'rsi_2',
+  rsi_14: 'rsi_14',
+  cumulative_rsi: 'cumulative_rsi',
+  macd: 'macd',
+  macd_signal: 'macd_signal',
+  macd_histogram: 'macd_histogram',
+  cci_14: 'cci_14',
+  cci_50: 'cci_50',
+  atr_10: 'atr_10',
+  atr_50: 'atr_50',
+  atr_ratio: 'atr_ratio',
+  garman_klass_vol: 'garman_klass_vol',
+  yang_zhang_vol: 'yang_zhang_vol',
+  bb_percent_b: 'bb_percent_b',
+  cmf_21: 'cmf_21',
+  volume_zscore: 'volume_zscore',
+  unusual_volume: 'unusual_volume',
   createdAt: 'createdAt',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  source: 'source',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
-};
-
-exports.Prisma.FredObservations1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  createdAt: 'createdAt',
-  source: 'source',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
-};
-
-exports.Prisma.FxSpot1dScalarFieldEnum = {
-  id: 'id',
-  pair: 'pair',
-  eventDate: 'eventDate',
-  rate: 'rate',
-  createdAt: 'createdAt',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  source: 'source',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
-};
-
-exports.Prisma.MarketFutures1dScalarFieldEnum = {
-  eventDate: 'eventDate',
-  symbol: 'symbol',
   open: 'open',
   high: 'high',
   low: 'low',
   close: 'close',
   volume: 'volume',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
+  returns_1d: 'returns_1d',
+  log_returns_1d: 'log_returns_1d',
+  range_pct: 'range_pct',
+  fred_bamlc0a0cm: 'fred_bamlc0a0cm',
+  fred_bamlh0a0hym2: 'fred_bamlh0a0hym2',
+  fred_chnmainlandtpu: 'fred_chnmainlandtpu',
+  fred_dcoilbrenteu: 'fred_dcoilbrenteu',
+  fred_dcoilwtico: 'fred_dcoilwtico',
+  fred_dexbzus: 'fred_dexbzus',
+  fred_dexcaus: 'fred_dexcaus',
+  fred_dexchus: 'fred_dexchus',
+  fred_dexinus: 'fred_dexinus',
+  fred_dexjpus: 'fred_dexjpus',
+  fred_dexkous: 'fred_dexkous',
+  fred_dexmaus: 'fred_dexmaus',
+  fred_dexmxus: 'fred_dexmxus',
+  fred_dexsfus: 'fred_dexsfus',
+  fred_dexthus: 'fred_dexthus',
+  fred_dexusal: 'fred_dexusal',
+  fred_dexuseu: 'fred_dexuseu',
+  fred_dgasusgulf: 'fred_dgasusgulf',
+  fred_dgs10: 'fred_dgs10',
+  fred_dgs1mo: 'fred_dgs1mo',
+  fred_dgs2: 'fred_dgs2',
+  fred_dgs20: 'fred_dgs20',
+  fred_dgs30: 'fred_dgs30',
+  fred_dgs3mo: 'fred_dgs3mo',
+  fred_dgs5: 'fred_dgs5',
+  fred_dhhngsp: 'fred_dhhngsp',
+  fred_dhoilnyh: 'fred_dhoilnyh',
+  fred_djfuelusgulf: 'fred_djfuelusgulf',
+  fred_dprime: 'fred_dprime',
+  fred_dpropanembtx: 'fred_dpropanembtx',
+  fred_dxy: 'fred_dxy',
+  fred_emvtradepolemv: 'fred_emvtradepolemv',
+  fred_eputrade: 'fred_eputrade',
+  fred_fedfunds: 'fred_fedfunds',
+  fred_gdp: 'fred_gdp',
+  fred_gdpc1: 'fred_gdpc1',
+  fred_indpro: 'fred_indpro',
+  fred_m2sl: 'fred_m2sl',
+  fred_nfci: 'fred_nfci',
+  fred_payems: 'fred_payems',
+  fred_pce: 'fred_pce',
+  fred_pcepi: 'fred_pcepi',
+  fred_pcoppusdm: 'fred_pcoppusdm',
+  fred_pmaizmtusdm: 'fred_pmaizmtusdm',
+  fred_ppoilusdm: 'fred_ppoilusdm',
+  fred_proilusdm: 'fred_proilusdm',
+  fred_psoilusdm: 'fred_psoilusdm',
+  fred_psoybusdm: 'fred_psoybusdm',
+  fred_pwheamtusdm: 'fred_pwheamtusdm',
+  fred_stlfsi4: 'fred_stlfsi4',
+  fred_t10y2y: 'fred_t10y2y',
+  fred_t10y3m: 'fred_t10y3m',
+  fred_t10yie: 'fred_t10yie',
+  fred_tedrate: 'fred_tedrate',
+  fred_umcsent: 'fred_umcsent',
+  fred_unrate: 'fred_unrate',
+  fred_usepuindxd: 'fred_usepuindxd',
+  fred_usepuindxm: 'fred_usepuindxm',
+  fred_vixcls: 'fred_vixcls',
+  fred_walcl: 'fred_walcl',
+  fx_usdbrl: 'fx_usdbrl',
+  fx_usdcny: 'fx_usdcny',
+  fx_usdeur: 'fx_usdeur',
+  fx_usdgbp: 'fx_usdgbp',
+  fx_usdjpy: 'fx_usdjpy',
+  target_ret_5d: 'target_ret_5d',
+  target_ret_21d: 'target_ret_21d',
+  target_ret_63d: 'target_ret_63d',
+  target_ret_126d: 'target_ret_126d',
+  matrixVersion: 'matrixVersion'
 };
 
-exports.Prisma.MarketFutures1hScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  eventTime: 'eventTime',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  source: 'source',
-  createdAt: 'createdAt',
-  knowledgeTime: 'knowledgeTime',
-  revisionNo: 'revisionNo',
-  supersedesId: 'supersedesId',
-  isPreliminary: 'isPreliminary',
-  validationStatus: 'validationStatus',
-  qualityScore: 'qualityScore',
-  anomalyFlags: 'anomalyFlags',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags'
-};
-
-exports.Prisma.NewsArticles1dScalarFieldEnum = {
-  id: 'id',
-  articleId: 'articleId',
-  event_date: 'event_date',
-  publishedAt: 'publishedAt',
-  headline: 'headline',
-  content: 'content',
-  url: 'url',
-  author: 'author',
-  bucketName: 'bucketName',
-  source: 'source',
-  sentimentScore: 'sentimentScore',
-  zlSentiment: 'zlSentiment',
-  isTrumpRelated: 'isTrumpRelated',
-  createdAt: 'createdAt',
-  contentHash: 'contentHash',
-  ingestedAt: 'ingestedAt',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.OptionsFutures1dScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  event_date: 'event_date',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  expiration: 'expiration',
-  strike: 'strike',
-  optionType: 'optionType',
-  createdAt: 'createdAt',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source: 'source',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.UsdaExportSales1wScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  commodity: 'commodity',
-  destinationCountry: 'destinationCountry',
-  netSalesMt: 'netSalesMt',
-  exportsMt: 'exportsMt',
-  outstandingSalesMt: 'outstandingSalesMt',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.UsdaWasde1mScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  commodity: 'commodity',
-  country: 'country',
-  metric: 'metric',
-  value: 'value',
-  unit: 'unit',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.WeatherNoaa1dScalarFieldEnum = {
-  id: 'id',
-  stationId: 'stationId',
-  event_date: 'event_date',
-  tavgC: 'tavgC',
-  tminC: 'tminC',
-  tmaxC: 'tmaxC',
-  prcpMm: 'prcpMm',
-  snowMm: 'snowMm',
-  region: 'region',
-  ingestedAt: 'ingestedAt',
-  awndMs: 'awndMs',
-  specialistBucket: 'specialistBucket',
-  country: 'country',
-  snwdMm: 'snwdMm',
-  evapMm: 'evapMm',
-  rhavPct: 'rhavPct',
-  wsfgMs: 'wsfgMs',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source: 'source',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.YahooEquity1dScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  event_date: 'event_date',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  adjClose: 'adjClose',
-  volume: 'volume',
-  createdAt: 'createdAt',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source: 'source',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.CoreFeaturesScalarFieldEnum = {
+exports.Prisma.TrainingFeatures1dScalarFieldEnum = {
   id: 'id',
   asOfDate: 'asOfDate',
   features: 'features'
 };
 
-exports.Prisma.OptionsFeaturesScalarFieldEnum = {
+exports.Prisma.OofCore1dScalarFieldEnum = {
   id: 'id',
-  underlying: 'underlying',
-  asOfDate: 'asOfDate',
-  expiryBucket: 'expiryBucket',
-  ivAtmCall: 'ivAtmCall',
-  ivAtmPut: 'ivAtmPut',
-  ivSkew: 'ivSkew',
-  ivTermStructure: 'ivTermStructure',
-  ivPercentile30d: 'ivPercentile30d',
-  ivRank: 'ivRank',
-  deltaWeightedOiCall: 'deltaWeightedOiCall',
-  deltaWeightedOiPut: 'deltaWeightedOiPut',
-  gammaExposure: 'gammaExposure',
-  netGamma: 'netGamma',
-  vegaExposure: 'vegaExposure',
-  thetaDecay: 'thetaDecay',
-  putCallRatioVolume: 'putCallRatioVolume',
-  putCallRatioOi: 'putCallRatioOi',
-  totalVolume: 'totalVolume',
-  totalOpenInterest: 'totalOpenInterest',
-  skewZscore: 'skewZscore',
-  gammaFlipLevel: 'gammaFlipLevel',
-  maxPainStrike: 'maxPainStrike',
-  createdAt: 'createdAt'
+  tradeDate: 'tradeDate',
+  symbol: 'symbol',
+  horizonDays: 'horizonDays',
+  windowId: 'windowId',
+  cutoffDate: 'cutoffDate',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  targetValue: 'targetValue',
+  trainedAt: 'trainedAt',
+  runHash: 'runHash',
+  matrixVersion: 'matrixVersion'
 };
 
-exports.Prisma.OptionsGreeksScalarFieldEnum = {
+exports.Prisma.MetaInputs1dScalarFieldEnum = {
   id: 'id',
-  instrumentId: 'instrumentId',
-  rawSymbol: 'rawSymbol',
-  underlying: 'underlying',
-  asOfDate: 'asOfDate',
-  expirationDate: 'expirationDate',
-  strikePrice: 'strikePrice',
-  optionType: 'optionType',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  underlyingPrice: 'underlyingPrice',
-  riskFreeRate: 'riskFreeRate',
-  impliedVol: 'impliedVol',
-  delta: 'delta',
-  gamma: 'gamma',
-  theta: 'theta',
-  vega: 'vega',
-  daysToExpiry: 'daysToExpiry',
-  moneyness: 'moneyness',
-  expiryBucket: 'expiryBucket',
+  tradeDate: 'tradeDate',
+  symbol: 'symbol',
+  horizonDays: 'horizonDays',
+  coreP30: 'coreP30',
+  coreP50: 'coreP50',
+  coreP70: 'coreP70',
+  biofuel_p30: 'biofuel_p30',
+  biofuel_p50: 'biofuel_p50',
+  biofuel_p70: 'biofuel_p70',
+  china_p30: 'china_p30',
+  china_p50: 'china_p50',
+  china_p70: 'china_p70',
+  crush_p30: 'crush_p30',
+  crush_p50: 'crush_p50',
+  crush_p70: 'crush_p70',
+  energy_p30: 'energy_p30',
+  energy_p50: 'energy_p50',
+  energy_p70: 'energy_p70',
+  fed_p30: 'fed_p30',
+  fed_p50: 'fed_p50',
+  fed_p70: 'fed_p70',
+  fx_p30: 'fx_p30',
+  fx_p50: 'fx_p50',
+  fx_p70: 'fx_p70',
+  palm_p30: 'palm_p30',
+  palm_p50: 'palm_p50',
+  palm_p70: 'palm_p70',
+  substitutes_p30: 'substitutes_p30',
+  substitutes_p50: 'substitutes_p50',
+  substitutes_p70: 'substitutes_p70',
+  tariff_p30: 'tariff_p30',
+  tariff_p50: 'tariff_p50',
+  tariff_p70: 'tariff_p70',
+  trump_effect_p30: 'trump_effect_p30',
+  trump_effect_p50: 'trump_effect_p50',
+  trump_effect_p70: 'trump_effect_p70',
+  volatility_p30: 'volatility_p30',
+  volatility_p50: 'volatility_p50',
+  volatility_p70: 'volatility_p70',
+  targetValue: 'targetValue',
   createdAt: 'createdAt'
 };
 
@@ -985,13 +790,15 @@ exports.Prisma.OofPredictionsScalarFieldEnum = {
   horizon: 'horizon',
   asOfDate: 'asOfDate',
   symbol: 'symbol',
-  predP10: 'predP10',
   predP50: 'predP50',
-  predP90: 'predP90',
   actual: 'actual',
   foldId: 'foldId',
   createdAt: 'createdAt',
-  model_version: 'model_version'
+  model_version: 'model_version',
+  predP30: 'predP30',
+  predP70: 'predP70',
+  predP10Cal: 'predP10Cal',
+  predP90Cal: 'predP90Cal'
 };
 
 exports.Prisma.RegimeProbabilitiesScalarFieldEnum = {
@@ -1232,30 +1039,6 @@ exports.Prisma.SymbolMappingScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.FxRates1dScalarFieldEnum = {
-  id: 'id',
-  trade_date: 'trade_date',
-  canonical_id: 'canonical_id',
-  rate: 'rate',
-  source_table: 'source_table',
-  source_symbol: 'source_symbol',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.FuturesPrices1dScalarFieldEnum = {
-  id: 'id',
-  trade_date: 'trade_date',
-  canonical_id: 'canonical_id',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  source_table: 'source_table',
-  source_symbol: 'source_symbol',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.IntelDropScalarFieldEnum = {
   id: 'id',
   asOfTs: 'asOfTs',
@@ -1362,6 +1145,104 @@ exports.Prisma.Elite_indicators_1dScalarFieldEnum = {
   range_pct: 'range_pct'
 };
 
+exports.Prisma.FeaturesOptions1dScalarFieldEnum = {
+  id: 'id',
+  tradeDate: 'tradeDate',
+  symbol: 'symbol',
+  ivAtm: 'ivAtm',
+  ivCall: 'ivCall',
+  ivPut: 'ivPut',
+  skew: 'skew',
+  putCallRatioOi: 'putCallRatioOi',
+  putCallRatioVol: 'putCallRatioVol',
+  deltaWeightedOiNet: 'deltaWeightedOiNet',
+  deltaCall: 'deltaCall',
+  deltaPut: 'deltaPut',
+  oiCall: 'oiCall',
+  oiPut: 'oiPut',
+  volCall: 'volCall',
+  volPut: 'volPut',
+  ivAtmZ: 'ivAtmZ',
+  ivCallZ: 'ivCallZ',
+  ivPutZ: 'ivPutZ',
+  skewZ: 'skewZ',
+  putCallRatioOiZ: 'putCallRatioOiZ',
+  putCallRatioVolZ: 'putCallRatioVolZ',
+  deltaWeightedOiNetZ: 'deltaWeightedOiNetZ',
+  deltaCallZ: 'deltaCallZ',
+  deltaPutZ: 'deltaPutZ',
+  computedAt: 'computedAt',
+  optionsVersion: 'optionsVersion'
+};
+
+exports.Prisma.FeaturesWeather1dScalarFieldEnum = {
+  id: 'id',
+  tradeDate: 'tradeDate',
+  wxArTavgC: 'wxArTavgC',
+  wxBrTavgC: 'wxBrTavgC',
+  wxUsTavgC: 'wxUsTavgC',
+  wxArTminC: 'wxArTminC',
+  wxBrTminC: 'wxBrTminC',
+  wxUsTminC: 'wxUsTminC',
+  wxArTmaxC: 'wxArTmaxC',
+  wxBrTmaxC: 'wxBrTmaxC',
+  wxUsTmaxC: 'wxUsTmaxC',
+  wxArPrcpMm: 'wxArPrcpMm',
+  wxBrPrcpMm: 'wxBrPrcpMm',
+  wxUsPrcpMm: 'wxUsPrcpMm',
+  wxArPrcpMmTotal: 'wxArPrcpMmTotal',
+  wxBrPrcpMmTotal: 'wxBrPrcpMmTotal',
+  wxUsPrcpMmTotal: 'wxUsPrcpMmTotal',
+  wxArSnowMm: 'wxArSnowMm',
+  wxBrSnowMm: 'wxBrSnowMm',
+  wxUsSnowMm: 'wxUsSnowMm',
+  wxArRhavPct: 'wxArRhavPct',
+  wxBrRhavPct: 'wxBrRhavPct',
+  wxUsRhavPct: 'wxUsRhavPct',
+  wxArAwndMs: 'wxArAwndMs',
+  wxBrAwndMs: 'wxBrAwndMs',
+  wxUsAwndMs: 'wxUsAwndMs',
+  wxArStationCount: 'wxArStationCount',
+  wxBrStationCount: 'wxBrStationCount',
+  wxUsStationCount: 'wxUsStationCount',
+  wxUsTempAnom30d: 'wxUsTempAnom30d',
+  wxUsTempVol7d: 'wxUsTempVol7d',
+  wxBrTempAnom30d: 'wxBrTempAnom30d',
+  wxBrTempVol7d: 'wxBrTempVol7d',
+  wxArTempAnom30d: 'wxArTempAnom30d',
+  wxArTempVol7d: 'wxArTempVol7d',
+  wxUsPrcpAnom30d: 'wxUsPrcpAnom30d',
+  wxUsPrcp7dSum: 'wxUsPrcp7dSum',
+  wxUsPrcp14dSum: 'wxUsPrcp14dSum',
+  wxBrPrcpAnom30d: 'wxBrPrcpAnom30d',
+  wxBrPrcp7dSum: 'wxBrPrcp7dSum',
+  wxBrPrcp14dSum: 'wxBrPrcp14dSum',
+  wxArPrcpAnom30d: 'wxArPrcpAnom30d',
+  wxArPrcp7dSum: 'wxArPrcp7dSum',
+  wxArPrcp14dSum: 'wxArPrcp14dSum',
+  wxUsGdd10c: 'wxUsGdd10c',
+  wxUsGdd30dSum: 'wxUsGdd30dSum',
+  wxBrGdd10c: 'wxBrGdd10c',
+  wxBrGdd30dSum: 'wxBrGdd30dSum',
+  wxArGdd10c: 'wxArGdd10c',
+  wxArGdd30dSum: 'wxArGdd30dSum',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FeaturesNewsSentiment1dScalarFieldEnum = {
+  id: 'id',
+  rawId: 'rawId',
+  tradeDate: 'tradeDate',
+  sentimentScore: 'sentimentScore',
+  zlSentiment: 'zlSentiment',
+  canonicalBucket: 'canonicalBucket',
+  isTrumpRelated: 'isTrumpRelated',
+  relevanceScore: 'relevanceScore',
+  specialistTags: 'specialistTags',
+  ingestedAt: 'ingestedAt',
+  modelVersion: 'modelVersion'
+};
+
 exports.Prisma.Specialist_driversScalarFieldEnum = {
   id: 'id',
   driver_id: 'driver_id',
@@ -1446,14 +1327,14 @@ exports.Prisma.Prediction_accuracyScalarFieldEnum = {
   prediction_date: 'prediction_date',
   target_date: 'target_date',
   actual: 'actual',
-  pred_p10: 'pred_p10',
   pred_p50: 'pred_p50',
-  pred_p90: 'pred_p90',
   error: 'error',
   abs_error: 'abs_error',
   pct_error: 'pct_error',
   in_80_band: 'in_80_band',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  pred_p10: 'pred_p10',
+  pred_p90: 'pred_p90'
 };
 
 exports.Prisma.Source_relabel_auditScalarFieldEnum = {
@@ -1502,337 +1383,6 @@ exports.Prisma.Training_runsScalarFieldEnum = {
   artifact_path: 'artifact_path',
   log_path: 'log_path',
   created_at: 'created_at'
-};
-
-exports.Prisma.Cftc_cits_1wScalarFieldEnum = {
-  id: 'id',
-  report_date: 'report_date',
-  contract_code: 'contract_code',
-  symbol: 'symbol',
-  report_type: 'report_type',
-  market_participation: 'market_participation',
-  non_commercial_longs: 'non_commercial_longs',
-  non_commercial_shorts: 'non_commercial_shorts',
-  non_commercial_spreads: 'non_commercial_spreads',
-  commercial_longs: 'commercial_longs',
-  commercial_shorts: 'commercial_shorts',
-  total_reportable_longs: 'total_reportable_longs',
-  total_reportable_shorts: 'total_reportable_shorts',
-  non_reportable_longs: 'non_reportable_longs',
-  non_reportable_shorts: 'non_reportable_shorts',
-  index_trader_longs: 'index_trader_longs',
-  index_trader_shorts: 'index_trader_shorts',
-  index_trader_net: 'index_trader_net',
-  non_commercial_net: 'non_commercial_net',
-  commercial_net: 'commercial_net',
-  source: 'source',
-  ingested_at: 'ingested_at',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  event_date: 'event_date'
-};
-
-exports.Prisma.Fred_series_staticScalarFieldEnum = {
-  id: 'id',
-  series_id: 'series_id',
-  title: 'title',
-  observation_start: 'observation_start',
-  observation_end: 'observation_end',
-  frequency: 'frequency',
-  units: 'units',
-  seasonal_adjustment: 'seasonal_adjustment',
-  last_updated: 'last_updated',
-  source: 'source',
-  notes: 'notes',
-  created_at: 'created_at',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags'
-};
-
-exports.Prisma.Legislation_federal_register_1dScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  document_number: 'document_number',
-  document_type: 'document_type',
-  title: 'title',
-  abstract: 'abstract',
-  agency: 'agency',
-  publication_date: 'publication_date',
-  effective_date: 'effective_date',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Aei_articles_eventScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  title: 'title',
-  description: 'description',
-  link: 'link',
-  pub_date: 'pub_date',
-  guid: 'guid',
-  author: 'author',
-  categories: 'categories',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Cbp_trade_eventScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  title: 'title',
-  description: 'description',
-  link: 'link',
-  pub_date: 'pub_date',
-  guid: 'guid',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Conab_news_eventScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  title: 'title',
-  description: 'description',
-  link: 'link',
-  pub_date: 'pub_date',
-  guid: 'guid',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Farmdoc_articles_eventScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  title: 'title',
-  description: 'description',
-  link: 'link',
-  pub_date: 'pub_date',
-  guid: 'guid',
-  author: 'author',
-  categories: 'categories',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Ice_releases_eventScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  title: 'title',
-  description: 'description',
-  link: 'link',
-  pub_date: 'pub_date',
-  guid: 'guid',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.Nyfed_rates_1dScalarFieldEnum = {
-  id: 'id',
-  event_date: 'event_date',
-  rate_type: 'rate_type',
-  percent_rate: 'percent_rate',
-  percentile_1: 'percentile_1',
-  percentile_25: 'percentile_25',
-  percentile_75: 'percentile_75',
-  percentile_99: 'percentile_99',
-  volume_billions: 'volume_billions',
-  footnote_id: 'footnote_id',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  source: 'source'
-};
-
-exports.Prisma.News_articles_eventScalarFieldEnum = {
-  id: 'id',
-  original_id: 'original_id',
-  headline: 'headline',
-  content: 'content',
-  source: 'source',
-  published_at: 'published_at',
-  bucket_name: 'bucket_name',
-  sentiment_score: 'sentiment_score',
-  archived_at: 'archived_at',
-  archive_reason: 'archive_reason',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  event_date: 'event_date'
-};
-
-exports.Prisma.Usda_nass_eventScalarFieldEnum = {
-  id: 'id',
-  commodity_desc: 'commodity_desc',
-  short_desc: 'short_desc',
-  statisticcat_desc: 'statisticcat_desc',
-  unit_desc: 'unit_desc',
-  year: 'year',
-  freq_desc: 'freq_desc',
-  begin_code: 'begin_code',
-  end_code: 'end_code',
-  value: 'value',
-  cv_percent: 'cv_percent',
-  source_desc: 'source_desc',
-  state_alpha: 'state_alpha',
-  state_name: 'state_name',
-  ingested_at: 'ingested_at',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  event_date: 'event_date'
-};
-
-exports.Prisma.Whitehouse_actions_eventScalarFieldEnum = {
-  id: 'id',
-  action_date: 'action_date',
-  action_type: 'action_type',
-  title: 'title',
-  url: 'url',
-  summary: 'summary',
-  tags: 'tags',
-  scraped_at: 'scraped_at',
-  knowledge_time: 'knowledge_time',
-  revision_no: 'revision_no',
-  supersedes_id: 'supersedes_id',
-  is_preliminary: 'is_preliminary',
-  validation_status: 'validation_status',
-  quality_score: 'quality_score',
-  anomaly_flags: 'anomaly_flags',
-  source_url: 'source_url',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  row_hash: 'row_hash',
-  specialist_tags: 'specialist_tags',
-  event_date: 'event_date'
-};
-
-exports.Prisma.News_scored_1dScalarFieldEnum = {
-  id: 'id',
-  raw_id: 'raw_id',
-  published_at: 'published_at',
-  raw_bucket: 'raw_bucket',
-  canonical_bucket: 'canonical_bucket',
-  sentiment_score: 'sentiment_score',
-  sentiment_direction: 'sentiment_direction',
-  sentiment_confidence: 'sentiment_confidence',
-  is_zl_relevant: 'is_zl_relevant',
-  zl_impact_score: 'zl_impact_score',
-  affects_crush: 'affects_crush',
-  affects_china: 'affects_china',
-  affects_fx: 'affects_fx',
-  affects_fed: 'affects_fed',
-  affects_tariff: 'affects_tariff',
-  affects_energy: 'affects_energy',
-  affects_biofuel: 'affects_biofuel',
-  affects_palm: 'affects_palm',
-  affects_volatility: 'affects_volatility',
-  affects_substitutes: 'affects_substitutes',
-  affects_trump_effect: 'affects_trump_effect',
-  headline: 'headline',
-  source: 'source',
-  word_count: 'word_count',
-  matched_categories: 'matched_categories',
-  scored_at: 'scored_at',
-  scoring_model: 'scoring_model'
 };
 
 exports.Prisma.Zl_price_1hScalarFieldEnum = {
@@ -1902,7 +1452,7 @@ exports.Prisma.Trump_effect_1dScalarFieldEnum = {
   created_at: 'created_at'
 };
 
-exports.Prisma.Ai_decision_1dScalarFieldEnum = {
+exports.Prisma.Forecast_summary_1dScalarFieldEnum = {
   id: 'id',
   forecast_date: 'forecast_date',
   horizon_days: 'horizon_days',
@@ -1913,17 +1463,18 @@ exports.Prisma.Ai_decision_1dScalarFieldEnum = {
   coverage_error: 'coverage_error',
   regime: 'regime',
   regime_multiplier: 'regime_multiplier',
-  urgency_score: 'urgency_score',
-  posture_label: 'posture_label',
-  posture_message: 'posture_message',
   narrative: 'narrative',
   top_driver_1: 'top_driver_1',
   top_driver_2: 'top_driver_2',
   top_driver_3: 'top_driver_3',
-  recommended_pace: 'recommended_pace',
   model_version: 'model_version',
   ai_model: 'ai_model',
-  generated_at: 'generated_at'
+  generated_at: 'generated_at',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal'
 };
 
 exports.Prisma.Core_cone_1dScalarFieldEnum = {
@@ -2033,8 +1584,8 @@ exports.Prisma.VegasRestaurantScalarFieldEnum = {
   id: 'id',
   glideRowId: 'glideRowId',
   data: 'data',
-  cuisineType: 'cuisineType',
-  ingestedAt: 'ingestedAt'
+  ingestedAt: 'ingestedAt',
+  cuisineType: 'cuisineType'
 };
 
 exports.Prisma.VegasCasinoScalarFieldEnum = {
@@ -2211,17 +1762,842 @@ exports.Prisma.VegasDailySpendScalarFieldEnum = {
   importedAt: 'importedAt'
 };
 
+exports.Prisma.MktFutures1dScalarFieldEnum = {
+  eventDate: 'eventDate',
+  symbol: 'symbol',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  openInterest: 'openInterest',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.MktFutures1hScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  eventTime: 'eventTime',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  openInterest: 'openInterest',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.MktOptions1dScalarFieldEnum = {
+  id: 'id',
+  underlying: 'underlying',
+  eventDate: 'eventDate',
+  expiration: 'expiration',
+  strike: 'strike',
+  optionType: 'optionType',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  openInterest: 'openInterest',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.MktFx1dScalarFieldEnum = {
+  id: 'id',
+  pair: 'pair',
+  eventDate: 'eventDate',
+  rate: 'rate',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.MktEtf1dScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  eventDate: 'eventDate',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.MktOptionsGreeks1dScalarFieldEnum = {
+  id: 'id',
+  underlying: 'underlying',
+  eventDate: 'eventDate',
+  expiration: 'expiration',
+  strike: 'strike',
+  optionType: 'optionType',
+  lastPrice: 'lastPrice',
+  impliedVolatility: 'impliedVolatility',
+  delta: 'delta',
+  gamma: 'gamma',
+  theta: 'theta',
+  vega: 'vega',
+  ivSkew: 'ivSkew',
+  source: 'source',
+  rowHash: 'rowHash',
+  specialistTags: 'specialistTags',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EconRates1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconInflation1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconLabor1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconActivity1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconVolIndices1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconCommodities1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconFx1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.EconMoney1dScalarFieldEnum = {
+  id: 'id',
+  seriesId: 'seriesId',
+  eventDate: 'eventDate',
+  value: 'value',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.PosCftc1wScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  symbol: 'symbol',
+  openInterest: 'openInterest',
+  prodMercLong: 'prodMercLong',
+  prodMercShort: 'prodMercShort',
+  prodMercNet: 'prodMercNet',
+  swapLong: 'swapLong',
+  swapShort: 'swapShort',
+  swapNet: 'swapNet',
+  managedMoneyLong: 'managedMoneyLong',
+  managedMoneyShort: 'managedMoneyShort',
+  managedMoneyNet: 'managedMoneyNet',
+  otherReptLong: 'otherReptLong',
+  otherReptShort: 'otherReptShort',
+  otherReptNet: 'otherReptNet',
+  nonreptLong: 'nonreptLong',
+  nonreptShort: 'nonreptShort',
+  nonreptNet: 'nonreptNet',
+  managedMoneyNetPctOi: 'managedMoneyNetPctOi',
+  prodMercNetPctOi: 'prodMercNetPctOi',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.PosCftcCits1wScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash',
+  eventDate: 'eventDate',
+  citLong: 'citLong',
+  citNet: 'citNet',
+  citPctOi: 'citPctOi',
+  citShort: 'citShort'
+};
+
+exports.Prisma.SupplyUsdaWasde1mScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  commodity: 'commodity',
+  country: 'country',
+  metric: 'metric',
+  value: 'value',
+  unit: 'unit',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.SupplyUsdaExports1wScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  commodity: 'commodity',
+  destinationCountry: 'destinationCountry',
+  netSalesMt: 'netSalesMt',
+  exportsMt: 'exportsMt',
+  outstandingSalesMt: 'outstandingSalesMt',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.SupplyEpaRin1dScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  rinType: 'rinType',
+  price: 'price',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.SupplyWorldbankImports1yScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  countryCode: 'countryCode',
+  countryName: 'countryName',
+  region: 'region',
+  subRegion: 'subRegion',
+  intermediateRegion: 'intermediateRegion',
+  indicatorCode: 'indicatorCode',
+  indicatorName: 'indicatorName',
+  year: 'year',
+  importsPctGdp: 'importsPctGdp',
+  ingestedAt: 'ingestedAt'
+};
+
+exports.Prisma.AltNews1dScalarFieldEnum = {
+  id: 'id',
+  articleId: 'articleId',
+  eventDate: 'eventDate',
+  publishedAt: 'publishedAt',
+  headline: 'headline',
+  content: 'content',
+  url: 'url',
+  author: 'author',
+  source: 'source',
+  sentimentScore: 'sentimentScore',
+  zlSentiment: 'zlSentiment',
+  isTrumpRelated: 'isTrumpRelated',
+  specialistTags: 'specialistTags',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.AltWeather1dScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  stationId: 'stationId',
+  region: 'region',
+  country: 'country',
+  tmaxC: 'tmaxC',
+  tminC: 'tminC',
+  tavgC: 'tavgC',
+  prcpMm: 'prcpMm',
+  snowMm: 'snowMm',
+  snwdMm: 'snwdMm',
+  evapMm: 'evapMm',
+  rhavPct: 'rhavPct',
+  awndMs: 'awndMs',
+  wsfgMs: 'wsfgMs',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash'
+};
+
+exports.Prisma.AltLegislation1dScalarFieldEnum = {
+  id: 'id',
+  eventDate: 'eventDate',
+  documentNumber: 'documentNumber',
+  title: 'title',
+  agency: 'agency',
+  documentType: 'documentType',
+  action: 'action',
+  specialistTags: 'specialistTags',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  knowledgeTime: 'knowledgeTime',
+  rowHash: 'rowHash',
+  url: 'url'
+};
+
+exports.Prisma.Event_probabilities_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Forecast_metricsScalarFieldEnum = {
+  id: 'id',
+  horizon: 'horizon',
+  model_version: 'model_version',
+  trained_at: 'trained_at',
+  mae: 'mae',
+  mase: 'mase',
+  wape: 'wape',
+  mse: 'mse',
+  rmse: 'rmse',
+  rmsse: 'rmsse',
+  wql: 'wql',
+  coverage_80: 'coverage_80',
+  coverage_40: 'coverage_40',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_event_entitiesScalarFieldEnum = {
+  id: 'id',
+  event_id: 'event_id',
+  entity_id: 'entity_id',
+  entity_type: 'entity_type',
+  name: 'name',
+  formatted_address: 'formatted_address',
+  category: 'category',
+  description: 'description',
+  labels: 'labels',
+  recurring_ical: 'recurring_ical',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_event_impactScalarFieldEnum = {
+  id: 'id',
+  event_id: 'event_id',
+  vertical: 'vertical',
+  impact_type: 'impact_type',
+  impact_date: 'impact_date',
+  impact_value: 'impact_value',
+  position: 'position',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_event_labelsScalarFieldEnum = {
+  id: 'id',
+  event_id: 'event_id',
+  label: 'label',
+  weight: 'weight',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_event_venuesScalarFieldEnum = {
+  id: 'id',
+  event_id: 'event_id',
+  venue_id: 'venue_id',
+  is_primary: 'is_primary',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_venuesScalarFieldEnum = {
+  id: 'id',
+  venue_id: 'venue_id',
+  name: 'name',
+  formatted_address: 'formatted_address',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  placekey: 'placekey',
+  postcode: 'postcode',
+  locality: 'locality',
+  region: 'region',
+  country_code: 'country_code',
+  geo_type: 'geo_type',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Model_runsScalarFieldEnum = {
+  id: 'id',
+  model_name: 'model_name',
+  model_nickname: 'model_nickname',
+  horizon_days: 'horizon_days',
+  trained_date: 'trained_date',
+  run_hash: 'run_hash',
+  mae: 'mae',
+  coverage_30_70: 'coverage_30_70',
+  oof_count: 'oof_count',
+  status: 'status',
+  outcome: 'outcome',
+  model_path: 'model_path',
+  notes: 'notes',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Oof_biofuel_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_china_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_crush_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_energy_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_fed_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_fx_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_palm_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_substitutes_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_tariff_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_trump_effect_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
+exports.Prisma.Oof_volatility_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  horizon_days: 'horizon_days',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -2230,34 +2606,23 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
 
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
-};
-
 
 exports.Prisma.ModelName = {
-  CftcCot1w: 'CftcCot1w',
-  EpaRinPrices1d: 'EpaRinPrices1d',
-  FredObservations1d: 'FredObservations1d',
-  FxSpot1d: 'FxSpot1d',
-  MarketFutures1d: 'MarketFutures1d',
-  MarketFutures1h: 'MarketFutures1h',
-  NewsArticles1d: 'NewsArticles1d',
-  OptionsFutures1d: 'OptionsFutures1d',
-  UsdaExportSales1w: 'UsdaExportSales1w',
-  UsdaWasde1m: 'UsdaWasde1m',
-  WeatherNoaa1d: 'WeatherNoaa1d',
-  YahooEquity1d: 'YahooEquity1d',
-  CoreFeatures: 'CoreFeatures',
-  OptionsFeatures: 'OptionsFeatures',
-  OptionsGreeks: 'OptionsGreeks',
+  TrainingMatrix1d: 'TrainingMatrix1d',
+  TrainingFeatures1d: 'TrainingFeatures1d',
+  OofCore1d: 'OofCore1d',
+  MetaInputs1d: 'MetaInputs1d',
   RealizedVolatility: 'RealizedVolatility',
   SpecialistFeatures: 'SpecialistFeatures',
   VolatilitySurface: 'VolatilitySurface',
@@ -2309,13 +2674,14 @@ exports.Prisma.ModelName = {
   QuarantinedRecord: 'QuarantinedRecord',
   Instrument: 'Instrument',
   SymbolMapping: 'SymbolMapping',
-  FxRates1d: 'FxRates1d',
-  FuturesPrices1d: 'FuturesPrices1d',
   IntelDrop: 'IntelDrop',
   driver_attribution_1d: 'driver_attribution_1d',
   regime_state_1d: 'regime_state_1d',
   zl_intraday: 'zl_intraday',
   elite_indicators_1d: 'elite_indicators_1d',
+  FeaturesOptions1d: 'FeaturesOptions1d',
+  FeaturesWeather1d: 'FeaturesWeather1d',
+  FeaturesNewsSentiment1d: 'FeaturesNewsSentiment1d',
   specialist_drivers: 'specialist_drivers',
   data_quality_log: 'data_quality_log',
   data_quality_metrics: 'data_quality_metrics',
@@ -2324,24 +2690,11 @@ exports.Prisma.ModelName = {
   source_relabel_audit: 'source_relabel_audit',
   training_run_log: 'training_run_log',
   training_runs: 'training_runs',
-  cftc_cits_1w: 'cftc_cits_1w',
-  fred_series_static: 'fred_series_static',
-  legislation_federal_register_1d: 'legislation_federal_register_1d',
-  aei_articles_event: 'aei_articles_event',
-  cbp_trade_event: 'cbp_trade_event',
-  conab_news_event: 'conab_news_event',
-  farmdoc_articles_event: 'farmdoc_articles_event',
-  ice_releases_event: 'ice_releases_event',
-  nyfed_rates_1d: 'nyfed_rates_1d',
-  news_articles_event: 'news_articles_event',
-  usda_nass_event: 'usda_nass_event',
-  whitehouse_actions_event: 'whitehouse_actions_event',
-  news_scored_1d: 'news_scored_1d',
   zl_price_1h: 'zl_price_1h',
   public_intraday_prices: 'public_intraday_prices',
   public_latest_prices: 'public_latest_prices',
   trump_effect_1d: 'trump_effect_1d',
-  ai_decision_1d: 'ai_decision_1d',
+  forecast_summary_1d: 'forecast_summary_1d',
   core_cone_1d: 'core_cone_1d',
   core_mc_1d: 'core_mc_1d',
   forecast_quantiles: 'forecast_quantiles',
@@ -2365,7 +2718,60 @@ exports.Prisma.ModelName = {
   VegasCustomerScore: 'VegasCustomerScore',
   VegasActivityLog: 'VegasActivityLog',
   VegasCuisineAffinity: 'VegasCuisineAffinity',
-  VegasDailySpend: 'VegasDailySpend'
+  VegasDailySpend: 'VegasDailySpend',
+  MktFutures1d: 'MktFutures1d',
+  MktFutures1h: 'MktFutures1h',
+  MktOptions1d: 'MktOptions1d',
+  MktFx1d: 'MktFx1d',
+  MktEtf1d: 'MktEtf1d',
+  MktOptionsGreeks1d: 'MktOptionsGreeks1d',
+  EconRates1d: 'EconRates1d',
+  EconInflation1d: 'EconInflation1d',
+  EconLabor1d: 'EconLabor1d',
+  EconActivity1d: 'EconActivity1d',
+  EconVolIndices1d: 'EconVolIndices1d',
+  EconCommodities1d: 'EconCommodities1d',
+  EconFx1d: 'EconFx1d',
+  EconMoney1d: 'EconMoney1d',
+  PosCftc1w: 'PosCftc1w',
+  PosCftcCits1w: 'PosCftcCits1w',
+  SupplyUsdaWasde1m: 'SupplyUsdaWasde1m',
+  SupplyUsdaExports1w: 'SupplyUsdaExports1w',
+  SupplyEpaRin1d: 'SupplyEpaRin1d',
+  SupplyWorldbankImports1y: 'SupplyWorldbankImports1y',
+  AltNews1d: 'AltNews1d',
+  AltWeather1d: 'AltWeather1d',
+  AltLegislation1d: 'AltLegislation1d',
+  event_probabilities_126d_1d: 'event_probabilities_126d_1d',
+  event_probabilities_21d_1d: 'event_probabilities_21d_1d',
+  event_probabilities_5d_1d: 'event_probabilities_5d_1d',
+  event_probabilities_63d_1d: 'event_probabilities_63d_1d',
+  price_scenarios_126d_1d: 'price_scenarios_126d_1d',
+  price_scenarios_21d_1d: 'price_scenarios_21d_1d',
+  price_scenarios_5d_1d: 'price_scenarios_5d_1d',
+  price_scenarios_63d_1d: 'price_scenarios_63d_1d',
+  production_126d_1d: 'production_126d_1d',
+  production_21d_1d: 'production_21d_1d',
+  production_5d_1d: 'production_5d_1d',
+  production_63d_1d: 'production_63d_1d',
+  forecast_metrics: 'forecast_metrics',
+  vegas_event_entities: 'vegas_event_entities',
+  vegas_event_impact: 'vegas_event_impact',
+  vegas_event_labels: 'vegas_event_labels',
+  vegas_event_venues: 'vegas_event_venues',
+  vegas_venues: 'vegas_venues',
+  model_runs: 'model_runs',
+  oof_biofuel_1d: 'oof_biofuel_1d',
+  oof_china_1d: 'oof_china_1d',
+  oof_crush_1d: 'oof_crush_1d',
+  oof_energy_1d: 'oof_energy_1d',
+  oof_fed_1d: 'oof_fed_1d',
+  oof_fx_1d: 'oof_fx_1d',
+  oof_palm_1d: 'oof_palm_1d',
+  oof_substitutes_1d: 'oof_substitutes_1d',
+  oof_tariff_1d: 'oof_tariff_1d',
+  oof_trump_effect_1d: 'oof_trump_effect_1d',
+  oof_volatility_1d: 'oof_volatility_1d'
 };
 
 /**

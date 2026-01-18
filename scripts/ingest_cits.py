@@ -197,7 +197,7 @@ def upsert_cits_data(conn, df: pd.DataFrame) -> int:
         ))
     
     insert_sql = f"""
-        INSERT INTO raw.cftc_cits_1w ({', '.join(columns)})
+        INSERT INTO pos.cftc_cits_1w ({', '.join(columns)})
         VALUES %s
         ON CONFLICT (report_date, contract_code, report_type) DO UPDATE SET
             event_date = EXCLUDED.event_date,
@@ -232,7 +232,7 @@ def update_specialist_tags(conn):
     
     # Soy complex → crush
     cur.execute("""
-        UPDATE raw.cftc_cits_1w 
+        UPDATE pos.cftc_cits_1w 
         SET specialist_tags = ARRAY['crush']
         WHERE symbol IN ('SOYBEAN_OIL', 'SOYBEANS', 'SOYBEAN_MEAL')
         AND (specialist_tags IS NULL OR specialist_tags = '{}')
@@ -240,7 +240,7 @@ def update_specialist_tags(conn):
     
     # Other ags → substitutes
     cur.execute("""
-        UPDATE raw.cftc_cits_1w 
+        UPDATE pos.cftc_cits_1w 
         SET specialist_tags = ARRAY['substitutes']
         WHERE symbol IN ('CORN', 'WHEAT_SRW', 'WHEAT_HRW', 'COTTON', 'SUGAR_11', 'COFFEE', 'COCOA')
         AND (specialist_tags IS NULL OR specialist_tags = '{}')
@@ -248,7 +248,7 @@ def update_specialist_tags(conn):
     
     # Livestock → crush + substitutes (feed demand)
     cur.execute("""
-        UPDATE raw.cftc_cits_1w 
+        UPDATE pos.cftc_cits_1w 
         SET specialist_tags = ARRAY['crush', 'substitutes']
         WHERE symbol IN ('LEAN_HOGS', 'LIVE_CATTLE', 'FEEDER_CATTLE')
         AND (specialist_tags IS NULL OR specialist_tags = '{}')
@@ -266,14 +266,14 @@ def verify_data(conn):
     print("VERIFICATION")
     print("="*70)
     
-    cur.execute("SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM raw.cftc_cits_1w")
+    cur.execute("SELECT COUNT(*), MIN(event_date), MAX(event_date) FROM pos.cftc_cits_1w")
     total, min_dt, max_dt = cur.fetchone()
     print(f"\nTotal rows: {total:,}")
     print(f"Date range: {min_dt} to {max_dt}")
     
     cur.execute("""
         SELECT symbol, COUNT(*), MIN(event_date), MAX(event_date)
-        FROM raw.cftc_cits_1w
+        FROM pos.cftc_cits_1w
         GROUP BY symbol
         ORDER BY symbol
     """)
@@ -283,7 +283,7 @@ def verify_data(conn):
     
     cur.execute("""
         SELECT event_date, index_trader_net, index_trader_longs, index_trader_shorts
-        FROM raw.cftc_cits_1w
+        FROM pos.cftc_cits_1w
         WHERE symbol = 'SOYBEAN_OIL'
         ORDER BY event_date DESC
         LIMIT 5

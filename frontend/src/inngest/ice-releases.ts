@@ -1,7 +1,7 @@
 /**
  * ICE.gov Comprehensive Ingestion (20+ URLs)
  * 
- * USES EXISTING TABLE: raw.news_articles_event
+ * USES EXISTING TABLE: alt.news_1d
  * NO NEW TABLES CREATED
  * 
  * URLS HIT:
@@ -149,7 +149,7 @@ export const iceReleasesDaily = inngest.createFunction(
       return true;
     });
 
-    // Insert into EXISTING raw.news_articles_event table
+    // Insert into EXISTING alt.news_1d table
     const result = await step.run("insert-articles", async () => {
       if (!DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
@@ -167,7 +167,7 @@ export const iceReleasesDaily = inngest.createFunction(
 
           // Check if exists in EXISTING table
           const checkResult = await pool.query(
-            `SELECT 1 FROM raw.news_articles_event WHERE row_hash = $1`,
+            `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
             [rowHash]
           );
 
@@ -176,9 +176,9 @@ export const iceReleasesDaily = inngest.createFunction(
             continue;
           }
 
-          // Insert into EXISTING raw.news_articles_event table
+          // Insert into EXISTING alt.news_1d table
           await pool.query(
-            `INSERT INTO raw.news_articles_event 
+            `INSERT INTO alt.news_1d 
              (headline, source, source_url, published_at, event_date, row_hash, specialist_tags)
              VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
             [

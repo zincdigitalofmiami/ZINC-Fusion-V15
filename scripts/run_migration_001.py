@@ -138,14 +138,14 @@ def main():
         execute_ddl(conn, ddl, "Create table: forecasts.core_mc_1d")
     
     # =========================================================================
-    # STEP 4: Create forecasts.ai_decision_1d
+    # STEP 4: Create forecasts.forecast_summary_1d
     # =========================================================================
     
-    if verify_table_exists(conn, 'forecasts', 'ai_decision_1d'):
-        print("⚠️  Table 'forecasts.ai_decision_1d' already exists - skipping")
+    if verify_table_exists(conn, 'forecasts', 'forecast_summary_1d'):
+        print("⚠️  Table 'forecasts.forecast_summary_1d' already exists - skipping")
     else:
         ddl = """
-        CREATE TABLE forecasts.ai_decision_1d (
+        CREATE TABLE forecasts.forecast_summary_1d (
             id SERIAL PRIMARY KEY,
             forecast_date DATE NOT NULL,
             horizon_days INTEGER NOT NULL,
@@ -170,7 +170,7 @@ def main():
             UNIQUE(forecast_date, horizon_days)
         )
         """
-        execute_ddl(conn, ddl, "Create table: forecasts.ai_decision_1d")
+        execute_ddl(conn, ddl, "Create table: forecasts.forecast_summary_1d")
     
     # =========================================================================
     # STEP 5: Create forecasts.horizon_reconciliation_1d
@@ -298,7 +298,7 @@ def main():
     indexes = [
         ("idx_core_cone_forecast_date", "forecasts.core_cone_1d", "forecast_date"),
         ("idx_core_mc_forecast_date", "forecasts.core_mc_1d", "forecast_date"),
-        ("idx_ai_decision_forecast_date", "forecasts.ai_decision_1d", "forecast_date"),
+        ("idx_ai_decision_forecast_date", "forecasts.forecast_summary_1d", "forecast_date"),
         ("idx_regime_state_forecast_date", "analytics.regime_state_1d", "forecast_date"),
         ("idx_driver_attr_forecast_date", "analytics.driver_attribution_1d", "forecast_date"),
         ("idx_trump_effect_as_of_date", "features.trump_effect_1d", "as_of_date"),
@@ -323,7 +323,7 @@ def main():
     tables_to_verify = [
         ('forecasts', 'core_cone_1d'),
         ('forecasts', 'core_mc_1d'),
-        ('forecasts', 'ai_decision_1d'),
+        ('forecasts', 'forecast_summary_1d'),
         ('forecasts', 'horizon_reconciliation_1d'),
         ('analytics', 'regime_state_1d'),
         ('analytics', 'driver_attribution_1d'),

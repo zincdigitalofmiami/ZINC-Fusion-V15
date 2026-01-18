@@ -64,3 +64,6 @@ models/
 # Training logs (regenerated)
 *.log
 training_*.log
+backup_pre_migration_20260118_114613.sql
+*.sql.bak
+mlflow.db

@@ -2,7 +2,7 @@
  * USDA FAS Export Sales (Weekly) Bronze Ingestion
  *
  * Source: https://apps.fas.usda.gov/export-sales/complete.htm
- * Inserts into: raw.usda_export_sales_1w
+ * Inserts into: supply.usda_exports_1w
  *
  * Notes:
  * - Data in the report is labeled "1000 METRIC TONS" → stored as metric tons (× 1000).
@@ -85,7 +85,7 @@ async function rowExists(
 ): Promise<boolean> {
   const r = await client.query(
     `SELECT 1
-     FROM raw.usda_export_sales_1w
+     FROM supply.usda_exports_1w
      WHERE event_date=$1::date AND commodity=$2 AND COALESCE(destination_country,'')=COALESCE($3,'')
      LIMIT 1`,
     [eventDate, commodity, destinationCountry]
@@ -290,7 +290,7 @@ export const usdaExportSalesWeekly = inngest.createFunction(
         const rowHash = computeRowHash(r.weekEnding, r.commodity, destinationCountry, netSalesMt, exportsMt, outstandingMt);
 
         await client.query(
-          `INSERT INTO raw.usda_export_sales_1w
+          `INSERT INTO supply.usda_exports_1w
             (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
              source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
            VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,NOW())`,
@@ -345,7 +345,7 @@ export const usdaExportSalesWeekly = inngest.createFunction(
         const rowHash = computeRowHash(row.reportDate, row.commodity, row.destinationCountry, netSalesMt, exportsMt, outstandingMt);
 
         await client.query(
-          `INSERT INTO raw.usda_export_sales_1w
+          `INSERT INTO supply.usda_exports_1w
             (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
              source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
            VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,NOW())`,

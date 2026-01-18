@@ -191,7 +191,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Stale\" FROM model.data_quality_metrics WHERE is_stale = TRUE",
+          "rawSql": "SELECT COUNT(*) as \"Stale\" FROM ops.data_quality_metrics WHERE is_stale = TRUE",
           "refId": "A"
         }
       ],
@@ -239,7 +239,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Running\" FROM model.training_runs WHERE status = 'running'",
+          "rawSql": "SELECT COUNT(*) as \"Running\" FROM ops.training_runs WHERE status = 'running'",
           "refId": "A"
         }
       ],
@@ -402,7 +402,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT source as \"Data Source\", total_rows as \"Rows\", ROUND(hours_since_update::numeric, 1) as \"Hours Since Update\", CASE WHEN hours_since_update < 24 THEN 'OK' WHEN hours_since_update < 48 THEN 'Warning' ELSE 'Stale' END as \"Status\" FROM model.data_quality_metrics ORDER BY hours_since_update DESC",
+          "rawSql": "SELECT source as \"Data Source\", total_rows as \"Rows\", ROUND(hours_since_update::numeric, 1) as \"Hours Since Update\", CASE WHEN hours_since_update < 24 THEN 'OK' WHEN hours_since_update < 48 THEN 'Warning' ELSE 'Stale' END as \"Status\" FROM ops.data_quality_metrics ORDER BY hours_since_update DESC",
           "refId": "A"
         }
       ],
@@ -474,7 +474,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT run_name as \"Run\", specialist_name as \"Specialist\", horizon || 'd' as \"Horizon\", status as \"Status\", ROUND(mase::numeric, 4) as \"MASE\", ROUND(duration_seconds::numeric / 60, 1) as \"Duration (min)\", started_at as \"Started\" FROM model.training_runs ORDER BY started_at DESC LIMIT 15",
+          "rawSql": "SELECT run_name as \"Run\", specialist_name as \"Specialist\", horizon || 'd' as \"Horizon\", status as \"Status\", ROUND(mase::numeric, 4) as \"MASE\", ROUND(duration_seconds::numeric / 60, 1) as \"Duration (min)\", started_at as \"Started\" FROM ops.training_runs ORDER BY started_at DESC LIMIT 15",
           "refId": "A"
         }
       ],

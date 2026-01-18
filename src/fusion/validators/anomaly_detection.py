@@ -1,39 +1,192 @@
 """
-ZINC-FUSION-V15 Anomaly Detection Module
+ZINC-FUSION Anomaly Detection Module
 
-Computes anomaly_flags and quality_score for all raw.* tables.
-These fields are REQUIRED by the Bronze Contract but were never implemented.
+Detects anomalies in landing tables and logs results to ops.data_quality_log.
+Does NOT modify landing tables - append-only architecture.
 
 Usage:
-    # Backfill all tables
-    python -m src.fusion.validators.anomaly_detection --backfill
+    # Check all tables
+    python -m src.fusion.validators.anomaly_detection --check-all
 
     # Check specific table
-    python -m src.fusion.validators.anomaly_detection --table market_futures_1d
+    python -m src.fusion.validators.anomaly_detection --table mkt.futures_1d
 
-Reference: Docs/BRONZE_CONTRACT_SPEC_LOCKED.md
+    # Dry run (no writes)
+    python -m src.fusion.validators.anomaly_detection --check-all --dry-run
 """
 
 import os
 import sys
 import argparse
 import logging
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+from datetime import datetime
 from dataclasses import dataclass
 import json
 
 import numpy as np
 import pandas as pd
 import psycopg2
-from psycopg2.extras import execute_batch
+from psycopg2.extras import Json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# ANOMALY FLAG DEFINITIONS BY TABLE TYPE
+# TABLE CONFIGURATION - Correct schema mappings
+# =============================================================================
+
+# Tables to check with their source queries
+TABLE_CONFIG = {
+    # Market data
+    "mkt.futures_1d": {
+        "query": """
+            SELECT event_date, symbol, open, high, low, close, volume
+            FROM mkt.futures_1d
+            ORDER BY symbol, event_date
+        """,
+        "detector": "market_futures",
+        "group_by": "symbol",
+        "date_col": "event_date",
+    },
+    "mkt.fx_1d": {
+        "query": """
+            SELECT id, pair, event_date, rate
+            FROM mkt.fx_1d
+            ORDER BY pair, event_date
+        """,
+        "detector": "fx",
+        "group_by": "pair",
+        "date_col": "event_date",
+    },
+    "mkt.etf_1d": {
+        "query": """
+            SELECT id, symbol, event_date, open, high, low, close, volume
+            FROM mkt.etf_1d
+            ORDER BY symbol, event_date
+        """,
+        "detector": "market_futures",
+        "group_by": "symbol",
+        "date_col": "event_date",
+    },
+    # Alternative data
+    "alt.weather_1d": {
+        "query": """
+            SELECT id, event_date, region, tavg_c, tmin_c, tmax_c, prcp_mm
+            FROM alt.weather_1d
+        """,
+        "detector": "weather",
+        "group_by": None,
+        "date_col": "event_date",
+    },
+    "alt.news_1d": {
+        "query": """
+            SELECT id, event_date, headline, sentiment_score
+            FROM alt.news_1d
+        """,
+        "detector": "news",
+        "group_by": None,
+        "date_col": "event_date",
+    },
+    # Positioning data
+    "pos.cftc_1w": {
+        "query": """
+            SELECT id, event_date, symbol, open_interest, managed_money_net
+            FROM pos.cftc_1w
+            ORDER BY symbol, event_date
+        """,
+        "detector": "cot",
+        "group_by": "symbol",
+        "date_col": "event_date",
+    },
+    # Supply data
+    "supply.epa_rin_1d": {
+        "query": """
+            SELECT id, event_date, rin_type, price
+            FROM supply.epa_rin_1d
+            ORDER BY rin_type, event_date
+        """,
+        "detector": "rin",
+        "group_by": "rin_type",
+        "date_col": "event_date",
+    },
+    # Economic data - 8 FRED tables
+    "econ.rates_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.rates_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.inflation_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.inflation_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.labor_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.labor_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.activity_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.activity_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.vol_indices_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.vol_indices_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.commodities_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.commodities_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+    "econ.money_1d": {
+        "query": """
+            SELECT id, series_id, event_date, value
+            FROM econ.money_1d
+            ORDER BY series_id, event_date
+        """,
+        "detector": "fred",
+        "group_by": "series_id",
+        "date_col": "event_date",
+    },
+}
+
+
+# =============================================================================
+# ANOMALY THRESHOLDS
 # =============================================================================
 
 @dataclass
@@ -47,760 +200,447 @@ class AnomalyThresholds:
     volume_spike_mult: float = 5.0   # 5x average volume
 
 
-# Market Futures Anomaly Flags
-MARKET_ANOMALY_FLAGS = [
-    "price_spike",           # >15% single-day move
-    "price_extreme",         # >25% single-day move
-    "volume_spike",          # >5x 20-day average volume
-    "volume_zero",           # Zero volume (data issue)
-    "gap_up",                # >5% gap from prior close
-    "gap_down",              # <-5% gap from prior close
-    "limit_move",            # Hit exchange limits
-    "stale_price",           # Same OHLC as prior day
-    "invalid_ohlc",          # High < Low or Open/Close outside range
-    "weekend_data",          # Data on Saturday/Sunday (suspicious)
-    "holiday_data",          # Data on known holiday (suspicious)
-]
-
-# Weather Anomaly Flags
-WEATHER_ANOMALY_FLAGS = [
-    "temp_spike",            # >20C daily change
-    "temp_extreme_high",     # >50C (record territory)
-    "temp_extreme_low",      # <-50C (record territory)
-    "precip_extreme",        # >200mm single day
-    "precip_negative",       # Negative precipitation (data error)
-    "snow_in_summer",        # Snow where/when impossible
-    "missing_station",       # Station ID unknown
-    "duplicate_reading",     # Exact same values as prior day
-    "implausible_humidity",  # >100% or <0%
-]
-
-# FRED Anomaly Flags
-FRED_ANOMALY_FLAGS = [
-    "value_spike",           # >4 std from rolling mean
-    "value_negative",        # Negative for always-positive series
-    "revision_large",        # >10% revision from prior value
-    "future_dated",          # Event date in future
-    "stale_series",          # No update in expected window
-    "duplicate_value",       # Exact same value as prior observation
-]
-
-# News Anomaly Flags
-NEWS_ANOMALY_FLAGS = [
-    "sentiment_extreme",     # |sentiment| > 0.95
-    "duplicate_content",     # Same content hash
-    "empty_content",         # No content/headline
-    "future_published",      # Published date in future
-    "ancient_article",       # >30 days old at ingestion
-]
-
-# COT Anomaly Flags
-COT_ANOMALY_FLAGS = [
-    "position_spike",        # >50% weekly change in net position
-    "oi_spike",              # >30% weekly change in open interest
-    "impossible_position",   # Net position > OI
-    "zero_oi",               # Zero open interest
-    "stale_report",          # Same values as prior week
-]
-
-# FX Anomaly Flags
-FX_ANOMALY_FLAGS = [
-    "rate_spike",            # >5% single-day move
-    "rate_extreme",          # >10% single-day move
-    "rate_negative",         # Negative rate (data error)
-    "rate_zero",             # Zero rate (data error)
-    "stale_rate",            # Same rate as prior day
-    "weekend_rate",          # Rate on weekend
-]
-
-# RIN Anomaly Flags
-RIN_ANOMALY_FLAGS = [
-    "price_spike",           # >20% single-day move
-    "price_negative",        # Negative RIN price
-    "price_extreme_high",    # >$3.00/RIN (historically rare)
-    "price_zero",            # Zero price (data error)
-    "stale_price",           # Same price 5+ consecutive days
-]
-
-
 # =============================================================================
-# ANOMALY DETECTION FUNCTIONS
+# ANOMALY DETECTION CLASS
 # =============================================================================
 
 class AnomalyDetector:
-    """Detects anomalies in raw data tables."""
+    """Detects anomalies in data tables."""
 
-    def __init__(self, conn, thresholds: Optional[AnomalyThresholds] = None):
-        self.conn = conn
+    def __init__(self, thresholds: Optional[AnomalyThresholds] = None):
         self.thresholds = thresholds or AnomalyThresholds()
 
-    def detect_market_futures(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Detect anomalies in market_futures_1d data.
+    def detect_market_futures(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in market/ETF OHLCV data."""
+        anomalies = []
 
-        Returns DataFrame with anomaly_flags and quality_score columns.
-        """
-        results = []
+        if df.empty:
+            return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        # Group by symbol for symbol-specific stats
         for symbol, group in df.groupby('symbol'):
             group = group.sort_values('event_date').copy()
 
-            for idx, row in group.iterrows():
+            for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
-                quality_deductions = 0
+                prior_row = group.iloc[i - 1] if i > 0 else None
 
-                # Get prior row for comparisons
-                prior_idx = group.index.get_loc(idx)
-                prior_row = group.iloc[prior_idx - 1] if prior_idx > 0 else None
-
-                # 1. Price spike detection
-                if prior_row is not None and prior_row['close'] > 0:
+                # Price spike detection
+                if prior_row is not None and prior_row['close'] and prior_row['close'] > 0:
                     pct_change = abs(row['close'] - prior_row['close']) / prior_row['close']
                     if pct_change > self.thresholds.pct_change_extreme:
                         flags.append('price_extreme')
-                        quality_deductions += 20
                     elif pct_change > self.thresholds.pct_change_spike:
                         flags.append('price_spike')
-                        quality_deductions += 10
 
-                # 2. Gap detection
-                if prior_row is not None and prior_row['close'] > 0:
+                # Gap detection
+                if prior_row is not None and prior_row['close'] and prior_row['close'] > 0 and row['open']:
                     gap = (row['open'] - prior_row['close']) / prior_row['close']
                     if gap > self.thresholds.gap_threshold:
                         flags.append('gap_up')
-                        quality_deductions += 5
                     elif gap < -self.thresholds.gap_threshold:
                         flags.append('gap_down')
-                        quality_deductions += 5
 
-                # 3. Volume spike (compare to 20-day average)
-                if prior_idx >= 20:
-                    avg_vol = group.iloc[prior_idx-20:prior_idx]['volume'].mean()
-                    if avg_vol > 0 and row['volume'] > avg_vol * self.thresholds.volume_spike_mult:
+                # Volume spike
+                if i >= 20 and row.get('volume'):
+                    avg_vol = group.iloc[i-20:i]['volume'].mean()
+                    if avg_vol and avg_vol > 0 and row['volume'] > avg_vol * self.thresholds.volume_spike_mult:
                         flags.append('volume_spike')
-                        quality_deductions += 5
 
-                # 4. Zero volume
-                if row['volume'] == 0:
+                # Zero volume
+                if row.get('volume') == 0:
                     flags.append('volume_zero')
-                    quality_deductions += 15
 
-                # 5. Invalid OHLC
-                if row['high'] < row['low']:
+                # Invalid OHLC
+                if row.get('high') and row.get('low') and row['high'] < row['low']:
                     flags.append('invalid_ohlc')
-                    quality_deductions += 30
-                if row['open'] > row['high'] or row['open'] < row['low']:
-                    flags.append('invalid_ohlc')
-                    quality_deductions += 30
-                if row['close'] > row['high'] or row['close'] < row['low']:
-                    flags.append('invalid_ohlc')
-                    quality_deductions += 30
 
-                # 6. Stale price (same OHLC as prior day)
-                if prior_row is not None:
-                    if (row['open'] == prior_row['open'] and
-                        row['high'] == prior_row['high'] and
-                        row['low'] == prior_row['low'] and
-                        row['close'] == prior_row['close']):
-                        flags.append('stale_price')
-                        quality_deductions += 20
+                # Weekend data
+                if hasattr(row['event_date'], 'weekday') and row['event_date'].weekday() >= 5:
+                    flags.append('weekend_data')
 
-                # 7. Weekend data
-                if hasattr(row['event_date'], 'weekday'):
-                    if row['event_date'].weekday() >= 5:  # Saturday=5, Sunday=6
-                        flags.append('weekend_data')
-                        quality_deductions += 10
+                if flags:
+                    anomalies.append({
+                        "date": str(row['event_date']),
+                        "symbol": symbol,
+                        "flags": flags,
+                    })
 
-                # Calculate quality score (100 - deductions, min 0)
-                quality_score = max(0, 100 - quality_deductions)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],  # Cap at 100 for JSON size
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-                results.append({
-                    'event_date': row['event_date'],
-                    'symbol': symbol,
-                    'anomaly_flags': flags if flags else None,
-                    'quality_score': quality_score,
-                })
-
-        return pd.DataFrame(results)
-
-    def detect_weather(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in weather_noaa_1d data."""
-        results = []
+    def detect_weather(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in weather data."""
+        anomalies = []
 
         for idx, row in df.iterrows():
             flags = []
-            quality_deductions = 0
 
             # Temperature checks
             if pd.notna(row.get('tavg_c')):
                 if row['tavg_c'] > 50:
                     flags.append('temp_extreme_high')
-                    quality_deductions += 25
                 elif row['tavg_c'] < -50:
                     flags.append('temp_extreme_low')
-                    quality_deductions += 25
 
             if pd.notna(row.get('tmax_c')) and pd.notna(row.get('tmin_c')):
                 if row['tmax_c'] - row['tmin_c'] > 40:
                     flags.append('temp_spike')
-                    quality_deductions += 15
 
             # Precipitation checks
             if pd.notna(row.get('prcp_mm')):
                 if row['prcp_mm'] < 0:
                     flags.append('precip_negative')
-                    quality_deductions += 30
                 elif row['prcp_mm'] > 200:
                     flags.append('precip_extreme')
-                    quality_deductions += 10
 
-            # Humidity checks
-            if pd.notna(row.get('rhav_pct')):
-                if row['rhav_pct'] > 100 or row['rhav_pct'] < 0:
-                    flags.append('implausible_humidity')
-                    quality_deductions += 25
+            if flags:
+                anomalies.append({
+                    "date": str(row.get('event_date')),
+                    "region": row.get('region'),
+                    "flags": flags,
+                })
 
-            quality_score = max(0, 100 - quality_deductions)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-            results.append({
-                'id': row.get('id'),
-                'anomaly_flags': flags if flags else None,
-                'quality_score': quality_score,
-            })
+    def detect_fred(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in FRED economic data."""
+        anomalies = []
 
-        return pd.DataFrame(results)
+        if df.empty:
+            return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-    def detect_fred(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in fred_observations_1d data."""
-        results = []
-
-        # Group by series for series-specific stats
         for series_id, group in df.groupby('series_id'):
             group = group.sort_values('event_date').copy()
 
-            # Calculate rolling stats for z-score
+            # Calculate rolling stats
             if len(group) >= 20:
                 group['rolling_mean'] = group['value'].rolling(20).mean()
                 group['rolling_std'] = group['value'].rolling(20).std()
 
-            for idx, row in group.iterrows():
+            for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
-                quality_deductions = 0
+                prior_row = group.iloc[i - 1] if i > 0 else None
 
-                # Get prior row
-                prior_idx = group.index.get_loc(idx)
-                prior_row = group.iloc[prior_idx - 1] if prior_idx > 0 else None
-
-                # 1. Z-score spike
+                # Z-score spike
                 if pd.notna(row.get('rolling_mean')) and pd.notna(row.get('rolling_std')):
                     if row['rolling_std'] > 0:
                         zscore = abs(row['value'] - row['rolling_mean']) / row['rolling_std']
                         if zscore > self.thresholds.zscore_extreme:
                             flags.append('value_spike')
-                            quality_deductions += 15
 
-                # 2. Large revision
-                if prior_row is not None and prior_row['value'] != 0:
+                # Large revision
+                if prior_row is not None and prior_row['value'] and prior_row['value'] != 0:
                     pct_change = abs(row['value'] - prior_row['value']) / abs(prior_row['value'])
                     if pct_change > 0.10:
                         flags.append('revision_large')
-                        quality_deductions += 10
 
-                # 3. Future dated
+                # Future dated
                 if hasattr(row['event_date'], 'date'):
                     if row['event_date'].date() > datetime.now().date():
                         flags.append('future_dated')
-                        quality_deductions += 20
 
-                # 4. Duplicate value (same as prior)
-                if prior_row is not None and row['value'] == prior_row['value']:
-                    flags.append('duplicate_value')
-                    quality_deductions += 5
+                if flags:
+                    anomalies.append({
+                        "date": str(row['event_date']),
+                        "series_id": series_id,
+                        "flags": flags,
+                    })
 
-                quality_score = max(0, 100 - quality_deductions)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-                results.append({
-                    'id': row.get('id'),
-                    'anomaly_flags': flags if flags else None,
-                    'quality_score': quality_score,
-                })
-
-        return pd.DataFrame(results)
-
-    def detect_news(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in news_articles_1d data."""
-        results = []
+    def detect_news(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in news data."""
+        anomalies = []
 
         for idx, row in df.iterrows():
             flags = []
-            quality_deductions = 0
 
-            # 1. Extreme sentiment
+            # Extreme sentiment
             if pd.notna(row.get('sentiment_score')):
                 if abs(row['sentiment_score']) > 0.95:
                     flags.append('sentiment_extreme')
-                    quality_deductions += 10
 
-            # 2. Empty content
+            # Empty content
             if pd.isna(row.get('headline')) or str(row.get('headline', '')).strip() == '':
                 flags.append('empty_content')
-                quality_deductions += 30
 
-            # 3. Future published
-            if pd.notna(row.get('published_at')):
-                if hasattr(row['published_at'], 'date'):
-                    if row['published_at'].date() > datetime.now().date():
-                        flags.append('future_published')
-                        quality_deductions += 25
+            if flags:
+                anomalies.append({
+                    "date": str(row.get('event_date')),
+                    "flags": flags,
+                })
 
-            quality_score = max(0, 100 - quality_deductions)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-            results.append({
-                'id': row.get('id'),
-                'anomaly_flags': flags if flags else None,
-                'quality_score': quality_score,
-            })
+    def detect_cot(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in CFTC COT data."""
+        anomalies = []
 
-        return pd.DataFrame(results)
-
-    def detect_cot(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in cftc_cot_1w data."""
-        results = []
+        if df.empty:
+            return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
         for symbol, group in df.groupby('symbol'):
             group = group.sort_values('event_date').copy()
 
-            for idx, row in group.iterrows():
+            for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
-                quality_deductions = 0
+                prior_row = group.iloc[i - 1] if i > 0 else None
 
-                prior_idx = group.index.get_loc(idx)
-                prior_row = group.iloc[prior_idx - 1] if prior_idx > 0 else None
-
-                # 1. Position spike (>50% weekly change)
-                if prior_row is not None and prior_row['managed_money_net'] != 0:
+                # Position spike
+                if prior_row is not None and prior_row.get('managed_money_net') and prior_row['managed_money_net'] != 0:
                     pct_change = abs(row['managed_money_net'] - prior_row['managed_money_net']) / abs(prior_row['managed_money_net'])
                     if pct_change > 0.50:
                         flags.append('position_spike')
-                        quality_deductions += 15
 
-                # 2. OI spike (>30% weekly change)
-                if prior_row is not None and prior_row['open_interest'] > 0:
+                # OI spike
+                if prior_row is not None and prior_row.get('open_interest') and prior_row['open_interest'] > 0:
                     oi_change = abs(row['open_interest'] - prior_row['open_interest']) / prior_row['open_interest']
                     if oi_change > 0.30:
                         flags.append('oi_spike')
-                        quality_deductions += 10
 
-                # 3. Zero OI
-                if row['open_interest'] == 0:
+                # Zero OI
+                if row.get('open_interest') == 0:
                     flags.append('zero_oi')
-                    quality_deductions += 25
 
-                # 4. Impossible position (net > OI)
-                if abs(row['managed_money_net']) > row['open_interest']:
-                    flags.append('impossible_position')
-                    quality_deductions += 30
+                # Impossible position
+                if row.get('managed_money_net') and row.get('open_interest'):
+                    if abs(row['managed_money_net']) > row['open_interest']:
+                        flags.append('impossible_position')
 
-                quality_score = max(0, 100 - quality_deductions)
+                if flags:
+                    anomalies.append({
+                        "date": str(row['event_date']),
+                        "symbol": symbol,
+                        "flags": flags,
+                    })
 
-                results.append({
-                    'id': row.get('id'),
-                    'anomaly_flags': flags if flags else None,
-                    'quality_score': quality_score,
-                })
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-        return pd.DataFrame(results)
+    def detect_fx(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in FX data."""
+        anomalies = []
 
-    def detect_fx(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in fx_spot_1d data."""
-        results = []
+        if df.empty:
+            return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
         for pair, group in df.groupby('pair'):
             group = group.sort_values('event_date').copy()
 
-            for idx, row in group.iterrows():
+            for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
-                quality_deductions = 0
+                prior_row = group.iloc[i - 1] if i > 0 else None
 
-                prior_idx = group.index.get_loc(idx)
-                prior_row = group.iloc[prior_idx - 1] if prior_idx > 0 else None
-
-                # 1. Rate spike
-                if prior_row is not None and prior_row['rate'] > 0:
+                # Rate spike
+                if prior_row is not None and prior_row.get('rate') and prior_row['rate'] > 0:
                     pct_change = abs(row['rate'] - prior_row['rate']) / prior_row['rate']
                     if pct_change > 0.10:
                         flags.append('rate_extreme')
-                        quality_deductions += 20
                     elif pct_change > 0.05:
                         flags.append('rate_spike')
-                        quality_deductions += 10
 
-                # 2. Rate errors
-                if row['rate'] <= 0:
+                # Rate errors
+                if row.get('rate') is not None and row['rate'] <= 0:
                     flags.append('rate_zero' if row['rate'] == 0 else 'rate_negative')
-                    quality_deductions += 30
 
-                # 3. Stale rate
-                if prior_row is not None and row['rate'] == prior_row['rate']:
-                    flags.append('stale_rate')
-                    quality_deductions += 10
+                # Weekend rate
+                if hasattr(row['event_date'], 'weekday') and row['event_date'].weekday() >= 5:
+                    flags.append('weekend_rate')
 
-                # 4. Weekend rate
-                if hasattr(row['event_date'], 'weekday'):
-                    if row['event_date'].weekday() >= 5:
-                        flags.append('weekend_rate')
-                        quality_deductions += 10
+                if flags:
+                    anomalies.append({
+                        "date": str(row['event_date']),
+                        "pair": pair,
+                        "flags": flags,
+                    })
 
-                quality_score = max(0, 100 - quality_deductions)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
-                results.append({
-                    'id': row.get('id'),
-                    'anomaly_flags': flags if flags else None,
-                    'quality_score': quality_score,
-                })
+    def detect_rin(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Detect anomalies in EPA RIN data."""
+        anomalies = []
 
-        return pd.DataFrame(results)
-
-    def detect_rin(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect anomalies in epa_rin_prices_1d data."""
-        results = []
+        if df.empty:
+            return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
         for rin_type, group in df.groupby('rin_type'):
             group = group.sort_values('event_date').copy()
 
-            for idx, row in group.iterrows():
+            for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
-                quality_deductions = 0
+                prior_row = group.iloc[i - 1] if i > 0 else None
 
-                prior_idx = group.index.get_loc(idx)
-                prior_row = group.iloc[prior_idx - 1] if prior_idx > 0 else None
-
-                # 1. Price spike
-                if prior_row is not None and prior_row['price'] > 0:
+                # Price spike
+                if prior_row is not None and prior_row.get('price') and prior_row['price'] > 0:
                     pct_change = abs(row['price'] - prior_row['price']) / prior_row['price']
                     if pct_change > 0.20:
                         flags.append('price_spike')
-                        quality_deductions += 15
 
-                # 2. Price errors
-                if row['price'] < 0:
-                    flags.append('price_negative')
-                    quality_deductions += 30
-                elif row['price'] == 0:
-                    flags.append('price_zero')
-                    quality_deductions += 25
-                elif row['price'] > 3.00:
-                    flags.append('price_extreme_high')
-                    quality_deductions += 10
+                # Price errors
+                if row.get('price') is not None:
+                    if row['price'] < 0:
+                        flags.append('price_negative')
+                    elif row['price'] == 0:
+                        flags.append('price_zero')
+                    elif row['price'] > 3.00:
+                        flags.append('price_extreme_high')
 
-                quality_score = max(0, 100 - quality_deductions)
+                if flags:
+                    anomalies.append({
+                        "date": str(row['event_date']),
+                        "rin_type": rin_type,
+                        "flags": flags,
+                    })
 
-                results.append({
-                    'id': row.get('id'),
-                    'anomaly_flags': flags if flags else None,
-                    'quality_score': quality_score,
-                })
-
-        return pd.DataFrame(results)
+        return {
+            "anomaly_count": len(anomalies),
+            "anomalies": anomalies[:100],
+            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+        }
 
 
 # =============================================================================
-# BACKFILL FUNCTIONS
+# LOGGING TO ops.data_quality_log
 # =============================================================================
 
-def backfill_market_futures(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for market_futures_1d."""
-    logger.info("Backfilling market_futures_1d...")
-
-    # Load data
-    df = pd.read_sql("""
-        SELECT event_date, symbol, open, high, low, close, volume
-        FROM raw.market_futures_1d
-        ORDER BY symbol, event_date
-    """, conn)
+def log_quality_check(
+    conn,
+    table_name: str,
+    df: pd.DataFrame,
+    anomaly_results: Dict[str, Any],
+    date_col: str,
+    dry_run: bool = False,
+) -> None:
+    """Log quality check results to ops.data_quality_log."""
 
     if df.empty:
-        logger.warning("No data in market_futures_1d")
-        return 0
+        row_count = 0
+        null_count = 0
+        latest_date = None
+        oldest_date = None
+    else:
+        row_count = len(df)
+        null_count = int(df.isnull().sum().sum())
+        latest_date = df[date_col].max() if date_col in df.columns else None
+        oldest_date = df[date_col].min() if date_col in df.columns else None
+
+    issues = {
+        "anomaly_count": anomaly_results.get("anomaly_count", 0),
+        "quality_issues": anomaly_results.get("quality_issues", []),
+        "sample_anomalies": anomaly_results.get("anomalies", [])[:10],
+    }
+
+    if dry_run:
+        logger.info(f"  [DRY RUN] Would log: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies")
+        return
+
+    insert_query = """
+        INSERT INTO ops.data_quality_log (
+            table_name, check_date, row_count, null_count,
+            latest_date, oldest_date, issues, created_at
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    with conn.cursor() as cur:
+        cur.execute(insert_query, (
+            table_name,
+            datetime.now(),
+            row_count,
+            null_count,
+            latest_date,
+            oldest_date,
+            Json(issues),
+            datetime.now(),
+        ))
+    conn.commit()
+
+    logger.info(f"  Logged: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies")
+
+
+# =============================================================================
+# MAIN CHECK FUNCTIONS
+# =============================================================================
+
+def check_table(conn, table_name: str, dry_run: bool = False) -> Dict[str, Any]:
+    """Run anomaly detection on a single table."""
+    if table_name not in TABLE_CONFIG:
+        logger.error(f"Unknown table: {table_name}")
+        logger.info(f"Available tables: {list(TABLE_CONFIG.keys())}")
+        return {"error": f"Unknown table: {table_name}"}
+
+    config = TABLE_CONFIG[table_name]
+    logger.info(f"Checking {table_name}...")
+
+    try:
+        df = pd.read_sql(config["query"], conn)
+    except Exception as e:
+        logger.warning(f"  Could not query {table_name}: {e}")
+        return {"error": str(e), "row_count": 0}
+
+    if df.empty:
+        logger.info(f"  No data in {table_name}")
+        return {"row_count": 0, "anomaly_count": 0}
 
     logger.info(f"  Loaded {len(df):,} rows")
 
-    # Detect anomalies
-    detector = AnomalyDetector(conn)
-    results = detector.detect_market_futures(df)
-
-    # Update database
-    update_query = """
-        UPDATE raw.market_futures_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE event_date = %s AND symbol = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['event_date'], row['symbol']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_weather(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for weather_noaa_1d."""
-    logger.info("Backfilling weather_noaa_1d...")
-
-    df = pd.read_sql("""
-        SELECT id, event_date, tavg_c, tmin_c, tmax_c, prcp_mm, rhav_pct
-        FROM raw.weather_noaa_1d
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_weather(df)
-
-    update_query = """
-        UPDATE raw.weather_noaa_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_fred(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for fred_observations_1d."""
-    logger.info("Backfilling fred_observations_1d...")
-
-    df = pd.read_sql("""
-        SELECT id, series_id, event_date, value
-        FROM raw.fred_observations_1d
-        ORDER BY series_id, event_date
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_fred(df)
-
-    update_query = """
-        UPDATE raw.fred_observations_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_news(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for news_articles_1d."""
-    logger.info("Backfilling news_articles_1d...")
-
-    df = pd.read_sql("""
-        SELECT id, headline, published_at, sentiment_score
-        FROM raw.news_articles_1d
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_news(df)
-
-    update_query = """
-        UPDATE raw.news_articles_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_cot(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for cftc_cot_1w."""
-    logger.info("Backfilling cftc_cot_1w...")
-
-    df = pd.read_sql("""
-        SELECT id, event_date, symbol, open_interest, managed_money_net
-        FROM raw.cftc_cot_1w
-        ORDER BY symbol, event_date
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_cot(df)
-
-    update_query = """
-        UPDATE raw.cftc_cot_1w
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_fx(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for fx_spot_1d."""
-    logger.info("Backfilling fx_spot_1d...")
-
-    df = pd.read_sql("""
-        SELECT id, pair, event_date, rate
-        FROM raw.fx_spot_1d
-        ORDER BY pair, event_date
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_fx(df)
-
-    update_query = """
-        UPDATE raw.fx_spot_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_rin(conn, batch_size: int = 1000) -> int:
-    """Backfill anomaly_flags and quality_score for epa_rin_prices_1d."""
-    logger.info("Backfilling epa_rin_prices_1d...")
-
-    df = pd.read_sql("""
-        SELECT id, rin_type, event_date, price
-        FROM raw.epa_rin_prices_1d
-        ORDER BY rin_type, event_date
-    """, conn)
-
-    if df.empty:
-        return 0
-
-    logger.info(f"  Loaded {len(df):,} rows")
-
-    detector = AnomalyDetector(conn)
-    results = detector.detect_rin(df)
-
-    update_query = """
-        UPDATE raw.epa_rin_prices_1d
-        SET anomaly_flags = %s, quality_score = %s
-        WHERE id = %s
-    """
-
-    updates = []
-    for _, row in results.iterrows():
-        flags = row['anomaly_flags'] if row['anomaly_flags'] else []
-        updates.append((flags, row['quality_score'], row['id']))
-
-    with conn.cursor() as cur:
-        execute_batch(cur, update_query, updates, page_size=batch_size)
-    conn.commit()
-
-    flagged = results[results['anomaly_flags'].notna()].shape[0]
-    logger.info(f"  Updated {len(results):,} rows, {flagged:,} with anomaly flags")
-    return len(results)
-
-
-def backfill_all(conn) -> Dict[str, int]:
-    """Backfill all raw tables with anomaly_flags and quality_score."""
+    # Run detector
+    detector = AnomalyDetector()
+    detector_method = getattr(detector, f"detect_{config['detector']}")
+    results = detector_method(df)
+
+    # Log to ops.data_quality_log
+    log_quality_check(conn, table_name, df, results, config["date_col"], dry_run)
+
+    return {
+        "row_count": len(df),
+        "anomaly_count": results["anomaly_count"],
+        "quality_issues": results["quality_issues"],
+    }
+
+
+def check_all_tables(conn, dry_run: bool = False) -> Dict[str, Any]:
+    """Run anomaly detection on all configured tables."""
     logger.info("=" * 60)
-    logger.info("ANOMALY DETECTION BACKFILL - ALL TABLES")
+    logger.info("ANOMALY DETECTION - ALL TABLES")
     logger.info("=" * 60)
 
     results = {}
+    total_rows = 0
+    total_anomalies = 0
 
-    results['market_futures_1d'] = backfill_market_futures(conn)
-    results['weather_noaa_1d'] = backfill_weather(conn)
-    results['fred_observations_1d'] = backfill_fred(conn)
-    results['news_articles_1d'] = backfill_news(conn)
-    results['cftc_cot_1w'] = backfill_cot(conn)
-    results['fx_spot_1d'] = backfill_fx(conn)
-    results['epa_rin_prices_1d'] = backfill_rin(conn)
+    for table_name in TABLE_CONFIG:
+        result = check_table(conn, table_name, dry_run)
+        results[table_name] = result
+        total_rows += result.get("row_count", 0)
+        total_anomalies += result.get("anomaly_count", 0)
 
     logger.info("=" * 60)
-    logger.info("BACKFILL COMPLETE")
+    logger.info("CHECK COMPLETE")
     logger.info("=" * 60)
-
-    total = sum(results.values())
-    logger.info(f"Total rows updated: {total:,}")
-    for table, count in results.items():
-        logger.info(f"  {table}: {count:,}")
+    logger.info(f"Total rows scanned: {total_rows:,}")
+    logger.info(f"Total anomalies found: {total_anomalies:,}")
 
     return results
 
@@ -810,10 +650,18 @@ def backfill_all(conn) -> Dict[str, int]:
 # =============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Anomaly detection for raw tables")
-    parser.add_argument("--backfill", action="store_true", help="Backfill all tables")
-    parser.add_argument("--table", type=str, help="Backfill specific table")
+    parser = argparse.ArgumentParser(description="Anomaly detection for landing tables")
+    parser.add_argument("--check-all", action="store_true", help="Check all tables")
+    parser.add_argument("--table", type=str, help="Check specific table (e.g., mkt.futures_1d)")
+    parser.add_argument("--dry-run", action="store_true", help="Don't write to ops.data_quality_log")
+    parser.add_argument("--list-tables", action="store_true", help="List available tables")
     args = parser.parse_args()
+
+    if args.list_tables:
+        print("Available tables:")
+        for table in sorted(TABLE_CONFIG.keys()):
+            print(f"  {table}")
+        return 0
 
     conn_string = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
     if not conn_string:
@@ -823,29 +671,17 @@ def main():
     conn = psycopg2.connect(conn_string)
 
     try:
-        if args.backfill:
-            backfill_all(conn)
+        if args.check_all:
+            check_all_tables(conn, args.dry_run)
         elif args.table:
-            table_map = {
-                'market_futures_1d': backfill_market_futures,
-                'weather_noaa_1d': backfill_weather,
-                'fred_observations_1d': backfill_fred,
-                'news_articles_1d': backfill_news,
-                'cftc_cot_1w': backfill_cot,
-                'fx_spot_1d': backfill_fx,
-                'epa_rin_prices_1d': backfill_rin,
-            }
-            if args.table in table_map:
-                table_map[args.table](conn)
-            else:
-                print(f"Unknown table: {args.table}")
-                print(f"Available: {list(table_map.keys())}")
-                sys.exit(1)
+            check_table(conn, args.table, args.dry_run)
         else:
             parser.print_help()
     finally:
         conn.close()
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

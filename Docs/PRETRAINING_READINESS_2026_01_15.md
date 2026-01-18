@@ -35,20 +35,20 @@
 
 ## Data Freshness Status
 
-### Raw Data (Bronze Layer)
+### Source Data (v2 + legacy pending migration)
 | Table | Rows | Max Date | Days Stale | Status |
 |-------|------|----------|------------|--------|
-| raw.market_futures_1d (ZL) | 8,398 | 2026-01-09 | 6 | OK |
-| raw.cftc_cot_1w | 18,381 | 2026-01-06 | 9 | OK |
-| raw.epa_rin_prices_1d | - | 2025-11-24 | 52 | UPSTREAM LAG |
+| mkt.futures_1d (ZL) | 8,398 | 2026-01-09 | 6 | OK |
+| raw.cftc_cot_1w (legacy) | 18,381 | 2026-01-06 | 9 | OK |
+| raw.epa_rin_prices_1d (legacy) | - | 2025-11-24 | 52 | UPSTREAM LAG |
 
 *Note: EPA RIN staleness is upstream data lag, not pipeline issue.*
 
-### Training Tables (Silver Layer)
+### Training Tables (v2)
 | Table | Rows | Max Date | Status |
 |-------|------|----------|--------|
-| training.core_matrix_1d | 6,622 | 2026-01-02 | READY |
-| gold.elite_indicators_1d | 6,627 | 2026-01-09 | READY |
+| training.matrix_1d | 6,622 | 2026-01-02 | READY |
+| features.elite_1d | 6,627 | 2026-01-09 | READY |
 
 ### Specialist Feature Tables
 | Table | Rows | Max Date | Status |
@@ -93,7 +93,7 @@
 
 ---
 
-## Target Coverage (core_matrix_1d)
+## Target Coverage (training.matrix_1d)
 
 | Target | Rows | Coverage |
 |--------|------|----------|

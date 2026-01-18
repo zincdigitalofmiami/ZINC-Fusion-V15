@@ -47,7 +47,7 @@ async function updateIngestRun(
 }
 
 async function rowHashExists(client: PoolClient, rowHash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM raw.cftc_cot_1w WHERE row_hash=$1 LIMIT 1`, [
+  const r = await client.query(`SELECT 1 FROM pos.cftc_1w WHERE row_hash=$1 LIMIT 1`, [
     rowHash,
   ]);
   return r.rows.length > 0;
@@ -59,7 +59,7 @@ async function eventSymbolExists(
   symbol: string
 ): Promise<boolean> {
   const r = await client.query(
-    `SELECT 1 FROM raw.cftc_cot_1w WHERE event_date=$1::date AND symbol=$2 LIMIT 1`,
+    `SELECT 1 FROM pos.cftc_1w WHERE event_date=$1::date AND symbol=$2 LIMIT 1`,
     [eventDate, symbol]
   );
   return r.rows.length > 0;
@@ -197,7 +197,7 @@ export const cftcWeekly = inngest.createFunction(
             }
 
             await client.query(
-              `INSERT INTO raw.cftc_cot_1w
+              `INSERT INTO pos.cftc_1w
                 (event_date, symbol, open_interest,
                  managed_money_long, managed_money_short, managed_money_net,
                  prod_merc_long, prod_merc_short, prod_merc_net,

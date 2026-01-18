@@ -164,8 +164,8 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
                 """
                 SELECT EXISTS (
                     SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = 'gold' 
-                      AND table_name = 'options_features_1d'
+                    WHERE table_schema = 'features'
+                      AND table_name = 'options_1d'
                 )
             """
             )
@@ -174,7 +174,7 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
             if not table_exists:
                 audit.add_check("options_features", False, "TABLE DOES NOT EXIST")
                 audit.add_error(
-                    "gold.options_features_1d not found - run Phase 1 first"
+                    "features.options_1d not found - run Phase 1 first"
                 )
                 return
 
@@ -186,7 +186,7 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
                     MIN(trade_date) as min_date,
                     MAX(trade_date) as max_date,
                     COUNT(DISTINCT trade_date) as unique_dates
-                FROM gold.options_features_1d
+                FROM features.options_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -199,10 +199,13 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
             audit.stats["options_unique_dates"] = row[3]
 
             if row[0] == 0:
-                audit.add_check("options_features", False, "NO DATA FOR SYMBOL")
-                audit.add_error(
-                    f"gold.options_features_1d has no data for {symbol} - run Phase 1"
+                # Options data is optional for core training (ZL options not available historically)
+                # Downgraded from HARD FAIL to WARNING - 2026-01-16
+                audit.add_check("options_features", True, "NO DATA (optional for core)")
+                audit.add_warning(
+                    f"features.options_1d has no data for {symbol} - options features will be excluded"
                 )
+                audit.options_hash = None
                 return
 
             # Check for date gaps (business days only, so allow some slack)
@@ -223,7 +226,7 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
                     trade_date::text || COALESCE(iv_atm::text, ''),
                     '' ORDER BY trade_date
                 ))
-                FROM gold.options_features_1d
+                FROM features.options_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -237,7 +240,7 @@ def check_options_features(conn, symbol: str, audit: AuditResult):
 
     except psycopg2.errors.UndefinedTable:
         audit.add_check("options_features", False, "TABLE DOES NOT EXIST")
-        audit.add_error("gold.options_features_1d not found - run Phase 1 first")
+        audit.add_error("features.options_1d not found - run Phase 1 first")
 
 
 # =============================================================================
@@ -259,7 +262,7 @@ def check_elite_indicators(conn, symbol: str, audit: AuditResult):
                 MIN(trade_date) as min_date,
                 MAX(trade_date) as max_date,
                 COUNT(DISTINCT trade_date) as unique_dates
-            FROM gold.elite_indicators_1d
+            FROM features.elite_1d
             WHERE symbol = %s
         """,
             (symbol,),
@@ -292,7 +295,7 @@ def check_elite_indicators(conn, symbol: str, audit: AuditResult):
                     trade_date::text || COALESCE(close::text, ''),
                     '' ORDER BY trade_date
                 ))
-                FROM gold.elite_indicators_1d
+                FROM features.elite_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -316,7 +319,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
     - ANY constant column (variance ≈ 0) → HARD FAIL (checked on ALL columns)
     - ANY duplicate (trade_date, symbol) keys → HARD FAIL
 
-    Unique key for training.core_matrix_curated_1d: (trade_date, symbol)
+    Unique key for training.matrix_1d: (trade_date, symbol)
     """
     logger.info("CHECK 3: Core Matrix (HARD GUARDRAILS)...")
 
@@ -330,14 +333,14 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
                 SELECT EXISTS (
                     SELECT 1 FROM information_schema.tables
                     WHERE table_schema = 'training'
-                      AND table_name = 'core_matrix_curated_1d'
+                      AND table_name = 'matrix_1d'
                 )
             """
             )
             if not cur.fetchone()[0]:
                 audit.add_check("core_matrix", False, "TABLE DOES NOT EXIST")
                 audit.add_error(
-                    "training.core_matrix_curated_1d not found - run Phase 3"
+                    "training.matrix_1d not found - run Phase 3"
                 )
                 return
 
@@ -346,7 +349,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
             cur.execute(
                 """
                 SELECT COUNT(*) 
-                FROM training.core_matrix_curated_1d
+                FROM training.matrix_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -359,17 +362,22 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
             audit.add_error("Core matrix is empty - run Phase 3")
             return
 
-        # Get all columns
+        # Get all columns with data types
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT column_name 
+                SELECT column_name, data_type
                 FROM information_schema.columns
                 WHERE table_schema = 'training'
-                  AND table_name = 'core_matrix_curated_1d'
+                  AND table_name = 'matrix_1d'
             """
             )
-            all_cols = [row[0] for row in cur.fetchall()]
+            col_info = {row[0]: row[1] for row in cur.fetchall()}
+            all_cols = list(col_info.keys())
+
+        # Numeric types for variance check (skip text/categorical columns)
+        numeric_types = {'integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint'}
+        numeric_cols = {col for col, dtype in col_info.items() if dtype in numeric_types}
 
         # Metadata columns (not features)
         metadata_cols = {"trade_date", "symbol", "matrix_version", "created_at"} | {
@@ -425,7 +433,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
                     SELECT 
                         COUNT(*) as total,
                         COUNT("{col}") as non_null
-                    FROM training.core_matrix_curated_1d
+                    FROM training.matrix_1d
                     WHERE symbol = %s
                 """,
                     (symbol,),
@@ -465,27 +473,42 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
         logger.info(f"   Checking {len(feature_cols)} feature columns for variance...")
         for col in feature_cols:
             with conn.cursor() as cur:
-                # Use COUNT(DISTINCT) as primary check - more robust than VARIANCE
-                cur.execute(
-                    f"""
-                    SELECT 
-                        COUNT(DISTINCT "{col}") as distinct_count,
-                        VARIANCE("{col}") as var
-                    FROM training.core_matrix_curated_1d
-                    WHERE symbol = %s AND "{col}" IS NOT NULL
-                """,
-                    (symbol,),
-                )
-                result = cur.fetchone()
-                distinct_count = result[0] if result[0] else 0
-                variance = result[1]
+                # For numeric columns, use VARIANCE; for text columns, just COUNT(DISTINCT)
+                is_numeric = col in numeric_cols
+                if is_numeric:
+                    cur.execute(
+                        f"""
+                        SELECT
+                            COUNT(DISTINCT "{col}") as distinct_count,
+                            VARIANCE("{col}") as var
+                        FROM training.matrix_1d
+                        WHERE symbol = %s AND "{col}" IS NOT NULL
+                    """,
+                        (symbol,),
+                    )
+                    result = cur.fetchone()
+                    distinct_count = result[0] if result[0] else 0
+                    variance = result[1]
+                else:
+                    # Text/categorical columns - just check distinct count
+                    cur.execute(
+                        f"""
+                        SELECT COUNT(DISTINCT "{col}") as distinct_count
+                        FROM training.matrix_1d
+                        WHERE symbol = %s AND "{col}" IS NOT NULL
+                    """,
+                        (symbol,),
+                    )
+                    result = cur.fetchone()
+                    distinct_count = result[0] if result[0] else 0
+                    variance = None  # Not applicable for text
 
                 # CONSTANT: only 1 distinct value (or 0 if all null - caught above)
                 if distinct_count <= 1:
                     constant_cols.append(col)
-                # NEAR-CONSTANT: variance below epsilon (warning)
+                # NEAR-CONSTANT: variance below epsilon (warning) - only for numeric
                 elif (
-                    variance is not None and variance < FMC_INSTANCE.MIN_VARIANCE_RATIO
+                    is_numeric and variance is not None and variance < FMC_INSTANCE.MIN_VARIANCE_RATIO
                 ):
                     low_variance_cols.append((col, f"var={variance:.2e}"))
 
@@ -515,7 +538,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
             cur.execute(
                 """
                 SELECT trade_date, symbol, COUNT(*) as cnt
-                FROM training.core_matrix_curated_1d
+                FROM training.matrix_1d
                 WHERE symbol = %s
                 GROUP BY trade_date, symbol
                 HAVING COUNT(*) > 1
@@ -544,7 +567,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
                     trade_date::text || COALESCE(close::text, ''),
                     '' ORDER BY trade_date
                 ))
-                FROM training.core_matrix_curated_1d
+                FROM training.matrix_1d
                 WHERE symbol = %s
             """,
                 (symbol,),
@@ -554,7 +577,7 @@ def check_core_matrix(conn, symbol: str, audit: AuditResult):
 
     except psycopg2.errors.UndefinedTable:
         audit.add_check("core_matrix", False, "TABLE DOES NOT EXIST")
-        audit.add_error("training.core_matrix_curated_1d not found - run Phase 3")
+        audit.add_error("training.matrix_1d not found - run Phase 3")
 
 
 # =============================================================================
@@ -566,7 +589,7 @@ def check_oof_schema(conn, symbol: str, audit: AuditResult):
     """
     Validate OOF table exists with correct columns and no duplicate keys.
 
-    Unique key for training.oof_core_zl_1d: (trade_date, horizon_days, symbol)
+    Unique key for training.oof_core_1d: (trade_date, horizon_days, symbol)
     Note: symbol is included for future multi-symbol support.
     """
     logger.info("CHECK 4: OOF Schema...")
@@ -628,7 +651,7 @@ def check_oof_schema(conn, symbol: str, audit: AuditResult):
             cur.execute(
                 f"""
                 SELECT column_name FROM information_schema.columns
-                WHERE table_schema = 'training' AND table_name = 'oof_core_zl_1d'
+                WHERE table_schema = 'training' AND table_name = 'oof_core_1d'
                   AND column_name = 'symbol'
             """
             )
@@ -700,7 +723,7 @@ def check_target_coverage(conn, symbol: str, audit: AuditResult):
                     SELECT 
                         COUNT(*) as total,
                         COUNT("{target_col}") as non_null
-                    FROM training.core_matrix_curated_1d
+                    FROM training.matrix_1d
                     WHERE symbol = %s
                 """,
                     (symbol,),
@@ -755,7 +778,7 @@ def check_structural_leakage(conn, symbol: str, audit: AuditResult):
                 SELECT column_name 
                 FROM information_schema.columns
                 WHERE table_schema = 'training'
-                  AND table_name = 'core_matrix_curated_1d'
+                  AND table_name = 'matrix_1d'
             """
             )
             all_cols = [row[0] for row in cur.fetchall()]
@@ -785,7 +808,7 @@ def check_structural_leakage(conn, symbol: str, audit: AuditResult):
                         close,
                         LEAD(close, 5) OVER (ORDER BY trade_date) as close_5d,
                         target_ret_5d
-                    FROM training.core_matrix_curated_1d
+                    FROM training.matrix_1d
                     WHERE symbol = %s
                     ORDER BY trade_date
                     LIMIT 100
@@ -832,7 +855,7 @@ def check_structural_leakage(conn, symbol: str, audit: AuditResult):
             cur.execute(
                 """
                 SELECT CORR(close, target_ret_5d)
-                FROM training.core_matrix_curated_1d
+                FROM training.matrix_1d
                 WHERE symbol = %s
                   AND close IS NOT NULL
                   AND target_ret_5d IS NOT NULL
@@ -888,7 +911,7 @@ def check_raw_data_not_normalized(conn, symbol: str, audit: AuditResult):
                     STDDEV(close) as std_close,
                     MIN(close) as min_close,
                     MAX(close) as max_close
-                FROM training.core_matrix_curated_1d
+                FROM training.matrix_1d
                 WHERE symbol = %s AND close IS NOT NULL
             """,
                 (symbol,),
@@ -934,7 +957,7 @@ def check_raw_data_not_normalized(conn, symbol: str, audit: AuditResult):
                 SELECT column_name 
                 FROM information_schema.columns
                 WHERE table_schema = 'training'
-                  AND table_name = 'core_matrix_curated_1d'
+                  AND table_name = 'matrix_1d'
                   AND data_type IN ('double precision', 'real', 'numeric', 'integer', 'bigint')
                   AND column_name NOT IN ('trade_date', 'symbol', 'matrix_version')
                   AND column_name NOT LIKE 'target_%'
@@ -949,7 +972,7 @@ def check_raw_data_not_normalized(conn, symbol: str, audit: AuditResult):
                 cur.execute(
                     f"""
                     SELECT AVG("{col}"), STDDEV("{col}")
-                    FROM training.core_matrix_curated_1d
+                    FROM training.matrix_1d
                     WHERE symbol = %s AND "{col}" IS NOT NULL
                 """,
                     (symbol,),

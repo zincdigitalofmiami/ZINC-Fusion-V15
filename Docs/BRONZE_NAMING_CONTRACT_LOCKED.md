@@ -4,6 +4,8 @@
 **Date:** January 11, 2026  
 **Authority:** Kirk (Architect)
 
+> NOTE (2026-01-17): Schema v2 deprecates raw/bronze usage. This contract is legacy.
+
 ---
 
 ## 0) Scope

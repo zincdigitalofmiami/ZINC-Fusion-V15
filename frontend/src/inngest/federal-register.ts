@@ -35,6 +35,7 @@
 import { inngest } from "./client";
 import { Pool, type PoolClient } from "pg";
 import { createHash } from "crypto";
+import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 
 // Database connection pool
 const pool = new Pool({
@@ -108,27 +109,42 @@ const TAG_RULES: TagRule[] = [
 
 /**
  * Assign specialist tags based on document content
+ *
+ * Uses hybrid approach:
+ * 1. Document-specific TAG_RULES (regex patterns for Federal Register context)
+ * 2. Shared keyword classifier for general specialist detection
+ * 3. "legislation" always added for Federal Register documents
  */
 function assignTags(title: string, abstract: string, docType: string, agencies: string[]): string[] {
-  const content = `${title} ${abstract} ${agencies.join(" ")}`.toLowerCase();
+  const content = `${title} ${abstract} ${agencies.join(" ")}`;
+  const contentLower = content.toLowerCase();
   const tags = new Set<string>();
-  
+
   // Presidential documents always get trump_effect
   if (docType === "PRESDOCU") {
     tags.add("trump_effect");
   }
-  
-  // Apply tag rules
+
+  // Apply document-specific TAG_RULES (regex patterns)
   for (const rule of TAG_RULES) {
-    if (rule.pattern.test(content)) {
+    if (rule.pattern.test(contentLower)) {
       rule.tags.forEach(tag => tags.add(tag));
       // Don't break - accumulate all matching tags
     }
   }
-  
-  // All Federal Register docs get legislation tag
+
+  // Also apply shared keyword classifier for broader coverage
+  const keywordTags = classifyByKeywords(content);
+  for (const tag of keywordTags) {
+    if (tag !== "general") {
+      tags.add(tag);
+    }
+  }
+
+  // All Federal Register docs get "legislation" as document-type tag
+  // Note: "legislation" is NOT a Big-11 specialist, it's a document category
   tags.add("legislation");
-  
+
   return Array.from(tags);
 }
 
@@ -208,7 +224,7 @@ async function quarantineRecord(
  */
 async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
   const result = await client.query(
-    `SELECT 1 FROM raw.legislation_federal_register_1d WHERE row_hash = $1 LIMIT 1`,
+    `SELECT 1 FROM alt.legislation_1d WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
   );
   return result.rows.length > 0;
@@ -346,7 +362,7 @@ export const federalRegisterDaily = inngest.createFunction(
               await quarantineRecord(
                 client,
                 runId!,
-                "raw.legislation_federal_register_1d",
+                "alt.legislation_1d",
                 doc,
                 ["Missing required fields: document_number or publication_date"],
                 "error"
@@ -375,7 +391,7 @@ export const federalRegisterDaily = inngest.createFunction(
 
             // Insert new document (append-only)
             await client.query(
-              `INSERT INTO raw.legislation_federal_register_1d (
+              `INSERT INTO alt.legislation_1d (
                  event_date,
                  document_number,
                  document_type,
@@ -421,7 +437,7 @@ export const federalRegisterDaily = inngest.createFunction(
             await quarantineRecord(
               client,
               runId!,
-              "raw.legislation_federal_register_1d",
+              "alt.legislation_1d",
               doc,
               ["Insert error: " + errorMsg],
               "error"

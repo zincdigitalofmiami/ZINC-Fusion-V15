@@ -4,6 +4,9 @@
 **Date**: January 11, 2026
 **VSClaude Track**: A - URL Load-ins & Inngest Jobs
 
+> NOTE (2026-01-17): Schema v2 deprecates raw sources. This mapping remains
+> authoritative for routing but table references are legacy until migration.
+
 **Changelog:**
 - 2026-01-11: CRITICAL FIX - Separated TARIFF and TRUMP_EFFECT specialists
   - EPUTRADE (Trade Policy Uncertainty) → `tariff` only

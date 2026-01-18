@@ -4,6 +4,9 @@
 **Status:** BLOCKED - Needs 11 separate training pipelines
 **Priority:** DEFERRED - Focus on Core first
 
+> NOTE (2026-01-17): Schema v2 replaces raw/gold/silver with mkt/econ/features.
+> Legacy table references below are pending migration.
+
 ---
 
 ## Critical Finding: Feature Generation Bug

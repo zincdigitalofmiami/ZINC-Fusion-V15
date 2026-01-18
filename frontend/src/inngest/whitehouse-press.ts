@@ -28,11 +28,12 @@
  * - /briefing-room/statements-releases/feed/
  * 
  * Routes to: tariff, trump_effect, energy, china specialists
- * Table: raw.news_articles_event
+ * Table: alt.news_1d
  */
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
+import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -234,45 +235,24 @@ function generateRowHash(item: WhiteHouseItem): string {
 }
 
 function classifySpecialists(item: WhiteHouseItem): string[] {
-  // Start with source-based classification
+  // Start with source-based classification (contextual hints)
   const baseSpecialists = SOURCE_TO_SPECIALISTS[item.sourceCategory] || ["trump_effect"];
   const specialists = new Set<string>(baseSpecialists);
-  
-  const text = `${item.title} ${item.description || ""}`.toLowerCase();
-  
-  // Keyword-based additions
-  if (text.includes("tariff") || text.includes("trade") || text.includes("import") || text.includes("export")) {
-    specialists.add("tariff");
+
+  // Use shared keyword classifier for content-based tagging
+  const text = `${item.title} ${item.description || ""}`;
+  const keywordTags = classifyByKeywords(text);
+
+  // Merge keyword-detected tags (exclude "general" if we have source-based tags)
+  for (const tag of keywordTags) {
+    if (tag !== "general") {
+      specialists.add(tag);
+    }
   }
-  if (text.includes("china") || text.includes("chinese") || text.includes("beijing")) {
-    specialists.add("china");
-  }
-  if (text.includes("oil") || text.includes("energy") || text.includes("petroleum") || text.includes("lng")) {
-    specialists.add("energy");
-  }
-  if (text.includes("biofuel") || text.includes("biodiesel") || text.includes("renewable fuel") || text.includes("ethanol")) {
-    specialists.add("biofuel");
-  }
-  if (text.includes("soybean") || text.includes("agriculture") || text.includes("farm") || text.includes("crop")) {
-    specialists.add("crush");
-  }
-  if (text.includes("brazil") || text.includes("argentina")) {
-    specialists.add("crush");
-    specialists.add("fx");
-  }
-  if (text.includes("currency") || text.includes("dollar") || text.includes("exchange rate")) {
-    specialists.add("fx");
-  }
-  if (text.includes("fed") || text.includes("interest rate") || text.includes("inflation") || text.includes("monetary")) {
-    specialists.add("fed");
-  }
-  if (text.includes("ice") || text.includes("immigration") || text.includes("border") || text.includes("deportation")) {
-    specialists.add("trump_effect");
-  }
-  if (text.includes("lawsuit") || text.includes("court") || text.includes("legal") || text.includes("judge")) {
-    specialists.add("trump_effect");
-  }
-  
+
+  // Whitehouse content always gets trump_effect
+  specialists.add("trump_effect");
+
   return Array.from(specialists);
 }
 
@@ -362,7 +342,7 @@ export const whitehouseDaily = inngest.createFunction(
 
           // Check if exists
           const checkResult = await pool.query(
-            `SELECT 1 FROM raw.news_articles_event WHERE row_hash = $1`,
+            `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
             [rowHash]
           );
 
@@ -373,7 +353,7 @@ export const whitehouseDaily = inngest.createFunction(
 
           // Insert
           await pool.query(
-            `INSERT INTO raw.news_articles_event 
+            `INSERT INTO alt.news_1d 
              (source_id, title, url, published_at, content_snippet, specialist_tags, row_hash, ingested_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
             [
