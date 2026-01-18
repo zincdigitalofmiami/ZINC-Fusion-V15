@@ -267,17 +267,17 @@ export function ZLCandlestickChart({
           {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                       <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">ZL1!</span>span>
-                                <span className="text-xs text-slate-600">Soybean Oil Futures • 1D</span>span>
-                      </div>div>
+                                <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">ZL1!</span>
+                                <span className="text-xs text-slate-600">Soybean Oil Futures • 1D</span>
+                      </div>
                       <div className="flex items-center gap-2">
                         {showBands && (
                       <span className="px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[10px] font-mono text-cyan-400">
                                     P30/P70 BANDS
-                      </span>span>
+                      </span>
                                 )}
-                      </div>div>
-              </div>div>
+                      </div>
+              </div>
         
           {/* Chart Container - MASSIVE */}
               <div 
@@ -287,21 +287,21 @@ export function ZLCandlestickChart({
                       >
                 {/* Watermark */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                <div className="text-6xl font-bold text-white/[0.02] tracking-widest">ZL</div>div>
-                      </div>div>
-              </div>div>
+                                <div className="text-6xl font-bold text-white/[0.02] tracking-widest">ZL</div>
+                      </div>
+              </div>
         
           {/* Legend */}
               <div className="flex items-center justify-center gap-6 py-3 border-t border-white/5">
                       <div className="flex items-center gap-2">
-                                <div className="w-4 h-0.5 bg-[#84CC16]" style={{ borderStyle: 'dashed' }}></div>div>
-                                <span className="text-[10px] text-slate-500">P50 Forecast</span>span>
-                      </div>div>
+                                <div className="w-4 h-0.5 bg-[#84CC16]" style={{ borderStyle: 'dashed' }}></div>
+                                <span className="text-[10px] text-slate-500">P50 Forecast</span>
+                      </div>
                       <div className="flex items-center gap-2">
-                                <div className="w-4 h-0.5 bg-[#00D4FF]"></div>div>
-                                <span className="text-[10px] text-slate-500">ZL Price</span>span>
-                      </div>div>
-              </div>div>
-        </div>div>
+                                <div className="w-4 h-0.5 bg-[#00D4FF]"></div>
+                                <span className="text-[10px] text-slate-500">ZL Price</span>
+                      </div>
+              </div>
+        </div>
       )
-}</div>
+}
