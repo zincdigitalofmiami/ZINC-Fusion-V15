@@ -41,59 +41,8 @@ export default function DashboardPage() {
           {/* SECTION 3: Chris's TOP 4 Key Drivers */}
               <ChrisTop4Drivers />
         
-          {/* SECTION 4: Bottom Row - Risks + Commentary */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Active Risks */}
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-5">
-                                <h3 className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
-                                            <AlertTriangle size={14} className="text-amber-400" />
-                                            Active Market Risks
-                                </h3>
-                                <div className="space-y-3">
-                                            <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg group hover:bg-red-500/10 transition-colors">
-                                                          <div className="flex justify-between items-center mb-1">
-                                                                          <span className="text-red-400 text-xs font-bold flex items-center gap-1.5">
-                                                                                            <TrendingDown size={12} />
-                                                                                            TRUMP TARIFFS
-                                                                          </span>
-                                                                          <span className="text-red-400/70 text-[10px] font-mono">HIGH PROB</span>
-                                                          </div>
-                                                          <p className="text-slate-500 text-[11px] leading-relaxed">
-                                                                          EPU index &gt; 175. China retaliation scenarios pricing in.
-                                                          </p>
-                                            </div>
-                                
-                                            <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg group hover:bg-blue-500/10 transition-colors">
-                                                          <div className="flex justify-between items-center mb-1">
-                                                                          <span className="text-blue-400 text-xs font-bold flex items-center gap-1.5">
-                                                                                            <TrendingUp size={12} />
-                                                                                            BIOFUEL MANDATE
-                                                                          </span>
-                                                                          <span className="text-blue-400/70 text-[10px] font-mono">MED IMPACT</span>
-                                                          </div>
-                                                          <p className="text-slate-500 text-[11px] leading-relaxed">
-                                                                          EPA RVO decision pending. Upside surprise priced at 35%.
-                                                          </p>
-                                            </div>
-                                
-                                            <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg group hover:bg-amber-500/10 transition-colors">
-                                                          <div className="flex justify-between items-center mb-1">
-                                                                          <span className="text-amber-400 text-xs font-bold flex items-center gap-1.5">
-                                                                                            <AlertTriangle size={12} />
-                                                                                            BRAZIL WEATHER
-                                                                          </span>
-                                                                          <span className="text-amber-400/70 text-[10px] font-mono">MONITORING</span>
-                                                          </div>
-                                                          <p className="text-slate-500 text-[11px] leading-relaxed">
-                                                                          La Niña conditions developing. Crop stress indicators elevated.
-                                                          </p>
-                                            </div>
-                                </div>
-                      </div>
-              
-                {/* Market Commentary */}
-                      <MarketCommentary />
-              </div>
         </div>
-      );
+      </div>
+            );
 }
+          }
