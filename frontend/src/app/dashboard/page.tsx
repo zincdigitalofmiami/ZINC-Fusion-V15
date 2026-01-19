@@ -17,7 +17,7 @@ export default function DashboardPage() {
         
           {/* SECTION 1: HERO CHART - Massive, Full Width */}
               <div className="space-y-2">
-                      <ZLCandlestickChart height="70vh" showBands={true} />
+                      <ZLCandlestickChart height="70vh" />
               </div>
         
           {/* SECTION 2: Multi-Horizon Signals - 4 Big Cards */}
