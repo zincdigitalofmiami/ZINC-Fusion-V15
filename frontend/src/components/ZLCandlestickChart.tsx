@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
     SciChartSurface,
     NumericAxis,
-    FastLineRenderableSeries,
+    FastCandlestickRenderableSeries,
     FastBandRenderableSeries,
-    XyDataSeries,
+    OhlcDataSeries,
     XyyDataSeries,
     EAxisAlignment,
     EAutoRange,
@@ -32,7 +32,7 @@ const quantThemeOverrides = {
     loadingAnimationBackground: 'transparent',
     axisBandsFill: 'transparent',
     axisTitleColor: 'rgba(255,255,255,0.4)',
-    majorGridLineBrush: 'rgba(255,255,255,0.03)',
+    majorGridLineBrush: 'rgba(255,255,255,0.05)',
     minorGridLineBrush: 'transparent',
     tickTextBrush: 'rgba(255,255,255,0.35)',
     labelBackgroundBrush: 'rgba(20,10,40,0.9)',
@@ -60,7 +60,7 @@ export function ZLCandlestickChart({
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/zl/price-1d?days=180')
+                const res = await fetch('/api/zl/price-1d?days=365')
                 if (!res.ok) throw new Error('Failed to fetch')
                 const json = await res.json()
                 if (json.data && json.data.length > 0) {
@@ -159,13 +159,14 @@ export function ZLCandlestickChart({
             const bands = calcBands()
             const xValues = priceData.map((_, i) => i)
 
-            // X Axis - clean numeric for now
+            // X Axis
             const xAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Bottom,
                 autoRange: EAutoRange.Always,
                 drawMajorBands: false,
                 drawMinorGridLines: false,
-                drawMajorGridLines: false,
+                drawMajorGridLines: true,
+                majorGridLineStyle: { color: 'rgba(255,255,255,0.05)', strokeThickness: 1 },
                 axisBorder: { borderTop: 0, color: 'transparent' },
                 labelStyle: { fontSize: 11, fontFamily: 'Inter', color: 'rgba(255,255,255,0.3)' },
             })
@@ -179,7 +180,7 @@ export function ZLCandlestickChart({
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
-                majorGridLineStyle: { color: 'rgba(255,255,255,0.03)', strokeThickness: 1 },
+                majorGridLineStyle: { color: 'rgba(255,255,255,0.05)', strokeThickness: 1 },
                 axisBorder: { borderLeft: 0, color: 'transparent' },
                 labelStyle: { fontSize: 11, fontFamily: 'Inter', color: 'rgba(255,255,255,0.4)' },
                 labelFormat: ENumericFormat.Decimal,
@@ -195,10 +196,10 @@ export function ZLCandlestickChart({
             })
             const band2Series = new FastBandRenderableSeries(wasmContext, {
                 dataSeries: band2Data,
-                fill: 'rgba(139, 92, 246, 0.05)',
-                fillY1: 'rgba(139, 92, 246, 0.05)',
-                stroke: 'rgba(139, 92, 246, 0.1)',
-                strokeY1: 'rgba(139, 92, 246, 0.1)',
+                fill: 'rgba(139, 92, 246, 0.03)',
+                fillY1: 'rgba(139, 92, 246, 0.03)',
+                stroke: 'rgba(139, 92, 246, 0.08)',
+                strokeY1: 'rgba(139, 92, 246, 0.08)',
                 strokeThickness: 1,
             })
             sciChartSurface.renderableSeries.add(band2Series)
@@ -211,26 +212,36 @@ export function ZLCandlestickChart({
             })
             const band1Series = new FastBandRenderableSeries(wasmContext, {
                 dataSeries: band1Data,
-                fill: 'rgba(139, 92, 246, 0.08)',
-                fillY1: 'rgba(139, 92, 246, 0.08)',
-                stroke: 'rgba(139, 92, 246, 0.2)',
-                strokeY1: 'rgba(139, 92, 246, 0.2)',
+                fill: 'rgba(139, 92, 246, 0.05)',
+                fillY1: 'rgba(139, 92, 246, 0.05)',
+                stroke: 'rgba(139, 92, 246, 0.15)',
+                strokeY1: 'rgba(139, 92, 246, 0.15)',
                 strokeThickness: 1,
             })
             sciChartSurface.renderableSeries.add(band1Series)
 
-            // Main price line - gradient effect
-            const priceData_ = new XyDataSeries(wasmContext, {
+            // Candlestick series - TradingView style colors
+            // Up candles: cyan body (#26a69a / light blue), cyan wick
+            // Down candles: pink/magenta body (#ef5350), pink wick
+            const ohlcData = new OhlcDataSeries(wasmContext, {
                 xValues,
-                yValues: closes,
+                openValues: priceData.map(d => d.open),
+                highValues: priceData.map(d => d.high),
+                lowValues: priceData.map(d => d.low),
+                closeValues: priceData.map(d => d.close),
             })
-            const priceSeries = new FastLineRenderableSeries(wasmContext, {
-                dataSeries: priceData_,
-                stroke: 'rgba(139, 92, 246, 1)',
-                strokeThickness: 2,
-                pointMarker: undefined,
+
+            const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
+                dataSeries: ohlcData,
+                // Up candle (close > open) - cyan/teal
+                strokeUp: '#53b9c7',           // Wick color for up
+                brushUp: '#53b9c7',            // Body fill for up (73% opacity in settings)
+                // Down candle (close < open) - pink/magenta
+                strokeDown: '#e45f93',         // Wick color for down
+                brushDown: '#e45f93',          // Body fill for down
+                dataPointWidth: 0.7,
             })
-            sciChartSurface.renderableSeries.add(priceSeries)
+            sciChartSurface.renderableSeries.add(candlestickSeries)
 
             // Add interactivity
             sciChartSurface.chartModifiers.add(
@@ -243,7 +254,7 @@ export function ZLCandlestickChart({
                 new CursorModifier({
                     showTooltip: false,
                     showAxisLabels: true,
-                    crosshairStroke: 'rgba(139, 92, 246, 0.5)',
+                    crosshairStroke: 'rgba(255, 255, 255, 0.3)',
                     crosshairStrokeThickness: 1,
                 })
             )
@@ -260,17 +271,17 @@ export function ZLCandlestickChart({
     }, [priceData])
 
     return (
-        <div className="relative w-full rounded-2xl overflow-hidden border border-white/5" style={{ background: 'linear-gradient(180deg, #0c0a1a 0%, #080610 100%)' }}>
+        <div className="relative w-full rounded-2xl overflow-hidden border border-white/5" style={{ background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse shadow-lg shadow-violet-500/50" />
-                        <span className="text-base font-semibold text-white tracking-tight">ZL</span>
+                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50" />
+                        <span className="text-base font-semibold text-white tracking-tight">ZL1!</span>
                     </div>
-                    <span className="text-xs text-white/30 font-medium">Soybean Oil Futures</span>
+                    <span className="text-xs text-white/30 font-medium">Soybean Oil Futures • 1D</span>
                     <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
-                        <span className="text-[9px] text-violet-400 uppercase tracking-wider font-medium">±1σ / ±2σ Bands</span>
+                        <span className="text-[9px] text-violet-400 uppercase tracking-wider font-medium">±1σ / ±2σ</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -288,13 +299,13 @@ export function ZLCandlestickChart({
                     )}
                     <div className="h-4 w-px bg-white/10" />
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5">
-                        <span className="text-[10px] text-white/30 uppercase tracking-wider">σ</span>
+                        <span className="text-[10px] text-white/30 uppercase tracking-wider">IV</span>
                         <span className="text-xs font-mono text-violet-400">{volatility}</span>
                     </div>
                     {lastPrice && (
                         <div className="flex items-center gap-3">
                             <span className="text-2xl font-semibold text-white tabular-nums">{lastPrice.toFixed(2)}</span>
-                            <span className={`text-sm font-medium tabular-nums ${priceChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <span className={`text-sm font-medium tabular-nums ${priceChange >= 0 ? 'text-cyan-400' : 'text-pink-400'}`}>
                                 {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                             </span>
                         </div>
@@ -312,16 +323,16 @@ export function ZLCandlestickChart({
             {/* Legend */}
             <div className="flex items-center justify-center gap-8 px-6 py-3 border-t border-white/5 bg-black/20">
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-0.5 bg-violet-500" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Price</span>
+                    <div className="w-3 h-4 rounded-sm bg-cyan-400/80" />
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Bullish</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-2 rounded-sm bg-violet-500/20 border border-violet-500/30" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">±1σ</span>
+                    <div className="w-3 h-4 rounded-sm bg-pink-400/80" />
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Bearish</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-2 rounded-sm bg-violet-500/10 border border-violet-500/20" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">±2σ</span>
+                    <div className="w-4 h-2 rounded-sm bg-violet-500/15 border border-violet-500/25" />
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider">±1σ / ±2σ</span>
                 </div>
             </div>
         </div>
