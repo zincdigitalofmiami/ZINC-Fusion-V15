@@ -173,11 +173,11 @@ export function ZLCandlestickChart({
             })
             sciChartSurface.xAxes.add(xAxis)
 
-            // Y Axis - with padding so wicks don't touch top/bottom (like TradingView)
+            // Y Axis - minimal padding so wicks don't touch top/bottom
             const yAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Right,
                 autoRange: EAutoRange.Always,
-                growBy: new NumberRange(0.12, 0.12), // 12% padding top and bottom for wick clearance
+                growBy: new NumberRange(0.02, 0.02), // 2% padding - roughly 20px on a typical chart
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
