@@ -159,10 +159,11 @@ export function ZLCandlestickChart({
             const bands = calcBands()
             const xValues = priceData.map((_, i) => i)
 
-            // X Axis
+            // X Axis - with padding so candles don't touch edges (like TradingView)
             const xAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Bottom,
                 autoRange: EAutoRange.Always,
+                growBy: new NumberRange(0.02, 0.05), // 2% left padding, 5% right padding for last candle
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
@@ -172,11 +173,11 @@ export function ZLCandlestickChart({
             })
             sciChartSurface.xAxes.add(xAxis)
 
-            // Y Axis
+            // Y Axis - with padding so wicks don't touch top/bottom (like TradingView)
             const yAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Right,
                 autoRange: EAutoRange.Always,
-                growBy: new NumberRange(0.1, 0.1),
+                growBy: new NumberRange(0.12, 0.12), // 12% padding top and bottom for wick clearance
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
@@ -313,21 +314,32 @@ export function ZLCandlestickChart({
                 </div>
             </div>
 
-            {/* Chart */}
-            <div
-                ref={chartRef}
-                className="w-full"
-                style={{ height: typeof height === 'number' ? `${height}px` : height }}
-            />
+            {/* Chart with Watermark */}
+            <div className="relative w-full" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
+                {/* ZINC Digital Watermark - positioned like TradingView */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                    <img
+                        src="/chart_watermark.svg"
+                        alt=""
+                        className="w-[400px] h-auto opacity-[0.04]"
+                        style={{ filter: 'grayscale(100%) brightness(2)' }}
+                    />
+                </div>
+                {/* SciChart Canvas */}
+                <div
+                    ref={chartRef}
+                    className="absolute inset-0 z-10"
+                />
+            </div>
 
             {/* Legend */}
             <div className="flex items-center justify-center gap-8 px-6 py-3 border-t border-white/5 bg-black/20">
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-4 rounded-sm bg-cyan-400/80" />
+                    <div className="w-3 h-4 rounded-sm" style={{ backgroundColor: '#00ff00' }} />
                     <span className="text-[10px] text-white/40 uppercase tracking-wider">Bullish</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-4 rounded-sm bg-pink-400/80" />
+                    <div className="w-3 h-4 rounded-sm bg-white/80" />
                     <span className="text-[10px] text-white/40 uppercase tracking-wider">Bearish</span>
                 </div>
                 <div className="flex items-center gap-2">
