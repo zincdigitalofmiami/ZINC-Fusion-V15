@@ -8,8 +8,9 @@ const pool = new Pool({
 
 /**
  * GET /api/zl/price-1d?days=90
- * Fetch daily OHLCV bars for ZL from mkt.futures_1d
- * 
+ * Fetch daily OHLCV bars for ZL from analytics.zl_price_1d
+ * Dashboard charts consume this endpoint
+ *
  * Query params:
  * - days: number of days back (default 90)
  */
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
     // Clamp days to reasonable range
     const clampedDays = Math.max(7, Math.min(days, 3650)); // 1 week to 10 years
 
-    const query = `
-      SELECT 
+    const result = await pool.query(
+      `SELECT
         event_date as timestamp,
         open,
         high,
@@ -30,14 +31,12 @@ export async function GET(req: NextRequest) {
         close,
         volume,
         source
-      FROM mkt.futures_1d
-      WHERE symbol = 'ZL'
-        AND event_date >= CURRENT_DATE - INTERVAL '${clampedDays} days'
+      FROM analytics.zl_price_1d
+      WHERE event_date >= CURRENT_DATE - $1::interval
         AND event_date <= CURRENT_DATE
-      ORDER BY event_date ASC
-    `;
-
-    const result = await pool.query(query);
+      ORDER BY event_date ASC`,
+      [`${clampedDays} days`]
+    );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
