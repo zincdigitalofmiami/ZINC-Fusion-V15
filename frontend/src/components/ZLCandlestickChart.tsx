@@ -95,8 +95,17 @@ export function ZLCandlestickChart({
                                               style: LineStyle.Solid,
                                   },
                         },
-                        handleScroll: { mouseWheel: true, pressedMouseMove: true },
-                        handleScale: { mouseWheel: true, pinch: true },
+                        handleScroll: {
+                                  mouseWheel: false,  // Don't hijack page scroll
+                                  pressedMouseMove: true,
+                                  horzTouchDrag: true,
+                                  vertTouchDrag: false,  // Allow vertical page scroll
+                        },
+                        handleScale: {
+                                  mouseWheel: false,  // Don't hijack page scroll
+                                  pinch: true,
+                                  axisPressedMouseMove: true,
+                        },
                         crosshair: {
                                   vertLine: {
                                               color: COLORS.crosshair,
@@ -125,8 +134,9 @@ export function ZLCandlestickChart({
                         },
                         rightPriceScale: {
                                   borderVisible: false,
-                                  scaleMargins: { top: 0.1, bottom: 0.1 },
+                                  scaleMargins: { top: 0.05, bottom: 0.05 },
                                   autoScale: true,
+                                  mode: 0,  // Normal mode - auto-adjusts to visible range
                         },
                 })
 
