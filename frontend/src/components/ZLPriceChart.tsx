@@ -12,11 +12,6 @@ interface PriceData {
   volume: number
 }
 
-// Time ranges using daily bars from Prisma
-const TIME_RANGES = [
-  { id: '3M', label: '3 Month', days: 90 },
-]
-
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)

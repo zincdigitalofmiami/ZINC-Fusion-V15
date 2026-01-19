@@ -1,8 +1,8 @@
 /**
  * GET /api/zl/chart
- * Returns ZL daily OHLCV from mkt.futures_1d (freshest daily data)
+ * Returns ZL daily OHLCV from analytics.zl_price_1d
  * Query params: days (default 365)
- * Runtime query - no repo dependency
+ * Dashboard charts consume this endpoint
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
@@ -22,15 +22,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await query<DailyRow>(`
-      SELECT 
+      SELECT
         event_date,
         open,
         high,
         low,
         close,
         volume
-      FROM mkt.futures_1d
-      WHERE symbol = 'ZL'
+      FROM analytics.zl_price_1d
       ORDER BY event_date DESC
       LIMIT $1
     `, [days])

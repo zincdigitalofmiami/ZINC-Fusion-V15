@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, ArrowRight, BookOpen } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 
 export function MarketCommentary() {
   return (

@@ -1579,6 +1579,21 @@ model zl_price_1h {
   @@schema("analytics")
 }
 
+/// ZL daily OHLCV for dashboard charts - copied from mkt.futures_1d
+model zl_price_1d {
+  event_date DateTime @id @db.Date
+  open       Decimal  @db.Decimal(10, 4)
+  high       Decimal  @db.Decimal(10, 4)
+  low        Decimal  @db.Decimal(10, 4)
+  close      Decimal  @db.Decimal(10, 4)
+  volume     BigInt   @default(0)
+  source     String   @default("yahoo") @db.VarChar(50)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([event_date(sort: Desc)], map: "idx_zl_price_1d_date")
+  @@schema("analytics")
+}
+
 model public_intraday_prices {
   id             Int       @id(map: "intraday_prices_pkey") @default(autoincrement())
   symbol         String    @db.VarChar(20)

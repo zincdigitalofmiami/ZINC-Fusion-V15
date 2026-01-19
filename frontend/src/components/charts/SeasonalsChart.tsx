@@ -14,10 +14,8 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
   ReferenceLine,
 } from 'recharts';
-import TV from '@/lib/colors';
 
 interface YearData {
   year: number;

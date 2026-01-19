@@ -31,7 +31,7 @@ export function OrganicTopicCloud() {
     const simulation = d3.forceSimulation(nodes)
       .force('charge', d3.forceManyBody().strength(5))
       .force('center', d3.forceCenter(clientWidth / 2, clientHeight / 2))
-      .force('collide', d3.forceCollide().radius((d: any) => d.volume * 0.6 + 5).strength(0.9))
+      .force('collide', d3.forceCollide().radius((d: unknown) => (d as TopicNode).volume * 0.6 + 5).strength(0.9))
       .force('y', d3.forceY(clientHeight / 2).strength(0.05))
       .force('x', d3.forceX(clientWidth / 2).strength(0.05));
 

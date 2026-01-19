@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 
 interface SignalGaugeProps {
   value: number; // 0 to 100
-  label?: string;
   horizon: string;
   trend?: string;
   p10?: number;
@@ -13,11 +12,11 @@ interface SignalGaugeProps {
   confidence?: string;
 }
 
-export function SignalGauge({ value, label, horizon, p10, p90, confidence }: SignalGaugeProps) {
+export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaugeProps) {
   // Normalize value (0-100) to rotation (-90 to 90)
   // 0 = -90deg, 50 = 0deg, 100 = 90deg
   const rotation = (value / 100) * 180 - 90;
-  
+
   const getSignalText = (val: number) => {
     if (val >= 80) return { text: 'STRONG BUY', color: '#3b82f6' }; // blue-500
     if (val >= 60) return { text: 'BUY', color: '#60a5fa' };       // blue-400
@@ -27,11 +26,9 @@ export function SignalGauge({ value, label, horizon, p10, p90, confidence }: Sig
   };
 
   const signal = getSignalText(value);
-
-  // Calculate current price estimation (midpoint of p10/p90 if not provided, just roughly)
-  const currentEst = p10 && p90 ? (p10 + p90) / 2 : 0;
-  // Calculate relative position estimation within the band (simplified)
-  // We want to visualize the range P10--|Price|--P90 clearly
+  // Use p10 and p90 for range visualization if needed
+  void p10;
+  void p90;
   
   return (
     <div className="relative flex flex-col items-center justify-center p-5 bg-[#0a0a0a] border border-white/5 rounded-xl w-full shadow-lg">

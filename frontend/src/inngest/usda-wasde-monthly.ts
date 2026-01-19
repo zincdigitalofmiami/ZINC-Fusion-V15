@@ -86,7 +86,7 @@ type WasdeRelease = {
 };
 
 function findLatestWasdeRelease(html: string): WasdeRelease {
-  const matches = Array.from(html.matchAll(/href=\"([^\"]*wasde\\d{4}\\.xml)\"/gi));
+  const matches = Array.from(html.matchAll(/href="([^"]*wasde\d{4}\.xml)"/gi));
   if (matches.length === 0) {
     throw new Error("Could not find any WASDE XML links on Cornell publications page");
   }
@@ -96,7 +96,7 @@ function findLatestWasdeRelease(html: string): WasdeRelease {
     const href = m[1];
     const idx = m.index ?? 0;
     const before = html.slice(Math.max(0, idx - 400), idx);
-    const dtMatches = Array.from(before.matchAll(/datetime=\"([^\"]+)\"/gi));
+    const dtMatches = Array.from(before.matchAll(/datetime="([^"]+)"/gi));
     const dt = dtMatches.length ? dtMatches[dtMatches.length - 1][1] : null;
     if (!dt) continue;
 
@@ -125,8 +125,34 @@ function toArray<T>(value: T | T[] | undefined): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
+interface WasdeXmlParsed {
+  Report?: Record<string, { Report?: WasdeSubReport }>;
+}
+
+interface WasdeSubReport {
+  matrix5?: {
+    m2_region_group2_Collection?: {
+      m2_region_group2?: WasdeRegionGroup | WasdeRegionGroup[];
+    };
+  };
+}
+
+interface WasdeRegionGroup {
+  "@_region5"?: string;
+  m2_attribute_group2_Collection?: {
+    m2_attribute_group2?: WasdeAttributeGroup | WasdeAttributeGroup[];
+  };
+}
+
+interface WasdeAttributeGroup {
+  "@_attribute5"?: string;
+  Cell?: {
+    "@_cell_value5"?: string;
+  };
+}
+
 function extractCommodityRows(
-  parsed: any,
+  parsed: WasdeXmlParsed,
   srKey: string,
   commodity: string
 ): WasdeRow[] {

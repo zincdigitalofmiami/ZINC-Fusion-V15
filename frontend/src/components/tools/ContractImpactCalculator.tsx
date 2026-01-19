@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, DollarSign, Scale } from 'lucide-react';
+import { Scale } from 'lucide-react';
 
 type Horizon = '5d' | '21d' | '63d' | '126d';
 

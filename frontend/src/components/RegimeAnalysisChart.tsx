@@ -1,13 +1,12 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { 
-  createChart, 
-  LineSeries, 
-  AreaSeries,
-  ColorType, 
-  IChartApi, 
-  UTCTimestamp, 
+import {
+  createChart,
+  LineSeries,
+  ColorType,
+  IChartApi,
+  UTCTimestamp,
   LineStyle,
   HistogramSeries,
 } from 'lightweight-charts'

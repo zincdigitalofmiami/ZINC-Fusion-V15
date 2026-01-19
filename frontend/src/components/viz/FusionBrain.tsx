@@ -4,14 +4,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3-force';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Network, Zap, TrendingUp, AlertTriangle, Shield, Droplet, Globe, DollarSign, Activity, Wheat } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Shield, Droplet, Globe, DollarSign, Activity, Wheat } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
   group: string;
   val: number; // Size/Importance
   label: string;
-  icon: any;
+  icon: LucideIcon;
   status: 'calm' | 'active' | 'critical';
 }
 
@@ -21,15 +22,17 @@ interface Link extends d3.SimulationLinkDatum<Node> {
   value: number; // Correlation strength 0-1
 }
 
-const SPECIALISTS: any[] = [];
 const INITIAL_NODES: Node[] = [];
 const INITIAL_LINKS: Link[] = [];
+
+// Suppress unused imports warning - icons are used dynamically
+void [Zap, TrendingUp, AlertTriangle, Shield, Droplet, Globe, DollarSign, Activity, Wheat];
 
 export function FusionBrain() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<Node[]>(INITIAL_NODES);
-  const [links, setLinks] = useState<Link[]>(INITIAL_LINKS);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [links] = useState<Link[]>(INITIAL_LINKS);
+  const [, setDimensions] = useState({ width: 800, height: 600 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,10 +49,10 @@ export function FusionBrain() {
     setDimensions({ width: clientWidth, height: clientHeight });
 
     const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id((d: any) => d.id).distance((d: any) => 200 * (1 - d.value)))
+      .force('link', d3.forceLink(INITIAL_LINKS).id((d: unknown) => (d as Node).id).distance((d: unknown) => 200 * (1 - (d as Link).value)))
       .force('charge', d3.forceManyBody().strength(-400))
       .force('center', d3.forceCenter(clientWidth / 2, clientHeight / 2))
-      .force('collide', d3.forceCollide().radius((d: any) => d.val + 20).strength(0.7));
+      .force('collide', d3.forceCollide().radius((d: unknown) => (d as Node).val + 20).strength(0.7));
 
     simulation.on('tick', () => {
       setNodes([...simulation.nodes()]);
@@ -62,11 +65,11 @@ export function FusionBrain() {
 
   // Helper to get coords safe
   const getCoords = (link: Link) => {
-    const source: any = link.source;
-    const target: any = link.target;
-    return { 
+    const source = link.source as Node;
+    const target = link.target as Node;
+    return {
       x1: source.x || 0, y1: source.y || 0,
-      x2: target.x || 0, y2: target.y || 0 
+      x2: target.x || 0, y2: target.y || 0
     };
   };
 

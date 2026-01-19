@@ -15,7 +15,6 @@ import {
   ResponsiveContainer,
   Tooltip,
   ReferenceLine,
-  Dot,
 } from 'recharts';
 import TV from '@/lib/colors';
 
@@ -33,11 +32,19 @@ interface ForwardCurveProps {
 }
 
 // Custom dot component to color based on slope
-function CustomDot(props: any) {
-  const { cx, cy, payload, index, data } = props;
-  
-  if (!cx || !cy) return null;
-  
+interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: ContractPoint;
+  index?: number;
+  data?: ContractPoint[];
+}
+
+function CustomDot(props: CustomDotProps) {
+  const { cx, cy, payload, index = 0, data = [] } = props;
+
+  if (!cx || !cy || !payload) return null;
+
   // Determine if this point is in contango (higher than previous)
   const prevPoint = index > 0 ? data[index - 1] : null;
   const isContango = prevPoint ? payload.price >= prevPoint.price : true;

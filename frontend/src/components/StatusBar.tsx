@@ -20,8 +20,6 @@ export default function StatusBar({
 }: StatusBarProps) {
   const [displayTime, setDisplayTime] = useState<string>('')
   const [zlData, setZlData] = useState<ZlLiveData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [isStale, setIsStale] = useState(false)
 
   // Fetch live ZL price
@@ -42,11 +40,8 @@ export default function StatusBar({
         const updatedAt = new Date(json.updated_at)
         const now = new Date()
         setIsStale((now.getTime() - updatedAt.getTime()) > 30 * 60 * 1000)
-        setError(null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
+        console.error('Failed to fetch ZL live:', err)
       }
     }
     fetchZlLive()

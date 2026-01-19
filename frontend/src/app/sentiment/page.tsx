@@ -122,7 +122,16 @@ export default function SentimentPage() {
   );
 }
 
-function HeadlineCard({ sentiment, source, time, title, summary, tags }: any) {
+interface HeadlineCardProps {
+  sentiment: 'bullish' | 'bearish' | 'neutral'
+  source: string
+  time: string
+  title: string
+  summary: string
+  tags: string[]
+}
+
+function HeadlineCard({ sentiment, source, time, title, summary, tags }: HeadlineCardProps) {
     const borderColor = sentiment === 'bullish' ? 'border-l-emerald-500' : sentiment === 'bearish' ? 'border-l-red-500' : 'border-l-slate-500';
     const textColor = sentiment === 'bullish' ? 'text-emerald-400' : sentiment === 'bearish' ? 'text-red-400' : 'text-slate-400';
     
@@ -149,7 +158,15 @@ function HeadlineCard({ sentiment, source, time, title, summary, tags }: any) {
     );
 }
 
-function CotBar({ label, value, color, valueText, type }: any) {
+interface CotBarProps {
+  label: string
+  value: number
+  color: string
+  valueText: string
+  type: 'bullish' | 'bearish' | 'neutral'
+}
+
+function CotBar({ label, value, color, valueText, type }: CotBarProps) {
     return (
         <div>
             <div className="flex justify-between text-xs mb-2">

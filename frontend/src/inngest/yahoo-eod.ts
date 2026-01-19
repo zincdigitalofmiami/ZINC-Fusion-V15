@@ -108,6 +108,28 @@ export const yahooEod = inngest.createFunction(
       });
     }
 
+    // Step 3: Sync ZL to analytics.zl_price_1d for dashboard charts
+    await step.run("sync-zl-analytics", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(`
+          INSERT INTO analytics.zl_price_1d (event_date, open, high, low, close, volume, source, created_at)
+          SELECT event_date, open, high, low, close, volume, source, ingested_at
+          FROM mkt.futures_1d
+          WHERE symbol = 'ZL' AND event_date = CURRENT_DATE
+          ON CONFLICT (event_date) DO UPDATE SET
+            open = EXCLUDED.open,
+            high = EXCLUDED.high,
+            low = EXCLUDED.low,
+            close = EXCLUDED.close,
+            volume = EXCLUDED.volume,
+            source = EXCLUDED.source
+        `);
+      } finally {
+        client.release();
+      }
+    });
+
     return {
       status: "complete",
       date: new Date().toISOString().split("T")[0],

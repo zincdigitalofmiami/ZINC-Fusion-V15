@@ -28,7 +28,8 @@ export function NeuralSphere({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -36,13 +37,13 @@ export function NeuralSphere({
     camera.position.z = 2.5;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true 
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
     });
     renderer.setSize(size, size);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    containerRef.current.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     // Convert hex to THREE color
@@ -124,8 +125,8 @@ export function NeuralSphere({
       innerMaterial.dispose();
       particlesGeometry.dispose();
       particlesMaterial.dispose();
-      if (containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (container && renderer.domElement) {
+        container.removeChild(renderer.domElement);
       }
     };
   }, [size, color, particleColor, wireframeOpacity, particleCount, rotationSpeed]);

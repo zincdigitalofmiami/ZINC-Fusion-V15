@@ -68,6 +68,37 @@ type PendingRpc = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
+interface QlikRpcResponse {
+  id?: number;
+  result?: unknown;
+  error?: { message?: string };
+}
+
+interface QlikOpenDocResult {
+  qReturn?: { qHandle?: number };
+}
+
+interface QlikAppLayoutResult {
+  qLayout?: { qLastReloadTime?: string };
+}
+
+interface QlikSessionObjectResult {
+  qReturn?: { qHandle?: number };
+}
+
+interface QlikLayoutResult {
+  qLayout?: { qHyperCube?: { qSize?: { qcy?: number } } };
+}
+
+interface QlikHyperCubeCell {
+  qText?: string;
+  qNum?: number;
+}
+
+interface QlikDataPagesResult {
+  qDataPages?: Array<{ qMatrix?: QlikHyperCubeCell[][] }>;
+}
+
 class QlikRpcClient {
   private ws: WebSocket | null = null;
   private nextId = 1;
@@ -94,20 +125,20 @@ class QlikRpcClient {
         reject(new Error("EPA Qlik WebSocket closed before opening"));
       };
       const cleanup = () => {
-        this.ws?.removeEventListener("open", onOpen as any);
-        this.ws?.removeEventListener("error", onError as any);
-        this.ws?.removeEventListener("close", onClose as any);
+        this.ws?.removeEventListener("open", onOpen);
+        this.ws?.removeEventListener("error", onError);
+        this.ws?.removeEventListener("close", onClose);
       };
 
-      this.ws?.addEventListener("open", onOpen as any);
-      this.ws?.addEventListener("error", onError as any);
-      this.ws?.addEventListener("close", onClose as any);
+      this.ws?.addEventListener("open", onOpen);
+      this.ws?.addEventListener("error", onError);
+      this.ws?.addEventListener("close", onClose);
     });
 
-    this.ws.addEventListener("message", (event: any) => {
+    this.ws.addEventListener("message", (event: MessageEvent) => {
       try {
         const data = typeof event?.data === "string" ? event.data : String(event?.data);
-        const msg = JSON.parse(data);
+        const msg: QlikRpcResponse = JSON.parse(data);
         const id = msg?.id;
         if (!id || !this.pending.has(id)) return;
         const pending = this.pending.get(id)!;
@@ -166,11 +197,11 @@ async function fetchRinPricesFromQlik(): Promise<{ lastReloadTime: string; point
   const rpc = new QlikRpcClient();
   try {
     await rpc.connect(EPA_QLIK_WS_URL);
-    const openRes = await rpc.call<any>(-1, "OpenDoc", [EPA_QLIK_APP_ID, "", "", "", false]);
+    const openRes = await rpc.call<QlikOpenDocResult>(-1, "OpenDoc", [EPA_QLIK_APP_ID, "", "", "", false]);
     const docHandle: number | undefined = openRes?.qReturn?.qHandle;
     if (!docHandle) throw new Error("EPA Qlik OpenDoc returned no doc handle");
 
-    const appLayoutRes = await rpc.call<any>(docHandle, "GetAppLayout", []);
+    const appLayoutRes = await rpc.call<QlikAppLayoutResult>(docHandle, "GetAppLayout", []);
     const lastReloadTime: string | undefined = appLayoutRes?.qLayout?.qLastReloadTime;
     if (!lastReloadTime) throw new Error("EPA Qlik did not provide qLastReloadTime");
 
@@ -202,20 +233,20 @@ async function fetchRinPricesFromQlik(): Promise<{ lastReloadTime: string; point
       },
     };
 
-    const sessionRes = await rpc.call<any>(docHandle, "CreateSessionObject", [cubeDef]);
+    const sessionRes = await rpc.call<QlikSessionObjectResult>(docHandle, "CreateSessionObject", [cubeDef]);
     const cubeHandle: number | undefined = sessionRes?.qReturn?.qHandle;
     if (!cubeHandle) throw new Error("EPA Qlik CreateSessionObject returned no handle");
 
-    const layoutRes = await rpc.call<any>(cubeHandle, "GetLayout", []);
+    const layoutRes = await rpc.call<QlikLayoutResult>(cubeHandle, "GetLayout", []);
     const qSize = layoutRes?.qLayout?.qHyperCube?.qSize;
     if (!qSize || typeof qSize.qcy !== "number") throw new Error("EPA Qlik cube has no qSize");
 
-    const dataRes = await rpc.call<any>(cubeHandle, "GetHyperCubeData", [
+    const dataRes = await rpc.call<QlikDataPagesResult>(cubeHandle, "GetHyperCubeData", [
       "/qHyperCubeDef",
       [{ qTop: 0, qLeft: 0, qHeight: qSize.qcy, qWidth: 3 }],
     ]);
 
-    const matrix: any[] | undefined = dataRes?.qDataPages?.[0]?.qMatrix;
+    const matrix: QlikHyperCubeCell[][] | undefined = dataRes?.qDataPages?.[0]?.qMatrix;
     if (!Array.isArray(matrix)) throw new Error("EPA Qlik cube returned no data matrix");
 
     const points: RinPricePoint[] = [];
@@ -391,7 +422,7 @@ export const epaRinPricesDaily = inngest.createFunction(
           for (let i = 0; i < rowsToInsert.length; i += batchSize) {
             const batch = rowsToInsert.slice(i, i + batchSize);
             const values: string[] = [];
-            const params: any[] = [];
+            const params: (string | number | string[])[] = [];
 
             for (let r = 0; r < batch.length; r++) {
               const base = r * perRow;

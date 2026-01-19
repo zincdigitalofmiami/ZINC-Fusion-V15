@@ -12,19 +12,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const YAHOO_SYMBOL = 'ZL=F' // Soybean Oil Futures
 
-interface YahooQuote {
-  timestamp: number[]
-  indicators: {
-    quote: [{
-      open: (number | null)[]
-      high: (number | null)[]
-      low: (number | null)[]
-      close: (number | null)[]
-      volume: (number | null)[]
-    }]
-  }
-}
-
 interface YahooResponse {
   chart: {
     result: [{

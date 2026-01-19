@@ -464,45 +464,7 @@ model SpecialistFed1h {
   @@schema("analytics")
 }
 
-model SpecialistFx1d {
-  symbol         String
-  asOfDate       DateTime  @map("as_of_date") @db.Date
-  open           Decimal?  @db.Decimal(18, 6)
-  high           Decimal?  @db.Decimal(18, 6)
-  low            Decimal?  @db.Decimal(18, 6)
-  close          Decimal?  @db.Decimal(18, 6)
-  volume         BigInt?
-  openInterest   BigInt?   @map("open_interest")
-  contractMonth  String?   @map("contract_month")
-  expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @default("fx") @map("bucket_name")
-  granularity    String?   @default("1d")
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@id([symbol, asOfDate])
-  @@map("specialist_fx_1d")
-  @@schema("training")
-}
-
-model SpecialistFx1h {
-  symbol         String
-  asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
-  open           Decimal?  @db.Decimal(18, 6)
-  high           Decimal?  @db.Decimal(18, 6)
-  low            Decimal?  @db.Decimal(18, 6)
-  close          Decimal?  @db.Decimal(18, 6)
-  volume         BigInt?
-  openInterest   BigInt?   @map("open_interest")
-  contractMonth  String?   @map("contract_month")
-  expirationDate DateTime? @map("expiration_date") @db.Date
-  bucketName     String?   @default("fx") @map("bucket_name")
-  granularity    String?   @default("1h")
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@id([symbol, asOfTime])
-  @@map("specialist_fx_1h")
-  @@schema("analytics")
-}
+// REMOVED: SpecialistFx1d, SpecialistFx1h - FX data consolidated to mkt.fx_1d
 
 model SpecialistPalm1d {
   symbol         String
@@ -2335,21 +2297,7 @@ model EconCommodities1d {
   @@schema("econ")
 }
 
-model EconFx1d {
-  id            Int       @id @default(autoincrement())
-  seriesId      String    @map("series_id") @db.VarChar(50)
-  eventDate     DateTime  @map("event_date") @db.Date
-  value         Float?
-  source        String?   @default("FRED") @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash       String?   @map("row_hash") @db.VarChar(64)
-
-  @@unique([seriesId, eventDate])
-  @@index([seriesId, eventDate], map: "idx_econ_fx_series_date")
-  @@map("fx_1d")
-  @@schema("econ")
-}
+// REMOVED: EconFx1d - FX data consolidated to mkt.fx_1d
 
 model EconMoney1d {
   id            Int       @id @default(autoincrement())

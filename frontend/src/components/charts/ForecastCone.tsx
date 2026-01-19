@@ -14,11 +14,9 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
-  ReferenceLine,
   ReferenceDot,
   Tooltip,
 } from 'recharts';
-import TV from '@/lib/colors';
 
 interface ForecastConeProps {
   historicalData: Array<{ date: string; price: number }>;
@@ -79,7 +77,6 @@ export function ForecastCone({
   }, [historicalData, currentPrice, forecast]);
 
   // Custom gradient definitions
-  const gradientId = 'forecastConeGradient';
   const bullGradientId = 'bullConeGradient';
   const bearGradientId = 'bearConeGradient';
 
@@ -243,20 +240,10 @@ interface MiniConeProps {
   p90: number;
   p50: number;
   p10: number;
-  current: number;
   horizon: string;
 }
 
-export function MiniForecastCone({ p90, p50, p10, current, horizon }: MiniConeProps) {
-  const p90Pct = ((p90 - current) / current) * 100;
-  const p50Pct = ((p50 - current) / current) * 100;
-  const p10Pct = ((p10 - current) / current) * 100;
-
-  const range = p90 - p10;
-  const p90Height = ((p90 - p10) / range) * 100;
-  const p50Height = ((p50 - p10) / range) * 100;
-  const currentHeight = ((current - p10) / range) * 100;
-
+export function MiniForecastCone({ p90, p50, p10, horizon }: MiniConeProps) {
   return (
     <div className="relative h-32 w-full flex items-end">
       {/* Cone shape using CSS */}

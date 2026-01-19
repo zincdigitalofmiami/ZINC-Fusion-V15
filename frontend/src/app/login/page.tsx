@@ -43,7 +43,7 @@ export default function LoginPage() {
       // Hard redirect to ensure middleware sees the new cookie
       window.location.href = destination
 
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.')
       setStatus('idle')
     }

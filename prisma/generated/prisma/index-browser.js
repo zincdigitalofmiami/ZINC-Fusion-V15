@@ -496,38 +496,6 @@ exports.Prisma.SpecialistFed1hScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.SpecialistFx1dScalarFieldEnum = {
-  symbol: 'symbol',
-  asOfDate: 'asOfDate',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  contractMonth: 'contractMonth',
-  expirationDate: 'expirationDate',
-  bucketName: 'bucketName',
-  granularity: 'granularity',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.SpecialistFx1hScalarFieldEnum = {
-  symbol: 'symbol',
-  asOfTime: 'asOfTime',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  contractMonth: 'contractMonth',
-  expirationDate: 'expirationDate',
-  bucketName: 'bucketName',
-  granularity: 'granularity',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.SpecialistPalm1dScalarFieldEnum = {
   symbol: 'symbol',
   asOfDate: 'asOfDate',
@@ -1924,17 +1892,6 @@ exports.Prisma.EconCommodities1dScalarFieldEnum = {
   rowHash: 'rowHash'
 };
 
-exports.Prisma.EconFx1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
 exports.Prisma.EconMoney1dScalarFieldEnum = {
   id: 'id',
   seriesId: 'seriesId',
@@ -2636,8 +2593,6 @@ exports.Prisma.ModelName = {
   SpecialistEnergy1h: 'SpecialistEnergy1h',
   SpecialistFed1d: 'SpecialistFed1d',
   SpecialistFed1h: 'SpecialistFed1h',
-  SpecialistFx1d: 'SpecialistFx1d',
-  SpecialistFx1h: 'SpecialistFx1h',
   SpecialistPalm1d: 'SpecialistPalm1d',
   SpecialistPalm1h: 'SpecialistPalm1h',
   SpecialistSubstitutes1d: 'SpecialistSubstitutes1d',
@@ -2731,7 +2686,6 @@ exports.Prisma.ModelName = {
   EconActivity1d: 'EconActivity1d',
   EconVolIndices1d: 'EconVolIndices1d',
   EconCommodities1d: 'EconCommodities1d',
-  EconFx1d: 'EconFx1d',
   EconMoney1d: 'EconMoney1d',
   PosCftc1w: 'PosCftc1w',
   PosCftcCits1w: 'PosCftcCits1w',

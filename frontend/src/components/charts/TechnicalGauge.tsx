@@ -7,7 +7,6 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import TV from '@/lib/colors';
 
 type Signal = 'strong_sell' | 'sell' | 'neutral' | 'buy' | 'strong_buy';
 

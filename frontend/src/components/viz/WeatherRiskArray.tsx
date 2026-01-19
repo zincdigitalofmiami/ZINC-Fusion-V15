@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CloudRain, Wind, Thermometer, Droplets, Zap, Sun } from 'lucide-react';
+import { CloudRain } from 'lucide-react';
 
 export function WeatherRiskArray() {
   return (
