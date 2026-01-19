@@ -8,28 +8,40 @@ const pool = new Pool({
 
 /**
  * Fetch ZL price from Yahoo and write to analytics.zl_live
- * Runs every 15 minutes during market hours
+ * Runs every 5 minutes for tight freshness requirement
  */
 export const zlPrice = inngest.createFunction(
   { id: "zl-price", name: "ZL Price Update" },
-  { cron: "*/15 * * * *" }, // Every 15 min
+  { cron: "*/15 * * * *" }, // Every 15 min - avoids Yahoo rate limits
   async ({ step }) => {
-    // Step 1: Fetch from Yahoo
+    // Step 1: Fetch from Yahoo v8 chart API
+    // Note: v8 uses chartPreviousClose (not previousClose)
+    // Open comes from indicators.quote[0].open (last element is today)
     const data = await step.run("fetch-yahoo", async () => {
       const res = await fetch(
-        "https://query1.finance.yahoo.com/v8/finance/chart/ZL=F?interval=1d&range=1d"
+        "https://query1.finance.yahoo.com/v8/finance/chart/ZL=F?interval=1d&range=5d"
       );
       const json = await res.json();
-      const quote = json.chart.result[0].meta;
-      const ohlc = json.chart.result[0].indicators.quote[0];
-      
+      const result = json.chart?.result?.[0];
+
+      if (!result) {
+        throw new Error("No chart data returned from Yahoo");
+      }
+
+      const meta = result.meta;
+      const ohlc = result.indicators?.quote?.[0] ?? {};
+
+      // Get today's open from the last element of the open array
+      const openArray = ohlc.open ?? [];
+      const todayOpen = openArray.length > 0 ? openArray[openArray.length - 1] : meta.regularMarketPrice;
+
       return {
-        price: quote.regularMarketPrice,
-        previousClose: quote.previousClose,
-        dayHigh: ohlc.high?.[0] ?? quote.regularMarketPrice,
-        dayLow: ohlc.low?.[0] ?? quote.regularMarketPrice,
-        dayOpen: ohlc.open?.[0] ?? quote.regularMarketPrice,
-        volume: quote.regularMarketVolume ?? 0,
+        price: meta.regularMarketPrice,
+        previousClose: meta.chartPreviousClose, // v8 uses chartPreviousClose
+        dayHigh: meta.regularMarketDayHigh ?? meta.regularMarketPrice,
+        dayLow: meta.regularMarketDayLow ?? meta.regularMarketPrice,
+        dayOpen: todayOpen ?? meta.regularMarketPrice,
+        volume: meta.regularMarketVolume ?? 0,
       };
     });
 
