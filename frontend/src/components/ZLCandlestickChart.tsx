@@ -270,7 +270,21 @@ export function ZLCandlestickChart({
 
         initChart()
 
+        // Handle resize
+        const resizeObserver = new ResizeObserver(() => {
+            if (sciChartSurfaceRef.current && chartRef.current) {
+                sciChartSurfaceRef.current.changeViewportSize(
+                    chartRef.current.clientWidth,
+                    chartRef.current.clientHeight
+                )
+            }
+        })
+        if (chartRef.current) {
+            resizeObserver.observe(chartRef.current)
+        }
+
         return () => {
+            resizeObserver.disconnect()
             if (sciChartSurfaceRef.current) {
                 sciChartSurfaceRef.current.delete()
                 sciChartSurfaceRef.current = null
