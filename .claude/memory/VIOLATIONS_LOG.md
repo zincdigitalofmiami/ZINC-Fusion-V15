@@ -18,7 +18,7 @@ This file documents rule violations to learn from.
 
 **To verify if deployed Inngest is still writing:**
 ```sql
-SELECT MAX(created_at) FROM analytics.zl_intraday;
+SELECT MAX(created_at) FROM analytics.zl_price_15m;
 -- If timestamp is recent, old code is still deployed
 ```
 

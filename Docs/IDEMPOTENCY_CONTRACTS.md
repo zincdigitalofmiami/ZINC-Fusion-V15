@@ -52,8 +52,7 @@ This document defines the idempotency contracts for all tables in the ZINC-FUSIO
 | `model.registry` | (model_name, version) | DO NOTHING | version column |
 | `model.training_runs` | (run_id) | DO NOTHING | Append-only |
 | `forecasts.forecast_quantiles` | (forecast_date, target_date, symbol, horizon_days) | DO UPDATE | forecast_date |
-| `analytics.zl_live` | (symbol) | DO UPDATE | Single row |
-| `analytics.zl_intraday` | (timestamp, symbol) | DO UPDATE | Updateable |
+| `analytics.zl_price_15m` | (timestamp) | DO UPDATE | 15m bars |
 
 ---
 

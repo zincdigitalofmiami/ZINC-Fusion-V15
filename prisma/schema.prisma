@@ -1038,24 +1038,6 @@ model VolRegimes {
   @@schema("analytics")
 }
 
-model ZlLive {
-  id            Int       @id @default(autoincrement())
-  price         Float
-  previousClose Float?    @map("previous_close")
-  change        Float?
-  changePct     Float?    @map("change_pct")
-  dayHigh       Float?    @map("day_high")
-  dayLow        Float?    @map("day_low")
-  dayOpen       Float?    @map("day_open")
-  volume        Int?
-  timestamp     DateTime? @db.Timestamptz(6)
-  source        String?   @db.VarChar(50)
-  updatedAt     DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
-
-  @@map("zl_live")
-  @@schema("analytics")
-}
-
 model DataSourceRegistry {
   id                   Int       @id @default(autoincrement())
   sourceId             String    @unique @map("source_id")
@@ -1212,7 +1194,8 @@ model regime_state_1d {
   @@schema("analytics")
 }
 
-model zl_intraday {
+/// ZL 15-minute bars for dashboard charts
+model zl_price_15m {
   id             Int       @id @default(autoincrement())
   timestamp      DateTime  @unique @db.Timestamptz(6)
   open           Float
@@ -1228,6 +1211,7 @@ model zl_intraday {
   source         String?   @db.VarChar(50)
   created_at     DateTime? @db.Timestamptz(6)
 
+  @@index([timestamp(sort: Desc)], map: "idx_zl_price_15m_ts")
   @@schema("analytics")
 }
 
@@ -1565,6 +1549,7 @@ model training_runs {
   @@schema("ops")
 }
 
+/// ZL 1h bars for dashboard charts
 model zl_price_1h {
   timestamp  DateTime @id @db.Timestamptz(6)
   open       Decimal  @db.Decimal(10, 4)
@@ -1579,7 +1564,7 @@ model zl_price_1h {
   @@schema("analytics")
 }
 
-/// ZL daily OHLCV for dashboard charts - copied from mkt.futures_1d
+/// ZL 1d bars for dashboard - copied from mkt.futures_1d
 model zl_price_1d {
   event_date DateTime @id @db.Date
   open       Decimal  @db.Decimal(10, 4)

@@ -12,8 +12,6 @@
 ## THERE IS NO
 
 - Local database
-- DuckDB
-- MotherDuck
 - Second database
 
 ## DEPLOYMENT
@@ -66,9 +64,11 @@ Any reference to banned schemas in new code should fail with hard error.
 3. Confirm the schema matches reality
 4. Verify using institutional schema taxonomy (not legacy raw/gold/silver)
 
-## ZL IS THE ONLY INTRADAY INSTRUMENT
+## ZL TIME SERIES
 
-- `analytics.zl_live` - ZL live price (single row)
-- `analytics.zl_intraday` - ZL 15m bars
+**Active (analytics schema):**
+- `analytics.zl_price_15m` - ZL 15m bars
+- `analytics.zl_price_1h` - ZL 1h bars
+- `analytics.zl_price_1d` - ZL 1d bars (dashboard copy of mkt.futures_1d)
 
-There are NO generic `intraday_prices` or `latest_prices` tables for multiple symbols.
+ZL is the only instrument with intraday tracking (15m/1h). Other instruments use daily data only.

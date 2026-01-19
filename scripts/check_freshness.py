@@ -28,7 +28,7 @@ def main():
         ("econ.commodities_1d", "event_date"),
         # NOTE: econ.fx_1d removed - FX consolidated to mkt.fx_1d
         ("econ.money_1d", "event_date"),
-        ("analytics.zl_live", "updated_at"),
+        ("analytics.zl_price_15m", "created_at"),
     ]
 
     print("=== DATA FRESHNESS CHECK ===")

@@ -7,7 +7,7 @@ const pool = new Pool({
 });
 
 /**
- * Fetch ZL 15-minute bars from Yahoo and write to analytics.zl_15m
+ * Fetch ZL 15-minute bars from Yahoo and write to analytics.zl_price_15m
  * Runs every 15 minutes
  */
 export const zl15m = inngest.createFunction(
@@ -84,7 +84,7 @@ export const zl15m = inngest.createFunction(
           const changePct = (change / bar.previousClose) * 100;
 
           await client.query(
-            `INSERT INTO analytics.zl_intraday
+            `INSERT INTO analytics.zl_price_15m
               (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'yahoo', NOW())
              ON CONFLICT (timestamp) DO UPDATE SET

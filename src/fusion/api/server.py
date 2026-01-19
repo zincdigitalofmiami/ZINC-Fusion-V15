@@ -1110,7 +1110,7 @@ def zl_live() -> Dict[str, Any]:
             change_percent,
             day_high,
             day_low
-        FROM analytics.zl_intraday
+        FROM analytics.zl_price_15m
         ORDER BY timestamp DESC
         LIMIT 1
         """
@@ -1172,7 +1172,7 @@ def zl_intraday(
 ) -> Dict[str, Any]:
     """
     Get ZL 15-minute bars for charting.
-    Returns OHLCV data for the specified number of hours.
+    Returns data for the specified number of hours.
     """
     rows = _fetch_rows(
         f"""
@@ -1183,7 +1183,7 @@ def zl_intraday(
             low,
             close,
             volume
-        FROM analytics.zl_intraday
+        FROM analytics.zl_price_15m
         WHERE timestamp > NOW() - INTERVAL '{hours} hours'
         ORDER BY timestamp ASC
         """
@@ -1236,7 +1236,7 @@ def zl_intraday_ohlc(
             volume,
             day_high,
             day_low
-        FROM analytics.zl_intraday
+        FROM analytics.zl_price_15m
         WHERE timestamp > NOW() - INTERVAL '{days} days'
         ORDER BY timestamp ASC
         """

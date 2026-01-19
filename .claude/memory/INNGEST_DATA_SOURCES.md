@@ -5,7 +5,7 @@
 ## Current Inngest Functions (Already Implemented)
 | Function | Schedule | Target Table |
 |----------|----------|--------------|
-| `zlPrice` | Every 15 min | `analytics.zl_live` |
+| `zlPrice` | Every 15 min | `analytics.zl_price_15m` |
 | `yahooEod` | Daily 5PM ET | `mkt.futures_1d` |
 | `fredDaily` | Daily 10AM ET (Mon-Fri) | `econ.rates_1d` |
 | `cftcWeekly` | Weekly Tuesday | `pos.cftc_1w` |

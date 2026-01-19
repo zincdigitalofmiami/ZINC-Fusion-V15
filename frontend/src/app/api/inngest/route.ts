@@ -1,10 +1,9 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import {
-  zlPrice,
+import { 
   zl15m,
   zl1h,
-  yahooEod,
+  yahooEod, 
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -15,10 +14,7 @@ import {
   fredDailyTrumpEffect,
   fredDailyChina,
   fredDailyGeneral,
-  cftcWeekly,
-  fxSpotDaily,
-  noaaWeatherDaily,
-  openmeteoWeatherDaily,
+  cftcWeekly, 
   federalRegisterDaily,
   nyfedDaily,
   cbpTradeDaily,
@@ -26,15 +22,10 @@ import {
   farmdocRinsDaily,
   aeiTradeDaily,
   conabNewsDaily,
-  barchartZlNewsDaily,
   whitehouseDaily,
   usdaDaily,
-  usdaExportSalesWeekly,
-  epaRinPricesDaily,
-  usdaWasdeMonthly,
   eiaDaily,
   nassWeekly,
-  glideVegasSync,
 } from "@/inngest/functions";
 
 /**
@@ -77,7 +68,6 @@ if (process.env.NODE_ENV !== 'production') {
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
-    zlPrice,
     zl15m,
     zl1h,
     yahooEod, 
@@ -92,9 +82,6 @@ export const { GET, POST, PUT } = serve({
     fredDailyChina,
     fredDailyGeneral,
     cftcWeekly, 
-    fxSpotDaily,
-    noaaWeatherDaily,
-    openmeteoWeatherDaily,
     federalRegisterDaily,
     nyfedDaily,
     cbpTradeDaily,
@@ -102,15 +89,10 @@ export const { GET, POST, PUT } = serve({
     farmdocRinsDaily,
     aeiTradeDaily,
     conabNewsDaily,
-    barchartZlNewsDaily,
     whitehouseDaily,
     usdaDaily,
-    usdaExportSalesWeekly,
-    epaRinPricesDaily,
-    usdaWasdeMonthly,
     eiaDaily,
     nassWeekly,
-    glideVegasSync,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

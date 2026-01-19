@@ -177,7 +177,7 @@ export function ZLCandlestickChart({
             const yAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Right,
                 autoRange: EAutoRange.Always,
-                growBy: new NumberRange(0.02, 0.02), // 2% padding - roughly 20px on a typical chart
+                growBy: new NumberRange(0.08, 0.08), // 8% padding for comfortable margins
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,

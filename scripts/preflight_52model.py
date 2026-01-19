@@ -349,7 +349,7 @@ analytics_tables = [
     ("market_posture", "as_of_date"),
     ("risk_metrics", "as_of_date"),
     ("vol_regimes", "as_of_date"),
-    ("zl_live", "updated_at"),
+
 ]
 
 for table, date_col in analytics_tables:

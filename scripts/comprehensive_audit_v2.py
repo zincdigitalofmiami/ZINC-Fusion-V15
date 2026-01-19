@@ -176,7 +176,7 @@ if isinstance(result, list):
 # Check key tables
 analytics_checks = [
     'driver_scores', 'market_posture', 'risk_metrics', 'vol_regimes',
-    'regime_state_1d', 'driver_attribution_1d', 'zl_live'
+    'regime_state_1d', 'driver_attribution_1d'
 ]
 for table in analytics_checks:
     result = run_query(cur, f'SELECT COUNT(*) FROM analytics."{table}"')
