@@ -1,19 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ZLCandlestickChart } from '@/components/ZLCandlestickChart';
 import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
 import { SignalGauge } from '@/components/ui/SignalGauge';
-import { MarketCommentary } from '@/components/ui/MarketCommentary';
-import { QuantAdminSidebar } from '@/components/layout/QuantAdminSidebar';
-import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 
 export default function DashboardPage() {
-    const [isAdminOpen, setIsAdminOpen] = useState(false);
-
   return (
-        <div className="min-h-screen p-6 pt-28 space-y-6 pb-20 bg-[#0a0a0a]">
-              <QuantAdminSidebar isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
+        <div className="min-h-screen p-6 pt-24 space-y-6 pb-20 bg-[#0a0a0a]">
         
           {/* SECTION 1: HERO CHART - Massive, Full Width */}
               <div className="space-y-2">
