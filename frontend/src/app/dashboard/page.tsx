@@ -39,9 +39,7 @@ export default function DashboardPage() {
               </div>
         
           {/* SECTION 3: Chris's TOP 4 Key Drivers */}
-              <ChrisTop4Drivers />
-        
-        </div>
-      </div>
-            );
+      <ChrisTop4Drivers />
+    </div>
+  );
 }

@@ -1,4 +1,6 @@
 export { zlPrice } from "./zl-price";
+export { zl15m } from "./zl-15m";
+export { zl1h } from "./zl-1h";
 export { yahooEod } from "./yahoo-eod";
 export {
   fredDailyFed,

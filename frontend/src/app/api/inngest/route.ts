@@ -2,6 +2,8 @@ import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
 import {
   zlPrice,
+  zl15m,
+  zl1h,
   yahooEod,
   fredDailyFed,
   fredDailyFx,
@@ -75,7 +77,9 @@ if (process.env.NODE_ENV !== 'production') {
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
-    zlPrice, 
+    zlPrice,
+    zl15m,
+    zl1h,
     yahooEod, 
     fredDailyFed,
     fredDailyFx,
