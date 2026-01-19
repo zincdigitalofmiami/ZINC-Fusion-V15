@@ -40,9 +40,18 @@ export function ZLCandlestickChart({
                 if (!res.ok) throw new Error('Failed to fetch')
                 const json = await res.json()
                 if (json.data && json.data.length > 0) {
-                    setPriceData(json.data)
-                    const latest = json.data[json.data.length - 1]
-                    const prev = json.data[json.data.length - 2]
+                    // Parse numeric strings to floats (PostgreSQL numeric comes as string)
+                    const parsed = json.data.map((d: PriceData) => ({
+                        ...d,
+                        open: parseFloat(String(d.open)),
+                        high: parseFloat(String(d.high)),
+                        low: parseFloat(String(d.low)),
+                        close: parseFloat(String(d.close)),
+                        volume: parseFloat(String(d.volume)),
+                    }))
+                    setPriceData(parsed)
+                    const latest = parsed[parsed.length - 1]
+                    const prev = parsed[parsed.length - 2]
                     setLastPrice(latest.close)
                     if (prev) {
                         setPriceChange(((latest.close - prev.close) / prev.close) * 100)
