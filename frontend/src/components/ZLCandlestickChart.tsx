@@ -173,11 +173,18 @@ export function ZLCandlestickChart({
             })
             sciChartSurface.xAxes.add(xAxis)
 
-            // Y Axis - minimal padding so wicks don't touch top/bottom
+            // Y Axis - manually set range from data bounds with padding
+            const allLows = priceData.map(d => d.low)
+            const allHighs = priceData.map(d => d.high)
+            const dataMin = Math.min(...allLows)
+            const dataMax = Math.max(...allHighs)
+            const dataRange = dataMax - dataMin
+            const padding = dataRange * 0.1 // 10% padding
+
             const yAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Right,
-                autoRange: EAutoRange.Always,
-                growBy: new NumberRange(0.08, 0.08), // 8% padding for comfortable margins
+                autoRange: EAutoRange.Never,
+                visibleRange: new NumberRange(dataMin - padding, dataMax + padding),
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
