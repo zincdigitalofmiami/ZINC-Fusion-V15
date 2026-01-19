@@ -35,13 +35,12 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-visual">
-            <NeuralSphere 
-              size={900} 
-              color="#2962ff" 
-              particleColor="#ffffff"
-              wireframeOpacity={0.12}
-              particleCount={100}
-              rotationSpeed={0.0008}
+            <NeuralSphere
+              size={800}
+              color="#aaaaaa"
+              particleColor="#666666"
+              wireframeOpacity={0.45}
+              rotationSpeed={0.0005}
             />
           </div>
         </div>
