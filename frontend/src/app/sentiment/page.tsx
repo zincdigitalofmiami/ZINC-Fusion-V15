@@ -11,7 +11,7 @@ export default function SentimentPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
             <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">MARKET PSYCHOLOGY</h1>
+                <h1 className="text-5xl font-bold text-white tracking-tight">MARKET PSYCHOLOGY</h1>
                 <p className="text-slate-400 text-sm font-mono mt-1">NARRATIVE CLUSTERING // UNSTRUCTURED DATA FUSION</p>
             </div>
             <div className="flex items-center gap-6">

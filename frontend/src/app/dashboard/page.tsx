@@ -7,7 +7,7 @@ import { SignalGauge } from '@/components/ui/SignalGauge';
 
 export default function DashboardPage() {
   return (
-        <div className="min-h-screen p-6 pt-24 space-y-6 pb-20 bg-[#0a0a0a]">
+        <div className="min-h-screen p-6 pt-36 space-y-6 pb-20 bg-[#0a0a0a]">
         
           {/* SECTION 1: HERO CHART - Massive, Full Width */}
               <div className="space-y-2">

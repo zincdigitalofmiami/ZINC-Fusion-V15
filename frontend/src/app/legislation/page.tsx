@@ -1,9 +1,9 @@
 export default function LegislationPage() {
   return (
-    <div className="main-content">
-      <div className="page-header">
-        <h1 className="page-title">Legislation</h1>
-        <p className="page-subtitle">Policy calendar, bills, and executive orders</p>
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
+      <div className="mb-8">
+        <h1 className="text-5xl font-bold text-white tracking-tight mb-2">Legislation</h1>
+        <p className="text-slate-400 text-sm font-mono">Policy calendar, bills, and executive orders</p>
       </div>
 
       {/* Alert Banner */}

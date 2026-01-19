@@ -174,18 +174,18 @@ export default function VegasIntelPage() {
   })
 
   return (
-    <div className="main-content" style={{ maxWidth: '1400px' }}>
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
 
       {/* PAGE HEADER */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px' }}>
+      <div className="mb-8">
+        <h1 className="text-5xl font-bold text-white tracking-tight mb-2">
           Vegas Intel
         </h1>
-        <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)' }}>
+        <p className="text-slate-400 text-sm font-mono">
           Kevin's sales command center. Real data from Glide + PredictHQ.
         </p>
         {stats && (
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+          <p className="text-xs text-slate-500 mt-1">
             Last sync: {stats.last_sync ? new Date(stats.last_sync).toLocaleDateString() : 'Never'}
           </p>
         )}

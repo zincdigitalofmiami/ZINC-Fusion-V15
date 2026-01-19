@@ -196,7 +196,7 @@ export default function QuantPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-white tracking-tight">Quant Control</h1>
+              <h1 className="text-5xl font-bold text-white tracking-tight">Quant Control</h1>
               <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400">
                 <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
                 Live
