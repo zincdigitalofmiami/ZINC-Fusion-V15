@@ -117,7 +117,8 @@ export function ZLCandlestickChart({
                 sciChartSurfaceRef.current.delete()
             }
 
-            // Set runtime license key (community/trial mode if not set)
+            // Configure WASM location and license
+            SciChartSurface.useWasmFromCDN()
             SciChartSurface.setRuntimeLicenseKey('')
 
             const { sciChartSurface, wasmContext } = await SciChartSurface.create(
