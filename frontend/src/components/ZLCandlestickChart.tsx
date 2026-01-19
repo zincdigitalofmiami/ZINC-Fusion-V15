@@ -233,12 +233,12 @@ export function ZLCandlestickChart({
 
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                // Up candle (close > open) - cyan/teal
-                strokeUp: '#53b9c7',           // Wick color for up
-                brushUp: '#53b9c7',            // Body fill for up (73% opacity in settings)
-                // Down candle (close < open) - pink/magenta
-                strokeDown: '#e45f93',         // Wick color for down
-                brushDown: '#e45f93',          // Body fill for down
+                // Up candle (close > open) - lime green
+                strokeUp: '#00ff00',           // Wick color for up
+                brushUp: '#00ff00',            // Body fill for up
+                // Down candle (close < open) - white
+                strokeDown: '#ffffff',         // Wick color for down
+                brushDown: '#ffffff',          // Body fill for down
                 dataPointWidth: 0.7,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
