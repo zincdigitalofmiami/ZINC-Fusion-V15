@@ -1785,29 +1785,6 @@ model MktFutures1h {
   @@schema("mkt")
 }
 
-model MktOptions1d {
-  id            Int       @id @default(autoincrement())
-  underlying    String    @db.VarChar(20)
-  eventDate     DateTime  @map("event_date") @db.Date
-  expiration    DateTime  @db.Date
-  strike        Float
-  optionType    String    @map("option_type") @db.VarChar(4)
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        BigInt?
-  openInterest  BigInt?   @map("open_interest")
-  source        String?   @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash       String?   @map("row_hash") @db.VarChar(64)
-
-  @@index([underlying, eventDate], map: "idx_mkt_options_1d_underlying_date")
-  @@map("options_1d")
-  @@schema("mkt")
-}
-
 model MktFx1d {
   id            Int       @id @default(autoincrement())
   pair          String    @db.VarChar(10)
