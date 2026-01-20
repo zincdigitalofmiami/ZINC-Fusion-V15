@@ -39,6 +39,8 @@ import {
   glideVegasSync,
   cpoPalmOilDaily,
   cpoTradingEconomics,
+  profarmerDaily,
+  profarmerBackfill,
 } from "@/inngest/functions";
 
 /**
@@ -127,6 +129,9 @@ export const { GET, POST, PUT } = serve({
     cpoTradingEconomics,
     // Other
     glideVegasSync,
+    // Premium subscriptions
+    profarmerDaily,
+    profarmerBackfill,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

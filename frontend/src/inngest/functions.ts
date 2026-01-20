@@ -36,3 +36,4 @@ export { barchartZlNewsDaily } from "./barchart-zl-news";
 export { barchartFuturesDaily, barchartFuturesManual } from "./barchart-futures-daily";
 export { glideVegasSync } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
+export { profarmerDaily, profarmerBackfill } from "./profarmer-daily";
