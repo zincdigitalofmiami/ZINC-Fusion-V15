@@ -500,7 +500,7 @@ def article_exists(conn, article_hash: str) -> bool:
     """Check if article already exists by content hash."""
     with conn.cursor() as cur:
         cur.execute(
-            'SELECT 1 FROM "raw"."news_articles_1d" WHERE content_hash = %s LIMIT 1',
+            'SELECT 1 FROM alt.news_1d WHERE row_hash = %s LIMIT 1',
             (article_hash,)
         )
         return cur.fetchone() is not None
@@ -509,11 +509,15 @@ def article_exists(conn, article_hash: str) -> bool:
 def insert_article(conn, article: Dict[str, Any]) -> bool:
     """Insert article into database."""
     try:
+        # Convert bucket_name to specialist_tags array
+        bucket = article.get("bucket_name")
+        specialist_tags = [bucket] if bucket else []
+
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO "raw"."news_articles_1d"
-                (event_date, published_at, headline, content, source, bucket_name, zl_sentiment,
-                 is_trump_related, content_hash, url, ingested_at)
+                INSERT INTO alt.news_1d
+                (event_date, published_at, headline, content, source, specialist_tags, zl_sentiment,
+                 is_trump_related, row_hash, url, ingested_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (
                 article["event_date"],
@@ -521,7 +525,7 @@ def insert_article(conn, article: Dict[str, Any]) -> bool:
                 article["headline"][:500] if article["headline"] else None,
                 article["content"][:10000] if article["content"] else None,
                 article["source"],
-                article.get("bucket_name"),
+                specialist_tags,
                 article.get("zl_sentiment"),
                 article.get("is_trump_related", False),
                 article["content_hash"],
@@ -541,10 +545,10 @@ def ensure_schema(conn):
         "headline",
         "content",
         "source",
-        "bucket_name",
+        "specialist_tags",
         "zl_sentiment",
         "is_trump_related",
-        "content_hash",
+        "row_hash",
         "url",
         "ingested_at",
     }
@@ -554,7 +558,7 @@ def ensure_schema(conn):
             """
             SELECT column_name
             FROM information_schema.columns
-            WHERE table_schema = 'raw' AND table_name = 'news_articles_1d'
+            WHERE table_schema = 'alt' AND table_name = 'news_1d'
             """
         )
         cols = {r[0] for r in cur.fetchall()}
@@ -562,7 +566,7 @@ def ensure_schema(conn):
     missing = sorted(required - cols)
     if missing:
         raise SystemExit(
-            "raw.news_articles_1d missing required columns: "
+            "alt.news_1d missing required columns: "
             + ", ".join(missing)
             + ". Schema changes require explicit approval."
         )

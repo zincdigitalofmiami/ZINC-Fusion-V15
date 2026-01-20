@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Populate training.core_matrix_1d with targets and features.
+Populate training.matrix_1d with targets and features.
 
 This script computes:
 - target_5d, target_21d, target_63d, target_126d (ZL close price at t+H trading days)
@@ -284,7 +284,7 @@ def prepare_final_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
-    """Insert data into training.core_matrix_1d."""
+    """Insert data into training.matrix_1d."""
     if dry_run:
         print(f"\n[DRY RUN] Would insert {len(df)} rows")
         print(f"Date range: {df['as_of_date'].min()} to {df['as_of_date'].max()}")
@@ -295,7 +295,7 @@ def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
 
     # Clear existing data
     cursor = conn.cursor()
-    cursor.execute("TRUNCATE TABLE training.core_matrix_1d RESTART IDENTITY")
+    cursor.execute("TRUNCATE TABLE training.matrix_1d RESTART IDENTITY")
 
     # Convert DataFrame to records, replacing NaN with None for postgres NULL
     df_clean = df.copy()
@@ -322,7 +322,7 @@ def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
     values = [tuple(convert_value(v) for v in row) for row in df_clean.values]
 
     insert_sql = f"""
-        INSERT INTO training.core_matrix_1d ({', '.join(columns)}, created_at, updated_at)
+        INSERT INTO training.matrix_1d ({', '.join(columns)}, created_at, updated_at)
         VALUES %s
     """
 
@@ -336,11 +336,11 @@ def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
     execute_values(cursor, insert_sql, values_with_timestamps, template=template, page_size=1000)
 
     conn.commit()
-    print(f"\n✅ Inserted {len(df)} rows into training.core_matrix_1d")
+    print(f"\n✅ Inserted {len(df)} rows into training.matrix_1d")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Populate training.core_matrix_1d')
+    parser = argparse.ArgumentParser(description='Populate training.matrix_1d')
     parser.add_argument('--start', default='2000-01-01', help='Start date (default: 2000-01-01)')
     parser.add_argument('--dry-run', action='store_true', help='Preview without inserting')
     parser.add_argument('--execute', action='store_true', help='Actually insert data')
