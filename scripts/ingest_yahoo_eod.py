@@ -258,7 +258,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
             close = EXCLUDED.close,
             volume = EXCLUDED.volume,
             source = EXCLUDED.source,
-            ingested_at = EXCLUDED.ingested_at
+            ingested_at = NOW()
         WHERE mkt.futures_1d.source = 'yahoo'
     """
 

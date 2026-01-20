@@ -220,7 +220,7 @@ def insert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
                 close = EXCLUDED.close,
                 volume = EXCLUDED.volume,
                 source = EXCLUDED.source,
-                ingested_at = EXCLUDED.ingested_at
+                ingested_at = NOW()
             """,
             values,
             page_size=500,

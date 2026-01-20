@@ -156,7 +156,7 @@ def load_usda_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
             net_sales_mt = EXCLUDED.net_sales_mt,
             exports_mt = EXCLUDED.exports_mt,
             outstanding_sales_mt = EXCLUDED.outstanding_sales_mt,
-            ingested_at = EXCLUDED.ingested_at
+            ingested_at = NOW()
     """
 
     batch = []
@@ -204,7 +204,7 @@ def load_cftc_data(conn, df: pd.DataFrame, dry_run: bool = False) -> int:
             open_interest = EXCLUDED.open_interest,
             managed_money_net = EXCLUDED.managed_money_net,
             managed_money_net_pct_oi = EXCLUDED.managed_money_net_pct_oi,
-            ingested_at = EXCLUDED.ingested_at
+            ingested_at = NOW()
     """
 
     def safe_int(val):

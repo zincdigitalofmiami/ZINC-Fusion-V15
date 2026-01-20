@@ -95,7 +95,7 @@ export const yahooEod = inngest.createFunction(
                close = EXCLUDED.close,
                volume = EXCLUDED.volume,
                source = EXCLUDED.source,
-               ingested_at = EXCLUDED.ingested_at`,
+               ingested_at = NOW()`,
             [
               config.db,
               quote.regularMarketOpen,
