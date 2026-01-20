@@ -37,3 +37,5 @@ export { barchartFuturesDaily, barchartFuturesManual } from "./barchart-futures-
 export { glideVegasSync } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
 export { profarmerDaily, profarmerBackfill } from "./profarmer-daily";
+export { barchartEtfDaily, barchartEtfBackfill } from "./barchart-etf-daily";
+export { barchartOptionsDaily, barchartOptionsBackfill } from "./barchart-options-daily";

@@ -41,6 +41,10 @@ import {
   cpoTradingEconomics,
   profarmerDaily,
   profarmerBackfill,
+  barchartEtfDaily,
+  barchartEtfBackfill,
+  barchartOptionsDaily,
+  barchartOptionsBackfill,
 } from "@/inngest/functions";
 
 /**
@@ -132,6 +136,11 @@ export const { GET, POST, PUT } = serve({
     // Premium subscriptions
     profarmerDaily,
     profarmerBackfill,
+    // ETF/Options
+    barchartEtfDaily,
+    barchartEtfBackfill,
+    barchartOptionsDaily,
+    barchartOptionsBackfill,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
