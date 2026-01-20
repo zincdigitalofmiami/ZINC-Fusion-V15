@@ -1,9 +1,9 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { 
+import {
   zl15m,
   zl1h,
-  yahooEod, 
+  yahooEod,
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -14,7 +14,7 @@ import {
   fredDailyTrumpEffect,
   fredDailyChina,
   fredDailyGeneral,
-  cftcWeekly, 
+  cftcWeekly,
   federalRegisterDaily,
   nyfedDaily,
   cbpTradeDaily,
@@ -26,6 +26,19 @@ import {
   usdaDaily,
   eiaDaily,
   nassWeekly,
+  noaaWeatherDaily,
+  openmeteoWeatherDaily,
+  weatherFeaturesDaily,
+  fxSpotDaily,
+  epaRinPricesDaily,
+  usdaWasdeMonthly,
+  usdaExportSalesWeekly,
+  barchartZlNewsDaily,
+  barchartFuturesDaily,
+  barchartFuturesManual,
+  glideVegasSync,
+  cpoPalmOilDaily,
+  cpoTradingEconomics,
 } from "@/inngest/functions";
 
 /**
@@ -68,9 +81,13 @@ if (process.env.NODE_ENV !== 'production') {
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
+    // Price data
     zl15m,
     zl1h,
-    yahooEod, 
+    yahooEod,
+    barchartFuturesDaily,
+    barchartFuturesManual,
+    // FRED macro series
     fredDailyFed,
     fredDailyFx,
     fredDailyEnergy,
@@ -81,18 +98,35 @@ export const { GET, POST, PUT } = serve({
     fredDailyTrumpEffect,
     fredDailyChina,
     fredDailyGeneral,
-    cftcWeekly, 
+    // Government/regulatory
+    cftcWeekly,
     federalRegisterDaily,
     nyfedDaily,
+    eiaDaily,
+    epaRinPricesDaily,
+    // Trade data
     cbpTradeDaily,
     iceReleasesDaily,
-    farmdocRinsDaily,
     aeiTradeDaily,
+    usdaExportSalesWeekly,
+    usdaWasdeMonthly,
+    // News/press
+    farmdocRinsDaily,
     conabNewsDaily,
     whitehouseDaily,
     usdaDaily,
-    eiaDaily,
     nassWeekly,
+    barchartZlNewsDaily,
+    // Weather
+    noaaWeatherDaily,
+    openmeteoWeatherDaily,
+    weatherFeaturesDaily,
+    // FX/commodities
+    fxSpotDaily,
+    cpoPalmOilDaily,
+    cpoTradingEconomics,
+    // Other
+    glideVegasSync,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
