@@ -24,7 +24,7 @@ SELECT
     event_date,
     symbol,
     close
-FROM raw.market_futures_1d
+FROM mkt.futures_1d
 WHERE symbol IN ('ZL', 'ZS', 'ZM', 'ZC', 'HE', 'LE', 'GF', 'SI', 'HG', 'GC', 'CL')
 AND close IS NOT NULL
 AND event_date >= '2010-01-01'

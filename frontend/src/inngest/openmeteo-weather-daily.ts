@@ -338,12 +338,12 @@ export const openmeteoWeatherDaily = inngest.createFunction(
               `INSERT INTO alt.weather_1d
                 (station_id, event_date,
                  tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
-                 region, country, specialist_bucket,
-                 source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
+                 region, country,
+                 source, raw_payload, ingestion_batch_id, row_hash)
                VALUES ($1, $2::date,
                        $3, $4, $5, $6, $7,
-                       $8, $9, $10,
-                       $11, $12, $13::jsonb, $14, $15, $16, NOW())`,
+                       $8, $9,
+                       $10, $11::jsonb, $12, $13)`,
               [
                 station.station_id,
                 eventDate,
@@ -354,13 +354,10 @@ export const openmeteoWeatherDaily = inngest.createFunction(
                 snowMm,
                 station.region,
                 station.country,
-                station.specialist_bucket,
                 "openmeteo_archive",
-                ARCHIVE_URL,
                 JSON.stringify(payload),
                 runId,
                 rowHash,
-                tags,
               ]
             );
             inserted++;

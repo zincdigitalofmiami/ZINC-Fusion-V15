@@ -353,17 +353,19 @@ export const whitehouseDaily = inngest.createFunction(
 
           // Insert
           await pool.query(
-            `INSERT INTO alt.news_1d 
-             (source_id, title, url, published_at, content_snippet, specialist_tags, row_hash, ingested_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+            `INSERT INTO alt.news_1d
+             (event_date, headline, url, published_at, content, source, specialist_tags, row_hash, raw_payload)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [
-              `whitehouse_${item.sourceCategory}`,
+              publishedAt.toISOString().split('T')[0],
               item.title,
               item.link,
               publishedAt,
               item.description || null,
+              `whitehouse_${item.sourceCategory}`,
               specialists,
               rowHash,
+              JSON.stringify(item),
             ]
           );
           inserted++;

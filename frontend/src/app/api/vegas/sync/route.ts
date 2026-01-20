@@ -2,7 +2,7 @@
  * Vegas Glide Sync API
  * POST /api/vegas/sync - Sync data from Glide to PostgreSQL
  *
- * Data Flow: Glide API (READ ONLY) → ops.vegas_* tables
+ * Data Flow: Glide API (READ ONLY) → vegas.vegas_* tables
  */
 import { NextResponse } from 'next/server'
 import { Pool } from 'pg'
@@ -72,7 +72,7 @@ async function syncTableToPostgres(
   if (rows.length === 0) return 0
 
   const client = await pool.connect()
-  const fullTable = `ops.vegas_${tableName}`
+  const fullTable = `vegas.vegas_${tableName}`
   const shortTable = `vegas_${tableName}`
 
   try {
@@ -82,13 +82,13 @@ async function syncTableToPostgres(
     const exists = await client.query(
       `SELECT 1
        FROM information_schema.tables
-       WHERE table_schema='ops' AND table_name=$1
+       WHERE table_schema='vegas' AND table_name=$1
        LIMIT 1`,
       [shortTable]
     )
     if (exists.rows.length === 0) {
       throw new Error(
-        `Missing table ${fullTable}. Create ops.vegas_* tables via explicit migration; this endpoint will not auto-create schemas/tables.`
+        `Missing table ${fullTable}. Create vegas.vegas_* tables via explicit migration; this endpoint will not auto-create schemas/tables.`
       )
     }
 

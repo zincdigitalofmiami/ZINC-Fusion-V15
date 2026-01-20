@@ -11,6 +11,8 @@ Adds missing features required by specialist models:
 6. Biodiesel margin = ZL - (WTI * conversion factor)
 7. Palm-Soy spread = CPO - ZL
 8. RS (Canola) close price and ZL-Canola spread
+9. Trump effect features (from features.trump_effect_1d)
+10. Additional rolling correlations: HO, RB, NG, HG, GC, DGS10, DGS2
 
 Usage:
     python scripts/add_matrix_features.py --dry-run
@@ -66,6 +68,7 @@ def compute_features(conn, dry_run: bool = True):
     print("=" * 70)
 
     new_columns = [
+        # Existing
         ("zs_close", "DECIMAL(18,6)"),
         ("zm_close", "DECIMAL(18,6)"),
         ("crush_spread", "DECIMAL(18,6)"),
@@ -77,6 +80,21 @@ def compute_features(conn, dry_run: bool = True):
         ("palm_soy_spread", "DECIMAL(18,6)"),
         ("rs_close", "DECIMAL(18,6)"),
         ("zl_canola_spread", "DECIMAL(18,6)"),
+        # Trump effect features
+        ("trump_total_actions_7d", "INTEGER"),
+        ("trump_total_actions_30d", "INTEGER"),
+        ("trump_avg_sentiment_7d", "DECIMAL(18,6)"),
+        ("trump_avg_sentiment_30d", "DECIMAL(18,6)"),
+        ("trump_action_velocity", "DECIMAL(18,6)"),
+        ("trump_weighted_action_score", "DECIMAL(18,6)"),
+        # Additional correlations (30d rolling)
+        ("ho_zl_corr_30d", "DECIMAL(18,6)"),   # Heating Oil
+        ("rb_zl_corr_30d", "DECIMAL(18,6)"),   # RBOB Gasoline
+        ("ng_zl_corr_30d", "DECIMAL(18,6)"),   # Natural Gas
+        ("hg_zl_corr_30d", "DECIMAL(18,6)"),   # Copper
+        ("gc_zl_corr_30d", "DECIMAL(18,6)"),   # Gold
+        ("dgs10_zl_corr_30d", "DECIMAL(18,6)"),  # 10Y Treasury yield
+        ("dgs2_zl_corr_30d", "DECIMAL(18,6)"),   # 2Y Treasury yield
     ]
 
     if dry_run:
@@ -208,50 +226,133 @@ def compute_features(conn, dry_run: bool = True):
         conn.commit()
 
     print("\n" + "=" * 70)
-    print("STEP 4: CALCULATE ROLLING CORRELATIONS")
+    print("STEP 4: POPULATE TRUMP EFFECT FEATURES")
+    print("=" * 70)
+
+    if dry_run:
+        print("  [DRY RUN] Would populate trump effect features from features.trump_effect_1d")
+        cur.execute("SELECT COUNT(*) FROM features.trump_effect_1d")
+        count = cur.fetchone()[0]
+        print(f"  Source rows available: {count:,}")
+    else:
+        # Map trump effect columns from source to target
+        trump_mappings = [
+            ("total_actions_7d", "trump_total_actions_7d"),
+            ("total_actions_30d", "trump_total_actions_30d"),
+            ("avg_sentiment_7d", "trump_avg_sentiment_7d"),
+            ("avg_sentiment_30d", "trump_avg_sentiment_30d"),
+            ("action_velocity", "trump_action_velocity"),
+            ("weighted_action_score", "trump_weighted_action_score"),
+        ]
+
+        for src_col, tgt_col in trump_mappings:
+            cur.execute(f"""
+                UPDATE training.matrix_1d m
+                SET {tgt_col} = t.{src_col}
+                FROM features.trump_effect_1d t
+                WHERE m.trade_date = t.as_of_date
+            """)
+            print(f"  {tgt_col}: {cur.rowcount:,} rows updated")
+
+        conn.commit()
+
+    print("\n" + "=" * 70)
+    print("STEP 5: CALCULATE ALL ROLLING CORRELATIONS")
     print("=" * 70)
 
     if dry_run:
         print("  [DRY RUN] Would calculate 30-day rolling correlations:")
         print("    - wti_zl_corr_30d: WTI vs ZL returns")
-        print("    - vix_zl_corr_30d: VIX vs ZL returns")
+        print("    - vix_zl_corr_30d: VIX vs ZL level")
+        print("    - ho_zl_corr_30d: Heating Oil vs ZL returns")
+        print("    - rb_zl_corr_30d: RBOB Gasoline vs ZL returns")
+        print("    - ng_zl_corr_30d: Natural Gas vs ZL returns")
+        print("    - hg_zl_corr_30d: Copper vs ZL returns")
+        print("    - gc_zl_corr_30d: Gold vs ZL returns")
+        print("    - dgs10_zl_corr_30d: 10Y Treasury vs ZL level")
+        print("    - dgs2_zl_corr_30d: 2Y Treasury vs ZL level")
     else:
-        # Load data for correlation calculation
+        # Load ZL data
         cur.execute("""
-            SELECT trade_date, close, fred_dcoilwtico, fred_vixcls
+            SELECT trade_date, close, fred_dcoilwtico, fred_vixcls, fred_dgs10, fred_dgs2
             FROM training.matrix_1d
             WHERE close IS NOT NULL
             ORDER BY trade_date
         """)
         data = cur.fetchall()
-
-        df = pd.DataFrame(data, columns=['trade_date', 'zl_close', 'wti', 'vix'])
+        df = pd.DataFrame(data, columns=['trade_date', 'zl_close', 'wti', 'vix', 'dgs10', 'dgs2'])
         df = df.set_index('trade_date')
 
-        # Calculate returns
+        # Load additional futures for correlations
+        futures_to_load = ['HO', 'RB', 'NG', 'HG', 'GC']
+        for symbol in futures_to_load:
+            cur.execute("""
+                SELECT event_date, close
+                FROM mkt.futures_1d
+                WHERE symbol = %s
+                ORDER BY event_date
+            """, (symbol,))
+            fut_data = cur.fetchall()
+            fut_df = pd.DataFrame(fut_data, columns=['trade_date', f'{symbol.lower()}_close'])
+            fut_df = fut_df.set_index('trade_date')
+            df = df.join(fut_df, how='left')
+
+        # Calculate returns for return-based correlations
         df['zl_ret'] = df['zl_close'].pct_change()
         df['wti_ret'] = df['wti'].pct_change()
+        df['ho_ret'] = df['ho_close'].pct_change()
+        df['rb_ret'] = df['rb_close'].pct_change()
+        df['ng_ret'] = df['ng_close'].pct_change()
+        df['hg_ret'] = df['hg_close'].pct_change()
+        df['gc_ret'] = df['gc_close'].pct_change()
 
         # 30-day rolling correlations
+        # Return-based correlations (more meaningful for price instruments)
         df['wti_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['wti_ret'])
-        df['vix_zl_corr_30d'] = df['zl_close'].rolling(30).corr(df['vix'])
+        df['ho_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['ho_ret'])
+        df['rb_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['rb_ret'])
+        df['ng_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['ng_ret'])
+        df['hg_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['hg_ret'])
+        df['gc_zl_corr_30d'] = df['zl_ret'].rolling(30).corr(df['gc_ret'])
 
-        # Update database
+        # Level-based correlations (for rates/vol indicators)
+        df['vix_zl_corr_30d'] = df['zl_close'].rolling(30).corr(df['vix'])
+        df['dgs10_zl_corr_30d'] = df['zl_close'].rolling(30).corr(df['dgs10'])
+        df['dgs2_zl_corr_30d'] = df['zl_close'].rolling(30).corr(df['dgs2'])
+
+        # Batch update all correlations
+        corr_cols = [
+            'wti_zl_corr_30d', 'vix_zl_corr_30d',
+            'ho_zl_corr_30d', 'rb_zl_corr_30d', 'ng_zl_corr_30d',
+            'hg_zl_corr_30d', 'gc_zl_corr_30d',
+            'dgs10_zl_corr_30d', 'dgs2_zl_corr_30d'
+        ]
+
         update_count = 0
         for idx, row in df.iterrows():
-            if pd.notna(row['wti_zl_corr_30d']) and pd.notna(row['vix_zl_corr_30d']):
-                cur.execute("""
+            # Build SET clause for non-null values
+            set_parts = []
+            values = []
+            for col in corr_cols:
+                if pd.notna(row.get(col)):
+                    set_parts.append(f"{col} = %s")
+                    values.append(float(row[col]))
+
+            if set_parts:
+                values.append(idx)
+                cur.execute(f"""
                     UPDATE training.matrix_1d
-                    SET wti_zl_corr_30d = %s, vix_zl_corr_30d = %s
+                    SET {', '.join(set_parts)}
                     WHERE trade_date = %s
-                """, (float(row['wti_zl_corr_30d']), float(row['vix_zl_corr_30d']), idx))
-                update_count += 1
+                """, values)
+                if cur.rowcount > 0:
+                    update_count += 1
 
         conn.commit()
         print(f"  Updated {update_count:,} rows with correlation data")
 
     print("\n" + "=" * 70)
-    print("STEP 5: VERIFY FEATURE COVERAGE")
+    print("STEP 6: VERIFY FEATURE COVERAGE")
     print("=" * 70)
 
     if dry_run:
@@ -266,9 +367,19 @@ def compute_features(conn, dry_run: bool = True):
     existing_cols = {r[0] for r in cur.fetchall()}
 
     feature_cols = [
+        # Core crush/spread features
         'zs_close', 'zm_close', 'crush_spread', 'oil_share',
-        'wti_zl_corr_30d', 'vix_zl_corr_30d', 'biodiesel_margin',
-        'cpo_close', 'palm_soy_spread', 'rs_close', 'zl_canola_spread'
+        'biodiesel_margin', 'cpo_close', 'palm_soy_spread',
+        'rs_close', 'zl_canola_spread',
+        # Trump effect features
+        'trump_total_actions_7d', 'trump_total_actions_30d',
+        'trump_avg_sentiment_7d', 'trump_avg_sentiment_30d',
+        'trump_action_velocity', 'trump_weighted_action_score',
+        # Correlations
+        'wti_zl_corr_30d', 'vix_zl_corr_30d',
+        'ho_zl_corr_30d', 'rb_zl_corr_30d', 'ng_zl_corr_30d',
+        'hg_zl_corr_30d', 'gc_zl_corr_30d',
+        'dgs10_zl_corr_30d', 'dgs2_zl_corr_30d',
     ]
 
     cur.execute("SELECT COUNT(*) FROM training.matrix_1d")

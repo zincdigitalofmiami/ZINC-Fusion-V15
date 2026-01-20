@@ -19,7 +19,7 @@
 - Frontend: Vercel (Next.js + Inngest)
 - Database: Prisma Postgres (cloud-hosted)
 
-## SCHEMA TAXONOMY (13 Schemas)
+## SCHEMA TAXONOMY (14 Schemas)
 
 **Landing (append-only source data):**
 - `mkt` - Market prices (futures, options, FX)
@@ -40,6 +40,9 @@
 **Governance:**
 - `metadata` - Instrument definitions, symbol mappings
 - `ops` - Job health, ingestion registry
+
+**Isolated (separate business domain):**
+- `vegas` - Vegas CRM (restaurants, casinos, events, intel sheets)
 
 **Deprecated (read-only):**
 - `archive` - Legacy data (no new writes)
@@ -72,3 +75,24 @@ Any reference to banned schemas in new code should fail with hard error.
 - `analytics.zl_price_1d` - ZL 1d bars (dashboard copy of mkt.futures_1d)
 
 ZL is the only instrument with intraday tracking (15m/1h). Other instruments use daily data only.
+
+## SPECIALIST → TABLE ROUTING (Big 11)
+
+| Specialist | Data Nature | Primary Tables |
+|------------|-------------|----------------|
+| `crush` | 100% Quant | mkt.futures_1d (ZL/ZS/ZM), pos.cftc_1w |
+| `china` | 70/30 Quant/Qual | mkt.futures_1d (HG), mkt.fx_1d (CNY), alt.news_1d |
+| `fx` | 100% Quant | mkt.fx_1d |
+| `fed` | 100% Quant | econ.rates_1d |
+| `tariff` | 40/60 Quant/Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+| `energy` | 100% Quant | mkt.futures_1d (CL/HO), econ.commodities_1d |
+| `biofuel` | 80/20 Quant/Qual | supply.epa_rin_1d, alt.news_1d |
+| `palm` | 80/20 Quant/Qual | mkt.futures_1d (FCPO), alt.news_1d |
+| `volatility` | 100% Quant | econ.vol_indices_1d, econ.rates_1d |
+| `substitutes` | 100% Quant | mkt.futures_1d, econ.commodities_1d |
+| `trump_effect` | 50/50 Quant/Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+
+**Pure Quantitative (6):** crush, fx, fed, energy, volatility, substitutes
+**Require News Sentiment (5):** china, tariff, biofuel, palm, trump_effect
+
+News items in `alt.news_1d` are tagged with specialist names via `frontend/src/lib/specialist-classifier.ts`.

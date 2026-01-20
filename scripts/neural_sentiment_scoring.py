@@ -773,7 +773,7 @@ def fetch_articles_for_scoring(
             r.is_trump_related,
             s.id as silver_id,
             s.scoring_model
-        FROM raw.news_articles_1d r
+        FROM alt.news_1d r
         LEFT JOIN features.news_sentiment_1d s ON r.id = s.raw_id
         {where_sql}
         ORDER BY r.published_at DESC
@@ -870,10 +870,10 @@ def update_silver_with_neural_scores(conn, article_id: int, ensemble: Dict,
 
 
 def update_raw_sentiment(conn, article_id: int, score: float):
-    """Update raw.news_articles_1d.sentiment_score"""
+    """Update alt.news_1d.sentiment_score"""
     with conn.cursor() as cur:
         cur.execute("""
-            UPDATE raw.news_articles_1d
+            UPDATE alt.news_1d
             SET sentiment_score = %s
             WHERE id = %s
         """, (score, article_id))

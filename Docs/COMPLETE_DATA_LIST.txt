@@ -272,12 +272,3 @@ ZS       308 reports    2020-01-07 to 2025-11-25
 
 === ARCHIVE.FRED_ECONOMIC_1D - TOP 30 SERIES ===
 
-Traceback (most recent call last):
-  File "/Volumes/Satechi Hub/ZINC-FUSION-V15/complete_list.py", line 74, in <module>
-    fred = conn.execute("""
-           ^^^^^^^^^^^^^^^^
-_duckdb.BinderException: Binder Error: Referenced column "date" not found in FROM clause!
-Candidate bindings: "value"
-
-LINE 3:            MIN(date)::VARCHAR as start,
-                       ^

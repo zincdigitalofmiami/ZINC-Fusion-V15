@@ -102,15 +102,20 @@ export const aeiTradeDaily = inngest.createFunction(
 
           await client.query(
             `INSERT INTO alt.news_1d (
-               event_date, title, description, link, pub_date, guid, author, categories,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+               event_date, headline, content, url, published_at, author,
+               source, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
             [
-              eventDate, item.title, item.description, item.link, pubDate, item.guid,
-              author, categories,
+              eventDate,
+              item.title,
+              item.description,
+              item.link,
+              pubDate,
+              author,
               "aei_rss",
-              "https://www.aei.org/tag/trade-policy/feed/",
-              JSON.stringify(item), runId, rowHash,
+              JSON.stringify(item),
+              runId,
+              rowHash,
               ["tariff", "trump_effect"]
             ]
           );

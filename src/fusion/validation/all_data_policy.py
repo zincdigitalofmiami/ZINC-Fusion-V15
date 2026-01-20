@@ -60,19 +60,29 @@ MIN_FEATURES_21D = 600
 MIN_FEATURES_63D = 600
 MIN_FEATURES_126D = 600
 
-# Data source requirements
+# Data source requirements (v2 schema architecture)
+# Format: "schema.table" -> (min_rows, description, date_column)
 REQUIRED_DATA_SOURCES = {
-    # Table name -> (min_rows, description, date_column)
     # NOTE: Hourly data removed - all training uses daily data only
-    "market_futures_1d": (100_000, "Daily futures (83 symbols)", "event_date"),
-    "fred_observations_1d": (100_000, "FRED economic (long format, 111+ series)", "event_date"),
-    "weather_noaa_1d": (500, "NOAA weather (US/Brazil/Argentina)", "event_date"),
-    "fx_spot_1d": (10_000, "Spot FX (30 pairs)", "event_date"),
-    "cftc_cot_1w": (500, "CFTC COT positioning", "event_date"),
-    "usda_export_sales_1w": (100, "USDA export sales", "event_date"),
-    "usda_wasde_1m": (50, "USDA WASDE", "event_date"),
-    "epa_rin_prices_1d": (50, "EPA RIN prices", "event_date"),
-    "news_articles_1d": (50, "News sentiment", "event_date"),
+    # Market data (mkt schema)
+    "mkt.futures_1d": (100_000, "Daily futures (83 symbols)", "event_date"),
+    "mkt.fx_1d": (10_000, "Spot FX (30 pairs)", "event_date"),
+    # Economic data (econ schema - FRED split across 7 tables)
+    "econ.rates_1d": (50_000, "FRED rates/treasuries", "event_date"),
+    "econ.inflation_1d": (1_000, "FRED inflation (CPI, PCE, PPI)", "event_date"),
+    "econ.labor_1d": (1_000, "FRED labor (unemployment, payrolls)", "event_date"),
+    "econ.activity_1d": (50_000, "FRED activity (GDP, industrial)", "event_date"),
+    "econ.vol_indices_1d": (5_000, "FRED vol indices (VIX, NFCI)", "event_date"),
+    "econ.commodities_1d": (10_000, "FRED commodities (oil, grains)", "event_date"),
+    "econ.money_1d": (1_000, "FRED money supply (M2, reserves)", "event_date"),
+    # Alternative data (alt schema)
+    "alt.weather_1d": (500, "NOAA weather (US/Brazil/Argentina)", "event_date"),
+    "alt.news_1d": (50, "News sentiment", "published_date"),
+    # Position data (pos schema)
+    "pos.cftc_1w": (500, "CFTC COT positioning", "as_of_date"),
+    # Supply data (supply schema)
+    "supply.usda_exports_1w": (100, "USDA export sales", "week_ending"),
+    "supply.usda_wasde_1m": (50, "USDA WASDE", "release_date"),
 }
 
 # Feature category expectations (for validation)
@@ -144,29 +154,28 @@ def enforce_all_data_policy(
     # 1. Check all data sources exist and have data
     logger.info("\n[1/3] Checking data source availability...")
     with conn.cursor() as cur:
-        for table, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
+        for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
-                # Determine schema (most are in 'raw')
-                schema = "raw"
-                cur.execute(f'SELECT COUNT(*) FROM "{schema}"."{table}"')
+                # Table path is now "schema.table" format
+                cur.execute(f'SELECT COUNT(*) FROM {table_path}')
                 row_count = cur.fetchone()[0]
 
                 if row_count >= min_rows:
-                    sources_loaded.append(table)
-                    logger.info(f"  ✅ {table}: {row_count:,} rows - {desc}")
+                    sources_loaded.append(table_path)
+                    logger.info(f"  ✅ {table_path}: {row_count:,} rows - {desc}")
                 else:
-                    sources_missing.append(table)
-                    msg = f"{table}: only {row_count:,} rows (need {min_rows:,}) - {desc}"
+                    sources_missing.append(table_path)
+                    msg = f"{table_path}: only {row_count:,} rows (need {min_rows:,}) - {desc}"
                     errors.append(msg)
                     logger.error(f"  ❌ {msg}")
             except psycopg2.errors.UndefinedTable:
-                sources_missing.append(table)
-                errors.append(f"{table}: TABLE MISSING - {desc}")
-                logger.error(f"  ❌ {table}: TABLE MISSING - {desc}")
+                sources_missing.append(table_path)
+                errors.append(f"{table_path}: TABLE MISSING - {desc}")
+                logger.error(f"  ❌ {table_path}: TABLE MISSING - {desc}")
                 conn.rollback()
             except Exception as e:
-                warnings.append(f"Could not check {table}: {e}")
-                logger.warning(f"  ⚠️ Could not check {table}: {e}")
+                warnings.append(f"Could not check {table_path}: {e}")
+                logger.warning(f"  ⚠️ Could not check {table_path}: {e}")
                 conn.rollback()
 
     logger.info(f"\n  Sources loaded: {len(sources_loaded)}/{len(REQUIRED_DATA_SOURCES)}")
@@ -419,16 +428,16 @@ def log_all_data_summary(conn, horizon: int) -> None:
     logger.info("-" * 70)
 
     with conn.cursor() as cur:
-        for table, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
+        for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
                 cur.execute(f'''
                     SELECT COUNT(*), MIN({date_col}), MAX({date_col})
-                    FROM "raw"."{table}"
+                    FROM {table_path}
                 ''')
                 count, min_date, max_date = cur.fetchone()
-                logger.info(f"  {table}: {count:,} rows ({min_date} to {max_date})")
+                logger.info(f"  {table_path}: {count:,} rows ({min_date} to {max_date})")
             except Exception:
-                logger.warning(f"  {table}: COULD NOT QUERY")
+                logger.warning(f"  {table_path}: COULD NOT QUERY")
                 conn.rollback()
 
     logger.info("=" * 70 + "\n")

@@ -1,6 +1,39 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Fix Specialist Tables
+!!! DEPRECATED - DO NOT USE !!!
+
+This script creates DUPLICATE data in specialist_*_1d tables that already
+exists in mkt.futures_1d. These tables should be REMOVED, not fixed.
+
+The specialist_*_1d tables (22 total: 11 buckets × 2 granularities) are:
+- specialist_crush_1d/1h
+- specialist_china_1d/1h
+- specialist_energy_1d/1h
+- specialist_biofuel_1d/1h
+- specialist_palm_1d/1h
+- specialist_volatility_1d/1h
+- specialist_substitutes_1d/1h
+- specialist_tariff_1d/1h
+- specialist_fed_1d/1h
+- specialist_fx_1d
+- specialist_trump_effect_1d/1h
+
+These tables are NOT USED in training. Training uses:
+- mkt.futures_1d (source market data)
+- training.specialist_features (computed feature JSON blob)
+
+MIGRATION PLAN:
+1. Stop running this script
+2. Remove Prisma models for specialist_*_1d/1h
+3. DROP the 22 duplicate tables
+4. Keep ONLY training.specialist_features
+
+EXCEPTION: specialist_trump_effect_1d contains computed signal/confidence
+columns that are NOT duplicates - this one may be worth keeping.
+
+---
+
+ZINC-FUSION-V15: Fix Specialist Tables (DEPRECATED)
 
 Fixes:
 1. SUBSTITUTES - Replace meat/protein data with proper vegetable oil data

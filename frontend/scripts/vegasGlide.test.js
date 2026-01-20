@@ -53,13 +53,13 @@ test('assertNoGlideFieldDrift throws GlideSchemaDriftError when required fields 
   assert.throws(
     () =>
       vegasGlide.assertNoGlideFieldDrift({
-        entity: 'ops.vegas_restaurants',
+        entity: 'vegas.vegas_restaurants',
         rows,
         requiredFields: vegasGlide.VEGAS_GLIDE_REQUIRED_FIELDS.restaurants,
       }),
     (err) => {
       assert.ok(err instanceof vegasGlide.GlideSchemaDriftError)
-      assert.equal(err.entity, 'ops.vegas_restaurants')
+      assert.equal(err.entity, 'vegas.vegas_restaurants')
       assert.ok(Array.isArray(err.missingFields))
       assert.ok(err.missingFields.length > 0)
       return true
@@ -70,7 +70,7 @@ test('assertNoGlideFieldDrift throws GlideSchemaDriftError when required fields 
 test('assertNoGlideFieldDrift does not throw for empty result sets', () => {
   assert.doesNotThrow(() =>
     vegasGlide.assertNoGlideFieldDrift({
-      entity: 'ops.vegas_restaurants',
+      entity: 'vegas.vegas_restaurants',
       rows: [],
       requiredFields: vegasGlide.VEGAS_GLIDE_REQUIRED_FIELDS.restaurants,
     })

@@ -74,7 +74,7 @@ export const zl15m = inngest.createFunction(
       return { status: "no_data", message: "No 15m bars returned" };
     }
 
-    // Step 2: Upsert bars to analytics.zl_intraday
+    // Step 2: Upsert bars to analytics.zl_price_15m
     const inserted = await step.run("upsert-bars", async () => {
       const client = await pool.connect();
       let count = 0;

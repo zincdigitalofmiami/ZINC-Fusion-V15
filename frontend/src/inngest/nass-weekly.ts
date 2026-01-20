@@ -114,16 +114,14 @@ export const nassWeekly = inngest.createFunction(
 
           await client.query(
             `INSERT INTO econ.rates_1d (
-               event_date, series_id, value, source, source_url, raw_payload, 
-               ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+               series_id, event_date, value, source, row_hash
+             ) VALUES ($1,$2,$3,$4,$5)`,
             [
-              obsDate, seriesId, value,
+              seriesId,
+              obsDate,
+              value,
               "nass_api",
-              "https://quickstats.nass.usda.gov/api",
-              JSON.stringify(row),
-              runId, rowHash,
-              ["crush"]
+              rowHash,
             ]
           );
           return { status: "inserted" as const };

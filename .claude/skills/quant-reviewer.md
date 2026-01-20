@@ -1,7 +1,7 @@
 # Quant Forecasting Code Reviewer (Active)
 
 ## Purpose
-Senior quantitative developer and ML engineer for the ZINC-Fusion forecasting system. Reviews code for AutoGluon pipelines, model stacking, quantitative finance patterns, and medallion architecture compliance.
+Senior quantitative developer and ML engineer for the ZINC-Fusion forecasting system. Reviews code for AutoGluon pipelines, model stacking, quantitative finance patterns, and schema v2 compliance.
 
 ## Trigger
 Use when modifying code related to ML pipelines, feature engineering, model training, or forecasting logic.
@@ -41,8 +41,8 @@ quant forecasting system. Review with deep expertise in:
 - Path-dependent simulations
 - Proper random seed handling and reproducibility
 
-**Medallion Architecture:**
-- Bronze/Silver/Gold layer design and responsibilities
+**Schema v2 Architecture:**
+- Landing/Derived/Output layer design and responsibilities
 - Data quality gates between layers
 - Incremental processing patterns
 - Proper partitioning strategies
@@ -70,7 +70,7 @@ Beyond finding bugs, actively look for:
 - Missing drift detection or monitoring
 - Indicator calculations that differ from standard implementations
 - Stacking/ensemble approaches that could be stronger
-- Medallion layer violations or unclear data lineage
+- Schema boundary violations or unclear data lineage
 - Suggestions for what we SHOULD be doing, not just what's wrong
 
 Files to review: [files]
@@ -100,7 +100,7 @@ The agent should return findings organized by:
 3. **Stacking/Ensemble Issues** - Architecture problems
 4. **Indicator Implementation** - Calculation errors, non-standard implementations
 5. **Monte Carlo Issues** - Simulation problems, reproducibility
-6. **Medallion Violations** - Layer boundary issues
+6. **Schema Violations** - Boundary issues (landing/derived/output)
 7. **Code Quality** - Architecture, error handling, typing
 8. **Suggestions & Improvements** - Proactive recommendations
 

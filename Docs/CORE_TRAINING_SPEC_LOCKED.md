@@ -203,15 +203,15 @@ Every Core training run MUST load ALL of these sources:
 
 | Source | Table | Min Rows | Features |
 |--------|-------|----------|----------|
-| Market Futures | `raw.market_futures_1d` | 100,000 | 103 symbols × 5 OHLCV = 515 |
-| FRED Economic | `raw.fred_observations_1d` | 100,000 | 159 series |
-| Weather NOAA | `raw.weather_noaa_1d` | 500 | 57 stations × 10 vars |
-| FX Spot | `raw.fx_spot_1d` | 10,000 | 9 pairs |
-| CFTC COT | `raw.cftc_cot_1w` | 500 | 24 symbols × 5 metrics |
-| USDA Exports | `raw.usda_export_sales_1w` | 100 | 5 features |
-| USDA WASDE | `raw.usda_wasde_1m` | 50 | 5 features |
-| EPA RIN | `raw.epa_rin_prices_1d` | 50 | 4 types |
-| News Sentiment | `raw.news_articles_1d` | 50 | 5+ features |
+| Market Futures | `mkt.futures_1d` | 100,000 | 103 symbols × 5 OHLCV = 515 |
+| FRED Economic | `econ.rates_1d` | 100,000 | 159 series |
+| Weather NOAA | `alt.weather_1d` | 500 | 57 stations × 10 vars |
+| FX Spot | `mkt.fx_1d` | 10,000 | 9 pairs |
+| CFTC COT | `pos.cftc_1w` | 500 | 24 symbols × 5 metrics |
+| USDA Exports | `supply.usda_export_sales_1w` | 100 | 5 features |
+| USDA WASDE | `supply.usda_wasde_1m` | 50 | 5 features |
+| EPA RIN | `supply.epa_rin_1d` | 50 | 4 types |
+| News Sentiment | `alt.news_1d` | 50 | 5+ features |
 
 ### Feature Minimums
 ```python

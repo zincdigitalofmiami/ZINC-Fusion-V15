@@ -1,8 +1,8 @@
 /**
  * Vegas Intel API Routes
- * Serves data from Glide sync (ops.vegas_* tables)
+ * Serves data from Glide sync (vegas.vegas_* tables)
  * 
- * Data Flow: Glide API (READ ONLY) → ops.vegas_* → This API → Frontend
+ * Data Flow: Glide API (READ ONLY) → vegas.vegas_* → This API → Frontend
  */
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
@@ -162,9 +162,9 @@ async function getEvents(): Promise<NextResponse> {
         v.latitude::float as latitude,
         v.longitude::float as longitude,
         v.formatted_address
-      FROM ops.vegas_events e
-      LEFT JOIN ops.vegas_event_venues ev ON ev.event_id = e.event_id AND ev.is_primary = true
-      LEFT JOIN ops.vegas_venues v ON v.venue_id = ev.venue_id
+      FROM vegas.vegas_events e
+      LEFT JOIN vegas.vegas_event_venues ev ON ev.event_id = e.event_id AND ev.is_primary = true
+      LEFT JOIN vegas.vegas_venues v ON v.venue_id = ev.venue_id
       WHERE e.is_active = true
         AND e.start_date >= CURRENT_DATE
       ORDER BY e.spend_hospitality DESC NULLS LAST, e.start_date ASC
@@ -208,31 +208,31 @@ async function getStats(): Promise<NextResponse> {
         'restaurants' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
-      FROM ops.vegas_restaurants
+      FROM vegas.vegas_restaurants
       UNION ALL
       SELECT 
         'casinos' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
-      FROM ops.vegas_casinos
+      FROM vegas.vegas_casinos
       UNION ALL
       SELECT 
         'fryers' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
-      FROM ops.vegas_fryers
+      FROM vegas.vegas_fryers
       UNION ALL
       SELECT 
         'export_list' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
-      FROM ops.vegas_export_list
+      FROM vegas.vegas_export_list
       UNION ALL
       SELECT 
         'shifts' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
-      FROM ops.vegas_shifts
+      FROM vegas.vegas_shifts
     `)
 
     // Parse stats
@@ -288,16 +288,16 @@ async function getRestaurants(): Promise<NextResponse> {
         COUNT(f.id)::int as fryer_count,
         SUM((f.data->>'${fryerFields.capacity}')::numeric)::int as total_capacity_lbs,
         r.data
-      FROM ops.vegas_restaurants r
-      LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
-      LEFT JOIN ops.vegas_fryers f ON f.data->>'${fryerFields.restaurantId}' = r.glide_row_id
+      FROM vegas.vegas_restaurants r
+      LEFT JOIN vegas.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
+      LEFT JOIN vegas.vegas_fryers f ON f.data->>'${fryerFields.restaurantId}' = r.glide_row_id
       GROUP BY r.id, r.glide_row_id, r.data, c.data->>'Name'
       ORDER BY name
       LIMIT 200
     `)
 
     assertNoGlideFieldDrift({
-      entity: 'ops.vegas_restaurants',
+      entity: 'vegas.vegas_restaurants',
       rows: results.map((r) => r.data),
       requiredFields: VEGAS_GLIDE_REQUIRED_FIELDS.restaurants,
       hint: 'Update frontend/src/lib/vegasGlide.ts with the new Glide field IDs.',
@@ -331,7 +331,7 @@ async function getCasinos(): Promise<NextResponse> {
         COALESCE(data->>'EventCalendar', data->>'event_calendar', '') as event_calendar,
         COALESCE((data->>'PremiumTier')::boolean, false) as premium_tier,
         data
-      FROM ops.vegas_casinos
+      FROM vegas.vegas_casinos
       ORDER BY name
       LIMIT 100
     `)
@@ -353,7 +353,7 @@ async function getFryers(): Promise<NextResponse> {
         COALESCE((data->>'turns_per_month')::int, 0) as turns_per_month,
         COALESCE((data->>'base_daily_gal')::float, 0) as base_daily_gal,
         data
-      FROM ops.vegas_fryers
+      FROM vegas.vegas_fryers
       ORDER BY restaurant_id
       LIMIT 500
     `)
@@ -372,7 +372,7 @@ async function getCustomers(): Promise<NextResponse> {
         COALESCE(data->>'CustomerName', data->>'customer_name', data->>'Name', 'Unknown') as customer_name,
         COALESCE(data->>'Segment', data->>'segment', 'General') as segment,
         data
-      FROM ops.vegas_export_list
+      FROM vegas.vegas_export_list
       ORDER BY customer_name
       LIMIT 500
     `)
@@ -387,15 +387,15 @@ async function getAllData(): Promise<NextResponse> {
   try {
     const [stats, restaurants, casinos, fryers] = await Promise.all([
       query<{ table_name: string; count: number }>(`
-        SELECT 'restaurants' as table_name, COUNT(*) as count FROM ops.vegas_restaurants
+        SELECT 'restaurants' as table_name, COUNT(*) as count FROM vegas.vegas_restaurants
         UNION ALL
-        SELECT 'casinos', COUNT(*) FROM ops.vegas_casinos
+        SELECT 'casinos', COUNT(*) FROM vegas.vegas_casinos
         UNION ALL
-        SELECT 'fryers', COUNT(*) FROM ops.vegas_fryers
+        SELECT 'fryers', COUNT(*) FROM vegas.vegas_fryers
       `),
-      query(`SELECT id, data FROM ops.vegas_restaurants LIMIT 10`),
-      query(`SELECT id, data FROM ops.vegas_casinos LIMIT 10`),
-      query(`SELECT id, data FROM ops.vegas_fryers LIMIT 20`)
+      query(`SELECT id, data FROM vegas.vegas_restaurants LIMIT 10`),
+      query(`SELECT id, data FROM vegas.vegas_casinos LIMIT 10`),
+      query(`SELECT id, data FROM vegas.vegas_fryers LIMIT 20`)
     ])
 
     return NextResponse.json({
@@ -447,7 +447,7 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
         local_rank,
         spend_hospitality::numeric::integer as spend_hospitality,
         start_date::text
-      FROM ops.vegas_events
+      FROM vegas.vegas_events
       WHERE event_id = $1
     `, [eventId])
 
@@ -472,7 +472,7 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
         spend_concerts, spend_conferences, spend_expos,
         spend_festivals, spend_performing_arts, spend_sports,
         spend_total
-      FROM ops.vegas_daily_spend
+      FROM vegas.vegas_daily_spend
       WHERE impact_date = $1::date
     `, [event.start_date])
 
@@ -503,7 +503,7 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
       WITH cuisine_totals AS (
         -- Get sum of affinity scores for this event category (for proportional distribution)
         SELECT SUM(affinity_score) as total_affinity
-        FROM ops.vegas_cuisine_affinity
+        FROM vegas.vegas_cuisine_affinity
         WHERE event_category = $1
       ),
       restaurant_scores AS (
@@ -515,9 +515,9 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
           COALESCE(ca.affinity_score, 30) as affinity_score,
           ca.reasoning,
           ct.total_affinity
-        FROM ops.vegas_restaurants r
-        LEFT JOIN ops.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
-        LEFT JOIN ops.vegas_cuisine_affinity ca
+        FROM vegas.vegas_restaurants r
+        LEFT JOIN vegas.vegas_casinos c ON c.glide_row_id = r.data->>'${restaurantFields.casinoId}'
+        LEFT JOIN vegas.vegas_cuisine_affinity ca
           ON ca.cuisine_type = COALESCE(r.cuisine_type, 'general')
           AND ca.event_category = $1
         CROSS JOIN cuisine_totals ct
@@ -609,11 +609,11 @@ async function getDailySpend(): Promise<NextResponse> {
         -- Count events for this day
         COALESCE((
           SELECT COUNT(DISTINCT event_id)::int
-          FROM ops.vegas_events
+          FROM vegas.vegas_events
           WHERE start_date = ds.impact_date
             AND is_active = true
         ), 0) as event_count
-      FROM ops.vegas_daily_spend ds
+      FROM vegas.vegas_daily_spend ds
       WHERE ds.impact_date >= CURRENT_DATE
       ORDER BY ds.impact_date
       LIMIT 90

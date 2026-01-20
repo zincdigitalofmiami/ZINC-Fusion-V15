@@ -99,16 +99,12 @@ OUTPUT_SCHEMAS: tuple[str, ...] = ("model", "forecasts", "analytics")
 # Governance schemas: operations and metadata
 GOVERNANCE_SCHEMAS: tuple[str, ...] = ("metadata", "ops")
 
-# Deprecated: read-only legacy data
-DEPRECATED_SCHEMAS: tuple[str, ...] = ("archive",)
-
 # All schemas (canonical list)
 SCHEMAS: tuple[str, ...] = (
     LANDING_SCHEMAS
     + DERIVED_SCHEMAS
     + OUTPUT_SCHEMAS
     + GOVERNANCE_SCHEMAS
-    + DEPRECATED_SCHEMAS
 )
 
 # BANNED schemas - fail hard if detected in new code
@@ -135,7 +131,6 @@ SchemaName = Literal[
     "analytics",  # Output
     "metadata",
     "ops",  # Governance
-    "archive",  # Deprecated
 ]
 
 # =============================================================================

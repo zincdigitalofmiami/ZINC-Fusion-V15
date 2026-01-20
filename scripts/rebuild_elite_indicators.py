@@ -2,14 +2,17 @@
 """
 Rebuild Elite Indicators with Fixed Code
 
-This script recomputes features.elite_1d using the fixed 
+This script recomputes features.elite_1d using the fixed
 elite_indicators.py that handles edge cases:
 - connors_rsi: division-safe RSI (no NaN on flat tape)
 - garman_klass_vol: flat bar safe (H=L → 0, not NaN)
 - cmf_21: zero volume safe (neutral outputs)
 
+Supports multi-symbol processing for cross-asset elite indicators.
+
 Usage:
-    python scripts/rebuild_elite_indicators.py
+    python scripts/rebuild_elite_indicators.py                   # All symbols
+    python scripts/rebuild_elite_indicators.py --symbols ZL ZS   # Specific symbols
     python scripts/rebuild_elite_indicators.py --dry-run
 """
 
@@ -28,13 +31,26 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from fusion.features.elite_indicators import EliteIndicators
 
-# Database URL from environment or default
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgres://d687a7ec267e124a21607a1e5dd9a89d60c9a122d219e499e32f3eee42a858c0:sk_NLg8ZV3VJ61FPM0F_QHMe@db.prisma.io:5432/postgres?sslmode=require"
-)
+# Database URL from environment (load from .env if available)
+from dotenv import load_dotenv
+load_dotenv()
 
-TARGET_SYMBOL = "ZL"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Default symbols to process (ZL primary + related instruments)
+DEFAULT_SYMBOLS = [
+    "ZL",   # Soybean Oil (primary)
+    "ZS",   # Soybeans
+    "ZM",   # Soymeal
+    "CL",   # Crude Oil
+    "HO",   # Heating Oil
+    "RB",   # RBOB Gasoline
+    "NG",   # Natural Gas
+    "HG",   # Copper
+    "GC",   # Gold
+    "RS",   # Canola
+    "CPO",  # Crude Palm Oil
+]
 
 logging.basicConfig(
     level=logging.INFO,
@@ -265,84 +281,120 @@ def check_scattered_nulls(conn, symbol: str) -> dict:
     return results
 
 
-def main(dry_run: bool = False):
-    """Main rebuild function."""
+def process_symbol(conn, symbol: str, dry_run: bool = False) -> dict:
+    """Process a single symbol. Returns summary dict."""
+    from datetime import date
+
+    logger.info("")
+    logger.info(f"Processing {symbol}...")
+
+    # Load OHLCV data
+    df = load_ohlcv_data(conn, symbol)
+
+    if len(df) == 0:
+        logger.warning(f"   No data found for {symbol}, skipping")
+        return {"symbol": symbol, "status": "no_data", "rows": 0}
+
+    # Filter to 1980+ (expanded training window)
+    df = df[df['trade_date'] >= date(1980, 1, 1)].copy()
+    logger.info(f"   Filtered to 1980+: {len(df):,} rows")
+
+    if len(df) < 50:
+        logger.warning(f"   Insufficient data ({len(df)} rows < 50 min), skipping")
+        return {"symbol": symbol, "status": "insufficient_data", "rows": len(df)}
+
+    # Compute elite indicators
+    try:
+        elite = EliteIndicators(df, symbol=symbol)
+        df = elite.compute_all()
+    except Exception as e:
+        logger.error(f"   Failed to compute indicators for {symbol}: {e}")
+        return {"symbol": symbol, "status": "compute_error", "error": str(e)}
+
+    # Add returns and base features
+    df = compute_additional_features(df, symbol)
+
+    if dry_run:
+        # Show null rates for verification
+        for indicator in ['connors_rsi', 'garman_klass_vol', 'cmf_21']:
+            if indicator in df.columns:
+                null_count = df[indicator].isna().sum()
+                null_rate = null_count / len(df) if len(df) > 0 else 0
+                status = "✅" if null_rate <= 0.05 else "❌"
+                logger.info(f"   {status} {indicator}: {null_count:,} nulls ({null_rate:.1%})")
+
+        return {"symbol": symbol, "status": "dry_run", "rows": len(df)}
+    else:
+        # Write to features table
+        rows_written = write_to_features(conn, df, symbol)
+
+        # Validate results
+        validate_null_rates(conn, symbol)
+        check_scattered_nulls(conn, symbol)
+
+        return {"symbol": symbol, "status": "success", "rows": rows_written}
+
+
+def main(symbols: list[str] = None, dry_run: bool = False):
+    """Main rebuild function for multiple symbols."""
+    if symbols is None:
+        symbols = DEFAULT_SYMBOLS
+
     logger.info("=" * 70)
-    logger.info("ELITE INDICATORS REBUILD")
+    logger.info("ELITE INDICATORS REBUILD (Multi-Symbol)")
     logger.info("=" * 70)
-    logger.info(f"Symbol: {TARGET_SYMBOL}")
+    logger.info(f"Symbols: {', '.join(symbols)}")
     logger.info(f"Dry run: {dry_run}")
     logger.info("=" * 70)
-    
+
     # Connect to database
     conn = psycopg2.connect(DATABASE_URL)
     logger.info("✅ Database connected")
-    
+
+    results = []
     try:
-        # Load OHLCV data
-        df = load_ohlcv_data(conn, TARGET_SYMBOL)
-        
-        # Filter to 1980+ (expanded training window - 2026-01-16)
-        from datetime import date
-        df = df[df['trade_date'] >= date(1980, 1, 1)].copy()
-        logger.info(f"   Filtered to 1980+: {len(df):,} rows")
-        
-        # Compute elite indicators
-        logger.info("")
-        logger.info("-" * 70)
-        elite = EliteIndicators(df, symbol=TARGET_SYMBOL)
-        df = elite.compute_all()
-        logger.info("-" * 70)
-        
-        # Add returns and base features
-        df = compute_additional_features(df, TARGET_SYMBOL)
-        
-        if dry_run:
-            logger.info("")
-            logger.info("DRY RUN - Not writing to database")
-            logger.info("")
-            
-            # Show null rates for verification
-            for indicator in ['connors_rsi', 'garman_klass_vol', 'cmf_21']:
-                null_count = df[indicator].isna().sum()
-                null_rate = null_count / len(df)
-                status = "✅" if null_rate <= 0.05 else "❌"
-                logger.info(f"   {status} {indicator}: {null_count:,} nulls ({null_rate:.1%})")
-            
-        else:
-            # Write to features table
-            logger.info("")
-            rows_written = write_to_features(conn, df, TARGET_SYMBOL)
-            
-            # Validate results
-            logger.info("")
-            null_results = validate_null_rates(conn, TARGET_SYMBOL)
-            
-            logger.info("")
-            scattered_results = check_scattered_nulls(conn, TARGET_SYMBOL)
-        
+        for symbol in symbols:
+            result = process_symbol(conn, symbol, dry_run)
+            results.append(result)
+
         conn.close()
-        
+
+        # Summary
         logger.info("")
         logger.info("=" * 70)
-        logger.info("✅ REBUILD COMPLETE")
+        logger.info("SUMMARY")
         logger.info("=" * 70)
-        
+        success_count = sum(1 for r in results if r["status"] == "success")
+        total_rows = sum(r.get("rows", 0) for r in results if r["status"] in ("success", "dry_run"))
+
+        for r in results:
+            status_icon = "✅" if r["status"] in ("success", "dry_run") else "❌"
+            logger.info(f"  {status_icon} {r['symbol']:6s}: {r['status']:15s} ({r.get('rows', 0):,} rows)")
+
+        logger.info("")
+        if dry_run:
+            logger.info(f"DRY RUN COMPLETE - {len(symbols)} symbols checked, {total_rows:,} rows would be written")
+        else:
+            logger.info(f"✅ REBUILD COMPLETE - {success_count}/{len(symbols)} symbols, {total_rows:,} rows written")
+        logger.info("=" * 70)
+
     except Exception as e:
         conn.close()
         logger.error(f"❌ REBUILD FAILED: {e}", exc_info=True)
         return False
-    
+
     return True
 
 
 if __name__ == '__main__':
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Rebuild Elite Indicators")
     parser.add_argument('--dry-run', action='store_true',
-                       help="Compute but don't write to database")
+                        help="Compute but don't write to database")
+    parser.add_argument('--symbols', nargs='+', default=None,
+                        help=f"Symbols to process (default: {DEFAULT_SYMBOLS})")
     args = parser.parse_args()
-    
-    success = main(dry_run=args.dry_run)
+
+    success = main(symbols=args.symbols, dry_run=args.dry_run)
     exit(0 if success else 1)

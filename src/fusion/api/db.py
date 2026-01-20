@@ -138,12 +138,11 @@ def get_connection():
 # NOTE: TABLE_MAP is used by translate_query(), which performs literal string replacement.
 # Targets MUST stay schema-qualified to avoid relying on Postgres search_path.
 #
-# SCHEMA TAXONOMY (12 active + 1 deprecated):
+# SCHEMA TAXONOMY (12 active):
 #   Landing: mkt, econ, alt, pos, supply
 #   Derived: features, training
 #   Output: model, forecasts, analytics
 #   Governance: metadata, ops
-#   Deprecated: archive (read-only)
 #
 TABLE_MAP = {
     # Market data

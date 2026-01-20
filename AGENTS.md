@@ -78,7 +78,7 @@ Domains are logical tags; physical storage uses institutional schemas.
 
 ### Archive Policy (v2)
 
-- `archive.*` is deprecated; do not create new archive tables.
+- No archive tables should be created.
 - Use external backups + row-count validation for migrations.
 - BANNED schemas: `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
 
@@ -146,7 +146,7 @@ Not all data series have 25+ years of history. Training scripts MUST tier data b
 
 **Backfill Priorities:** M2SL (64yr gap), OVXCLS (16yr gap), USDA WASDE (20yr gap)
 
-**Reference:** `.claude/skills/zf-pipeline-contracts/references/data_availability_by_horizon.md`
+**Reference:** This section (“Data Availability by Horizon (Training Constraint)”) is the canonical guidance in this repo.
 
 ### FRED Routing (Specialist Ownership)
 
@@ -154,7 +154,7 @@ Not all data series have 25+ years of history. Training scripts MUST tier data b
 - The explicit mapping lives in `src/fusion/ingestion/router.py` (`FRED_SERIES_BUCKETS` / `get_fred_bucket`).
 - When adding or changing ownership for a series, update the mapping and keep tests green (`tests/test_fred_routing.py`).
 
-### Allowed Schemas (v2, 13 total)
+### Allowed Schemas (v2, 12 total)
 
 **Landing (append-only):** `mkt`, `econ`, `alt`, `pos`, `supply`
 **Derived (computed):** `features`, `training`
@@ -168,7 +168,7 @@ Not all data series have 25+ years of history. Training scripts MUST tier data b
 
 ## Schema Flow (v2)
 
-This replaces the medallion architecture. Migrated 2026-01-18.
+Institutional schema taxonomy. Migrated 2026-01-18.
 
 ### Schema Purposes (v2)
 
@@ -186,7 +186,6 @@ This replaces the medallion architecture. Migrated 2026-01-18.
 | `analytics` | Dashboard/presentation | Real-time updates |
 | `metadata` | Canonical instruments + symbol mappings | Governance only |
 | `ops` | Job health + ingestion registry | System-managed |
-| `archive` | Legacy data (deprecated) | Read-only |
 
 ### Data Flow Rules
 
@@ -409,17 +408,22 @@ The dashboard is deployed on Vercel. The `frontend/` folder contains the Next.js
 ## Specialist Taxonomy (Big 11)
 
 Specialists are organized around these buckets (names should remain consistent across code, tables, and docs):
-1. `crush` (28-35% variance)
-2. `china` (16-22% variance)
-3. `fx` (3-5% variance)
-4. `fed` (2-4% variance)
-5. `tariff` (3-5% variance)
-6. `energy` (10-14% variance)
-7. `biofuel` (6-10% variance)
-8. `palm` (8-12% variance)
-9. `volatility` (2-3% variance)
-10. `substitutes` (4-6% variance)
-11. `trump_effect` (5-10% variance, regime-dependent)
+
+| Specialist | Variance | Data Nature | Primary Tables |
+|------------|----------|-------------|----------------|
+| `crush` | 28-35% | 100% Quantitative | mkt.futures_1d (ZL/ZS/ZM), pos.cftc_1w |
+| `china` | 16-22% | 70% Quant / 30% Qual | mkt.futures_1d (HG), mkt.fx_1d (CNY), alt.news_1d |
+| `fx` | 3-5% | 100% Quantitative | mkt.fx_1d |
+| `fed` | 2-4% | 100% Quantitative | econ.rates_1d |
+| `tariff` | 3-5% | 40% Quant / 60% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+| `energy` | 10-14% | 100% Quantitative | mkt.futures_1d (CL/HO), econ.commodities_1d |
+| `biofuel` | 6-10% | 80% Quant / 20% Qual | supply.epa_rin_1d, alt.news_1d |
+| `palm` | 8-12% | 80% Quant / 20% Qual | mkt.futures_1d (FCPO), alt.news_1d |
+| `volatility` | 2-3% | 100% Quantitative | econ.vol_indices_1d, econ.rates_1d |
+| `substitutes` | 4-6% | 100% Quantitative | mkt.futures_1d, econ.commodities_1d |
+| `trump_effect` | 5-10% | 50% Quant / 50% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+
+**Key Insight:** 6 specialists are purely quantitative (crush, fx, fed, energy, volatility, substitutes). 5 specialists require news/policy sentiment data (china, tariff, biofuel, palm, trump_effect).
 
 **Data Sources Reference**: See `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md` for complete URL/API registry.
 
@@ -605,17 +609,18 @@ Responsibilities:
 - Risk identification and blocker detection
 - Course correction recommendations
 
-### Prisma Cloud Database Reviewer
-**Location:** `.claude/skills/prisma-reviewer.md`
+### Database / Prisma Review (No bundled skill file)
 **Trigger:** Modifying database code, Prisma schema, migrations, or queries
 
-Reviews:
+Use these as the review checklist:
 - Schema design (models, relations, constraints, naming)
-- Query patterns (N+1 avoidance, transactions, raw queries)
+- Query patterns (avoid N+1; use transactions where appropriate)
 - Migration safety (data preservation, rollback capability)
-- Performance (indexing, pagination, time series patterns)
-- Medallion architecture integration (bronze/silver/gold layers)
+- Performance (indexing, pagination, time-series patterns)
+- Schema v2 compliance (institutional schemas; avoid banned schemas)
 - Security (injection risks, credential handling)
+
+**Source of truth:** `prisma/schema.prisma`. Any schema changes require explicit approval (see “Before ANY Database Change”).
 
 ### Quant Forecasting Code Reviewer
 **Location:** `.claude/skills/quant-reviewer.md`
@@ -627,7 +632,7 @@ Reviews:
 - Data leakage and look-ahead bias
 - Technical indicator implementations
 - Monte Carlo methods and reproducibility
-- Medallion layer compliance
+- Schema v2 compliance (no raw/gold/silver)
 - Drift detection patterns
 
 ### Usage Pattern

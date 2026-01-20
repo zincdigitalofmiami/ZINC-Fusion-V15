@@ -113,14 +113,20 @@ export const cbpTradeDaily = inngest.createFunction(
           const eventDate = parsed.toISOString().split("T")[0];
           await client.query(
             `INSERT INTO alt.news_1d (
-               event_date, title, description, link, pub_date, guid,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+               event_date, headline, content, url, published_at,
+               source, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
             [
-              eventDate, item.title, item.description, item.link, pubDate, item.guid,
+              eventDate,
+              item.title,
+              item.description,
+              item.link,
+              pubDate,
               "cbp_rss",
-              "https://www.cbp.gov/rss/trade", JSON.stringify(item), runId, rowHash,
-              ["tariff", "legislation"]
+              JSON.stringify(item),
+              runId,
+              rowHash,
+              ["tariff"]
             ]
           );
           return { status: "inserted" as const };

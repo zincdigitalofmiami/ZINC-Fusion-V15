@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const rows = await query<{ id: number; glide_row_id: string; data: Record<string, unknown>; ingested_at: string }>(`
       SELECT id, glide_row_id, data, ingested_at::text
-      FROM ops.vegas_restaurants
+      FROM vegas.vegas_restaurants
       ORDER BY id
       LIMIT 500
     `)

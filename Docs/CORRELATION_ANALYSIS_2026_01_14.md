@@ -134,5 +134,5 @@ CL   0.287  0.304  0.164  0.288  0.076  0.076  0.452  0.338  1.000
 
 ---
 
-*Analysis performed using raw.market_futures_1d and raw.yahoo_equity_1d data.*
+*Analysis performed using mkt.futures_1d and mkt.equity_1d data.*
 *Scripts: correlation_analysis_zl.py, deep_correlation_analysis.py*

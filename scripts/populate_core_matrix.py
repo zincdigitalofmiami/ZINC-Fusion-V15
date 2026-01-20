@@ -26,6 +26,9 @@ import pandas as pd
 import numpy as np
 import psycopg2
 from psycopg2.extras import execute_values
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =============================================================================
 # Configuration
@@ -49,7 +52,7 @@ def get_connection():
 
 
 def load_zl_prices(conn, start_date: str) -> pd.DataFrame:
-    """Load ZL daily prices from raw.market_futures_1d."""
+    """Load ZL daily prices from mkt.futures_1d."""
     query = """
         SELECT
             event_date::date as as_of_date,
@@ -58,7 +61,7 @@ def load_zl_prices(conn, start_date: str) -> pd.DataFrame:
             high as zl_high,
             low as zl_low,
             volume as zl_volume
-        FROM raw.market_futures_1d
+        FROM mkt.futures_1d
         WHERE symbol = %s
           AND event_date >= %s
         ORDER BY event_date
@@ -75,7 +78,7 @@ def load_related_prices(conn, start_date: str) -> pd.DataFrame:
             event_date::date as as_of_date,
             symbol,
             close
-        FROM raw.market_futures_1d
+        FROM mkt.futures_1d
         WHERE symbol IN ('ZS', 'ZM')
           AND event_date >= %s
         ORDER BY event_date
@@ -228,7 +231,7 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
     # Get latest WASDE dates
     wasde_query = """
         SELECT DISTINCT event_date::date as wasde_date
-        FROM raw.usda_wasde_1m
+        FROM supply.usda_wasde_1m
         ORDER BY event_date
     """
     wasde_dates = pd.read_sql(wasde_query, conn)['wasde_date'].tolist()
@@ -236,7 +239,7 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
     # Get latest COT dates
     cot_query = """
         SELECT DISTINCT event_date::date as cot_date
-        FROM raw.cftc_cot_1w
+        FROM pos.cftc_1w
         ORDER BY event_date
     """
     cot_dates = pd.read_sql(cot_query, conn)['cot_date'].tolist()

@@ -128,10 +128,10 @@
 ### Phase 2: Historical Data Backfill
 ```bash
 # Load these datasets into Prisma PostgreSQL
-1. paperswithbacktest/Commodities-Daily-Price → raw.commodities_daily_hf
-2. bwzheng2010/yahoo-finance-data → raw.yahoo_finance_hf  
+1. paperswithbacktest/Commodities-Daily-Price → mkt.commodities_daily_hf
+2. bwzheng2010/yahoo-finance-data → mkt.yahoo_finance_hf  
 3. takala/financial_phrasebank → training.sentiment_gold_standard
-4. nomnomshark41/fed-fomc-communications → raw.fed_fomc_text
+4. nomnomshark41/fed-fomc-communications → alt.fed_fomc_text
 ```
 
 ### Phase 3: Training Data Enhancement

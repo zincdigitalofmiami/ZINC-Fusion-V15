@@ -1,41 +1,40 @@
 /**
  * GET /api/zl/live
- * Current ZL price from analytics.zl_live
+ * Current ZL price from analytics.zl_price_15m (latest bar)
  * Updated every ~15 min by Yahoo job
  */
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 
 interface ZlLive {
-  price: number
+  close: number
   previous_close: number
   change: number
-  change_pct: number
+  change_percent: number
   day_high: number
   day_low: number
-  day_open: number
+  open: number
   volume: number
   timestamp: string
   source: string
-  updated_at: string
 }
 
 export async function GET() {
   try {
     const rows = await query<ZlLive>(`
-      SELECT 
-        price,
+      SELECT
+        close,
         previous_close,
         change,
-        change_pct,
+        change_percent,
         day_high,
         day_low,
-        day_open,
+        open,
         volume,
         timestamp,
-        source,
-        updated_at
-      FROM analytics.zl_live
+        source
+      FROM analytics.zl_price_15m
+      ORDER BY timestamp DESC
       LIMIT 1
     `)
 
@@ -46,9 +45,19 @@ export async function GET() {
       )
     }
 
+    const row = rows[0]
     return NextResponse.json({
       symbol: 'ZL',
-      ...rows[0]
+      price: row.close,
+      previous_close: row.previous_close,
+      change: row.change,
+      change_pct: row.change_percent,
+      day_high: row.day_high,
+      day_low: row.day_low,
+      day_open: row.open,
+      volume: row.volume,
+      timestamp: row.timestamp,
+      source: row.source
     })
   } catch (error) {
     console.error('Database error:', error)

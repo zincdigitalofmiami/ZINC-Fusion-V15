@@ -105,14 +105,19 @@ export const conabNewsDaily = inngest.createFunction(
 
           await client.query(
             `INSERT INTO alt.news_1d (
-               event_date, title, description, link, pub_date, guid,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+               event_date, headline, content, url, published_at,
+               source, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
             [
-              eventDate, title, description, link, pubDate, item.guid || item.id,
+              eventDate,
+              title,
+              description,
+              link,
+              pubDate,
               "conab_rss",
-              "https://www.conab.gov.br/rss",
-              JSON.stringify(item), runId, rowHash,
+              JSON.stringify(item),
+              runId,
+              rowHash,
               ["crush", "china"]
             ]
           );

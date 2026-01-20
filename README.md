@@ -662,7 +662,7 @@ All data operations use Prisma Postgres. Key tables:
 
 The ZINC Fusion V15 training workflow follows a strict sequence:
 
-1. **Canonical Features (Gold)**: Use `features.driver_scores_1d` as the canonical feature matrix.
+1. **Canonical Features**: Use `features.driver_scores_1d` as the canonical feature matrix.
 2. **Train L0 Specialists (Per-Bucket)**:
     - Train each of the 11 Specialists with its own unique model family (independent pipelines).
     - Extract OOF predictions per bucket (before any refit_full).

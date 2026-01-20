@@ -263,19 +263,19 @@ def ensure_archive_table(conn):
     """Create archive table for garbage articles if not exists"""
     with conn.cursor() as cur:
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS raw.news_articles_archive (
+            CREATE TABLE IF NOT EXISTS archive.news_articles (
                 id SERIAL PRIMARY KEY,
                 original_id INTEGER,
                 headline TEXT,
                 content TEXT,
                 source VARCHAR(255),
-                published_at TIMESTAMP,
-                bucket_name VARCHAR(100),
+                event_date DATE,
+                specialist_tags TEXT[],
                 sentiment_score NUMERIC,
                 archived_at TIMESTAMP DEFAULT NOW(),
                 archive_reason VARCHAR(100)
             );
-            CREATE INDEX IF NOT EXISTS idx_archive_date ON raw.news_articles_archive(archived_at);
+            CREATE INDEX IF NOT EXISTS idx_archive_date ON archive.news_articles(archived_at);
         """)
         conn.commit()
     logger.info("Archive table ready")
@@ -291,7 +291,7 @@ def fetch_articles_for_scoring(conn, limit: int = None, only_unscored: bool = Tr
     
     query = f"""
         SELECT r.id, r.headline, r.content, r.source, r.bucket_name, r.published_at, s.id as silver_id
-        FROM raw.news_articles_1d r
+        FROM alt.news_1d r
         LEFT JOIN features.news_sentiment_1d s ON r.id = s.raw_id
         {where_clause}
         ORDER BY r.published_at DESC

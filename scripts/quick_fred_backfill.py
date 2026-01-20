@@ -402,31 +402,34 @@ def complete_ingest_run(
 
 
 def load_series_tags(conn) -> Dict[str, list[str]]:
-    """Load most recent specialist_tags per series from DB."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT DISTINCT ON (series_id) series_id, specialist_tags
-            FROM raw.fred_observations_1d
-            WHERE specialist_tags IS NOT NULL
-            ORDER BY series_id, event_date DESC, knowledge_time DESC
-            """
-        )
-        tags_map: Dict[str, list[str]] = {}
-        for series_id, tags in cur.fetchall():
-            if tags:
-                tags_map[series_id] = list(tags)
-        return tags_map
+    """Load most recent specialist_tags per series from DB (econ tables)."""
+    # In the new schema, FRED data is split across econ.* tables
+    # Most series go to econ.rates_1d as the default
+    # Just return the in-memory tags since we have them
+    return SERIES_TAGS.copy()
 
 
 def get_series_min_date(conn, series_id: str):
     """Return earliest event_date for a series (or None if missing)."""
+    # Query all econ tables since FRED data is distributed
+    econ_tables = [
+        "econ.rates_1d", "econ.inflation_1d", "econ.labor_1d",
+        "econ.activity_1d", "econ.vol_indices_1d", "econ.commodities_1d",
+        "econ.money_1d"
+    ]
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT MIN(event_date) FROM raw.fred_observations_1d WHERE series_id=%s",
-            (series_id,),
-        )
-        return cur.fetchone()[0]
+        for table in econ_tables:
+            try:
+                cur.execute(
+                    f"SELECT MIN(event_date) FROM {table} WHERE series_id=%s",
+                    (series_id,),
+                )
+                result = cur.fetchone()[0]
+                if result:
+                    return result
+            except:
+                continue
+        return None
 
 
 def validate_series_ids(series_ids: list[str], sleep_seconds: float = 0.25):
@@ -500,6 +503,28 @@ def fetch_fred_series(
         return pd.DataFrame()
 
 
+def get_target_econ_table(series_id: str, tags: list[str] | None) -> str:
+    """Determine which econ table to insert into based on tags."""
+    # Map specialist tags to econ tables
+    tag_to_table = {
+        "fed": "econ.rates_1d",
+        "volatility": "econ.vol_indices_1d",
+        "energy": "econ.commodities_1d",
+        "crush": "econ.commodities_1d",
+        "palm": "econ.commodities_1d",
+        "substitutes": "econ.commodities_1d",
+        "biofuel": "econ.commodities_1d",
+    }
+
+    if tags:
+        for tag in tags:
+            if tag in tag_to_table:
+                return tag_to_table[tag]
+
+    # Default to rates_1d for most FRED series
+    return "econ.rates_1d"
+
+
 def insert_fred_data(
     conn,
     series_id: str,
@@ -507,11 +532,13 @@ def insert_fred_data(
     tags: list[str] | None,
     run_id: str,
 ) -> int:
-    """Insert FRED data into database."""
+    """Insert FRED data into appropriate econ.* table."""
     if df.empty:
         return 0
 
     now = datetime.now(timezone.utc)
+    target_table = get_target_econ_table(series_id, tags)
+
     records = []
     for _, row in df.iterrows():
         event_date = row["date"].to_pydatetime() if hasattr(row["date"], "to_pydatetime") else row["date"]
@@ -521,15 +548,10 @@ def insert_fred_data(
                 series_id,
                 event_date,
                 value,
-                "fred_api",
+                "FRED",
                 now,
-                1,
-                False,
-                "validated",
-                f"https://fred.stlouisfed.org/series/{series_id}",
-                run_id,
+                now,
                 compute_row_hash(series_id, event_date, value),
-                tags,
             )
         )
 
@@ -537,10 +559,11 @@ def insert_fred_data(
         with conn.cursor() as cur:
             execute_batch(
                 cur,
-                """
-                INSERT INTO "raw"."fred_observations_1d"
-                (series_id, event_date, value, source, knowledge_time, revision_no, is_preliminary, validation_status, source_url, ingestion_batch_id, row_hash, specialist_tags)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                f"""
+                INSERT INTO {target_table}
+                (series_id, event_date, value, source, ingested_at, knowledge_time, row_hash)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
                 page_size=500
@@ -549,13 +572,13 @@ def insert_fred_data(
         conn.commit()
         return inserted
     except Exception as e:
-        print(f"  Error inserting {series_id}: {e}")
+        print(f"  Error inserting {series_id} to {target_table}: {e}")
         conn.rollback()
         return 0
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backfill FRED series into raw.fred_observations_1d")
+    parser = argparse.ArgumentParser(description="Backfill FRED series into econ.* tables")
     parser.add_argument(
         "--series",
         help="Comma-separated list of FRED series IDs to backfill (default: all in script)",

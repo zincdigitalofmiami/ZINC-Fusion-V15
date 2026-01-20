@@ -153,8 +153,8 @@ def get_canonical_bucket(raw_bucket: str) -> Optional[str]:
 def create_schemas(conn):
     """Verify required tables exist (no implicit DDL)."""
     required_tables = [
-        ("silver", "news_scored_1d"),
-        ("raw", "news_articles_1d"),
+        ("features", "news_sentiment_1d"),
+        ("alt", "news_1d"),
     ]
 
     with conn.cursor() as cur:
@@ -174,19 +174,19 @@ def create_schemas(conn):
                 )
 
 def fetch_all_articles(conn) -> List[Dict]:
-    """Fetch all articles from raw layer."""
+    """Fetch all articles from alt.news_1d."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""
-            SELECT 
+            SELECT
                 id,
                 headline as title,
                 content as body,
                 source,
-                bucket_name,
-                published_at,
-                is_trump_related
-            FROM raw.news_articles_1d
-            ORDER BY published_at
+                specialist_tags[1] as bucket_name,
+                event_date as published_at,
+                'trump_effect' = ANY(specialist_tags) as is_trump_related
+            FROM alt.news_1d
+            ORDER BY event_date
         """)
         return [dict(row) for row in cur.fetchall()]
 
@@ -310,21 +310,20 @@ def populate_trump_effect_training(conn):
     )
 
 def update_raw_sentiment_scores(conn):
-    """Backfill sentiment_score column in raw.news_articles_1d."""
-    logger.info("Updating raw.news_articles_1d.sentiment_score...")
-    
+    """Backfill sentiment_score column in alt.news_1d."""
+    logger.info("Updating alt.news_1d.sentiment_score...")
+
     with conn.cursor() as cur:
         cur.execute("""
-            UPDATE raw.news_articles_1d r
-            SET sentiment_score = s.sentiment_score,
-                zl_sentiment = s.zl_impact_score
+            UPDATE alt.news_1d r
+            SET sentiment_score = s.sentiment_score
             FROM features.news_sentiment_1d s
             WHERE r.id = s.raw_id
         """)
         updated = cur.rowcount
         conn.commit()
-    
-    logger.info(f"Updated {updated} rows in raw.news_articles_1d")
+
+    logger.info(f"Updated {updated} rows in alt.news_1d")
 
 # =============================================================================
 # MAIN
@@ -343,7 +342,7 @@ def main():
         create_schemas(conn)
         
         # 2. Fetch all articles
-        logger.info("Fetching articles from raw.news_articles_1d...")
+        logger.info("Fetching articles from alt.news_1d...")
         articles = fetch_all_articles(conn)
         logger.info(f"Found {len(articles)} articles to process")
         

@@ -292,6 +292,23 @@ model VolatilitySurface {
   @@schema("training")
 }
 
+// =============================================================================
+// DEPRECATED: Specialist OHLCV Tables (22 tables)
+// =============================================================================
+// These tables DUPLICATE data from mkt.futures_1d and mkt.futures_1h.
+// They are NOT USED in training. Training uses:
+//   - mkt.futures_1d (source market data)
+//   - training.specialist_features (computed feature JSON blob)
+//
+// MIGRATION PLAN:
+// 1. These models will be removed in a future migration
+// 2. Tables will be DROPped from database
+// 3. Keep ONLY training.specialist_features
+//
+// EXCEPTION: specialist_trump_effect_1d has computed signal/confidence columns
+// =============================================================================
+
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistBiofuel1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -312,6 +329,7 @@ model SpecialistBiofuel1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Do not use.
 model SpecialistBiofuel1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -332,6 +350,7 @@ model SpecialistBiofuel1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistChina1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -352,6 +371,7 @@ model SpecialistChina1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Do not use.
 model SpecialistChina1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -372,6 +392,7 @@ model SpecialistChina1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistCrush1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -392,6 +413,7 @@ model SpecialistCrush1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Do not use.
 model SpecialistCrush1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -412,6 +434,7 @@ model SpecialistCrush1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistEnergy1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -432,6 +455,7 @@ model SpecialistEnergy1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Do not use.
 model SpecialistEnergy1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -452,6 +476,7 @@ model SpecialistEnergy1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistFed1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -472,6 +497,7 @@ model SpecialistFed1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Do not use.
 model SpecialistFed1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -492,6 +518,7 @@ model SpecialistFed1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.fx_1d. Do not use.
 model SpecialistFx1d {
   id             BigInt    @id @default(autoincrement())
   symbol         String    @db.VarChar(20)
@@ -513,6 +540,7 @@ model SpecialistFx1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Do not use.
 model SpecialistPalm1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -533,6 +561,7 @@ model SpecialistPalm1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Use mkt.futures_1h filtered by symbol instead. Do not use.
 model SpecialistPalm1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -553,6 +582,7 @@ model SpecialistPalm1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Use mkt.futures_1d filtered by symbol instead. Do not use.
 model SpecialistSubstitutes1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -573,6 +603,7 @@ model SpecialistSubstitutes1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Use mkt.futures_1h filtered by symbol instead. Do not use.
 model SpecialistSubstitutes1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -593,6 +624,7 @@ model SpecialistSubstitutes1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Use mkt.futures_1d filtered by symbol instead. Do not use.
 model SpecialistTariff1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -613,6 +645,7 @@ model SpecialistTariff1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Use mkt.futures_1h filtered by symbol instead. Do not use.
 model SpecialistTariff1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)
@@ -666,6 +699,7 @@ model SpecialistTrumpEffect1h {
   @@schema("analytics")
 }
 
+/// @deprecated - Duplicates mkt.futures_1d. Use mkt.futures_1d filtered by symbol instead. Do not use.
 model SpecialistVolatility1d {
   symbol         String
   asOfDate       DateTime  @map("as_of_date") @db.Date
@@ -686,6 +720,7 @@ model SpecialistVolatility1d {
   @@schema("training")
 }
 
+/// @deprecated - Duplicates mkt.futures_1h. Use mkt.futures_1h filtered by symbol instead. Do not use.
 model SpecialistVolatility1h {
   symbol         String
   asOfTime       DateTime  @map("as_of_time") @db.Timestamp(6)

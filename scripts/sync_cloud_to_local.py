@@ -6,11 +6,11 @@ This script syncs data from Prisma Cloud to local parquet files for training.
 Training runs locally to avoid cloud compute costs and latency.
 
 Architecture:
-    Prisma Cloud (raw.*, training.*) → Local parquet files → Training → Results back to cloud
+    Prisma Cloud (mkt.*, econ.*, training.*) → Local parquet files → Training → Results back to cloud
 
 Usage:
     python scripts/sync_cloud_to_local.py --tables all
-    python scripts/sync_cloud_to_local.py --tables raw.market_futures_1d training.specialist_crush_1d
+    python scripts/sync_cloud_to_local.py --tables mkt.futures_1d training.matrix_1d
     python scripts/sync_cloud_to_local.py --dry-run
 """
 
@@ -38,32 +38,32 @@ load_dotenv()
 LOCAL_DATA_DIR = Path(__file__).parent.parent / "data" / "training_cache"
 
 # Tables to sync for training
+# =============================================================================
+# DEPRECATED: specialist_*_1d/1h OHLCV tables are DUPLICATES of mkt.futures_1d
+# They have been REMOVED from this sync list. Training uses:
+#   - mkt.futures_1d (filter by symbol for each specialist bucket)
+#   - training.specialist_features (computed JSON blob per specialist)
+#   - training.specialist_trump_effect_1d (has signal/confidence columns)
+# =============================================================================
 TRAINING_TABLES = {
-    # Raw data for feature engineering
-    "raw.market_futures_1d": {"key": "event_date", "incremental": True},
-    "raw.market_futures_1h": {"key": "event_time", "incremental": True},
-    "raw.fred_observations_1d": {"key": "event_date", "incremental": True},
-    # Specialist tables for specialist model training
-    "training.specialist_crush_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_crush_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_china_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_china_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_fx_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_fx_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_fed_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_fed_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_energy_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_energy_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_biofuel_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_biofuel_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_palm_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_palm_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_volatility_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_volatility_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_substitutes_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_substitutes_1h": {"key": "as_of_time", "incremental": True},
-    "training.specialist_tariff_1d": {"key": "as_of_date", "incremental": True},
-    "training.specialist_tariff_1h": {"key": "as_of_time", "incremental": True},
+    # Market data for feature engineering (CANONICAL SOURCE)
+    "mkt.futures_1d": {"key": "event_date", "incremental": True},
+    "mkt.futures_1h": {"key": "event_time", "incremental": True},
+    "mkt.fx_1d": {"key": "event_date", "incremental": True},
+    # Economic indicators (all 7 econ.* tables)
+    "econ.rates_1d": {"key": "event_date", "incremental": True},
+    "econ.inflation_1d": {"key": "event_date", "incremental": True},
+    "econ.labor_1d": {"key": "event_date", "incremental": True},
+    "econ.activity_1d": {"key": "event_date", "incremental": True},
+    "econ.vol_indices_1d": {"key": "event_date", "incremental": True},
+    "econ.commodities_1d": {"key": "event_date", "incremental": True},
+    "econ.money_1d": {"key": "event_date", "incremental": True},
+    # Training tables
+    "training.matrix_1d": {"key": "trade_date", "incremental": True},
+    "training.specialist_features": {"key": "as_of_date", "incremental": True},
+    "training.specialist_trump_effect_1d": {"key": "as_of_date", "incremental": True},
+    # Features
+    "features.elite_1d": {"key": "as_of_date", "incremental": True},
 }
 
 

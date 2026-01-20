@@ -26,9 +26,9 @@ def get_previous_close(conn) -> float | None:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT close FROM raw.market_futures_1d 
-            WHERE symbol = 'ZL' 
-            ORDER BY event_date DESC 
+            SELECT close FROM mkt.futures_1d
+            WHERE symbol = 'ZL'
+            ORDER BY event_date DESC
             LIMIT 1
         """
         )

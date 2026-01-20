@@ -83,7 +83,7 @@ From `train_core_v15.py`:
 ```python
 def load_base_data(conn, start_date: str) -> pd.DataFrame:
     """Load daily ZL data with OHLCV."""
-    # Loads from raw.market_futures_1d
+    # Loads from mkt.futures_1d
     # Columns: timestamp, open, high, low, close, volume
     # Adds: item_id = 'ZL', target = close
 ```

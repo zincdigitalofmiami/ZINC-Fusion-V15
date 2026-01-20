@@ -193,20 +193,22 @@ def determine_specialist_tags(underlying: str) -> List[str]:
 
 def validate_table_exists(conn) -> None:
     """Validate that mkt.options_greeks_1d exists (Prisma-managed table).
-    
+
     Raises:
         SystemExit: If table does not exist. Run Prisma migrations first.
     """
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables 
             WHERE table_schema = 'mkt' AND table_name = 'options_greeks_1d'
         )
-    """)
+    """
+    )
     exists = cur.fetchone()[0]
     cur.close()
-    
+
     if not exists:
         raise SystemExit(
             "FATAL: mkt.options_greeks_1d table does not exist.\n"
@@ -232,7 +234,9 @@ def parse_csv_file(filepath: Path) -> List[Dict]:
     specialist_tags = determine_specialist_tags(underlying)
 
     logger.info(f"Parsing {filepath.name}")
-    logger.info(f"  Underlying: {underlying}, Expiration: {expiration}, Date: {event_date}")
+    logger.info(
+        f"  Underlying: {underlying}, Expiration: {expiration}, Date: {event_date}"
+    )
 
     with open(filepath, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -273,7 +277,9 @@ def parse_csv_file(filepath: Path) -> List[Dict]:
             }
 
             # Generate row hash
-            hash_input = f"{underlying}|{event_date}|{expiration}|{strike}|{option_type}"
+            hash_input = (
+                f"{underlying}|{event_date}|{expiration}|{strike}|{option_type}"
+            )
             record["row_hash"] = hashlib.sha256(hash_input.encode()).hexdigest()
 
             records.append(record)
@@ -291,7 +297,9 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
         logger.info(f"[DRY RUN] Would insert {len(records)} records")
         # Show sample
         for r in records[:3]:
-            logger.info(f"  {r['underlying']} {r['strike']} {r['option_type']} IV={r['implied_volatility']:.2%}")
+            logger.info(
+                f"  {r['underlying']} {r['strike']} {r['option_type']} IV={r['implied_volatility']:.2%}"
+            )
         return len(records)
 
     conn = psycopg2.connect(DATABASE_URL)
@@ -301,7 +309,8 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
     inserted = 0
     for rec in records:
         try:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO mkt.options_greeks_1d (
                     underlying, event_date, expiration, strike, option_type,
                     last_price, implied_volatility, delta, gamma, theta, vega,
@@ -316,22 +325,24 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
                     theta = EXCLUDED.theta,
                     vega = EXCLUDED.vega,
                     iv_skew = EXCLUDED.iv_skew
-            """, (
-                rec["underlying"],
-                rec["event_date"],
-                rec["expiration"],
-                rec["strike"],
-                rec["option_type"],
-                rec["last_price"],
-                rec["implied_volatility"],
-                rec["delta"],
-                rec["gamma"],
-                rec["theta"],
-                rec["vega"],
-                rec["iv_skew"],
-                rec["row_hash"],
-                rec["specialist_tags"],
-            ))
+            """,
+                (
+                    rec["underlying"],
+                    rec["event_date"],
+                    rec["expiration"],
+                    rec["strike"],
+                    rec["option_type"],
+                    rec["last_price"],
+                    rec["implied_volatility"],
+                    rec["delta"],
+                    rec["gamma"],
+                    rec["theta"],
+                    rec["vega"],
+                    rec["iv_skew"],
+                    rec["row_hash"],
+                    rec["specialist_tags"],
+                ),
+            )
             inserted += 1
         except Exception as e:
             logger.warning(f"Insert error: {e}")
@@ -347,7 +358,9 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Ingest Barchart options Greeks CSVs")
     parser.add_argument("files", nargs="+", help="CSV files to ingest")
-    parser.add_argument("--dry-run", action="store_true", help="Don't write to database")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Don't write to database"
+    )
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -365,7 +378,10 @@ def main():
             continue
 
         # Only process volatility-greeks files
-        if "volatility-greeks" not in path.name.lower() and "options" not in path.name.lower():
+        if (
+            "volatility-greeks" not in path.name.lower()
+            and "options" not in path.name.lower()
+        ):
             logger.info(f"Skipping non-options file: {path.name}")
             continue
 

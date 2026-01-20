@@ -188,18 +188,17 @@ export const usdaDaily = inngest.createFunction(
             continue;
           }
 
-          // Insert - reusing fred_observations_1d pattern
+          // Insert into unified rates table
           await pool.query(
-            `INSERT INTO econ.rates_1d 
-             (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
-             VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+            `INSERT INTO econ.rates_1d
+             (series_id, event_date, value, source, row_hash)
+             VALUES ($1, $2, $3, $4, $5)`,
             [
               seriesId,
               obsDate,
               value,
-              dataPoint.unit_desc,
+              "usda_nass_api",
               rowHash,
-              ["crush"],
             ]
           );
           inserted++;

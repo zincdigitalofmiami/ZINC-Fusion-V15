@@ -396,32 +396,22 @@ export const federalRegisterDaily = inngest.createFunction(
                  document_number,
                  document_type,
                  title,
-                 abstract,
                  agency,
-                 publication_date,
-                 effective_date,
-                 knowledge_time,
-                 revision_no,
-                 is_preliminary,
-                 validation_status,
                  source,
-                 source_url,
+                 url,
                  raw_payload,
                  ingestion_batch_id,
                  row_hash,
                  specialist_tags
-               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 1, false, 'validated', $9, $10, $11, $12, $13, $14)`,
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
               [
                 doc.publication_date,      // event_date
                 doc.document_number,       // document_number
                 doc.type,                  // document_type
                 doc.title,                 // title
-                doc.abstract,              // abstract
-                agencies,                  // agency[]
-                doc.publication_date,      // publication_date
-                doc.effective_on,          // effective_date
+                agencies.join(', '),       // agency (string, not array)
                 "federal_register_api",    // source
-                doc.html_url,              // source_url
+                doc.html_url,              // url
                 JSON.stringify(doc),       // raw_payload
                 runId,                     // ingestion_batch_id
                 rowHash,                   // row_hash

@@ -83,16 +83,12 @@ OUTPUT_SCHEMAS = ["model", "forecasts", "analytics"]
 # Governance schemas: operations and metadata
 GOVERNANCE_SCHEMAS = ["metadata", "ops"]
 
-# Deprecated: read-only legacy data
-DEPRECATED_SCHEMAS = ["archive"]
-
 # All schemas (canonical list)
 SCHEMAS = (
     LANDING_SCHEMAS
     + DERIVED_SCHEMAS
     + OUTPUT_SCHEMAS
     + GOVERNANCE_SCHEMAS
-    + DEPRECATED_SCHEMAS
 )
 
 # BANNED schemas - fail hard if detected in new code

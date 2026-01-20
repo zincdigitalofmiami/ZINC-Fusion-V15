@@ -20,7 +20,7 @@ print('='*70)
 # Get ZL (soybean oil) daily prices
 zl_query = """
 SELECT event_date, close as zl_close
-FROM raw.market_futures_1d
+FROM mkt.futures_1d
 WHERE symbol = 'ZL' AND close IS NOT NULL
 ORDER BY event_date
 """
@@ -47,7 +47,7 @@ results = {}
 for sym, name in symbols_to_check.items():
     query = f"""
     SELECT event_date, close as {sym.lower()}_close
-    FROM raw.market_futures_1d
+    FROM mkt.futures_1d
     WHERE symbol = '{sym}' AND close IS NOT NULL
     ORDER BY event_date
     """

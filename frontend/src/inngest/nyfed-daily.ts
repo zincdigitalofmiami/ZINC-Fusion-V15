@@ -163,30 +163,19 @@ export const nyfedDaily = inngest.createFunction(
             return { rateType: rate.type, status: "skipped_duplicate" as const };
           }
 
+          // Map NYFED rate type to series_id format
+          const seriesId = `NYFED_${rate.type.toUpperCase().replace(/\s+/g, '_')}`;
+
           await client.query(
             `INSERT INTO econ.rates_1d (
-               event_date, rate_type, percent_rate,
-               percentile_1, percentile_25, percentile_75, percentile_99,
-               volume_billions, footnote_id,
-               knowledge_time, revision_no, is_preliminary, validation_status,
-               source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), 1, false, 'validated', $10, $11, $12, $13, $14, $15)`,
+               series_id, event_date, value, source, row_hash
+             ) VALUES ($1, $2, $3, $4, $5)`,
             [
+              seriesId,
               rate.effectiveDate,
-              rate.type,
               rate.percentRate,
-              rate.percentPercentile1,
-              rate.percentPercentile25,
-              rate.percentPercentile75,
-              rate.percentPercentile99,
-              rate.volumeInBillions,
-              rate.footnoteId,
               "nyfed_api",
-              "https://markets.newyorkfed.org/api/rates/all/latest.json",
-              JSON.stringify(rate),
-              runId,
               rowHash,
-              ["fed"], // FED specialist
             ]
           );
 

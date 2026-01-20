@@ -30,21 +30,30 @@ def main():
     # =========================================================================
     # 1. RAW TABLES - Row counts and freshness
     # =========================================================================
-    print("\n📊 RAW TABLES STATUS")
+    print("\n📊 LANDING TABLES STATUS (mkt, econ, supply, pos, alt)")
     print("-" * 60)
     
     raw_tables = [
-        ("raw", "market_futures_1h"),
-        ("raw", "market_futures_1d"),
-        ("raw", "fred_observations_1d"),
-        ("raw", "weather_noaa_1d"),
-        ("raw", "fx_spot_1d"),
-        ("raw", "options_futures_1d"),
-        ("raw", "usda_wasde_1m"),
-        ("raw", "usda_export_sales_1w"),
-        ("raw", "cftc_cot_1w"),
-        ("raw", "news_articles_1d"),
-        ("raw", "epa_rin_prices_1d"),
+        # Market data
+        ("mkt", "futures_1h"),
+        ("mkt", "futures_1d"),
+        ("mkt", "fx_1d"),
+        ("mkt", "options_1d"),
+        # Economic data
+        ("econ", "rates_1d"),
+        ("econ", "inflation_1d"),
+        ("econ", "vol_indices_1d"),
+        ("econ", "commodities_1d"),
+        # Supply/demand
+        ("supply", "usda_wasde_1m"),
+        ("supply", "usda_exports_1w"),
+        ("supply", "epa_rin_1d"),
+        # Positioning
+        ("pos", "cftc_1w"),
+        # Alternative data
+        ("alt", "news_1d"),
+        ("alt", "weather_1d"),
+        ("alt", "legislation_1d"),
     ]
     
     for schema, table in raw_tables:
@@ -88,19 +97,18 @@ def main():
     print("\n📊 TRAINING TABLES STATUS")
     print("-" * 60)
     
+    # =========================================================================
+    # DEPRECATED: specialist_*_1d OHLCV tables are duplicates of mkt.futures_1d
+    # Training uses:
+    #   - training.matrix_1d (core training matrix with targets)
+    #   - training.specialist_features (computed JSON blob per specialist)
+    #   - training.specialist_trump_effect_1d (has computed signal/confidence, NOT OHLCV)
+    # Market data comes from mkt.futures_1d filtered by symbol.
+    # =========================================================================
     training_tables = [
-        "core_matrix_1d",
-        "specialist_crush_1d",
-        "specialist_china_1d",
-        "specialist_fx_1d",
-        "specialist_fed_1d",
-        "specialist_tariff_1d",
-        "specialist_energy_1d",
-        "specialist_biofuel_1d",
-        "specialist_palm_1d",
-        "specialist_volatility_1d",
-        "specialist_substitutes_1d",
-        "specialist_trump_effect_1d",
+        "matrix_1d",              # Core training matrix (NOT core_matrix_1d)
+        "specialist_features",    # Computed specialist JSON blob
+        "specialist_trump_effect_1d",  # Computed signal/confidence, NOT OHLCV
     ]
     
     for table in training_tables:

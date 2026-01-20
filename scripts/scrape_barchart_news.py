@@ -8,7 +8,7 @@ This script:
 3. Paginates through historical articles
 4. Extracts headline, date, content
 5. Runs FinBERT sentiment analysis
-6. Inserts to raw.news_articles_event
+6. Inserts to alt.news_1d
 
 Usage:
     # First run - will open browser for you to login manually
@@ -411,7 +411,7 @@ def insert_articles(articles: list[dict], tokenizer, model, device):
 
             # Check if exists
             cur.execute(
-                "SELECT 1 FROM raw.news_articles_event WHERE row_hash = %s", (row_hash,)
+                "SELECT 1 FROM alt.news_1d WHERE row_hash = %s", (row_hash,)
             )
             if cur.fetchone():
                 skipped += 1
@@ -426,19 +426,17 @@ def insert_articles(articles: list[dict], tokenizer, model, device):
             # Insert
             cur.execute(
                 """
-                INSERT INTO raw.news_articles_event 
-                (headline, source, source_url, published_at, event_date, 
-                 sentiment_score, bucket_name, specialist_tags, row_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO alt.news_1d
+                (headline, source, url, event_date,
+                 sentiment_score, specialist_tags, row_hash, ingested_at, knowledge_time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
             """,
                 (
                     article["headline"],
                     article["source"],
                     article.get("source_url"),
-                    article["published_at"],
                     article["published_at"].date(),
                     sentiment,
-                    specialist,
                     [specialist, article["keyword"]],
                     row_hash,
                 ),

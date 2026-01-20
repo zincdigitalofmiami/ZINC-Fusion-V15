@@ -337,8 +337,8 @@ export function ZLCandlestickChart({
 
             {/* Chart with Watermark */}
             <div className="relative w-full" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
-                {/* ZINC Digital Watermark - positioned like TradingView */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                {/* ZINC Digital Watermark - offset to right */}
+                <div className="absolute inset-0 flex items-center justify-end pr-20 pointer-events-none z-0">
                     <img
                         src="/chart_watermark.svg"
                         alt=""

@@ -6,6 +6,27 @@
 
 ---
 
+## Data Nature Summary
+
+| Specialist | Quant % | Qual % | Primary Data Type | Key Tables |
+|------------|---------|--------|-------------------|------------|
+| **CRUSH** | 100% | 0% | ZL/ZS/ZM prices → crush margin math | mkt.futures_1d, pos.cftc_1w |
+| **CHINA** | 70% | 30% | Copper proxy, imports, CNY + trade news | mkt.futures_1d, mkt.fx_1d, alt.news_1d |
+| **FX** | 100% | 0% | Exchange rates, DXY indices | mkt.fx_1d |
+| **FED** | 100% | 0% | Interest rates, yield curve, NFCI | econ.rates_1d |
+| **TARIFF** | 40% | 60% | EPU index + trade policy news | econ.rates_1d, alt.news_1d, alt.legislation_1d |
+| **ENERGY** | 100% | 0% | Crude, heating oil, BOHO spread | mkt.futures_1d, econ.commodities_1d |
+| **BIOFUEL** | 80% | 20% | D4 RIN prices + EPA policy news | supply.epa_rin_1d, alt.news_1d |
+| **PALM** | 80% | 20% | FCPO prices, inventory + export policy | mkt.futures_1d, alt.news_1d |
+| **VOLATILITY** | 100% | 0% | VIX, stress indices, credit spreads | econ.vol_indices_1d, econ.rates_1d |
+| **SUBSTITUTES** | 100% | 0% | Canola, sunflower, rapeseed prices | mkt.futures_1d, econ.commodities_1d |
+| **TRUMP_EFFECT** | 50% | 50% | EPU + executive orders + policy news | econ.rates_1d, alt.news_1d, alt.legislation_1d |
+
+**6 Pure Quantitative**: crush, fx, fed, energy, volatility, substitutes
+**5 Require News/Sentiment**: china, tariff, biofuel, palm, trump_effect
+
+---
+
 ## SPECIALIST 1: CRUSH (Soybean Complex Fundamentals)
 **Variance Contribution: 28-35%**
 
@@ -492,15 +513,15 @@ MONTHLY:
 ## TABLE TARGETS (Prisma PostgreSQL)
 
 ```sql
-raw.market_futures_1h          -- Databento hourly
-raw.market_futures_1d          -- Databento daily
-raw.fred_observations_1d       -- FRED series
-raw.fx_spot_1d                 -- Exchange rates
-raw.cftc_cot_1w                -- COT positioning
-raw.epa_rin_prices_1d          -- RIN prices
-raw.usda_export_sales_1w       -- Export sales
-raw.usda_wasde_1m              -- WASDE reports
-raw.news_articles_1d           -- Sentiment
+mkt.futures_1h                 -- Databento hourly
+mkt.futures_1d                 -- Databento daily
+econ.rates_1d                  -- FRED series
+mkt.fx_1d                      -- Exchange rates
+pos.cftc_1w                    -- COT positioning
+supply.epa_rin_1d              -- RIN prices
+supply.usda_export_sales_1w    -- Export sales
+supply.usda_wasde_1m           -- WASDE reports
+alt.news_1d                    -- Sentiment
 ```
 
 ---

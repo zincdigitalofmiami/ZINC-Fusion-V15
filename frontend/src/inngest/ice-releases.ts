@@ -178,15 +178,16 @@ export const iceReleasesDaily = inngest.createFunction(
 
           // Insert into EXISTING alt.news_1d table
           await pool.query(
-            `INSERT INTO alt.news_1d 
-             (headline, source, source_url, published_at, event_date, row_hash, specialist_tags)
-             VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
+            `INSERT INTO alt.news_1d
+             (event_date, headline, url, source, row_hash, specialist_tags, raw_payload)
+             VALUES (CURRENT_DATE, $1, $2, $3, $4, $5, $6)`,
             [
               item.title,
-              `ice_${item.sourceKey}`,
               item.link,
+              `ice_${item.sourceKey}`,
               rowHash,
               ["trump_effect"],
+              JSON.stringify(item),
             ]
           );
           inserted++;

@@ -224,34 +224,43 @@ for t in expected_analytics:
 # 7. RAW DATA FRESHNESS
 # ============================================================================
 print('\n' + '='*60)
-print('7. RAW DATA FRESHNESS')
+print('7. LANDING DATA FRESHNESS')
 print('='*60)
 
-raw_freshness = [
-    ('market_futures_1d', 'event_date', 'ZL prices'),
-    ('cftc_cot_1w', 'event_date', 'CFTC positioning'),
-    ('weather_noaa_1d', 'event_date', 'Weather'),
-    ('epa_rin_prices_1d', 'event_date', 'RIN prices'),
-    ('whitehouse_actions_event', 'action_date', 'WhiteHouse'),
-    ('fred_observations_1d', 'event_date', 'FRED'),
-    ('news_articles_1d', 'published_at', 'News'),
+landing_freshness = [
+    # Market data
+    ('mkt', 'futures_1d', 'event_date', 'ZL prices'),
+    ('mkt', 'fx_1d', 'event_date', 'FX rates'),
+    ('mkt', 'options_1d', 'event_date', 'Options'),
+    # Economic data
+    ('econ', 'rates_1d', 'event_date', 'FRED rates'),
+    ('econ', 'vol_indices_1d', 'event_date', 'VIX/OVX'),
+    ('econ', 'commodities_1d', 'event_date', 'Commodities'),
+    # Positioning
+    ('pos', 'cftc_1w', 'event_date', 'CFTC positioning'),
+    # Supply data
+    ('supply', 'epa_rin_1d', 'event_date', 'RIN prices'),
+    # Alternative data
+    ('alt', 'weather_1d', 'event_date', 'Weather'),
+    ('alt', 'news_1d', 'event_date', 'News'),
+    ('alt', 'legislation_1d', 'event_date', 'Legislation'),
 ]
 
 from datetime import datetime
 today = datetime.now().date()
 
-for table, date_col, desc in raw_freshness:
+for schema, table, date_col, desc in landing_freshness:
     try:
-        cur.execute(f'SELECT COUNT(*), MAX({date_col})::date FROM raw."{table}"')
+        cur.execute(f'SELECT COUNT(*), MAX({date_col})::date FROM {schema}."{table}"')
         cnt, max_date = cur.fetchone()
         if max_date:
             days_stale = (today - max_date).days
             status = '✅' if days_stale <= 7 else '⚠️' if days_stale <= 14 else '❌'
-            print(f'  {desc:20} ({table}): {cnt:,} rows, last {max_date}, {days_stale}d stale {status}')
+            print(f'  {desc:20} ({schema}.{table}): {cnt:,} rows, last {max_date}, {days_stale}d stale {status}')
         else:
-            print(f'  {desc:20} ({table}): {cnt:,} rows, NO DATE ❌')
+            print(f'  {desc:20} ({schema}.{table}): {cnt:,} rows, NO DATE ❌')
     except Exception as e:
-        print(f'  {desc:20} ({table}): ERROR - {e}')
+        print(f'  {desc:20} ({schema}.{table}): ERROR - {e}')
 
 # ============================================================================
 # 8. TRAINING MATRIX TABLES

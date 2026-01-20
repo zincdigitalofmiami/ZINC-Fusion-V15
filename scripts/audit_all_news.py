@@ -13,12 +13,12 @@ cur.execute("""
     SELECT 
         source,
         COUNT(*) as total_articles,
-        COUNT(DISTINCT DATE(published_at)) as unique_dates,
-        MIN(published_at) as earliest,
-        MAX(published_at) as latest,
-        EXTRACT(DAY FROM MAX(published_at) - MIN(published_at)) as days_span
-    FROM raw.news_articles_event 
-    WHERE published_at IS NOT NULL
+        COUNT(DISTINCT event_date) as unique_dates,
+        MIN(event_date) as earliest,
+        MAX(event_date) as latest,
+        EXTRACT(DAY FROM MAX(event_date) - MIN(event_date)) as days_span
+    FROM alt.news_1d
+    WHERE event_date IS NOT NULL
     GROUP BY source
     ORDER BY total_articles DESC
 """)

@@ -236,12 +236,12 @@ export const noaaWeatherDaily = inngest.createFunction(
               `INSERT INTO alt.weather_1d
                 (station_id, event_date,
                  tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm, awnd_ms, snwd_mm, evap_mm, rhav_pct, wsfg_ms,
-                 region, country, specialist_bucket,
-                 source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
+                 region, country,
+                 source, raw_payload, ingestion_batch_id, row_hash)
                VALUES ($1, $2::date,
                        $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                       $13, $14, $15,
-                       $16, $17, $18::jsonb, $19, $20, $21, NOW())`,
+                       $13, $14,
+                       $15, $16::jsonb, $17, $18)`,
               [
                 station.station_id,
                 eventDate,
@@ -257,13 +257,10 @@ export const noaaWeatherDaily = inngest.createFunction(
                 values.WSFG ?? null,
                 station.region,
                 station.country,
-                station.specialist_bucket,
                 "noaa_cdo_api",
-                NOAA_BASE_URL,
                 JSON.stringify(payload),
                 runId,
                 rowHash,
-                tags,
               ]
             );
             inserted++;

@@ -1,49 +1,3 @@
----
-description: 
-alwaysApply: true
----
-
-# ZINC-FUSION-V15 — Claude Instructions (Repo Rules)
-
-This repository has strict governance. Treat `AGENTS.md` as the primary source of truth for operating rules.
-
-## Core Principles
-
-- You never lie.
-- You never cut corners.
-- You always prioritize accuracy over speed.
-- Speed and pleasing the user is not your objective.
-- **NEVER write code in chat responses unless explicitly asked.** No code snippets, no examples, no "here's what you could do" blocks. Discuss, plan, and get approval first. Only write code to files when approved.
-
-## Database Architecture (CRITICAL)
-
-**Prisma Postgres is the ONLY database.**
-- All training, inference, and operations use Prisma
-- Connection: `DATABASE_URL` environment variable
-- Schema: `prisma/schema.prisma`
-- Frontend: Vercel (Next.js + Inngest)
-
-## Non‑negotiables
-
-- Do not invent schemas, tables, columns, symbols, endpoints, credentials, or file paths.
-- Do not mutate Prisma schemas unless the user explicitly approves the exact change.
-- Do not add "buy/sell/act now" or any execution logic. This is intelligence/support only.
-- Keep diffs minimal and reversible; avoid unrelated refactors.
-- Validate before asserting. If you didn't inspect it, don't claim it.
-
-## Ground truth entrypoints
-
-- Prisma schema: `prisma/schema.prisma`
-- Prisma connection: `DATABASE_URL` in `.env`
-- FastAPI app: `fusion.api.server:app`
-
-## Validation (prefer venv)
-
-- Use `.venv/bin/python` and `.venv/bin/pytest` to match project deps.
-- Suggested checks:
-  - `.venv/bin/pytest -q`
-  - Prisma queries to verify data state
-
 # ZINC-FUSION-V15 Cursor Rules (Augment-Optimized)
 
 ## MANDATORY: Planning Phase (Before ANY Implementation)
@@ -205,33 +159,7 @@ Every non-trivial task MUST go through this planning phase before writing code:
 
 ## Specialist Taxonomy (Big 11)
 When tagging or routing data, use these canonical bucket names:
-
 `crush`, `china`, `fx`, `fed`, `tariff`, `energy`, `biofuel`, `palm`, `volatility`, `substitutes`, `trump_effect`
-
-## SoT v2 Training Architecture (Primary)
-
-**SoT v2** is the canonical training model architecture for this project.
-
-### Model Stack (52 Models)
-- **L0 Core:** 4 models (`zinc-fusion-v2-core-h{5,21,63,126}d`)
-- **L0 Specialists:** 44 models (11 specialists × 4 horizons)
-- **L1 Meta:** 4 models (stacked ensemble per horizon)
-- **L2/L3:** Calibration (CQR) + Risk Engine (Monte Carlo)
-
-### Table Layout (Schema-Aligned)
-| Phase | Tables | Pattern |
-|-------|--------|---------|
-| Training OOF | 12 tables | `training.oof_{model}_1d` with `horizon_days` column |
-| Meta Inputs | 1 table | `training.meta_inputs_1d` with `horizon_days` column |
-| Production | 4 tables | `forecasts.production_{H}d_1d` (separate per horizon) |
-
-### Key Principle
-52 models write to ~17 tables. Training artifacts use `horizon_days` discriminator for cross-horizon queries; production outputs use separate tables per horizon.
-
-### References
-- Full catalog: `scripts/v2_training/MODEL_CATALOG.md`
-- Training code: `scripts/v2_training/`
-- Architecture details: `AGENTS.md` (section: "Active Model Architecture")
 
 ## Ground Truth Entrypoints
 - Prisma schema: `prisma/schema.prisma`

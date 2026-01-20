@@ -308,16 +308,15 @@ export const barchartZlNewsDaily = inngest.createFunction(
 
           await client.query(
             `INSERT INTO alt.news_1d (
-              event_date, headline, content, source, published_at, bucket_name,
-              source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+              event_date, headline, content, source, published_at,
+              url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
             [
               article.eventDate,
               article.headline,
               article.content ?? null,
               SOURCE,
               article.publishedAt,
-              BUCKET_NAME,
               article.url,
               JSON.stringify(article.rawPayload),
               runId,

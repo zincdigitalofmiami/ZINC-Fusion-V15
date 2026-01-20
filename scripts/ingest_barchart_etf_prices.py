@@ -122,20 +122,22 @@ def determine_specialist_tags(symbol: str) -> List[str]:
 
 def validate_table_exists(conn) -> None:
     """Validate that mkt.etf_1d exists (Prisma-managed table).
-    
+
     Raises:
         SystemExit: If table does not exist. Run Prisma migrations first.
     """
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables 
             WHERE table_schema = 'mkt' AND table_name = 'etf_1d'
         )
-    """)
+    """
+    )
     exists = cur.fetchone()[0]
     cur.close()
-    
+
     if not exists:
         raise SystemExit(
             "FATAL: mkt.etf_1d table does not exist.\n"
@@ -153,6 +155,7 @@ def extract_symbol_from_filename(filename: str) -> Optional[str]:
         bctibi_daily_historical-data-01-16-2026.csv -> BCTI.BI
     """
     import re
+
     # Match pattern like bdibi_, bctibi_, bdtibi_
     match = re.match(r"^([a-z]+)bi_", filename.lower())
     if match:
@@ -179,7 +182,11 @@ def parse_csv_file(filepath: Path) -> List[Dict]:
                 continue
 
             # Use filename symbol if no Symbol column, otherwise use column
-            symbol = row.get("Symbol", "").strip().upper() if "Symbol" in row and row.get("Symbol") else filename_symbol
+            symbol = (
+                row.get("Symbol", "").strip().upper()
+                if "Symbol" in row and row.get("Symbol")
+                else filename_symbol
+            )
             if not symbol:
                 continue
 
@@ -212,7 +219,9 @@ def parse_csv_file(filepath: Path) -> List[Dict]:
 
     # Count unique symbols
     symbols = set(r["symbol"] for r in records)
-    logger.info(f"  Parsed {len(records)} records for {len(symbols)} symbols: {sorted(symbols)}")
+    logger.info(
+        f"  Parsed {len(records)} records for {len(symbols)} symbols: {sorted(symbols)}"
+    )
 
     return records
 
@@ -224,7 +233,9 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
 
     if dry_run:
         symbols = set(r["symbol"] for r in records)
-        logger.info(f"[DRY RUN] Would insert {len(records)} records for {len(symbols)} symbols")
+        logger.info(
+            f"[DRY RUN] Would insert {len(records)} records for {len(symbols)} symbols"
+        )
         return len(records)
 
     conn = psycopg2.connect(DATABASE_URL)
@@ -266,7 +277,7 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
             volume = EXCLUDED.volume
         """,
         values,
-        page_size=1000
+        page_size=1000,
     )
 
     conn.commit()
@@ -279,7 +290,9 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Ingest Barchart ETF/stock price CSVs")
     parser.add_argument("files", nargs="+", help="CSV files to ingest")
-    parser.add_argument("--dry-run", action="store_true", help="Don't write to database")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Don't write to database"
+    )
     args = parser.parse_args()
 
     logger.info("=" * 60)

@@ -139,27 +139,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print_kv("metadata.symbol_mapping rows", str(mapping_rows))
             print_kv("metadata.symbol_mapping canonical_id", str(mapped_canonical))
 
-        if table_exists(cur, "raw", "market_futures_1d") and table_exists(
+        if table_exists(cur, "mkt", "futures_1d") and table_exists(
             cur, "metadata", "symbol_mapping"
         ):
-            cur.execute("SELECT COUNT(DISTINCT symbol) FROM raw.market_futures_1d")
+            cur.execute("SELECT COUNT(DISTINCT symbol) FROM mkt.futures_1d")
             raw_symbols = int(cur.fetchone()[0])
             cur.execute(
                 """
                 SELECT COUNT(*)
-                FROM (SELECT DISTINCT symbol FROM raw.market_futures_1d) s
+                FROM (SELECT DISTINCT symbol FROM mkt.futures_1d) s
                 WHERE NOT EXISTS (
                   SELECT 1 FROM metadata.symbol_mapping m
-                  WHERE m.source_table='raw.market_futures_1d' AND m.source_symbol=s.symbol
+                  WHERE m.source_table='mkt.futures_1d' AND m.source_symbol=s.symbol
                 )
                 """
             )
             missing = int(cur.fetchone()[0])
-            print_kv("raw.market_futures_1d distinct symbols", str(raw_symbols))
-            print_kv("missing mappings (raw.market_futures_1d)", f"{missing} / {raw_symbols}")
+            print_kv("mkt.futures_1d distinct symbols", str(raw_symbols))
+            print_kv("missing mappings (mkt.futures_1d)", f"{missing} / {raw_symbols}")
             if missing > 0:
                 warnings.append(
-                    f"metadata.symbol_mapping missing {missing}/{raw_symbols} symbols for raw.market_futures_1d"
+                    f"metadata.symbol_mapping missing {missing}/{raw_symbols} symbols for mkt.futures_1d"
                 )
 
         print()
@@ -167,20 +167,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # ------------------------------------------------------------------
         # 2) Raw freshness (training inputs)
         # ------------------------------------------------------------------
+        # Use new institutional schema (mkt, econ, pos, supply, alt)
         raw_checks: list[TableCheck] = [
-            TableCheck("raw", "market_futures_1d", "event_date", "Market futures (1d)", stale_days_warn=5, stale_days_fail=14),
-            TableCheck("raw", "fred_observations_1d", "event_date", "FRED observations (1d)", stale_days_warn=5, stale_days_fail=14),
-            TableCheck("raw", "fx_spot_1d", "event_date", "FX spot (1d)", stale_days_warn=7, stale_days_fail=14),
-            TableCheck("raw", "cftc_cot_1w", "event_date", "CFTC COT (1w)", stale_days_warn=14, stale_days_fail=28),
-            TableCheck("raw", "weather_noaa_1d", "event_date", "NOAA weather (1d)", stale_days_warn=5, stale_days_fail=14),
-            TableCheck("raw", "usda_export_sales_1w", "event_date", "USDA export sales (1w)", stale_days_warn=14, stale_days_fail=28),
-            TableCheck("raw", "usda_wasde_1m", "event_date", "USDA WASDE (1m)", stale_days_warn=21, stale_days_fail=31),
-            TableCheck("raw", "epa_rin_prices_1d", "event_date", "EPA RIN prices (1d)", stale_days_warn=14, stale_days_fail=28),
-            TableCheck("raw", "news_articles_event", "event_date", "News (event)", stale_days_warn=7, stale_days_fail=30),
-            TableCheck("raw", "whitehouse_actions_event", "event_date", "White House actions (event)", stale_days_warn=7, stale_days_fail=30),
+            TableCheck("mkt", "futures_1d", "event_date", "Market futures (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("mkt", "fx_1d", "event_date", "FX rates (1d)", stale_days_warn=7, stale_days_fail=14),
+            TableCheck("mkt", "options_1d", "event_date", "Options (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("econ", "rates_1d", "event_date", "FRED rates (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("econ", "vol_indices_1d", "event_date", "VIX/OVX (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("econ", "commodities_1d", "event_date", "Commodities (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("pos", "cftc_1w", "event_date", "CFTC COT (1w)", stale_days_warn=14, stale_days_fail=28),
+            TableCheck("alt", "weather_1d", "event_date", "Weather (1d)", stale_days_warn=5, stale_days_fail=14),
+            TableCheck("alt", "news_1d", "event_date", "News (1d)", stale_days_warn=7, stale_days_fail=30),
+            TableCheck("alt", "legislation_1d", "event_date", "Legislation (1d)", stale_days_warn=7, stale_days_fail=30),
+            TableCheck("supply", "usda_exports_1w", "event_date", "USDA export sales (1w)", stale_days_warn=14, stale_days_fail=28),
+            TableCheck("supply", "usda_wasde_1m", "event_date", "USDA WASDE (1m)", stale_days_warn=21, stale_days_fail=31),
+            TableCheck("supply", "epa_rin_1d", "event_date", "EPA RIN prices (1d)", stale_days_warn=14, stale_days_fail=28),
         ]
 
-        print("## Raw Data Freshness (Inputs)")
+        print("## Landing Data Freshness (Inputs)")
         for chk in raw_checks:
             if not table_exists(cur, chk.schema, chk.table):
                 blockers.append(f"Missing table: {chk.schema}.{chk.table}")
@@ -222,15 +226,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 blockers.append(f"Error reading {chk.schema}.{chk.table}: {e}")
                 print_kv(chk.label, f"ERROR: {e}")
 
-        # Special: future-dated FRED rows
-        if table_exists(cur, "raw", "fred_observations_1d"):
+        # Special: future-dated FRED rows (check econ.rates_1d)
+        if table_exists(cur, "econ", "rates_1d"):
             try:
                 cur.execute(
-                    "SELECT COUNT(*) FROM raw.fred_observations_1d WHERE event_date::date > current_date"
+                    "SELECT COUNT(*) FROM econ.rates_1d WHERE event_date::date > current_date"
                 )
                 future_cnt = int(cur.fetchone()[0])
                 if future_cnt:
-                    warnings.append(f"raw.fred_observations_1d has {future_cnt} future-dated rows")
+                    warnings.append(f"econ.rates_1d has {future_cnt} future-dated rows")
             except Exception as e:
                 had_errors = True
                 warnings.append(f"Could not check future-dated FRED rows: {e}")
@@ -247,32 +251,36 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             cnt = get_count(cur, "features", "trump_effect_1d")
             mn, mx = get_min_max(cur, "features", "trump_effect_1d", "as_of_date")
             print_kv("features.trump_effect_1d", f"{cnt:,} rows | {mn} → {mx}")
-            # Compare to raw.whitehouse_actions_event freshness if available
-            if table_exists(cur, "raw", "whitehouse_actions_event"):
-                _, raw_max = get_min_max(cur, "raw", "whitehouse_actions_event", "event_date")
+            # Compare to alt.news_1d freshness (trump_effect tagged news)
+            if table_exists(cur, "alt", "news_1d"):
+                cur.execute("""
+                    SELECT MAX(event_date)::date FROM alt.news_1d
+                    WHERE 'trump_effect' = ANY(specialist_tags)
+                """)
+                raw_max = cur.fetchone()[0]
                 if raw_max and mx and raw_max > mx:
                     warnings.append(
-                        f"features.trump_effect_1d lags raw.whitehouse_actions_event ({mx} < {raw_max})"
+                        f"features.trump_effect_1d lags alt.news_1d trump_effect tags ({mx} < {raw_max})"
                     )
         else:
             warnings.append("features.trump_effect_1d missing (trump_effect feature store unavailable)")
 
         # mkt.futures_1d (canonical OHLCV)
-        if table_exists(cur, "silver", "futures_prices_1d"):
+        if table_exists(cur, "mkt", "futures_1d"):
             cur.execute(
                 """
-                SELECT COUNT(*)::int, MIN(trade_date)::date, MAX(trade_date)::date
+                SELECT COUNT(*)::int, MIN(event_date)::date, MAX(event_date)::date
                 FROM mkt.futures_1d
-                WHERE canonical_id='ZL'
+                WHERE symbol='ZL'
                 """
             )
             cnt, mn, mx = cur.fetchone()
             print_kv("mkt.futures_1d[ZL]", f"{cnt:,} rows | {mn} → {mx}")
         else:
-            warnings.append("mkt.futures_1d missing (silver canonical prices unavailable)")
+            warnings.append("mkt.futures_1d missing (landing prices unavailable)")
 
         # features.elite_1d (denormalized indicators)
-        if table_exists(cur, "gold", "elite_indicators_1d"):
+        if table_exists(cur, "features", "elite_1d"):
             cur.execute(
                 """
                 SELECT COUNT(*)::int, MIN(trade_date)::date, MAX(trade_date)::date
@@ -288,7 +296,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 f"{cnt:,} rows | {mn} → {mx} | symbols={distinct_symbols}",
             )
         else:
-            warnings.append("features.elite_1d missing (gold indicators unavailable)")
+            warnings.append("features.elite_1d missing (elite indicators unavailable)")
 
         print()
 
@@ -321,21 +329,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             blockers.append("Missing table: training.core_features")
             print_kv("training.core_features", "MISSING")
 
-        if table_exists(cur, "training", "core_matrix_1d"):
-            cnt = get_count(cur, "training", "core_matrix_1d")
-            print_kv("training.core_matrix_1d", f"{cnt:,} rows (SoT v2 matrix)")
+        if table_exists(cur, "training", "matrix_1d"):
+            cnt = get_count(cur, "training", "matrix_1d")
+            print_kv("training.matrix_1d", f"{cnt:,} rows (SoT v2 matrix)")
             if cnt == 0:
-                blockers.append("training.core_matrix_1d is empty (cannot train L0 core)")
-            cols = set(get_columns(cur, "training", "core_matrix_1d"))
-            required_targets = {"target_5d", "target_21d", "target_63d", "target_126d"}
+                blockers.append("training.matrix_1d is empty (cannot train L0 core)")
+            cols = set(get_columns(cur, "training", "matrix_1d"))
+            required_targets = {"target_ret_5d", "target_ret_21d", "target_ret_63d", "target_ret_126d"}
             missing_targets = sorted(required_targets - cols)
             if missing_targets:
                 blockers.append(
-                    f"training.core_matrix_1d missing targets: {', '.join(missing_targets)}"
+                    f"training.matrix_1d missing targets: {', '.join(missing_targets)}"
                 )
         else:
-            blockers.append("Missing table: training.core_matrix_1d")
-            print_kv("training.core_matrix_1d", "MISSING")
+            blockers.append("Missing table: training.matrix_1d")
+            print_kv("training.matrix_1d", "MISSING")
 
         # Specialist staging tables (current DB reality)
         buckets = [

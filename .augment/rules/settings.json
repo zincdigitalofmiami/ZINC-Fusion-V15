@@ -2,11 +2,11 @@
   "sharedRules": [
     {
       "path": "AGENTS.md",
-      "type": "manual"
+      "type": "always_apply"
     },
     {
       "path": "CLAUDE.md",
-      "type": "manual"
+      "type": "always_apply"
     }
   ]
 }
