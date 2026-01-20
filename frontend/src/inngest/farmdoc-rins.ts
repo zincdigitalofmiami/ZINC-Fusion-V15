@@ -67,8 +67,9 @@ export const farmdocRinsDaily = inngest.createFunction(
       logger.info(`Started ingest run: ${runId}`);
 
       const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://farmdocdaily.illinois.edu/category/areas/biofuels/rins/feed/", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
+        const response = await fetch("https://farmdocdaily.illinois.edu/category/areas/biofuels/rins/feed", {
+          headers: { "User-Agent": "ZINC-Fusion/1.0" },
+          redirect: "follow"
         });
         if (!response.ok) throw new Error(`Farmdoc RSS error: ${response.status}`);
         const xml = await response.text();

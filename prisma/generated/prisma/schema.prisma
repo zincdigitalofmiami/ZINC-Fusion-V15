@@ -10,148 +10,168 @@ datasource db {
 }
 
 model TrainingMatrix1d {
-  id                     BigInt?
-  tradeDate              DateTime @map("trade_date") @db.Date
-  symbol                 String   @db.VarChar(20)
-  hurst_exponent         Float?
-  hurst_regime           String?
-  connors_rsi            Float?
-  fisher_transform       Float?
-  fisher_signal          Float?
-  mcginley_dynamic       Float?
-  ttm_squeeze_on         Boolean?
-  ttm_squeeze_momentum   Float?
-  schaff_trend_cycle     Float?
-  rvi                    Float?
-  rvi_signal             Float?
-  elder_force_index      Float?
-  kama_10                Float?
-  hma_20                 Float?
-  alma_50                Float?
-  rsi_2                  Float?
-  rsi_14                 Float?
-  cumulative_rsi         Float?
-  macd                   Float?
-  macd_signal            Float?
-  macd_histogram         Float?
-  cci_14                 Float?
-  cci_50                 Float?
-  atr_10                 Float?
-  atr_50                 Float?
-  atr_ratio              Float?
-  garman_klass_vol       Float?
-  yang_zhang_vol         Float?
-  bb_percent_b           Float?
-  cmf_21                 Float?
-  volume_zscore          Float?
-  unusual_volume         Boolean?
-  createdAt              String?  @map("created_at")
-  open                   Float?
-  high                   Float?
-  low                    Float?
-  close                  Float?
-  volume                 Float?
-  returns_1d             Float?
-  log_returns_1d         Float?
-  range_pct              Float?
-  fred_bamlc0a0cm        Float?
-  fred_bamlh0a0hym2      Float?
-  fred_chnmainlandtpu    Float?
-  fred_dcoilbrenteu      Float?
-  fred_dcoilwtico        Float?
-  fred_dexbzus           Float?
-  fred_dexcaus           Float?
-  fred_dexchus           Float?
-  fred_dexinus           Float?
-  fred_dexjpus           Float?
-  fred_dexkous           Float?
-  fred_dexmaus           Float?
-  fred_dexmxus           Float?
-  fred_dexsfus           Float?
-  fred_dexthus           Float?
-  fred_dexusal           Float?
-  fred_dexuseu           Float?
-  fred_dgasusgulf        Float?
-  fred_dgs10             Float?
-  fred_dgs1mo            Float?
-  fred_dgs2              Float?
-  fred_dgs20             Float?
-  fred_dgs30             Float?
-  fred_dgs3mo            Float?
-  fred_dgs5              Float?
-  fred_dhhngsp           Float?
-  fred_dhoilnyh          Float?
-  fred_djfuelusgulf      Float?
-  fred_dprime            Float?
-  fred_dpropanembtx      Float?
-  fred_dxy               Float?
-  fred_emvtradepolemv    Float?
-  fred_eputrade          Float?
-  fred_fedfunds          Float?
-  fred_gdp               Float?
-  fred_gdpc1             Float?
-  fred_indpro            Float?
-  fred_m2sl              Float?
-  fred_nfci              Float?
-  fred_payems            Float?
-  fred_pce               Float?
-  fred_pcepi             Float?
-  fred_pcoppusdm         Float?
-  fred_pmaizmtusdm       Float?
-  fred_ppoilusdm         Float?
-  fred_proilusdm         Float?
-  fred_psoilusdm         Float?
-  fred_psoybusdm         Float?
-  fred_pwheamtusdm       Float?
-  fred_stlfsi4           Float?
-  fred_t10y2y            Float?
-  fred_t10y3m            Float?
-  fred_t10yie            Float?
-  fred_tedrate           Float?
-  fred_umcsent           Float?
-  fred_unrate            Float?
-  fred_usepuindxd        Float?
-  fred_usepuindxm        Float?
-  fred_vixcls            Float?
-  fred_walcl             Float?
-  fx_usdbrl              Float?
-  fx_usdcny              Float?
-  fx_usdeur              Float?
-  fx_usdgbp              Float?
-  fx_usdjpy              Float?
-  // Weather features (regional)
-  wx_ar_tavg_c           Float?
-  wx_br_tavg_c           Float?
-  wx_us_tavg_c           Float?
-  wx_ar_prcp_mm          Float?
-  wx_br_prcp_mm          Float?
-  wx_us_prcp_mm          Float?
-  wx_ar_prcp_anom_30d    Float?
-  wx_br_prcp_anom_30d    Float?
-  wx_us_prcp_anom_30d    Float?
-  wx_ar_gdd_30d_sum      Float?
-  wx_br_gdd_30d_sum      Float?
-  wx_us_gdd_30d_sum      Float?
-  // CFTC positioning
-  cftc_open_interest     Float?
-  cftc_managed_money_net Float?
-  cftc_managed_money_pct Float?
-  cftc_prod_merc_net     Float?
-  cftc_prod_merc_pct     Float?
-  cftc_swap_net          Float?
-  // USDA WASDE
-  wasde_zl_ending_stocks Float?
-  wasde_zl_production    Float?
-  wasde_zs_ending_stocks Float?
-  wasde_zs_production    Float?
-  // EPA RIN prices
-  rin_d4_price           Float?
-  rin_d6_price           Float?
-  target_ret_5d          Float?
-  target_ret_21d         Float?
-  target_ret_63d         Float?
-  target_ret_126d        Float?
-  matrixVersion          String?  @map("matrix_version")
+  id                          BigInt?
+  tradeDate                   DateTime @map("trade_date") @db.Date
+  symbol                      String   @db.VarChar(20)
+  hurst_exponent              Float?
+  hurst_regime                String?
+  connors_rsi                 Float?
+  fisher_transform            Float?
+  fisher_signal               Float?
+  mcginley_dynamic            Float?
+  ttm_squeeze_on              Boolean?
+  ttm_squeeze_momentum        Float?
+  schaff_trend_cycle          Float?
+  rvi                         Float?
+  rvi_signal                  Float?
+  elder_force_index           Float?
+  kama_10                     Float?
+  hma_20                      Float?
+  alma_50                     Float?
+  rsi_2                       Float?
+  rsi_14                      Float?
+  cumulative_rsi              Float?
+  macd                        Float?
+  macd_signal                 Float?
+  macd_histogram              Float?
+  cci_14                      Float?
+  cci_50                      Float?
+  atr_10                      Float?
+  atr_50                      Float?
+  atr_ratio                   Float?
+  garman_klass_vol            Float?
+  yang_zhang_vol              Float?
+  bb_percent_b                Float?
+  cmf_21                      Float?
+  volume_zscore               Float?
+  unusual_volume              Boolean?
+  createdAt                   String?  @map("created_at")
+  open                        Float?
+  high                        Float?
+  low                         Float?
+  close                       Float?
+  volume                      Float?
+  returns_1d                  Float?
+  log_returns_1d              Float?
+  range_pct                   Float?
+  fred_bamlc0a0cm             Float?
+  fred_bamlh0a0hym2           Float?
+  fred_chnmainlandtpu         Float?
+  fred_dcoilbrenteu           Float?
+  fred_dcoilwtico             Float?
+  fred_dexbzus                Float?
+  fred_dexcaus                Float?
+  fred_dexchus                Float?
+  fred_dexinus                Float?
+  fred_dexjpus                Float?
+  fred_dexkous                Float?
+  fred_dexmaus                Float?
+  fred_dexmxus                Float?
+  fred_dexsfus                Float?
+  fred_dexthus                Float?
+  fred_dexusal                Float?
+  fred_dexuseu                Float?
+  fred_dgasusgulf             Float?
+  fred_dgs10                  Float?
+  fred_dgs1mo                 Float?
+  fred_dgs2                   Float?
+  fred_dgs20                  Float?
+  fred_dgs30                  Float?
+  fred_dgs3mo                 Float?
+  fred_dgs5                   Float?
+  fred_dhhngsp                Float?
+  fred_dhoilnyh               Float?
+  fred_djfuelusgulf           Float?
+  fred_dprime                 Float?
+  fred_dpropanembtx           Float?
+  fred_dxy                    Float?
+  fred_emvtradepolemv         Float?
+  fred_eputrade               Float?
+  fred_fedfunds               Float?
+  fred_gdp                    Float?
+  fred_gdpc1                  Float?
+  fred_indpro                 Float?
+  fred_m2sl                   Float?
+  fred_nfci                   Float?
+  fred_payems                 Float?
+  fred_pce                    Float?
+  fred_pcepi                  Float?
+  fred_pcoppusdm              Float?
+  fred_pmaizmtusdm            Float?
+  fred_ppoilusdm              Float?
+  fred_proilusdm              Float?
+  fred_psoilusdm              Float?
+  fred_psoybusdm              Float?
+  fred_pwheamtusdm            Float?
+  fred_stlfsi4                Float?
+  fred_t10y2y                 Float?
+  fred_t10y3m                 Float?
+  fred_t10yie                 Float?
+  fred_tedrate                Float?
+  fred_umcsent                Float?
+  fred_unrate                 Float?
+  fred_usepuindxd             Float?
+  fred_usepuindxm             Float?
+  fred_vixcls                 Float?
+  fred_walcl                  Float?
+  fx_usdbrl                   Float?
+  fx_usdcny                   Float?
+  fx_usdeur                   Float?
+  fx_usdgbp                   Float?
+  fx_usdjpy                   Float?
+  target_ret_5d               Float?
+  target_ret_21d              Float?
+  target_ret_63d              Float?
+  target_ret_126d             Float?
+  matrixVersion               String?  @map("matrix_version")
+  wx_ar_tavg_c                Float?
+  wx_br_tavg_c                Float?
+  wx_us_tavg_c                Float?
+  wx_ar_prcp_mm               Float?
+  wx_br_prcp_mm               Float?
+  wx_us_prcp_mm               Float?
+  wx_ar_prcp_anom_30d         Float?
+  wx_br_prcp_anom_30d         Float?
+  wx_us_prcp_anom_30d         Float?
+  wx_ar_gdd_30d_sum           Float?
+  wx_br_gdd_30d_sum           Float?
+  wx_us_gdd_30d_sum           Float?
+  cftc_open_interest          Float?
+  cftc_managed_money_net      Float?
+  cftc_managed_money_pct      Float?
+  cftc_prod_merc_net          Float?
+  cftc_prod_merc_pct          Float?
+  cftc_swap_net               Float?
+  wasde_zl_ending_stocks      Float?
+  wasde_zl_production         Float?
+  wasde_zs_ending_stocks      Float?
+  wasde_zs_production         Float?
+  rin_d4_price                Float?
+  rin_d6_price                Float?
+  zs_close                    Decimal? @db.Decimal(18, 6)
+  zm_close                    Decimal? @db.Decimal(18, 6)
+  crush_spread                Decimal? @db.Decimal(18, 6)
+  oil_share                   Decimal? @db.Decimal(18, 6)
+  wti_zl_corr_30d             Decimal? @db.Decimal(18, 6)
+  vix_zl_corr_30d             Decimal? @db.Decimal(18, 6)
+  biodiesel_margin            Decimal? @db.Decimal(18, 6)
+  cpo_close                   Decimal? @db.Decimal(18, 6)
+  palm_soy_spread             Decimal? @db.Decimal(18, 6)
+  rs_close                    Decimal? @db.Decimal(18, 6)
+  zl_canola_spread            Decimal? @db.Decimal(18, 6)
+  trump_total_actions_7d      Int?
+  trump_total_actions_30d     Int?
+  trump_avg_sentiment_7d      Decimal? @db.Decimal(18, 6)
+  trump_avg_sentiment_30d     Decimal? @db.Decimal(18, 6)
+  trump_action_velocity       Decimal? @db.Decimal(18, 6)
+  trump_weighted_action_score Decimal? @db.Decimal(18, 6)
+  ho_zl_corr_30d              Decimal? @db.Decimal(18, 6)
+  rb_zl_corr_30d              Decimal? @db.Decimal(18, 6)
+  ng_zl_corr_30d              Decimal? @db.Decimal(18, 6)
+  hg_zl_corr_30d              Decimal? @db.Decimal(18, 6)
+  gc_zl_corr_30d              Decimal? @db.Decimal(18, 6)
+  dgs10_zl_corr_30d           Decimal? @db.Decimal(18, 6)
+  dgs2_zl_corr_30d            Decimal? @db.Decimal(18, 6)
 
   @@id([tradeDate, symbol], map: "core_matrix_curated_1d_pkey")
   @@map("matrix_1d")
@@ -291,9 +311,6 @@ model VolatilitySurface {
   @@map("volatility_surface")
   @@schema("training")
 }
-
-// TrumpEffect specialist models are KEPT because they have computed signal/confidence columns
-// All other specialist_*_1d/1h OHLCV tables have been REMOVED (they were duplicates of mkt.futures_1d)
 
 model SpecialistTrumpEffect1d {
   id         Int       @id @default(autoincrement())
@@ -1235,14 +1252,14 @@ model zl_price_1h {
 
 /// ZL 1d bars for dashboard - copied from mkt.futures_1d
 model zl_price_1d {
-  event_date DateTime @id @db.Date
-  open       Decimal  @db.Decimal(10, 4)
-  high       Decimal  @db.Decimal(10, 4)
-  low        Decimal  @db.Decimal(10, 4)
-  close      Decimal  @db.Decimal(10, 4)
-  volume     BigInt   @default(0)
-  source     String   @default("yahoo") @db.VarChar(50)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  event_date DateTime  @id @db.Date
+  open       Decimal   @db.Decimal(10, 4)
+  high       Decimal   @db.Decimal(10, 4)
+  low        Decimal   @db.Decimal(10, 4)
+  close      Decimal   @db.Decimal(10, 4)
+  volume     BigInt?   @default(0)
+  source     String?   @default("yahoo") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([event_date(sort: Desc)], map: "idx_zl_price_1d_date")
   @@schema("analytics")
@@ -1784,29 +1801,6 @@ model MktFutures1h {
   @@schema("mkt")
 }
 
-model MktOptions1d {
-  id            Int       @id @default(autoincrement())
-  underlying    String    @db.VarChar(20)
-  eventDate     DateTime  @map("event_date") @db.Date
-  expiration    DateTime  @db.Date
-  strike        Float
-  optionType    String    @map("option_type") @db.VarChar(4)
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        BigInt?
-  openInterest  BigInt?   @map("open_interest")
-  source        String?   @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash       String?   @map("row_hash") @db.VarChar(64)
-
-  @@index([underlying, eventDate], map: "idx_mkt_options_1d_underlying_date")
-  @@map("options_1d")
-  @@schema("mkt")
-}
-
 model MktFx1d {
   id            Int       @id @default(autoincrement())
   pair          String    @db.VarChar(10)
@@ -1841,6 +1835,34 @@ model MktEtf1d {
   @@index([symbol, eventDate], map: "idx_mkt_etf_1d_symbol_date")
   @@index([specialistTags], map: "idx_mkt_etf_1d_tags", type: Gin)
   @@map("etf_1d")
+  @@schema("mkt")
+}
+
+model MktOptions1d {
+  id            Int       @id @default(autoincrement())
+  underlying    String    @db.VarChar(20)
+  eventDate     DateTime  @map("event_date") @db.Date
+  expiration    DateTime  @db.Date
+  strike        Float
+  optionType    String    @map("option_type") @db.VarChar(4)
+  open          Float?
+  high          Float?
+  low           Float?
+  close         Float?
+  change        Float?
+  bid           Float?
+  ask           Float?
+  volume        BigInt?
+  openInterest  BigInt?   @map("open_interest")
+  premium       Float?
+  lastTradeTime String?   @map("last_trade_time") @db.VarChar(20)
+  source        String?   @default("barchart") @db.VarChar(50)
+  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash       String    @map("row_hash") @db.VarChar(64)
+
+  @@unique([underlying, eventDate, expiration, strike, optionType])
+  @@index([underlying, eventDate], map: "idx_mkt_options_1d_underlying_date")
+  @@map("options_1d")
   @@schema("mkt")
 }
 
@@ -1965,8 +1987,6 @@ model EconCommodities1d {
   @@map("commodities_1d")
   @@schema("econ")
 }
-
-// REMOVED: EconFx1d - FX data consolidated to mkt.fx_1d
 
 model EconMoney1d {
   id            Int       @id @default(autoincrement())

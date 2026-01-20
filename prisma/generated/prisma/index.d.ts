@@ -424,11 +424,6 @@ export type MktFutures1d = $Result.DefaultSelection<Prisma.$MktFutures1dPayload>
  */
 export type MktFutures1h = $Result.DefaultSelection<Prisma.$MktFutures1hPayload>
 /**
- * Model MktOptions1d
- * 
- */
-export type MktOptions1d = $Result.DefaultSelection<Prisma.$MktOptions1dPayload>
-/**
  * Model MktFx1d
  * 
  */
@@ -438,6 +433,11 @@ export type MktFx1d = $Result.DefaultSelection<Prisma.$MktFx1dPayload>
  * 
  */
 export type MktEtf1d = $Result.DefaultSelection<Prisma.$MktEtf1dPayload>
+/**
+ * Model MktOptions1d
+ * 
+ */
+export type MktOptions1d = $Result.DefaultSelection<Prisma.$MktOptions1dPayload>
 /**
  * Model MktOptionsGreeks1d
  * 
@@ -1612,16 +1612,6 @@ export class PrismaClient<
   get mktFutures1h(): Prisma.MktFutures1hDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.mktOptions1d`: Exposes CRUD operations for the **MktOptions1d** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more MktOptions1ds
-    * const mktOptions1ds = await prisma.mktOptions1d.findMany()
-    * ```
-    */
-  get mktOptions1d(): Prisma.MktOptions1dDelegate<ExtArgs, ClientOptions>;
-
-  /**
    * `prisma.mktFx1d`: Exposes CRUD operations for the **MktFx1d** model.
     * Example usage:
     * ```ts
@@ -1640,6 +1630,16 @@ export class PrismaClient<
     * ```
     */
   get mktEtf1d(): Prisma.MktEtf1dDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.mktOptions1d`: Exposes CRUD operations for the **MktOptions1d** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more MktOptions1ds
+    * const mktOptions1ds = await prisma.mktOptions1d.findMany()
+    * ```
+    */
+  get mktOptions1d(): Prisma.MktOptions1dDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.mktOptionsGreeks1d`: Exposes CRUD operations for the **MktOptionsGreeks1d** model.
@@ -2626,9 +2626,9 @@ export namespace Prisma {
     VegasDailySpend: 'VegasDailySpend',
     MktFutures1d: 'MktFutures1d',
     MktFutures1h: 'MktFutures1h',
-    MktOptions1d: 'MktOptions1d',
     MktFx1d: 'MktFx1d',
     MktEtf1d: 'MktEtf1d',
+    MktOptions1d: 'MktOptions1d',
     MktOptionsGreeks1d: 'MktOptionsGreeks1d',
     EconRates1d: 'EconRates1d',
     EconInflation1d: 'EconInflation1d',
@@ -2691,7 +2691,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_price_15m" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "zl_price_1d" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktOptions1d" | "mktFx1d" | "mktEtf1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d"
+      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_price_15m" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "zl_price_1d" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktFx1d" | "mktEtf1d" | "mktOptions1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -8763,80 +8763,6 @@ export namespace Prisma {
           }
         }
       }
-      MktOptions1d: {
-        payload: Prisma.$MktOptions1dPayload<ExtArgs>
-        fields: Prisma.MktOptions1dFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.MktOptions1dFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.MktOptions1dFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          findFirst: {
-            args: Prisma.MktOptions1dFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.MktOptions1dFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          findMany: {
-            args: Prisma.MktOptions1dFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
-          }
-          create: {
-            args: Prisma.MktOptions1dCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          createMany: {
-            args: Prisma.MktOptions1dCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.MktOptions1dCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
-          }
-          delete: {
-            args: Prisma.MktOptions1dDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          update: {
-            args: Prisma.MktOptions1dUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          deleteMany: {
-            args: Prisma.MktOptions1dDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.MktOptions1dUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.MktOptions1dUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
-          }
-          upsert: {
-            args: Prisma.MktOptions1dUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
-          }
-          aggregate: {
-            args: Prisma.MktOptions1dAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateMktOptions1d>
-          }
-          groupBy: {
-            args: Prisma.MktOptions1dGroupByArgs<ExtArgs>
-            result: $Utils.Optional<MktOptions1dGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.MktOptions1dCountArgs<ExtArgs>
-            result: $Utils.Optional<MktOptions1dCountAggregateOutputType> | number
-          }
-        }
-      }
       MktFx1d: {
         payload: Prisma.$MktFx1dPayload<ExtArgs>
         fields: Prisma.MktFx1dFieldRefs
@@ -8982,6 +8908,80 @@ export namespace Prisma {
           count: {
             args: Prisma.MktEtf1dCountArgs<ExtArgs>
             result: $Utils.Optional<MktEtf1dCountAggregateOutputType> | number
+          }
+        }
+      }
+      MktOptions1d: {
+        payload: Prisma.$MktOptions1dPayload<ExtArgs>
+        fields: Prisma.MktOptions1dFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MktOptions1dFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MktOptions1dFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          findFirst: {
+            args: Prisma.MktOptions1dFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MktOptions1dFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          findMany: {
+            args: Prisma.MktOptions1dFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
+          }
+          create: {
+            args: Prisma.MktOptions1dCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          createMany: {
+            args: Prisma.MktOptions1dCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MktOptions1dCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
+          }
+          delete: {
+            args: Prisma.MktOptions1dDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          update: {
+            args: Prisma.MktOptions1dUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          deleteMany: {
+            args: Prisma.MktOptions1dDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MktOptions1dUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.MktOptions1dUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>[]
+          }
+          upsert: {
+            args: Prisma.MktOptions1dUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MktOptions1dPayload>
+          }
+          aggregate: {
+            args: Prisma.MktOptions1dAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMktOptions1d>
+          }
+          groupBy: {
+            args: Prisma.MktOptions1dGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MktOptions1dGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MktOptions1dCountArgs<ExtArgs>
+            result: $Utils.Optional<MktOptions1dCountAggregateOutputType> | number
           }
         }
       }
@@ -12653,9 +12653,9 @@ export namespace Prisma {
     vegasDailySpend?: VegasDailySpendOmit
     mktFutures1d?: MktFutures1dOmit
     mktFutures1h?: MktFutures1hOmit
-    mktOptions1d?: MktOptions1dOmit
     mktFx1d?: MktFx1dOmit
     mktEtf1d?: MktEtf1dOmit
+    mktOptions1d?: MktOptions1dOmit
     mktOptionsGreeks1d?: MktOptionsGreeks1dOmit
     econRates1d?: EconRates1dOmit
     econInflation1d?: EconInflation1dOmit
@@ -12991,6 +12991,10 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    target_ret_5d: number | null
+    target_ret_21d: number | null
+    target_ret_63d: number | null
+    target_ret_126d: number | null
     wx_ar_tavg_c: number | null
     wx_br_tavg_c: number | null
     wx_us_tavg_c: number | null
@@ -13015,10 +13019,30 @@ export namespace Prisma {
     wasde_zs_production: number | null
     rin_d4_price: number | null
     rin_d6_price: number | null
-    target_ret_5d: number | null
-    target_ret_21d: number | null
-    target_ret_63d: number | null
-    target_ret_126d: number | null
+    zs_close: Decimal | null
+    zm_close: Decimal | null
+    crush_spread: Decimal | null
+    oil_share: Decimal | null
+    wti_zl_corr_30d: Decimal | null
+    vix_zl_corr_30d: Decimal | null
+    biodiesel_margin: Decimal | null
+    cpo_close: Decimal | null
+    palm_soy_spread: Decimal | null
+    rs_close: Decimal | null
+    zl_canola_spread: Decimal | null
+    trump_total_actions_7d: number | null
+    trump_total_actions_30d: number | null
+    trump_avg_sentiment_7d: Decimal | null
+    trump_avg_sentiment_30d: Decimal | null
+    trump_action_velocity: Decimal | null
+    trump_weighted_action_score: Decimal | null
+    ho_zl_corr_30d: Decimal | null
+    rb_zl_corr_30d: Decimal | null
+    ng_zl_corr_30d: Decimal | null
+    hg_zl_corr_30d: Decimal | null
+    gc_zl_corr_30d: Decimal | null
+    dgs10_zl_corr_30d: Decimal | null
+    dgs2_zl_corr_30d: Decimal | null
   }
 
   export type TrainingMatrix1dSumAggregateOutputType = {
@@ -13125,6 +13149,10 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    target_ret_5d: number | null
+    target_ret_21d: number | null
+    target_ret_63d: number | null
+    target_ret_126d: number | null
     wx_ar_tavg_c: number | null
     wx_br_tavg_c: number | null
     wx_us_tavg_c: number | null
@@ -13149,10 +13177,30 @@ export namespace Prisma {
     wasde_zs_production: number | null
     rin_d4_price: number | null
     rin_d6_price: number | null
-    target_ret_5d: number | null
-    target_ret_21d: number | null
-    target_ret_63d: number | null
-    target_ret_126d: number | null
+    zs_close: Decimal | null
+    zm_close: Decimal | null
+    crush_spread: Decimal | null
+    oil_share: Decimal | null
+    wti_zl_corr_30d: Decimal | null
+    vix_zl_corr_30d: Decimal | null
+    biodiesel_margin: Decimal | null
+    cpo_close: Decimal | null
+    palm_soy_spread: Decimal | null
+    rs_close: Decimal | null
+    zl_canola_spread: Decimal | null
+    trump_total_actions_7d: number | null
+    trump_total_actions_30d: number | null
+    trump_avg_sentiment_7d: Decimal | null
+    trump_avg_sentiment_30d: Decimal | null
+    trump_action_velocity: Decimal | null
+    trump_weighted_action_score: Decimal | null
+    ho_zl_corr_30d: Decimal | null
+    rb_zl_corr_30d: Decimal | null
+    ng_zl_corr_30d: Decimal | null
+    hg_zl_corr_30d: Decimal | null
+    gc_zl_corr_30d: Decimal | null
+    dgs10_zl_corr_30d: Decimal | null
+    dgs2_zl_corr_30d: Decimal | null
   }
 
   export type TrainingMatrix1dMinAggregateOutputType = {
@@ -13265,6 +13313,11 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    target_ret_5d: number | null
+    target_ret_21d: number | null
+    target_ret_63d: number | null
+    target_ret_126d: number | null
+    matrixVersion: string | null
     wx_ar_tavg_c: number | null
     wx_br_tavg_c: number | null
     wx_us_tavg_c: number | null
@@ -13289,11 +13342,30 @@ export namespace Prisma {
     wasde_zs_production: number | null
     rin_d4_price: number | null
     rin_d6_price: number | null
-    target_ret_5d: number | null
-    target_ret_21d: number | null
-    target_ret_63d: number | null
-    target_ret_126d: number | null
-    matrixVersion: string | null
+    zs_close: Decimal | null
+    zm_close: Decimal | null
+    crush_spread: Decimal | null
+    oil_share: Decimal | null
+    wti_zl_corr_30d: Decimal | null
+    vix_zl_corr_30d: Decimal | null
+    biodiesel_margin: Decimal | null
+    cpo_close: Decimal | null
+    palm_soy_spread: Decimal | null
+    rs_close: Decimal | null
+    zl_canola_spread: Decimal | null
+    trump_total_actions_7d: number | null
+    trump_total_actions_30d: number | null
+    trump_avg_sentiment_7d: Decimal | null
+    trump_avg_sentiment_30d: Decimal | null
+    trump_action_velocity: Decimal | null
+    trump_weighted_action_score: Decimal | null
+    ho_zl_corr_30d: Decimal | null
+    rb_zl_corr_30d: Decimal | null
+    ng_zl_corr_30d: Decimal | null
+    hg_zl_corr_30d: Decimal | null
+    gc_zl_corr_30d: Decimal | null
+    dgs10_zl_corr_30d: Decimal | null
+    dgs2_zl_corr_30d: Decimal | null
   }
 
   export type TrainingMatrix1dMaxAggregateOutputType = {
@@ -13406,6 +13478,11 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    target_ret_5d: number | null
+    target_ret_21d: number | null
+    target_ret_63d: number | null
+    target_ret_126d: number | null
+    matrixVersion: string | null
     wx_ar_tavg_c: number | null
     wx_br_tavg_c: number | null
     wx_us_tavg_c: number | null
@@ -13430,11 +13507,30 @@ export namespace Prisma {
     wasde_zs_production: number | null
     rin_d4_price: number | null
     rin_d6_price: number | null
-    target_ret_5d: number | null
-    target_ret_21d: number | null
-    target_ret_63d: number | null
-    target_ret_126d: number | null
-    matrixVersion: string | null
+    zs_close: Decimal | null
+    zm_close: Decimal | null
+    crush_spread: Decimal | null
+    oil_share: Decimal | null
+    wti_zl_corr_30d: Decimal | null
+    vix_zl_corr_30d: Decimal | null
+    biodiesel_margin: Decimal | null
+    cpo_close: Decimal | null
+    palm_soy_spread: Decimal | null
+    rs_close: Decimal | null
+    zl_canola_spread: Decimal | null
+    trump_total_actions_7d: number | null
+    trump_total_actions_30d: number | null
+    trump_avg_sentiment_7d: Decimal | null
+    trump_avg_sentiment_30d: Decimal | null
+    trump_action_velocity: Decimal | null
+    trump_weighted_action_score: Decimal | null
+    ho_zl_corr_30d: Decimal | null
+    rb_zl_corr_30d: Decimal | null
+    ng_zl_corr_30d: Decimal | null
+    hg_zl_corr_30d: Decimal | null
+    gc_zl_corr_30d: Decimal | null
+    dgs10_zl_corr_30d: Decimal | null
+    dgs2_zl_corr_30d: Decimal | null
   }
 
   export type TrainingMatrix1dCountAggregateOutputType = {
@@ -13547,6 +13643,11 @@ export namespace Prisma {
     fx_usdeur: number
     fx_usdgbp: number
     fx_usdjpy: number
+    target_ret_5d: number
+    target_ret_21d: number
+    target_ret_63d: number
+    target_ret_126d: number
+    matrixVersion: number
     wx_ar_tavg_c: number
     wx_br_tavg_c: number
     wx_us_tavg_c: number
@@ -13571,11 +13672,30 @@ export namespace Prisma {
     wasde_zs_production: number
     rin_d4_price: number
     rin_d6_price: number
-    target_ret_5d: number
-    target_ret_21d: number
-    target_ret_63d: number
-    target_ret_126d: number
-    matrixVersion: number
+    zs_close: number
+    zm_close: number
+    crush_spread: number
+    oil_share: number
+    wti_zl_corr_30d: number
+    vix_zl_corr_30d: number
+    biodiesel_margin: number
+    cpo_close: number
+    palm_soy_spread: number
+    rs_close: number
+    zl_canola_spread: number
+    trump_total_actions_7d: number
+    trump_total_actions_30d: number
+    trump_avg_sentiment_7d: number
+    trump_avg_sentiment_30d: number
+    trump_action_velocity: number
+    trump_weighted_action_score: number
+    ho_zl_corr_30d: number
+    rb_zl_corr_30d: number
+    ng_zl_corr_30d: number
+    hg_zl_corr_30d: number
+    gc_zl_corr_30d: number
+    dgs10_zl_corr_30d: number
+    dgs2_zl_corr_30d: number
     _all: number
   }
 
@@ -13684,6 +13804,10 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    target_ret_5d?: true
+    target_ret_21d?: true
+    target_ret_63d?: true
+    target_ret_126d?: true
     wx_ar_tavg_c?: true
     wx_br_tavg_c?: true
     wx_us_tavg_c?: true
@@ -13708,10 +13832,30 @@ export namespace Prisma {
     wasde_zs_production?: true
     rin_d4_price?: true
     rin_d6_price?: true
-    target_ret_5d?: true
-    target_ret_21d?: true
-    target_ret_63d?: true
-    target_ret_126d?: true
+    zs_close?: true
+    zm_close?: true
+    crush_spread?: true
+    oil_share?: true
+    wti_zl_corr_30d?: true
+    vix_zl_corr_30d?: true
+    biodiesel_margin?: true
+    cpo_close?: true
+    palm_soy_spread?: true
+    rs_close?: true
+    zl_canola_spread?: true
+    trump_total_actions_7d?: true
+    trump_total_actions_30d?: true
+    trump_avg_sentiment_7d?: true
+    trump_avg_sentiment_30d?: true
+    trump_action_velocity?: true
+    trump_weighted_action_score?: true
+    ho_zl_corr_30d?: true
+    rb_zl_corr_30d?: true
+    ng_zl_corr_30d?: true
+    hg_zl_corr_30d?: true
+    gc_zl_corr_30d?: true
+    dgs10_zl_corr_30d?: true
+    dgs2_zl_corr_30d?: true
   }
 
   export type TrainingMatrix1dSumAggregateInputType = {
@@ -13818,6 +13962,10 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    target_ret_5d?: true
+    target_ret_21d?: true
+    target_ret_63d?: true
+    target_ret_126d?: true
     wx_ar_tavg_c?: true
     wx_br_tavg_c?: true
     wx_us_tavg_c?: true
@@ -13842,10 +13990,30 @@ export namespace Prisma {
     wasde_zs_production?: true
     rin_d4_price?: true
     rin_d6_price?: true
-    target_ret_5d?: true
-    target_ret_21d?: true
-    target_ret_63d?: true
-    target_ret_126d?: true
+    zs_close?: true
+    zm_close?: true
+    crush_spread?: true
+    oil_share?: true
+    wti_zl_corr_30d?: true
+    vix_zl_corr_30d?: true
+    biodiesel_margin?: true
+    cpo_close?: true
+    palm_soy_spread?: true
+    rs_close?: true
+    zl_canola_spread?: true
+    trump_total_actions_7d?: true
+    trump_total_actions_30d?: true
+    trump_avg_sentiment_7d?: true
+    trump_avg_sentiment_30d?: true
+    trump_action_velocity?: true
+    trump_weighted_action_score?: true
+    ho_zl_corr_30d?: true
+    rb_zl_corr_30d?: true
+    ng_zl_corr_30d?: true
+    hg_zl_corr_30d?: true
+    gc_zl_corr_30d?: true
+    dgs10_zl_corr_30d?: true
+    dgs2_zl_corr_30d?: true
   }
 
   export type TrainingMatrix1dMinAggregateInputType = {
@@ -13958,6 +14126,11 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    target_ret_5d?: true
+    target_ret_21d?: true
+    target_ret_63d?: true
+    target_ret_126d?: true
+    matrixVersion?: true
     wx_ar_tavg_c?: true
     wx_br_tavg_c?: true
     wx_us_tavg_c?: true
@@ -13982,11 +14155,30 @@ export namespace Prisma {
     wasde_zs_production?: true
     rin_d4_price?: true
     rin_d6_price?: true
-    target_ret_5d?: true
-    target_ret_21d?: true
-    target_ret_63d?: true
-    target_ret_126d?: true
-    matrixVersion?: true
+    zs_close?: true
+    zm_close?: true
+    crush_spread?: true
+    oil_share?: true
+    wti_zl_corr_30d?: true
+    vix_zl_corr_30d?: true
+    biodiesel_margin?: true
+    cpo_close?: true
+    palm_soy_spread?: true
+    rs_close?: true
+    zl_canola_spread?: true
+    trump_total_actions_7d?: true
+    trump_total_actions_30d?: true
+    trump_avg_sentiment_7d?: true
+    trump_avg_sentiment_30d?: true
+    trump_action_velocity?: true
+    trump_weighted_action_score?: true
+    ho_zl_corr_30d?: true
+    rb_zl_corr_30d?: true
+    ng_zl_corr_30d?: true
+    hg_zl_corr_30d?: true
+    gc_zl_corr_30d?: true
+    dgs10_zl_corr_30d?: true
+    dgs2_zl_corr_30d?: true
   }
 
   export type TrainingMatrix1dMaxAggregateInputType = {
@@ -14099,6 +14291,11 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    target_ret_5d?: true
+    target_ret_21d?: true
+    target_ret_63d?: true
+    target_ret_126d?: true
+    matrixVersion?: true
     wx_ar_tavg_c?: true
     wx_br_tavg_c?: true
     wx_us_tavg_c?: true
@@ -14123,11 +14320,30 @@ export namespace Prisma {
     wasde_zs_production?: true
     rin_d4_price?: true
     rin_d6_price?: true
-    target_ret_5d?: true
-    target_ret_21d?: true
-    target_ret_63d?: true
-    target_ret_126d?: true
-    matrixVersion?: true
+    zs_close?: true
+    zm_close?: true
+    crush_spread?: true
+    oil_share?: true
+    wti_zl_corr_30d?: true
+    vix_zl_corr_30d?: true
+    biodiesel_margin?: true
+    cpo_close?: true
+    palm_soy_spread?: true
+    rs_close?: true
+    zl_canola_spread?: true
+    trump_total_actions_7d?: true
+    trump_total_actions_30d?: true
+    trump_avg_sentiment_7d?: true
+    trump_avg_sentiment_30d?: true
+    trump_action_velocity?: true
+    trump_weighted_action_score?: true
+    ho_zl_corr_30d?: true
+    rb_zl_corr_30d?: true
+    ng_zl_corr_30d?: true
+    hg_zl_corr_30d?: true
+    gc_zl_corr_30d?: true
+    dgs10_zl_corr_30d?: true
+    dgs2_zl_corr_30d?: true
   }
 
   export type TrainingMatrix1dCountAggregateInputType = {
@@ -14240,6 +14456,11 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    target_ret_5d?: true
+    target_ret_21d?: true
+    target_ret_63d?: true
+    target_ret_126d?: true
+    matrixVersion?: true
     wx_ar_tavg_c?: true
     wx_br_tavg_c?: true
     wx_us_tavg_c?: true
@@ -14264,11 +14485,30 @@ export namespace Prisma {
     wasde_zs_production?: true
     rin_d4_price?: true
     rin_d6_price?: true
-    target_ret_5d?: true
-    target_ret_21d?: true
-    target_ret_63d?: true
-    target_ret_126d?: true
-    matrixVersion?: true
+    zs_close?: true
+    zm_close?: true
+    crush_spread?: true
+    oil_share?: true
+    wti_zl_corr_30d?: true
+    vix_zl_corr_30d?: true
+    biodiesel_margin?: true
+    cpo_close?: true
+    palm_soy_spread?: true
+    rs_close?: true
+    zl_canola_spread?: true
+    trump_total_actions_7d?: true
+    trump_total_actions_30d?: true
+    trump_avg_sentiment_7d?: true
+    trump_avg_sentiment_30d?: true
+    trump_action_velocity?: true
+    trump_weighted_action_score?: true
+    ho_zl_corr_30d?: true
+    rb_zl_corr_30d?: true
+    ng_zl_corr_30d?: true
+    hg_zl_corr_30d?: true
+    gc_zl_corr_30d?: true
+    dgs10_zl_corr_30d?: true
+    dgs2_zl_corr_30d?: true
     _all?: true
   }
 
@@ -14468,6 +14708,11 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    target_ret_5d: number | null
+    target_ret_21d: number | null
+    target_ret_63d: number | null
+    target_ret_126d: number | null
+    matrixVersion: string | null
     wx_ar_tavg_c: number | null
     wx_br_tavg_c: number | null
     wx_us_tavg_c: number | null
@@ -14492,11 +14737,30 @@ export namespace Prisma {
     wasde_zs_production: number | null
     rin_d4_price: number | null
     rin_d6_price: number | null
-    target_ret_5d: number | null
-    target_ret_21d: number | null
-    target_ret_63d: number | null
-    target_ret_126d: number | null
-    matrixVersion: string | null
+    zs_close: Decimal | null
+    zm_close: Decimal | null
+    crush_spread: Decimal | null
+    oil_share: Decimal | null
+    wti_zl_corr_30d: Decimal | null
+    vix_zl_corr_30d: Decimal | null
+    biodiesel_margin: Decimal | null
+    cpo_close: Decimal | null
+    palm_soy_spread: Decimal | null
+    rs_close: Decimal | null
+    zl_canola_spread: Decimal | null
+    trump_total_actions_7d: number | null
+    trump_total_actions_30d: number | null
+    trump_avg_sentiment_7d: Decimal | null
+    trump_avg_sentiment_30d: Decimal | null
+    trump_action_velocity: Decimal | null
+    trump_weighted_action_score: Decimal | null
+    ho_zl_corr_30d: Decimal | null
+    rb_zl_corr_30d: Decimal | null
+    ng_zl_corr_30d: Decimal | null
+    hg_zl_corr_30d: Decimal | null
+    gc_zl_corr_30d: Decimal | null
+    dgs10_zl_corr_30d: Decimal | null
+    dgs2_zl_corr_30d: Decimal | null
     _count: TrainingMatrix1dCountAggregateOutputType | null
     _avg: TrainingMatrix1dAvgAggregateOutputType | null
     _sum: TrainingMatrix1dSumAggregateOutputType | null
@@ -14628,6 +14892,11 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    target_ret_5d?: boolean
+    target_ret_21d?: boolean
+    target_ret_63d?: boolean
+    target_ret_126d?: boolean
+    matrixVersion?: boolean
     wx_ar_tavg_c?: boolean
     wx_br_tavg_c?: boolean
     wx_us_tavg_c?: boolean
@@ -14652,11 +14921,30 @@ export namespace Prisma {
     wasde_zs_production?: boolean
     rin_d4_price?: boolean
     rin_d6_price?: boolean
-    target_ret_5d?: boolean
-    target_ret_21d?: boolean
-    target_ret_63d?: boolean
-    target_ret_126d?: boolean
-    matrixVersion?: boolean
+    zs_close?: boolean
+    zm_close?: boolean
+    crush_spread?: boolean
+    oil_share?: boolean
+    wti_zl_corr_30d?: boolean
+    vix_zl_corr_30d?: boolean
+    biodiesel_margin?: boolean
+    cpo_close?: boolean
+    palm_soy_spread?: boolean
+    rs_close?: boolean
+    zl_canola_spread?: boolean
+    trump_total_actions_7d?: boolean
+    trump_total_actions_30d?: boolean
+    trump_avg_sentiment_7d?: boolean
+    trump_avg_sentiment_30d?: boolean
+    trump_action_velocity?: boolean
+    trump_weighted_action_score?: boolean
+    ho_zl_corr_30d?: boolean
+    rb_zl_corr_30d?: boolean
+    ng_zl_corr_30d?: boolean
+    hg_zl_corr_30d?: boolean
+    gc_zl_corr_30d?: boolean
+    dgs10_zl_corr_30d?: boolean
+    dgs2_zl_corr_30d?: boolean
   }, ExtArgs["result"]["trainingMatrix1d"]>
 
   export type TrainingMatrix1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14769,6 +15057,11 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    target_ret_5d?: boolean
+    target_ret_21d?: boolean
+    target_ret_63d?: boolean
+    target_ret_126d?: boolean
+    matrixVersion?: boolean
     wx_ar_tavg_c?: boolean
     wx_br_tavg_c?: boolean
     wx_us_tavg_c?: boolean
@@ -14793,11 +15086,30 @@ export namespace Prisma {
     wasde_zs_production?: boolean
     rin_d4_price?: boolean
     rin_d6_price?: boolean
-    target_ret_5d?: boolean
-    target_ret_21d?: boolean
-    target_ret_63d?: boolean
-    target_ret_126d?: boolean
-    matrixVersion?: boolean
+    zs_close?: boolean
+    zm_close?: boolean
+    crush_spread?: boolean
+    oil_share?: boolean
+    wti_zl_corr_30d?: boolean
+    vix_zl_corr_30d?: boolean
+    biodiesel_margin?: boolean
+    cpo_close?: boolean
+    palm_soy_spread?: boolean
+    rs_close?: boolean
+    zl_canola_spread?: boolean
+    trump_total_actions_7d?: boolean
+    trump_total_actions_30d?: boolean
+    trump_avg_sentiment_7d?: boolean
+    trump_avg_sentiment_30d?: boolean
+    trump_action_velocity?: boolean
+    trump_weighted_action_score?: boolean
+    ho_zl_corr_30d?: boolean
+    rb_zl_corr_30d?: boolean
+    ng_zl_corr_30d?: boolean
+    hg_zl_corr_30d?: boolean
+    gc_zl_corr_30d?: boolean
+    dgs10_zl_corr_30d?: boolean
+    dgs2_zl_corr_30d?: boolean
   }, ExtArgs["result"]["trainingMatrix1d"]>
 
   export type TrainingMatrix1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14910,6 +15222,11 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    target_ret_5d?: boolean
+    target_ret_21d?: boolean
+    target_ret_63d?: boolean
+    target_ret_126d?: boolean
+    matrixVersion?: boolean
     wx_ar_tavg_c?: boolean
     wx_br_tavg_c?: boolean
     wx_us_tavg_c?: boolean
@@ -14934,11 +15251,30 @@ export namespace Prisma {
     wasde_zs_production?: boolean
     rin_d4_price?: boolean
     rin_d6_price?: boolean
-    target_ret_5d?: boolean
-    target_ret_21d?: boolean
-    target_ret_63d?: boolean
-    target_ret_126d?: boolean
-    matrixVersion?: boolean
+    zs_close?: boolean
+    zm_close?: boolean
+    crush_spread?: boolean
+    oil_share?: boolean
+    wti_zl_corr_30d?: boolean
+    vix_zl_corr_30d?: boolean
+    biodiesel_margin?: boolean
+    cpo_close?: boolean
+    palm_soy_spread?: boolean
+    rs_close?: boolean
+    zl_canola_spread?: boolean
+    trump_total_actions_7d?: boolean
+    trump_total_actions_30d?: boolean
+    trump_avg_sentiment_7d?: boolean
+    trump_avg_sentiment_30d?: boolean
+    trump_action_velocity?: boolean
+    trump_weighted_action_score?: boolean
+    ho_zl_corr_30d?: boolean
+    rb_zl_corr_30d?: boolean
+    ng_zl_corr_30d?: boolean
+    hg_zl_corr_30d?: boolean
+    gc_zl_corr_30d?: boolean
+    dgs10_zl_corr_30d?: boolean
+    dgs2_zl_corr_30d?: boolean
   }, ExtArgs["result"]["trainingMatrix1d"]>
 
   export type TrainingMatrix1dSelectScalar = {
@@ -15051,6 +15387,11 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    target_ret_5d?: boolean
+    target_ret_21d?: boolean
+    target_ret_63d?: boolean
+    target_ret_126d?: boolean
+    matrixVersion?: boolean
     wx_ar_tavg_c?: boolean
     wx_br_tavg_c?: boolean
     wx_us_tavg_c?: boolean
@@ -15075,14 +15416,33 @@ export namespace Prisma {
     wasde_zs_production?: boolean
     rin_d4_price?: boolean
     rin_d6_price?: boolean
-    target_ret_5d?: boolean
-    target_ret_21d?: boolean
-    target_ret_63d?: boolean
-    target_ret_126d?: boolean
-    matrixVersion?: boolean
+    zs_close?: boolean
+    zm_close?: boolean
+    crush_spread?: boolean
+    oil_share?: boolean
+    wti_zl_corr_30d?: boolean
+    vix_zl_corr_30d?: boolean
+    biodiesel_margin?: boolean
+    cpo_close?: boolean
+    palm_soy_spread?: boolean
+    rs_close?: boolean
+    zl_canola_spread?: boolean
+    trump_total_actions_7d?: boolean
+    trump_total_actions_30d?: boolean
+    trump_avg_sentiment_7d?: boolean
+    trump_avg_sentiment_30d?: boolean
+    trump_action_velocity?: boolean
+    trump_weighted_action_score?: boolean
+    ho_zl_corr_30d?: boolean
+    rb_zl_corr_30d?: boolean
+    ng_zl_corr_30d?: boolean
+    hg_zl_corr_30d?: boolean
+    gc_zl_corr_30d?: boolean
+    dgs10_zl_corr_30d?: boolean
+    dgs2_zl_corr_30d?: boolean
   }
 
-  export type TrainingMatrix1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tradeDate" | "symbol" | "hurst_exponent" | "hurst_regime" | "connors_rsi" | "fisher_transform" | "fisher_signal" | "mcginley_dynamic" | "ttm_squeeze_on" | "ttm_squeeze_momentum" | "schaff_trend_cycle" | "rvi" | "rvi_signal" | "elder_force_index" | "kama_10" | "hma_20" | "alma_50" | "rsi_2" | "rsi_14" | "cumulative_rsi" | "macd" | "macd_signal" | "macd_histogram" | "cci_14" | "cci_50" | "atr_10" | "atr_50" | "atr_ratio" | "garman_klass_vol" | "yang_zhang_vol" | "bb_percent_b" | "cmf_21" | "volume_zscore" | "unusual_volume" | "createdAt" | "open" | "high" | "low" | "close" | "volume" | "returns_1d" | "log_returns_1d" | "range_pct" | "fred_bamlc0a0cm" | "fred_bamlh0a0hym2" | "fred_chnmainlandtpu" | "fred_dcoilbrenteu" | "fred_dcoilwtico" | "fred_dexbzus" | "fred_dexcaus" | "fred_dexchus" | "fred_dexinus" | "fred_dexjpus" | "fred_dexkous" | "fred_dexmaus" | "fred_dexmxus" | "fred_dexsfus" | "fred_dexthus" | "fred_dexusal" | "fred_dexuseu" | "fred_dgasusgulf" | "fred_dgs10" | "fred_dgs1mo" | "fred_dgs2" | "fred_dgs20" | "fred_dgs30" | "fred_dgs3mo" | "fred_dgs5" | "fred_dhhngsp" | "fred_dhoilnyh" | "fred_djfuelusgulf" | "fred_dprime" | "fred_dpropanembtx" | "fred_dxy" | "fred_emvtradepolemv" | "fred_eputrade" | "fred_fedfunds" | "fred_gdp" | "fred_gdpc1" | "fred_indpro" | "fred_m2sl" | "fred_nfci" | "fred_payems" | "fred_pce" | "fred_pcepi" | "fred_pcoppusdm" | "fred_pmaizmtusdm" | "fred_ppoilusdm" | "fred_proilusdm" | "fred_psoilusdm" | "fred_psoybusdm" | "fred_pwheamtusdm" | "fred_stlfsi4" | "fred_t10y2y" | "fred_t10y3m" | "fred_t10yie" | "fred_tedrate" | "fred_umcsent" | "fred_unrate" | "fred_usepuindxd" | "fred_usepuindxm" | "fred_vixcls" | "fred_walcl" | "fx_usdbrl" | "fx_usdcny" | "fx_usdeur" | "fx_usdgbp" | "fx_usdjpy" | "wx_ar_tavg_c" | "wx_br_tavg_c" | "wx_us_tavg_c" | "wx_ar_prcp_mm" | "wx_br_prcp_mm" | "wx_us_prcp_mm" | "wx_ar_prcp_anom_30d" | "wx_br_prcp_anom_30d" | "wx_us_prcp_anom_30d" | "wx_ar_gdd_30d_sum" | "wx_br_gdd_30d_sum" | "wx_us_gdd_30d_sum" | "cftc_open_interest" | "cftc_managed_money_net" | "cftc_managed_money_pct" | "cftc_prod_merc_net" | "cftc_prod_merc_pct" | "cftc_swap_net" | "wasde_zl_ending_stocks" | "wasde_zl_production" | "wasde_zs_ending_stocks" | "wasde_zs_production" | "rin_d4_price" | "rin_d6_price" | "target_ret_5d" | "target_ret_21d" | "target_ret_63d" | "target_ret_126d" | "matrixVersion", ExtArgs["result"]["trainingMatrix1d"]>
+  export type TrainingMatrix1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tradeDate" | "symbol" | "hurst_exponent" | "hurst_regime" | "connors_rsi" | "fisher_transform" | "fisher_signal" | "mcginley_dynamic" | "ttm_squeeze_on" | "ttm_squeeze_momentum" | "schaff_trend_cycle" | "rvi" | "rvi_signal" | "elder_force_index" | "kama_10" | "hma_20" | "alma_50" | "rsi_2" | "rsi_14" | "cumulative_rsi" | "macd" | "macd_signal" | "macd_histogram" | "cci_14" | "cci_50" | "atr_10" | "atr_50" | "atr_ratio" | "garman_klass_vol" | "yang_zhang_vol" | "bb_percent_b" | "cmf_21" | "volume_zscore" | "unusual_volume" | "createdAt" | "open" | "high" | "low" | "close" | "volume" | "returns_1d" | "log_returns_1d" | "range_pct" | "fred_bamlc0a0cm" | "fred_bamlh0a0hym2" | "fred_chnmainlandtpu" | "fred_dcoilbrenteu" | "fred_dcoilwtico" | "fred_dexbzus" | "fred_dexcaus" | "fred_dexchus" | "fred_dexinus" | "fred_dexjpus" | "fred_dexkous" | "fred_dexmaus" | "fred_dexmxus" | "fred_dexsfus" | "fred_dexthus" | "fred_dexusal" | "fred_dexuseu" | "fred_dgasusgulf" | "fred_dgs10" | "fred_dgs1mo" | "fred_dgs2" | "fred_dgs20" | "fred_dgs30" | "fred_dgs3mo" | "fred_dgs5" | "fred_dhhngsp" | "fred_dhoilnyh" | "fred_djfuelusgulf" | "fred_dprime" | "fred_dpropanembtx" | "fred_dxy" | "fred_emvtradepolemv" | "fred_eputrade" | "fred_fedfunds" | "fred_gdp" | "fred_gdpc1" | "fred_indpro" | "fred_m2sl" | "fred_nfci" | "fred_payems" | "fred_pce" | "fred_pcepi" | "fred_pcoppusdm" | "fred_pmaizmtusdm" | "fred_ppoilusdm" | "fred_proilusdm" | "fred_psoilusdm" | "fred_psoybusdm" | "fred_pwheamtusdm" | "fred_stlfsi4" | "fred_t10y2y" | "fred_t10y3m" | "fred_t10yie" | "fred_tedrate" | "fred_umcsent" | "fred_unrate" | "fred_usepuindxd" | "fred_usepuindxm" | "fred_vixcls" | "fred_walcl" | "fx_usdbrl" | "fx_usdcny" | "fx_usdeur" | "fx_usdgbp" | "fx_usdjpy" | "target_ret_5d" | "target_ret_21d" | "target_ret_63d" | "target_ret_126d" | "matrixVersion" | "wx_ar_tavg_c" | "wx_br_tavg_c" | "wx_us_tavg_c" | "wx_ar_prcp_mm" | "wx_br_prcp_mm" | "wx_us_prcp_mm" | "wx_ar_prcp_anom_30d" | "wx_br_prcp_anom_30d" | "wx_us_prcp_anom_30d" | "wx_ar_gdd_30d_sum" | "wx_br_gdd_30d_sum" | "wx_us_gdd_30d_sum" | "cftc_open_interest" | "cftc_managed_money_net" | "cftc_managed_money_pct" | "cftc_prod_merc_net" | "cftc_prod_merc_pct" | "cftc_swap_net" | "wasde_zl_ending_stocks" | "wasde_zl_production" | "wasde_zs_ending_stocks" | "wasde_zs_production" | "rin_d4_price" | "rin_d6_price" | "zs_close" | "zm_close" | "crush_spread" | "oil_share" | "wti_zl_corr_30d" | "vix_zl_corr_30d" | "biodiesel_margin" | "cpo_close" | "palm_soy_spread" | "rs_close" | "zl_canola_spread" | "trump_total_actions_7d" | "trump_total_actions_30d" | "trump_avg_sentiment_7d" | "trump_avg_sentiment_30d" | "trump_action_velocity" | "trump_weighted_action_score" | "ho_zl_corr_30d" | "rb_zl_corr_30d" | "ng_zl_corr_30d" | "hg_zl_corr_30d" | "gc_zl_corr_30d" | "dgs10_zl_corr_30d" | "dgs2_zl_corr_30d", ExtArgs["result"]["trainingMatrix1d"]>
 
   export type $TrainingMatrix1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TrainingMatrix1d"
@@ -15197,6 +15557,11 @@ export namespace Prisma {
       fx_usdeur: number | null
       fx_usdgbp: number | null
       fx_usdjpy: number | null
+      target_ret_5d: number | null
+      target_ret_21d: number | null
+      target_ret_63d: number | null
+      target_ret_126d: number | null
+      matrixVersion: string | null
       wx_ar_tavg_c: number | null
       wx_br_tavg_c: number | null
       wx_us_tavg_c: number | null
@@ -15221,11 +15586,30 @@ export namespace Prisma {
       wasde_zs_production: number | null
       rin_d4_price: number | null
       rin_d6_price: number | null
-      target_ret_5d: number | null
-      target_ret_21d: number | null
-      target_ret_63d: number | null
-      target_ret_126d: number | null
-      matrixVersion: string | null
+      zs_close: Prisma.Decimal | null
+      zm_close: Prisma.Decimal | null
+      crush_spread: Prisma.Decimal | null
+      oil_share: Prisma.Decimal | null
+      wti_zl_corr_30d: Prisma.Decimal | null
+      vix_zl_corr_30d: Prisma.Decimal | null
+      biodiesel_margin: Prisma.Decimal | null
+      cpo_close: Prisma.Decimal | null
+      palm_soy_spread: Prisma.Decimal | null
+      rs_close: Prisma.Decimal | null
+      zl_canola_spread: Prisma.Decimal | null
+      trump_total_actions_7d: number | null
+      trump_total_actions_30d: number | null
+      trump_avg_sentiment_7d: Prisma.Decimal | null
+      trump_avg_sentiment_30d: Prisma.Decimal | null
+      trump_action_velocity: Prisma.Decimal | null
+      trump_weighted_action_score: Prisma.Decimal | null
+      ho_zl_corr_30d: Prisma.Decimal | null
+      rb_zl_corr_30d: Prisma.Decimal | null
+      ng_zl_corr_30d: Prisma.Decimal | null
+      hg_zl_corr_30d: Prisma.Decimal | null
+      gc_zl_corr_30d: Prisma.Decimal | null
+      dgs10_zl_corr_30d: Prisma.Decimal | null
+      dgs2_zl_corr_30d: Prisma.Decimal | null
     }, ExtArgs["result"]["trainingMatrix1d"]>
     composites: {}
   }
@@ -15758,6 +16142,11 @@ export namespace Prisma {
     readonly fx_usdeur: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly fx_usdgbp: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly fx_usdjpy: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly target_ret_5d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly target_ret_21d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly target_ret_63d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly target_ret_126d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly matrixVersion: FieldRef<"TrainingMatrix1d", 'String'>
     readonly wx_ar_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly wx_br_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly wx_us_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
@@ -15782,11 +16171,30 @@ export namespace Prisma {
     readonly wasde_zs_production: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly rin_d4_price: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly rin_d6_price: FieldRef<"TrainingMatrix1d", 'Float'>
-    readonly target_ret_5d: FieldRef<"TrainingMatrix1d", 'Float'>
-    readonly target_ret_21d: FieldRef<"TrainingMatrix1d", 'Float'>
-    readonly target_ret_63d: FieldRef<"TrainingMatrix1d", 'Float'>
-    readonly target_ret_126d: FieldRef<"TrainingMatrix1d", 'Float'>
-    readonly matrixVersion: FieldRef<"TrainingMatrix1d", 'String'>
+    readonly zs_close: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly zm_close: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly crush_spread: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly oil_share: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly wti_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly vix_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly biodiesel_margin: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly cpo_close: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly palm_soy_spread: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly rs_close: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly zl_canola_spread: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly trump_total_actions_7d: FieldRef<"TrainingMatrix1d", 'Int'>
+    readonly trump_total_actions_30d: FieldRef<"TrainingMatrix1d", 'Int'>
+    readonly trump_avg_sentiment_7d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly trump_avg_sentiment_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly trump_action_velocity: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly trump_weighted_action_score: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly ho_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly rb_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly ng_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly hg_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly gc_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly dgs10_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
+    readonly dgs2_zl_corr_30d: FieldRef<"TrainingMatrix1d", 'Decimal'>
   }
     
 
@@ -74846,9 +75254,9 @@ export namespace Prisma {
     high: Decimal
     low: Decimal
     close: Decimal
-    volume: bigint
-    source: string
-    created_at: Date
+    volume: bigint | null
+    source: string | null
+    created_at: Date | null
     _count: Zl_price_1dCountAggregateOutputType | null
     _avg: Zl_price_1dAvgAggregateOutputType | null
     _sum: Zl_price_1dSumAggregateOutputType | null
@@ -74925,9 +75333,9 @@ export namespace Prisma {
       high: Prisma.Decimal
       low: Prisma.Decimal
       close: Prisma.Decimal
-      volume: bigint
-      source: string
-      created_at: Date
+      volume: bigint | null
+      source: string | null
+      created_at: Date | null
     }, ExtArgs["result"]["zl_price_1d"]>
     composites: {}
   }
@@ -109045,1206 +109453,6 @@ export namespace Prisma {
 
 
   /**
-   * Model MktOptions1d
-   */
-
-  export type AggregateMktOptions1d = {
-    _count: MktOptions1dCountAggregateOutputType | null
-    _avg: MktOptions1dAvgAggregateOutputType | null
-    _sum: MktOptions1dSumAggregateOutputType | null
-    _min: MktOptions1dMinAggregateOutputType | null
-    _max: MktOptions1dMaxAggregateOutputType | null
-  }
-
-  export type MktOptions1dAvgAggregateOutputType = {
-    id: number | null
-    strike: number | null
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: number | null
-    openInterest: number | null
-  }
-
-  export type MktOptions1dSumAggregateOutputType = {
-    id: number | null
-    strike: number | null
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: bigint | null
-    openInterest: bigint | null
-  }
-
-  export type MktOptions1dMinAggregateOutputType = {
-    id: number | null
-    underlying: string | null
-    eventDate: Date | null
-    expiration: Date | null
-    strike: number | null
-    optionType: string | null
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: bigint | null
-    openInterest: bigint | null
-    source: string | null
-    ingestedAt: Date | null
-    knowledgeTime: Date | null
-    rowHash: string | null
-  }
-
-  export type MktOptions1dMaxAggregateOutputType = {
-    id: number | null
-    underlying: string | null
-    eventDate: Date | null
-    expiration: Date | null
-    strike: number | null
-    optionType: string | null
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: bigint | null
-    openInterest: bigint | null
-    source: string | null
-    ingestedAt: Date | null
-    knowledgeTime: Date | null
-    rowHash: string | null
-  }
-
-  export type MktOptions1dCountAggregateOutputType = {
-    id: number
-    underlying: number
-    eventDate: number
-    expiration: number
-    strike: number
-    optionType: number
-    open: number
-    high: number
-    low: number
-    close: number
-    volume: number
-    openInterest: number
-    source: number
-    ingestedAt: number
-    knowledgeTime: number
-    rowHash: number
-    _all: number
-  }
-
-
-  export type MktOptions1dAvgAggregateInputType = {
-    id?: true
-    strike?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    openInterest?: true
-  }
-
-  export type MktOptions1dSumAggregateInputType = {
-    id?: true
-    strike?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    openInterest?: true
-  }
-
-  export type MktOptions1dMinAggregateInputType = {
-    id?: true
-    underlying?: true
-    eventDate?: true
-    expiration?: true
-    strike?: true
-    optionType?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    openInterest?: true
-    source?: true
-    ingestedAt?: true
-    knowledgeTime?: true
-    rowHash?: true
-  }
-
-  export type MktOptions1dMaxAggregateInputType = {
-    id?: true
-    underlying?: true
-    eventDate?: true
-    expiration?: true
-    strike?: true
-    optionType?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    openInterest?: true
-    source?: true
-    ingestedAt?: true
-    knowledgeTime?: true
-    rowHash?: true
-  }
-
-  export type MktOptions1dCountAggregateInputType = {
-    id?: true
-    underlying?: true
-    eventDate?: true
-    expiration?: true
-    strike?: true
-    optionType?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    openInterest?: true
-    source?: true
-    ingestedAt?: true
-    knowledgeTime?: true
-    rowHash?: true
-    _all?: true
-  }
-
-  export type MktOptions1dAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which MktOptions1d to aggregate.
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of MktOptions1ds to fetch.
-     */
-    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: MktOptions1dWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` MktOptions1ds from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` MktOptions1ds.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned MktOptions1ds
-    **/
-    _count?: true | MktOptions1dCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: MktOptions1dAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: MktOptions1dSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: MktOptions1dMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: MktOptions1dMaxAggregateInputType
-  }
-
-  export type GetMktOptions1dAggregateType<T extends MktOptions1dAggregateArgs> = {
-        [P in keyof T & keyof AggregateMktOptions1d]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateMktOptions1d[P]>
-      : GetScalarType<T[P], AggregateMktOptions1d[P]>
-  }
-
-
-
-
-  export type MktOptions1dGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: MktOptions1dWhereInput
-    orderBy?: MktOptions1dOrderByWithAggregationInput | MktOptions1dOrderByWithAggregationInput[]
-    by: MktOptions1dScalarFieldEnum[] | MktOptions1dScalarFieldEnum
-    having?: MktOptions1dScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: MktOptions1dCountAggregateInputType | true
-    _avg?: MktOptions1dAvgAggregateInputType
-    _sum?: MktOptions1dSumAggregateInputType
-    _min?: MktOptions1dMinAggregateInputType
-    _max?: MktOptions1dMaxAggregateInputType
-  }
-
-  export type MktOptions1dGroupByOutputType = {
-    id: number
-    underlying: string
-    eventDate: Date
-    expiration: Date
-    strike: number
-    optionType: string
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: bigint | null
-    openInterest: bigint | null
-    source: string | null
-    ingestedAt: Date | null
-    knowledgeTime: Date | null
-    rowHash: string | null
-    _count: MktOptions1dCountAggregateOutputType | null
-    _avg: MktOptions1dAvgAggregateOutputType | null
-    _sum: MktOptions1dSumAggregateOutputType | null
-    _min: MktOptions1dMinAggregateOutputType | null
-    _max: MktOptions1dMaxAggregateOutputType | null
-  }
-
-  type GetMktOptions1dGroupByPayload<T extends MktOptions1dGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<MktOptions1dGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof MktOptions1dGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], MktOptions1dGroupByOutputType[P]>
-            : GetScalarType<T[P], MktOptions1dGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type MktOptions1dSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    underlying?: boolean
-    eventDate?: boolean
-    expiration?: boolean
-    strike?: boolean
-    optionType?: boolean
-    open?: boolean
-    high?: boolean
-    low?: boolean
-    close?: boolean
-    volume?: boolean
-    openInterest?: boolean
-    source?: boolean
-    ingestedAt?: boolean
-    knowledgeTime?: boolean
-    rowHash?: boolean
-  }, ExtArgs["result"]["mktOptions1d"]>
-
-  export type MktOptions1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    underlying?: boolean
-    eventDate?: boolean
-    expiration?: boolean
-    strike?: boolean
-    optionType?: boolean
-    open?: boolean
-    high?: boolean
-    low?: boolean
-    close?: boolean
-    volume?: boolean
-    openInterest?: boolean
-    source?: boolean
-    ingestedAt?: boolean
-    knowledgeTime?: boolean
-    rowHash?: boolean
-  }, ExtArgs["result"]["mktOptions1d"]>
-
-  export type MktOptions1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    underlying?: boolean
-    eventDate?: boolean
-    expiration?: boolean
-    strike?: boolean
-    optionType?: boolean
-    open?: boolean
-    high?: boolean
-    low?: boolean
-    close?: boolean
-    volume?: boolean
-    openInterest?: boolean
-    source?: boolean
-    ingestedAt?: boolean
-    knowledgeTime?: boolean
-    rowHash?: boolean
-  }, ExtArgs["result"]["mktOptions1d"]>
-
-  export type MktOptions1dSelectScalar = {
-    id?: boolean
-    underlying?: boolean
-    eventDate?: boolean
-    expiration?: boolean
-    strike?: boolean
-    optionType?: boolean
-    open?: boolean
-    high?: boolean
-    low?: boolean
-    close?: boolean
-    volume?: boolean
-    openInterest?: boolean
-    source?: boolean
-    ingestedAt?: boolean
-    knowledgeTime?: boolean
-    rowHash?: boolean
-  }
-
-  export type MktOptions1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "underlying" | "eventDate" | "expiration" | "strike" | "optionType" | "open" | "high" | "low" | "close" | "volume" | "openInterest" | "source" | "ingestedAt" | "knowledgeTime" | "rowHash", ExtArgs["result"]["mktOptions1d"]>
-
-  export type $MktOptions1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "MktOptions1d"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      id: number
-      underlying: string
-      eventDate: Date
-      expiration: Date
-      strike: number
-      optionType: string
-      open: number | null
-      high: number | null
-      low: number | null
-      close: number | null
-      volume: bigint | null
-      openInterest: bigint | null
-      source: string | null
-      ingestedAt: Date | null
-      knowledgeTime: Date | null
-      rowHash: string | null
-    }, ExtArgs["result"]["mktOptions1d"]>
-    composites: {}
-  }
-
-  type MktOptions1dGetPayload<S extends boolean | null | undefined | MktOptions1dDefaultArgs> = $Result.GetResult<Prisma.$MktOptions1dPayload, S>
-
-  type MktOptions1dCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<MktOptions1dFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: MktOptions1dCountAggregateInputType | true
-    }
-
-  export interface MktOptions1dDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['MktOptions1d'], meta: { name: 'MktOptions1d' } }
-    /**
-     * Find zero or one MktOptions1d that matches the filter.
-     * @param {MktOptions1dFindUniqueArgs} args - Arguments to find a MktOptions1d
-     * @example
-     * // Get one MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends MktOptions1dFindUniqueArgs>(args: SelectSubset<T, MktOptions1dFindUniqueArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one MktOptions1d that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {MktOptions1dFindUniqueOrThrowArgs} args - Arguments to find a MktOptions1d
-     * @example
-     * // Get one MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends MktOptions1dFindUniqueOrThrowArgs>(args: SelectSubset<T, MktOptions1dFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first MktOptions1d that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dFindFirstArgs} args - Arguments to find a MktOptions1d
-     * @example
-     * // Get one MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends MktOptions1dFindFirstArgs>(args?: SelectSubset<T, MktOptions1dFindFirstArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first MktOptions1d that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dFindFirstOrThrowArgs} args - Arguments to find a MktOptions1d
-     * @example
-     * // Get one MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends MktOptions1dFindFirstOrThrowArgs>(args?: SelectSubset<T, MktOptions1dFindFirstOrThrowArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more MktOptions1ds that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all MktOptions1ds
-     * const mktOptions1ds = await prisma.mktOptions1d.findMany()
-     * 
-     * // Get first 10 MktOptions1ds
-     * const mktOptions1ds = await prisma.mktOptions1d.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends MktOptions1dFindManyArgs>(args?: SelectSubset<T, MktOptions1dFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a MktOptions1d.
-     * @param {MktOptions1dCreateArgs} args - Arguments to create a MktOptions1d.
-     * @example
-     * // Create one MktOptions1d
-     * const MktOptions1d = await prisma.mktOptions1d.create({
-     *   data: {
-     *     // ... data to create a MktOptions1d
-     *   }
-     * })
-     * 
-     */
-    create<T extends MktOptions1dCreateArgs>(args: SelectSubset<T, MktOptions1dCreateArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many MktOptions1ds.
-     * @param {MktOptions1dCreateManyArgs} args - Arguments to create many MktOptions1ds.
-     * @example
-     * // Create many MktOptions1ds
-     * const mktOptions1d = await prisma.mktOptions1d.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends MktOptions1dCreateManyArgs>(args?: SelectSubset<T, MktOptions1dCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many MktOptions1ds and returns the data saved in the database.
-     * @param {MktOptions1dCreateManyAndReturnArgs} args - Arguments to create many MktOptions1ds.
-     * @example
-     * // Create many MktOptions1ds
-     * const mktOptions1d = await prisma.mktOptions1d.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many MktOptions1ds and only return the `id`
-     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends MktOptions1dCreateManyAndReturnArgs>(args?: SelectSubset<T, MktOptions1dCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a MktOptions1d.
-     * @param {MktOptions1dDeleteArgs} args - Arguments to delete one MktOptions1d.
-     * @example
-     * // Delete one MktOptions1d
-     * const MktOptions1d = await prisma.mktOptions1d.delete({
-     *   where: {
-     *     // ... filter to delete one MktOptions1d
-     *   }
-     * })
-     * 
-     */
-    delete<T extends MktOptions1dDeleteArgs>(args: SelectSubset<T, MktOptions1dDeleteArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one MktOptions1d.
-     * @param {MktOptions1dUpdateArgs} args - Arguments to update one MktOptions1d.
-     * @example
-     * // Update one MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends MktOptions1dUpdateArgs>(args: SelectSubset<T, MktOptions1dUpdateArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more MktOptions1ds.
-     * @param {MktOptions1dDeleteManyArgs} args - Arguments to filter MktOptions1ds to delete.
-     * @example
-     * // Delete a few MktOptions1ds
-     * const { count } = await prisma.mktOptions1d.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends MktOptions1dDeleteManyArgs>(args?: SelectSubset<T, MktOptions1dDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more MktOptions1ds.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many MktOptions1ds
-     * const mktOptions1d = await prisma.mktOptions1d.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends MktOptions1dUpdateManyArgs>(args: SelectSubset<T, MktOptions1dUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more MktOptions1ds and returns the data updated in the database.
-     * @param {MktOptions1dUpdateManyAndReturnArgs} args - Arguments to update many MktOptions1ds.
-     * @example
-     * // Update many MktOptions1ds
-     * const mktOptions1d = await prisma.mktOptions1d.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more MktOptions1ds and only return the `id`
-     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends MktOptions1dUpdateManyAndReturnArgs>(args: SelectSubset<T, MktOptions1dUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one MktOptions1d.
-     * @param {MktOptions1dUpsertArgs} args - Arguments to update or create a MktOptions1d.
-     * @example
-     * // Update or create a MktOptions1d
-     * const mktOptions1d = await prisma.mktOptions1d.upsert({
-     *   create: {
-     *     // ... data to create a MktOptions1d
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the MktOptions1d we want to update
-     *   }
-     * })
-     */
-    upsert<T extends MktOptions1dUpsertArgs>(args: SelectSubset<T, MktOptions1dUpsertArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of MktOptions1ds.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dCountArgs} args - Arguments to filter MktOptions1ds to count.
-     * @example
-     * // Count the number of MktOptions1ds
-     * const count = await prisma.mktOptions1d.count({
-     *   where: {
-     *     // ... the filter for the MktOptions1ds we want to count
-     *   }
-     * })
-    **/
-    count<T extends MktOptions1dCountArgs>(
-      args?: Subset<T, MktOptions1dCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], MktOptions1dCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a MktOptions1d.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends MktOptions1dAggregateArgs>(args: Subset<T, MktOptions1dAggregateArgs>): Prisma.PrismaPromise<GetMktOptions1dAggregateType<T>>
-
-    /**
-     * Group by MktOptions1d.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {MktOptions1dGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends MktOptions1dGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: MktOptions1dGroupByArgs['orderBy'] }
-        : { orderBy?: MktOptions1dGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, MktOptions1dGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMktOptions1dGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the MktOptions1d model
-   */
-  readonly fields: MktOptions1dFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for MktOptions1d.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__MktOptions1dClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the MktOptions1d model
-   */
-  interface MktOptions1dFieldRefs {
-    readonly id: FieldRef<"MktOptions1d", 'Int'>
-    readonly underlying: FieldRef<"MktOptions1d", 'String'>
-    readonly eventDate: FieldRef<"MktOptions1d", 'DateTime'>
-    readonly expiration: FieldRef<"MktOptions1d", 'DateTime'>
-    readonly strike: FieldRef<"MktOptions1d", 'Float'>
-    readonly optionType: FieldRef<"MktOptions1d", 'String'>
-    readonly open: FieldRef<"MktOptions1d", 'Float'>
-    readonly high: FieldRef<"MktOptions1d", 'Float'>
-    readonly low: FieldRef<"MktOptions1d", 'Float'>
-    readonly close: FieldRef<"MktOptions1d", 'Float'>
-    readonly volume: FieldRef<"MktOptions1d", 'BigInt'>
-    readonly openInterest: FieldRef<"MktOptions1d", 'BigInt'>
-    readonly source: FieldRef<"MktOptions1d", 'String'>
-    readonly ingestedAt: FieldRef<"MktOptions1d", 'DateTime'>
-    readonly knowledgeTime: FieldRef<"MktOptions1d", 'DateTime'>
-    readonly rowHash: FieldRef<"MktOptions1d", 'String'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * MktOptions1d findUnique
-   */
-  export type MktOptions1dFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter, which MktOptions1d to fetch.
-     */
-    where: MktOptions1dWhereUniqueInput
-  }
-
-  /**
-   * MktOptions1d findUniqueOrThrow
-   */
-  export type MktOptions1dFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter, which MktOptions1d to fetch.
-     */
-    where: MktOptions1dWhereUniqueInput
-  }
-
-  /**
-   * MktOptions1d findFirst
-   */
-  export type MktOptions1dFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter, which MktOptions1d to fetch.
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of MktOptions1ds to fetch.
-     */
-    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for MktOptions1ds.
-     */
-    cursor?: MktOptions1dWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` MktOptions1ds from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` MktOptions1ds.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of MktOptions1ds.
-     */
-    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
-  }
-
-  /**
-   * MktOptions1d findFirstOrThrow
-   */
-  export type MktOptions1dFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter, which MktOptions1d to fetch.
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of MktOptions1ds to fetch.
-     */
-    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for MktOptions1ds.
-     */
-    cursor?: MktOptions1dWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` MktOptions1ds from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` MktOptions1ds.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of MktOptions1ds.
-     */
-    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
-  }
-
-  /**
-   * MktOptions1d findMany
-   */
-  export type MktOptions1dFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter, which MktOptions1ds to fetch.
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of MktOptions1ds to fetch.
-     */
-    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing MktOptions1ds.
-     */
-    cursor?: MktOptions1dWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` MktOptions1ds from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` MktOptions1ds.
-     */
-    skip?: number
-    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
-  }
-
-  /**
-   * MktOptions1d create
-   */
-  export type MktOptions1dCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * The data needed to create a MktOptions1d.
-     */
-    data: XOR<MktOptions1dCreateInput, MktOptions1dUncheckedCreateInput>
-  }
-
-  /**
-   * MktOptions1d createMany
-   */
-  export type MktOptions1dCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many MktOptions1ds.
-     */
-    data: MktOptions1dCreateManyInput | MktOptions1dCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * MktOptions1d createManyAndReturn
-   */
-  export type MktOptions1dCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * The data used to create many MktOptions1ds.
-     */
-    data: MktOptions1dCreateManyInput | MktOptions1dCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * MktOptions1d update
-   */
-  export type MktOptions1dUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * The data needed to update a MktOptions1d.
-     */
-    data: XOR<MktOptions1dUpdateInput, MktOptions1dUncheckedUpdateInput>
-    /**
-     * Choose, which MktOptions1d to update.
-     */
-    where: MktOptions1dWhereUniqueInput
-  }
-
-  /**
-   * MktOptions1d updateMany
-   */
-  export type MktOptions1dUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update MktOptions1ds.
-     */
-    data: XOR<MktOptions1dUpdateManyMutationInput, MktOptions1dUncheckedUpdateManyInput>
-    /**
-     * Filter which MktOptions1ds to update
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * Limit how many MktOptions1ds to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * MktOptions1d updateManyAndReturn
-   */
-  export type MktOptions1dUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * The data used to update MktOptions1ds.
-     */
-    data: XOR<MktOptions1dUpdateManyMutationInput, MktOptions1dUncheckedUpdateManyInput>
-    /**
-     * Filter which MktOptions1ds to update
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * Limit how many MktOptions1ds to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * MktOptions1d upsert
-   */
-  export type MktOptions1dUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * The filter to search for the MktOptions1d to update in case it exists.
-     */
-    where: MktOptions1dWhereUniqueInput
-    /**
-     * In case the MktOptions1d found by the `where` argument doesn't exist, create a new MktOptions1d with this data.
-     */
-    create: XOR<MktOptions1dCreateInput, MktOptions1dUncheckedCreateInput>
-    /**
-     * In case the MktOptions1d was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<MktOptions1dUpdateInput, MktOptions1dUncheckedUpdateInput>
-  }
-
-  /**
-   * MktOptions1d delete
-   */
-  export type MktOptions1dDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-    /**
-     * Filter which MktOptions1d to delete.
-     */
-    where: MktOptions1dWhereUniqueInput
-  }
-
-  /**
-   * MktOptions1d deleteMany
-   */
-  export type MktOptions1dDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which MktOptions1ds to delete
-     */
-    where?: MktOptions1dWhereInput
-    /**
-     * Limit how many MktOptions1ds to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * MktOptions1d without action
-   */
-  export type MktOptions1dDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the MktOptions1d
-     */
-    select?: MktOptions1dSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the MktOptions1d
-     */
-    omit?: MktOptions1dOmit<ExtArgs> | null
-  }
-
-
-  /**
    * Model MktFx1d
    */
 
@@ -112449,6 +111657,1274 @@ export namespace Prisma {
      * Omit specific fields from the MktEtf1d
      */
     omit?: MktEtf1dOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model MktOptions1d
+   */
+
+  export type AggregateMktOptions1d = {
+    _count: MktOptions1dCountAggregateOutputType | null
+    _avg: MktOptions1dAvgAggregateOutputType | null
+    _sum: MktOptions1dSumAggregateOutputType | null
+    _min: MktOptions1dMinAggregateOutputType | null
+    _max: MktOptions1dMaxAggregateOutputType | null
+  }
+
+  export type MktOptions1dAvgAggregateOutputType = {
+    id: number | null
+    strike: number | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    change: number | null
+    bid: number | null
+    ask: number | null
+    volume: number | null
+    openInterest: number | null
+    premium: number | null
+  }
+
+  export type MktOptions1dSumAggregateOutputType = {
+    id: number | null
+    strike: number | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    change: number | null
+    bid: number | null
+    ask: number | null
+    volume: bigint | null
+    openInterest: bigint | null
+    premium: number | null
+  }
+
+  export type MktOptions1dMinAggregateOutputType = {
+    id: number | null
+    underlying: string | null
+    eventDate: Date | null
+    expiration: Date | null
+    strike: number | null
+    optionType: string | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    change: number | null
+    bid: number | null
+    ask: number | null
+    volume: bigint | null
+    openInterest: bigint | null
+    premium: number | null
+    lastTradeTime: string | null
+    source: string | null
+    ingestedAt: Date | null
+    rowHash: string | null
+  }
+
+  export type MktOptions1dMaxAggregateOutputType = {
+    id: number | null
+    underlying: string | null
+    eventDate: Date | null
+    expiration: Date | null
+    strike: number | null
+    optionType: string | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    change: number | null
+    bid: number | null
+    ask: number | null
+    volume: bigint | null
+    openInterest: bigint | null
+    premium: number | null
+    lastTradeTime: string | null
+    source: string | null
+    ingestedAt: Date | null
+    rowHash: string | null
+  }
+
+  export type MktOptions1dCountAggregateOutputType = {
+    id: number
+    underlying: number
+    eventDate: number
+    expiration: number
+    strike: number
+    optionType: number
+    open: number
+    high: number
+    low: number
+    close: number
+    change: number
+    bid: number
+    ask: number
+    volume: number
+    openInterest: number
+    premium: number
+    lastTradeTime: number
+    source: number
+    ingestedAt: number
+    rowHash: number
+    _all: number
+  }
+
+
+  export type MktOptions1dAvgAggregateInputType = {
+    id?: true
+    strike?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    change?: true
+    bid?: true
+    ask?: true
+    volume?: true
+    openInterest?: true
+    premium?: true
+  }
+
+  export type MktOptions1dSumAggregateInputType = {
+    id?: true
+    strike?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    change?: true
+    bid?: true
+    ask?: true
+    volume?: true
+    openInterest?: true
+    premium?: true
+  }
+
+  export type MktOptions1dMinAggregateInputType = {
+    id?: true
+    underlying?: true
+    eventDate?: true
+    expiration?: true
+    strike?: true
+    optionType?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    change?: true
+    bid?: true
+    ask?: true
+    volume?: true
+    openInterest?: true
+    premium?: true
+    lastTradeTime?: true
+    source?: true
+    ingestedAt?: true
+    rowHash?: true
+  }
+
+  export type MktOptions1dMaxAggregateInputType = {
+    id?: true
+    underlying?: true
+    eventDate?: true
+    expiration?: true
+    strike?: true
+    optionType?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    change?: true
+    bid?: true
+    ask?: true
+    volume?: true
+    openInterest?: true
+    premium?: true
+    lastTradeTime?: true
+    source?: true
+    ingestedAt?: true
+    rowHash?: true
+  }
+
+  export type MktOptions1dCountAggregateInputType = {
+    id?: true
+    underlying?: true
+    eventDate?: true
+    expiration?: true
+    strike?: true
+    optionType?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    change?: true
+    bid?: true
+    ask?: true
+    volume?: true
+    openInterest?: true
+    premium?: true
+    lastTradeTime?: true
+    source?: true
+    ingestedAt?: true
+    rowHash?: true
+    _all?: true
+  }
+
+  export type MktOptions1dAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MktOptions1d to aggregate.
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MktOptions1ds to fetch.
+     */
+    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MktOptions1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MktOptions1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MktOptions1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned MktOptions1ds
+    **/
+    _count?: true | MktOptions1dCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: MktOptions1dAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: MktOptions1dSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MktOptions1dMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MktOptions1dMaxAggregateInputType
+  }
+
+  export type GetMktOptions1dAggregateType<T extends MktOptions1dAggregateArgs> = {
+        [P in keyof T & keyof AggregateMktOptions1d]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMktOptions1d[P]>
+      : GetScalarType<T[P], AggregateMktOptions1d[P]>
+  }
+
+
+
+
+  export type MktOptions1dGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MktOptions1dWhereInput
+    orderBy?: MktOptions1dOrderByWithAggregationInput | MktOptions1dOrderByWithAggregationInput[]
+    by: MktOptions1dScalarFieldEnum[] | MktOptions1dScalarFieldEnum
+    having?: MktOptions1dScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MktOptions1dCountAggregateInputType | true
+    _avg?: MktOptions1dAvgAggregateInputType
+    _sum?: MktOptions1dSumAggregateInputType
+    _min?: MktOptions1dMinAggregateInputType
+    _max?: MktOptions1dMaxAggregateInputType
+  }
+
+  export type MktOptions1dGroupByOutputType = {
+    id: number
+    underlying: string
+    eventDate: Date
+    expiration: Date
+    strike: number
+    optionType: string
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    change: number | null
+    bid: number | null
+    ask: number | null
+    volume: bigint | null
+    openInterest: bigint | null
+    premium: number | null
+    lastTradeTime: string | null
+    source: string | null
+    ingestedAt: Date | null
+    rowHash: string
+    _count: MktOptions1dCountAggregateOutputType | null
+    _avg: MktOptions1dAvgAggregateOutputType | null
+    _sum: MktOptions1dSumAggregateOutputType | null
+    _min: MktOptions1dMinAggregateOutputType | null
+    _max: MktOptions1dMaxAggregateOutputType | null
+  }
+
+  type GetMktOptions1dGroupByPayload<T extends MktOptions1dGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MktOptions1dGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MktOptions1dGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MktOptions1dGroupByOutputType[P]>
+            : GetScalarType<T[P], MktOptions1dGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MktOptions1dSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    underlying?: boolean
+    eventDate?: boolean
+    expiration?: boolean
+    strike?: boolean
+    optionType?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    change?: boolean
+    bid?: boolean
+    ask?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    premium?: boolean
+    lastTradeTime?: boolean
+    source?: boolean
+    ingestedAt?: boolean
+    rowHash?: boolean
+  }, ExtArgs["result"]["mktOptions1d"]>
+
+  export type MktOptions1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    underlying?: boolean
+    eventDate?: boolean
+    expiration?: boolean
+    strike?: boolean
+    optionType?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    change?: boolean
+    bid?: boolean
+    ask?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    premium?: boolean
+    lastTradeTime?: boolean
+    source?: boolean
+    ingestedAt?: boolean
+    rowHash?: boolean
+  }, ExtArgs["result"]["mktOptions1d"]>
+
+  export type MktOptions1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    underlying?: boolean
+    eventDate?: boolean
+    expiration?: boolean
+    strike?: boolean
+    optionType?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    change?: boolean
+    bid?: boolean
+    ask?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    premium?: boolean
+    lastTradeTime?: boolean
+    source?: boolean
+    ingestedAt?: boolean
+    rowHash?: boolean
+  }, ExtArgs["result"]["mktOptions1d"]>
+
+  export type MktOptions1dSelectScalar = {
+    id?: boolean
+    underlying?: boolean
+    eventDate?: boolean
+    expiration?: boolean
+    strike?: boolean
+    optionType?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    change?: boolean
+    bid?: boolean
+    ask?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    premium?: boolean
+    lastTradeTime?: boolean
+    source?: boolean
+    ingestedAt?: boolean
+    rowHash?: boolean
+  }
+
+  export type MktOptions1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "underlying" | "eventDate" | "expiration" | "strike" | "optionType" | "open" | "high" | "low" | "close" | "change" | "bid" | "ask" | "volume" | "openInterest" | "premium" | "lastTradeTime" | "source" | "ingestedAt" | "rowHash", ExtArgs["result"]["mktOptions1d"]>
+
+  export type $MktOptions1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "MktOptions1d"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      underlying: string
+      eventDate: Date
+      expiration: Date
+      strike: number
+      optionType: string
+      open: number | null
+      high: number | null
+      low: number | null
+      close: number | null
+      change: number | null
+      bid: number | null
+      ask: number | null
+      volume: bigint | null
+      openInterest: bigint | null
+      premium: number | null
+      lastTradeTime: string | null
+      source: string | null
+      ingestedAt: Date | null
+      rowHash: string
+    }, ExtArgs["result"]["mktOptions1d"]>
+    composites: {}
+  }
+
+  type MktOptions1dGetPayload<S extends boolean | null | undefined | MktOptions1dDefaultArgs> = $Result.GetResult<Prisma.$MktOptions1dPayload, S>
+
+  type MktOptions1dCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<MktOptions1dFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: MktOptions1dCountAggregateInputType | true
+    }
+
+  export interface MktOptions1dDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['MktOptions1d'], meta: { name: 'MktOptions1d' } }
+    /**
+     * Find zero or one MktOptions1d that matches the filter.
+     * @param {MktOptions1dFindUniqueArgs} args - Arguments to find a MktOptions1d
+     * @example
+     * // Get one MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MktOptions1dFindUniqueArgs>(args: SelectSubset<T, MktOptions1dFindUniqueArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one MktOptions1d that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {MktOptions1dFindUniqueOrThrowArgs} args - Arguments to find a MktOptions1d
+     * @example
+     * // Get one MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MktOptions1dFindUniqueOrThrowArgs>(args: SelectSubset<T, MktOptions1dFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first MktOptions1d that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dFindFirstArgs} args - Arguments to find a MktOptions1d
+     * @example
+     * // Get one MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MktOptions1dFindFirstArgs>(args?: SelectSubset<T, MktOptions1dFindFirstArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first MktOptions1d that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dFindFirstOrThrowArgs} args - Arguments to find a MktOptions1d
+     * @example
+     * // Get one MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MktOptions1dFindFirstOrThrowArgs>(args?: SelectSubset<T, MktOptions1dFindFirstOrThrowArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more MktOptions1ds that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all MktOptions1ds
+     * const mktOptions1ds = await prisma.mktOptions1d.findMany()
+     * 
+     * // Get first 10 MktOptions1ds
+     * const mktOptions1ds = await prisma.mktOptions1d.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MktOptions1dFindManyArgs>(args?: SelectSubset<T, MktOptions1dFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a MktOptions1d.
+     * @param {MktOptions1dCreateArgs} args - Arguments to create a MktOptions1d.
+     * @example
+     * // Create one MktOptions1d
+     * const MktOptions1d = await prisma.mktOptions1d.create({
+     *   data: {
+     *     // ... data to create a MktOptions1d
+     *   }
+     * })
+     * 
+     */
+    create<T extends MktOptions1dCreateArgs>(args: SelectSubset<T, MktOptions1dCreateArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many MktOptions1ds.
+     * @param {MktOptions1dCreateManyArgs} args - Arguments to create many MktOptions1ds.
+     * @example
+     * // Create many MktOptions1ds
+     * const mktOptions1d = await prisma.mktOptions1d.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MktOptions1dCreateManyArgs>(args?: SelectSubset<T, MktOptions1dCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many MktOptions1ds and returns the data saved in the database.
+     * @param {MktOptions1dCreateManyAndReturnArgs} args - Arguments to create many MktOptions1ds.
+     * @example
+     * // Create many MktOptions1ds
+     * const mktOptions1d = await prisma.mktOptions1d.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many MktOptions1ds and only return the `id`
+     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MktOptions1dCreateManyAndReturnArgs>(args?: SelectSubset<T, MktOptions1dCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a MktOptions1d.
+     * @param {MktOptions1dDeleteArgs} args - Arguments to delete one MktOptions1d.
+     * @example
+     * // Delete one MktOptions1d
+     * const MktOptions1d = await prisma.mktOptions1d.delete({
+     *   where: {
+     *     // ... filter to delete one MktOptions1d
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MktOptions1dDeleteArgs>(args: SelectSubset<T, MktOptions1dDeleteArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one MktOptions1d.
+     * @param {MktOptions1dUpdateArgs} args - Arguments to update one MktOptions1d.
+     * @example
+     * // Update one MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MktOptions1dUpdateArgs>(args: SelectSubset<T, MktOptions1dUpdateArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more MktOptions1ds.
+     * @param {MktOptions1dDeleteManyArgs} args - Arguments to filter MktOptions1ds to delete.
+     * @example
+     * // Delete a few MktOptions1ds
+     * const { count } = await prisma.mktOptions1d.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MktOptions1dDeleteManyArgs>(args?: SelectSubset<T, MktOptions1dDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MktOptions1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many MktOptions1ds
+     * const mktOptions1d = await prisma.mktOptions1d.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MktOptions1dUpdateManyArgs>(args: SelectSubset<T, MktOptions1dUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MktOptions1ds and returns the data updated in the database.
+     * @param {MktOptions1dUpdateManyAndReturnArgs} args - Arguments to update many MktOptions1ds.
+     * @example
+     * // Update many MktOptions1ds
+     * const mktOptions1d = await prisma.mktOptions1d.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more MktOptions1ds and only return the `id`
+     * const mktOptions1dWithIdOnly = await prisma.mktOptions1d.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends MktOptions1dUpdateManyAndReturnArgs>(args: SelectSubset<T, MktOptions1dUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one MktOptions1d.
+     * @param {MktOptions1dUpsertArgs} args - Arguments to update or create a MktOptions1d.
+     * @example
+     * // Update or create a MktOptions1d
+     * const mktOptions1d = await prisma.mktOptions1d.upsert({
+     *   create: {
+     *     // ... data to create a MktOptions1d
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the MktOptions1d we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MktOptions1dUpsertArgs>(args: SelectSubset<T, MktOptions1dUpsertArgs<ExtArgs>>): Prisma__MktOptions1dClient<$Result.GetResult<Prisma.$MktOptions1dPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of MktOptions1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dCountArgs} args - Arguments to filter MktOptions1ds to count.
+     * @example
+     * // Count the number of MktOptions1ds
+     * const count = await prisma.mktOptions1d.count({
+     *   where: {
+     *     // ... the filter for the MktOptions1ds we want to count
+     *   }
+     * })
+    **/
+    count<T extends MktOptions1dCountArgs>(
+      args?: Subset<T, MktOptions1dCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MktOptions1dCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a MktOptions1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MktOptions1dAggregateArgs>(args: Subset<T, MktOptions1dAggregateArgs>): Prisma.PrismaPromise<GetMktOptions1dAggregateType<T>>
+
+    /**
+     * Group by MktOptions1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MktOptions1dGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MktOptions1dGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MktOptions1dGroupByArgs['orderBy'] }
+        : { orderBy?: MktOptions1dGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MktOptions1dGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMktOptions1dGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the MktOptions1d model
+   */
+  readonly fields: MktOptions1dFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for MktOptions1d.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MktOptions1dClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the MktOptions1d model
+   */
+  interface MktOptions1dFieldRefs {
+    readonly id: FieldRef<"MktOptions1d", 'Int'>
+    readonly underlying: FieldRef<"MktOptions1d", 'String'>
+    readonly eventDate: FieldRef<"MktOptions1d", 'DateTime'>
+    readonly expiration: FieldRef<"MktOptions1d", 'DateTime'>
+    readonly strike: FieldRef<"MktOptions1d", 'Float'>
+    readonly optionType: FieldRef<"MktOptions1d", 'String'>
+    readonly open: FieldRef<"MktOptions1d", 'Float'>
+    readonly high: FieldRef<"MktOptions1d", 'Float'>
+    readonly low: FieldRef<"MktOptions1d", 'Float'>
+    readonly close: FieldRef<"MktOptions1d", 'Float'>
+    readonly change: FieldRef<"MktOptions1d", 'Float'>
+    readonly bid: FieldRef<"MktOptions1d", 'Float'>
+    readonly ask: FieldRef<"MktOptions1d", 'Float'>
+    readonly volume: FieldRef<"MktOptions1d", 'BigInt'>
+    readonly openInterest: FieldRef<"MktOptions1d", 'BigInt'>
+    readonly premium: FieldRef<"MktOptions1d", 'Float'>
+    readonly lastTradeTime: FieldRef<"MktOptions1d", 'String'>
+    readonly source: FieldRef<"MktOptions1d", 'String'>
+    readonly ingestedAt: FieldRef<"MktOptions1d", 'DateTime'>
+    readonly rowHash: FieldRef<"MktOptions1d", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * MktOptions1d findUnique
+   */
+  export type MktOptions1dFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter, which MktOptions1d to fetch.
+     */
+    where: MktOptions1dWhereUniqueInput
+  }
+
+  /**
+   * MktOptions1d findUniqueOrThrow
+   */
+  export type MktOptions1dFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter, which MktOptions1d to fetch.
+     */
+    where: MktOptions1dWhereUniqueInput
+  }
+
+  /**
+   * MktOptions1d findFirst
+   */
+  export type MktOptions1dFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter, which MktOptions1d to fetch.
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MktOptions1ds to fetch.
+     */
+    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MktOptions1ds.
+     */
+    cursor?: MktOptions1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MktOptions1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MktOptions1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MktOptions1ds.
+     */
+    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
+  }
+
+  /**
+   * MktOptions1d findFirstOrThrow
+   */
+  export type MktOptions1dFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter, which MktOptions1d to fetch.
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MktOptions1ds to fetch.
+     */
+    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MktOptions1ds.
+     */
+    cursor?: MktOptions1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MktOptions1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MktOptions1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MktOptions1ds.
+     */
+    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
+  }
+
+  /**
+   * MktOptions1d findMany
+   */
+  export type MktOptions1dFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter, which MktOptions1ds to fetch.
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MktOptions1ds to fetch.
+     */
+    orderBy?: MktOptions1dOrderByWithRelationInput | MktOptions1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing MktOptions1ds.
+     */
+    cursor?: MktOptions1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MktOptions1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MktOptions1ds.
+     */
+    skip?: number
+    distinct?: MktOptions1dScalarFieldEnum | MktOptions1dScalarFieldEnum[]
+  }
+
+  /**
+   * MktOptions1d create
+   */
+  export type MktOptions1dCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * The data needed to create a MktOptions1d.
+     */
+    data: XOR<MktOptions1dCreateInput, MktOptions1dUncheckedCreateInput>
+  }
+
+  /**
+   * MktOptions1d createMany
+   */
+  export type MktOptions1dCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many MktOptions1ds.
+     */
+    data: MktOptions1dCreateManyInput | MktOptions1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MktOptions1d createManyAndReturn
+   */
+  export type MktOptions1dCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * The data used to create many MktOptions1ds.
+     */
+    data: MktOptions1dCreateManyInput | MktOptions1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MktOptions1d update
+   */
+  export type MktOptions1dUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * The data needed to update a MktOptions1d.
+     */
+    data: XOR<MktOptions1dUpdateInput, MktOptions1dUncheckedUpdateInput>
+    /**
+     * Choose, which MktOptions1d to update.
+     */
+    where: MktOptions1dWhereUniqueInput
+  }
+
+  /**
+   * MktOptions1d updateMany
+   */
+  export type MktOptions1dUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update MktOptions1ds.
+     */
+    data: XOR<MktOptions1dUpdateManyMutationInput, MktOptions1dUncheckedUpdateManyInput>
+    /**
+     * Filter which MktOptions1ds to update
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * Limit how many MktOptions1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * MktOptions1d updateManyAndReturn
+   */
+  export type MktOptions1dUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * The data used to update MktOptions1ds.
+     */
+    data: XOR<MktOptions1dUpdateManyMutationInput, MktOptions1dUncheckedUpdateManyInput>
+    /**
+     * Filter which MktOptions1ds to update
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * Limit how many MktOptions1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * MktOptions1d upsert
+   */
+  export type MktOptions1dUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * The filter to search for the MktOptions1d to update in case it exists.
+     */
+    where: MktOptions1dWhereUniqueInput
+    /**
+     * In case the MktOptions1d found by the `where` argument doesn't exist, create a new MktOptions1d with this data.
+     */
+    create: XOR<MktOptions1dCreateInput, MktOptions1dUncheckedCreateInput>
+    /**
+     * In case the MktOptions1d was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MktOptions1dUpdateInput, MktOptions1dUncheckedUpdateInput>
+  }
+
+  /**
+   * MktOptions1d delete
+   */
+  export type MktOptions1dDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
+    /**
+     * Filter which MktOptions1d to delete.
+     */
+    where: MktOptions1dWhereUniqueInput
+  }
+
+  /**
+   * MktOptions1d deleteMany
+   */
+  export type MktOptions1dDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MktOptions1ds to delete
+     */
+    where?: MktOptions1dWhereInput
+    /**
+     * Limit how many MktOptions1ds to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * MktOptions1d without action
+   */
+  export type MktOptions1dDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MktOptions1d
+     */
+    select?: MktOptions1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MktOptions1d
+     */
+    omit?: MktOptions1dOmit<ExtArgs> | null
   }
 
 
@@ -166603,6 +167079,11 @@ export namespace Prisma {
     fx_usdeur: 'fx_usdeur',
     fx_usdgbp: 'fx_usdgbp',
     fx_usdjpy: 'fx_usdjpy',
+    target_ret_5d: 'target_ret_5d',
+    target_ret_21d: 'target_ret_21d',
+    target_ret_63d: 'target_ret_63d',
+    target_ret_126d: 'target_ret_126d',
+    matrixVersion: 'matrixVersion',
     wx_ar_tavg_c: 'wx_ar_tavg_c',
     wx_br_tavg_c: 'wx_br_tavg_c',
     wx_us_tavg_c: 'wx_us_tavg_c',
@@ -166627,11 +167108,30 @@ export namespace Prisma {
     wasde_zs_production: 'wasde_zs_production',
     rin_d4_price: 'rin_d4_price',
     rin_d6_price: 'rin_d6_price',
-    target_ret_5d: 'target_ret_5d',
-    target_ret_21d: 'target_ret_21d',
-    target_ret_63d: 'target_ret_63d',
-    target_ret_126d: 'target_ret_126d',
-    matrixVersion: 'matrixVersion'
+    zs_close: 'zs_close',
+    zm_close: 'zm_close',
+    crush_spread: 'crush_spread',
+    oil_share: 'oil_share',
+    wti_zl_corr_30d: 'wti_zl_corr_30d',
+    vix_zl_corr_30d: 'vix_zl_corr_30d',
+    biodiesel_margin: 'biodiesel_margin',
+    cpo_close: 'cpo_close',
+    palm_soy_spread: 'palm_soy_spread',
+    rs_close: 'rs_close',
+    zl_canola_spread: 'zl_canola_spread',
+    trump_total_actions_7d: 'trump_total_actions_7d',
+    trump_total_actions_30d: 'trump_total_actions_30d',
+    trump_avg_sentiment_7d: 'trump_avg_sentiment_7d',
+    trump_avg_sentiment_30d: 'trump_avg_sentiment_30d',
+    trump_action_velocity: 'trump_action_velocity',
+    trump_weighted_action_score: 'trump_weighted_action_score',
+    ho_zl_corr_30d: 'ho_zl_corr_30d',
+    rb_zl_corr_30d: 'rb_zl_corr_30d',
+    ng_zl_corr_30d: 'ng_zl_corr_30d',
+    hg_zl_corr_30d: 'hg_zl_corr_30d',
+    gc_zl_corr_30d: 'gc_zl_corr_30d',
+    dgs10_zl_corr_30d: 'dgs10_zl_corr_30d',
+    dgs2_zl_corr_30d: 'dgs2_zl_corr_30d'
   };
 
   export type TrainingMatrix1dScalarFieldEnum = (typeof TrainingMatrix1dScalarFieldEnum)[keyof typeof TrainingMatrix1dScalarFieldEnum]
@@ -168112,28 +168612,6 @@ export namespace Prisma {
   export type MktFutures1hScalarFieldEnum = (typeof MktFutures1hScalarFieldEnum)[keyof typeof MktFutures1hScalarFieldEnum]
 
 
-  export const MktOptions1dScalarFieldEnum: {
-    id: 'id',
-    underlying: 'underlying',
-    eventDate: 'eventDate',
-    expiration: 'expiration',
-    strike: 'strike',
-    optionType: 'optionType',
-    open: 'open',
-    high: 'high',
-    low: 'low',
-    close: 'close',
-    volume: 'volume',
-    openInterest: 'openInterest',
-    source: 'source',
-    ingestedAt: 'ingestedAt',
-    knowledgeTime: 'knowledgeTime',
-    rowHash: 'rowHash'
-  };
-
-  export type MktOptions1dScalarFieldEnum = (typeof MktOptions1dScalarFieldEnum)[keyof typeof MktOptions1dScalarFieldEnum]
-
-
   export const MktFx1dScalarFieldEnum: {
     id: 'id',
     pair: 'pair',
@@ -168164,6 +168642,32 @@ export namespace Prisma {
   };
 
   export type MktEtf1dScalarFieldEnum = (typeof MktEtf1dScalarFieldEnum)[keyof typeof MktEtf1dScalarFieldEnum]
+
+
+  export const MktOptions1dScalarFieldEnum: {
+    id: 'id',
+    underlying: 'underlying',
+    eventDate: 'eventDate',
+    expiration: 'expiration',
+    strike: 'strike',
+    optionType: 'optionType',
+    open: 'open',
+    high: 'high',
+    low: 'low',
+    close: 'close',
+    change: 'change',
+    bid: 'bid',
+    ask: 'ask',
+    volume: 'volume',
+    openInterest: 'openInterest',
+    premium: 'premium',
+    lastTradeTime: 'lastTradeTime',
+    source: 'source',
+    ingestedAt: 'ingestedAt',
+    rowHash: 'rowHash'
+  };
+
+  export type MktOptions1dScalarFieldEnum = (typeof MktOptions1dScalarFieldEnum)[keyof typeof MktOptions1dScalarFieldEnum]
 
 
   export const MktOptionsGreeks1dScalarFieldEnum: {
@@ -169168,6 +169672,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Decimal'
+   */
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal[]'
+   */
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -169192,20 +169710,6 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-  /**
-   * Reference to a field of type 'Decimal'
-   */
-  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
-    
-
-
-  /**
-   * Reference to a field of type 'Decimal[]'
-   */
-  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
   /**
    * Deep Input Types
@@ -169325,6 +169829,11 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_126d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    matrixVersion?: StringNullableFilter<"TrainingMatrix1d"> | string | null
     wx_ar_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     wx_br_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     wx_us_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
@@ -169349,11 +169858,30 @@ export namespace Prisma {
     wasde_zs_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     rin_d4_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     rin_d6_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_126d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    matrixVersion?: StringNullableFilter<"TrainingMatrix1d"> | string | null
+    zs_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zm_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    oil_share?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rs_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: IntNullableFilter<"TrainingMatrix1d"> | number | null
+    trump_total_actions_30d?: IntNullableFilter<"TrainingMatrix1d"> | number | null
+    trump_avg_sentiment_7d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dOrderByWithRelationInput = {
@@ -169466,6 +169994,11 @@ export namespace Prisma {
     fx_usdeur?: SortOrderInput | SortOrder
     fx_usdgbp?: SortOrderInput | SortOrder
     fx_usdjpy?: SortOrderInput | SortOrder
+    target_ret_5d?: SortOrderInput | SortOrder
+    target_ret_21d?: SortOrderInput | SortOrder
+    target_ret_63d?: SortOrderInput | SortOrder
+    target_ret_126d?: SortOrderInput | SortOrder
+    matrixVersion?: SortOrderInput | SortOrder
     wx_ar_tavg_c?: SortOrderInput | SortOrder
     wx_br_tavg_c?: SortOrderInput | SortOrder
     wx_us_tavg_c?: SortOrderInput | SortOrder
@@ -169490,11 +170023,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrderInput | SortOrder
     rin_d4_price?: SortOrderInput | SortOrder
     rin_d6_price?: SortOrderInput | SortOrder
-    target_ret_5d?: SortOrderInput | SortOrder
-    target_ret_21d?: SortOrderInput | SortOrder
-    target_ret_63d?: SortOrderInput | SortOrder
-    target_ret_126d?: SortOrderInput | SortOrder
-    matrixVersion?: SortOrderInput | SortOrder
+    zs_close?: SortOrderInput | SortOrder
+    zm_close?: SortOrderInput | SortOrder
+    crush_spread?: SortOrderInput | SortOrder
+    oil_share?: SortOrderInput | SortOrder
+    wti_zl_corr_30d?: SortOrderInput | SortOrder
+    vix_zl_corr_30d?: SortOrderInput | SortOrder
+    biodiesel_margin?: SortOrderInput | SortOrder
+    cpo_close?: SortOrderInput | SortOrder
+    palm_soy_spread?: SortOrderInput | SortOrder
+    rs_close?: SortOrderInput | SortOrder
+    zl_canola_spread?: SortOrderInput | SortOrder
+    trump_total_actions_7d?: SortOrderInput | SortOrder
+    trump_total_actions_30d?: SortOrderInput | SortOrder
+    trump_avg_sentiment_7d?: SortOrderInput | SortOrder
+    trump_avg_sentiment_30d?: SortOrderInput | SortOrder
+    trump_action_velocity?: SortOrderInput | SortOrder
+    trump_weighted_action_score?: SortOrderInput | SortOrder
+    ho_zl_corr_30d?: SortOrderInput | SortOrder
+    rb_zl_corr_30d?: SortOrderInput | SortOrder
+    ng_zl_corr_30d?: SortOrderInput | SortOrder
+    hg_zl_corr_30d?: SortOrderInput | SortOrder
+    gc_zl_corr_30d?: SortOrderInput | SortOrder
+    dgs10_zl_corr_30d?: SortOrderInput | SortOrder
+    dgs2_zl_corr_30d?: SortOrderInput | SortOrder
   }
 
   export type TrainingMatrix1dWhereUniqueInput = Prisma.AtLeast<{
@@ -169611,6 +170163,11 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    target_ret_126d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    matrixVersion?: StringNullableFilter<"TrainingMatrix1d"> | string | null
     wx_ar_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     wx_br_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     wx_us_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
@@ -169635,11 +170192,30 @@ export namespace Prisma {
     wasde_zs_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     rin_d4_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     rin_d6_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    target_ret_126d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
-    matrixVersion?: StringNullableFilter<"TrainingMatrix1d"> | string | null
+    zs_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zm_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    oil_share?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rs_close?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: IntNullableFilter<"TrainingMatrix1d"> | number | null
+    trump_total_actions_30d?: IntNullableFilter<"TrainingMatrix1d"> | number | null
+    trump_avg_sentiment_7d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: DecimalNullableFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
   }, "tradeDate_symbol">
 
   export type TrainingMatrix1dOrderByWithAggregationInput = {
@@ -169752,6 +170328,11 @@ export namespace Prisma {
     fx_usdeur?: SortOrderInput | SortOrder
     fx_usdgbp?: SortOrderInput | SortOrder
     fx_usdjpy?: SortOrderInput | SortOrder
+    target_ret_5d?: SortOrderInput | SortOrder
+    target_ret_21d?: SortOrderInput | SortOrder
+    target_ret_63d?: SortOrderInput | SortOrder
+    target_ret_126d?: SortOrderInput | SortOrder
+    matrixVersion?: SortOrderInput | SortOrder
     wx_ar_tavg_c?: SortOrderInput | SortOrder
     wx_br_tavg_c?: SortOrderInput | SortOrder
     wx_us_tavg_c?: SortOrderInput | SortOrder
@@ -169776,11 +170357,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrderInput | SortOrder
     rin_d4_price?: SortOrderInput | SortOrder
     rin_d6_price?: SortOrderInput | SortOrder
-    target_ret_5d?: SortOrderInput | SortOrder
-    target_ret_21d?: SortOrderInput | SortOrder
-    target_ret_63d?: SortOrderInput | SortOrder
-    target_ret_126d?: SortOrderInput | SortOrder
-    matrixVersion?: SortOrderInput | SortOrder
+    zs_close?: SortOrderInput | SortOrder
+    zm_close?: SortOrderInput | SortOrder
+    crush_spread?: SortOrderInput | SortOrder
+    oil_share?: SortOrderInput | SortOrder
+    wti_zl_corr_30d?: SortOrderInput | SortOrder
+    vix_zl_corr_30d?: SortOrderInput | SortOrder
+    biodiesel_margin?: SortOrderInput | SortOrder
+    cpo_close?: SortOrderInput | SortOrder
+    palm_soy_spread?: SortOrderInput | SortOrder
+    rs_close?: SortOrderInput | SortOrder
+    zl_canola_spread?: SortOrderInput | SortOrder
+    trump_total_actions_7d?: SortOrderInput | SortOrder
+    trump_total_actions_30d?: SortOrderInput | SortOrder
+    trump_avg_sentiment_7d?: SortOrderInput | SortOrder
+    trump_avg_sentiment_30d?: SortOrderInput | SortOrder
+    trump_action_velocity?: SortOrderInput | SortOrder
+    trump_weighted_action_score?: SortOrderInput | SortOrder
+    ho_zl_corr_30d?: SortOrderInput | SortOrder
+    rb_zl_corr_30d?: SortOrderInput | SortOrder
+    ng_zl_corr_30d?: SortOrderInput | SortOrder
+    hg_zl_corr_30d?: SortOrderInput | SortOrder
+    gc_zl_corr_30d?: SortOrderInput | SortOrder
+    dgs10_zl_corr_30d?: SortOrderInput | SortOrder
+    dgs2_zl_corr_30d?: SortOrderInput | SortOrder
     _count?: TrainingMatrix1dCountOrderByAggregateInput
     _avg?: TrainingMatrix1dAvgOrderByAggregateInput
     _max?: TrainingMatrix1dMaxOrderByAggregateInput
@@ -169901,6 +170501,11 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    target_ret_5d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    target_ret_21d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    target_ret_63d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    target_ret_126d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    matrixVersion?: StringNullableWithAggregatesFilter<"TrainingMatrix1d"> | string | null
     wx_ar_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     wx_br_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     wx_us_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
@@ -169925,11 +170530,30 @@ export namespace Prisma {
     wasde_zs_production?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     rin_d4_price?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     rin_d6_price?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
-    target_ret_5d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
-    target_ret_21d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
-    target_ret_63d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
-    target_ret_126d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
-    matrixVersion?: StringNullableWithAggregatesFilter<"TrainingMatrix1d"> | string | null
+    zs_close?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zm_close?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    oil_share?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rs_close?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: IntNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    trump_total_actions_30d?: IntNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    trump_avg_sentiment_7d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: DecimalNullableWithAggregatesFilter<"TrainingMatrix1d"> | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingFeatures1dWhereInput = {
@@ -174808,9 +175432,9 @@ export namespace Prisma {
     high?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     low?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     close?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFilter<"zl_price_1d"> | bigint | number
-    source?: StringFilter<"zl_price_1d"> | string
-    created_at?: DateTimeFilter<"zl_price_1d"> | Date | string
+    volume?: BigIntNullableFilter<"zl_price_1d"> | bigint | number | null
+    source?: StringNullableFilter<"zl_price_1d"> | string | null
+    created_at?: DateTimeNullableFilter<"zl_price_1d"> | Date | string | null
   }
 
   export type zl_price_1dOrderByWithRelationInput = {
@@ -174819,9 +175443,9 @@ export namespace Prisma {
     high?: SortOrder
     low?: SortOrder
     close?: SortOrder
-    volume?: SortOrder
-    source?: SortOrder
-    created_at?: SortOrder
+    volume?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
   }
 
   export type zl_price_1dWhereUniqueInput = Prisma.AtLeast<{
@@ -174833,9 +175457,9 @@ export namespace Prisma {
     high?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     low?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     close?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFilter<"zl_price_1d"> | bigint | number
-    source?: StringFilter<"zl_price_1d"> | string
-    created_at?: DateTimeFilter<"zl_price_1d"> | Date | string
+    volume?: BigIntNullableFilter<"zl_price_1d"> | bigint | number | null
+    source?: StringNullableFilter<"zl_price_1d"> | string | null
+    created_at?: DateTimeNullableFilter<"zl_price_1d"> | Date | string | null
   }, "event_date">
 
   export type zl_price_1dOrderByWithAggregationInput = {
@@ -174844,9 +175468,9 @@ export namespace Prisma {
     high?: SortOrder
     low?: SortOrder
     close?: SortOrder
-    volume?: SortOrder
-    source?: SortOrder
-    created_at?: SortOrder
+    volume?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    created_at?: SortOrderInput | SortOrder
     _count?: zl_price_1dCountOrderByAggregateInput
     _avg?: zl_price_1dAvgOrderByAggregateInput
     _max?: zl_price_1dMaxOrderByAggregateInput
@@ -174863,9 +175487,9 @@ export namespace Prisma {
     high?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     low?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
     close?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
-    volume?: BigIntWithAggregatesFilter<"zl_price_1d"> | bigint | number
-    source?: StringWithAggregatesFilter<"zl_price_1d"> | string
-    created_at?: DateTimeWithAggregatesFilter<"zl_price_1d"> | Date | string
+    volume?: BigIntNullableWithAggregatesFilter<"zl_price_1d"> | bigint | number | null
+    source?: StringNullableWithAggregatesFilter<"zl_price_1d"> | string | null
+    created_at?: DateTimeNullableWithAggregatesFilter<"zl_price_1d"> | Date | string | null
   }
 
   export type public_intraday_pricesWhereInput = {
@@ -177283,115 +177907,6 @@ export namespace Prisma {
     rowHash?: StringNullableWithAggregatesFilter<"MktFutures1h"> | string | null
   }
 
-  export type MktOptions1dWhereInput = {
-    AND?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
-    OR?: MktOptions1dWhereInput[]
-    NOT?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
-    id?: IntFilter<"MktOptions1d"> | number
-    underlying?: StringFilter<"MktOptions1d"> | string
-    eventDate?: DateTimeFilter<"MktOptions1d"> | Date | string
-    expiration?: DateTimeFilter<"MktOptions1d"> | Date | string
-    strike?: FloatFilter<"MktOptions1d"> | number
-    optionType?: StringFilter<"MktOptions1d"> | string
-    open?: FloatNullableFilter<"MktOptions1d"> | number | null
-    high?: FloatNullableFilter<"MktOptions1d"> | number | null
-    low?: FloatNullableFilter<"MktOptions1d"> | number | null
-    close?: FloatNullableFilter<"MktOptions1d"> | number | null
-    volume?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
-    openInterest?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
-    source?: StringNullableFilter<"MktOptions1d"> | string | null
-    ingestedAt?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
-    knowledgeTime?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
-    rowHash?: StringNullableFilter<"MktOptions1d"> | string | null
-  }
-
-  export type MktOptions1dOrderByWithRelationInput = {
-    id?: SortOrder
-    underlying?: SortOrder
-    eventDate?: SortOrder
-    expiration?: SortOrder
-    strike?: SortOrder
-    optionType?: SortOrder
-    open?: SortOrderInput | SortOrder
-    high?: SortOrderInput | SortOrder
-    low?: SortOrderInput | SortOrder
-    close?: SortOrderInput | SortOrder
-    volume?: SortOrderInput | SortOrder
-    openInterest?: SortOrderInput | SortOrder
-    source?: SortOrderInput | SortOrder
-    ingestedAt?: SortOrderInput | SortOrder
-    knowledgeTime?: SortOrderInput | SortOrder
-    rowHash?: SortOrderInput | SortOrder
-  }
-
-  export type MktOptions1dWhereUniqueInput = Prisma.AtLeast<{
-    id?: number
-    AND?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
-    OR?: MktOptions1dWhereInput[]
-    NOT?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
-    underlying?: StringFilter<"MktOptions1d"> | string
-    eventDate?: DateTimeFilter<"MktOptions1d"> | Date | string
-    expiration?: DateTimeFilter<"MktOptions1d"> | Date | string
-    strike?: FloatFilter<"MktOptions1d"> | number
-    optionType?: StringFilter<"MktOptions1d"> | string
-    open?: FloatNullableFilter<"MktOptions1d"> | number | null
-    high?: FloatNullableFilter<"MktOptions1d"> | number | null
-    low?: FloatNullableFilter<"MktOptions1d"> | number | null
-    close?: FloatNullableFilter<"MktOptions1d"> | number | null
-    volume?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
-    openInterest?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
-    source?: StringNullableFilter<"MktOptions1d"> | string | null
-    ingestedAt?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
-    knowledgeTime?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
-    rowHash?: StringNullableFilter<"MktOptions1d"> | string | null
-  }, "id">
-
-  export type MktOptions1dOrderByWithAggregationInput = {
-    id?: SortOrder
-    underlying?: SortOrder
-    eventDate?: SortOrder
-    expiration?: SortOrder
-    strike?: SortOrder
-    optionType?: SortOrder
-    open?: SortOrderInput | SortOrder
-    high?: SortOrderInput | SortOrder
-    low?: SortOrderInput | SortOrder
-    close?: SortOrderInput | SortOrder
-    volume?: SortOrderInput | SortOrder
-    openInterest?: SortOrderInput | SortOrder
-    source?: SortOrderInput | SortOrder
-    ingestedAt?: SortOrderInput | SortOrder
-    knowledgeTime?: SortOrderInput | SortOrder
-    rowHash?: SortOrderInput | SortOrder
-    _count?: MktOptions1dCountOrderByAggregateInput
-    _avg?: MktOptions1dAvgOrderByAggregateInput
-    _max?: MktOptions1dMaxOrderByAggregateInput
-    _min?: MktOptions1dMinOrderByAggregateInput
-    _sum?: MktOptions1dSumOrderByAggregateInput
-  }
-
-  export type MktOptions1dScalarWhereWithAggregatesInput = {
-    AND?: MktOptions1dScalarWhereWithAggregatesInput | MktOptions1dScalarWhereWithAggregatesInput[]
-    OR?: MktOptions1dScalarWhereWithAggregatesInput[]
-    NOT?: MktOptions1dScalarWhereWithAggregatesInput | MktOptions1dScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"MktOptions1d"> | number
-    underlying?: StringWithAggregatesFilter<"MktOptions1d"> | string
-    eventDate?: DateTimeWithAggregatesFilter<"MktOptions1d"> | Date | string
-    expiration?: DateTimeWithAggregatesFilter<"MktOptions1d"> | Date | string
-    strike?: FloatWithAggregatesFilter<"MktOptions1d"> | number
-    optionType?: StringWithAggregatesFilter<"MktOptions1d"> | string
-    open?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
-    high?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
-    low?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
-    close?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
-    volume?: BigIntNullableWithAggregatesFilter<"MktOptions1d"> | bigint | number | null
-    openInterest?: BigIntNullableWithAggregatesFilter<"MktOptions1d"> | bigint | number | null
-    source?: StringNullableWithAggregatesFilter<"MktOptions1d"> | string | null
-    ingestedAt?: DateTimeNullableWithAggregatesFilter<"MktOptions1d"> | Date | string | null
-    knowledgeTime?: DateTimeNullableWithAggregatesFilter<"MktOptions1d"> | Date | string | null
-    rowHash?: StringNullableWithAggregatesFilter<"MktOptions1d"> | string | null
-  }
-
   export type MktFx1dWhereInput = {
     AND?: MktFx1dWhereInput | MktFx1dWhereInput[]
     OR?: MktFx1dWhereInput[]
@@ -177550,6 +178065,136 @@ export namespace Prisma {
     rowHash?: StringWithAggregatesFilter<"MktEtf1d"> | string
     specialistTags?: StringNullableListFilter<"MktEtf1d">
     createdAt?: DateTimeNullableWithAggregatesFilter<"MktEtf1d"> | Date | string | null
+  }
+
+  export type MktOptions1dWhereInput = {
+    AND?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
+    OR?: MktOptions1dWhereInput[]
+    NOT?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
+    id?: IntFilter<"MktOptions1d"> | number
+    underlying?: StringFilter<"MktOptions1d"> | string
+    eventDate?: DateTimeFilter<"MktOptions1d"> | Date | string
+    expiration?: DateTimeFilter<"MktOptions1d"> | Date | string
+    strike?: FloatFilter<"MktOptions1d"> | number
+    optionType?: StringFilter<"MktOptions1d"> | string
+    open?: FloatNullableFilter<"MktOptions1d"> | number | null
+    high?: FloatNullableFilter<"MktOptions1d"> | number | null
+    low?: FloatNullableFilter<"MktOptions1d"> | number | null
+    close?: FloatNullableFilter<"MktOptions1d"> | number | null
+    change?: FloatNullableFilter<"MktOptions1d"> | number | null
+    bid?: FloatNullableFilter<"MktOptions1d"> | number | null
+    ask?: FloatNullableFilter<"MktOptions1d"> | number | null
+    volume?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
+    openInterest?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
+    premium?: FloatNullableFilter<"MktOptions1d"> | number | null
+    lastTradeTime?: StringNullableFilter<"MktOptions1d"> | string | null
+    source?: StringNullableFilter<"MktOptions1d"> | string | null
+    ingestedAt?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
+    rowHash?: StringFilter<"MktOptions1d"> | string
+  }
+
+  export type MktOptions1dOrderByWithRelationInput = {
+    id?: SortOrder
+    underlying?: SortOrder
+    eventDate?: SortOrder
+    expiration?: SortOrder
+    strike?: SortOrder
+    optionType?: SortOrder
+    open?: SortOrderInput | SortOrder
+    high?: SortOrderInput | SortOrder
+    low?: SortOrderInput | SortOrder
+    close?: SortOrderInput | SortOrder
+    change?: SortOrderInput | SortOrder
+    bid?: SortOrderInput | SortOrder
+    ask?: SortOrderInput | SortOrder
+    volume?: SortOrderInput | SortOrder
+    openInterest?: SortOrderInput | SortOrder
+    premium?: SortOrderInput | SortOrder
+    lastTradeTime?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    ingestedAt?: SortOrderInput | SortOrder
+    rowHash?: SortOrder
+  }
+
+  export type MktOptions1dWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    underlying_eventDate_expiration_strike_optionType?: MktOptions1dUnderlyingEventDateExpirationStrikeOptionTypeCompoundUniqueInput
+    AND?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
+    OR?: MktOptions1dWhereInput[]
+    NOT?: MktOptions1dWhereInput | MktOptions1dWhereInput[]
+    underlying?: StringFilter<"MktOptions1d"> | string
+    eventDate?: DateTimeFilter<"MktOptions1d"> | Date | string
+    expiration?: DateTimeFilter<"MktOptions1d"> | Date | string
+    strike?: FloatFilter<"MktOptions1d"> | number
+    optionType?: StringFilter<"MktOptions1d"> | string
+    open?: FloatNullableFilter<"MktOptions1d"> | number | null
+    high?: FloatNullableFilter<"MktOptions1d"> | number | null
+    low?: FloatNullableFilter<"MktOptions1d"> | number | null
+    close?: FloatNullableFilter<"MktOptions1d"> | number | null
+    change?: FloatNullableFilter<"MktOptions1d"> | number | null
+    bid?: FloatNullableFilter<"MktOptions1d"> | number | null
+    ask?: FloatNullableFilter<"MktOptions1d"> | number | null
+    volume?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
+    openInterest?: BigIntNullableFilter<"MktOptions1d"> | bigint | number | null
+    premium?: FloatNullableFilter<"MktOptions1d"> | number | null
+    lastTradeTime?: StringNullableFilter<"MktOptions1d"> | string | null
+    source?: StringNullableFilter<"MktOptions1d"> | string | null
+    ingestedAt?: DateTimeNullableFilter<"MktOptions1d"> | Date | string | null
+    rowHash?: StringFilter<"MktOptions1d"> | string
+  }, "id" | "underlying_eventDate_expiration_strike_optionType">
+
+  export type MktOptions1dOrderByWithAggregationInput = {
+    id?: SortOrder
+    underlying?: SortOrder
+    eventDate?: SortOrder
+    expiration?: SortOrder
+    strike?: SortOrder
+    optionType?: SortOrder
+    open?: SortOrderInput | SortOrder
+    high?: SortOrderInput | SortOrder
+    low?: SortOrderInput | SortOrder
+    close?: SortOrderInput | SortOrder
+    change?: SortOrderInput | SortOrder
+    bid?: SortOrderInput | SortOrder
+    ask?: SortOrderInput | SortOrder
+    volume?: SortOrderInput | SortOrder
+    openInterest?: SortOrderInput | SortOrder
+    premium?: SortOrderInput | SortOrder
+    lastTradeTime?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    ingestedAt?: SortOrderInput | SortOrder
+    rowHash?: SortOrder
+    _count?: MktOptions1dCountOrderByAggregateInput
+    _avg?: MktOptions1dAvgOrderByAggregateInput
+    _max?: MktOptions1dMaxOrderByAggregateInput
+    _min?: MktOptions1dMinOrderByAggregateInput
+    _sum?: MktOptions1dSumOrderByAggregateInput
+  }
+
+  export type MktOptions1dScalarWhereWithAggregatesInput = {
+    AND?: MktOptions1dScalarWhereWithAggregatesInput | MktOptions1dScalarWhereWithAggregatesInput[]
+    OR?: MktOptions1dScalarWhereWithAggregatesInput[]
+    NOT?: MktOptions1dScalarWhereWithAggregatesInput | MktOptions1dScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"MktOptions1d"> | number
+    underlying?: StringWithAggregatesFilter<"MktOptions1d"> | string
+    eventDate?: DateTimeWithAggregatesFilter<"MktOptions1d"> | Date | string
+    expiration?: DateTimeWithAggregatesFilter<"MktOptions1d"> | Date | string
+    strike?: FloatWithAggregatesFilter<"MktOptions1d"> | number
+    optionType?: StringWithAggregatesFilter<"MktOptions1d"> | string
+    open?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    high?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    low?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    close?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    change?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    bid?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    ask?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    volume?: BigIntNullableWithAggregatesFilter<"MktOptions1d"> | bigint | number | null
+    openInterest?: BigIntNullableWithAggregatesFilter<"MktOptions1d"> | bigint | number | null
+    premium?: FloatNullableWithAggregatesFilter<"MktOptions1d"> | number | null
+    lastTradeTime?: StringNullableWithAggregatesFilter<"MktOptions1d"> | string | null
+    source?: StringNullableWithAggregatesFilter<"MktOptions1d"> | string | null
+    ingestedAt?: DateTimeNullableWithAggregatesFilter<"MktOptions1d"> | Date | string | null
+    rowHash?: StringWithAggregatesFilter<"MktOptions1d"> | string
   }
 
   export type MktOptionsGreeks1dWhereInput = {
@@ -182075,6 +182720,11 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    target_ret_5d?: number | null
+    target_ret_21d?: number | null
+    target_ret_63d?: number | null
+    target_ret_126d?: number | null
+    matrixVersion?: string | null
     wx_ar_tavg_c?: number | null
     wx_br_tavg_c?: number | null
     wx_us_tavg_c?: number | null
@@ -182099,11 +182749,30 @@ export namespace Prisma {
     wasde_zs_production?: number | null
     rin_d4_price?: number | null
     rin_d6_price?: number | null
-    target_ret_5d?: number | null
-    target_ret_21d?: number | null
-    target_ret_63d?: number | null
-    target_ret_126d?: number | null
-    matrixVersion?: string | null
+    zs_close?: Decimal | DecimalJsLike | number | string | null
+    zm_close?: Decimal | DecimalJsLike | number | string | null
+    crush_spread?: Decimal | DecimalJsLike | number | string | null
+    oil_share?: Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: Decimal | DecimalJsLike | number | string | null
+    cpo_close?: Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: Decimal | DecimalJsLike | number | string | null
+    rs_close?: Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: number | null
+    trump_total_actions_30d?: number | null
+    trump_avg_sentiment_7d?: Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dUncheckedCreateInput = {
@@ -182216,6 +182885,11 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    target_ret_5d?: number | null
+    target_ret_21d?: number | null
+    target_ret_63d?: number | null
+    target_ret_126d?: number | null
+    matrixVersion?: string | null
     wx_ar_tavg_c?: number | null
     wx_br_tavg_c?: number | null
     wx_us_tavg_c?: number | null
@@ -182240,11 +182914,30 @@ export namespace Prisma {
     wasde_zs_production?: number | null
     rin_d4_price?: number | null
     rin_d6_price?: number | null
-    target_ret_5d?: number | null
-    target_ret_21d?: number | null
-    target_ret_63d?: number | null
-    target_ret_126d?: number | null
-    matrixVersion?: string | null
+    zs_close?: Decimal | DecimalJsLike | number | string | null
+    zm_close?: Decimal | DecimalJsLike | number | string | null
+    crush_spread?: Decimal | DecimalJsLike | number | string | null
+    oil_share?: Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: Decimal | DecimalJsLike | number | string | null
+    cpo_close?: Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: Decimal | DecimalJsLike | number | string | null
+    rs_close?: Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: number | null
+    trump_total_actions_30d?: number | null
+    trump_avg_sentiment_7d?: Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dUpdateInput = {
@@ -182357,6 +183050,11 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
+    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
     wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -182381,11 +183079,30 @@ export namespace Prisma {
     wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
-    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    zs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zm_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    oil_share?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_total_actions_30d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_avg_sentiment_7d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dUncheckedUpdateInput = {
@@ -182498,6 +183215,11 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
+    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
     wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -182522,11 +183244,30 @@ export namespace Prisma {
     wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
-    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    zs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zm_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    oil_share?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_total_actions_30d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_avg_sentiment_7d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dCreateManyInput = {
@@ -182639,6 +183380,11 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    target_ret_5d?: number | null
+    target_ret_21d?: number | null
+    target_ret_63d?: number | null
+    target_ret_126d?: number | null
+    matrixVersion?: string | null
     wx_ar_tavg_c?: number | null
     wx_br_tavg_c?: number | null
     wx_us_tavg_c?: number | null
@@ -182663,11 +183409,30 @@ export namespace Prisma {
     wasde_zs_production?: number | null
     rin_d4_price?: number | null
     rin_d6_price?: number | null
-    target_ret_5d?: number | null
-    target_ret_21d?: number | null
-    target_ret_63d?: number | null
-    target_ret_126d?: number | null
-    matrixVersion?: string | null
+    zs_close?: Decimal | DecimalJsLike | number | string | null
+    zm_close?: Decimal | DecimalJsLike | number | string | null
+    crush_spread?: Decimal | DecimalJsLike | number | string | null
+    oil_share?: Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: Decimal | DecimalJsLike | number | string | null
+    cpo_close?: Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: Decimal | DecimalJsLike | number | string | null
+    rs_close?: Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: number | null
+    trump_total_actions_30d?: number | null
+    trump_avg_sentiment_7d?: Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dUpdateManyMutationInput = {
@@ -182780,6 +183545,11 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
+    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
     wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -182804,11 +183574,30 @@ export namespace Prisma {
     wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
-    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    zs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zm_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    oil_share?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_total_actions_30d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_avg_sentiment_7d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingMatrix1dUncheckedUpdateManyInput = {
@@ -182921,6 +183710,11 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
+    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
+    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
     wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
     wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -182945,11 +183739,30 @@ export namespace Prisma {
     wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
     rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
-    target_ret_126d?: NullableFloatFieldUpdateOperationsInput | number | null
-    matrixVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    zs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zm_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    crush_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    oil_share?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    wti_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    vix_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    biodiesel_margin?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    cpo_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    palm_soy_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rs_close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    zl_canola_spread?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_total_actions_7d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_total_actions_30d?: NullableIntFieldUpdateOperationsInput | number | null
+    trump_avg_sentiment_7d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_avg_sentiment_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_action_velocity?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    trump_weighted_action_score?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ho_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    rb_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ng_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    hg_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    gc_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs10_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    dgs2_zl_corr_30d?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
   }
 
   export type TrainingFeatures1dCreateInput = {
@@ -188594,9 +189407,9 @@ export namespace Prisma {
     high: Decimal | DecimalJsLike | number | string
     low: Decimal | DecimalJsLike | number | string
     close: Decimal | DecimalJsLike | number | string
-    volume?: bigint | number
-    source?: string
-    created_at?: Date | string
+    volume?: bigint | number | null
+    source?: string | null
+    created_at?: Date | string | null
   }
 
   export type zl_price_1dUncheckedCreateInput = {
@@ -188605,9 +189418,9 @@ export namespace Prisma {
     high: Decimal | DecimalJsLike | number | string
     low: Decimal | DecimalJsLike | number | string
     close: Decimal | DecimalJsLike | number | string
-    volume?: bigint | number
-    source?: string
-    created_at?: Date | string
+    volume?: bigint | number | null
+    source?: string | null
+    created_at?: Date | string | null
   }
 
   export type zl_price_1dUpdateInput = {
@@ -188616,9 +189429,9 @@ export namespace Prisma {
     high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFieldUpdateOperationsInput | bigint | number
-    source?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type zl_price_1dUncheckedUpdateInput = {
@@ -188627,9 +189440,9 @@ export namespace Prisma {
     high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFieldUpdateOperationsInput | bigint | number
-    source?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type zl_price_1dCreateManyInput = {
@@ -188638,9 +189451,9 @@ export namespace Prisma {
     high: Decimal | DecimalJsLike | number | string
     low: Decimal | DecimalJsLike | number | string
     close: Decimal | DecimalJsLike | number | string
-    volume?: bigint | number
-    source?: string
-    created_at?: Date | string
+    volume?: bigint | number | null
+    source?: string | null
+    created_at?: Date | string | null
   }
 
   export type zl_price_1dUpdateManyMutationInput = {
@@ -188649,9 +189462,9 @@ export namespace Prisma {
     high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFieldUpdateOperationsInput | bigint | number
-    source?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type zl_price_1dUncheckedUpdateManyInput = {
@@ -188660,9 +189473,9 @@ export namespace Prisma {
     high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    volume?: BigIntFieldUpdateOperationsInput | bigint | number
-    source?: StringFieldUpdateOperationsInput | string
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type public_intraday_pricesCreateInput = {
@@ -191357,136 +192170,6 @@ export namespace Prisma {
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
-  export type MktOptions1dCreateInput = {
-    underlying: string
-    eventDate: Date | string
-    expiration: Date | string
-    strike: number
-    optionType: string
-    open?: number | null
-    high?: number | null
-    low?: number | null
-    close?: number | null
-    volume?: bigint | number | null
-    openInterest?: bigint | number | null
-    source?: string | null
-    ingestedAt?: Date | string | null
-    knowledgeTime?: Date | string | null
-    rowHash?: string | null
-  }
-
-  export type MktOptions1dUncheckedCreateInput = {
-    id?: number
-    underlying: string
-    eventDate: Date | string
-    expiration: Date | string
-    strike: number
-    optionType: string
-    open?: number | null
-    high?: number | null
-    low?: number | null
-    close?: number | null
-    volume?: bigint | number | null
-    openInterest?: bigint | number | null
-    source?: string | null
-    ingestedAt?: Date | string | null
-    knowledgeTime?: Date | string | null
-    rowHash?: string | null
-  }
-
-  export type MktOptions1dUpdateInput = {
-    underlying?: StringFieldUpdateOperationsInput | string
-    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
-    strike?: FloatFieldUpdateOperationsInput | number
-    optionType?: StringFieldUpdateOperationsInput | string
-    open?: NullableFloatFieldUpdateOperationsInput | number | null
-    high?: NullableFloatFieldUpdateOperationsInput | number | null
-    low?: NullableFloatFieldUpdateOperationsInput | number | null
-    close?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    rowHash?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type MktOptions1dUncheckedUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    underlying?: StringFieldUpdateOperationsInput | string
-    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
-    strike?: FloatFieldUpdateOperationsInput | number
-    optionType?: StringFieldUpdateOperationsInput | string
-    open?: NullableFloatFieldUpdateOperationsInput | number | null
-    high?: NullableFloatFieldUpdateOperationsInput | number | null
-    low?: NullableFloatFieldUpdateOperationsInput | number | null
-    close?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    rowHash?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type MktOptions1dCreateManyInput = {
-    id?: number
-    underlying: string
-    eventDate: Date | string
-    expiration: Date | string
-    strike: number
-    optionType: string
-    open?: number | null
-    high?: number | null
-    low?: number | null
-    close?: number | null
-    volume?: bigint | number | null
-    openInterest?: bigint | number | null
-    source?: string | null
-    ingestedAt?: Date | string | null
-    knowledgeTime?: Date | string | null
-    rowHash?: string | null
-  }
-
-  export type MktOptions1dUpdateManyMutationInput = {
-    underlying?: StringFieldUpdateOperationsInput | string
-    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
-    strike?: FloatFieldUpdateOperationsInput | number
-    optionType?: StringFieldUpdateOperationsInput | string
-    open?: NullableFloatFieldUpdateOperationsInput | number | null
-    high?: NullableFloatFieldUpdateOperationsInput | number | null
-    low?: NullableFloatFieldUpdateOperationsInput | number | null
-    close?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    rowHash?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type MktOptions1dUncheckedUpdateManyInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    underlying?: StringFieldUpdateOperationsInput | string
-    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
-    strike?: FloatFieldUpdateOperationsInput | number
-    optionType?: StringFieldUpdateOperationsInput | string
-    open?: NullableFloatFieldUpdateOperationsInput | number | null
-    high?: NullableFloatFieldUpdateOperationsInput | number | null
-    low?: NullableFloatFieldUpdateOperationsInput | number | null
-    close?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    rowHash?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
   export type MktFx1dCreateInput = {
     pair: string
     eventDate: Date | string
@@ -191661,6 +192344,164 @@ export namespace Prisma {
     rowHash?: StringFieldUpdateOperationsInput | string
     specialistTags?: MktEtf1dUpdatespecialistTagsInput | string[]
     createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type MktOptions1dCreateInput = {
+    underlying: string
+    eventDate: Date | string
+    expiration: Date | string
+    strike: number
+    optionType: string
+    open?: number | null
+    high?: number | null
+    low?: number | null
+    close?: number | null
+    change?: number | null
+    bid?: number | null
+    ask?: number | null
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    premium?: number | null
+    lastTradeTime?: string | null
+    source?: string | null
+    ingestedAt?: Date | string | null
+    rowHash: string
+  }
+
+  export type MktOptions1dUncheckedCreateInput = {
+    id?: number
+    underlying: string
+    eventDate: Date | string
+    expiration: Date | string
+    strike: number
+    optionType: string
+    open?: number | null
+    high?: number | null
+    low?: number | null
+    close?: number | null
+    change?: number | null
+    bid?: number | null
+    ask?: number | null
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    premium?: number | null
+    lastTradeTime?: string | null
+    source?: string | null
+    ingestedAt?: Date | string | null
+    rowHash: string
+  }
+
+  export type MktOptions1dUpdateInput = {
+    underlying?: StringFieldUpdateOperationsInput | string
+    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
+    strike?: FloatFieldUpdateOperationsInput | number
+    optionType?: StringFieldUpdateOperationsInput | string
+    open?: NullableFloatFieldUpdateOperationsInput | number | null
+    high?: NullableFloatFieldUpdateOperationsInput | number | null
+    low?: NullableFloatFieldUpdateOperationsInput | number | null
+    close?: NullableFloatFieldUpdateOperationsInput | number | null
+    change?: NullableFloatFieldUpdateOperationsInput | number | null
+    bid?: NullableFloatFieldUpdateOperationsInput | number | null
+    ask?: NullableFloatFieldUpdateOperationsInput | number | null
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    premium?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastTradeTime?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rowHash?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MktOptions1dUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    underlying?: StringFieldUpdateOperationsInput | string
+    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
+    strike?: FloatFieldUpdateOperationsInput | number
+    optionType?: StringFieldUpdateOperationsInput | string
+    open?: NullableFloatFieldUpdateOperationsInput | number | null
+    high?: NullableFloatFieldUpdateOperationsInput | number | null
+    low?: NullableFloatFieldUpdateOperationsInput | number | null
+    close?: NullableFloatFieldUpdateOperationsInput | number | null
+    change?: NullableFloatFieldUpdateOperationsInput | number | null
+    bid?: NullableFloatFieldUpdateOperationsInput | number | null
+    ask?: NullableFloatFieldUpdateOperationsInput | number | null
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    premium?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastTradeTime?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rowHash?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MktOptions1dCreateManyInput = {
+    id?: number
+    underlying: string
+    eventDate: Date | string
+    expiration: Date | string
+    strike: number
+    optionType: string
+    open?: number | null
+    high?: number | null
+    low?: number | null
+    close?: number | null
+    change?: number | null
+    bid?: number | null
+    ask?: number | null
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    premium?: number | null
+    lastTradeTime?: string | null
+    source?: string | null
+    ingestedAt?: Date | string | null
+    rowHash: string
+  }
+
+  export type MktOptions1dUpdateManyMutationInput = {
+    underlying?: StringFieldUpdateOperationsInput | string
+    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
+    strike?: FloatFieldUpdateOperationsInput | number
+    optionType?: StringFieldUpdateOperationsInput | string
+    open?: NullableFloatFieldUpdateOperationsInput | number | null
+    high?: NullableFloatFieldUpdateOperationsInput | number | null
+    low?: NullableFloatFieldUpdateOperationsInput | number | null
+    close?: NullableFloatFieldUpdateOperationsInput | number | null
+    change?: NullableFloatFieldUpdateOperationsInput | number | null
+    bid?: NullableFloatFieldUpdateOperationsInput | number | null
+    ask?: NullableFloatFieldUpdateOperationsInput | number | null
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    premium?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastTradeTime?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rowHash?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MktOptions1dUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    underlying?: StringFieldUpdateOperationsInput | string
+    eventDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiration?: DateTimeFieldUpdateOperationsInput | Date | string
+    strike?: FloatFieldUpdateOperationsInput | number
+    optionType?: StringFieldUpdateOperationsInput | string
+    open?: NullableFloatFieldUpdateOperationsInput | number | null
+    high?: NullableFloatFieldUpdateOperationsInput | number | null
+    low?: NullableFloatFieldUpdateOperationsInput | number | null
+    close?: NullableFloatFieldUpdateOperationsInput | number | null
+    change?: NullableFloatFieldUpdateOperationsInput | number | null
+    bid?: NullableFloatFieldUpdateOperationsInput | number | null
+    ask?: NullableFloatFieldUpdateOperationsInput | number | null
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    premium?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastTradeTime?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rowHash?: StringFieldUpdateOperationsInput | string
   }
 
   export type MktOptionsGreeks1dCreateInput = {
@@ -196798,6 +197639,28 @@ export namespace Prisma {
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -196918,6 +197781,11 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    target_ret_5d?: SortOrder
+    target_ret_21d?: SortOrder
+    target_ret_63d?: SortOrder
+    target_ret_126d?: SortOrder
+    matrixVersion?: SortOrder
     wx_ar_tavg_c?: SortOrder
     wx_br_tavg_c?: SortOrder
     wx_us_tavg_c?: SortOrder
@@ -196942,11 +197810,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrder
     rin_d4_price?: SortOrder
     rin_d6_price?: SortOrder
-    target_ret_5d?: SortOrder
-    target_ret_21d?: SortOrder
-    target_ret_63d?: SortOrder
-    target_ret_126d?: SortOrder
-    matrixVersion?: SortOrder
+    zs_close?: SortOrder
+    zm_close?: SortOrder
+    crush_spread?: SortOrder
+    oil_share?: SortOrder
+    wti_zl_corr_30d?: SortOrder
+    vix_zl_corr_30d?: SortOrder
+    biodiesel_margin?: SortOrder
+    cpo_close?: SortOrder
+    palm_soy_spread?: SortOrder
+    rs_close?: SortOrder
+    zl_canola_spread?: SortOrder
+    trump_total_actions_7d?: SortOrder
+    trump_total_actions_30d?: SortOrder
+    trump_avg_sentiment_7d?: SortOrder
+    trump_avg_sentiment_30d?: SortOrder
+    trump_action_velocity?: SortOrder
+    trump_weighted_action_score?: SortOrder
+    ho_zl_corr_30d?: SortOrder
+    rb_zl_corr_30d?: SortOrder
+    ng_zl_corr_30d?: SortOrder
+    hg_zl_corr_30d?: SortOrder
+    gc_zl_corr_30d?: SortOrder
+    dgs10_zl_corr_30d?: SortOrder
+    dgs2_zl_corr_30d?: SortOrder
   }
 
   export type TrainingMatrix1dAvgOrderByAggregateInput = {
@@ -197053,6 +197940,10 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    target_ret_5d?: SortOrder
+    target_ret_21d?: SortOrder
+    target_ret_63d?: SortOrder
+    target_ret_126d?: SortOrder
     wx_ar_tavg_c?: SortOrder
     wx_br_tavg_c?: SortOrder
     wx_us_tavg_c?: SortOrder
@@ -197077,10 +197968,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrder
     rin_d4_price?: SortOrder
     rin_d6_price?: SortOrder
-    target_ret_5d?: SortOrder
-    target_ret_21d?: SortOrder
-    target_ret_63d?: SortOrder
-    target_ret_126d?: SortOrder
+    zs_close?: SortOrder
+    zm_close?: SortOrder
+    crush_spread?: SortOrder
+    oil_share?: SortOrder
+    wti_zl_corr_30d?: SortOrder
+    vix_zl_corr_30d?: SortOrder
+    biodiesel_margin?: SortOrder
+    cpo_close?: SortOrder
+    palm_soy_spread?: SortOrder
+    rs_close?: SortOrder
+    zl_canola_spread?: SortOrder
+    trump_total_actions_7d?: SortOrder
+    trump_total_actions_30d?: SortOrder
+    trump_avg_sentiment_7d?: SortOrder
+    trump_avg_sentiment_30d?: SortOrder
+    trump_action_velocity?: SortOrder
+    trump_weighted_action_score?: SortOrder
+    ho_zl_corr_30d?: SortOrder
+    rb_zl_corr_30d?: SortOrder
+    ng_zl_corr_30d?: SortOrder
+    hg_zl_corr_30d?: SortOrder
+    gc_zl_corr_30d?: SortOrder
+    dgs10_zl_corr_30d?: SortOrder
+    dgs2_zl_corr_30d?: SortOrder
   }
 
   export type TrainingMatrix1dMaxOrderByAggregateInput = {
@@ -197193,6 +198104,11 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    target_ret_5d?: SortOrder
+    target_ret_21d?: SortOrder
+    target_ret_63d?: SortOrder
+    target_ret_126d?: SortOrder
+    matrixVersion?: SortOrder
     wx_ar_tavg_c?: SortOrder
     wx_br_tavg_c?: SortOrder
     wx_us_tavg_c?: SortOrder
@@ -197217,11 +198133,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrder
     rin_d4_price?: SortOrder
     rin_d6_price?: SortOrder
-    target_ret_5d?: SortOrder
-    target_ret_21d?: SortOrder
-    target_ret_63d?: SortOrder
-    target_ret_126d?: SortOrder
-    matrixVersion?: SortOrder
+    zs_close?: SortOrder
+    zm_close?: SortOrder
+    crush_spread?: SortOrder
+    oil_share?: SortOrder
+    wti_zl_corr_30d?: SortOrder
+    vix_zl_corr_30d?: SortOrder
+    biodiesel_margin?: SortOrder
+    cpo_close?: SortOrder
+    palm_soy_spread?: SortOrder
+    rs_close?: SortOrder
+    zl_canola_spread?: SortOrder
+    trump_total_actions_7d?: SortOrder
+    trump_total_actions_30d?: SortOrder
+    trump_avg_sentiment_7d?: SortOrder
+    trump_avg_sentiment_30d?: SortOrder
+    trump_action_velocity?: SortOrder
+    trump_weighted_action_score?: SortOrder
+    ho_zl_corr_30d?: SortOrder
+    rb_zl_corr_30d?: SortOrder
+    ng_zl_corr_30d?: SortOrder
+    hg_zl_corr_30d?: SortOrder
+    gc_zl_corr_30d?: SortOrder
+    dgs10_zl_corr_30d?: SortOrder
+    dgs2_zl_corr_30d?: SortOrder
   }
 
   export type TrainingMatrix1dMinOrderByAggregateInput = {
@@ -197334,6 +198269,11 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    target_ret_5d?: SortOrder
+    target_ret_21d?: SortOrder
+    target_ret_63d?: SortOrder
+    target_ret_126d?: SortOrder
+    matrixVersion?: SortOrder
     wx_ar_tavg_c?: SortOrder
     wx_br_tavg_c?: SortOrder
     wx_us_tavg_c?: SortOrder
@@ -197358,11 +198298,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrder
     rin_d4_price?: SortOrder
     rin_d6_price?: SortOrder
-    target_ret_5d?: SortOrder
-    target_ret_21d?: SortOrder
-    target_ret_63d?: SortOrder
-    target_ret_126d?: SortOrder
-    matrixVersion?: SortOrder
+    zs_close?: SortOrder
+    zm_close?: SortOrder
+    crush_spread?: SortOrder
+    oil_share?: SortOrder
+    wti_zl_corr_30d?: SortOrder
+    vix_zl_corr_30d?: SortOrder
+    biodiesel_margin?: SortOrder
+    cpo_close?: SortOrder
+    palm_soy_spread?: SortOrder
+    rs_close?: SortOrder
+    zl_canola_spread?: SortOrder
+    trump_total_actions_7d?: SortOrder
+    trump_total_actions_30d?: SortOrder
+    trump_avg_sentiment_7d?: SortOrder
+    trump_avg_sentiment_30d?: SortOrder
+    trump_action_velocity?: SortOrder
+    trump_weighted_action_score?: SortOrder
+    ho_zl_corr_30d?: SortOrder
+    rb_zl_corr_30d?: SortOrder
+    ng_zl_corr_30d?: SortOrder
+    hg_zl_corr_30d?: SortOrder
+    gc_zl_corr_30d?: SortOrder
+    dgs10_zl_corr_30d?: SortOrder
+    dgs2_zl_corr_30d?: SortOrder
   }
 
   export type TrainingMatrix1dSumOrderByAggregateInput = {
@@ -197469,6 +198428,10 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    target_ret_5d?: SortOrder
+    target_ret_21d?: SortOrder
+    target_ret_63d?: SortOrder
+    target_ret_126d?: SortOrder
     wx_ar_tavg_c?: SortOrder
     wx_br_tavg_c?: SortOrder
     wx_us_tavg_c?: SortOrder
@@ -197493,10 +198456,30 @@ export namespace Prisma {
     wasde_zs_production?: SortOrder
     rin_d4_price?: SortOrder
     rin_d6_price?: SortOrder
-    target_ret_5d?: SortOrder
-    target_ret_21d?: SortOrder
-    target_ret_63d?: SortOrder
-    target_ret_126d?: SortOrder
+    zs_close?: SortOrder
+    zm_close?: SortOrder
+    crush_spread?: SortOrder
+    oil_share?: SortOrder
+    wti_zl_corr_30d?: SortOrder
+    vix_zl_corr_30d?: SortOrder
+    biodiesel_margin?: SortOrder
+    cpo_close?: SortOrder
+    palm_soy_spread?: SortOrder
+    rs_close?: SortOrder
+    zl_canola_spread?: SortOrder
+    trump_total_actions_7d?: SortOrder
+    trump_total_actions_30d?: SortOrder
+    trump_avg_sentiment_7d?: SortOrder
+    trump_avg_sentiment_30d?: SortOrder
+    trump_action_velocity?: SortOrder
+    trump_weighted_action_score?: SortOrder
+    ho_zl_corr_30d?: SortOrder
+    rb_zl_corr_30d?: SortOrder
+    ng_zl_corr_30d?: SortOrder
+    hg_zl_corr_30d?: SortOrder
+    gc_zl_corr_30d?: SortOrder
+    dgs10_zl_corr_30d?: SortOrder
+    dgs2_zl_corr_30d?: SortOrder
   }
 
   export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -197587,6 +198570,38 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBoolNullableFilter<$PrismaModel>
     _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -198159,17 +199174,6 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type DecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type VolatilitySurfaceUnderlyingAsOfDateCompoundUniqueInput = {
     underlying: string
     asOfDate: Date | string
@@ -198249,22 +199253,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
-  }
-
-  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type SpecialistTrumpEffect1dAsOfDateSymbolCompoundUniqueInput = {
@@ -198651,17 +199639,6 @@ export namespace Prisma {
     featureImportance?: SortOrder
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type Training_runsScalarRelationFilter = {
     is?: training_runsWhereInput
     isNot?: training_runsWhereInput
@@ -198722,22 +199699,6 @@ export namespace Prisma {
     scoreTest?: SortOrder
     fitTimeSeconds?: SortOrder
     predTimeSeconds?: SortOrder
-  }
-
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type ModelRegistryModelIdVersionCompoundUniqueInput = {
@@ -203302,85 +204263,6 @@ export namespace Prisma {
     openInterest?: SortOrder
   }
 
-  export type MktOptions1dCountOrderByAggregateInput = {
-    id?: SortOrder
-    underlying?: SortOrder
-    eventDate?: SortOrder
-    expiration?: SortOrder
-    strike?: SortOrder
-    optionType?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    openInterest?: SortOrder
-    source?: SortOrder
-    ingestedAt?: SortOrder
-    knowledgeTime?: SortOrder
-    rowHash?: SortOrder
-  }
-
-  export type MktOptions1dAvgOrderByAggregateInput = {
-    id?: SortOrder
-    strike?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    openInterest?: SortOrder
-  }
-
-  export type MktOptions1dMaxOrderByAggregateInput = {
-    id?: SortOrder
-    underlying?: SortOrder
-    eventDate?: SortOrder
-    expiration?: SortOrder
-    strike?: SortOrder
-    optionType?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    openInterest?: SortOrder
-    source?: SortOrder
-    ingestedAt?: SortOrder
-    knowledgeTime?: SortOrder
-    rowHash?: SortOrder
-  }
-
-  export type MktOptions1dMinOrderByAggregateInput = {
-    id?: SortOrder
-    underlying?: SortOrder
-    eventDate?: SortOrder
-    expiration?: SortOrder
-    strike?: SortOrder
-    optionType?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    openInterest?: SortOrder
-    source?: SortOrder
-    ingestedAt?: SortOrder
-    knowledgeTime?: SortOrder
-    rowHash?: SortOrder
-  }
-
-  export type MktOptions1dSumOrderByAggregateInput = {
-    id?: SortOrder
-    strike?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    openInterest?: SortOrder
-  }
-
   export type MktFx1dPairEventDateCompoundUniqueInput = {
     pair: string
     eventDate: Date | string
@@ -203493,6 +204375,113 @@ export namespace Prisma {
     low?: SortOrder
     close?: SortOrder
     volume?: SortOrder
+  }
+
+  export type MktOptions1dUnderlyingEventDateExpirationStrikeOptionTypeCompoundUniqueInput = {
+    underlying: string
+    eventDate: Date | string
+    expiration: Date | string
+    strike: number
+    optionType: string
+  }
+
+  export type MktOptions1dCountOrderByAggregateInput = {
+    id?: SortOrder
+    underlying?: SortOrder
+    eventDate?: SortOrder
+    expiration?: SortOrder
+    strike?: SortOrder
+    optionType?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    change?: SortOrder
+    bid?: SortOrder
+    ask?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    premium?: SortOrder
+    lastTradeTime?: SortOrder
+    source?: SortOrder
+    ingestedAt?: SortOrder
+    rowHash?: SortOrder
+  }
+
+  export type MktOptions1dAvgOrderByAggregateInput = {
+    id?: SortOrder
+    strike?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    change?: SortOrder
+    bid?: SortOrder
+    ask?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    premium?: SortOrder
+  }
+
+  export type MktOptions1dMaxOrderByAggregateInput = {
+    id?: SortOrder
+    underlying?: SortOrder
+    eventDate?: SortOrder
+    expiration?: SortOrder
+    strike?: SortOrder
+    optionType?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    change?: SortOrder
+    bid?: SortOrder
+    ask?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    premium?: SortOrder
+    lastTradeTime?: SortOrder
+    source?: SortOrder
+    ingestedAt?: SortOrder
+    rowHash?: SortOrder
+  }
+
+  export type MktOptions1dMinOrderByAggregateInput = {
+    id?: SortOrder
+    underlying?: SortOrder
+    eventDate?: SortOrder
+    expiration?: SortOrder
+    strike?: SortOrder
+    optionType?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    change?: SortOrder
+    bid?: SortOrder
+    ask?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    premium?: SortOrder
+    lastTradeTime?: SortOrder
+    source?: SortOrder
+    ingestedAt?: SortOrder
+    rowHash?: SortOrder
+  }
+
+  export type MktOptions1dSumOrderByAggregateInput = {
+    id?: SortOrder
+    strike?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    change?: SortOrder
+    bid?: SortOrder
+    ask?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    premium?: SortOrder
   }
 
   export type MktOptionsGreeks1dUnderlyingEventDateExpirationStrikeOptionTypeCompoundUniqueInput = {
@@ -206807,6 +207796,22 @@ export namespace Prisma {
     set?: boolean | null
   }
 
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -206827,14 +207832,6 @@ export namespace Prisma {
     set?: Date | string | null
   }
 
-  export type NullableDecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string | null
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
-  }
-
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
   }
@@ -206843,14 +207840,6 @@ export namespace Prisma {
     create?: XOR<training_runsCreateWithoutModel_leaderboardInput, training_runsUncheckedCreateWithoutModel_leaderboardInput>
     connectOrCreate?: training_runsCreateOrConnectWithoutModel_leaderboardInput
     connect?: training_runsWhereUniqueInput
-  }
-
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type training_runsUpdateOneRequiredWithoutModel_leaderboardNestedInput = {
@@ -207187,6 +208176,28 @@ export namespace Prisma {
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
     in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
@@ -207201,17 +208212,6 @@ export namespace Prisma {
     _sum?: NestedBigIntNullableFilter<$PrismaModel>
     _min?: NestedBigIntNullableFilter<$PrismaModel>
     _max?: NestedBigIntNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -207295,6 +208295,38 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBoolNullableFilter<$PrismaModel>
     _max?: NestedBoolNullableFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -207387,17 +208419,6 @@ export namespace Prisma {
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
-
-  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -207422,22 +208443,6 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
-  }
-
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
@@ -207449,22 +208454,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type NestedUuidFilter<$PrismaModel = never> = {

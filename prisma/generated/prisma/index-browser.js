@@ -230,6 +230,11 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   fx_usdeur: 'fx_usdeur',
   fx_usdgbp: 'fx_usdgbp',
   fx_usdjpy: 'fx_usdjpy',
+  target_ret_5d: 'target_ret_5d',
+  target_ret_21d: 'target_ret_21d',
+  target_ret_63d: 'target_ret_63d',
+  target_ret_126d: 'target_ret_126d',
+  matrixVersion: 'matrixVersion',
   wx_ar_tavg_c: 'wx_ar_tavg_c',
   wx_br_tavg_c: 'wx_br_tavg_c',
   wx_us_tavg_c: 'wx_us_tavg_c',
@@ -254,11 +259,30 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   wasde_zs_production: 'wasde_zs_production',
   rin_d4_price: 'rin_d4_price',
   rin_d6_price: 'rin_d6_price',
-  target_ret_5d: 'target_ret_5d',
-  target_ret_21d: 'target_ret_21d',
-  target_ret_63d: 'target_ret_63d',
-  target_ret_126d: 'target_ret_126d',
-  matrixVersion: 'matrixVersion'
+  zs_close: 'zs_close',
+  zm_close: 'zm_close',
+  crush_spread: 'crush_spread',
+  oil_share: 'oil_share',
+  wti_zl_corr_30d: 'wti_zl_corr_30d',
+  vix_zl_corr_30d: 'vix_zl_corr_30d',
+  biodiesel_margin: 'biodiesel_margin',
+  cpo_close: 'cpo_close',
+  palm_soy_spread: 'palm_soy_spread',
+  rs_close: 'rs_close',
+  zl_canola_spread: 'zl_canola_spread',
+  trump_total_actions_7d: 'trump_total_actions_7d',
+  trump_total_actions_30d: 'trump_total_actions_30d',
+  trump_avg_sentiment_7d: 'trump_avg_sentiment_7d',
+  trump_avg_sentiment_30d: 'trump_avg_sentiment_30d',
+  trump_action_velocity: 'trump_action_velocity',
+  trump_weighted_action_score: 'trump_weighted_action_score',
+  ho_zl_corr_30d: 'ho_zl_corr_30d',
+  rb_zl_corr_30d: 'rb_zl_corr_30d',
+  ng_zl_corr_30d: 'ng_zl_corr_30d',
+  hg_zl_corr_30d: 'hg_zl_corr_30d',
+  gc_zl_corr_30d: 'gc_zl_corr_30d',
+  dgs10_zl_corr_30d: 'dgs10_zl_corr_30d',
+  dgs2_zl_corr_30d: 'dgs2_zl_corr_30d'
 };
 
 exports.Prisma.TrainingFeatures1dScalarFieldEnum = {
@@ -1493,25 +1517,6 @@ exports.Prisma.MktFutures1hScalarFieldEnum = {
   rowHash: 'rowHash'
 };
 
-exports.Prisma.MktOptions1dScalarFieldEnum = {
-  id: 'id',
-  underlying: 'underlying',
-  eventDate: 'eventDate',
-  expiration: 'expiration',
-  strike: 'strike',
-  optionType: 'optionType',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
 exports.Prisma.MktFx1dScalarFieldEnum = {
   id: 'id',
   pair: 'pair',
@@ -1536,6 +1541,29 @@ exports.Prisma.MktEtf1dScalarFieldEnum = {
   rowHash: 'rowHash',
   specialistTags: 'specialistTags',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.MktOptions1dScalarFieldEnum = {
+  id: 'id',
+  underlying: 'underlying',
+  eventDate: 'eventDate',
+  expiration: 'expiration',
+  strike: 'strike',
+  optionType: 'optionType',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  change: 'change',
+  bid: 'bid',
+  ask: 'ask',
+  volume: 'volume',
+  openInterest: 'openInterest',
+  premium: 'premium',
+  lastTradeTime: 'lastTradeTime',
+  source: 'source',
+  ingestedAt: 'ingestedAt',
+  rowHash: 'rowHash'
 };
 
 exports.Prisma.MktOptionsGreeks1dScalarFieldEnum = {
@@ -2396,9 +2424,9 @@ exports.Prisma.ModelName = {
   VegasDailySpend: 'VegasDailySpend',
   MktFutures1d: 'MktFutures1d',
   MktFutures1h: 'MktFutures1h',
-  MktOptions1d: 'MktOptions1d',
   MktFx1d: 'MktFx1d',
   MktEtf1d: 'MktEtf1d',
+  MktOptions1d: 'MktOptions1d',
   MktOptionsGreeks1d: 'MktOptionsGreeks1d',
   EconRates1d: 'EconRates1d',
   EconInflation1d: 'EconInflation1d',

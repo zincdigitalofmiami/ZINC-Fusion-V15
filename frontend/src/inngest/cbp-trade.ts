@@ -79,7 +79,11 @@ export const cbpTradeDaily = inngest.createFunction(
       // Fetch RSS
       const items = await step.run("fetch-rss", async () => {
         const response = await fetch("https://www.cbp.gov/rss/trade", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/rss+xml, application/xml, text/xml, */*"
+          },
+          redirect: "follow"
         });
         if (!response.ok) throw new Error(`CBP RSS error: ${response.status}`);
         const xml = await response.text();
