@@ -105,15 +105,13 @@ async function getStations(client: PoolClient): Promise<
     max_date: string | null;
     region: string | null;
     country: string | null;
-    specialist_bucket: string | null;
   }>
 > {
   const r = await client.query(
     `SELECT station_id,
             MAX(event_date)::date::text as max_date,
             MAX(region)::text as region,
-            MAX(country)::text as country,
-            MAX(specialist_bucket)::text as specialist_bucket
+            MAX(country)::text as country
      FROM alt.weather_1d
      WHERE station_id LIKE 'OM\\_%' OR station_id LIKE 'OPENMETEO:%'
      GROUP BY station_id
@@ -332,7 +330,6 @@ export const openmeteoWeatherDaily = inngest.createFunction(
             };
 
             const rowHash = computeRowHash(station.station_id, eventDate, payload);
-            const tags = station.specialist_bucket ? [station.specialist_bucket] : [];
 
             await client.query(
               `INSERT INTO alt.weather_1d

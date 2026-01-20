@@ -82,14 +82,13 @@ async function eventStationExists(client: PoolClient, stationId: string, eventDa
 }
 
 async function getStations(client: PoolClient): Promise<
-  Array<{ station_id: string; max_date: string | null; region: string | null; country: string | null; specialist_bucket: string | null }>
+  Array<{ station_id: string; max_date: string | null; region: string | null; country: string | null }>
 > {
   const r = await client.query(
     `SELECT station_id,
             MAX(event_date)::date::text as max_date,
             MAX(region)::text as region,
-            MAX(country)::text as country,
-            MAX(specialist_bucket)::text as specialist_bucket
+            MAX(country)::text as country
      FROM alt.weather_1d
      GROUP BY station_id
      ORDER BY station_id`
@@ -230,7 +229,6 @@ export const noaaWeatherDaily = inngest.createFunction(
               ...values,
             };
             const rowHash = computeRowHash(station.station_id, eventDate, payload);
-            const tags = station.specialist_bucket ? [station.specialist_bucket] : [];
 
             await client.query(
               `INSERT INTO alt.weather_1d
