@@ -8,8 +8,8 @@
  * - After the Bell (closing summaries)
  *
  * Requires env vars:
- *   PROFARMER_USER - ProFarmer login email
- *   PROFARMER_PASS - ProFarmer password
+ *   PROFARMER_USERNAME - ProFarmer login email
+ *   PROFARMER_PASSWORD - ProFarmer password
  *
  * Schedule: Daily at 6 AM CT (after First Thing Today) and 5 PM CT (after After the Bell)
  */
@@ -100,11 +100,11 @@ interface ArticleData {
  * Login to ProFarmer and return session cookies
  */
 async function loginToProFarmer(): Promise<string> {
-  const user = process.env.PROFARMER_USER;
-  const pass = process.env.PROFARMER_PASS;
+  const user = process.env.PROFARMER_USERNAME;
+  const pass = process.env.PROFARMER_PASSWORD;
 
   if (!user || !pass) {
-    throw new Error("PROFARMER_USER and PROFARMER_PASS environment variables required");
+    throw new Error("PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required");
   }
 
   // First, get the login page to capture any CSRF token
