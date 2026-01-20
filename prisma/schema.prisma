@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["alt", "analytics", "archive", "econ", "features", "forecasts", "metadata", "mkt", "model", "ops", "pos", "supply", "training"]
+  schemas  = ["alt", "analytics", "archive", "econ", "features", "forecasts", "metadata", "mkt", "model", "ops", "pos", "supply", "training", "vegas"]
 }
 
 model TrainingMatrix1d {
@@ -119,6 +119,34 @@ model TrainingMatrix1d {
   fx_usdeur            Float?
   fx_usdgbp            Float?
   fx_usdjpy            Float?
+  // Weather features (regional)
+  wx_ar_tavg_c         Float?
+  wx_br_tavg_c         Float?
+  wx_us_tavg_c         Float?
+  wx_ar_prcp_mm        Float?
+  wx_br_prcp_mm        Float?
+  wx_us_prcp_mm        Float?
+  wx_ar_prcp_anom_30d  Float?
+  wx_br_prcp_anom_30d  Float?
+  wx_us_prcp_anom_30d  Float?
+  wx_ar_gdd_30d_sum    Float?
+  wx_br_gdd_30d_sum    Float?
+  wx_us_gdd_30d_sum    Float?
+  // CFTC positioning
+  cftc_open_interest       Float?
+  cftc_managed_money_net   Float?
+  cftc_managed_money_pct   Float?
+  cftc_prod_merc_net       Float?
+  cftc_prod_merc_pct       Float?
+  cftc_swap_net            Float?
+  // USDA WASDE
+  wasde_zl_ending_stocks   Float?
+  wasde_zl_production      Float?
+  wasde_zs_ending_stocks   Float?
+  wasde_zs_production      Float?
+  // EPA RIN prices
+  rin_d4_price             Float?
+  rin_d6_price             Float?
   target_ret_5d        Float?
   target_ret_21d       Float?
   target_ret_63d       Float?
@@ -464,7 +492,26 @@ model SpecialistFed1h {
   @@schema("analytics")
 }
 
-// REMOVED: SpecialistFx1d, SpecialistFx1h - FX data consolidated to mkt.fx_1d
+model SpecialistFx1d {
+  id             BigInt    @id @default(autoincrement())
+  symbol         String    @db.VarChar(20)
+  asOfDate       DateTime  @map("as_of_date") @db.Date
+  open           Decimal?  @db.Decimal(18, 8)
+  high           Decimal?  @db.Decimal(18, 8)
+  low            Decimal?  @db.Decimal(18, 8)
+  close          Decimal   @db.Decimal(18, 8)
+  volume         BigInt?
+  openInterest   BigInt?   @map("open_interest")
+  contractMonth  String?   @map("contract_month") @db.VarChar(10)
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  bucketName     String?   @default("fx") @map("bucket_name") @db.VarChar(50)
+  granularity    String?   @default("1d") @db.VarChar(10)
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([symbol, asOfDate])
+  @@map("specialist_fx_1d")
+  @@schema("training")
+}
 
 model SpecialistPalm1d {
   symbol         String
@@ -1819,7 +1866,7 @@ model VegasRestaurant {
   @@index([ingestedAt], map: "idx_vegas_restaurants_ingested_at")
   @@index([cuisineType], map: "idx_vegas_restaurants_cuisine")
   @@map("vegas_restaurants")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasCasino {
@@ -1831,7 +1878,7 @@ model VegasCasino {
   @@index([glideRowId], map: "idx_vegas_casinos_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_casinos_ingested_at")
   @@map("vegas_casinos")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasFryer {
@@ -1843,7 +1890,7 @@ model VegasFryer {
   @@index([glideRowId], map: "idx_vegas_fryers_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_fryers_ingested_at")
   @@map("vegas_fryers")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasExportList {
@@ -1855,7 +1902,7 @@ model VegasExportList {
   @@index([glideRowId], map: "idx_vegas_export_list_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_export_list_ingested_at")
   @@map("vegas_export_list")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasScheduledReport {
@@ -1867,7 +1914,7 @@ model VegasScheduledReport {
   @@index([glideRowId], map: "idx_vegas_scheduled_reports_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_scheduled_reports_ingested_at")
   @@map("vegas_scheduled_reports")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasShift {
@@ -1879,7 +1926,7 @@ model VegasShift {
   @@index([glideRowId], map: "idx_vegas_shifts_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_shifts_ingested_at")
   @@map("vegas_shifts")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasShiftCasino {
@@ -1891,7 +1938,7 @@ model VegasShiftCasino {
   @@index([glideRowId], map: "idx_vegas_shift_casinos_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_shift_casinos_ingested_at")
   @@map("vegas_shift_casinos")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasShiftRestaurant {
@@ -1903,7 +1950,7 @@ model VegasShiftRestaurant {
   @@index([glideRowId], map: "idx_vegas_shift_restaurants_glide_row_id")
   @@index([ingestedAt], map: "idx_vegas_shift_restaurants_ingested_at")
   @@map("vegas_shift_restaurants")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasEvent {
@@ -1928,7 +1975,7 @@ model VegasEvent {
   @@index([eventType], map: "idx_vegas_events_type")
   @@index([isActive], map: "idx_vegas_events_active")
   @@map("vegas_events")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasEventProfile {
@@ -1945,7 +1992,7 @@ model VegasEventProfile {
   updatedAt       DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("vegas_event_profiles")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasCasinoProfile {
@@ -1961,7 +2008,7 @@ model VegasCasinoProfile {
   updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   @@map("vegas_casino_profiles")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasCuisineMatch {
@@ -1976,7 +2023,7 @@ model VegasCuisineMatch {
   @@unique([eventType, cuisineType], map: "vegas_cuisine_match_event_cuisine_key")
   @@index([eventType], map: "idx_vegas_cuisine_match_event_type")
   @@map("vegas_cuisine_match")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasIntelSheet {
@@ -2001,7 +2048,7 @@ model VegasIntelSheet {
   @@index([eventId], map: "idx_vegas_intel_sheets_event")
   @@index([status], map: "idx_vegas_intel_sheets_status")
   @@map("vegas_intel_sheets")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasCustomerScore {
@@ -2025,7 +2072,7 @@ model VegasCustomerScore {
   @@index([priorityScore], map: "idx_vegas_customer_scores_priority")
   @@index([atRiskScore], map: "idx_vegas_customer_scores_at_risk")
   @@map("vegas_customer_scores")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasActivityLog {
@@ -2041,7 +2088,7 @@ model VegasActivityLog {
   @@index([entityType, entityId], map: "idx_vegas_activity_log_entity")
   @@index([createdAt], map: "idx_vegas_activity_log_created")
   @@map("vegas_activity_log")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasCuisineAffinity {
@@ -2056,7 +2103,7 @@ model VegasCuisineAffinity {
   @@index([eventCategory], map: "idx_vegas_cuisine_affinity_category")
   @@index([cuisineType], map: "idx_vegas_cuisine_affinity_cuisine")
   @@map("vegas_cuisine_affinity")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model VegasDailySpend {
@@ -2073,7 +2120,7 @@ model VegasDailySpend {
 
   @@index([impactDate], map: "idx_vegas_daily_spend_date")
   @@map("vegas_daily_spend")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model MktFutures1d {
@@ -2435,22 +2482,24 @@ model SupplyWorldbankImports1y {
 }
 
 model AltNews1d {
-  id             Int       @id @default(autoincrement())
-  articleId      String?   @map("article_id") @db.VarChar(100)
-  eventDate      DateTime  @map("event_date") @db.Date
-  publishedAt    DateTime? @map("published_at") @db.Timestamptz(6)
-  headline       String
-  content        String?
-  url            String?
-  author         String?   @db.VarChar(200)
-  source         String?   @db.VarChar(100)
-  sentimentScore Float?    @map("sentiment_score")
-  zlSentiment    String?   @map("zl_sentiment") @db.VarChar(50)
-  isTrumpRelated Boolean?  @map("is_trump_related")
-  specialistTags String[]  @map("specialist_tags")
-  ingestedAt     DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime  DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash        String?   @map("row_hash") @db.VarChar(64)
+  id                 Int       @id @default(autoincrement())
+  articleId          String?   @map("article_id") @db.VarChar(100)
+  eventDate          DateTime  @map("event_date") @db.Date
+  publishedAt        DateTime? @map("published_at") @db.Timestamptz(6)
+  headline           String
+  content            String?
+  url                String?
+  author             String?   @db.VarChar(200)
+  source             String?   @db.VarChar(100)
+  sentimentScore     Float?    @map("sentiment_score")
+  zlSentiment        String?   @map("zl_sentiment") @db.VarChar(50)
+  isTrumpRelated     Boolean?  @map("is_trump_related")
+  specialistTags     String[]  @map("specialist_tags")
+  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime      DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash            String?   @map("row_hash") @db.VarChar(64)
+  rawPayload         Json?     @map("raw_payload")
+  ingestionBatchId   String?   @map("ingestion_batch_id") @db.Uuid
 
   @@index([eventDate], map: "idx_alt_news_date")
   @@index([specialistTags], map: "idx_alt_news_tags", type: Gin)
@@ -2459,25 +2508,27 @@ model AltNews1d {
 }
 
 model AltWeather1d {
-  id            Int       @id @default(autoincrement())
-  eventDate     DateTime  @map("event_date") @db.Date
-  stationId     String    @map("station_id") @db.VarChar(20)
-  region        String?   @db.VarChar(50)
-  country       String?   @db.VarChar(50)
-  tmaxC         Float?    @map("tmax_c")
-  tminC         Float?    @map("tmin_c")
-  tavgC         Float?    @map("tavg_c")
-  prcpMm        Float?    @map("prcp_mm")
-  snowMm        Float?    @map("snow_mm")
-  snwdMm        Float?    @map("snwd_mm")
-  evapMm        Float?    @map("evap_mm")
-  rhavPct       Float?    @map("rhav_pct")
-  awndMs        Float?    @map("awnd_ms")
-  wsfgMs        Float?    @map("wsfg_ms")
-  source        String?   @default("NOAA") @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash       String?   @map("row_hash") @db.VarChar(64)
+  id               Int       @id @default(autoincrement())
+  eventDate        DateTime  @map("event_date") @db.Date
+  stationId        String    @map("station_id") @db.VarChar(20)
+  region           String?   @db.VarChar(50)
+  country          String?   @db.VarChar(50)
+  tmaxC            Float?    @map("tmax_c")
+  tminC            Float?    @map("tmin_c")
+  tavgC            Float?    @map("tavg_c")
+  prcpMm           Float?    @map("prcp_mm")
+  snowMm           Float?    @map("snow_mm")
+  snwdMm           Float?    @map("snwd_mm")
+  evapMm           Float?    @map("evap_mm")
+  rhavPct          Float?    @map("rhav_pct")
+  awndMs           Float?    @map("awnd_ms")
+  wsfgMs           Float?    @map("wsfg_ms")
+  source           String?   @default("NOAA") @db.VarChar(50)
+  ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.Uuid
 
   @@index([region, eventDate], map: "idx_alt_weather_region_date")
   @@map("weather_1d")
@@ -2485,19 +2536,21 @@ model AltWeather1d {
 }
 
 model AltLegislation1d {
-  id             Int       @id @default(autoincrement())
-  eventDate      DateTime  @map("event_date") @db.Date
-  documentNumber String?   @map("document_number") @db.VarChar(50)
-  title          String?
-  agency         String?   @db.VarChar(200)
-  documentType   String?   @map("document_type") @db.VarChar(50)
-  action         String?   @db.VarChar(50)
-  specialistTags String[]  @map("specialist_tags")
-  source         String?   @default("FEDERAL_REGISTER") @db.VarChar(50)
-  ingestedAt     DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime  DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash        String?   @map("row_hash") @db.VarChar(64)
-  url            String?
+  id               Int       @id @default(autoincrement())
+  eventDate        DateTime  @map("event_date") @db.Date
+  documentNumber   String?   @map("document_number") @db.VarChar(50)
+  title            String?
+  agency           String?   @db.VarChar(200)
+  documentType     String?   @map("document_type") @db.VarChar(50)
+  action           String?   @db.VarChar(50)
+  specialistTags   String[]  @map("specialist_tags")
+  source           String?   @default("FEDERAL_REGISTER") @db.VarChar(50)
+  ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  url              String?
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.Uuid
 
   @@map("legislation_1d")
   @@schema("alt")
@@ -2818,7 +2871,7 @@ model vegas_event_entities {
   @@index([event_id], map: "idx_vegas_event_entities_event")
   @@index([name], map: "idx_vegas_event_entities_name")
   @@index([entity_type], map: "idx_vegas_event_entities_type")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model vegas_event_impact {
@@ -2837,7 +2890,7 @@ model vegas_event_impact {
   @@index([event_id], map: "idx_vegas_event_impact_event")
   @@index([impact_value(sort: Desc)], map: "idx_vegas_event_impact_value")
   @@index([vertical], map: "idx_vegas_event_impact_vertical")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model vegas_event_labels {
@@ -2851,7 +2904,7 @@ model vegas_event_labels {
   @@index([event_id], map: "idx_vegas_event_labels_event")
   @@index([label], map: "idx_vegas_event_labels_label")
   @@index([weight(sort: Desc)], map: "idx_vegas_event_labels_weight")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model vegas_event_venues {
@@ -2863,7 +2916,7 @@ model vegas_event_venues {
 
   @@index([event_id], map: "idx_vegas_event_venues_event")
   @@index([venue_id], map: "idx_vegas_event_venues_venue")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model vegas_venues {
@@ -2885,7 +2938,7 @@ model vegas_venues {
   @@index([latitude, longitude], map: "idx_vegas_venues_coords")
   @@index([name], map: "idx_vegas_venues_name")
   @@index([placekey], map: "idx_vegas_venues_placekey")
-  @@schema("ops")
+  @@schema("vegas")
 }
 
 model model_runs {

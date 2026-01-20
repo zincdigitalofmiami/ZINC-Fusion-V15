@@ -230,6 +230,30 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   fx_usdeur: 'fx_usdeur',
   fx_usdgbp: 'fx_usdgbp',
   fx_usdjpy: 'fx_usdjpy',
+  wx_ar_tavg_c: 'wx_ar_tavg_c',
+  wx_br_tavg_c: 'wx_br_tavg_c',
+  wx_us_tavg_c: 'wx_us_tavg_c',
+  wx_ar_prcp_mm: 'wx_ar_prcp_mm',
+  wx_br_prcp_mm: 'wx_br_prcp_mm',
+  wx_us_prcp_mm: 'wx_us_prcp_mm',
+  wx_ar_prcp_anom_30d: 'wx_ar_prcp_anom_30d',
+  wx_br_prcp_anom_30d: 'wx_br_prcp_anom_30d',
+  wx_us_prcp_anom_30d: 'wx_us_prcp_anom_30d',
+  wx_ar_gdd_30d_sum: 'wx_ar_gdd_30d_sum',
+  wx_br_gdd_30d_sum: 'wx_br_gdd_30d_sum',
+  wx_us_gdd_30d_sum: 'wx_us_gdd_30d_sum',
+  cftc_open_interest: 'cftc_open_interest',
+  cftc_managed_money_net: 'cftc_managed_money_net',
+  cftc_managed_money_pct: 'cftc_managed_money_pct',
+  cftc_prod_merc_net: 'cftc_prod_merc_net',
+  cftc_prod_merc_pct: 'cftc_prod_merc_pct',
+  cftc_swap_net: 'cftc_swap_net',
+  wasde_zl_ending_stocks: 'wasde_zl_ending_stocks',
+  wasde_zl_production: 'wasde_zl_production',
+  wasde_zs_ending_stocks: 'wasde_zs_ending_stocks',
+  wasde_zs_production: 'wasde_zs_production',
+  rin_d4_price: 'rin_d4_price',
+  rin_d6_price: 'rin_d6_price',
   target_ret_5d: 'target_ret_5d',
   target_ret_21d: 'target_ret_21d',
   target_ret_63d: 'target_ret_63d',
@@ -483,6 +507,23 @@ exports.Prisma.SpecialistFed1dScalarFieldEnum = {
 exports.Prisma.SpecialistFed1hScalarFieldEnum = {
   symbol: 'symbol',
   asOfTime: 'asOfTime',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  openInterest: 'openInterest',
+  contractMonth: 'contractMonth',
+  expirationDate: 'expirationDate',
+  bucketName: 'bucketName',
+  granularity: 'granularity',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SpecialistFx1dScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  asOfDate: 'asOfDate',
   open: 'open',
   high: 'high',
   low: 'low',
@@ -916,21 +957,6 @@ exports.Prisma.VolRegimesScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.ZlLiveScalarFieldEnum = {
-  id: 'id',
-  price: 'price',
-  previousClose: 'previousClose',
-  change: 'change',
-  changePct: 'changePct',
-  dayHigh: 'dayHigh',
-  dayLow: 'dayLow',
-  dayOpen: 'dayOpen',
-  volume: 'volume',
-  timestamp: 'timestamp',
-  source: 'source',
-  updatedAt: 'updatedAt'
-};
-
 exports.Prisma.DataSourceRegistryScalarFieldEnum = {
   id: 'id',
   sourceId: 'sourceId',
@@ -1049,7 +1075,7 @@ exports.Prisma.Regime_state_1dScalarFieldEnum = {
   created_at: 'created_at'
 };
 
-exports.Prisma.Zl_intradayScalarFieldEnum = {
+exports.Prisma.Zl_price_15mScalarFieldEnum = {
   id: 'id',
   timestamp: 'timestamp',
   open: 'open',
@@ -1355,6 +1381,17 @@ exports.Prisma.Training_runsScalarFieldEnum = {
 
 exports.Prisma.Zl_price_1hScalarFieldEnum = {
   timestamp: 'timestamp',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_price_1dScalarFieldEnum = {
+  event_date: 'event_date',
   open: 'open',
   high: 'high',
   low: 'low',
@@ -2015,7 +2052,9 @@ exports.Prisma.AltNews1dScalarFieldEnum = {
   specialistTags: 'specialistTags',
   ingestedAt: 'ingestedAt',
   knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
+  rowHash: 'rowHash',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId'
 };
 
 exports.Prisma.AltWeather1dScalarFieldEnum = {
@@ -2037,7 +2076,9 @@ exports.Prisma.AltWeather1dScalarFieldEnum = {
   source: 'source',
   ingestedAt: 'ingestedAt',
   knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
+  rowHash: 'rowHash',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId'
 };
 
 exports.Prisma.AltLegislation1dScalarFieldEnum = {
@@ -2053,7 +2094,9 @@ exports.Prisma.AltLegislation1dScalarFieldEnum = {
   ingestedAt: 'ingestedAt',
   knowledgeTime: 'knowledgeTime',
   rowHash: 'rowHash',
-  url: 'url'
+  url: 'url',
+  rawPayload: 'rawPayload',
+  ingestionBatchId: 'ingestionBatchId'
 };
 
 exports.Prisma.Event_probabilities_126d_1dScalarFieldEnum = {
@@ -2593,6 +2636,7 @@ exports.Prisma.ModelName = {
   SpecialistEnergy1h: 'SpecialistEnergy1h',
   SpecialistFed1d: 'SpecialistFed1d',
   SpecialistFed1h: 'SpecialistFed1h',
+  SpecialistFx1d: 'SpecialistFx1d',
   SpecialistPalm1d: 'SpecialistPalm1d',
   SpecialistPalm1h: 'SpecialistPalm1h',
   SpecialistSubstitutes1d: 'SpecialistSubstitutes1d',
@@ -2623,7 +2667,6 @@ exports.Prisma.ModelName = {
   ScenarioAnalysis: 'ScenarioAnalysis',
   ValueTimingWindows: 'ValueTimingWindows',
   VolRegimes: 'VolRegimes',
-  ZlLive: 'ZlLive',
   DataSourceRegistry: 'DataSourceRegistry',
   IngestRun: 'IngestRun',
   QuarantinedRecord: 'QuarantinedRecord',
@@ -2632,7 +2675,7 @@ exports.Prisma.ModelName = {
   IntelDrop: 'IntelDrop',
   driver_attribution_1d: 'driver_attribution_1d',
   regime_state_1d: 'regime_state_1d',
-  zl_intraday: 'zl_intraday',
+  zl_price_15m: 'zl_price_15m',
   elite_indicators_1d: 'elite_indicators_1d',
   FeaturesOptions1d: 'FeaturesOptions1d',
   FeaturesWeather1d: 'FeaturesWeather1d',
@@ -2646,6 +2689,7 @@ exports.Prisma.ModelName = {
   training_run_log: 'training_run_log',
   training_runs: 'training_runs',
   zl_price_1h: 'zl_price_1h',
+  zl_price_1d: 'zl_price_1d',
   public_intraday_prices: 'public_intraday_prices',
   public_latest_prices: 'public_latest_prices',
   trump_effect_1d: 'trump_effect_1d',

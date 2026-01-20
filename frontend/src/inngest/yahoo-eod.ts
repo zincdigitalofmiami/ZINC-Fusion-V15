@@ -8,20 +8,33 @@ const pool = new Pool({
 
 // Symbols to fetch daily from Yahoo Finance
 const YAHOO_SYMBOLS = [
+  // Soybean complex
   { yahoo: "ZL=F", db: "ZL", name: "Soybean Oil" },
   { yahoo: "ZS=F", db: "ZS", name: "Soybeans" },
-  { yahoo: "ZC=F", db: "ZC", name: "Corn" },
   { yahoo: "ZM=F", db: "ZM", name: "Soybean Meal" },
+  // Grains
+  { yahoo: "ZC=F", db: "ZC", name: "Corn" },
+  { yahoo: "ZW=F", db: "ZW", name: "Wheat" },
+  { yahoo: "RS=F", db: "RS", name: "Canola" },
+  // Energy
   { yahoo: "CL=F", db: "CL", name: "Crude Oil" },
   { yahoo: "NG=F", db: "NG", name: "Natural Gas" },
+  { yahoo: "RB=F", db: "RB", name: "RBOB Gasoline" },
+  { yahoo: "HO=F", db: "HO", name: "Heating Oil" },
+  // Metals
   { yahoo: "GC=F", db: "GC", name: "Gold" },
   { yahoo: "SI=F", db: "SI", name: "Silver" },
   { yahoo: "HG=F", db: "HG", name: "Copper" },
+  { yahoo: "PL=F", db: "PL", name: "Platinum" },
+  { yahoo: "PA=F", db: "PA", name: "Palladium" },
+  // Indices
   { yahoo: "DX-Y.NYB", db: "DX", name: "Dollar Index" },
   { yahoo: "^VIX", db: "VX", name: "VIX" },
   { yahoo: "^GVZ", db: "GVZ", name: "Gold VIX" },
-  { yahoo: "RB=F", db: "RB", name: "RBOB Gasoline" },
-  { yahoo: "HO=F", db: "HO", name: "Heating Oil" },
+  // Softs (no CPO on Yahoo - using Trading Economics)
+  { yahoo: "CC=F", db: "CC", name: "Cocoa" },
+  { yahoo: "KC=F", db: "KC", name: "Coffee" },
+  { yahoo: "SB=F", db: "SB", name: "Sugar" },
 ];
 
 interface YahooQuote {

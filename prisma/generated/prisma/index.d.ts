@@ -99,6 +99,11 @@ export type SpecialistFed1d = $Result.DefaultSelection<Prisma.$SpecialistFed1dPa
  */
 export type SpecialistFed1h = $Result.DefaultSelection<Prisma.$SpecialistFed1hPayload>
 /**
+ * Model SpecialistFx1d
+ * 
+ */
+export type SpecialistFx1d = $Result.DefaultSelection<Prisma.$SpecialistFx1dPayload>
+/**
  * Model SpecialistPalm1d
  * 
  */
@@ -249,11 +254,6 @@ export type ValueTimingWindows = $Result.DefaultSelection<Prisma.$ValueTimingWin
  */
 export type VolRegimes = $Result.DefaultSelection<Prisma.$VolRegimesPayload>
 /**
- * Model ZlLive
- * 
- */
-export type ZlLive = $Result.DefaultSelection<Prisma.$ZlLivePayload>
-/**
  * Model DataSourceRegistry
  * 
  */
@@ -294,10 +294,10 @@ export type driver_attribution_1d = $Result.DefaultSelection<Prisma.$driver_attr
  */
 export type regime_state_1d = $Result.DefaultSelection<Prisma.$regime_state_1dPayload>
 /**
- * Model zl_intraday
- * 
+ * Model zl_price_15m
+ * ZL 15-minute bars for dashboard charts
  */
-export type zl_intraday = $Result.DefaultSelection<Prisma.$zl_intradayPayload>
+export type zl_price_15m = $Result.DefaultSelection<Prisma.$zl_price_15mPayload>
 /**
  * Model elite_indicators_1d
  * 
@@ -360,9 +360,14 @@ export type training_run_log = $Result.DefaultSelection<Prisma.$training_run_log
 export type training_runs = $Result.DefaultSelection<Prisma.$training_runsPayload>
 /**
  * Model zl_price_1h
- * 
+ * ZL 1h bars for dashboard charts
  */
 export type zl_price_1h = $Result.DefaultSelection<Prisma.$zl_price_1hPayload>
+/**
+ * Model zl_price_1d
+ * ZL 1d bars for dashboard - copied from mkt.futures_1d
+ */
+export type zl_price_1d = $Result.DefaultSelection<Prisma.$zl_price_1dPayload>
 /**
  * Model public_intraday_prices
  * 
@@ -1052,6 +1057,16 @@ export class PrismaClient<
   get specialistFed1h(): Prisma.SpecialistFed1hDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.specialistFx1d`: Exposes CRUD operations for the **SpecialistFx1d** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SpecialistFx1ds
+    * const specialistFx1ds = await prisma.specialistFx1d.findMany()
+    * ```
+    */
+  get specialistFx1d(): Prisma.SpecialistFx1dDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.specialistPalm1d`: Exposes CRUD operations for the **SpecialistPalm1d** model.
     * Example usage:
     * ```ts
@@ -1352,16 +1367,6 @@ export class PrismaClient<
   get volRegimes(): Prisma.VolRegimesDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.zlLive`: Exposes CRUD operations for the **ZlLive** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more ZlLives
-    * const zlLives = await prisma.zlLive.findMany()
-    * ```
-    */
-  get zlLive(): Prisma.ZlLiveDelegate<ExtArgs, ClientOptions>;
-
-  /**
    * `prisma.dataSourceRegistry`: Exposes CRUD operations for the **DataSourceRegistry** model.
     * Example usage:
     * ```ts
@@ -1442,14 +1447,14 @@ export class PrismaClient<
   get regime_state_1d(): Prisma.regime_state_1dDelegate<ExtArgs, ClientOptions>;
 
   /**
-   * `prisma.zl_intraday`: Exposes CRUD operations for the **zl_intraday** model.
+   * `prisma.zl_price_15m`: Exposes CRUD operations for the **zl_price_15m** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more Zl_intradays
-    * const zl_intradays = await prisma.zl_intraday.findMany()
+    * // Fetch zero or more Zl_price_15ms
+    * const zl_price_15ms = await prisma.zl_price_15m.findMany()
     * ```
     */
-  get zl_intraday(): Prisma.zl_intradayDelegate<ExtArgs, ClientOptions>;
+  get zl_price_15m(): Prisma.zl_price_15mDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.elite_indicators_1d`: Exposes CRUD operations for the **elite_indicators_1d** model.
@@ -1580,6 +1585,16 @@ export class PrismaClient<
     * ```
     */
   get zl_price_1h(): Prisma.zl_price_1hDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.zl_price_1d`: Exposes CRUD operations for the **zl_price_1d** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Zl_price_1ds
+    * const zl_price_1ds = await prisma.zl_price_1d.findMany()
+    * ```
+    */
+  get zl_price_1d(): Prisma.zl_price_1dDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.public_intraday_prices`: Exposes CRUD operations for the **public_intraday_prices** model.
@@ -2831,6 +2846,7 @@ export namespace Prisma {
     SpecialistEnergy1h: 'SpecialistEnergy1h',
     SpecialistFed1d: 'SpecialistFed1d',
     SpecialistFed1h: 'SpecialistFed1h',
+    SpecialistFx1d: 'SpecialistFx1d',
     SpecialistPalm1d: 'SpecialistPalm1d',
     SpecialistPalm1h: 'SpecialistPalm1h',
     SpecialistSubstitutes1d: 'SpecialistSubstitutes1d',
@@ -2861,7 +2877,6 @@ export namespace Prisma {
     ScenarioAnalysis: 'ScenarioAnalysis',
     ValueTimingWindows: 'ValueTimingWindows',
     VolRegimes: 'VolRegimes',
-    ZlLive: 'ZlLive',
     DataSourceRegistry: 'DataSourceRegistry',
     IngestRun: 'IngestRun',
     QuarantinedRecord: 'QuarantinedRecord',
@@ -2870,7 +2885,7 @@ export namespace Prisma {
     IntelDrop: 'IntelDrop',
     driver_attribution_1d: 'driver_attribution_1d',
     regime_state_1d: 'regime_state_1d',
-    zl_intraday: 'zl_intraday',
+    zl_price_15m: 'zl_price_15m',
     elite_indicators_1d: 'elite_indicators_1d',
     FeaturesOptions1d: 'FeaturesOptions1d',
     FeaturesWeather1d: 'FeaturesWeather1d',
@@ -2884,6 +2899,7 @@ export namespace Prisma {
     training_run_log: 'training_run_log',
     training_runs: 'training_runs',
     zl_price_1h: 'zl_price_1h',
+    zl_price_1d: 'zl_price_1d',
     public_intraday_prices: 'public_intraday_prices',
     public_latest_prices: 'public_latest_prices',
     trump_effect_1d: 'trump_effect_1d',
@@ -2979,7 +2995,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistBiofuel1d" | "specialistBiofuel1h" | "specialistChina1d" | "specialistChina1h" | "specialistCrush1d" | "specialistCrush1h" | "specialistEnergy1d" | "specialistEnergy1h" | "specialistFed1d" | "specialistFed1h" | "specialistPalm1d" | "specialistPalm1h" | "specialistSubstitutes1d" | "specialistSubstitutes1h" | "specialistTariff1d" | "specialistTariff1h" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "specialistVolatility1d" | "specialistVolatility1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "zlLive" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_intraday" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktOptions1d" | "mktFx1d" | "mktEtf1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d"
+      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistBiofuel1d" | "specialistBiofuel1h" | "specialistChina1d" | "specialistChina1h" | "specialistCrush1d" | "specialistCrush1h" | "specialistEnergy1d" | "specialistEnergy1h" | "specialistFed1d" | "specialistFed1h" | "specialistFx1d" | "specialistPalm1d" | "specialistPalm1h" | "specialistSubstitutes1d" | "specialistSubstitutes1h" | "specialistTariff1d" | "specialistTariff1h" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "specialistVolatility1d" | "specialistVolatility1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_price_15m" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "zl_price_1d" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktOptions1d" | "mktFx1d" | "mktEtf1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4238,6 +4254,80 @@ export namespace Prisma {
           count: {
             args: Prisma.SpecialistFed1hCountArgs<ExtArgs>
             result: $Utils.Optional<SpecialistFed1hCountAggregateOutputType> | number
+          }
+        }
+      }
+      SpecialistFx1d: {
+        payload: Prisma.$SpecialistFx1dPayload<ExtArgs>
+        fields: Prisma.SpecialistFx1dFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SpecialistFx1dFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SpecialistFx1dFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          findFirst: {
+            args: Prisma.SpecialistFx1dFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SpecialistFx1dFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          findMany: {
+            args: Prisma.SpecialistFx1dFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>[]
+          }
+          create: {
+            args: Prisma.SpecialistFx1dCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          createMany: {
+            args: Prisma.SpecialistFx1dCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SpecialistFx1dCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>[]
+          }
+          delete: {
+            args: Prisma.SpecialistFx1dDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          update: {
+            args: Prisma.SpecialistFx1dUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          deleteMany: {
+            args: Prisma.SpecialistFx1dDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SpecialistFx1dUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SpecialistFx1dUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>[]
+          }
+          upsert: {
+            args: Prisma.SpecialistFx1dUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SpecialistFx1dPayload>
+          }
+          aggregate: {
+            args: Prisma.SpecialistFx1dAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSpecialistFx1d>
+          }
+          groupBy: {
+            args: Prisma.SpecialistFx1dGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SpecialistFx1dGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SpecialistFx1dCountArgs<ExtArgs>
+            result: $Utils.Optional<SpecialistFx1dCountAggregateOutputType> | number
           }
         }
       }
@@ -6461,80 +6551,6 @@ export namespace Prisma {
           }
         }
       }
-      ZlLive: {
-        payload: Prisma.$ZlLivePayload<ExtArgs>
-        fields: Prisma.ZlLiveFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.ZlLiveFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.ZlLiveFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          findFirst: {
-            args: Prisma.ZlLiveFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.ZlLiveFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          findMany: {
-            args: Prisma.ZlLiveFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>[]
-          }
-          create: {
-            args: Prisma.ZlLiveCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          createMany: {
-            args: Prisma.ZlLiveCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.ZlLiveCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>[]
-          }
-          delete: {
-            args: Prisma.ZlLiveDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          update: {
-            args: Prisma.ZlLiveUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          deleteMany: {
-            args: Prisma.ZlLiveDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.ZlLiveUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateManyAndReturn: {
-            args: Prisma.ZlLiveUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>[]
-          }
-          upsert: {
-            args: Prisma.ZlLiveUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ZlLivePayload>
-          }
-          aggregate: {
-            args: Prisma.ZlLiveAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateZlLive>
-          }
-          groupBy: {
-            args: Prisma.ZlLiveGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ZlLiveGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.ZlLiveCountArgs<ExtArgs>
-            result: $Utils.Optional<ZlLiveCountAggregateOutputType> | number
-          }
-        }
-      }
       DataSourceRegistry: {
         payload: Prisma.$DataSourceRegistryPayload<ExtArgs>
         fields: Prisma.DataSourceRegistryFieldRefs
@@ -7127,77 +7143,77 @@ export namespace Prisma {
           }
         }
       }
-      zl_intraday: {
-        payload: Prisma.$zl_intradayPayload<ExtArgs>
-        fields: Prisma.zl_intradayFieldRefs
+      zl_price_15m: {
+        payload: Prisma.$zl_price_15mPayload<ExtArgs>
+        fields: Prisma.zl_price_15mFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.zl_intradayFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload> | null
+            args: Prisma.zl_price_15mFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.zl_intradayFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           findFirst: {
-            args: Prisma.zl_intradayFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload> | null
+            args: Prisma.zl_price_15mFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.zl_intradayFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           findMany: {
-            args: Prisma.zl_intradayFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>[]
+            args: Prisma.zl_price_15mFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>[]
           }
           create: {
-            args: Prisma.zl_intradayCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           createMany: {
-            args: Prisma.zl_intradayCreateManyArgs<ExtArgs>
+            args: Prisma.zl_price_15mCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.zl_intradayCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>[]
+            args: Prisma.zl_price_15mCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>[]
           }
           delete: {
-            args: Prisma.zl_intradayDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           update: {
-            args: Prisma.zl_intradayUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           deleteMany: {
-            args: Prisma.zl_intradayDeleteManyArgs<ExtArgs>
+            args: Prisma.zl_price_15mDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.zl_intradayUpdateManyArgs<ExtArgs>
+            args: Prisma.zl_price_15mUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateManyAndReturn: {
-            args: Prisma.zl_intradayUpdateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>[]
+            args: Prisma.zl_price_15mUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>[]
           }
           upsert: {
-            args: Prisma.zl_intradayUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$zl_intradayPayload>
+            args: Prisma.zl_price_15mUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_15mPayload>
           }
           aggregate: {
-            args: Prisma.Zl_intradayAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateZl_intraday>
+            args: Prisma.Zl_price_15mAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateZl_price_15m>
           }
           groupBy: {
-            args: Prisma.zl_intradayGroupByArgs<ExtArgs>
-            result: $Utils.Optional<Zl_intradayGroupByOutputType>[]
+            args: Prisma.zl_price_15mGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Zl_price_15mGroupByOutputType>[]
           }
           count: {
-            args: Prisma.zl_intradayCountArgs<ExtArgs>
-            result: $Utils.Optional<Zl_intradayCountAggregateOutputType> | number
+            args: Prisma.zl_price_15mCountArgs<ExtArgs>
+            result: $Utils.Optional<Zl_price_15mCountAggregateOutputType> | number
           }
         }
       }
@@ -8160,6 +8176,80 @@ export namespace Prisma {
           count: {
             args: Prisma.zl_price_1hCountArgs<ExtArgs>
             result: $Utils.Optional<Zl_price_1hCountAggregateOutputType> | number
+          }
+        }
+      }
+      zl_price_1d: {
+        payload: Prisma.$zl_price_1dPayload<ExtArgs>
+        fields: Prisma.zl_price_1dFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.zl_price_1dFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.zl_price_1dFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          findFirst: {
+            args: Prisma.zl_price_1dFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.zl_price_1dFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          findMany: {
+            args: Prisma.zl_price_1dFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>[]
+          }
+          create: {
+            args: Prisma.zl_price_1dCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          createMany: {
+            args: Prisma.zl_price_1dCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.zl_price_1dCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>[]
+          }
+          delete: {
+            args: Prisma.zl_price_1dDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          update: {
+            args: Prisma.zl_price_1dUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          deleteMany: {
+            args: Prisma.zl_price_1dDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.zl_price_1dUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.zl_price_1dUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>[]
+          }
+          upsert: {
+            args: Prisma.zl_price_1dUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$zl_price_1dPayload>
+          }
+          aggregate: {
+            args: Prisma.Zl_price_1dAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateZl_price_1d>
+          }
+          groupBy: {
+            args: Prisma.zl_price_1dGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Zl_price_1dGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.zl_price_1dCountArgs<ExtArgs>
+            result: $Utils.Optional<Zl_price_1dCountAggregateOutputType> | number
           }
         }
       }
@@ -14208,6 +14298,7 @@ export namespace Prisma {
     specialistEnergy1h?: SpecialistEnergy1hOmit
     specialistFed1d?: SpecialistFed1dOmit
     specialistFed1h?: SpecialistFed1hOmit
+    specialistFx1d?: SpecialistFx1dOmit
     specialistPalm1d?: SpecialistPalm1dOmit
     specialistPalm1h?: SpecialistPalm1hOmit
     specialistSubstitutes1d?: SpecialistSubstitutes1dOmit
@@ -14238,7 +14329,6 @@ export namespace Prisma {
     scenarioAnalysis?: ScenarioAnalysisOmit
     valueTimingWindows?: ValueTimingWindowsOmit
     volRegimes?: VolRegimesOmit
-    zlLive?: ZlLiveOmit
     dataSourceRegistry?: DataSourceRegistryOmit
     ingestRun?: IngestRunOmit
     quarantinedRecord?: QuarantinedRecordOmit
@@ -14247,7 +14337,7 @@ export namespace Prisma {
     intelDrop?: IntelDropOmit
     driver_attribution_1d?: driver_attribution_1dOmit
     regime_state_1d?: regime_state_1dOmit
-    zl_intraday?: zl_intradayOmit
+    zl_price_15m?: zl_price_15mOmit
     elite_indicators_1d?: elite_indicators_1dOmit
     featuresOptions1d?: FeaturesOptions1dOmit
     featuresWeather1d?: FeaturesWeather1dOmit
@@ -14261,6 +14351,7 @@ export namespace Prisma {
     training_run_log?: training_run_logOmit
     training_runs?: training_runsOmit
     zl_price_1h?: zl_price_1hOmit
+    zl_price_1d?: zl_price_1dOmit
     public_intraday_prices?: public_intraday_pricesOmit
     public_latest_prices?: public_latest_pricesOmit
     trump_effect_1d?: trump_effect_1dOmit
@@ -14629,6 +14720,30 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    wx_ar_tavg_c: number | null
+    wx_br_tavg_c: number | null
+    wx_us_tavg_c: number | null
+    wx_ar_prcp_mm: number | null
+    wx_br_prcp_mm: number | null
+    wx_us_prcp_mm: number | null
+    wx_ar_prcp_anom_30d: number | null
+    wx_br_prcp_anom_30d: number | null
+    wx_us_prcp_anom_30d: number | null
+    wx_ar_gdd_30d_sum: number | null
+    wx_br_gdd_30d_sum: number | null
+    wx_us_gdd_30d_sum: number | null
+    cftc_open_interest: number | null
+    cftc_managed_money_net: number | null
+    cftc_managed_money_pct: number | null
+    cftc_prod_merc_net: number | null
+    cftc_prod_merc_pct: number | null
+    cftc_swap_net: number | null
+    wasde_zl_ending_stocks: number | null
+    wasde_zl_production: number | null
+    wasde_zs_ending_stocks: number | null
+    wasde_zs_production: number | null
+    rin_d4_price: number | null
+    rin_d6_price: number | null
     target_ret_5d: number | null
     target_ret_21d: number | null
     target_ret_63d: number | null
@@ -14739,6 +14854,30 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    wx_ar_tavg_c: number | null
+    wx_br_tavg_c: number | null
+    wx_us_tavg_c: number | null
+    wx_ar_prcp_mm: number | null
+    wx_br_prcp_mm: number | null
+    wx_us_prcp_mm: number | null
+    wx_ar_prcp_anom_30d: number | null
+    wx_br_prcp_anom_30d: number | null
+    wx_us_prcp_anom_30d: number | null
+    wx_ar_gdd_30d_sum: number | null
+    wx_br_gdd_30d_sum: number | null
+    wx_us_gdd_30d_sum: number | null
+    cftc_open_interest: number | null
+    cftc_managed_money_net: number | null
+    cftc_managed_money_pct: number | null
+    cftc_prod_merc_net: number | null
+    cftc_prod_merc_pct: number | null
+    cftc_swap_net: number | null
+    wasde_zl_ending_stocks: number | null
+    wasde_zl_production: number | null
+    wasde_zs_ending_stocks: number | null
+    wasde_zs_production: number | null
+    rin_d4_price: number | null
+    rin_d6_price: number | null
     target_ret_5d: number | null
     target_ret_21d: number | null
     target_ret_63d: number | null
@@ -14855,6 +14994,30 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    wx_ar_tavg_c: number | null
+    wx_br_tavg_c: number | null
+    wx_us_tavg_c: number | null
+    wx_ar_prcp_mm: number | null
+    wx_br_prcp_mm: number | null
+    wx_us_prcp_mm: number | null
+    wx_ar_prcp_anom_30d: number | null
+    wx_br_prcp_anom_30d: number | null
+    wx_us_prcp_anom_30d: number | null
+    wx_ar_gdd_30d_sum: number | null
+    wx_br_gdd_30d_sum: number | null
+    wx_us_gdd_30d_sum: number | null
+    cftc_open_interest: number | null
+    cftc_managed_money_net: number | null
+    cftc_managed_money_pct: number | null
+    cftc_prod_merc_net: number | null
+    cftc_prod_merc_pct: number | null
+    cftc_swap_net: number | null
+    wasde_zl_ending_stocks: number | null
+    wasde_zl_production: number | null
+    wasde_zs_ending_stocks: number | null
+    wasde_zs_production: number | null
+    rin_d4_price: number | null
+    rin_d6_price: number | null
     target_ret_5d: number | null
     target_ret_21d: number | null
     target_ret_63d: number | null
@@ -14972,6 +15135,30 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    wx_ar_tavg_c: number | null
+    wx_br_tavg_c: number | null
+    wx_us_tavg_c: number | null
+    wx_ar_prcp_mm: number | null
+    wx_br_prcp_mm: number | null
+    wx_us_prcp_mm: number | null
+    wx_ar_prcp_anom_30d: number | null
+    wx_br_prcp_anom_30d: number | null
+    wx_us_prcp_anom_30d: number | null
+    wx_ar_gdd_30d_sum: number | null
+    wx_br_gdd_30d_sum: number | null
+    wx_us_gdd_30d_sum: number | null
+    cftc_open_interest: number | null
+    cftc_managed_money_net: number | null
+    cftc_managed_money_pct: number | null
+    cftc_prod_merc_net: number | null
+    cftc_prod_merc_pct: number | null
+    cftc_swap_net: number | null
+    wasde_zl_ending_stocks: number | null
+    wasde_zl_production: number | null
+    wasde_zs_ending_stocks: number | null
+    wasde_zs_production: number | null
+    rin_d4_price: number | null
+    rin_d6_price: number | null
     target_ret_5d: number | null
     target_ret_21d: number | null
     target_ret_63d: number | null
@@ -15089,6 +15276,30 @@ export namespace Prisma {
     fx_usdeur: number
     fx_usdgbp: number
     fx_usdjpy: number
+    wx_ar_tavg_c: number
+    wx_br_tavg_c: number
+    wx_us_tavg_c: number
+    wx_ar_prcp_mm: number
+    wx_br_prcp_mm: number
+    wx_us_prcp_mm: number
+    wx_ar_prcp_anom_30d: number
+    wx_br_prcp_anom_30d: number
+    wx_us_prcp_anom_30d: number
+    wx_ar_gdd_30d_sum: number
+    wx_br_gdd_30d_sum: number
+    wx_us_gdd_30d_sum: number
+    cftc_open_interest: number
+    cftc_managed_money_net: number
+    cftc_managed_money_pct: number
+    cftc_prod_merc_net: number
+    cftc_prod_merc_pct: number
+    cftc_swap_net: number
+    wasde_zl_ending_stocks: number
+    wasde_zl_production: number
+    wasde_zs_ending_stocks: number
+    wasde_zs_production: number
+    rin_d4_price: number
+    rin_d6_price: number
     target_ret_5d: number
     target_ret_21d: number
     target_ret_63d: number
@@ -15202,6 +15413,30 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    wx_ar_tavg_c?: true
+    wx_br_tavg_c?: true
+    wx_us_tavg_c?: true
+    wx_ar_prcp_mm?: true
+    wx_br_prcp_mm?: true
+    wx_us_prcp_mm?: true
+    wx_ar_prcp_anom_30d?: true
+    wx_br_prcp_anom_30d?: true
+    wx_us_prcp_anom_30d?: true
+    wx_ar_gdd_30d_sum?: true
+    wx_br_gdd_30d_sum?: true
+    wx_us_gdd_30d_sum?: true
+    cftc_open_interest?: true
+    cftc_managed_money_net?: true
+    cftc_managed_money_pct?: true
+    cftc_prod_merc_net?: true
+    cftc_prod_merc_pct?: true
+    cftc_swap_net?: true
+    wasde_zl_ending_stocks?: true
+    wasde_zl_production?: true
+    wasde_zs_ending_stocks?: true
+    wasde_zs_production?: true
+    rin_d4_price?: true
+    rin_d6_price?: true
     target_ret_5d?: true
     target_ret_21d?: true
     target_ret_63d?: true
@@ -15312,6 +15547,30 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    wx_ar_tavg_c?: true
+    wx_br_tavg_c?: true
+    wx_us_tavg_c?: true
+    wx_ar_prcp_mm?: true
+    wx_br_prcp_mm?: true
+    wx_us_prcp_mm?: true
+    wx_ar_prcp_anom_30d?: true
+    wx_br_prcp_anom_30d?: true
+    wx_us_prcp_anom_30d?: true
+    wx_ar_gdd_30d_sum?: true
+    wx_br_gdd_30d_sum?: true
+    wx_us_gdd_30d_sum?: true
+    cftc_open_interest?: true
+    cftc_managed_money_net?: true
+    cftc_managed_money_pct?: true
+    cftc_prod_merc_net?: true
+    cftc_prod_merc_pct?: true
+    cftc_swap_net?: true
+    wasde_zl_ending_stocks?: true
+    wasde_zl_production?: true
+    wasde_zs_ending_stocks?: true
+    wasde_zs_production?: true
+    rin_d4_price?: true
+    rin_d6_price?: true
     target_ret_5d?: true
     target_ret_21d?: true
     target_ret_63d?: true
@@ -15428,6 +15687,30 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    wx_ar_tavg_c?: true
+    wx_br_tavg_c?: true
+    wx_us_tavg_c?: true
+    wx_ar_prcp_mm?: true
+    wx_br_prcp_mm?: true
+    wx_us_prcp_mm?: true
+    wx_ar_prcp_anom_30d?: true
+    wx_br_prcp_anom_30d?: true
+    wx_us_prcp_anom_30d?: true
+    wx_ar_gdd_30d_sum?: true
+    wx_br_gdd_30d_sum?: true
+    wx_us_gdd_30d_sum?: true
+    cftc_open_interest?: true
+    cftc_managed_money_net?: true
+    cftc_managed_money_pct?: true
+    cftc_prod_merc_net?: true
+    cftc_prod_merc_pct?: true
+    cftc_swap_net?: true
+    wasde_zl_ending_stocks?: true
+    wasde_zl_production?: true
+    wasde_zs_ending_stocks?: true
+    wasde_zs_production?: true
+    rin_d4_price?: true
+    rin_d6_price?: true
     target_ret_5d?: true
     target_ret_21d?: true
     target_ret_63d?: true
@@ -15545,6 +15828,30 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    wx_ar_tavg_c?: true
+    wx_br_tavg_c?: true
+    wx_us_tavg_c?: true
+    wx_ar_prcp_mm?: true
+    wx_br_prcp_mm?: true
+    wx_us_prcp_mm?: true
+    wx_ar_prcp_anom_30d?: true
+    wx_br_prcp_anom_30d?: true
+    wx_us_prcp_anom_30d?: true
+    wx_ar_gdd_30d_sum?: true
+    wx_br_gdd_30d_sum?: true
+    wx_us_gdd_30d_sum?: true
+    cftc_open_interest?: true
+    cftc_managed_money_net?: true
+    cftc_managed_money_pct?: true
+    cftc_prod_merc_net?: true
+    cftc_prod_merc_pct?: true
+    cftc_swap_net?: true
+    wasde_zl_ending_stocks?: true
+    wasde_zl_production?: true
+    wasde_zs_ending_stocks?: true
+    wasde_zs_production?: true
+    rin_d4_price?: true
+    rin_d6_price?: true
     target_ret_5d?: true
     target_ret_21d?: true
     target_ret_63d?: true
@@ -15662,6 +15969,30 @@ export namespace Prisma {
     fx_usdeur?: true
     fx_usdgbp?: true
     fx_usdjpy?: true
+    wx_ar_tavg_c?: true
+    wx_br_tavg_c?: true
+    wx_us_tavg_c?: true
+    wx_ar_prcp_mm?: true
+    wx_br_prcp_mm?: true
+    wx_us_prcp_mm?: true
+    wx_ar_prcp_anom_30d?: true
+    wx_br_prcp_anom_30d?: true
+    wx_us_prcp_anom_30d?: true
+    wx_ar_gdd_30d_sum?: true
+    wx_br_gdd_30d_sum?: true
+    wx_us_gdd_30d_sum?: true
+    cftc_open_interest?: true
+    cftc_managed_money_net?: true
+    cftc_managed_money_pct?: true
+    cftc_prod_merc_net?: true
+    cftc_prod_merc_pct?: true
+    cftc_swap_net?: true
+    wasde_zl_ending_stocks?: true
+    wasde_zl_production?: true
+    wasde_zs_ending_stocks?: true
+    wasde_zs_production?: true
+    rin_d4_price?: true
+    rin_d6_price?: true
     target_ret_5d?: true
     target_ret_21d?: true
     target_ret_63d?: true
@@ -15866,6 +16197,30 @@ export namespace Prisma {
     fx_usdeur: number | null
     fx_usdgbp: number | null
     fx_usdjpy: number | null
+    wx_ar_tavg_c: number | null
+    wx_br_tavg_c: number | null
+    wx_us_tavg_c: number | null
+    wx_ar_prcp_mm: number | null
+    wx_br_prcp_mm: number | null
+    wx_us_prcp_mm: number | null
+    wx_ar_prcp_anom_30d: number | null
+    wx_br_prcp_anom_30d: number | null
+    wx_us_prcp_anom_30d: number | null
+    wx_ar_gdd_30d_sum: number | null
+    wx_br_gdd_30d_sum: number | null
+    wx_us_gdd_30d_sum: number | null
+    cftc_open_interest: number | null
+    cftc_managed_money_net: number | null
+    cftc_managed_money_pct: number | null
+    cftc_prod_merc_net: number | null
+    cftc_prod_merc_pct: number | null
+    cftc_swap_net: number | null
+    wasde_zl_ending_stocks: number | null
+    wasde_zl_production: number | null
+    wasde_zs_ending_stocks: number | null
+    wasde_zs_production: number | null
+    rin_d4_price: number | null
+    rin_d6_price: number | null
     target_ret_5d: number | null
     target_ret_21d: number | null
     target_ret_63d: number | null
@@ -16002,6 +16357,30 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    wx_ar_tavg_c?: boolean
+    wx_br_tavg_c?: boolean
+    wx_us_tavg_c?: boolean
+    wx_ar_prcp_mm?: boolean
+    wx_br_prcp_mm?: boolean
+    wx_us_prcp_mm?: boolean
+    wx_ar_prcp_anom_30d?: boolean
+    wx_br_prcp_anom_30d?: boolean
+    wx_us_prcp_anom_30d?: boolean
+    wx_ar_gdd_30d_sum?: boolean
+    wx_br_gdd_30d_sum?: boolean
+    wx_us_gdd_30d_sum?: boolean
+    cftc_open_interest?: boolean
+    cftc_managed_money_net?: boolean
+    cftc_managed_money_pct?: boolean
+    cftc_prod_merc_net?: boolean
+    cftc_prod_merc_pct?: boolean
+    cftc_swap_net?: boolean
+    wasde_zl_ending_stocks?: boolean
+    wasde_zl_production?: boolean
+    wasde_zs_ending_stocks?: boolean
+    wasde_zs_production?: boolean
+    rin_d4_price?: boolean
+    rin_d6_price?: boolean
     target_ret_5d?: boolean
     target_ret_21d?: boolean
     target_ret_63d?: boolean
@@ -16119,6 +16498,30 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    wx_ar_tavg_c?: boolean
+    wx_br_tavg_c?: boolean
+    wx_us_tavg_c?: boolean
+    wx_ar_prcp_mm?: boolean
+    wx_br_prcp_mm?: boolean
+    wx_us_prcp_mm?: boolean
+    wx_ar_prcp_anom_30d?: boolean
+    wx_br_prcp_anom_30d?: boolean
+    wx_us_prcp_anom_30d?: boolean
+    wx_ar_gdd_30d_sum?: boolean
+    wx_br_gdd_30d_sum?: boolean
+    wx_us_gdd_30d_sum?: boolean
+    cftc_open_interest?: boolean
+    cftc_managed_money_net?: boolean
+    cftc_managed_money_pct?: boolean
+    cftc_prod_merc_net?: boolean
+    cftc_prod_merc_pct?: boolean
+    cftc_swap_net?: boolean
+    wasde_zl_ending_stocks?: boolean
+    wasde_zl_production?: boolean
+    wasde_zs_ending_stocks?: boolean
+    wasde_zs_production?: boolean
+    rin_d4_price?: boolean
+    rin_d6_price?: boolean
     target_ret_5d?: boolean
     target_ret_21d?: boolean
     target_ret_63d?: boolean
@@ -16236,6 +16639,30 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    wx_ar_tavg_c?: boolean
+    wx_br_tavg_c?: boolean
+    wx_us_tavg_c?: boolean
+    wx_ar_prcp_mm?: boolean
+    wx_br_prcp_mm?: boolean
+    wx_us_prcp_mm?: boolean
+    wx_ar_prcp_anom_30d?: boolean
+    wx_br_prcp_anom_30d?: boolean
+    wx_us_prcp_anom_30d?: boolean
+    wx_ar_gdd_30d_sum?: boolean
+    wx_br_gdd_30d_sum?: boolean
+    wx_us_gdd_30d_sum?: boolean
+    cftc_open_interest?: boolean
+    cftc_managed_money_net?: boolean
+    cftc_managed_money_pct?: boolean
+    cftc_prod_merc_net?: boolean
+    cftc_prod_merc_pct?: boolean
+    cftc_swap_net?: boolean
+    wasde_zl_ending_stocks?: boolean
+    wasde_zl_production?: boolean
+    wasde_zs_ending_stocks?: boolean
+    wasde_zs_production?: boolean
+    rin_d4_price?: boolean
+    rin_d6_price?: boolean
     target_ret_5d?: boolean
     target_ret_21d?: boolean
     target_ret_63d?: boolean
@@ -16353,6 +16780,30 @@ export namespace Prisma {
     fx_usdeur?: boolean
     fx_usdgbp?: boolean
     fx_usdjpy?: boolean
+    wx_ar_tavg_c?: boolean
+    wx_br_tavg_c?: boolean
+    wx_us_tavg_c?: boolean
+    wx_ar_prcp_mm?: boolean
+    wx_br_prcp_mm?: boolean
+    wx_us_prcp_mm?: boolean
+    wx_ar_prcp_anom_30d?: boolean
+    wx_br_prcp_anom_30d?: boolean
+    wx_us_prcp_anom_30d?: boolean
+    wx_ar_gdd_30d_sum?: boolean
+    wx_br_gdd_30d_sum?: boolean
+    wx_us_gdd_30d_sum?: boolean
+    cftc_open_interest?: boolean
+    cftc_managed_money_net?: boolean
+    cftc_managed_money_pct?: boolean
+    cftc_prod_merc_net?: boolean
+    cftc_prod_merc_pct?: boolean
+    cftc_swap_net?: boolean
+    wasde_zl_ending_stocks?: boolean
+    wasde_zl_production?: boolean
+    wasde_zs_ending_stocks?: boolean
+    wasde_zs_production?: boolean
+    rin_d4_price?: boolean
+    rin_d6_price?: boolean
     target_ret_5d?: boolean
     target_ret_21d?: boolean
     target_ret_63d?: boolean
@@ -16360,7 +16811,7 @@ export namespace Prisma {
     matrixVersion?: boolean
   }
 
-  export type TrainingMatrix1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tradeDate" | "symbol" | "hurst_exponent" | "hurst_regime" | "connors_rsi" | "fisher_transform" | "fisher_signal" | "mcginley_dynamic" | "ttm_squeeze_on" | "ttm_squeeze_momentum" | "schaff_trend_cycle" | "rvi" | "rvi_signal" | "elder_force_index" | "kama_10" | "hma_20" | "alma_50" | "rsi_2" | "rsi_14" | "cumulative_rsi" | "macd" | "macd_signal" | "macd_histogram" | "cci_14" | "cci_50" | "atr_10" | "atr_50" | "atr_ratio" | "garman_klass_vol" | "yang_zhang_vol" | "bb_percent_b" | "cmf_21" | "volume_zscore" | "unusual_volume" | "createdAt" | "open" | "high" | "low" | "close" | "volume" | "returns_1d" | "log_returns_1d" | "range_pct" | "fred_bamlc0a0cm" | "fred_bamlh0a0hym2" | "fred_chnmainlandtpu" | "fred_dcoilbrenteu" | "fred_dcoilwtico" | "fred_dexbzus" | "fred_dexcaus" | "fred_dexchus" | "fred_dexinus" | "fred_dexjpus" | "fred_dexkous" | "fred_dexmaus" | "fred_dexmxus" | "fred_dexsfus" | "fred_dexthus" | "fred_dexusal" | "fred_dexuseu" | "fred_dgasusgulf" | "fred_dgs10" | "fred_dgs1mo" | "fred_dgs2" | "fred_dgs20" | "fred_dgs30" | "fred_dgs3mo" | "fred_dgs5" | "fred_dhhngsp" | "fred_dhoilnyh" | "fred_djfuelusgulf" | "fred_dprime" | "fred_dpropanembtx" | "fred_dxy" | "fred_emvtradepolemv" | "fred_eputrade" | "fred_fedfunds" | "fred_gdp" | "fred_gdpc1" | "fred_indpro" | "fred_m2sl" | "fred_nfci" | "fred_payems" | "fred_pce" | "fred_pcepi" | "fred_pcoppusdm" | "fred_pmaizmtusdm" | "fred_ppoilusdm" | "fred_proilusdm" | "fred_psoilusdm" | "fred_psoybusdm" | "fred_pwheamtusdm" | "fred_stlfsi4" | "fred_t10y2y" | "fred_t10y3m" | "fred_t10yie" | "fred_tedrate" | "fred_umcsent" | "fred_unrate" | "fred_usepuindxd" | "fred_usepuindxm" | "fred_vixcls" | "fred_walcl" | "fx_usdbrl" | "fx_usdcny" | "fx_usdeur" | "fx_usdgbp" | "fx_usdjpy" | "target_ret_5d" | "target_ret_21d" | "target_ret_63d" | "target_ret_126d" | "matrixVersion", ExtArgs["result"]["trainingMatrix1d"]>
+  export type TrainingMatrix1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tradeDate" | "symbol" | "hurst_exponent" | "hurst_regime" | "connors_rsi" | "fisher_transform" | "fisher_signal" | "mcginley_dynamic" | "ttm_squeeze_on" | "ttm_squeeze_momentum" | "schaff_trend_cycle" | "rvi" | "rvi_signal" | "elder_force_index" | "kama_10" | "hma_20" | "alma_50" | "rsi_2" | "rsi_14" | "cumulative_rsi" | "macd" | "macd_signal" | "macd_histogram" | "cci_14" | "cci_50" | "atr_10" | "atr_50" | "atr_ratio" | "garman_klass_vol" | "yang_zhang_vol" | "bb_percent_b" | "cmf_21" | "volume_zscore" | "unusual_volume" | "createdAt" | "open" | "high" | "low" | "close" | "volume" | "returns_1d" | "log_returns_1d" | "range_pct" | "fred_bamlc0a0cm" | "fred_bamlh0a0hym2" | "fred_chnmainlandtpu" | "fred_dcoilbrenteu" | "fred_dcoilwtico" | "fred_dexbzus" | "fred_dexcaus" | "fred_dexchus" | "fred_dexinus" | "fred_dexjpus" | "fred_dexkous" | "fred_dexmaus" | "fred_dexmxus" | "fred_dexsfus" | "fred_dexthus" | "fred_dexusal" | "fred_dexuseu" | "fred_dgasusgulf" | "fred_dgs10" | "fred_dgs1mo" | "fred_dgs2" | "fred_dgs20" | "fred_dgs30" | "fred_dgs3mo" | "fred_dgs5" | "fred_dhhngsp" | "fred_dhoilnyh" | "fred_djfuelusgulf" | "fred_dprime" | "fred_dpropanembtx" | "fred_dxy" | "fred_emvtradepolemv" | "fred_eputrade" | "fred_fedfunds" | "fred_gdp" | "fred_gdpc1" | "fred_indpro" | "fred_m2sl" | "fred_nfci" | "fred_payems" | "fred_pce" | "fred_pcepi" | "fred_pcoppusdm" | "fred_pmaizmtusdm" | "fred_ppoilusdm" | "fred_proilusdm" | "fred_psoilusdm" | "fred_psoybusdm" | "fred_pwheamtusdm" | "fred_stlfsi4" | "fred_t10y2y" | "fred_t10y3m" | "fred_t10yie" | "fred_tedrate" | "fred_umcsent" | "fred_unrate" | "fred_usepuindxd" | "fred_usepuindxm" | "fred_vixcls" | "fred_walcl" | "fx_usdbrl" | "fx_usdcny" | "fx_usdeur" | "fx_usdgbp" | "fx_usdjpy" | "wx_ar_tavg_c" | "wx_br_tavg_c" | "wx_us_tavg_c" | "wx_ar_prcp_mm" | "wx_br_prcp_mm" | "wx_us_prcp_mm" | "wx_ar_prcp_anom_30d" | "wx_br_prcp_anom_30d" | "wx_us_prcp_anom_30d" | "wx_ar_gdd_30d_sum" | "wx_br_gdd_30d_sum" | "wx_us_gdd_30d_sum" | "cftc_open_interest" | "cftc_managed_money_net" | "cftc_managed_money_pct" | "cftc_prod_merc_net" | "cftc_prod_merc_pct" | "cftc_swap_net" | "wasde_zl_ending_stocks" | "wasde_zl_production" | "wasde_zs_ending_stocks" | "wasde_zs_production" | "rin_d4_price" | "rin_d6_price" | "target_ret_5d" | "target_ret_21d" | "target_ret_63d" | "target_ret_126d" | "matrixVersion", ExtArgs["result"]["trainingMatrix1d"]>
 
   export type $TrainingMatrix1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TrainingMatrix1d"
@@ -16475,6 +16926,30 @@ export namespace Prisma {
       fx_usdeur: number | null
       fx_usdgbp: number | null
       fx_usdjpy: number | null
+      wx_ar_tavg_c: number | null
+      wx_br_tavg_c: number | null
+      wx_us_tavg_c: number | null
+      wx_ar_prcp_mm: number | null
+      wx_br_prcp_mm: number | null
+      wx_us_prcp_mm: number | null
+      wx_ar_prcp_anom_30d: number | null
+      wx_br_prcp_anom_30d: number | null
+      wx_us_prcp_anom_30d: number | null
+      wx_ar_gdd_30d_sum: number | null
+      wx_br_gdd_30d_sum: number | null
+      wx_us_gdd_30d_sum: number | null
+      cftc_open_interest: number | null
+      cftc_managed_money_net: number | null
+      cftc_managed_money_pct: number | null
+      cftc_prod_merc_net: number | null
+      cftc_prod_merc_pct: number | null
+      cftc_swap_net: number | null
+      wasde_zl_ending_stocks: number | null
+      wasde_zl_production: number | null
+      wasde_zs_ending_stocks: number | null
+      wasde_zs_production: number | null
+      rin_d4_price: number | null
+      rin_d6_price: number | null
       target_ret_5d: number | null
       target_ret_21d: number | null
       target_ret_63d: number | null
@@ -17012,6 +17487,30 @@ export namespace Prisma {
     readonly fx_usdeur: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly fx_usdgbp: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly fx_usdjpy: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_ar_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_br_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_us_tavg_c: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_ar_prcp_mm: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_br_prcp_mm: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_us_prcp_mm: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_ar_prcp_anom_30d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_br_prcp_anom_30d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_us_prcp_anom_30d: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_ar_gdd_30d_sum: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_br_gdd_30d_sum: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wx_us_gdd_30d_sum: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_open_interest: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_managed_money_net: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_managed_money_pct: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_prod_merc_net: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_prod_merc_pct: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly cftc_swap_net: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wasde_zl_ending_stocks: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wasde_zl_production: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wasde_zs_ending_stocks: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly wasde_zs_production: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly rin_d4_price: FieldRef<"TrainingMatrix1d", 'Float'>
+    readonly rin_d6_price: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly target_ret_5d: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly target_ret_21d: FieldRef<"TrainingMatrix1d", 'Float'>
     readonly target_ret_63d: FieldRef<"TrainingMatrix1d", 'Float'>
@@ -35947,6 +36446,1176 @@ export namespace Prisma {
      * Omit specific fields from the SpecialistFed1h
      */
     omit?: SpecialistFed1hOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SpecialistFx1d
+   */
+
+  export type AggregateSpecialistFx1d = {
+    _count: SpecialistFx1dCountAggregateOutputType | null
+    _avg: SpecialistFx1dAvgAggregateOutputType | null
+    _sum: SpecialistFx1dSumAggregateOutputType | null
+    _min: SpecialistFx1dMinAggregateOutputType | null
+    _max: SpecialistFx1dMaxAggregateOutputType | null
+  }
+
+  export type SpecialistFx1dAvgAggregateOutputType = {
+    id: number | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: number | null
+    openInterest: number | null
+  }
+
+  export type SpecialistFx1dSumAggregateOutputType = {
+    id: bigint | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+    openInterest: bigint | null
+  }
+
+  export type SpecialistFx1dMinAggregateOutputType = {
+    id: bigint | null
+    symbol: string | null
+    asOfDate: Date | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+    openInterest: bigint | null
+    contractMonth: string | null
+    expirationDate: Date | null
+    bucketName: string | null
+    granularity: string | null
+    createdAt: Date | null
+  }
+
+  export type SpecialistFx1dMaxAggregateOutputType = {
+    id: bigint | null
+    symbol: string | null
+    asOfDate: Date | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+    openInterest: bigint | null
+    contractMonth: string | null
+    expirationDate: Date | null
+    bucketName: string | null
+    granularity: string | null
+    createdAt: Date | null
+  }
+
+  export type SpecialistFx1dCountAggregateOutputType = {
+    id: number
+    symbol: number
+    asOfDate: number
+    open: number
+    high: number
+    low: number
+    close: number
+    volume: number
+    openInterest: number
+    contractMonth: number
+    expirationDate: number
+    bucketName: number
+    granularity: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type SpecialistFx1dAvgAggregateInputType = {
+    id?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    openInterest?: true
+  }
+
+  export type SpecialistFx1dSumAggregateInputType = {
+    id?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    openInterest?: true
+  }
+
+  export type SpecialistFx1dMinAggregateInputType = {
+    id?: true
+    symbol?: true
+    asOfDate?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    openInterest?: true
+    contractMonth?: true
+    expirationDate?: true
+    bucketName?: true
+    granularity?: true
+    createdAt?: true
+  }
+
+  export type SpecialistFx1dMaxAggregateInputType = {
+    id?: true
+    symbol?: true
+    asOfDate?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    openInterest?: true
+    contractMonth?: true
+    expirationDate?: true
+    bucketName?: true
+    granularity?: true
+    createdAt?: true
+  }
+
+  export type SpecialistFx1dCountAggregateInputType = {
+    id?: true
+    symbol?: true
+    asOfDate?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    openInterest?: true
+    contractMonth?: true
+    expirationDate?: true
+    bucketName?: true
+    granularity?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type SpecialistFx1dAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SpecialistFx1d to aggregate.
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SpecialistFx1ds to fetch.
+     */
+    orderBy?: SpecialistFx1dOrderByWithRelationInput | SpecialistFx1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SpecialistFx1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SpecialistFx1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SpecialistFx1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SpecialistFx1ds
+    **/
+    _count?: true | SpecialistFx1dCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SpecialistFx1dAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SpecialistFx1dSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SpecialistFx1dMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SpecialistFx1dMaxAggregateInputType
+  }
+
+  export type GetSpecialistFx1dAggregateType<T extends SpecialistFx1dAggregateArgs> = {
+        [P in keyof T & keyof AggregateSpecialistFx1d]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSpecialistFx1d[P]>
+      : GetScalarType<T[P], AggregateSpecialistFx1d[P]>
+  }
+
+
+
+
+  export type SpecialistFx1dGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SpecialistFx1dWhereInput
+    orderBy?: SpecialistFx1dOrderByWithAggregationInput | SpecialistFx1dOrderByWithAggregationInput[]
+    by: SpecialistFx1dScalarFieldEnum[] | SpecialistFx1dScalarFieldEnum
+    having?: SpecialistFx1dScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SpecialistFx1dCountAggregateInputType | true
+    _avg?: SpecialistFx1dAvgAggregateInputType
+    _sum?: SpecialistFx1dSumAggregateInputType
+    _min?: SpecialistFx1dMinAggregateInputType
+    _max?: SpecialistFx1dMaxAggregateInputType
+  }
+
+  export type SpecialistFx1dGroupByOutputType = {
+    id: bigint
+    symbol: string
+    asOfDate: Date
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal
+    volume: bigint | null
+    openInterest: bigint | null
+    contractMonth: string | null
+    expirationDate: Date | null
+    bucketName: string | null
+    granularity: string | null
+    createdAt: Date | null
+    _count: SpecialistFx1dCountAggregateOutputType | null
+    _avg: SpecialistFx1dAvgAggregateOutputType | null
+    _sum: SpecialistFx1dSumAggregateOutputType | null
+    _min: SpecialistFx1dMinAggregateOutputType | null
+    _max: SpecialistFx1dMaxAggregateOutputType | null
+  }
+
+  type GetSpecialistFx1dGroupByPayload<T extends SpecialistFx1dGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SpecialistFx1dGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SpecialistFx1dGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SpecialistFx1dGroupByOutputType[P]>
+            : GetScalarType<T[P], SpecialistFx1dGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SpecialistFx1dSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    symbol?: boolean
+    asOfDate?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    contractMonth?: boolean
+    expirationDate?: boolean
+    bucketName?: boolean
+    granularity?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["specialistFx1d"]>
+
+  export type SpecialistFx1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    symbol?: boolean
+    asOfDate?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    contractMonth?: boolean
+    expirationDate?: boolean
+    bucketName?: boolean
+    granularity?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["specialistFx1d"]>
+
+  export type SpecialistFx1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    symbol?: boolean
+    asOfDate?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    contractMonth?: boolean
+    expirationDate?: boolean
+    bucketName?: boolean
+    granularity?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["specialistFx1d"]>
+
+  export type SpecialistFx1dSelectScalar = {
+    id?: boolean
+    symbol?: boolean
+    asOfDate?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    openInterest?: boolean
+    contractMonth?: boolean
+    expirationDate?: boolean
+    bucketName?: boolean
+    granularity?: boolean
+    createdAt?: boolean
+  }
+
+  export type SpecialistFx1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "symbol" | "asOfDate" | "open" | "high" | "low" | "close" | "volume" | "openInterest" | "contractMonth" | "expirationDate" | "bucketName" | "granularity" | "createdAt", ExtArgs["result"]["specialistFx1d"]>
+
+  export type $SpecialistFx1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SpecialistFx1d"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: bigint
+      symbol: string
+      asOfDate: Date
+      open: Prisma.Decimal | null
+      high: Prisma.Decimal | null
+      low: Prisma.Decimal | null
+      close: Prisma.Decimal
+      volume: bigint | null
+      openInterest: bigint | null
+      contractMonth: string | null
+      expirationDate: Date | null
+      bucketName: string | null
+      granularity: string | null
+      createdAt: Date | null
+    }, ExtArgs["result"]["specialistFx1d"]>
+    composites: {}
+  }
+
+  type SpecialistFx1dGetPayload<S extends boolean | null | undefined | SpecialistFx1dDefaultArgs> = $Result.GetResult<Prisma.$SpecialistFx1dPayload, S>
+
+  type SpecialistFx1dCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SpecialistFx1dFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SpecialistFx1dCountAggregateInputType | true
+    }
+
+  export interface SpecialistFx1dDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SpecialistFx1d'], meta: { name: 'SpecialistFx1d' } }
+    /**
+     * Find zero or one SpecialistFx1d that matches the filter.
+     * @param {SpecialistFx1dFindUniqueArgs} args - Arguments to find a SpecialistFx1d
+     * @example
+     * // Get one SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SpecialistFx1dFindUniqueArgs>(args: SelectSubset<T, SpecialistFx1dFindUniqueArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SpecialistFx1d that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SpecialistFx1dFindUniqueOrThrowArgs} args - Arguments to find a SpecialistFx1d
+     * @example
+     * // Get one SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SpecialistFx1dFindUniqueOrThrowArgs>(args: SelectSubset<T, SpecialistFx1dFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SpecialistFx1d that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dFindFirstArgs} args - Arguments to find a SpecialistFx1d
+     * @example
+     * // Get one SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SpecialistFx1dFindFirstArgs>(args?: SelectSubset<T, SpecialistFx1dFindFirstArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SpecialistFx1d that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dFindFirstOrThrowArgs} args - Arguments to find a SpecialistFx1d
+     * @example
+     * // Get one SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SpecialistFx1dFindFirstOrThrowArgs>(args?: SelectSubset<T, SpecialistFx1dFindFirstOrThrowArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SpecialistFx1ds that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SpecialistFx1ds
+     * const specialistFx1ds = await prisma.specialistFx1d.findMany()
+     * 
+     * // Get first 10 SpecialistFx1ds
+     * const specialistFx1ds = await prisma.specialistFx1d.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const specialistFx1dWithIdOnly = await prisma.specialistFx1d.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SpecialistFx1dFindManyArgs>(args?: SelectSubset<T, SpecialistFx1dFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SpecialistFx1d.
+     * @param {SpecialistFx1dCreateArgs} args - Arguments to create a SpecialistFx1d.
+     * @example
+     * // Create one SpecialistFx1d
+     * const SpecialistFx1d = await prisma.specialistFx1d.create({
+     *   data: {
+     *     // ... data to create a SpecialistFx1d
+     *   }
+     * })
+     * 
+     */
+    create<T extends SpecialistFx1dCreateArgs>(args: SelectSubset<T, SpecialistFx1dCreateArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SpecialistFx1ds.
+     * @param {SpecialistFx1dCreateManyArgs} args - Arguments to create many SpecialistFx1ds.
+     * @example
+     * // Create many SpecialistFx1ds
+     * const specialistFx1d = await prisma.specialistFx1d.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SpecialistFx1dCreateManyArgs>(args?: SelectSubset<T, SpecialistFx1dCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SpecialistFx1ds and returns the data saved in the database.
+     * @param {SpecialistFx1dCreateManyAndReturnArgs} args - Arguments to create many SpecialistFx1ds.
+     * @example
+     * // Create many SpecialistFx1ds
+     * const specialistFx1d = await prisma.specialistFx1d.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SpecialistFx1ds and only return the `id`
+     * const specialistFx1dWithIdOnly = await prisma.specialistFx1d.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SpecialistFx1dCreateManyAndReturnArgs>(args?: SelectSubset<T, SpecialistFx1dCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SpecialistFx1d.
+     * @param {SpecialistFx1dDeleteArgs} args - Arguments to delete one SpecialistFx1d.
+     * @example
+     * // Delete one SpecialistFx1d
+     * const SpecialistFx1d = await prisma.specialistFx1d.delete({
+     *   where: {
+     *     // ... filter to delete one SpecialistFx1d
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SpecialistFx1dDeleteArgs>(args: SelectSubset<T, SpecialistFx1dDeleteArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SpecialistFx1d.
+     * @param {SpecialistFx1dUpdateArgs} args - Arguments to update one SpecialistFx1d.
+     * @example
+     * // Update one SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SpecialistFx1dUpdateArgs>(args: SelectSubset<T, SpecialistFx1dUpdateArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SpecialistFx1ds.
+     * @param {SpecialistFx1dDeleteManyArgs} args - Arguments to filter SpecialistFx1ds to delete.
+     * @example
+     * // Delete a few SpecialistFx1ds
+     * const { count } = await prisma.specialistFx1d.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SpecialistFx1dDeleteManyArgs>(args?: SelectSubset<T, SpecialistFx1dDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SpecialistFx1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SpecialistFx1ds
+     * const specialistFx1d = await prisma.specialistFx1d.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SpecialistFx1dUpdateManyArgs>(args: SelectSubset<T, SpecialistFx1dUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SpecialistFx1ds and returns the data updated in the database.
+     * @param {SpecialistFx1dUpdateManyAndReturnArgs} args - Arguments to update many SpecialistFx1ds.
+     * @example
+     * // Update many SpecialistFx1ds
+     * const specialistFx1d = await prisma.specialistFx1d.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SpecialistFx1ds and only return the `id`
+     * const specialistFx1dWithIdOnly = await prisma.specialistFx1d.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SpecialistFx1dUpdateManyAndReturnArgs>(args: SelectSubset<T, SpecialistFx1dUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SpecialistFx1d.
+     * @param {SpecialistFx1dUpsertArgs} args - Arguments to update or create a SpecialistFx1d.
+     * @example
+     * // Update or create a SpecialistFx1d
+     * const specialistFx1d = await prisma.specialistFx1d.upsert({
+     *   create: {
+     *     // ... data to create a SpecialistFx1d
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SpecialistFx1d we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SpecialistFx1dUpsertArgs>(args: SelectSubset<T, SpecialistFx1dUpsertArgs<ExtArgs>>): Prisma__SpecialistFx1dClient<$Result.GetResult<Prisma.$SpecialistFx1dPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SpecialistFx1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dCountArgs} args - Arguments to filter SpecialistFx1ds to count.
+     * @example
+     * // Count the number of SpecialistFx1ds
+     * const count = await prisma.specialistFx1d.count({
+     *   where: {
+     *     // ... the filter for the SpecialistFx1ds we want to count
+     *   }
+     * })
+    **/
+    count<T extends SpecialistFx1dCountArgs>(
+      args?: Subset<T, SpecialistFx1dCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SpecialistFx1dCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SpecialistFx1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SpecialistFx1dAggregateArgs>(args: Subset<T, SpecialistFx1dAggregateArgs>): Prisma.PrismaPromise<GetSpecialistFx1dAggregateType<T>>
+
+    /**
+     * Group by SpecialistFx1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SpecialistFx1dGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SpecialistFx1dGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SpecialistFx1dGroupByArgs['orderBy'] }
+        : { orderBy?: SpecialistFx1dGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SpecialistFx1dGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSpecialistFx1dGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SpecialistFx1d model
+   */
+  readonly fields: SpecialistFx1dFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SpecialistFx1d.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SpecialistFx1dClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SpecialistFx1d model
+   */
+  interface SpecialistFx1dFieldRefs {
+    readonly id: FieldRef<"SpecialistFx1d", 'BigInt'>
+    readonly symbol: FieldRef<"SpecialistFx1d", 'String'>
+    readonly asOfDate: FieldRef<"SpecialistFx1d", 'DateTime'>
+    readonly open: FieldRef<"SpecialistFx1d", 'Decimal'>
+    readonly high: FieldRef<"SpecialistFx1d", 'Decimal'>
+    readonly low: FieldRef<"SpecialistFx1d", 'Decimal'>
+    readonly close: FieldRef<"SpecialistFx1d", 'Decimal'>
+    readonly volume: FieldRef<"SpecialistFx1d", 'BigInt'>
+    readonly openInterest: FieldRef<"SpecialistFx1d", 'BigInt'>
+    readonly contractMonth: FieldRef<"SpecialistFx1d", 'String'>
+    readonly expirationDate: FieldRef<"SpecialistFx1d", 'DateTime'>
+    readonly bucketName: FieldRef<"SpecialistFx1d", 'String'>
+    readonly granularity: FieldRef<"SpecialistFx1d", 'String'>
+    readonly createdAt: FieldRef<"SpecialistFx1d", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SpecialistFx1d findUnique
+   */
+  export type SpecialistFx1dFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter, which SpecialistFx1d to fetch.
+     */
+    where: SpecialistFx1dWhereUniqueInput
+  }
+
+  /**
+   * SpecialistFx1d findUniqueOrThrow
+   */
+  export type SpecialistFx1dFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter, which SpecialistFx1d to fetch.
+     */
+    where: SpecialistFx1dWhereUniqueInput
+  }
+
+  /**
+   * SpecialistFx1d findFirst
+   */
+  export type SpecialistFx1dFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter, which SpecialistFx1d to fetch.
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SpecialistFx1ds to fetch.
+     */
+    orderBy?: SpecialistFx1dOrderByWithRelationInput | SpecialistFx1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SpecialistFx1ds.
+     */
+    cursor?: SpecialistFx1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SpecialistFx1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SpecialistFx1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SpecialistFx1ds.
+     */
+    distinct?: SpecialistFx1dScalarFieldEnum | SpecialistFx1dScalarFieldEnum[]
+  }
+
+  /**
+   * SpecialistFx1d findFirstOrThrow
+   */
+  export type SpecialistFx1dFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter, which SpecialistFx1d to fetch.
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SpecialistFx1ds to fetch.
+     */
+    orderBy?: SpecialistFx1dOrderByWithRelationInput | SpecialistFx1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SpecialistFx1ds.
+     */
+    cursor?: SpecialistFx1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SpecialistFx1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SpecialistFx1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SpecialistFx1ds.
+     */
+    distinct?: SpecialistFx1dScalarFieldEnum | SpecialistFx1dScalarFieldEnum[]
+  }
+
+  /**
+   * SpecialistFx1d findMany
+   */
+  export type SpecialistFx1dFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter, which SpecialistFx1ds to fetch.
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SpecialistFx1ds to fetch.
+     */
+    orderBy?: SpecialistFx1dOrderByWithRelationInput | SpecialistFx1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SpecialistFx1ds.
+     */
+    cursor?: SpecialistFx1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SpecialistFx1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SpecialistFx1ds.
+     */
+    skip?: number
+    distinct?: SpecialistFx1dScalarFieldEnum | SpecialistFx1dScalarFieldEnum[]
+  }
+
+  /**
+   * SpecialistFx1d create
+   */
+  export type SpecialistFx1dCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * The data needed to create a SpecialistFx1d.
+     */
+    data: XOR<SpecialistFx1dCreateInput, SpecialistFx1dUncheckedCreateInput>
+  }
+
+  /**
+   * SpecialistFx1d createMany
+   */
+  export type SpecialistFx1dCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SpecialistFx1ds.
+     */
+    data: SpecialistFx1dCreateManyInput | SpecialistFx1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SpecialistFx1d createManyAndReturn
+   */
+  export type SpecialistFx1dCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * The data used to create many SpecialistFx1ds.
+     */
+    data: SpecialistFx1dCreateManyInput | SpecialistFx1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SpecialistFx1d update
+   */
+  export type SpecialistFx1dUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * The data needed to update a SpecialistFx1d.
+     */
+    data: XOR<SpecialistFx1dUpdateInput, SpecialistFx1dUncheckedUpdateInput>
+    /**
+     * Choose, which SpecialistFx1d to update.
+     */
+    where: SpecialistFx1dWhereUniqueInput
+  }
+
+  /**
+   * SpecialistFx1d updateMany
+   */
+  export type SpecialistFx1dUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SpecialistFx1ds.
+     */
+    data: XOR<SpecialistFx1dUpdateManyMutationInput, SpecialistFx1dUncheckedUpdateManyInput>
+    /**
+     * Filter which SpecialistFx1ds to update
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * Limit how many SpecialistFx1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SpecialistFx1d updateManyAndReturn
+   */
+  export type SpecialistFx1dUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * The data used to update SpecialistFx1ds.
+     */
+    data: XOR<SpecialistFx1dUpdateManyMutationInput, SpecialistFx1dUncheckedUpdateManyInput>
+    /**
+     * Filter which SpecialistFx1ds to update
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * Limit how many SpecialistFx1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SpecialistFx1d upsert
+   */
+  export type SpecialistFx1dUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * The filter to search for the SpecialistFx1d to update in case it exists.
+     */
+    where: SpecialistFx1dWhereUniqueInput
+    /**
+     * In case the SpecialistFx1d found by the `where` argument doesn't exist, create a new SpecialistFx1d with this data.
+     */
+    create: XOR<SpecialistFx1dCreateInput, SpecialistFx1dUncheckedCreateInput>
+    /**
+     * In case the SpecialistFx1d was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SpecialistFx1dUpdateInput, SpecialistFx1dUncheckedUpdateInput>
+  }
+
+  /**
+   * SpecialistFx1d delete
+   */
+  export type SpecialistFx1dDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
+    /**
+     * Filter which SpecialistFx1d to delete.
+     */
+    where: SpecialistFx1dWhereUniqueInput
+  }
+
+  /**
+   * SpecialistFx1d deleteMany
+   */
+  export type SpecialistFx1dDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SpecialistFx1ds to delete
+     */
+    where?: SpecialistFx1dWhereInput
+    /**
+     * Limit how many SpecialistFx1ds to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SpecialistFx1d without action
+   */
+  export type SpecialistFx1dDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpecialistFx1d
+     */
+    select?: SpecialistFx1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SpecialistFx1d
+     */
+    omit?: SpecialistFx1dOmit<ExtArgs> | null
   }
 
 
@@ -69700,1158 +71369,6 @@ export namespace Prisma {
 
 
   /**
-   * Model ZlLive
-   */
-
-  export type AggregateZlLive = {
-    _count: ZlLiveCountAggregateOutputType | null
-    _avg: ZlLiveAvgAggregateOutputType | null
-    _sum: ZlLiveSumAggregateOutputType | null
-    _min: ZlLiveMinAggregateOutputType | null
-    _max: ZlLiveMaxAggregateOutputType | null
-  }
-
-  export type ZlLiveAvgAggregateOutputType = {
-    id: number | null
-    price: number | null
-    previousClose: number | null
-    change: number | null
-    changePct: number | null
-    dayHigh: number | null
-    dayLow: number | null
-    dayOpen: number | null
-    volume: number | null
-  }
-
-  export type ZlLiveSumAggregateOutputType = {
-    id: number | null
-    price: number | null
-    previousClose: number | null
-    change: number | null
-    changePct: number | null
-    dayHigh: number | null
-    dayLow: number | null
-    dayOpen: number | null
-    volume: number | null
-  }
-
-  export type ZlLiveMinAggregateOutputType = {
-    id: number | null
-    price: number | null
-    previousClose: number | null
-    change: number | null
-    changePct: number | null
-    dayHigh: number | null
-    dayLow: number | null
-    dayOpen: number | null
-    volume: number | null
-    timestamp: Date | null
-    source: string | null
-    updatedAt: Date | null
-  }
-
-  export type ZlLiveMaxAggregateOutputType = {
-    id: number | null
-    price: number | null
-    previousClose: number | null
-    change: number | null
-    changePct: number | null
-    dayHigh: number | null
-    dayLow: number | null
-    dayOpen: number | null
-    volume: number | null
-    timestamp: Date | null
-    source: string | null
-    updatedAt: Date | null
-  }
-
-  export type ZlLiveCountAggregateOutputType = {
-    id: number
-    price: number
-    previousClose: number
-    change: number
-    changePct: number
-    dayHigh: number
-    dayLow: number
-    dayOpen: number
-    volume: number
-    timestamp: number
-    source: number
-    updatedAt: number
-    _all: number
-  }
-
-
-  export type ZlLiveAvgAggregateInputType = {
-    id?: true
-    price?: true
-    previousClose?: true
-    change?: true
-    changePct?: true
-    dayHigh?: true
-    dayLow?: true
-    dayOpen?: true
-    volume?: true
-  }
-
-  export type ZlLiveSumAggregateInputType = {
-    id?: true
-    price?: true
-    previousClose?: true
-    change?: true
-    changePct?: true
-    dayHigh?: true
-    dayLow?: true
-    dayOpen?: true
-    volume?: true
-  }
-
-  export type ZlLiveMinAggregateInputType = {
-    id?: true
-    price?: true
-    previousClose?: true
-    change?: true
-    changePct?: true
-    dayHigh?: true
-    dayLow?: true
-    dayOpen?: true
-    volume?: true
-    timestamp?: true
-    source?: true
-    updatedAt?: true
-  }
-
-  export type ZlLiveMaxAggregateInputType = {
-    id?: true
-    price?: true
-    previousClose?: true
-    change?: true
-    changePct?: true
-    dayHigh?: true
-    dayLow?: true
-    dayOpen?: true
-    volume?: true
-    timestamp?: true
-    source?: true
-    updatedAt?: true
-  }
-
-  export type ZlLiveCountAggregateInputType = {
-    id?: true
-    price?: true
-    previousClose?: true
-    change?: true
-    changePct?: true
-    dayHigh?: true
-    dayLow?: true
-    dayOpen?: true
-    volume?: true
-    timestamp?: true
-    source?: true
-    updatedAt?: true
-    _all?: true
-  }
-
-  export type ZlLiveAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ZlLive to aggregate.
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ZlLives to fetch.
-     */
-    orderBy?: ZlLiveOrderByWithRelationInput | ZlLiveOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: ZlLiveWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ZlLives from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ZlLives.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned ZlLives
-    **/
-    _count?: true | ZlLiveCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: ZlLiveAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: ZlLiveSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: ZlLiveMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: ZlLiveMaxAggregateInputType
-  }
-
-  export type GetZlLiveAggregateType<T extends ZlLiveAggregateArgs> = {
-        [P in keyof T & keyof AggregateZlLive]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateZlLive[P]>
-      : GetScalarType<T[P], AggregateZlLive[P]>
-  }
-
-
-
-
-  export type ZlLiveGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ZlLiveWhereInput
-    orderBy?: ZlLiveOrderByWithAggregationInput | ZlLiveOrderByWithAggregationInput[]
-    by: ZlLiveScalarFieldEnum[] | ZlLiveScalarFieldEnum
-    having?: ZlLiveScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: ZlLiveCountAggregateInputType | true
-    _avg?: ZlLiveAvgAggregateInputType
-    _sum?: ZlLiveSumAggregateInputType
-    _min?: ZlLiveMinAggregateInputType
-    _max?: ZlLiveMaxAggregateInputType
-  }
-
-  export type ZlLiveGroupByOutputType = {
-    id: number
-    price: number
-    previousClose: number | null
-    change: number | null
-    changePct: number | null
-    dayHigh: number | null
-    dayLow: number | null
-    dayOpen: number | null
-    volume: number | null
-    timestamp: Date | null
-    source: string | null
-    updatedAt: Date | null
-    _count: ZlLiveCountAggregateOutputType | null
-    _avg: ZlLiveAvgAggregateOutputType | null
-    _sum: ZlLiveSumAggregateOutputType | null
-    _min: ZlLiveMinAggregateOutputType | null
-    _max: ZlLiveMaxAggregateOutputType | null
-  }
-
-  type GetZlLiveGroupByPayload<T extends ZlLiveGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<ZlLiveGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof ZlLiveGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], ZlLiveGroupByOutputType[P]>
-            : GetScalarType<T[P], ZlLiveGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type ZlLiveSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    price?: boolean
-    previousClose?: boolean
-    change?: boolean
-    changePct?: boolean
-    dayHigh?: boolean
-    dayLow?: boolean
-    dayOpen?: boolean
-    volume?: boolean
-    timestamp?: boolean
-    source?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["zlLive"]>
-
-  export type ZlLiveSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    price?: boolean
-    previousClose?: boolean
-    change?: boolean
-    changePct?: boolean
-    dayHigh?: boolean
-    dayLow?: boolean
-    dayOpen?: boolean
-    volume?: boolean
-    timestamp?: boolean
-    source?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["zlLive"]>
-
-  export type ZlLiveSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    price?: boolean
-    previousClose?: boolean
-    change?: boolean
-    changePct?: boolean
-    dayHigh?: boolean
-    dayLow?: boolean
-    dayOpen?: boolean
-    volume?: boolean
-    timestamp?: boolean
-    source?: boolean
-    updatedAt?: boolean
-  }, ExtArgs["result"]["zlLive"]>
-
-  export type ZlLiveSelectScalar = {
-    id?: boolean
-    price?: boolean
-    previousClose?: boolean
-    change?: boolean
-    changePct?: boolean
-    dayHigh?: boolean
-    dayLow?: boolean
-    dayOpen?: boolean
-    volume?: boolean
-    timestamp?: boolean
-    source?: boolean
-    updatedAt?: boolean
-  }
-
-  export type ZlLiveOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "price" | "previousClose" | "change" | "changePct" | "dayHigh" | "dayLow" | "dayOpen" | "volume" | "timestamp" | "source" | "updatedAt", ExtArgs["result"]["zlLive"]>
-
-  export type $ZlLivePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ZlLive"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      id: number
-      price: number
-      previousClose: number | null
-      change: number | null
-      changePct: number | null
-      dayHigh: number | null
-      dayLow: number | null
-      dayOpen: number | null
-      volume: number | null
-      timestamp: Date | null
-      source: string | null
-      updatedAt: Date | null
-    }, ExtArgs["result"]["zlLive"]>
-    composites: {}
-  }
-
-  type ZlLiveGetPayload<S extends boolean | null | undefined | ZlLiveDefaultArgs> = $Result.GetResult<Prisma.$ZlLivePayload, S>
-
-  type ZlLiveCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<ZlLiveFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: ZlLiveCountAggregateInputType | true
-    }
-
-  export interface ZlLiveDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ZlLive'], meta: { name: 'ZlLive' } }
-    /**
-     * Find zero or one ZlLive that matches the filter.
-     * @param {ZlLiveFindUniqueArgs} args - Arguments to find a ZlLive
-     * @example
-     * // Get one ZlLive
-     * const zlLive = await prisma.zlLive.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends ZlLiveFindUniqueArgs>(args: SelectSubset<T, ZlLiveFindUniqueArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find one ZlLive that matches the filter or throw an error with `error.code='P2025'`
-     * if no matches were found.
-     * @param {ZlLiveFindUniqueOrThrowArgs} args - Arguments to find a ZlLive
-     * @example
-     * // Get one ZlLive
-     * const zlLive = await prisma.zlLive.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends ZlLiveFindUniqueOrThrowArgs>(args: SelectSubset<T, ZlLiveFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first ZlLive that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveFindFirstArgs} args - Arguments to find a ZlLive
-     * @example
-     * // Get one ZlLive
-     * const zlLive = await prisma.zlLive.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends ZlLiveFindFirstArgs>(args?: SelectSubset<T, ZlLiveFindFirstArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find the first ZlLive that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveFindFirstOrThrowArgs} args - Arguments to find a ZlLive
-     * @example
-     * // Get one ZlLive
-     * const zlLive = await prisma.zlLive.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends ZlLiveFindFirstOrThrowArgs>(args?: SelectSubset<T, ZlLiveFindFirstOrThrowArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Find zero or more ZlLives that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all ZlLives
-     * const zlLives = await prisma.zlLive.findMany()
-     * 
-     * // Get first 10 ZlLives
-     * const zlLives = await prisma.zlLive.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const zlLiveWithIdOnly = await prisma.zlLive.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends ZlLiveFindManyArgs>(args?: SelectSubset<T, ZlLiveFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
-
-    /**
-     * Create a ZlLive.
-     * @param {ZlLiveCreateArgs} args - Arguments to create a ZlLive.
-     * @example
-     * // Create one ZlLive
-     * const ZlLive = await prisma.zlLive.create({
-     *   data: {
-     *     // ... data to create a ZlLive
-     *   }
-     * })
-     * 
-     */
-    create<T extends ZlLiveCreateArgs>(args: SelectSubset<T, ZlLiveCreateArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Create many ZlLives.
-     * @param {ZlLiveCreateManyArgs} args - Arguments to create many ZlLives.
-     * @example
-     * // Create many ZlLives
-     * const zlLive = await prisma.zlLive.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends ZlLiveCreateManyArgs>(args?: SelectSubset<T, ZlLiveCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many ZlLives and returns the data saved in the database.
-     * @param {ZlLiveCreateManyAndReturnArgs} args - Arguments to create many ZlLives.
-     * @example
-     * // Create many ZlLives
-     * const zlLive = await prisma.zlLive.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many ZlLives and only return the `id`
-     * const zlLiveWithIdOnly = await prisma.zlLive.createManyAndReturn({
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends ZlLiveCreateManyAndReturnArgs>(args?: SelectSubset<T, ZlLiveCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Delete a ZlLive.
-     * @param {ZlLiveDeleteArgs} args - Arguments to delete one ZlLive.
-     * @example
-     * // Delete one ZlLive
-     * const ZlLive = await prisma.zlLive.delete({
-     *   where: {
-     *     // ... filter to delete one ZlLive
-     *   }
-     * })
-     * 
-     */
-    delete<T extends ZlLiveDeleteArgs>(args: SelectSubset<T, ZlLiveDeleteArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Update one ZlLive.
-     * @param {ZlLiveUpdateArgs} args - Arguments to update one ZlLive.
-     * @example
-     * // Update one ZlLive
-     * const zlLive = await prisma.zlLive.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends ZlLiveUpdateArgs>(args: SelectSubset<T, ZlLiveUpdateArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-    /**
-     * Delete zero or more ZlLives.
-     * @param {ZlLiveDeleteManyArgs} args - Arguments to filter ZlLives to delete.
-     * @example
-     * // Delete a few ZlLives
-     * const { count } = await prisma.zlLive.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends ZlLiveDeleteManyArgs>(args?: SelectSubset<T, ZlLiveDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more ZlLives.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many ZlLives
-     * const zlLive = await prisma.zlLive.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends ZlLiveUpdateManyArgs>(args: SelectSubset<T, ZlLiveUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more ZlLives and returns the data updated in the database.
-     * @param {ZlLiveUpdateManyAndReturnArgs} args - Arguments to update many ZlLives.
-     * @example
-     * // Update many ZlLives
-     * const zlLive = await prisma.zlLive.updateManyAndReturn({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Update zero or more ZlLives and only return the `id`
-     * const zlLiveWithIdOnly = await prisma.zlLive.updateManyAndReturn({
-     *   select: { id: true },
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    updateManyAndReturn<T extends ZlLiveUpdateManyAndReturnArgs>(args: SelectSubset<T, ZlLiveUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
-
-    /**
-     * Create or update one ZlLive.
-     * @param {ZlLiveUpsertArgs} args - Arguments to update or create a ZlLive.
-     * @example
-     * // Update or create a ZlLive
-     * const zlLive = await prisma.zlLive.upsert({
-     *   create: {
-     *     // ... data to create a ZlLive
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the ZlLive we want to update
-     *   }
-     * })
-     */
-    upsert<T extends ZlLiveUpsertArgs>(args: SelectSubset<T, ZlLiveUpsertArgs<ExtArgs>>): Prisma__ZlLiveClient<$Result.GetResult<Prisma.$ZlLivePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
-
-
-    /**
-     * Count the number of ZlLives.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveCountArgs} args - Arguments to filter ZlLives to count.
-     * @example
-     * // Count the number of ZlLives
-     * const count = await prisma.zlLive.count({
-     *   where: {
-     *     // ... the filter for the ZlLives we want to count
-     *   }
-     * })
-    **/
-    count<T extends ZlLiveCountArgs>(
-      args?: Subset<T, ZlLiveCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], ZlLiveCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a ZlLive.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends ZlLiveAggregateArgs>(args: Subset<T, ZlLiveAggregateArgs>): Prisma.PrismaPromise<GetZlLiveAggregateType<T>>
-
-    /**
-     * Group by ZlLive.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ZlLiveGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends ZlLiveGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ZlLiveGroupByArgs['orderBy'] }
-        : { orderBy?: ZlLiveGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, ZlLiveGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetZlLiveGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the ZlLive model
-   */
-  readonly fields: ZlLiveFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for ZlLive.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__ZlLiveClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the ZlLive model
-   */
-  interface ZlLiveFieldRefs {
-    readonly id: FieldRef<"ZlLive", 'Int'>
-    readonly price: FieldRef<"ZlLive", 'Float'>
-    readonly previousClose: FieldRef<"ZlLive", 'Float'>
-    readonly change: FieldRef<"ZlLive", 'Float'>
-    readonly changePct: FieldRef<"ZlLive", 'Float'>
-    readonly dayHigh: FieldRef<"ZlLive", 'Float'>
-    readonly dayLow: FieldRef<"ZlLive", 'Float'>
-    readonly dayOpen: FieldRef<"ZlLive", 'Float'>
-    readonly volume: FieldRef<"ZlLive", 'Int'>
-    readonly timestamp: FieldRef<"ZlLive", 'DateTime'>
-    readonly source: FieldRef<"ZlLive", 'String'>
-    readonly updatedAt: FieldRef<"ZlLive", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * ZlLive findUnique
-   */
-  export type ZlLiveFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter, which ZlLive to fetch.
-     */
-    where: ZlLiveWhereUniqueInput
-  }
-
-  /**
-   * ZlLive findUniqueOrThrow
-   */
-  export type ZlLiveFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter, which ZlLive to fetch.
-     */
-    where: ZlLiveWhereUniqueInput
-  }
-
-  /**
-   * ZlLive findFirst
-   */
-  export type ZlLiveFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter, which ZlLive to fetch.
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ZlLives to fetch.
-     */
-    orderBy?: ZlLiveOrderByWithRelationInput | ZlLiveOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ZlLives.
-     */
-    cursor?: ZlLiveWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ZlLives from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ZlLives.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ZlLives.
-     */
-    distinct?: ZlLiveScalarFieldEnum | ZlLiveScalarFieldEnum[]
-  }
-
-  /**
-   * ZlLive findFirstOrThrow
-   */
-  export type ZlLiveFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter, which ZlLive to fetch.
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ZlLives to fetch.
-     */
-    orderBy?: ZlLiveOrderByWithRelationInput | ZlLiveOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ZlLives.
-     */
-    cursor?: ZlLiveWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ZlLives from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ZlLives.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ZlLives.
-     */
-    distinct?: ZlLiveScalarFieldEnum | ZlLiveScalarFieldEnum[]
-  }
-
-  /**
-   * ZlLive findMany
-   */
-  export type ZlLiveFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter, which ZlLives to fetch.
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ZlLives to fetch.
-     */
-    orderBy?: ZlLiveOrderByWithRelationInput | ZlLiveOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing ZlLives.
-     */
-    cursor?: ZlLiveWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ZlLives from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ZlLives.
-     */
-    skip?: number
-    distinct?: ZlLiveScalarFieldEnum | ZlLiveScalarFieldEnum[]
-  }
-
-  /**
-   * ZlLive create
-   */
-  export type ZlLiveCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * The data needed to create a ZlLive.
-     */
-    data: XOR<ZlLiveCreateInput, ZlLiveUncheckedCreateInput>
-  }
-
-  /**
-   * ZlLive createMany
-   */
-  export type ZlLiveCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many ZlLives.
-     */
-    data: ZlLiveCreateManyInput | ZlLiveCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ZlLive createManyAndReturn
-   */
-  export type ZlLiveCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * The data used to create many ZlLives.
-     */
-    data: ZlLiveCreateManyInput | ZlLiveCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ZlLive update
-   */
-  export type ZlLiveUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * The data needed to update a ZlLive.
-     */
-    data: XOR<ZlLiveUpdateInput, ZlLiveUncheckedUpdateInput>
-    /**
-     * Choose, which ZlLive to update.
-     */
-    where: ZlLiveWhereUniqueInput
-  }
-
-  /**
-   * ZlLive updateMany
-   */
-  export type ZlLiveUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update ZlLives.
-     */
-    data: XOR<ZlLiveUpdateManyMutationInput, ZlLiveUncheckedUpdateManyInput>
-    /**
-     * Filter which ZlLives to update
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * Limit how many ZlLives to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * ZlLive updateManyAndReturn
-   */
-  export type ZlLiveUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelectUpdateManyAndReturn<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * The data used to update ZlLives.
-     */
-    data: XOR<ZlLiveUpdateManyMutationInput, ZlLiveUncheckedUpdateManyInput>
-    /**
-     * Filter which ZlLives to update
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * Limit how many ZlLives to update.
-     */
-    limit?: number
-  }
-
-  /**
-   * ZlLive upsert
-   */
-  export type ZlLiveUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * The filter to search for the ZlLive to update in case it exists.
-     */
-    where: ZlLiveWhereUniqueInput
-    /**
-     * In case the ZlLive found by the `where` argument doesn't exist, create a new ZlLive with this data.
-     */
-    create: XOR<ZlLiveCreateInput, ZlLiveUncheckedCreateInput>
-    /**
-     * In case the ZlLive was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<ZlLiveUpdateInput, ZlLiveUncheckedUpdateInput>
-  }
-
-  /**
-   * ZlLive delete
-   */
-  export type ZlLiveDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-    /**
-     * Filter which ZlLive to delete.
-     */
-    where: ZlLiveWhereUniqueInput
-  }
-
-  /**
-   * ZlLive deleteMany
-   */
-  export type ZlLiveDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ZlLives to delete
-     */
-    where?: ZlLiveWhereInput
-    /**
-     * Limit how many ZlLives to delete.
-     */
-    limit?: number
-  }
-
-  /**
-   * ZlLive without action
-   */
-  export type ZlLiveDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ZlLive
-     */
-    select?: ZlLiveSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the ZlLive
-     */
-    omit?: ZlLiveOmit<ExtArgs> | null
-  }
-
-
-  /**
    * Model DataSourceRegistry
    */
 
@@ -80082,18 +80599,18 @@ export namespace Prisma {
 
 
   /**
-   * Model zl_intraday
+   * Model zl_price_15m
    */
 
-  export type AggregateZl_intraday = {
-    _count: Zl_intradayCountAggregateOutputType | null
-    _avg: Zl_intradayAvgAggregateOutputType | null
-    _sum: Zl_intradaySumAggregateOutputType | null
-    _min: Zl_intradayMinAggregateOutputType | null
-    _max: Zl_intradayMaxAggregateOutputType | null
+  export type AggregateZl_price_15m = {
+    _count: Zl_price_15mCountAggregateOutputType | null
+    _avg: Zl_price_15mAvgAggregateOutputType | null
+    _sum: Zl_price_15mSumAggregateOutputType | null
+    _min: Zl_price_15mMinAggregateOutputType | null
+    _max: Zl_price_15mMaxAggregateOutputType | null
   }
 
-  export type Zl_intradayAvgAggregateOutputType = {
+  export type Zl_price_15mAvgAggregateOutputType = {
     id: number | null
     open: number | null
     high: number | null
@@ -80107,7 +80624,7 @@ export namespace Prisma {
     day_low: number | null
   }
 
-  export type Zl_intradaySumAggregateOutputType = {
+  export type Zl_price_15mSumAggregateOutputType = {
     id: number | null
     open: number | null
     high: number | null
@@ -80121,24 +80638,7 @@ export namespace Prisma {
     day_low: number | null
   }
 
-  export type Zl_intradayMinAggregateOutputType = {
-    id: number | null
-    timestamp: Date | null
-    open: number | null
-    high: number | null
-    low: number | null
-    close: number | null
-    volume: number | null
-    previous_close: number | null
-    change: number | null
-    change_percent: number | null
-    day_high: number | null
-    day_low: number | null
-    source: string | null
-    created_at: Date | null
-  }
-
-  export type Zl_intradayMaxAggregateOutputType = {
+  export type Zl_price_15mMinAggregateOutputType = {
     id: number | null
     timestamp: Date | null
     open: number | null
@@ -80155,7 +80655,24 @@ export namespace Prisma {
     created_at: Date | null
   }
 
-  export type Zl_intradayCountAggregateOutputType = {
+  export type Zl_price_15mMaxAggregateOutputType = {
+    id: number | null
+    timestamp: Date | null
+    open: number | null
+    high: number | null
+    low: number | null
+    close: number | null
+    volume: number | null
+    previous_close: number | null
+    change: number | null
+    change_percent: number | null
+    day_high: number | null
+    day_low: number | null
+    source: string | null
+    created_at: Date | null
+  }
+
+  export type Zl_price_15mCountAggregateOutputType = {
     id: number
     timestamp: number
     open: number
@@ -80174,7 +80691,7 @@ export namespace Prisma {
   }
 
 
-  export type Zl_intradayAvgAggregateInputType = {
+  export type Zl_price_15mAvgAggregateInputType = {
     id?: true
     open?: true
     high?: true
@@ -80188,7 +80705,7 @@ export namespace Prisma {
     day_low?: true
   }
 
-  export type Zl_intradaySumAggregateInputType = {
+  export type Zl_price_15mSumAggregateInputType = {
     id?: true
     open?: true
     high?: true
@@ -80202,24 +80719,7 @@ export namespace Prisma {
     day_low?: true
   }
 
-  export type Zl_intradayMinAggregateInputType = {
-    id?: true
-    timestamp?: true
-    open?: true
-    high?: true
-    low?: true
-    close?: true
-    volume?: true
-    previous_close?: true
-    change?: true
-    change_percent?: true
-    day_high?: true
-    day_low?: true
-    source?: true
-    created_at?: true
-  }
-
-  export type Zl_intradayMaxAggregateInputType = {
+  export type Zl_price_15mMinAggregateInputType = {
     id?: true
     timestamp?: true
     open?: true
@@ -80236,7 +80736,24 @@ export namespace Prisma {
     created_at?: true
   }
 
-  export type Zl_intradayCountAggregateInputType = {
+  export type Zl_price_15mMaxAggregateInputType = {
+    id?: true
+    timestamp?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    previous_close?: true
+    change?: true
+    change_percent?: true
+    day_high?: true
+    day_low?: true
+    source?: true
+    created_at?: true
+  }
+
+  export type Zl_price_15mCountAggregateInputType = {
     id?: true
     timestamp?: true
     open?: true
@@ -80254,93 +80771,93 @@ export namespace Prisma {
     _all?: true
   }
 
-  export type Zl_intradayAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type Zl_price_15mAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which zl_intraday to aggregate.
+     * Filter which zl_price_15m to aggregate.
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of zl_intradays to fetch.
+     * Determine the order of zl_price_15ms to fetch.
      */
-    orderBy?: zl_intradayOrderByWithRelationInput | zl_intradayOrderByWithRelationInput[]
+    orderBy?: zl_price_15mOrderByWithRelationInput | zl_price_15mOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: zl_intradayWhereUniqueInput
+    cursor?: zl_price_15mWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` zl_intradays from the position of the cursor.
+     * Take `±n` zl_price_15ms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` zl_intradays.
+     * Skip the first `n` zl_price_15ms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned zl_intradays
+     * Count returned zl_price_15ms
     **/
-    _count?: true | Zl_intradayCountAggregateInputType
+    _count?: true | Zl_price_15mCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to average
     **/
-    _avg?: Zl_intradayAvgAggregateInputType
+    _avg?: Zl_price_15mAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to sum
     **/
-    _sum?: Zl_intradaySumAggregateInputType
+    _sum?: Zl_price_15mSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: Zl_intradayMinAggregateInputType
+    _min?: Zl_price_15mMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: Zl_intradayMaxAggregateInputType
+    _max?: Zl_price_15mMaxAggregateInputType
   }
 
-  export type GetZl_intradayAggregateType<T extends Zl_intradayAggregateArgs> = {
-        [P in keyof T & keyof AggregateZl_intraday]: P extends '_count' | 'count'
+  export type GetZl_price_15mAggregateType<T extends Zl_price_15mAggregateArgs> = {
+        [P in keyof T & keyof AggregateZl_price_15m]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateZl_intraday[P]>
-      : GetScalarType<T[P], AggregateZl_intraday[P]>
+        : GetScalarType<T[P], AggregateZl_price_15m[P]>
+      : GetScalarType<T[P], AggregateZl_price_15m[P]>
   }
 
 
 
 
-  export type zl_intradayGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: zl_intradayWhereInput
-    orderBy?: zl_intradayOrderByWithAggregationInput | zl_intradayOrderByWithAggregationInput[]
-    by: Zl_intradayScalarFieldEnum[] | Zl_intradayScalarFieldEnum
-    having?: zl_intradayScalarWhereWithAggregatesInput
+  export type zl_price_15mGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: zl_price_15mWhereInput
+    orderBy?: zl_price_15mOrderByWithAggregationInput | zl_price_15mOrderByWithAggregationInput[]
+    by: Zl_price_15mScalarFieldEnum[] | Zl_price_15mScalarFieldEnum
+    having?: zl_price_15mScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: Zl_intradayCountAggregateInputType | true
-    _avg?: Zl_intradayAvgAggregateInputType
-    _sum?: Zl_intradaySumAggregateInputType
-    _min?: Zl_intradayMinAggregateInputType
-    _max?: Zl_intradayMaxAggregateInputType
+    _count?: Zl_price_15mCountAggregateInputType | true
+    _avg?: Zl_price_15mAvgAggregateInputType
+    _sum?: Zl_price_15mSumAggregateInputType
+    _min?: Zl_price_15mMinAggregateInputType
+    _max?: Zl_price_15mMaxAggregateInputType
   }
 
-  export type Zl_intradayGroupByOutputType = {
+  export type Zl_price_15mGroupByOutputType = {
     id: number
     timestamp: Date
     open: number
@@ -80355,28 +80872,28 @@ export namespace Prisma {
     day_low: number | null
     source: string | null
     created_at: Date | null
-    _count: Zl_intradayCountAggregateOutputType | null
-    _avg: Zl_intradayAvgAggregateOutputType | null
-    _sum: Zl_intradaySumAggregateOutputType | null
-    _min: Zl_intradayMinAggregateOutputType | null
-    _max: Zl_intradayMaxAggregateOutputType | null
+    _count: Zl_price_15mCountAggregateOutputType | null
+    _avg: Zl_price_15mAvgAggregateOutputType | null
+    _sum: Zl_price_15mSumAggregateOutputType | null
+    _min: Zl_price_15mMinAggregateOutputType | null
+    _max: Zl_price_15mMaxAggregateOutputType | null
   }
 
-  type GetZl_intradayGroupByPayload<T extends zl_intradayGroupByArgs> = Prisma.PrismaPromise<
+  type GetZl_price_15mGroupByPayload<T extends zl_price_15mGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<Zl_intradayGroupByOutputType, T['by']> &
+      PickEnumerable<Zl_price_15mGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof Zl_intradayGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof Zl_price_15mGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], Zl_intradayGroupByOutputType[P]>
-            : GetScalarType<T[P], Zl_intradayGroupByOutputType[P]>
+              : GetScalarType<T[P], Zl_price_15mGroupByOutputType[P]>
+            : GetScalarType<T[P], Zl_price_15mGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type zl_intradaySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type zl_price_15mSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     timestamp?: boolean
     open?: boolean
@@ -80391,9 +80908,9 @@ export namespace Prisma {
     day_low?: boolean
     source?: boolean
     created_at?: boolean
-  }, ExtArgs["result"]["zl_intraday"]>
+  }, ExtArgs["result"]["zl_price_15m"]>
 
-  export type zl_intradaySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type zl_price_15mSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     timestamp?: boolean
     open?: boolean
@@ -80408,9 +80925,9 @@ export namespace Prisma {
     day_low?: boolean
     source?: boolean
     created_at?: boolean
-  }, ExtArgs["result"]["zl_intraday"]>
+  }, ExtArgs["result"]["zl_price_15m"]>
 
-  export type zl_intradaySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type zl_price_15mSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     timestamp?: boolean
     open?: boolean
@@ -80425,9 +80942,9 @@ export namespace Prisma {
     day_low?: boolean
     source?: boolean
     created_at?: boolean
-  }, ExtArgs["result"]["zl_intraday"]>
+  }, ExtArgs["result"]["zl_price_15m"]>
 
-  export type zl_intradaySelectScalar = {
+  export type zl_price_15mSelectScalar = {
     id?: boolean
     timestamp?: boolean
     open?: boolean
@@ -80444,10 +80961,10 @@ export namespace Prisma {
     created_at?: boolean
   }
 
-  export type zl_intradayOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "timestamp" | "open" | "high" | "low" | "close" | "volume" | "previous_close" | "change" | "change_percent" | "day_high" | "day_low" | "source" | "created_at", ExtArgs["result"]["zl_intraday"]>
+  export type zl_price_15mOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "timestamp" | "open" | "high" | "low" | "close" | "volume" | "previous_close" | "change" | "change_percent" | "day_high" | "day_low" | "source" | "created_at", ExtArgs["result"]["zl_price_15m"]>
 
-  export type $zl_intradayPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "zl_intraday"
+  export type $zl_price_15mPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "zl_price_15m"
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -80464,136 +80981,136 @@ export namespace Prisma {
       day_low: number | null
       source: string | null
       created_at: Date | null
-    }, ExtArgs["result"]["zl_intraday"]>
+    }, ExtArgs["result"]["zl_price_15m"]>
     composites: {}
   }
 
-  type zl_intradayGetPayload<S extends boolean | null | undefined | zl_intradayDefaultArgs> = $Result.GetResult<Prisma.$zl_intradayPayload, S>
+  type zl_price_15mGetPayload<S extends boolean | null | undefined | zl_price_15mDefaultArgs> = $Result.GetResult<Prisma.$zl_price_15mPayload, S>
 
-  type zl_intradayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
-    Omit<zl_intradayFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
-      select?: Zl_intradayCountAggregateInputType | true
+  type zl_price_15mCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<zl_price_15mFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Zl_price_15mCountAggregateInputType | true
     }
 
-  export interface zl_intradayDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['zl_intraday'], meta: { name: 'zl_intraday' } }
+  export interface zl_price_15mDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['zl_price_15m'], meta: { name: 'zl_price_15m' } }
     /**
-     * Find zero or one Zl_intraday that matches the filter.
-     * @param {zl_intradayFindUniqueArgs} args - Arguments to find a Zl_intraday
+     * Find zero or one Zl_price_15m that matches the filter.
+     * @param {zl_price_15mFindUniqueArgs} args - Arguments to find a Zl_price_15m
      * @example
-     * // Get one Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.findUnique({
+     * // Get one Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends zl_intradayFindUniqueArgs>(args: SelectSubset<T, zl_intradayFindUniqueArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    findUnique<T extends zl_price_15mFindUniqueArgs>(args: SelectSubset<T, zl_price_15mFindUniqueArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find one Zl_intraday that matches the filter or throw an error with `error.code='P2025'`
+     * Find one Zl_price_15m that matches the filter or throw an error with `error.code='P2025'`
      * if no matches were found.
-     * @param {zl_intradayFindUniqueOrThrowArgs} args - Arguments to find a Zl_intraday
+     * @param {zl_price_15mFindUniqueOrThrowArgs} args - Arguments to find a Zl_price_15m
      * @example
-     * // Get one Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.findUniqueOrThrow({
+     * // Get one Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends zl_intradayFindUniqueOrThrowArgs>(args: SelectSubset<T, zl_intradayFindUniqueOrThrowArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    findUniqueOrThrow<T extends zl_price_15mFindUniqueOrThrowArgs>(args: SelectSubset<T, zl_price_15mFindUniqueOrThrowArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find the first Zl_intraday that matches the filter.
+     * Find the first Zl_price_15m that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayFindFirstArgs} args - Arguments to find a Zl_intraday
+     * @param {zl_price_15mFindFirstArgs} args - Arguments to find a Zl_price_15m
      * @example
-     * // Get one Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.findFirst({
+     * // Get one Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends zl_intradayFindFirstArgs>(args?: SelectSubset<T, zl_intradayFindFirstArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    findFirst<T extends zl_price_15mFindFirstArgs>(args?: SelectSubset<T, zl_price_15mFindFirstArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find the first Zl_intraday that matches the filter or
+     * Find the first Zl_price_15m that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayFindFirstOrThrowArgs} args - Arguments to find a Zl_intraday
+     * @param {zl_price_15mFindFirstOrThrowArgs} args - Arguments to find a Zl_price_15m
      * @example
-     * // Get one Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.findFirstOrThrow({
+     * // Get one Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends zl_intradayFindFirstOrThrowArgs>(args?: SelectSubset<T, zl_intradayFindFirstOrThrowArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    findFirstOrThrow<T extends zl_price_15mFindFirstOrThrowArgs>(args?: SelectSubset<T, zl_price_15mFindFirstOrThrowArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Find zero or more Zl_intradays that matches the filter.
+     * Find zero or more Zl_price_15ms that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {zl_price_15mFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all Zl_intradays
-     * const zl_intradays = await prisma.zl_intraday.findMany()
+     * // Get all Zl_price_15ms
+     * const zl_price_15ms = await prisma.zl_price_15m.findMany()
      * 
-     * // Get first 10 Zl_intradays
-     * const zl_intradays = await prisma.zl_intraday.findMany({ take: 10 })
+     * // Get first 10 Zl_price_15ms
+     * const zl_price_15ms = await prisma.zl_price_15m.findMany({ take: 10 })
      * 
      * // Only select the `id`
-     * const zl_intradayWithIdOnly = await prisma.zl_intraday.findMany({ select: { id: true } })
+     * const zl_price_15mWithIdOnly = await prisma.zl_price_15m.findMany({ select: { id: true } })
      * 
      */
-    findMany<T extends zl_intradayFindManyArgs>(args?: SelectSubset<T, zl_intradayFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+    findMany<T extends zl_price_15mFindManyArgs>(args?: SelectSubset<T, zl_price_15mFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
 
     /**
-     * Create a Zl_intraday.
-     * @param {zl_intradayCreateArgs} args - Arguments to create a Zl_intraday.
+     * Create a Zl_price_15m.
+     * @param {zl_price_15mCreateArgs} args - Arguments to create a Zl_price_15m.
      * @example
-     * // Create one Zl_intraday
-     * const Zl_intraday = await prisma.zl_intraday.create({
+     * // Create one Zl_price_15m
+     * const Zl_price_15m = await prisma.zl_price_15m.create({
      *   data: {
-     *     // ... data to create a Zl_intraday
+     *     // ... data to create a Zl_price_15m
      *   }
      * })
      * 
      */
-    create<T extends zl_intradayCreateArgs>(args: SelectSubset<T, zl_intradayCreateArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    create<T extends zl_price_15mCreateArgs>(args: SelectSubset<T, zl_price_15mCreateArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Create many Zl_intradays.
-     * @param {zl_intradayCreateManyArgs} args - Arguments to create many Zl_intradays.
+     * Create many Zl_price_15ms.
+     * @param {zl_price_15mCreateManyArgs} args - Arguments to create many Zl_price_15ms.
      * @example
-     * // Create many Zl_intradays
-     * const zl_intraday = await prisma.zl_intraday.createMany({
+     * // Create many Zl_price_15ms
+     * const zl_price_15m = await prisma.zl_price_15m.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends zl_intradayCreateManyArgs>(args?: SelectSubset<T, zl_intradayCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends zl_price_15mCreateManyArgs>(args?: SelectSubset<T, zl_price_15mCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Zl_intradays and returns the data saved in the database.
-     * @param {zl_intradayCreateManyAndReturnArgs} args - Arguments to create many Zl_intradays.
+     * Create many Zl_price_15ms and returns the data saved in the database.
+     * @param {zl_price_15mCreateManyAndReturnArgs} args - Arguments to create many Zl_price_15ms.
      * @example
-     * // Create many Zl_intradays
-     * const zl_intraday = await prisma.zl_intraday.createManyAndReturn({
+     * // Create many Zl_price_15ms
+     * const zl_price_15m = await prisma.zl_price_15m.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many Zl_intradays and only return the `id`
-     * const zl_intradayWithIdOnly = await prisma.zl_intraday.createManyAndReturn({
+     * // Create many Zl_price_15ms and only return the `id`
+     * const zl_price_15mWithIdOnly = await prisma.zl_price_15m.createManyAndReturn({
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -80603,28 +81120,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends zl_intradayCreateManyAndReturnArgs>(args?: SelectSubset<T, zl_intradayCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+    createManyAndReturn<T extends zl_price_15mCreateManyAndReturnArgs>(args?: SelectSubset<T, zl_price_15mCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
 
     /**
-     * Delete a Zl_intraday.
-     * @param {zl_intradayDeleteArgs} args - Arguments to delete one Zl_intraday.
+     * Delete a Zl_price_15m.
+     * @param {zl_price_15mDeleteArgs} args - Arguments to delete one Zl_price_15m.
      * @example
-     * // Delete one Zl_intraday
-     * const Zl_intraday = await prisma.zl_intraday.delete({
+     * // Delete one Zl_price_15m
+     * const Zl_price_15m = await prisma.zl_price_15m.delete({
      *   where: {
-     *     // ... filter to delete one Zl_intraday
+     *     // ... filter to delete one Zl_price_15m
      *   }
      * })
      * 
      */
-    delete<T extends zl_intradayDeleteArgs>(args: SelectSubset<T, zl_intradayDeleteArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    delete<T extends zl_price_15mDeleteArgs>(args: SelectSubset<T, zl_price_15mDeleteArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Update one Zl_intraday.
-     * @param {zl_intradayUpdateArgs} args - Arguments to update one Zl_intraday.
+     * Update one Zl_price_15m.
+     * @param {zl_price_15mUpdateArgs} args - Arguments to update one Zl_price_15m.
      * @example
-     * // Update one Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.update({
+     * // Update one Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -80634,30 +81151,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends zl_intradayUpdateArgs>(args: SelectSubset<T, zl_intradayUpdateArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    update<T extends zl_price_15mUpdateArgs>(args: SelectSubset<T, zl_price_15mUpdateArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
     /**
-     * Delete zero or more Zl_intradays.
-     * @param {zl_intradayDeleteManyArgs} args - Arguments to filter Zl_intradays to delete.
+     * Delete zero or more Zl_price_15ms.
+     * @param {zl_price_15mDeleteManyArgs} args - Arguments to filter Zl_price_15ms to delete.
      * @example
-     * // Delete a few Zl_intradays
-     * const { count } = await prisma.zl_intraday.deleteMany({
+     * // Delete a few Zl_price_15ms
+     * const { count } = await prisma.zl_price_15m.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends zl_intradayDeleteManyArgs>(args?: SelectSubset<T, zl_intradayDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends zl_price_15mDeleteManyArgs>(args?: SelectSubset<T, zl_price_15mDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more Zl_intradays.
+     * Update zero or more Zl_price_15ms.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {zl_price_15mUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many Zl_intradays
-     * const zl_intraday = await prisma.zl_intraday.updateMany({
+     * // Update many Zl_price_15ms
+     * const zl_price_15m = await prisma.zl_price_15m.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -80667,14 +81184,14 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends zl_intradayUpdateManyArgs>(args: SelectSubset<T, zl_intradayUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends zl_price_15mUpdateManyArgs>(args: SelectSubset<T, zl_price_15mUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more Zl_intradays and returns the data updated in the database.
-     * @param {zl_intradayUpdateManyAndReturnArgs} args - Arguments to update many Zl_intradays.
+     * Update zero or more Zl_price_15ms and returns the data updated in the database.
+     * @param {zl_price_15mUpdateManyAndReturnArgs} args - Arguments to update many Zl_price_15ms.
      * @example
-     * // Update many Zl_intradays
-     * const zl_intraday = await prisma.zl_intraday.updateManyAndReturn({
+     * // Update many Zl_price_15ms
+     * const zl_price_15m = await prisma.zl_price_15m.updateManyAndReturn({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -80683,8 +81200,8 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Update zero or more Zl_intradays and only return the `id`
-     * const zl_intradayWithIdOnly = await prisma.zl_intraday.updateManyAndReturn({
+     * // Update zero or more Zl_price_15ms and only return the `id`
+     * const zl_price_15mWithIdOnly = await prisma.zl_price_15m.updateManyAndReturn({
      *   select: { id: true },
      *   where: {
      *     // ... provide filter here
@@ -80697,56 +81214,56 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    updateManyAndReturn<T extends zl_intradayUpdateManyAndReturnArgs>(args: SelectSubset<T, zl_intradayUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+    updateManyAndReturn<T extends zl_price_15mUpdateManyAndReturnArgs>(args: SelectSubset<T, zl_price_15mUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
-     * Create or update one Zl_intraday.
-     * @param {zl_intradayUpsertArgs} args - Arguments to update or create a Zl_intraday.
+     * Create or update one Zl_price_15m.
+     * @param {zl_price_15mUpsertArgs} args - Arguments to update or create a Zl_price_15m.
      * @example
-     * // Update or create a Zl_intraday
-     * const zl_intraday = await prisma.zl_intraday.upsert({
+     * // Update or create a Zl_price_15m
+     * const zl_price_15m = await prisma.zl_price_15m.upsert({
      *   create: {
-     *     // ... data to create a Zl_intraday
+     *     // ... data to create a Zl_price_15m
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the Zl_intraday we want to update
+     *     // ... the filter for the Zl_price_15m we want to update
      *   }
      * })
      */
-    upsert<T extends zl_intradayUpsertArgs>(args: SelectSubset<T, zl_intradayUpsertArgs<ExtArgs>>): Prisma__zl_intradayClient<$Result.GetResult<Prisma.$zl_intradayPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+    upsert<T extends zl_price_15mUpsertArgs>(args: SelectSubset<T, zl_price_15mUpsertArgs<ExtArgs>>): Prisma__zl_price_15mClient<$Result.GetResult<Prisma.$zl_price_15mPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
 
 
     /**
-     * Count the number of Zl_intradays.
+     * Count the number of Zl_price_15ms.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayCountArgs} args - Arguments to filter Zl_intradays to count.
+     * @param {zl_price_15mCountArgs} args - Arguments to filter Zl_price_15ms to count.
      * @example
-     * // Count the number of Zl_intradays
-     * const count = await prisma.zl_intraday.count({
+     * // Count the number of Zl_price_15ms
+     * const count = await prisma.zl_price_15m.count({
      *   where: {
-     *     // ... the filter for the Zl_intradays we want to count
+     *     // ... the filter for the Zl_price_15ms we want to count
      *   }
      * })
     **/
-    count<T extends zl_intradayCountArgs>(
-      args?: Subset<T, zl_intradayCountArgs>,
+    count<T extends zl_price_15mCountArgs>(
+      args?: Subset<T, zl_price_15mCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], Zl_intradayCountAggregateOutputType>
+          : GetScalarType<T['select'], Zl_price_15mCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a Zl_intraday.
+     * Allows you to perform aggregations operations on a Zl_price_15m.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {Zl_intradayAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {Zl_price_15mAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -80766,13 +81283,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends Zl_intradayAggregateArgs>(args: Subset<T, Zl_intradayAggregateArgs>): Prisma.PrismaPromise<GetZl_intradayAggregateType<T>>
+    aggregate<T extends Zl_price_15mAggregateArgs>(args: Subset<T, Zl_price_15mAggregateArgs>): Prisma.PrismaPromise<GetZl_price_15mAggregateType<T>>
 
     /**
-     * Group by Zl_intraday.
+     * Group by Zl_price_15m.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {zl_intradayGroupByArgs} args - Group by arguments.
+     * @param {zl_price_15mGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -80787,14 +81304,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends zl_intradayGroupByArgs,
+      T extends zl_price_15mGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: zl_intradayGroupByArgs['orderBy'] }
-        : { orderBy?: zl_intradayGroupByArgs['orderBy'] },
+        ? { orderBy: zl_price_15mGroupByArgs['orderBy'] }
+        : { orderBy?: zl_price_15mGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -80843,20 +81360,20 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, zl_intradayGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetZl_intradayGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, zl_price_15mGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetZl_price_15mGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the zl_intraday model
+   * Fields of the zl_price_15m model
    */
-  readonly fields: zl_intradayFieldRefs;
+  readonly fields: zl_price_15mFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for zl_intraday.
+   * The delegate class that acts as a "Promise-like" for zl_price_15m.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__zl_intradayClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__zl_price_15mClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -80884,386 +81401,386 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the zl_intraday model
+   * Fields of the zl_price_15m model
    */
-  interface zl_intradayFieldRefs {
-    readonly id: FieldRef<"zl_intraday", 'Int'>
-    readonly timestamp: FieldRef<"zl_intraday", 'DateTime'>
-    readonly open: FieldRef<"zl_intraday", 'Float'>
-    readonly high: FieldRef<"zl_intraday", 'Float'>
-    readonly low: FieldRef<"zl_intraday", 'Float'>
-    readonly close: FieldRef<"zl_intraday", 'Float'>
-    readonly volume: FieldRef<"zl_intraday", 'Int'>
-    readonly previous_close: FieldRef<"zl_intraday", 'Float'>
-    readonly change: FieldRef<"zl_intraday", 'Float'>
-    readonly change_percent: FieldRef<"zl_intraday", 'Float'>
-    readonly day_high: FieldRef<"zl_intraday", 'Float'>
-    readonly day_low: FieldRef<"zl_intraday", 'Float'>
-    readonly source: FieldRef<"zl_intraday", 'String'>
-    readonly created_at: FieldRef<"zl_intraday", 'DateTime'>
+  interface zl_price_15mFieldRefs {
+    readonly id: FieldRef<"zl_price_15m", 'Int'>
+    readonly timestamp: FieldRef<"zl_price_15m", 'DateTime'>
+    readonly open: FieldRef<"zl_price_15m", 'Float'>
+    readonly high: FieldRef<"zl_price_15m", 'Float'>
+    readonly low: FieldRef<"zl_price_15m", 'Float'>
+    readonly close: FieldRef<"zl_price_15m", 'Float'>
+    readonly volume: FieldRef<"zl_price_15m", 'Int'>
+    readonly previous_close: FieldRef<"zl_price_15m", 'Float'>
+    readonly change: FieldRef<"zl_price_15m", 'Float'>
+    readonly change_percent: FieldRef<"zl_price_15m", 'Float'>
+    readonly day_high: FieldRef<"zl_price_15m", 'Float'>
+    readonly day_low: FieldRef<"zl_price_15m", 'Float'>
+    readonly source: FieldRef<"zl_price_15m", 'String'>
+    readonly created_at: FieldRef<"zl_price_15m", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * zl_intraday findUnique
+   * zl_price_15m findUnique
    */
-  export type zl_intradayFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter, which zl_intraday to fetch.
+     * Filter, which zl_price_15m to fetch.
      */
-    where: zl_intradayWhereUniqueInput
+    where: zl_price_15mWhereUniqueInput
   }
 
   /**
-   * zl_intraday findUniqueOrThrow
+   * zl_price_15m findUniqueOrThrow
    */
-  export type zl_intradayFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter, which zl_intraday to fetch.
+     * Filter, which zl_price_15m to fetch.
      */
-    where: zl_intradayWhereUniqueInput
+    where: zl_price_15mWhereUniqueInput
   }
 
   /**
-   * zl_intraday findFirst
+   * zl_price_15m findFirst
    */
-  export type zl_intradayFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter, which zl_intraday to fetch.
+     * Filter, which zl_price_15m to fetch.
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of zl_intradays to fetch.
+     * Determine the order of zl_price_15ms to fetch.
      */
-    orderBy?: zl_intradayOrderByWithRelationInput | zl_intradayOrderByWithRelationInput[]
+    orderBy?: zl_price_15mOrderByWithRelationInput | zl_price_15mOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for zl_intradays.
+     * Sets the position for searching for zl_price_15ms.
      */
-    cursor?: zl_intradayWhereUniqueInput
+    cursor?: zl_price_15mWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` zl_intradays from the position of the cursor.
+     * Take `±n` zl_price_15ms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` zl_intradays.
+     * Skip the first `n` zl_price_15ms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of zl_intradays.
+     * Filter by unique combinations of zl_price_15ms.
      */
-    distinct?: Zl_intradayScalarFieldEnum | Zl_intradayScalarFieldEnum[]
+    distinct?: Zl_price_15mScalarFieldEnum | Zl_price_15mScalarFieldEnum[]
   }
 
   /**
-   * zl_intraday findFirstOrThrow
+   * zl_price_15m findFirstOrThrow
    */
-  export type zl_intradayFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter, which zl_intraday to fetch.
+     * Filter, which zl_price_15m to fetch.
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of zl_intradays to fetch.
+     * Determine the order of zl_price_15ms to fetch.
      */
-    orderBy?: zl_intradayOrderByWithRelationInput | zl_intradayOrderByWithRelationInput[]
+    orderBy?: zl_price_15mOrderByWithRelationInput | zl_price_15mOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for zl_intradays.
+     * Sets the position for searching for zl_price_15ms.
      */
-    cursor?: zl_intradayWhereUniqueInput
+    cursor?: zl_price_15mWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` zl_intradays from the position of the cursor.
+     * Take `±n` zl_price_15ms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` zl_intradays.
+     * Skip the first `n` zl_price_15ms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of zl_intradays.
+     * Filter by unique combinations of zl_price_15ms.
      */
-    distinct?: Zl_intradayScalarFieldEnum | Zl_intradayScalarFieldEnum[]
+    distinct?: Zl_price_15mScalarFieldEnum | Zl_price_15mScalarFieldEnum[]
   }
 
   /**
-   * zl_intraday findMany
+   * zl_price_15m findMany
    */
-  export type zl_intradayFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter, which zl_intradays to fetch.
+     * Filter, which zl_price_15ms to fetch.
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of zl_intradays to fetch.
+     * Determine the order of zl_price_15ms to fetch.
      */
-    orderBy?: zl_intradayOrderByWithRelationInput | zl_intradayOrderByWithRelationInput[]
+    orderBy?: zl_price_15mOrderByWithRelationInput | zl_price_15mOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing zl_intradays.
+     * Sets the position for listing zl_price_15ms.
      */
-    cursor?: zl_intradayWhereUniqueInput
+    cursor?: zl_price_15mWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` zl_intradays from the position of the cursor.
+     * Take `±n` zl_price_15ms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` zl_intradays.
+     * Skip the first `n` zl_price_15ms.
      */
     skip?: number
-    distinct?: Zl_intradayScalarFieldEnum | Zl_intradayScalarFieldEnum[]
+    distinct?: Zl_price_15mScalarFieldEnum | Zl_price_15mScalarFieldEnum[]
   }
 
   /**
-   * zl_intraday create
+   * zl_price_15m create
    */
-  export type zl_intradayCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * The data needed to create a zl_intraday.
+     * The data needed to create a zl_price_15m.
      */
-    data: XOR<zl_intradayCreateInput, zl_intradayUncheckedCreateInput>
+    data: XOR<zl_price_15mCreateInput, zl_price_15mUncheckedCreateInput>
   }
 
   /**
-   * zl_intraday createMany
+   * zl_price_15m createMany
    */
-  export type zl_intradayCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many zl_intradays.
+     * The data used to create many zl_price_15ms.
      */
-    data: zl_intradayCreateManyInput | zl_intradayCreateManyInput[]
+    data: zl_price_15mCreateManyInput | zl_price_15mCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * zl_intraday createManyAndReturn
+   * zl_price_15m createManyAndReturn
    */
-  export type zl_intradayCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelectCreateManyAndReturn<ExtArgs> | null
+    select?: zl_price_15mSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * The data used to create many zl_intradays.
+     * The data used to create many zl_price_15ms.
      */
-    data: zl_intradayCreateManyInput | zl_intradayCreateManyInput[]
+    data: zl_price_15mCreateManyInput | zl_price_15mCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * zl_intraday update
+   * zl_price_15m update
    */
-  export type zl_intradayUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * The data needed to update a zl_intraday.
+     * The data needed to update a zl_price_15m.
      */
-    data: XOR<zl_intradayUpdateInput, zl_intradayUncheckedUpdateInput>
+    data: XOR<zl_price_15mUpdateInput, zl_price_15mUncheckedUpdateInput>
     /**
-     * Choose, which zl_intraday to update.
+     * Choose, which zl_price_15m to update.
      */
-    where: zl_intradayWhereUniqueInput
+    where: zl_price_15mWhereUniqueInput
   }
 
   /**
-   * zl_intraday updateMany
+   * zl_price_15m updateMany
    */
-  export type zl_intradayUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update zl_intradays.
+     * The data used to update zl_price_15ms.
      */
-    data: XOR<zl_intradayUpdateManyMutationInput, zl_intradayUncheckedUpdateManyInput>
+    data: XOR<zl_price_15mUpdateManyMutationInput, zl_price_15mUncheckedUpdateManyInput>
     /**
-     * Filter which zl_intradays to update
+     * Filter which zl_price_15ms to update
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
-     * Limit how many zl_intradays to update.
+     * Limit how many zl_price_15ms to update.
      */
     limit?: number
   }
 
   /**
-   * zl_intraday updateManyAndReturn
+   * zl_price_15m updateManyAndReturn
    */
-  export type zl_intradayUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelectUpdateManyAndReturn<ExtArgs> | null
+    select?: zl_price_15mSelectUpdateManyAndReturn<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * The data used to update zl_intradays.
+     * The data used to update zl_price_15ms.
      */
-    data: XOR<zl_intradayUpdateManyMutationInput, zl_intradayUncheckedUpdateManyInput>
+    data: XOR<zl_price_15mUpdateManyMutationInput, zl_price_15mUncheckedUpdateManyInput>
     /**
-     * Filter which zl_intradays to update
+     * Filter which zl_price_15ms to update
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
-     * Limit how many zl_intradays to update.
+     * Limit how many zl_price_15ms to update.
      */
     limit?: number
   }
 
   /**
-   * zl_intraday upsert
+   * zl_price_15m upsert
    */
-  export type zl_intradayUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * The filter to search for the zl_intraday to update in case it exists.
+     * The filter to search for the zl_price_15m to update in case it exists.
      */
-    where: zl_intradayWhereUniqueInput
+    where: zl_price_15mWhereUniqueInput
     /**
-     * In case the zl_intraday found by the `where` argument doesn't exist, create a new zl_intraday with this data.
+     * In case the zl_price_15m found by the `where` argument doesn't exist, create a new zl_price_15m with this data.
      */
-    create: XOR<zl_intradayCreateInput, zl_intradayUncheckedCreateInput>
+    create: XOR<zl_price_15mCreateInput, zl_price_15mUncheckedCreateInput>
     /**
-     * In case the zl_intraday was found with the provided `where` argument, update it with this data.
+     * In case the zl_price_15m was found with the provided `where` argument, update it with this data.
      */
-    update: XOR<zl_intradayUpdateInput, zl_intradayUncheckedUpdateInput>
+    update: XOR<zl_price_15mUpdateInput, zl_price_15mUncheckedUpdateInput>
   }
 
   /**
-   * zl_intraday delete
+   * zl_price_15m delete
    */
-  export type zl_intradayDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
     /**
-     * Filter which zl_intraday to delete.
+     * Filter which zl_price_15m to delete.
      */
-    where: zl_intradayWhereUniqueInput
+    where: zl_price_15mWhereUniqueInput
   }
 
   /**
-   * zl_intraday deleteMany
+   * zl_price_15m deleteMany
    */
-  export type zl_intradayDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which zl_intradays to delete
+     * Filter which zl_price_15ms to delete
      */
-    where?: zl_intradayWhereInput
+    where?: zl_price_15mWhereInput
     /**
-     * Limit how many zl_intradays to delete.
+     * Limit how many zl_price_15ms to delete.
      */
     limit?: number
   }
 
   /**
-   * zl_intraday without action
+   * zl_price_15m without action
    */
-  export type zl_intradayDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type zl_price_15mDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the zl_intraday
+     * Select specific fields to fetch from the zl_price_15m
      */
-    select?: zl_intradaySelect<ExtArgs> | null
+    select?: zl_price_15mSelect<ExtArgs> | null
     /**
-     * Omit specific fields from the zl_intraday
+     * Omit specific fields from the zl_price_15m
      */
-    omit?: zl_intradayOmit<ExtArgs> | null
+    omit?: zl_price_15mOmit<ExtArgs> | null
   }
 
 
@@ -97774,6 +98291,1090 @@ export namespace Prisma {
      * Omit specific fields from the zl_price_1h
      */
     omit?: zl_price_1hOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model zl_price_1d
+   */
+
+  export type AggregateZl_price_1d = {
+    _count: Zl_price_1dCountAggregateOutputType | null
+    _avg: Zl_price_1dAvgAggregateOutputType | null
+    _sum: Zl_price_1dSumAggregateOutputType | null
+    _min: Zl_price_1dMinAggregateOutputType | null
+    _max: Zl_price_1dMaxAggregateOutputType | null
+  }
+
+  export type Zl_price_1dAvgAggregateOutputType = {
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: number | null
+  }
+
+  export type Zl_price_1dSumAggregateOutputType = {
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+  }
+
+  export type Zl_price_1dMinAggregateOutputType = {
+    event_date: Date | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+    source: string | null
+    created_at: Date | null
+  }
+
+  export type Zl_price_1dMaxAggregateOutputType = {
+    event_date: Date | null
+    open: Decimal | null
+    high: Decimal | null
+    low: Decimal | null
+    close: Decimal | null
+    volume: bigint | null
+    source: string | null
+    created_at: Date | null
+  }
+
+  export type Zl_price_1dCountAggregateOutputType = {
+    event_date: number
+    open: number
+    high: number
+    low: number
+    close: number
+    volume: number
+    source: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Zl_price_1dAvgAggregateInputType = {
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+  }
+
+  export type Zl_price_1dSumAggregateInputType = {
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+  }
+
+  export type Zl_price_1dMinAggregateInputType = {
+    event_date?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    source?: true
+    created_at?: true
+  }
+
+  export type Zl_price_1dMaxAggregateInputType = {
+    event_date?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    source?: true
+    created_at?: true
+  }
+
+  export type Zl_price_1dCountAggregateInputType = {
+    event_date?: true
+    open?: true
+    high?: true
+    low?: true
+    close?: true
+    volume?: true
+    source?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Zl_price_1dAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which zl_price_1d to aggregate.
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of zl_price_1ds to fetch.
+     */
+    orderBy?: zl_price_1dOrderByWithRelationInput | zl_price_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: zl_price_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` zl_price_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` zl_price_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned zl_price_1ds
+    **/
+    _count?: true | Zl_price_1dCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Zl_price_1dAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Zl_price_1dSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Zl_price_1dMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Zl_price_1dMaxAggregateInputType
+  }
+
+  export type GetZl_price_1dAggregateType<T extends Zl_price_1dAggregateArgs> = {
+        [P in keyof T & keyof AggregateZl_price_1d]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateZl_price_1d[P]>
+      : GetScalarType<T[P], AggregateZl_price_1d[P]>
+  }
+
+
+
+
+  export type zl_price_1dGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: zl_price_1dWhereInput
+    orderBy?: zl_price_1dOrderByWithAggregationInput | zl_price_1dOrderByWithAggregationInput[]
+    by: Zl_price_1dScalarFieldEnum[] | Zl_price_1dScalarFieldEnum
+    having?: zl_price_1dScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Zl_price_1dCountAggregateInputType | true
+    _avg?: Zl_price_1dAvgAggregateInputType
+    _sum?: Zl_price_1dSumAggregateInputType
+    _min?: Zl_price_1dMinAggregateInputType
+    _max?: Zl_price_1dMaxAggregateInputType
+  }
+
+  export type Zl_price_1dGroupByOutputType = {
+    event_date: Date
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: bigint
+    source: string
+    created_at: Date
+    _count: Zl_price_1dCountAggregateOutputType | null
+    _avg: Zl_price_1dAvgAggregateOutputType | null
+    _sum: Zl_price_1dSumAggregateOutputType | null
+    _min: Zl_price_1dMinAggregateOutputType | null
+    _max: Zl_price_1dMaxAggregateOutputType | null
+  }
+
+  type GetZl_price_1dGroupByPayload<T extends zl_price_1dGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Zl_price_1dGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Zl_price_1dGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Zl_price_1dGroupByOutputType[P]>
+            : GetScalarType<T[P], Zl_price_1dGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type zl_price_1dSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    event_date?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    source?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["zl_price_1d"]>
+
+  export type zl_price_1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    event_date?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    source?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["zl_price_1d"]>
+
+  export type zl_price_1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    event_date?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    source?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["zl_price_1d"]>
+
+  export type zl_price_1dSelectScalar = {
+    event_date?: boolean
+    open?: boolean
+    high?: boolean
+    low?: boolean
+    close?: boolean
+    volume?: boolean
+    source?: boolean
+    created_at?: boolean
+  }
+
+  export type zl_price_1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"event_date" | "open" | "high" | "low" | "close" | "volume" | "source" | "created_at", ExtArgs["result"]["zl_price_1d"]>
+
+  export type $zl_price_1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "zl_price_1d"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      event_date: Date
+      open: Prisma.Decimal
+      high: Prisma.Decimal
+      low: Prisma.Decimal
+      close: Prisma.Decimal
+      volume: bigint
+      source: string
+      created_at: Date
+    }, ExtArgs["result"]["zl_price_1d"]>
+    composites: {}
+  }
+
+  type zl_price_1dGetPayload<S extends boolean | null | undefined | zl_price_1dDefaultArgs> = $Result.GetResult<Prisma.$zl_price_1dPayload, S>
+
+  type zl_price_1dCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<zl_price_1dFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Zl_price_1dCountAggregateInputType | true
+    }
+
+  export interface zl_price_1dDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['zl_price_1d'], meta: { name: 'zl_price_1d' } }
+    /**
+     * Find zero or one Zl_price_1d that matches the filter.
+     * @param {zl_price_1dFindUniqueArgs} args - Arguments to find a Zl_price_1d
+     * @example
+     * // Get one Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends zl_price_1dFindUniqueArgs>(args: SelectSubset<T, zl_price_1dFindUniqueArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Zl_price_1d that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {zl_price_1dFindUniqueOrThrowArgs} args - Arguments to find a Zl_price_1d
+     * @example
+     * // Get one Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends zl_price_1dFindUniqueOrThrowArgs>(args: SelectSubset<T, zl_price_1dFindUniqueOrThrowArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Zl_price_1d that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dFindFirstArgs} args - Arguments to find a Zl_price_1d
+     * @example
+     * // Get one Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends zl_price_1dFindFirstArgs>(args?: SelectSubset<T, zl_price_1dFindFirstArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Zl_price_1d that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dFindFirstOrThrowArgs} args - Arguments to find a Zl_price_1d
+     * @example
+     * // Get one Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends zl_price_1dFindFirstOrThrowArgs>(args?: SelectSubset<T, zl_price_1dFindFirstOrThrowArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Zl_price_1ds that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Zl_price_1ds
+     * const zl_price_1ds = await prisma.zl_price_1d.findMany()
+     * 
+     * // Get first 10 Zl_price_1ds
+     * const zl_price_1ds = await prisma.zl_price_1d.findMany({ take: 10 })
+     * 
+     * // Only select the `event_date`
+     * const zl_price_1dWithEvent_dateOnly = await prisma.zl_price_1d.findMany({ select: { event_date: true } })
+     * 
+     */
+    findMany<T extends zl_price_1dFindManyArgs>(args?: SelectSubset<T, zl_price_1dFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Zl_price_1d.
+     * @param {zl_price_1dCreateArgs} args - Arguments to create a Zl_price_1d.
+     * @example
+     * // Create one Zl_price_1d
+     * const Zl_price_1d = await prisma.zl_price_1d.create({
+     *   data: {
+     *     // ... data to create a Zl_price_1d
+     *   }
+     * })
+     * 
+     */
+    create<T extends zl_price_1dCreateArgs>(args: SelectSubset<T, zl_price_1dCreateArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Zl_price_1ds.
+     * @param {zl_price_1dCreateManyArgs} args - Arguments to create many Zl_price_1ds.
+     * @example
+     * // Create many Zl_price_1ds
+     * const zl_price_1d = await prisma.zl_price_1d.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends zl_price_1dCreateManyArgs>(args?: SelectSubset<T, zl_price_1dCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Zl_price_1ds and returns the data saved in the database.
+     * @param {zl_price_1dCreateManyAndReturnArgs} args - Arguments to create many Zl_price_1ds.
+     * @example
+     * // Create many Zl_price_1ds
+     * const zl_price_1d = await prisma.zl_price_1d.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Zl_price_1ds and only return the `event_date`
+     * const zl_price_1dWithEvent_dateOnly = await prisma.zl_price_1d.createManyAndReturn({
+     *   select: { event_date: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends zl_price_1dCreateManyAndReturnArgs>(args?: SelectSubset<T, zl_price_1dCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Zl_price_1d.
+     * @param {zl_price_1dDeleteArgs} args - Arguments to delete one Zl_price_1d.
+     * @example
+     * // Delete one Zl_price_1d
+     * const Zl_price_1d = await prisma.zl_price_1d.delete({
+     *   where: {
+     *     // ... filter to delete one Zl_price_1d
+     *   }
+     * })
+     * 
+     */
+    delete<T extends zl_price_1dDeleteArgs>(args: SelectSubset<T, zl_price_1dDeleteArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Zl_price_1d.
+     * @param {zl_price_1dUpdateArgs} args - Arguments to update one Zl_price_1d.
+     * @example
+     * // Update one Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends zl_price_1dUpdateArgs>(args: SelectSubset<T, zl_price_1dUpdateArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Zl_price_1ds.
+     * @param {zl_price_1dDeleteManyArgs} args - Arguments to filter Zl_price_1ds to delete.
+     * @example
+     * // Delete a few Zl_price_1ds
+     * const { count } = await prisma.zl_price_1d.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends zl_price_1dDeleteManyArgs>(args?: SelectSubset<T, zl_price_1dDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Zl_price_1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Zl_price_1ds
+     * const zl_price_1d = await prisma.zl_price_1d.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends zl_price_1dUpdateManyArgs>(args: SelectSubset<T, zl_price_1dUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Zl_price_1ds and returns the data updated in the database.
+     * @param {zl_price_1dUpdateManyAndReturnArgs} args - Arguments to update many Zl_price_1ds.
+     * @example
+     * // Update many Zl_price_1ds
+     * const zl_price_1d = await prisma.zl_price_1d.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Zl_price_1ds and only return the `event_date`
+     * const zl_price_1dWithEvent_dateOnly = await prisma.zl_price_1d.updateManyAndReturn({
+     *   select: { event_date: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends zl_price_1dUpdateManyAndReturnArgs>(args: SelectSubset<T, zl_price_1dUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Zl_price_1d.
+     * @param {zl_price_1dUpsertArgs} args - Arguments to update or create a Zl_price_1d.
+     * @example
+     * // Update or create a Zl_price_1d
+     * const zl_price_1d = await prisma.zl_price_1d.upsert({
+     *   create: {
+     *     // ... data to create a Zl_price_1d
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Zl_price_1d we want to update
+     *   }
+     * })
+     */
+    upsert<T extends zl_price_1dUpsertArgs>(args: SelectSubset<T, zl_price_1dUpsertArgs<ExtArgs>>): Prisma__zl_price_1dClient<$Result.GetResult<Prisma.$zl_price_1dPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Zl_price_1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dCountArgs} args - Arguments to filter Zl_price_1ds to count.
+     * @example
+     * // Count the number of Zl_price_1ds
+     * const count = await prisma.zl_price_1d.count({
+     *   where: {
+     *     // ... the filter for the Zl_price_1ds we want to count
+     *   }
+     * })
+    **/
+    count<T extends zl_price_1dCountArgs>(
+      args?: Subset<T, zl_price_1dCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Zl_price_1dCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Zl_price_1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Zl_price_1dAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Zl_price_1dAggregateArgs>(args: Subset<T, Zl_price_1dAggregateArgs>): Prisma.PrismaPromise<GetZl_price_1dAggregateType<T>>
+
+    /**
+     * Group by Zl_price_1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {zl_price_1dGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends zl_price_1dGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: zl_price_1dGroupByArgs['orderBy'] }
+        : { orderBy?: zl_price_1dGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, zl_price_1dGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetZl_price_1dGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the zl_price_1d model
+   */
+  readonly fields: zl_price_1dFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for zl_price_1d.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__zl_price_1dClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the zl_price_1d model
+   */
+  interface zl_price_1dFieldRefs {
+    readonly event_date: FieldRef<"zl_price_1d", 'DateTime'>
+    readonly open: FieldRef<"zl_price_1d", 'Decimal'>
+    readonly high: FieldRef<"zl_price_1d", 'Decimal'>
+    readonly low: FieldRef<"zl_price_1d", 'Decimal'>
+    readonly close: FieldRef<"zl_price_1d", 'Decimal'>
+    readonly volume: FieldRef<"zl_price_1d", 'BigInt'>
+    readonly source: FieldRef<"zl_price_1d", 'String'>
+    readonly created_at: FieldRef<"zl_price_1d", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * zl_price_1d findUnique
+   */
+  export type zl_price_1dFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which zl_price_1d to fetch.
+     */
+    where: zl_price_1dWhereUniqueInput
+  }
+
+  /**
+   * zl_price_1d findUniqueOrThrow
+   */
+  export type zl_price_1dFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which zl_price_1d to fetch.
+     */
+    where: zl_price_1dWhereUniqueInput
+  }
+
+  /**
+   * zl_price_1d findFirst
+   */
+  export type zl_price_1dFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which zl_price_1d to fetch.
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of zl_price_1ds to fetch.
+     */
+    orderBy?: zl_price_1dOrderByWithRelationInput | zl_price_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for zl_price_1ds.
+     */
+    cursor?: zl_price_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` zl_price_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` zl_price_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of zl_price_1ds.
+     */
+    distinct?: Zl_price_1dScalarFieldEnum | Zl_price_1dScalarFieldEnum[]
+  }
+
+  /**
+   * zl_price_1d findFirstOrThrow
+   */
+  export type zl_price_1dFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which zl_price_1d to fetch.
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of zl_price_1ds to fetch.
+     */
+    orderBy?: zl_price_1dOrderByWithRelationInput | zl_price_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for zl_price_1ds.
+     */
+    cursor?: zl_price_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` zl_price_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` zl_price_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of zl_price_1ds.
+     */
+    distinct?: Zl_price_1dScalarFieldEnum | Zl_price_1dScalarFieldEnum[]
+  }
+
+  /**
+   * zl_price_1d findMany
+   */
+  export type zl_price_1dFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which zl_price_1ds to fetch.
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of zl_price_1ds to fetch.
+     */
+    orderBy?: zl_price_1dOrderByWithRelationInput | zl_price_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing zl_price_1ds.
+     */
+    cursor?: zl_price_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` zl_price_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` zl_price_1ds.
+     */
+    skip?: number
+    distinct?: Zl_price_1dScalarFieldEnum | Zl_price_1dScalarFieldEnum[]
+  }
+
+  /**
+   * zl_price_1d create
+   */
+  export type zl_price_1dCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * The data needed to create a zl_price_1d.
+     */
+    data: XOR<zl_price_1dCreateInput, zl_price_1dUncheckedCreateInput>
+  }
+
+  /**
+   * zl_price_1d createMany
+   */
+  export type zl_price_1dCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many zl_price_1ds.
+     */
+    data: zl_price_1dCreateManyInput | zl_price_1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * zl_price_1d createManyAndReturn
+   */
+  export type zl_price_1dCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * The data used to create many zl_price_1ds.
+     */
+    data: zl_price_1dCreateManyInput | zl_price_1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * zl_price_1d update
+   */
+  export type zl_price_1dUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * The data needed to update a zl_price_1d.
+     */
+    data: XOR<zl_price_1dUpdateInput, zl_price_1dUncheckedUpdateInput>
+    /**
+     * Choose, which zl_price_1d to update.
+     */
+    where: zl_price_1dWhereUniqueInput
+  }
+
+  /**
+   * zl_price_1d updateMany
+   */
+  export type zl_price_1dUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update zl_price_1ds.
+     */
+    data: XOR<zl_price_1dUpdateManyMutationInput, zl_price_1dUncheckedUpdateManyInput>
+    /**
+     * Filter which zl_price_1ds to update
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * Limit how many zl_price_1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * zl_price_1d updateManyAndReturn
+   */
+  export type zl_price_1dUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * The data used to update zl_price_1ds.
+     */
+    data: XOR<zl_price_1dUpdateManyMutationInput, zl_price_1dUncheckedUpdateManyInput>
+    /**
+     * Filter which zl_price_1ds to update
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * Limit how many zl_price_1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * zl_price_1d upsert
+   */
+  export type zl_price_1dUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * The filter to search for the zl_price_1d to update in case it exists.
+     */
+    where: zl_price_1dWhereUniqueInput
+    /**
+     * In case the zl_price_1d found by the `where` argument doesn't exist, create a new zl_price_1d with this data.
+     */
+    create: XOR<zl_price_1dCreateInput, zl_price_1dUncheckedCreateInput>
+    /**
+     * In case the zl_price_1d was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<zl_price_1dUpdateInput, zl_price_1dUncheckedUpdateInput>
+  }
+
+  /**
+   * zl_price_1d delete
+   */
+  export type zl_price_1dDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
+    /**
+     * Filter which zl_price_1d to delete.
+     */
+    where: zl_price_1dWhereUniqueInput
+  }
+
+  /**
+   * zl_price_1d deleteMany
+   */
+  export type zl_price_1dDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which zl_price_1ds to delete
+     */
+    where?: zl_price_1dWhereInput
+    /**
+     * Limit how many zl_price_1ds to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * zl_price_1d without action
+   */
+  export type zl_price_1dDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the zl_price_1d
+     */
+    select?: zl_price_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the zl_price_1d
+     */
+    omit?: zl_price_1dOmit<ExtArgs> | null
   }
 
 
@@ -150173,6 +151774,7 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltNews1dMaxAggregateOutputType = {
@@ -150191,6 +151793,7 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltNews1dCountAggregateOutputType = {
@@ -150210,6 +151813,8 @@ export namespace Prisma {
     ingestedAt: number
     knowledgeTime: number
     rowHash: number
+    rawPayload: number
+    ingestionBatchId: number
     _all: number
   }
 
@@ -150240,6 +151845,7 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    ingestionBatchId?: true
   }
 
   export type AltNews1dMaxAggregateInputType = {
@@ -150258,6 +151864,7 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    ingestionBatchId?: true
   }
 
   export type AltNews1dCountAggregateInputType = {
@@ -150277,6 +151884,8 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    rawPayload?: true
+    ingestionBatchId?: true
     _all?: true
   }
 
@@ -150383,6 +151992,8 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    rawPayload: JsonValue | null
+    ingestionBatchId: string | null
     _count: AltNews1dCountAggregateOutputType | null
     _avg: AltNews1dAvgAggregateOutputType | null
     _sum: AltNews1dSumAggregateOutputType | null
@@ -150421,6 +152032,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altNews1d"]>
 
   export type AltNews1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -150440,6 +152053,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altNews1d"]>
 
   export type AltNews1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -150459,6 +152074,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altNews1d"]>
 
   export type AltNews1dSelectScalar = {
@@ -150478,9 +152095,11 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }
 
-  export type AltNews1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "articleId" | "eventDate" | "publishedAt" | "headline" | "content" | "url" | "author" | "source" | "sentimentScore" | "zlSentiment" | "isTrumpRelated" | "specialistTags" | "ingestedAt" | "knowledgeTime" | "rowHash", ExtArgs["result"]["altNews1d"]>
+  export type AltNews1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "articleId" | "eventDate" | "publishedAt" | "headline" | "content" | "url" | "author" | "source" | "sentimentScore" | "zlSentiment" | "isTrumpRelated" | "specialistTags" | "ingestedAt" | "knowledgeTime" | "rowHash" | "rawPayload" | "ingestionBatchId", ExtArgs["result"]["altNews1d"]>
 
   export type $AltNews1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "AltNews1d"
@@ -150502,6 +152121,8 @@ export namespace Prisma {
       ingestedAt: Date | null
       knowledgeTime: Date | null
       rowHash: string | null
+      rawPayload: Prisma.JsonValue | null
+      ingestionBatchId: string | null
     }, ExtArgs["result"]["altNews1d"]>
     composites: {}
   }
@@ -150941,6 +152562,8 @@ export namespace Prisma {
     readonly ingestedAt: FieldRef<"AltNews1d", 'DateTime'>
     readonly knowledgeTime: FieldRef<"AltNews1d", 'DateTime'>
     readonly rowHash: FieldRef<"AltNews1d", 'String'>
+    readonly rawPayload: FieldRef<"AltNews1d", 'Json'>
+    readonly ingestionBatchId: FieldRef<"AltNews1d", 'String'>
   }
     
 
@@ -151367,6 +152990,7 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltWeather1dMaxAggregateOutputType = {
@@ -151389,6 +153013,7 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltWeather1dCountAggregateOutputType = {
@@ -151411,6 +153036,8 @@ export namespace Prisma {
     ingestedAt: number
     knowledgeTime: number
     rowHash: number
+    rawPayload: number
+    ingestionBatchId: number
     _all: number
   }
 
@@ -151463,6 +153090,7 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    ingestionBatchId?: true
   }
 
   export type AltWeather1dMaxAggregateInputType = {
@@ -151485,6 +153113,7 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    ingestionBatchId?: true
   }
 
   export type AltWeather1dCountAggregateInputType = {
@@ -151507,6 +153136,8 @@ export namespace Prisma {
     ingestedAt?: true
     knowledgeTime?: true
     rowHash?: true
+    rawPayload?: true
+    ingestionBatchId?: true
     _all?: true
   }
 
@@ -151616,6 +153247,8 @@ export namespace Prisma {
     ingestedAt: Date | null
     knowledgeTime: Date | null
     rowHash: string | null
+    rawPayload: JsonValue | null
+    ingestionBatchId: string | null
     _count: AltWeather1dCountAggregateOutputType | null
     _avg: AltWeather1dAvgAggregateOutputType | null
     _sum: AltWeather1dSumAggregateOutputType | null
@@ -151657,6 +153290,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altWeather1d"]>
 
   export type AltWeather1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -151679,6 +153314,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altWeather1d"]>
 
   export type AltWeather1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -151701,6 +153338,8 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altWeather1d"]>
 
   export type AltWeather1dSelectScalar = {
@@ -151723,9 +153362,11 @@ export namespace Prisma {
     ingestedAt?: boolean
     knowledgeTime?: boolean
     rowHash?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }
 
-  export type AltWeather1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "eventDate" | "stationId" | "region" | "country" | "tmaxC" | "tminC" | "tavgC" | "prcpMm" | "snowMm" | "snwdMm" | "evapMm" | "rhavPct" | "awndMs" | "wsfgMs" | "source" | "ingestedAt" | "knowledgeTime" | "rowHash", ExtArgs["result"]["altWeather1d"]>
+  export type AltWeather1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "eventDate" | "stationId" | "region" | "country" | "tmaxC" | "tminC" | "tavgC" | "prcpMm" | "snowMm" | "snwdMm" | "evapMm" | "rhavPct" | "awndMs" | "wsfgMs" | "source" | "ingestedAt" | "knowledgeTime" | "rowHash" | "rawPayload" | "ingestionBatchId", ExtArgs["result"]["altWeather1d"]>
 
   export type $AltWeather1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "AltWeather1d"
@@ -151750,6 +153391,8 @@ export namespace Prisma {
       ingestedAt: Date | null
       knowledgeTime: Date | null
       rowHash: string | null
+      rawPayload: Prisma.JsonValue | null
+      ingestionBatchId: string | null
     }, ExtArgs["result"]["altWeather1d"]>
     composites: {}
   }
@@ -152192,6 +153835,8 @@ export namespace Prisma {
     readonly ingestedAt: FieldRef<"AltWeather1d", 'DateTime'>
     readonly knowledgeTime: FieldRef<"AltWeather1d", 'DateTime'>
     readonly rowHash: FieldRef<"AltWeather1d", 'String'>
+    readonly rawPayload: FieldRef<"AltWeather1d", 'Json'>
+    readonly ingestionBatchId: FieldRef<"AltWeather1d", 'String'>
   }
     
 
@@ -152591,6 +154236,7 @@ export namespace Prisma {
     knowledgeTime: Date | null
     rowHash: string | null
     url: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltLegislation1dMaxAggregateOutputType = {
@@ -152606,6 +154252,7 @@ export namespace Prisma {
     knowledgeTime: Date | null
     rowHash: string | null
     url: string | null
+    ingestionBatchId: string | null
   }
 
   export type AltLegislation1dCountAggregateOutputType = {
@@ -152622,6 +154269,8 @@ export namespace Prisma {
     knowledgeTime: number
     rowHash: number
     url: number
+    rawPayload: number
+    ingestionBatchId: number
     _all: number
   }
 
@@ -152647,6 +154296,7 @@ export namespace Prisma {
     knowledgeTime?: true
     rowHash?: true
     url?: true
+    ingestionBatchId?: true
   }
 
   export type AltLegislation1dMaxAggregateInputType = {
@@ -152662,6 +154312,7 @@ export namespace Prisma {
     knowledgeTime?: true
     rowHash?: true
     url?: true
+    ingestionBatchId?: true
   }
 
   export type AltLegislation1dCountAggregateInputType = {
@@ -152678,6 +154329,8 @@ export namespace Prisma {
     knowledgeTime?: true
     rowHash?: true
     url?: true
+    rawPayload?: true
+    ingestionBatchId?: true
     _all?: true
   }
 
@@ -152781,6 +154434,8 @@ export namespace Prisma {
     knowledgeTime: Date | null
     rowHash: string | null
     url: string | null
+    rawPayload: JsonValue | null
+    ingestionBatchId: string | null
     _count: AltLegislation1dCountAggregateOutputType | null
     _avg: AltLegislation1dAvgAggregateOutputType | null
     _sum: AltLegislation1dSumAggregateOutputType | null
@@ -152816,6 +154471,8 @@ export namespace Prisma {
     knowledgeTime?: boolean
     rowHash?: boolean
     url?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altLegislation1d"]>
 
   export type AltLegislation1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -152832,6 +154489,8 @@ export namespace Prisma {
     knowledgeTime?: boolean
     rowHash?: boolean
     url?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altLegislation1d"]>
 
   export type AltLegislation1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -152848,6 +154507,8 @@ export namespace Prisma {
     knowledgeTime?: boolean
     rowHash?: boolean
     url?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }, ExtArgs["result"]["altLegislation1d"]>
 
   export type AltLegislation1dSelectScalar = {
@@ -152864,9 +154525,11 @@ export namespace Prisma {
     knowledgeTime?: boolean
     rowHash?: boolean
     url?: boolean
+    rawPayload?: boolean
+    ingestionBatchId?: boolean
   }
 
-  export type AltLegislation1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "eventDate" | "documentNumber" | "title" | "agency" | "documentType" | "action" | "specialistTags" | "source" | "ingestedAt" | "knowledgeTime" | "rowHash" | "url", ExtArgs["result"]["altLegislation1d"]>
+  export type AltLegislation1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "eventDate" | "documentNumber" | "title" | "agency" | "documentType" | "action" | "specialistTags" | "source" | "ingestedAt" | "knowledgeTime" | "rowHash" | "url" | "rawPayload" | "ingestionBatchId", ExtArgs["result"]["altLegislation1d"]>
 
   export type $AltLegislation1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "AltLegislation1d"
@@ -152885,6 +154548,8 @@ export namespace Prisma {
       knowledgeTime: Date | null
       rowHash: string | null
       url: string | null
+      rawPayload: Prisma.JsonValue | null
+      ingestionBatchId: string | null
     }, ExtArgs["result"]["altLegislation1d"]>
     composites: {}
   }
@@ -153321,6 +154986,8 @@ export namespace Prisma {
     readonly knowledgeTime: FieldRef<"AltLegislation1d", 'DateTime'>
     readonly rowHash: FieldRef<"AltLegislation1d", 'String'>
     readonly url: FieldRef<"AltLegislation1d", 'String'>
+    readonly rawPayload: FieldRef<"AltLegislation1d", 'Json'>
+    readonly ingestionBatchId: FieldRef<"AltLegislation1d", 'String'>
   }
     
 
@@ -188589,6 +190256,30 @@ export namespace Prisma {
     fx_usdeur: 'fx_usdeur',
     fx_usdgbp: 'fx_usdgbp',
     fx_usdjpy: 'fx_usdjpy',
+    wx_ar_tavg_c: 'wx_ar_tavg_c',
+    wx_br_tavg_c: 'wx_br_tavg_c',
+    wx_us_tavg_c: 'wx_us_tavg_c',
+    wx_ar_prcp_mm: 'wx_ar_prcp_mm',
+    wx_br_prcp_mm: 'wx_br_prcp_mm',
+    wx_us_prcp_mm: 'wx_us_prcp_mm',
+    wx_ar_prcp_anom_30d: 'wx_ar_prcp_anom_30d',
+    wx_br_prcp_anom_30d: 'wx_br_prcp_anom_30d',
+    wx_us_prcp_anom_30d: 'wx_us_prcp_anom_30d',
+    wx_ar_gdd_30d_sum: 'wx_ar_gdd_30d_sum',
+    wx_br_gdd_30d_sum: 'wx_br_gdd_30d_sum',
+    wx_us_gdd_30d_sum: 'wx_us_gdd_30d_sum',
+    cftc_open_interest: 'cftc_open_interest',
+    cftc_managed_money_net: 'cftc_managed_money_net',
+    cftc_managed_money_pct: 'cftc_managed_money_pct',
+    cftc_prod_merc_net: 'cftc_prod_merc_net',
+    cftc_prod_merc_pct: 'cftc_prod_merc_pct',
+    cftc_swap_net: 'cftc_swap_net',
+    wasde_zl_ending_stocks: 'wasde_zl_ending_stocks',
+    wasde_zl_production: 'wasde_zl_production',
+    wasde_zs_ending_stocks: 'wasde_zs_ending_stocks',
+    wasde_zs_production: 'wasde_zs_production',
+    rin_d4_price: 'rin_d4_price',
+    rin_d6_price: 'rin_d6_price',
     target_ret_5d: 'target_ret_5d',
     target_ret_21d: 'target_ret_21d',
     target_ret_63d: 'target_ret_63d',
@@ -188904,6 +190595,26 @@ export namespace Prisma {
   };
 
   export type SpecialistFed1hScalarFieldEnum = (typeof SpecialistFed1hScalarFieldEnum)[keyof typeof SpecialistFed1hScalarFieldEnum]
+
+
+  export const SpecialistFx1dScalarFieldEnum: {
+    id: 'id',
+    symbol: 'symbol',
+    asOfDate: 'asOfDate',
+    open: 'open',
+    high: 'high',
+    low: 'low',
+    close: 'close',
+    volume: 'volume',
+    openInterest: 'openInterest',
+    contractMonth: 'contractMonth',
+    expirationDate: 'expirationDate',
+    bucketName: 'bucketName',
+    granularity: 'granularity',
+    createdAt: 'createdAt'
+  };
+
+  export type SpecialistFx1dScalarFieldEnum = (typeof SpecialistFx1dScalarFieldEnum)[keyof typeof SpecialistFx1dScalarFieldEnum]
 
 
   export const SpecialistPalm1dScalarFieldEnum: {
@@ -189416,24 +191127,6 @@ export namespace Prisma {
   export type VolRegimesScalarFieldEnum = (typeof VolRegimesScalarFieldEnum)[keyof typeof VolRegimesScalarFieldEnum]
 
 
-  export const ZlLiveScalarFieldEnum: {
-    id: 'id',
-    price: 'price',
-    previousClose: 'previousClose',
-    change: 'change',
-    changePct: 'changePct',
-    dayHigh: 'dayHigh',
-    dayLow: 'dayLow',
-    dayOpen: 'dayOpen',
-    volume: 'volume',
-    timestamp: 'timestamp',
-    source: 'source',
-    updatedAt: 'updatedAt'
-  };
-
-  export type ZlLiveScalarFieldEnum = (typeof ZlLiveScalarFieldEnum)[keyof typeof ZlLiveScalarFieldEnum]
-
-
   export const DataSourceRegistryScalarFieldEnum: {
     id: 'id',
     sourceId: 'sourceId',
@@ -189576,7 +191269,7 @@ export namespace Prisma {
   export type Regime_state_1dScalarFieldEnum = (typeof Regime_state_1dScalarFieldEnum)[keyof typeof Regime_state_1dScalarFieldEnum]
 
 
-  export const Zl_intradayScalarFieldEnum: {
+  export const Zl_price_15mScalarFieldEnum: {
     id: 'id',
     timestamp: 'timestamp',
     open: 'open',
@@ -189593,7 +191286,7 @@ export namespace Prisma {
     created_at: 'created_at'
   };
 
-  export type Zl_intradayScalarFieldEnum = (typeof Zl_intradayScalarFieldEnum)[keyof typeof Zl_intradayScalarFieldEnum]
+  export type Zl_price_15mScalarFieldEnum = (typeof Zl_price_15mScalarFieldEnum)[keyof typeof Zl_price_15mScalarFieldEnum]
 
 
   export const Elite_indicators_1dScalarFieldEnum: {
@@ -189931,6 +191624,20 @@ export namespace Prisma {
   };
 
   export type Zl_price_1hScalarFieldEnum = (typeof Zl_price_1hScalarFieldEnum)[keyof typeof Zl_price_1hScalarFieldEnum]
+
+
+  export const Zl_price_1dScalarFieldEnum: {
+    event_date: 'event_date',
+    open: 'open',
+    high: 'high',
+    low: 'low',
+    close: 'close',
+    volume: 'volume',
+    source: 'source',
+    created_at: 'created_at'
+  };
+
+  export type Zl_price_1dScalarFieldEnum = (typeof Zl_price_1dScalarFieldEnum)[keyof typeof Zl_price_1dScalarFieldEnum]
 
 
   export const Public_intraday_pricesScalarFieldEnum: {
@@ -190725,7 +192432,9 @@ export namespace Prisma {
     specialistTags: 'specialistTags',
     ingestedAt: 'ingestedAt',
     knowledgeTime: 'knowledgeTime',
-    rowHash: 'rowHash'
+    rowHash: 'rowHash',
+    rawPayload: 'rawPayload',
+    ingestionBatchId: 'ingestionBatchId'
   };
 
   export type AltNews1dScalarFieldEnum = (typeof AltNews1dScalarFieldEnum)[keyof typeof AltNews1dScalarFieldEnum]
@@ -190750,7 +192459,9 @@ export namespace Prisma {
     source: 'source',
     ingestedAt: 'ingestedAt',
     knowledgeTime: 'knowledgeTime',
-    rowHash: 'rowHash'
+    rowHash: 'rowHash',
+    rawPayload: 'rawPayload',
+    ingestionBatchId: 'ingestionBatchId'
   };
 
   export type AltWeather1dScalarFieldEnum = (typeof AltWeather1dScalarFieldEnum)[keyof typeof AltWeather1dScalarFieldEnum]
@@ -190769,7 +192480,9 @@ export namespace Prisma {
     ingestedAt: 'ingestedAt',
     knowledgeTime: 'knowledgeTime',
     rowHash: 'rowHash',
-    url: 'url'
+    url: 'url',
+    rawPayload: 'rawPayload',
+    ingestionBatchId: 'ingestionBatchId'
   };
 
   export type AltLegislation1dScalarFieldEnum = (typeof AltLegislation1dScalarFieldEnum)[keyof typeof AltLegislation1dScalarFieldEnum]
@@ -191627,6 +193340,30 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_open_interest?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_pct?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_pct?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_swap_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_ending_stocks?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_ending_stocks?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    rin_d4_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    rin_d6_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
@@ -191744,6 +193481,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrderInput | SortOrder
     fx_usdgbp?: SortOrderInput | SortOrder
     fx_usdjpy?: SortOrderInput | SortOrder
+    wx_ar_tavg_c?: SortOrderInput | SortOrder
+    wx_br_tavg_c?: SortOrderInput | SortOrder
+    wx_us_tavg_c?: SortOrderInput | SortOrder
+    wx_ar_prcp_mm?: SortOrderInput | SortOrder
+    wx_br_prcp_mm?: SortOrderInput | SortOrder
+    wx_us_prcp_mm?: SortOrderInput | SortOrder
+    wx_ar_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_br_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_us_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_ar_gdd_30d_sum?: SortOrderInput | SortOrder
+    wx_br_gdd_30d_sum?: SortOrderInput | SortOrder
+    wx_us_gdd_30d_sum?: SortOrderInput | SortOrder
+    cftc_open_interest?: SortOrderInput | SortOrder
+    cftc_managed_money_net?: SortOrderInput | SortOrder
+    cftc_managed_money_pct?: SortOrderInput | SortOrder
+    cftc_prod_merc_net?: SortOrderInput | SortOrder
+    cftc_prod_merc_pct?: SortOrderInput | SortOrder
+    cftc_swap_net?: SortOrderInput | SortOrder
+    wasde_zl_ending_stocks?: SortOrderInput | SortOrder
+    wasde_zl_production?: SortOrderInput | SortOrder
+    wasde_zs_ending_stocks?: SortOrderInput | SortOrder
+    wasde_zs_production?: SortOrderInput | SortOrder
+    rin_d4_price?: SortOrderInput | SortOrder
+    rin_d6_price?: SortOrderInput | SortOrder
     target_ret_5d?: SortOrderInput | SortOrder
     target_ret_21d?: SortOrderInput | SortOrder
     target_ret_63d?: SortOrderInput | SortOrder
@@ -191865,6 +193626,30 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_tavg_c?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_mm?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_anom_30d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_br_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wx_us_gdd_30d_sum?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_open_interest?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_pct?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_pct?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    cftc_swap_net?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_ending_stocks?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_ending_stocks?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_production?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    rin_d4_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
+    rin_d6_price?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_5d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_21d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
     target_ret_63d?: FloatNullableFilter<"TrainingMatrix1d"> | number | null
@@ -191982,6 +193767,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrderInput | SortOrder
     fx_usdgbp?: SortOrderInput | SortOrder
     fx_usdjpy?: SortOrderInput | SortOrder
+    wx_ar_tavg_c?: SortOrderInput | SortOrder
+    wx_br_tavg_c?: SortOrderInput | SortOrder
+    wx_us_tavg_c?: SortOrderInput | SortOrder
+    wx_ar_prcp_mm?: SortOrderInput | SortOrder
+    wx_br_prcp_mm?: SortOrderInput | SortOrder
+    wx_us_prcp_mm?: SortOrderInput | SortOrder
+    wx_ar_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_br_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_us_prcp_anom_30d?: SortOrderInput | SortOrder
+    wx_ar_gdd_30d_sum?: SortOrderInput | SortOrder
+    wx_br_gdd_30d_sum?: SortOrderInput | SortOrder
+    wx_us_gdd_30d_sum?: SortOrderInput | SortOrder
+    cftc_open_interest?: SortOrderInput | SortOrder
+    cftc_managed_money_net?: SortOrderInput | SortOrder
+    cftc_managed_money_pct?: SortOrderInput | SortOrder
+    cftc_prod_merc_net?: SortOrderInput | SortOrder
+    cftc_prod_merc_pct?: SortOrderInput | SortOrder
+    cftc_swap_net?: SortOrderInput | SortOrder
+    wasde_zl_ending_stocks?: SortOrderInput | SortOrder
+    wasde_zl_production?: SortOrderInput | SortOrder
+    wasde_zs_ending_stocks?: SortOrderInput | SortOrder
+    wasde_zs_production?: SortOrderInput | SortOrder
+    rin_d4_price?: SortOrderInput | SortOrder
+    rin_d6_price?: SortOrderInput | SortOrder
     target_ret_5d?: SortOrderInput | SortOrder
     target_ret_21d?: SortOrderInput | SortOrder
     target_ret_63d?: SortOrderInput | SortOrder
@@ -192107,6 +193916,30 @@ export namespace Prisma {
     fx_usdeur?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     fx_usdgbp?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     fx_usdjpy?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_br_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_us_tavg_c?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_mm?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_mm?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_mm?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_prcp_anom_30d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_br_prcp_anom_30d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_us_prcp_anom_30d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_ar_gdd_30d_sum?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_br_gdd_30d_sum?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wx_us_gdd_30d_sum?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_open_interest?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_net?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_managed_money_pct?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_net?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_prod_merc_pct?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    cftc_swap_net?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_ending_stocks?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wasde_zl_production?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_ending_stocks?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    wasde_zs_production?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    rin_d4_price?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
+    rin_d6_price?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     target_ret_5d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     target_ret_21d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
     target_ret_63d?: FloatNullableWithAggregatesFilter<"TrainingMatrix1d"> | number | null
@@ -193646,6 +195479,106 @@ export namespace Prisma {
     bucketName?: StringNullableWithAggregatesFilter<"SpecialistFed1h"> | string | null
     granularity?: StringNullableWithAggregatesFilter<"SpecialistFed1h"> | string | null
     createdAt?: DateTimeNullableWithAggregatesFilter<"SpecialistFed1h"> | Date | string | null
+  }
+
+  export type SpecialistFx1dWhereInput = {
+    AND?: SpecialistFx1dWhereInput | SpecialistFx1dWhereInput[]
+    OR?: SpecialistFx1dWhereInput[]
+    NOT?: SpecialistFx1dWhereInput | SpecialistFx1dWhereInput[]
+    id?: BigIntFilter<"SpecialistFx1d"> | bigint | number
+    symbol?: StringFilter<"SpecialistFx1d"> | string
+    asOfDate?: DateTimeFilter<"SpecialistFx1d"> | Date | string
+    open?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    high?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    low?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntNullableFilter<"SpecialistFx1d"> | bigint | number | null
+    openInterest?: BigIntNullableFilter<"SpecialistFx1d"> | bigint | number | null
+    contractMonth?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    expirationDate?: DateTimeNullableFilter<"SpecialistFx1d"> | Date | string | null
+    bucketName?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    granularity?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    createdAt?: DateTimeNullableFilter<"SpecialistFx1d"> | Date | string | null
+  }
+
+  export type SpecialistFx1dOrderByWithRelationInput = {
+    id?: SortOrder
+    symbol?: SortOrder
+    asOfDate?: SortOrder
+    open?: SortOrderInput | SortOrder
+    high?: SortOrderInput | SortOrder
+    low?: SortOrderInput | SortOrder
+    close?: SortOrder
+    volume?: SortOrderInput | SortOrder
+    openInterest?: SortOrderInput | SortOrder
+    contractMonth?: SortOrderInput | SortOrder
+    expirationDate?: SortOrderInput | SortOrder
+    bucketName?: SortOrderInput | SortOrder
+    granularity?: SortOrderInput | SortOrder
+    createdAt?: SortOrderInput | SortOrder
+  }
+
+  export type SpecialistFx1dWhereUniqueInput = Prisma.AtLeast<{
+    id?: bigint | number
+    symbol_asOfDate?: SpecialistFx1dSymbolAsOfDateCompoundUniqueInput
+    AND?: SpecialistFx1dWhereInput | SpecialistFx1dWhereInput[]
+    OR?: SpecialistFx1dWhereInput[]
+    NOT?: SpecialistFx1dWhereInput | SpecialistFx1dWhereInput[]
+    symbol?: StringFilter<"SpecialistFx1d"> | string
+    asOfDate?: DateTimeFilter<"SpecialistFx1d"> | Date | string
+    open?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    high?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    low?: DecimalNullableFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntNullableFilter<"SpecialistFx1d"> | bigint | number | null
+    openInterest?: BigIntNullableFilter<"SpecialistFx1d"> | bigint | number | null
+    contractMonth?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    expirationDate?: DateTimeNullableFilter<"SpecialistFx1d"> | Date | string | null
+    bucketName?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    granularity?: StringNullableFilter<"SpecialistFx1d"> | string | null
+    createdAt?: DateTimeNullableFilter<"SpecialistFx1d"> | Date | string | null
+  }, "id" | "symbol_asOfDate">
+
+  export type SpecialistFx1dOrderByWithAggregationInput = {
+    id?: SortOrder
+    symbol?: SortOrder
+    asOfDate?: SortOrder
+    open?: SortOrderInput | SortOrder
+    high?: SortOrderInput | SortOrder
+    low?: SortOrderInput | SortOrder
+    close?: SortOrder
+    volume?: SortOrderInput | SortOrder
+    openInterest?: SortOrderInput | SortOrder
+    contractMonth?: SortOrderInput | SortOrder
+    expirationDate?: SortOrderInput | SortOrder
+    bucketName?: SortOrderInput | SortOrder
+    granularity?: SortOrderInput | SortOrder
+    createdAt?: SortOrderInput | SortOrder
+    _count?: SpecialistFx1dCountOrderByAggregateInput
+    _avg?: SpecialistFx1dAvgOrderByAggregateInput
+    _max?: SpecialistFx1dMaxOrderByAggregateInput
+    _min?: SpecialistFx1dMinOrderByAggregateInput
+    _sum?: SpecialistFx1dSumOrderByAggregateInput
+  }
+
+  export type SpecialistFx1dScalarWhereWithAggregatesInput = {
+    AND?: SpecialistFx1dScalarWhereWithAggregatesInput | SpecialistFx1dScalarWhereWithAggregatesInput[]
+    OR?: SpecialistFx1dScalarWhereWithAggregatesInput[]
+    NOT?: SpecialistFx1dScalarWhereWithAggregatesInput | SpecialistFx1dScalarWhereWithAggregatesInput[]
+    id?: BigIntWithAggregatesFilter<"SpecialistFx1d"> | bigint | number
+    symbol?: StringWithAggregatesFilter<"SpecialistFx1d"> | string
+    asOfDate?: DateTimeWithAggregatesFilter<"SpecialistFx1d"> | Date | string
+    open?: DecimalNullableWithAggregatesFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    high?: DecimalNullableWithAggregatesFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    low?: DecimalNullableWithAggregatesFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalWithAggregatesFilter<"SpecialistFx1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntNullableWithAggregatesFilter<"SpecialistFx1d"> | bigint | number | null
+    openInterest?: BigIntNullableWithAggregatesFilter<"SpecialistFx1d"> | bigint | number | null
+    contractMonth?: StringNullableWithAggregatesFilter<"SpecialistFx1d"> | string | null
+    expirationDate?: DateTimeNullableWithAggregatesFilter<"SpecialistFx1d"> | Date | string | null
+    bucketName?: StringNullableWithAggregatesFilter<"SpecialistFx1d"> | string | null
+    granularity?: StringNullableWithAggregatesFilter<"SpecialistFx1d"> | string | null
+    createdAt?: DateTimeNullableWithAggregatesFilter<"SpecialistFx1d"> | Date | string | null
   }
 
   export type SpecialistPalm1dWhereInput = {
@@ -196198,95 +198131,6 @@ export namespace Prisma {
     createdAt?: DateTimeNullableWithAggregatesFilter<"VolRegimes"> | Date | string | null
   }
 
-  export type ZlLiveWhereInput = {
-    AND?: ZlLiveWhereInput | ZlLiveWhereInput[]
-    OR?: ZlLiveWhereInput[]
-    NOT?: ZlLiveWhereInput | ZlLiveWhereInput[]
-    id?: IntFilter<"ZlLive"> | number
-    price?: FloatFilter<"ZlLive"> | number
-    previousClose?: FloatNullableFilter<"ZlLive"> | number | null
-    change?: FloatNullableFilter<"ZlLive"> | number | null
-    changePct?: FloatNullableFilter<"ZlLive"> | number | null
-    dayHigh?: FloatNullableFilter<"ZlLive"> | number | null
-    dayLow?: FloatNullableFilter<"ZlLive"> | number | null
-    dayOpen?: FloatNullableFilter<"ZlLive"> | number | null
-    volume?: IntNullableFilter<"ZlLive"> | number | null
-    timestamp?: DateTimeNullableFilter<"ZlLive"> | Date | string | null
-    source?: StringNullableFilter<"ZlLive"> | string | null
-    updatedAt?: DateTimeNullableFilter<"ZlLive"> | Date | string | null
-  }
-
-  export type ZlLiveOrderByWithRelationInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrderInput | SortOrder
-    change?: SortOrderInput | SortOrder
-    changePct?: SortOrderInput | SortOrder
-    dayHigh?: SortOrderInput | SortOrder
-    dayLow?: SortOrderInput | SortOrder
-    dayOpen?: SortOrderInput | SortOrder
-    volume?: SortOrderInput | SortOrder
-    timestamp?: SortOrderInput | SortOrder
-    source?: SortOrderInput | SortOrder
-    updatedAt?: SortOrderInput | SortOrder
-  }
-
-  export type ZlLiveWhereUniqueInput = Prisma.AtLeast<{
-    id?: number
-    AND?: ZlLiveWhereInput | ZlLiveWhereInput[]
-    OR?: ZlLiveWhereInput[]
-    NOT?: ZlLiveWhereInput | ZlLiveWhereInput[]
-    price?: FloatFilter<"ZlLive"> | number
-    previousClose?: FloatNullableFilter<"ZlLive"> | number | null
-    change?: FloatNullableFilter<"ZlLive"> | number | null
-    changePct?: FloatNullableFilter<"ZlLive"> | number | null
-    dayHigh?: FloatNullableFilter<"ZlLive"> | number | null
-    dayLow?: FloatNullableFilter<"ZlLive"> | number | null
-    dayOpen?: FloatNullableFilter<"ZlLive"> | number | null
-    volume?: IntNullableFilter<"ZlLive"> | number | null
-    timestamp?: DateTimeNullableFilter<"ZlLive"> | Date | string | null
-    source?: StringNullableFilter<"ZlLive"> | string | null
-    updatedAt?: DateTimeNullableFilter<"ZlLive"> | Date | string | null
-  }, "id">
-
-  export type ZlLiveOrderByWithAggregationInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrderInput | SortOrder
-    change?: SortOrderInput | SortOrder
-    changePct?: SortOrderInput | SortOrder
-    dayHigh?: SortOrderInput | SortOrder
-    dayLow?: SortOrderInput | SortOrder
-    dayOpen?: SortOrderInput | SortOrder
-    volume?: SortOrderInput | SortOrder
-    timestamp?: SortOrderInput | SortOrder
-    source?: SortOrderInput | SortOrder
-    updatedAt?: SortOrderInput | SortOrder
-    _count?: ZlLiveCountOrderByAggregateInput
-    _avg?: ZlLiveAvgOrderByAggregateInput
-    _max?: ZlLiveMaxOrderByAggregateInput
-    _min?: ZlLiveMinOrderByAggregateInput
-    _sum?: ZlLiveSumOrderByAggregateInput
-  }
-
-  export type ZlLiveScalarWhereWithAggregatesInput = {
-    AND?: ZlLiveScalarWhereWithAggregatesInput | ZlLiveScalarWhereWithAggregatesInput[]
-    OR?: ZlLiveScalarWhereWithAggregatesInput[]
-    NOT?: ZlLiveScalarWhereWithAggregatesInput | ZlLiveScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"ZlLive"> | number
-    price?: FloatWithAggregatesFilter<"ZlLive"> | number
-    previousClose?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    change?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    changePct?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    dayHigh?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    dayLow?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    dayOpen?: FloatNullableWithAggregatesFilter<"ZlLive"> | number | null
-    volume?: IntNullableWithAggregatesFilter<"ZlLive"> | number | null
-    timestamp?: DateTimeNullableWithAggregatesFilter<"ZlLive"> | Date | string | null
-    source?: StringNullableWithAggregatesFilter<"ZlLive"> | string | null
-    updatedAt?: DateTimeNullableWithAggregatesFilter<"ZlLive"> | Date | string | null
-  }
-
   export type DataSourceRegistryWhereInput = {
     AND?: DataSourceRegistryWhereInput | DataSourceRegistryWhereInput[]
     OR?: DataSourceRegistryWhereInput[]
@@ -197004,27 +198848,27 @@ export namespace Prisma {
     created_at?: DateTimeNullableWithAggregatesFilter<"regime_state_1d"> | Date | string | null
   }
 
-  export type zl_intradayWhereInput = {
-    AND?: zl_intradayWhereInput | zl_intradayWhereInput[]
-    OR?: zl_intradayWhereInput[]
-    NOT?: zl_intradayWhereInput | zl_intradayWhereInput[]
-    id?: IntFilter<"zl_intraday"> | number
-    timestamp?: DateTimeFilter<"zl_intraday"> | Date | string
-    open?: FloatFilter<"zl_intraday"> | number
-    high?: FloatFilter<"zl_intraday"> | number
-    low?: FloatFilter<"zl_intraday"> | number
-    close?: FloatFilter<"zl_intraday"> | number
-    volume?: IntNullableFilter<"zl_intraday"> | number | null
-    previous_close?: FloatNullableFilter<"zl_intraday"> | number | null
-    change?: FloatNullableFilter<"zl_intraday"> | number | null
-    change_percent?: FloatNullableFilter<"zl_intraday"> | number | null
-    day_high?: FloatNullableFilter<"zl_intraday"> | number | null
-    day_low?: FloatNullableFilter<"zl_intraday"> | number | null
-    source?: StringNullableFilter<"zl_intraday"> | string | null
-    created_at?: DateTimeNullableFilter<"zl_intraday"> | Date | string | null
+  export type zl_price_15mWhereInput = {
+    AND?: zl_price_15mWhereInput | zl_price_15mWhereInput[]
+    OR?: zl_price_15mWhereInput[]
+    NOT?: zl_price_15mWhereInput | zl_price_15mWhereInput[]
+    id?: IntFilter<"zl_price_15m"> | number
+    timestamp?: DateTimeFilter<"zl_price_15m"> | Date | string
+    open?: FloatFilter<"zl_price_15m"> | number
+    high?: FloatFilter<"zl_price_15m"> | number
+    low?: FloatFilter<"zl_price_15m"> | number
+    close?: FloatFilter<"zl_price_15m"> | number
+    volume?: IntNullableFilter<"zl_price_15m"> | number | null
+    previous_close?: FloatNullableFilter<"zl_price_15m"> | number | null
+    change?: FloatNullableFilter<"zl_price_15m"> | number | null
+    change_percent?: FloatNullableFilter<"zl_price_15m"> | number | null
+    day_high?: FloatNullableFilter<"zl_price_15m"> | number | null
+    day_low?: FloatNullableFilter<"zl_price_15m"> | number | null
+    source?: StringNullableFilter<"zl_price_15m"> | string | null
+    created_at?: DateTimeNullableFilter<"zl_price_15m"> | Date | string | null
   }
 
-  export type zl_intradayOrderByWithRelationInput = {
+  export type zl_price_15mOrderByWithRelationInput = {
     id?: SortOrder
     timestamp?: SortOrder
     open?: SortOrder
@@ -197041,27 +198885,27 @@ export namespace Prisma {
     created_at?: SortOrderInput | SortOrder
   }
 
-  export type zl_intradayWhereUniqueInput = Prisma.AtLeast<{
+  export type zl_price_15mWhereUniqueInput = Prisma.AtLeast<{
     id?: number
     timestamp?: Date | string
-    AND?: zl_intradayWhereInput | zl_intradayWhereInput[]
-    OR?: zl_intradayWhereInput[]
-    NOT?: zl_intradayWhereInput | zl_intradayWhereInput[]
-    open?: FloatFilter<"zl_intraday"> | number
-    high?: FloatFilter<"zl_intraday"> | number
-    low?: FloatFilter<"zl_intraday"> | number
-    close?: FloatFilter<"zl_intraday"> | number
-    volume?: IntNullableFilter<"zl_intraday"> | number | null
-    previous_close?: FloatNullableFilter<"zl_intraday"> | number | null
-    change?: FloatNullableFilter<"zl_intraday"> | number | null
-    change_percent?: FloatNullableFilter<"zl_intraday"> | number | null
-    day_high?: FloatNullableFilter<"zl_intraday"> | number | null
-    day_low?: FloatNullableFilter<"zl_intraday"> | number | null
-    source?: StringNullableFilter<"zl_intraday"> | string | null
-    created_at?: DateTimeNullableFilter<"zl_intraday"> | Date | string | null
+    AND?: zl_price_15mWhereInput | zl_price_15mWhereInput[]
+    OR?: zl_price_15mWhereInput[]
+    NOT?: zl_price_15mWhereInput | zl_price_15mWhereInput[]
+    open?: FloatFilter<"zl_price_15m"> | number
+    high?: FloatFilter<"zl_price_15m"> | number
+    low?: FloatFilter<"zl_price_15m"> | number
+    close?: FloatFilter<"zl_price_15m"> | number
+    volume?: IntNullableFilter<"zl_price_15m"> | number | null
+    previous_close?: FloatNullableFilter<"zl_price_15m"> | number | null
+    change?: FloatNullableFilter<"zl_price_15m"> | number | null
+    change_percent?: FloatNullableFilter<"zl_price_15m"> | number | null
+    day_high?: FloatNullableFilter<"zl_price_15m"> | number | null
+    day_low?: FloatNullableFilter<"zl_price_15m"> | number | null
+    source?: StringNullableFilter<"zl_price_15m"> | string | null
+    created_at?: DateTimeNullableFilter<"zl_price_15m"> | Date | string | null
   }, "id" | "timestamp">
 
-  export type zl_intradayOrderByWithAggregationInput = {
+  export type zl_price_15mOrderByWithAggregationInput = {
     id?: SortOrder
     timestamp?: SortOrder
     open?: SortOrder
@@ -197076,31 +198920,31 @@ export namespace Prisma {
     day_low?: SortOrderInput | SortOrder
     source?: SortOrderInput | SortOrder
     created_at?: SortOrderInput | SortOrder
-    _count?: zl_intradayCountOrderByAggregateInput
-    _avg?: zl_intradayAvgOrderByAggregateInput
-    _max?: zl_intradayMaxOrderByAggregateInput
-    _min?: zl_intradayMinOrderByAggregateInput
-    _sum?: zl_intradaySumOrderByAggregateInput
+    _count?: zl_price_15mCountOrderByAggregateInput
+    _avg?: zl_price_15mAvgOrderByAggregateInput
+    _max?: zl_price_15mMaxOrderByAggregateInput
+    _min?: zl_price_15mMinOrderByAggregateInput
+    _sum?: zl_price_15mSumOrderByAggregateInput
   }
 
-  export type zl_intradayScalarWhereWithAggregatesInput = {
-    AND?: zl_intradayScalarWhereWithAggregatesInput | zl_intradayScalarWhereWithAggregatesInput[]
-    OR?: zl_intradayScalarWhereWithAggregatesInput[]
-    NOT?: zl_intradayScalarWhereWithAggregatesInput | zl_intradayScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"zl_intraday"> | number
-    timestamp?: DateTimeWithAggregatesFilter<"zl_intraday"> | Date | string
-    open?: FloatWithAggregatesFilter<"zl_intraday"> | number
-    high?: FloatWithAggregatesFilter<"zl_intraday"> | number
-    low?: FloatWithAggregatesFilter<"zl_intraday"> | number
-    close?: FloatWithAggregatesFilter<"zl_intraday"> | number
-    volume?: IntNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    previous_close?: FloatNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    change?: FloatNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    change_percent?: FloatNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    day_high?: FloatNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    day_low?: FloatNullableWithAggregatesFilter<"zl_intraday"> | number | null
-    source?: StringNullableWithAggregatesFilter<"zl_intraday"> | string | null
-    created_at?: DateTimeNullableWithAggregatesFilter<"zl_intraday"> | Date | string | null
+  export type zl_price_15mScalarWhereWithAggregatesInput = {
+    AND?: zl_price_15mScalarWhereWithAggregatesInput | zl_price_15mScalarWhereWithAggregatesInput[]
+    OR?: zl_price_15mScalarWhereWithAggregatesInput[]
+    NOT?: zl_price_15mScalarWhereWithAggregatesInput | zl_price_15mScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"zl_price_15m"> | number
+    timestamp?: DateTimeWithAggregatesFilter<"zl_price_15m"> | Date | string
+    open?: FloatWithAggregatesFilter<"zl_price_15m"> | number
+    high?: FloatWithAggregatesFilter<"zl_price_15m"> | number
+    low?: FloatWithAggregatesFilter<"zl_price_15m"> | number
+    close?: FloatWithAggregatesFilter<"zl_price_15m"> | number
+    volume?: IntNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    previous_close?: FloatNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    change?: FloatNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    change_percent?: FloatNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    day_high?: FloatNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    day_low?: FloatNullableWithAggregatesFilter<"zl_price_15m"> | number | null
+    source?: StringNullableWithAggregatesFilter<"zl_price_15m"> | string | null
+    created_at?: DateTimeNullableWithAggregatesFilter<"zl_price_15m"> | Date | string | null
   }
 
   export type elite_indicators_1dWhereInput = {
@@ -198778,6 +200622,75 @@ export namespace Prisma {
     volume?: BigIntWithAggregatesFilter<"zl_price_1h"> | bigint | number
     source?: StringWithAggregatesFilter<"zl_price_1h"> | string
     created_at?: DateTimeWithAggregatesFilter<"zl_price_1h"> | Date | string
+  }
+
+  export type zl_price_1dWhereInput = {
+    AND?: zl_price_1dWhereInput | zl_price_1dWhereInput[]
+    OR?: zl_price_1dWhereInput[]
+    NOT?: zl_price_1dWhereInput | zl_price_1dWhereInput[]
+    event_date?: DateTimeFilter<"zl_price_1d"> | Date | string
+    open?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    high?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    low?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    close?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFilter<"zl_price_1d"> | bigint | number
+    source?: StringFilter<"zl_price_1d"> | string
+    created_at?: DateTimeFilter<"zl_price_1d"> | Date | string
+  }
+
+  export type zl_price_1dOrderByWithRelationInput = {
+    event_date?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type zl_price_1dWhereUniqueInput = Prisma.AtLeast<{
+    event_date?: Date | string
+    AND?: zl_price_1dWhereInput | zl_price_1dWhereInput[]
+    OR?: zl_price_1dWhereInput[]
+    NOT?: zl_price_1dWhereInput | zl_price_1dWhereInput[]
+    open?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    high?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    low?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    close?: DecimalFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFilter<"zl_price_1d"> | bigint | number
+    source?: StringFilter<"zl_price_1d"> | string
+    created_at?: DateTimeFilter<"zl_price_1d"> | Date | string
+  }, "event_date">
+
+  export type zl_price_1dOrderByWithAggregationInput = {
+    event_date?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+    _count?: zl_price_1dCountOrderByAggregateInput
+    _avg?: zl_price_1dAvgOrderByAggregateInput
+    _max?: zl_price_1dMaxOrderByAggregateInput
+    _min?: zl_price_1dMinOrderByAggregateInput
+    _sum?: zl_price_1dSumOrderByAggregateInput
+  }
+
+  export type zl_price_1dScalarWhereWithAggregatesInput = {
+    AND?: zl_price_1dScalarWhereWithAggregatesInput | zl_price_1dScalarWhereWithAggregatesInput[]
+    OR?: zl_price_1dScalarWhereWithAggregatesInput[]
+    NOT?: zl_price_1dScalarWhereWithAggregatesInput | zl_price_1dScalarWhereWithAggregatesInput[]
+    event_date?: DateTimeWithAggregatesFilter<"zl_price_1d"> | Date | string
+    open?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    high?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    low?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    close?: DecimalWithAggregatesFilter<"zl_price_1d"> | Decimal | DecimalJsLike | number | string
+    volume?: BigIntWithAggregatesFilter<"zl_price_1d"> | bigint | number
+    source?: StringWithAggregatesFilter<"zl_price_1d"> | string
+    created_at?: DateTimeWithAggregatesFilter<"zl_price_1d"> | Date | string
   }
 
   export type public_intraday_pricesWhereInput = {
@@ -202656,6 +204569,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableFilter<"AltNews1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableFilter<"AltNews1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltNews1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltNews1d">
+    ingestionBatchId?: UuidNullableFilter<"AltNews1d"> | string | null
   }
 
   export type AltNews1dOrderByWithRelationInput = {
@@ -202675,6 +204590,8 @@ export namespace Prisma {
     ingestedAt?: SortOrderInput | SortOrder
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
   }
 
   export type AltNews1dWhereUniqueInput = Prisma.AtLeast<{
@@ -202697,6 +204614,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableFilter<"AltNews1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableFilter<"AltNews1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltNews1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltNews1d">
+    ingestionBatchId?: UuidNullableFilter<"AltNews1d"> | string | null
   }, "id">
 
   export type AltNews1dOrderByWithAggregationInput = {
@@ -202716,6 +204635,8 @@ export namespace Prisma {
     ingestedAt?: SortOrderInput | SortOrder
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
     _count?: AltNews1dCountOrderByAggregateInput
     _avg?: AltNews1dAvgOrderByAggregateInput
     _max?: AltNews1dMaxOrderByAggregateInput
@@ -202743,6 +204664,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableWithAggregatesFilter<"AltNews1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableWithAggregatesFilter<"AltNews1d"> | Date | string | null
     rowHash?: StringNullableWithAggregatesFilter<"AltNews1d"> | string | null
+    rawPayload?: JsonNullableWithAggregatesFilter<"AltNews1d">
+    ingestionBatchId?: UuidNullableWithAggregatesFilter<"AltNews1d"> | string | null
   }
 
   export type AltWeather1dWhereInput = {
@@ -202768,6 +204691,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableFilter<"AltWeather1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableFilter<"AltWeather1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltWeather1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltWeather1d">
+    ingestionBatchId?: UuidNullableFilter<"AltWeather1d"> | string | null
   }
 
   export type AltWeather1dOrderByWithRelationInput = {
@@ -202790,6 +204715,8 @@ export namespace Prisma {
     ingestedAt?: SortOrderInput | SortOrder
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
   }
 
   export type AltWeather1dWhereUniqueInput = Prisma.AtLeast<{
@@ -202815,6 +204742,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableFilter<"AltWeather1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableFilter<"AltWeather1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltWeather1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltWeather1d">
+    ingestionBatchId?: UuidNullableFilter<"AltWeather1d"> | string | null
   }, "id">
 
   export type AltWeather1dOrderByWithAggregationInput = {
@@ -202837,6 +204766,8 @@ export namespace Prisma {
     ingestedAt?: SortOrderInput | SortOrder
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
     _count?: AltWeather1dCountOrderByAggregateInput
     _avg?: AltWeather1dAvgOrderByAggregateInput
     _max?: AltWeather1dMaxOrderByAggregateInput
@@ -202867,6 +204798,8 @@ export namespace Prisma {
     ingestedAt?: DateTimeNullableWithAggregatesFilter<"AltWeather1d"> | Date | string | null
     knowledgeTime?: DateTimeNullableWithAggregatesFilter<"AltWeather1d"> | Date | string | null
     rowHash?: StringNullableWithAggregatesFilter<"AltWeather1d"> | string | null
+    rawPayload?: JsonNullableWithAggregatesFilter<"AltWeather1d">
+    ingestionBatchId?: UuidNullableWithAggregatesFilter<"AltWeather1d"> | string | null
   }
 
   export type AltLegislation1dWhereInput = {
@@ -202886,6 +204819,8 @@ export namespace Prisma {
     knowledgeTime?: DateTimeNullableFilter<"AltLegislation1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltLegislation1d"> | string | null
     url?: StringNullableFilter<"AltLegislation1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltLegislation1d">
+    ingestionBatchId?: UuidNullableFilter<"AltLegislation1d"> | string | null
   }
 
   export type AltLegislation1dOrderByWithRelationInput = {
@@ -202902,6 +204837,8 @@ export namespace Prisma {
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
     url?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
   }
 
   export type AltLegislation1dWhereUniqueInput = Prisma.AtLeast<{
@@ -202921,6 +204858,8 @@ export namespace Prisma {
     knowledgeTime?: DateTimeNullableFilter<"AltLegislation1d"> | Date | string | null
     rowHash?: StringNullableFilter<"AltLegislation1d"> | string | null
     url?: StringNullableFilter<"AltLegislation1d"> | string | null
+    rawPayload?: JsonNullableFilter<"AltLegislation1d">
+    ingestionBatchId?: UuidNullableFilter<"AltLegislation1d"> | string | null
   }, "id">
 
   export type AltLegislation1dOrderByWithAggregationInput = {
@@ -202937,6 +204876,8 @@ export namespace Prisma {
     knowledgeTime?: SortOrderInput | SortOrder
     rowHash?: SortOrderInput | SortOrder
     url?: SortOrderInput | SortOrder
+    rawPayload?: SortOrderInput | SortOrder
+    ingestionBatchId?: SortOrderInput | SortOrder
     _count?: AltLegislation1dCountOrderByAggregateInput
     _avg?: AltLegislation1dAvgOrderByAggregateInput
     _max?: AltLegislation1dMaxOrderByAggregateInput
@@ -202961,6 +204902,8 @@ export namespace Prisma {
     knowledgeTime?: DateTimeNullableWithAggregatesFilter<"AltLegislation1d"> | Date | string | null
     rowHash?: StringNullableWithAggregatesFilter<"AltLegislation1d"> | string | null
     url?: StringNullableWithAggregatesFilter<"AltLegislation1d"> | string | null
+    rawPayload?: JsonNullableWithAggregatesFilter<"AltLegislation1d">
+    ingestionBatchId?: UuidNullableWithAggregatesFilter<"AltLegislation1d"> | string | null
   }
 
   export type event_probabilities_126d_1dWhereInput = {
@@ -205957,6 +207900,30 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    wx_ar_tavg_c?: number | null
+    wx_br_tavg_c?: number | null
+    wx_us_tavg_c?: number | null
+    wx_ar_prcp_mm?: number | null
+    wx_br_prcp_mm?: number | null
+    wx_us_prcp_mm?: number | null
+    wx_ar_prcp_anom_30d?: number | null
+    wx_br_prcp_anom_30d?: number | null
+    wx_us_prcp_anom_30d?: number | null
+    wx_ar_gdd_30d_sum?: number | null
+    wx_br_gdd_30d_sum?: number | null
+    wx_us_gdd_30d_sum?: number | null
+    cftc_open_interest?: number | null
+    cftc_managed_money_net?: number | null
+    cftc_managed_money_pct?: number | null
+    cftc_prod_merc_net?: number | null
+    cftc_prod_merc_pct?: number | null
+    cftc_swap_net?: number | null
+    wasde_zl_ending_stocks?: number | null
+    wasde_zl_production?: number | null
+    wasde_zs_ending_stocks?: number | null
+    wasde_zs_production?: number | null
+    rin_d4_price?: number | null
+    rin_d6_price?: number | null
     target_ret_5d?: number | null
     target_ret_21d?: number | null
     target_ret_63d?: number | null
@@ -206074,6 +208041,30 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    wx_ar_tavg_c?: number | null
+    wx_br_tavg_c?: number | null
+    wx_us_tavg_c?: number | null
+    wx_ar_prcp_mm?: number | null
+    wx_br_prcp_mm?: number | null
+    wx_us_prcp_mm?: number | null
+    wx_ar_prcp_anom_30d?: number | null
+    wx_br_prcp_anom_30d?: number | null
+    wx_us_prcp_anom_30d?: number | null
+    wx_ar_gdd_30d_sum?: number | null
+    wx_br_gdd_30d_sum?: number | null
+    wx_us_gdd_30d_sum?: number | null
+    cftc_open_interest?: number | null
+    cftc_managed_money_net?: number | null
+    cftc_managed_money_pct?: number | null
+    cftc_prod_merc_net?: number | null
+    cftc_prod_merc_pct?: number | null
+    cftc_swap_net?: number | null
+    wasde_zl_ending_stocks?: number | null
+    wasde_zl_production?: number | null
+    wasde_zs_ending_stocks?: number | null
+    wasde_zs_production?: number | null
+    rin_d4_price?: number | null
+    rin_d6_price?: number | null
     target_ret_5d?: number | null
     target_ret_21d?: number | null
     target_ret_63d?: number | null
@@ -206191,6 +208182,30 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_open_interest?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_swap_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -206308,6 +208323,30 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_open_interest?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_swap_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -206425,6 +208464,30 @@ export namespace Prisma {
     fx_usdeur?: number | null
     fx_usdgbp?: number | null
     fx_usdjpy?: number | null
+    wx_ar_tavg_c?: number | null
+    wx_br_tavg_c?: number | null
+    wx_us_tavg_c?: number | null
+    wx_ar_prcp_mm?: number | null
+    wx_br_prcp_mm?: number | null
+    wx_us_prcp_mm?: number | null
+    wx_ar_prcp_anom_30d?: number | null
+    wx_br_prcp_anom_30d?: number | null
+    wx_us_prcp_anom_30d?: number | null
+    wx_ar_gdd_30d_sum?: number | null
+    wx_br_gdd_30d_sum?: number | null
+    wx_us_gdd_30d_sum?: number | null
+    cftc_open_interest?: number | null
+    cftc_managed_money_net?: number | null
+    cftc_managed_money_pct?: number | null
+    cftc_prod_merc_net?: number | null
+    cftc_prod_merc_pct?: number | null
+    cftc_swap_net?: number | null
+    wasde_zl_ending_stocks?: number | null
+    wasde_zl_production?: number | null
+    wasde_zs_ending_stocks?: number | null
+    wasde_zs_production?: number | null
+    rin_d4_price?: number | null
+    rin_d6_price?: number | null
     target_ret_5d?: number | null
     target_ret_21d?: number | null
     target_ret_63d?: number | null
@@ -206542,6 +208605,30 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_open_interest?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_swap_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -206659,6 +208746,30 @@ export namespace Prisma {
     fx_usdeur?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdgbp?: NullableFloatFieldUpdateOperationsInput | number | null
     fx_usdjpy?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_tavg_c?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_mm?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_prcp_anom_30d?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_ar_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_br_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    wx_us_gdd_30d_sum?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_open_interest?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_managed_money_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_prod_merc_pct?: NullableFloatFieldUpdateOperationsInput | number | null
+    cftc_swap_net?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zl_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_ending_stocks?: NullableFloatFieldUpdateOperationsInput | number | null
+    wasde_zs_production?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d4_price?: NullableFloatFieldUpdateOperationsInput | number | null
+    rin_d6_price?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_5d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_21d?: NullableFloatFieldUpdateOperationsInput | number | null
     target_ret_63d?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -208452,6 +210563,125 @@ export namespace Prisma {
     high?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     low?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     close?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    contractMonth?: NullableStringFieldUpdateOperationsInput | string | null
+    expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    bucketName?: NullableStringFieldUpdateOperationsInput | string | null
+    granularity?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SpecialistFx1dCreateInput = {
+    id?: bigint | number
+    symbol: string
+    asOfDate: Date | string
+    open?: Decimal | DecimalJsLike | number | string | null
+    high?: Decimal | DecimalJsLike | number | string | null
+    low?: Decimal | DecimalJsLike | number | string | null
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    contractMonth?: string | null
+    expirationDate?: Date | string | null
+    bucketName?: string | null
+    granularity?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type SpecialistFx1dUncheckedCreateInput = {
+    id?: bigint | number
+    symbol: string
+    asOfDate: Date | string
+    open?: Decimal | DecimalJsLike | number | string | null
+    high?: Decimal | DecimalJsLike | number | string | null
+    low?: Decimal | DecimalJsLike | number | string | null
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    contractMonth?: string | null
+    expirationDate?: Date | string | null
+    bucketName?: string | null
+    granularity?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type SpecialistFx1dUpdateInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    symbol?: StringFieldUpdateOperationsInput | string
+    asOfDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    high?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    low?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    contractMonth?: NullableStringFieldUpdateOperationsInput | string | null
+    expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    bucketName?: NullableStringFieldUpdateOperationsInput | string | null
+    granularity?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SpecialistFx1dUncheckedUpdateInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    symbol?: StringFieldUpdateOperationsInput | string
+    asOfDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    high?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    low?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    contractMonth?: NullableStringFieldUpdateOperationsInput | string | null
+    expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    bucketName?: NullableStringFieldUpdateOperationsInput | string | null
+    granularity?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SpecialistFx1dCreateManyInput = {
+    id?: bigint | number
+    symbol: string
+    asOfDate: Date | string
+    open?: Decimal | DecimalJsLike | number | string | null
+    high?: Decimal | DecimalJsLike | number | string | null
+    low?: Decimal | DecimalJsLike | number | string | null
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number | null
+    openInterest?: bigint | number | null
+    contractMonth?: string | null
+    expirationDate?: Date | string | null
+    bucketName?: string | null
+    granularity?: string | null
+    createdAt?: Date | string | null
+  }
+
+  export type SpecialistFx1dUpdateManyMutationInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    symbol?: StringFieldUpdateOperationsInput | string
+    asOfDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    high?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    low?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    contractMonth?: NullableStringFieldUpdateOperationsInput | string | null
+    expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    bucketName?: NullableStringFieldUpdateOperationsInput | string | null
+    granularity?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type SpecialistFx1dUncheckedUpdateManyInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    symbol?: StringFieldUpdateOperationsInput | string
+    asOfDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    high?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    low?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     volume?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     openInterest?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     contractMonth?: NullableStringFieldUpdateOperationsInput | string | null
@@ -211334,108 +213564,6 @@ export namespace Prisma {
     createdAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type ZlLiveCreateInput = {
-    price: number
-    previousClose?: number | null
-    change?: number | null
-    changePct?: number | null
-    dayHigh?: number | null
-    dayLow?: number | null
-    dayOpen?: number | null
-    volume?: number | null
-    timestamp?: Date | string | null
-    source?: string | null
-    updatedAt?: Date | string | null
-  }
-
-  export type ZlLiveUncheckedCreateInput = {
-    id?: number
-    price: number
-    previousClose?: number | null
-    change?: number | null
-    changePct?: number | null
-    dayHigh?: number | null
-    dayLow?: number | null
-    dayOpen?: number | null
-    volume?: number | null
-    timestamp?: Date | string | null
-    source?: string | null
-    updatedAt?: Date | string | null
-  }
-
-  export type ZlLiveUpdateInput = {
-    price?: FloatFieldUpdateOperationsInput | number
-    previousClose?: NullableFloatFieldUpdateOperationsInput | number | null
-    change?: NullableFloatFieldUpdateOperationsInput | number | null
-    changePct?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayHigh?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayLow?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayOpen?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableIntFieldUpdateOperationsInput | number | null
-    timestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  }
-
-  export type ZlLiveUncheckedUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    price?: FloatFieldUpdateOperationsInput | number
-    previousClose?: NullableFloatFieldUpdateOperationsInput | number | null
-    change?: NullableFloatFieldUpdateOperationsInput | number | null
-    changePct?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayHigh?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayLow?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayOpen?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableIntFieldUpdateOperationsInput | number | null
-    timestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  }
-
-  export type ZlLiveCreateManyInput = {
-    id?: number
-    price: number
-    previousClose?: number | null
-    change?: number | null
-    changePct?: number | null
-    dayHigh?: number | null
-    dayLow?: number | null
-    dayOpen?: number | null
-    volume?: number | null
-    timestamp?: Date | string | null
-    source?: string | null
-    updatedAt?: Date | string | null
-  }
-
-  export type ZlLiveUpdateManyMutationInput = {
-    price?: FloatFieldUpdateOperationsInput | number
-    previousClose?: NullableFloatFieldUpdateOperationsInput | number | null
-    change?: NullableFloatFieldUpdateOperationsInput | number | null
-    changePct?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayHigh?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayLow?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayOpen?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableIntFieldUpdateOperationsInput | number | null
-    timestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  }
-
-  export type ZlLiveUncheckedUpdateManyInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    price?: FloatFieldUpdateOperationsInput | number
-    previousClose?: NullableFloatFieldUpdateOperationsInput | number | null
-    change?: NullableFloatFieldUpdateOperationsInput | number | null
-    changePct?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayHigh?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayLow?: NullableFloatFieldUpdateOperationsInput | number | null
-    dayOpen?: NullableFloatFieldUpdateOperationsInput | number | null
-    volume?: NullableIntFieldUpdateOperationsInput | number | null
-    timestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    source?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  }
-
   export type DataSourceRegistryCreateInput = {
     sourceId: string
     sourceName: string
@@ -212247,7 +214375,7 @@ export namespace Prisma {
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type zl_intradayCreateInput = {
+  export type zl_price_15mCreateInput = {
     timestamp: Date | string
     open: number
     high: number
@@ -212263,7 +214391,7 @@ export namespace Prisma {
     created_at?: Date | string | null
   }
 
-  export type zl_intradayUncheckedCreateInput = {
+  export type zl_price_15mUncheckedCreateInput = {
     id?: number
     timestamp: Date | string
     open: number
@@ -212280,7 +214408,7 @@ export namespace Prisma {
     created_at?: Date | string | null
   }
 
-  export type zl_intradayUpdateInput = {
+  export type zl_price_15mUpdateInput = {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     open?: FloatFieldUpdateOperationsInput | number
     high?: FloatFieldUpdateOperationsInput | number
@@ -212296,7 +214424,7 @@ export namespace Prisma {
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type zl_intradayUncheckedUpdateInput = {
+  export type zl_price_15mUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     open?: FloatFieldUpdateOperationsInput | number
@@ -212313,7 +214441,7 @@ export namespace Prisma {
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type zl_intradayCreateManyInput = {
+  export type zl_price_15mCreateManyInput = {
     id?: number
     timestamp: Date | string
     open: number
@@ -212330,7 +214458,7 @@ export namespace Prisma {
     created_at?: Date | string | null
   }
 
-  export type zl_intradayUpdateManyMutationInput = {
+  export type zl_price_15mUpdateManyMutationInput = {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     open?: FloatFieldUpdateOperationsInput | number
     high?: FloatFieldUpdateOperationsInput | number
@@ -212346,7 +214474,7 @@ export namespace Prisma {
     created_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
-  export type zl_intradayUncheckedUpdateManyInput = {
+  export type zl_price_15mUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     open?: FloatFieldUpdateOperationsInput | number
@@ -214411,6 +216539,83 @@ export namespace Prisma {
 
   export type zl_price_1hUncheckedUpdateManyInput = {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFieldUpdateOperationsInput | bigint | number
+    source?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type zl_price_1dCreateInput = {
+    event_date: Date | string
+    open: Decimal | DecimalJsLike | number | string
+    high: Decimal | DecimalJsLike | number | string
+    low: Decimal | DecimalJsLike | number | string
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number
+    source?: string
+    created_at?: Date | string
+  }
+
+  export type zl_price_1dUncheckedCreateInput = {
+    event_date: Date | string
+    open: Decimal | DecimalJsLike | number | string
+    high: Decimal | DecimalJsLike | number | string
+    low: Decimal | DecimalJsLike | number | string
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number
+    source?: string
+    created_at?: Date | string
+  }
+
+  export type zl_price_1dUpdateInput = {
+    event_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFieldUpdateOperationsInput | bigint | number
+    source?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type zl_price_1dUncheckedUpdateInput = {
+    event_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFieldUpdateOperationsInput | bigint | number
+    source?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type zl_price_1dCreateManyInput = {
+    event_date: Date | string
+    open: Decimal | DecimalJsLike | number | string
+    high: Decimal | DecimalJsLike | number | string
+    low: Decimal | DecimalJsLike | number | string
+    close: Decimal | DecimalJsLike | number | string
+    volume?: bigint | number
+    source?: string
+    created_at?: Date | string
+  }
+
+  export type zl_price_1dUpdateManyMutationInput = {
+    event_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    open?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    close?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    volume?: BigIntFieldUpdateOperationsInput | bigint | number
+    source?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type zl_price_1dUncheckedUpdateManyInput = {
+    event_date?: DateTimeFieldUpdateOperationsInput | Date | string
     open?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     high?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     low?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -218743,6 +220948,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltNews1dUncheckedCreateInput = {
@@ -218762,6 +220969,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltNews1dUpdateInput = {
@@ -218780,6 +220989,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltNews1dUncheckedUpdateInput = {
@@ -218799,6 +221010,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltNews1dCreateManyInput = {
@@ -218818,6 +221031,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltNews1dUpdateManyMutationInput = {
@@ -218836,6 +221051,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltNews1dUncheckedUpdateManyInput = {
@@ -218855,6 +221072,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltWeather1dCreateInput = {
@@ -218876,6 +221095,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltWeather1dUncheckedCreateInput = {
@@ -218898,6 +221119,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltWeather1dUpdateInput = {
@@ -218919,6 +221142,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltWeather1dUncheckedUpdateInput = {
@@ -218941,6 +221166,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltWeather1dCreateManyInput = {
@@ -218963,6 +221190,8 @@ export namespace Prisma {
     ingestedAt?: Date | string | null
     knowledgeTime?: Date | string | null
     rowHash?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltWeather1dUpdateManyMutationInput = {
@@ -218984,6 +221213,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltWeather1dUncheckedUpdateManyInput = {
@@ -219006,6 +221237,8 @@ export namespace Prisma {
     ingestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltLegislation1dCreateInput = {
@@ -219021,6 +221254,8 @@ export namespace Prisma {
     knowledgeTime?: Date | string | null
     rowHash?: string | null
     url?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltLegislation1dUncheckedCreateInput = {
@@ -219037,6 +221272,8 @@ export namespace Prisma {
     knowledgeTime?: Date | string | null
     rowHash?: string | null
     url?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltLegislation1dUpdateInput = {
@@ -219052,6 +221289,8 @@ export namespace Prisma {
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltLegislation1dUncheckedUpdateInput = {
@@ -219068,6 +221307,8 @@ export namespace Prisma {
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltLegislation1dCreateManyInput = {
@@ -219084,6 +221325,8 @@ export namespace Prisma {
     knowledgeTime?: Date | string | null
     rowHash?: string | null
     url?: string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: string | null
   }
 
   export type AltLegislation1dUpdateManyMutationInput = {
@@ -219099,6 +221342,8 @@ export namespace Prisma {
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AltLegislation1dUncheckedUpdateManyInput = {
@@ -219115,6 +221360,8 @@ export namespace Prisma {
     knowledgeTime?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     rowHash?: NullableStringFieldUpdateOperationsInput | string | null
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    rawPayload?: NullableJsonNullValueInput | InputJsonValue
+    ingestionBatchId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type event_probabilities_126d_1dCreateInput = {
@@ -222631,6 +224878,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    wx_ar_tavg_c?: SortOrder
+    wx_br_tavg_c?: SortOrder
+    wx_us_tavg_c?: SortOrder
+    wx_ar_prcp_mm?: SortOrder
+    wx_br_prcp_mm?: SortOrder
+    wx_us_prcp_mm?: SortOrder
+    wx_ar_prcp_anom_30d?: SortOrder
+    wx_br_prcp_anom_30d?: SortOrder
+    wx_us_prcp_anom_30d?: SortOrder
+    wx_ar_gdd_30d_sum?: SortOrder
+    wx_br_gdd_30d_sum?: SortOrder
+    wx_us_gdd_30d_sum?: SortOrder
+    cftc_open_interest?: SortOrder
+    cftc_managed_money_net?: SortOrder
+    cftc_managed_money_pct?: SortOrder
+    cftc_prod_merc_net?: SortOrder
+    cftc_prod_merc_pct?: SortOrder
+    cftc_swap_net?: SortOrder
+    wasde_zl_ending_stocks?: SortOrder
+    wasde_zl_production?: SortOrder
+    wasde_zs_ending_stocks?: SortOrder
+    wasde_zs_production?: SortOrder
+    rin_d4_price?: SortOrder
+    rin_d6_price?: SortOrder
     target_ret_5d?: SortOrder
     target_ret_21d?: SortOrder
     target_ret_63d?: SortOrder
@@ -222742,6 +225013,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    wx_ar_tavg_c?: SortOrder
+    wx_br_tavg_c?: SortOrder
+    wx_us_tavg_c?: SortOrder
+    wx_ar_prcp_mm?: SortOrder
+    wx_br_prcp_mm?: SortOrder
+    wx_us_prcp_mm?: SortOrder
+    wx_ar_prcp_anom_30d?: SortOrder
+    wx_br_prcp_anom_30d?: SortOrder
+    wx_us_prcp_anom_30d?: SortOrder
+    wx_ar_gdd_30d_sum?: SortOrder
+    wx_br_gdd_30d_sum?: SortOrder
+    wx_us_gdd_30d_sum?: SortOrder
+    cftc_open_interest?: SortOrder
+    cftc_managed_money_net?: SortOrder
+    cftc_managed_money_pct?: SortOrder
+    cftc_prod_merc_net?: SortOrder
+    cftc_prod_merc_pct?: SortOrder
+    cftc_swap_net?: SortOrder
+    wasde_zl_ending_stocks?: SortOrder
+    wasde_zl_production?: SortOrder
+    wasde_zs_ending_stocks?: SortOrder
+    wasde_zs_production?: SortOrder
+    rin_d4_price?: SortOrder
+    rin_d6_price?: SortOrder
     target_ret_5d?: SortOrder
     target_ret_21d?: SortOrder
     target_ret_63d?: SortOrder
@@ -222858,6 +225153,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    wx_ar_tavg_c?: SortOrder
+    wx_br_tavg_c?: SortOrder
+    wx_us_tavg_c?: SortOrder
+    wx_ar_prcp_mm?: SortOrder
+    wx_br_prcp_mm?: SortOrder
+    wx_us_prcp_mm?: SortOrder
+    wx_ar_prcp_anom_30d?: SortOrder
+    wx_br_prcp_anom_30d?: SortOrder
+    wx_us_prcp_anom_30d?: SortOrder
+    wx_ar_gdd_30d_sum?: SortOrder
+    wx_br_gdd_30d_sum?: SortOrder
+    wx_us_gdd_30d_sum?: SortOrder
+    cftc_open_interest?: SortOrder
+    cftc_managed_money_net?: SortOrder
+    cftc_managed_money_pct?: SortOrder
+    cftc_prod_merc_net?: SortOrder
+    cftc_prod_merc_pct?: SortOrder
+    cftc_swap_net?: SortOrder
+    wasde_zl_ending_stocks?: SortOrder
+    wasde_zl_production?: SortOrder
+    wasde_zs_ending_stocks?: SortOrder
+    wasde_zs_production?: SortOrder
+    rin_d4_price?: SortOrder
+    rin_d6_price?: SortOrder
     target_ret_5d?: SortOrder
     target_ret_21d?: SortOrder
     target_ret_63d?: SortOrder
@@ -222975,6 +225294,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    wx_ar_tavg_c?: SortOrder
+    wx_br_tavg_c?: SortOrder
+    wx_us_tavg_c?: SortOrder
+    wx_ar_prcp_mm?: SortOrder
+    wx_br_prcp_mm?: SortOrder
+    wx_us_prcp_mm?: SortOrder
+    wx_ar_prcp_anom_30d?: SortOrder
+    wx_br_prcp_anom_30d?: SortOrder
+    wx_us_prcp_anom_30d?: SortOrder
+    wx_ar_gdd_30d_sum?: SortOrder
+    wx_br_gdd_30d_sum?: SortOrder
+    wx_us_gdd_30d_sum?: SortOrder
+    cftc_open_interest?: SortOrder
+    cftc_managed_money_net?: SortOrder
+    cftc_managed_money_pct?: SortOrder
+    cftc_prod_merc_net?: SortOrder
+    cftc_prod_merc_pct?: SortOrder
+    cftc_swap_net?: SortOrder
+    wasde_zl_ending_stocks?: SortOrder
+    wasde_zl_production?: SortOrder
+    wasde_zs_ending_stocks?: SortOrder
+    wasde_zs_production?: SortOrder
+    rin_d4_price?: SortOrder
+    rin_d6_price?: SortOrder
     target_ret_5d?: SortOrder
     target_ret_21d?: SortOrder
     target_ret_63d?: SortOrder
@@ -223086,6 +225429,30 @@ export namespace Prisma {
     fx_usdeur?: SortOrder
     fx_usdgbp?: SortOrder
     fx_usdjpy?: SortOrder
+    wx_ar_tavg_c?: SortOrder
+    wx_br_tavg_c?: SortOrder
+    wx_us_tavg_c?: SortOrder
+    wx_ar_prcp_mm?: SortOrder
+    wx_br_prcp_mm?: SortOrder
+    wx_us_prcp_mm?: SortOrder
+    wx_ar_prcp_anom_30d?: SortOrder
+    wx_br_prcp_anom_30d?: SortOrder
+    wx_us_prcp_anom_30d?: SortOrder
+    wx_ar_gdd_30d_sum?: SortOrder
+    wx_br_gdd_30d_sum?: SortOrder
+    wx_us_gdd_30d_sum?: SortOrder
+    cftc_open_interest?: SortOrder
+    cftc_managed_money_net?: SortOrder
+    cftc_managed_money_pct?: SortOrder
+    cftc_prod_merc_net?: SortOrder
+    cftc_prod_merc_pct?: SortOrder
+    cftc_swap_net?: SortOrder
+    wasde_zl_ending_stocks?: SortOrder
+    wasde_zl_production?: SortOrder
+    wasde_zs_ending_stocks?: SortOrder
+    wasde_zs_production?: SortOrder
+    rin_d4_price?: SortOrder
+    rin_d6_price?: SortOrder
     target_ret_5d?: SortOrder
     target_ret_21d?: SortOrder
     target_ret_63d?: SortOrder
@@ -224568,6 +226935,136 @@ export namespace Prisma {
     close?: SortOrder
     volume?: SortOrder
     openInterest?: SortOrder
+  }
+
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type SpecialistFx1dSymbolAsOfDateCompoundUniqueInput = {
+    symbol: string
+    asOfDate: Date | string
+  }
+
+  export type SpecialistFx1dCountOrderByAggregateInput = {
+    id?: SortOrder
+    symbol?: SortOrder
+    asOfDate?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    contractMonth?: SortOrder
+    expirationDate?: SortOrder
+    bucketName?: SortOrder
+    granularity?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SpecialistFx1dAvgOrderByAggregateInput = {
+    id?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+  }
+
+  export type SpecialistFx1dMaxOrderByAggregateInput = {
+    id?: SortOrder
+    symbol?: SortOrder
+    asOfDate?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    contractMonth?: SortOrder
+    expirationDate?: SortOrder
+    bucketName?: SortOrder
+    granularity?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SpecialistFx1dMinOrderByAggregateInput = {
+    id?: SortOrder
+    symbol?: SortOrder
+    asOfDate?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+    contractMonth?: SortOrder
+    expirationDate?: SortOrder
+    bucketName?: SortOrder
+    granularity?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SpecialistFx1dSumOrderByAggregateInput = {
+    id?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    openInterest?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
   }
 
   export type SpecialistPalm1dSymbolAsOfDateCompoundUniqueInput = {
@@ -226503,75 +229000,6 @@ export namespace Prisma {
     smoothedProb?: SortOrder
   }
 
-  export type ZlLiveCountOrderByAggregateInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrder
-    change?: SortOrder
-    changePct?: SortOrder
-    dayHigh?: SortOrder
-    dayLow?: SortOrder
-    dayOpen?: SortOrder
-    volume?: SortOrder
-    timestamp?: SortOrder
-    source?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type ZlLiveAvgOrderByAggregateInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrder
-    change?: SortOrder
-    changePct?: SortOrder
-    dayHigh?: SortOrder
-    dayLow?: SortOrder
-    dayOpen?: SortOrder
-    volume?: SortOrder
-  }
-
-  export type ZlLiveMaxOrderByAggregateInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrder
-    change?: SortOrder
-    changePct?: SortOrder
-    dayHigh?: SortOrder
-    dayLow?: SortOrder
-    dayOpen?: SortOrder
-    volume?: SortOrder
-    timestamp?: SortOrder
-    source?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type ZlLiveMinOrderByAggregateInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrder
-    change?: SortOrder
-    changePct?: SortOrder
-    dayHigh?: SortOrder
-    dayLow?: SortOrder
-    dayOpen?: SortOrder
-    volume?: SortOrder
-    timestamp?: SortOrder
-    source?: SortOrder
-    updatedAt?: SortOrder
-  }
-
-  export type ZlLiveSumOrderByAggregateInput = {
-    id?: SortOrder
-    price?: SortOrder
-    previousClose?: SortOrder
-    change?: SortOrder
-    changePct?: SortOrder
-    dayHigh?: SortOrder
-    dayLow?: SortOrder
-    dayOpen?: SortOrder
-    volume?: SortOrder
-  }
-
   export type DataSourceRegistryCountOrderByAggregateInput = {
     id?: SortOrder
     sourceId?: SortOrder
@@ -227082,7 +229510,7 @@ export namespace Prisma {
     confidence?: SortOrder
   }
 
-  export type zl_intradayCountOrderByAggregateInput = {
+  export type zl_price_15mCountOrderByAggregateInput = {
     id?: SortOrder
     timestamp?: SortOrder
     open?: SortOrder
@@ -227099,7 +229527,7 @@ export namespace Prisma {
     created_at?: SortOrder
   }
 
-  export type zl_intradayAvgOrderByAggregateInput = {
+  export type zl_price_15mAvgOrderByAggregateInput = {
     id?: SortOrder
     open?: SortOrder
     high?: SortOrder
@@ -227113,24 +229541,7 @@ export namespace Prisma {
     day_low?: SortOrder
   }
 
-  export type zl_intradayMaxOrderByAggregateInput = {
-    id?: SortOrder
-    timestamp?: SortOrder
-    open?: SortOrder
-    high?: SortOrder
-    low?: SortOrder
-    close?: SortOrder
-    volume?: SortOrder
-    previous_close?: SortOrder
-    change?: SortOrder
-    change_percent?: SortOrder
-    day_high?: SortOrder
-    day_low?: SortOrder
-    source?: SortOrder
-    created_at?: SortOrder
-  }
-
-  export type zl_intradayMinOrderByAggregateInput = {
+  export type zl_price_15mMaxOrderByAggregateInput = {
     id?: SortOrder
     timestamp?: SortOrder
     open?: SortOrder
@@ -227147,7 +229558,24 @@ export namespace Prisma {
     created_at?: SortOrder
   }
 
-  export type zl_intradaySumOrderByAggregateInput = {
+  export type zl_price_15mMinOrderByAggregateInput = {
+    id?: SortOrder
+    timestamp?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    previous_close?: SortOrder
+    change?: SortOrder
+    change_percent?: SortOrder
+    day_high?: SortOrder
+    day_low?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type zl_price_15mSumOrderByAggregateInput = {
     id?: SortOrder
     open?: SortOrder
     high?: SortOrder
@@ -228213,17 +230641,6 @@ export namespace Prisma {
     pred_p90?: SortOrder
   }
 
-  export type BigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type source_relabel_auditCountOrderByAggregateInput = {
     id?: SortOrder
     relabel_ts?: SortOrder
@@ -228265,22 +230682,6 @@ export namespace Prisma {
   export type source_relabel_auditSumOrderByAggregateInput = {
     id?: SortOrder
     row_count?: SortOrder
-  }
-
-  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type training_run_logCountOrderByAggregateInput = {
@@ -228426,17 +230827,6 @@ export namespace Prisma {
     mase?: SortOrder
   }
 
-  export type DecimalFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-  }
-
   export type zl_price_1hCountOrderByAggregateInput = {
     timestamp?: SortOrder
     open?: SortOrder
@@ -228486,20 +230876,53 @@ export namespace Prisma {
     volume?: SortOrder
   }
 
-  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedDecimalFilter<$PrismaModel>
-    _sum?: NestedDecimalFilter<$PrismaModel>
-    _min?: NestedDecimalFilter<$PrismaModel>
-    _max?: NestedDecimalFilter<$PrismaModel>
+  export type zl_price_1dCountOrderByAggregateInput = {
+    event_date?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type zl_price_1dAvgOrderByAggregateInput = {
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+  }
+
+  export type zl_price_1dMaxOrderByAggregateInput = {
+    event_date?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type zl_price_1dMinOrderByAggregateInput = {
+    event_date?: SortOrder
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
+    source?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type zl_price_1dSumOrderByAggregateInput = {
+    open?: SortOrder
+    high?: SortOrder
+    low?: SortOrder
+    close?: SortOrder
+    volume?: SortOrder
   }
 
   export type public_intraday_pricesSymbolTimestampCompoundUniqueInput = {
@@ -231221,6 +233644,18 @@ export namespace Prisma {
     importsPctGdp?: SortOrder
   }
 
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
   export type AltNews1dCountOrderByAggregateInput = {
     id?: SortOrder
     articleId?: SortOrder
@@ -231238,6 +233673,8 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    rawPayload?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltNews1dAvgOrderByAggregateInput = {
@@ -231261,6 +233698,7 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltNews1dMinOrderByAggregateInput = {
@@ -231279,11 +233717,27 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltNews1dSumOrderByAggregateInput = {
     id?: SortOrder
     sentimentScore?: SortOrder
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type AltWeather1dCountOrderByAggregateInput = {
@@ -231306,6 +233760,8 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    rawPayload?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltWeather1dAvgOrderByAggregateInput = {
@@ -231342,6 +233798,7 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltWeather1dMinOrderByAggregateInput = {
@@ -231364,6 +233821,7 @@ export namespace Prisma {
     ingestedAt?: SortOrder
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltWeather1dSumOrderByAggregateInput = {
@@ -231394,6 +233852,8 @@ export namespace Prisma {
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
     url?: SortOrder
+    rawPayload?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltLegislation1dAvgOrderByAggregateInput = {
@@ -231413,6 +233873,7 @@ export namespace Prisma {
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
     url?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltLegislation1dMinOrderByAggregateInput = {
@@ -231428,6 +233889,7 @@ export namespace Prisma {
     knowledgeTime?: SortOrder
     rowHash?: SortOrder
     url?: SortOrder
+    ingestionBatchId?: SortOrder
   }
 
   export type AltLegislation1dSumOrderByAggregateInput = {
@@ -233687,6 +236149,22 @@ export namespace Prisma {
     divide?: Decimal | DecimalJsLike | number | string
   }
 
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
   }
@@ -233870,14 +236348,6 @@ export namespace Prisma {
     push?: string | string[]
   }
 
-  export type BigIntFieldUpdateOperationsInput = {
-    set?: bigint | number
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
-  }
-
   export type ModelLeaderboardCreateNestedManyWithoutTraining_runsInput = {
     create?: XOR<ModelLeaderboardCreateWithoutTraining_runsInput, ModelLeaderboardUncheckedCreateWithoutTraining_runsInput> | ModelLeaderboardCreateWithoutTraining_runsInput[] | ModelLeaderboardUncheckedCreateWithoutTraining_runsInput[]
     connectOrCreate?: ModelLeaderboardCreateOrConnectWithoutTraining_runsInput | ModelLeaderboardCreateOrConnectWithoutTraining_runsInput[]
@@ -233918,14 +236388,6 @@ export namespace Prisma {
     update?: ModelLeaderboardUpdateWithWhereUniqueWithoutTraining_runsInput | ModelLeaderboardUpdateWithWhereUniqueWithoutTraining_runsInput[]
     updateMany?: ModelLeaderboardUpdateManyWithWhereWithoutTraining_runsInput | ModelLeaderboardUpdateManyWithWhereWithoutTraining_runsInput[]
     deleteMany?: ModelLeaderboardScalarWhereInput | ModelLeaderboardScalarWhereInput[]
-  }
-
-  export type DecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
   }
 
   export type MktEtf1dCreatespecialistTagsInput = {
@@ -234290,6 +236752,60 @@ export namespace Prisma {
     _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
@@ -234344,58 +236860,29 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type NestedBigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
   }
 
-  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
-  }
-
-  export type NestedDecimalFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-  }
-
-  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedDecimalFilter<$PrismaModel>
-    _sum?: NestedDecimalFilter<$PrismaModel>
-    _min?: NestedDecimalFilter<$PrismaModel>
-    _max?: NestedDecimalFilter<$PrismaModel>
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type training_runsCreateWithoutModel_leaderboardInput = {
