@@ -31,11 +31,13 @@ See `scripts/v2_training/MODEL_CATALOG.md` for the full list of:
 
 ### Output Table Families (SoT v2)
 These tables already exist in Prisma and are expected to be **empty prior to first training run**:
-- `training.oof_*_{5d,21d,63d,126d}_1d` (48 tables)
-- `training.meta_inputs_{5d,21d,63d,126d}_1d` (4 tables)
-- `forecasts.production_{5d,21d,63d,126d}_1d` (4 tables)
+- `training.oof_*_1d` (12 tables with `horizon_days` column — one per model type, all horizons in same table)
+- `training.meta_inputs_1d` (1 table with `horizon_days` column)
+- `forecasts.production_{5d,21d,63d,126d}_1d` (4 tables — separate per horizon for production outputs)
 - `analytics.event_probabilities_{5d,21d,63d,126d}_1d` (4 tables)
 - `analytics.price_scenarios_{5d,21d,63d,126d}_1d` (4 tables)
+
+**Schema Design Note:** Training artifacts (OOF, meta_inputs) use a single table with `horizon_days` discriminator for cross-horizon queries. Production outputs use separate tables per horizon for consumer isolation.
 
 ### Pre-Training Readiness
 Before running any v2 training jobs, run:
