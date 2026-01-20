@@ -87,158 +87,346 @@ const DEFAULT_JOB_RETRIES: InngestRetries = 3;
  * Source: RAW_SOURCE_SPECIALIST_MAPPING.md (LOCKED)
  */
 const FRED_FED_SERIES: FredSeriesConfig[] = [
-  { id: "DFF", name: "Fed Funds Effective Rate", tags: ["fed"] },
-  { id: "FEDFUNDS", name: "Federal Funds Effective Rate", tags: ["fed"] },
+  // Core Fed policy rates - affect financing costs, dollar strength
+  { id: "DFF", name: "Fed Funds Effective Rate", tags: ["fed", "fx"] },
+  { id: "FEDFUNDS", name: "Federal Funds Effective Rate", tags: ["fed", "fx"] },
   { id: "DFEDTARL", name: "Fed Funds Target Range (Lower)", tags: ["fed"] },
   { id: "DFEDTARU", name: "Fed Funds Target Range (Upper)", tags: ["fed"] },
-  { id: "DGS1MO", name: "1-Month Treasury", tags: ["fed"] },
-  { id: "DGS3MO", name: "3-Month Treasury", tags: ["fed"] },
+  // Treasury yields - carry cost, dollar strength, risk sentiment
+  { id: "DGS1MO", name: "1-Month Treasury", tags: ["fed", "volatility"] },
+  { id: "DGS3MO", name: "3-Month Treasury", tags: ["fed", "volatility"] },
   { id: "DGS6MO", name: "6-Month Treasury", tags: ["fed"] },
   { id: "DGS1", name: "1-Year Treasury", tags: ["fed"] },
-  { id: "DGS2", name: "2-Year Treasury", tags: ["fed"] },
+  { id: "DGS2", name: "2-Year Treasury", tags: ["fed", "fx"] },
   { id: "DGS5", name: "5-Year Treasury", tags: ["fed"] },
   { id: "DGS7", name: "7-Year Treasury", tags: ["fed"] },
-  { id: "DGS10", name: "10-Year Treasury", tags: ["fed"] },
+  { id: "DGS10", name: "10-Year Treasury", tags: ["fed", "fx", "volatility"] },
   { id: "DGS20", name: "20-Year Treasury", tags: ["fed"] },
   { id: "DGS30", name: "30-Year Treasury", tags: ["fed"] },
-  { id: "T10Y2Y", name: "10Y-2Y Spread (Yield Curve)", tags: ["fed"] },
-  { id: "T10Y3M", name: "10Y-3M Spread", tags: ["fed"] },
-  { id: "T10YIE", name: "10Y Breakeven Inflation", tags: ["fed"] },
+  // Yield curve spreads - recession indicator, risk sentiment
+  { id: "T10Y2Y", name: "10Y-2Y Spread (Yield Curve)", tags: ["fed", "volatility"] },
+  { id: "T10Y3M", name: "10Y-3M Spread", tags: ["fed", "volatility"] },
+  // Inflation expectations - affects real rates
+  { id: "T10YIE", name: "10Y Breakeven Inflation", tags: ["fed", "energy", "biofuel"] },
   { id: "SOFR", name: "SOFR Rate", tags: ["fed"] },
   { id: "DPRIME", name: "Prime Rate", tags: ["fed"] },
   { id: "MORTGAGE30US", name: "30-Year Mortgage Rate", tags: ["fed"] },
-  { id: "WALCL", name: "Fed Total Assets", tags: ["fed"] },
+  // Fed balance sheet - liquidity, dollar supply
+  { id: "WALCL", name: "Fed Total Assets", tags: ["fed", "volatility"] },
   { id: "WRESBAL", name: "Reserve Balances", tags: ["fed"] },
-  { id: "RRPONTSYD", name: "Reverse Repo", tags: ["fed"] },
-  { id: "BOGMBASE", name: "Monetary Base", tags: ["fed"] },
-  { id: "M2SL", name: "M2 Money Stock", tags: ["fed"] },
+  { id: "RRPONTSYD", name: "Reverse Repo", tags: ["fed", "volatility"] },
+  { id: "BOGMBASE", name: "Monetary Base", tags: ["fed", "fx"] },
+  { id: "M2SL", name: "M2 Money Stock", tags: ["fed", "fx"] },
   { id: "TOTRESNS", name: "Total Reserves", tags: ["fed"] },
-  { id: "BUSLOANS", name: "Commercial & Industrial Loans", tags: ["fed"] },
-  { id: "DRCCLACBS", name: "Credit Card Delinquency Rate", tags: ["fed"] },
-  { id: "CPIAUCSL", name: "CPI All Urban", tags: ["fed"] },
+  // Credit conditions - economic health
+  { id: "BUSLOANS", name: "Commercial & Industrial Loans", tags: ["fed", "crush"] },
+  { id: "DRCCLACBS", name: "Credit Card Delinquency Rate", tags: ["fed", "volatility"] },
+  // Inflation metrics - affect production costs, biofuel economics
+  { id: "CPIAUCSL", name: "CPI All Urban", tags: ["fed", "energy", "biofuel"] },
   { id: "CPILFESL", name: "Core CPI", tags: ["fed"] },
-  { id: "PCEPI", name: "PCE Price Index", tags: ["fed"] },
+  { id: "PCEPI", name: "PCE Price Index", tags: ["fed", "energy"] },
   { id: "PCEPILFE", name: "Core PCE", tags: ["fed"] },
-  { id: "PCE", name: "Personal Consumption Expenditures", tags: ["fed"] },
-  { id: "PPIACO", name: "PPI All Commodities", tags: ["fed"] },
-  { id: "PPIFGS", name: "PPI Finished Goods", tags: ["fed"] },
-  { id: "UNRATE", name: "Unemployment Rate", tags: ["fed"] },
+  { id: "PCE", name: "Personal Consumption Expenditures", tags: ["fed", "biofuel"] },
+  // PPI - production cost pressures
+  { id: "PPIACO", name: "PPI All Commodities", tags: ["fed", "energy", "crush"] },
+  { id: "PPIFGS", name: "PPI Finished Goods", tags: ["fed", "crush"] },
+  // Labor market - demand indicator
+  { id: "UNRATE", name: "Unemployment Rate", tags: ["fed", "volatility"] },
   { id: "PAYEMS", name: "Nonfarm Payrolls", tags: ["fed"] },
-  { id: "MANEMP", name: "Manufacturing Employment", tags: ["fed"] },
-  { id: "RSXFS", name: "Retail Sales", tags: ["fed"] },
-  { id: "GDP", name: "Gross Domestic Product", tags: ["fed"] },
-  { id: "GDPC1", name: "Real Gross Domestic Product", tags: ["fed"] },
+  { id: "MANEMP", name: "Manufacturing Employment", tags: ["fed", "china", "crush"] },
+  // Demand indicators
+  { id: "RSXFS", name: "Retail Sales", tags: ["fed", "biofuel"] },
+  { id: "GDP", name: "Gross Domestic Product", tags: ["fed", "energy", "crush"] },
+  { id: "GDPC1", name: "Real Gross Domestic Product", tags: ["fed", "energy"] },
   { id: "HOUST", name: "Housing Starts", tags: ["fed"] },
   { id: "PERMIT", name: "Housing Permits", tags: ["fed"] },
-  { id: "ICSA", name: "Initial Jobless Claims", tags: ["fed"] },
-  { id: "CCSA", name: "Continued Claims", tags: ["fed"] },
+  { id: "ICSA", name: "Initial Jobless Claims", tags: ["fed", "volatility"] },
+  { id: "CCSA", name: "Continued Claims", tags: ["fed", "volatility"] },
 ];
 
 const FRED_FX_SERIES: FredSeriesConfig[] = [
-  { id: "DEXBZUS", name: "USD/BRL (Brazil)", tags: ["fx"] },
-  { id: "DEXCHUS", name: "USD/CNY (China)", tags: ["fx", "china"] },
-  { id: "DEXUSEU", name: "USD/EUR", tags: ["fx"] },
+  // Brazil - #1 soybean exporter, competes with US crush
+  { id: "DEXBZUS", name: "USD/BRL (Brazil)", tags: ["fx", "crush", "china"] },
+  // China - #1 soybean importer, ZL demand driver
+  { id: "DEXCHUS", name: "USD/CNY (China)", tags: ["fx", "china", "crush", "tariff"] },
+  // EUR - biofuel policy, rapeseed competition
+  { id: "DEXUSEU", name: "USD/EUR", tags: ["fx", "biofuel", "substitutes"] },
   { id: "DEXUSUK", name: "USD/GBP", tags: ["fx"] },
-  { id: "DEXJPUS", name: "USD/JPY", tags: ["fx"] },
-  { id: "DEXCAUS", name: "USD/CAD", tags: ["fx"] },
-  { id: "DEXMXUS", name: "USD/MXN", tags: ["fx"] },
-  { id: "DEXKOUS", name: "USD/KRW (Korea)", tags: ["fx"] },
-  { id: "DEXINUS", name: "USD/INR (India)", tags: ["fx"] },
+  // JPY - risk sentiment proxy
+  { id: "DEXJPUS", name: "USD/JPY", tags: ["fx", "volatility"] },
+  // CAD - energy exporter, canola producer
+  { id: "DEXCAUS", name: "USD/CAD", tags: ["fx", "energy", "substitutes"] },
+  // MXN - US trade partner, tariff sensitive
+  { id: "DEXMXUS", name: "USD/MXN", tags: ["fx", "tariff"] },
+  // Korea - soybean importer
+  { id: "DEXKOUS", name: "USD/KRW (Korea)", tags: ["fx", "china"] },
+  // India - major vegetable oil importer
+  { id: "DEXINUS", name: "USD/INR (India)", tags: ["fx", "palm", "substitutes"] },
+  // Malaysia - #2 palm oil producer
   { id: "DEXMAUS", name: "USD/MYR (Malaysia)", tags: ["fx", "palm"] },
-  { id: "DEXSFUS", name: "USD/SGD (Singapore)", tags: ["fx"] },
-  { id: "DEXTHUS", name: "USD/THB (Thailand)", tags: ["fx"] },
-  { id: "DEXHKUS", name: "USD/HKD (Hong Kong)", tags: ["fx"] },
-  { id: "DEXTAUS", name: "USD/TWD (Taiwan)", tags: ["fx"] },
-  { id: "DEXUSAL", name: "USD/AUD", tags: ["fx"] },
-  { id: "DEXNOUS", name: "USD/NOK", tags: ["fx"] },
-  { id: "DEXSZUS", name: "USD/CHF", tags: ["fx"] },
+  // Singapore - palm oil trading hub
+  { id: "DEXSFUS", name: "USD/SGD (Singapore)", tags: ["fx", "palm"] },
+  // Thailand - palm producer, rice exporter
+  { id: "DEXTHUS", name: "USD/THB (Thailand)", tags: ["fx", "palm", "substitutes"] },
+  // HK - China proxy
+  { id: "DEXHKUS", name: "USD/HKD (Hong Kong)", tags: ["fx", "china"] },
+  // Taiwan - China proxy, tech demand
+  { id: "DEXTAUS", name: "USD/TWD (Taiwan)", tags: ["fx", "china"] },
+  // AUD - commodity currency, China trade
+  { id: "DEXUSAL", name: "USD/AUD", tags: ["fx", "china", "energy"] },
+  // NOK - oil exporter
+  { id: "DEXNOUS", name: "USD/NOK", tags: ["fx", "energy"] },
+  // CHF - safe haven
+  { id: "DEXSZUS", name: "USD/CHF", tags: ["fx", "volatility"] },
   { id: "DEXSIUS", name: "USD/SEK", tags: ["fx"] },
-  { id: "DTWEXBGS", name: "Trade-Weighted USD (Broad)", tags: ["fx"] },
+  // Dollar indices - broad strength affects all commodities
+  { id: "DTWEXBGS", name: "Trade-Weighted USD (Broad)", tags: ["fx", "crush", "energy"] },
   { id: "DTWEXAFEGS", name: "USD vs Advanced FX", tags: ["fx"] },
-  { id: "DTWEXEMEGS", name: "USD vs EM FX", tags: ["fx"] },
+  { id: "DTWEXEMEGS", name: "USD vs EM FX", tags: ["fx", "china", "palm", "crush"] },
 ];
 
 const FRED_ENERGY_SERIES: FredSeriesConfig[] = [
-  { id: "DCOILWTICO", name: "WTI Crude Oil", tags: ["energy"] },
-  { id: "DCOILBRENTEU", name: "Brent Crude Oil", tags: ["energy"] },
-  { id: "DHHNGSP", name: "Henry Hub Natural Gas", tags: ["energy"] },
-  { id: "DHOILNYH", name: "Heating Oil NY Harbor", tags: ["energy"] },
-  { id: "PNGASEUUSDM", name: "EU Natural Gas Price", tags: ["energy"] },
-  { id: "DDFUELUSGULF", name: "Diesel Gulf Coast", tags: ["energy", "biofuel"] },
+  // Crude oils - biofuel feedstock competitor, diesel/heating oil economics
+  { id: "DCOILWTICO", name: "WTI Crude Oil", tags: ["energy", "biofuel", "crush"] },
+  { id: "DCOILBRENTEU", name: "Brent Crude Oil", tags: ["energy", "biofuel", "china"] },
+  // Natural gas - fertilizer cost, crop drying, EU demand
+  { id: "DHHNGSP", name: "Henry Hub Natural Gas", tags: ["energy", "crush", "substitutes"] },
+  // Heating oil - biodiesel benchmark, ZL direct competitor
+  { id: "DHOILNYH", name: "Heating Oil NY Harbor", tags: ["energy", "biofuel", "crush"] },
+  // EU natgas - fertilizer costs, European demand
+  { id: "PNGASEUUSDM", name: "EU Natural Gas Price", tags: ["energy", "crush"] },
+  // Diesel/gasoline - biodiesel/ethanol benchmark, RIN economics
+  { id: "DDFUELUSGULF", name: "Diesel Gulf Coast", tags: ["energy", "biofuel", "crush"] },
   { id: "DGASUSGULF", name: "Gasoline Gulf Coast", tags: ["energy", "biofuel"] },
-  { id: "DJFUELUSGULF", name: "Jet Fuel Gulf Coast", tags: ["energy"] },
-  { id: "DPROPANEMBTX", name: "Propane Prices: Mont Belvieu, Texas", tags: ["energy"] },
-  { id: "WPU057303", name: "PPI Diesel Fuel", tags: ["energy", "biofuel"] },
+  // Jet fuel - SAF feedstock demand (growing ZL driver)
+  { id: "DJFUELUSGULF", name: "Jet Fuel Gulf Coast", tags: ["energy", "biofuel", "crush"] },
+  // Propane - crop drying, export competitor
+  { id: "DPROPANEMBTX", name: "Propane Prices: Mont Belvieu, Texas", tags: ["energy", "crush"] },
+  // PPI fuels - production cost inputs
+  { id: "WPU057303", name: "PPI Diesel Fuel", tags: ["energy", "biofuel", "crush"] },
   { id: "PCU32411032411012", name: "PPI Motor Gasoline", tags: ["energy", "biofuel"] },
 ];
 
 const FRED_BIOFUEL_SERIES: FredSeriesConfig[] = [
-  { id: "APU000074714", name: "Gasoline CPI (Unleaded Regular)", tags: ["biofuel", "energy"] },
+  // Retail fuel prices - biodiesel/ethanol blend economics
+  { id: "APU000074714", name: "Gasoline CPI (Unleaded Regular)", tags: ["biofuel", "energy", "crush"] },
   { id: "GASREGW", name: "US Regular Gas Price", tags: ["biofuel", "energy"] },
-  { id: "GASDESW", name: "US Diesel Price", tags: ["biofuel", "energy"] },
-  { id: "WPU06140341", name: "PPI Ethanol", tags: ["biofuel"] },
+  // Diesel price - direct biodiesel competitor, ZL demand driver
+  { id: "GASDESW", name: "US Diesel Price", tags: ["biofuel", "energy", "crush"] },
+  // Ethanol PPI - corn ethanol economics, competes with soy biodiesel
+  { id: "WPU06140341", name: "PPI Ethanol", tags: ["biofuel", "crush", "substitutes"] },
 ];
 
 const FRED_CRUSH_SERIES: FredSeriesConfig[] = [
-  { id: "PSOILUSDM", name: "Soybean Oil Price (World Bank)", tags: ["crush"] },
-  { id: "PSOYBUSDM", name: "Soybeans Price (World Bank)", tags: ["crush"] },
-  { id: "PCU311224311224", name: "PPI Soybean Oil Processing", tags: ["crush"] },
-  { id: "PMAIZMTUSDM", name: "Global price of Corn", tags: ["crush", "substitutes"] },
-  { id: "PWHEAMTUSDM", name: "Wheat Price", tags: ["substitutes"] },
-  { id: "PBARLUSDM", name: "Barley Price", tags: ["substitutes"] },
+  // World Bank soy prices - direct ZL/ZS benchmark
+  { id: "PSOILUSDM", name: "Soybean Oil Price (World Bank)", tags: ["crush", "palm", "substitutes", "biofuel"] },
+  { id: "PSOYBUSDM", name: "Soybeans Price (World Bank)", tags: ["crush", "china", "tariff"] },
+  // PPI processing - crush margin proxy
+  { id: "PCU311224311224", name: "PPI Soybean Oil Processing", tags: ["crush", "biofuel"] },
+  // Corn - feed competition, ethanol feedstock
+  { id: "PMAIZMTUSDM", name: "Global price of Corn", tags: ["crush", "substitutes", "biofuel", "china"] },
+  // Wheat/barley - acreage competition, feed substitution
+  { id: "PWHEAMTUSDM", name: "Wheat Price", tags: ["substitutes", "crush", "china"] },
+  { id: "PBARLUSDM", name: "Barley Price", tags: ["substitutes", "crush"] },
 ];
 
 const FRED_PALM_SERIES: FredSeriesConfig[] = [
-  { id: "PPOILUSDM", name: "Global price of Palm Oil", tags: ["palm"] },
-  { id: "PROILUSDM", name: "Global price of Rapeseed Oil (proxy for palm kernel)", tags: ["palm", "substitutes"] },
+  // Palm oil - #1 ZL substitute, direct price competition
+  { id: "PPOILUSDM", name: "Global price of Palm Oil", tags: ["palm", "crush", "substitutes", "china"] },
+  // Rapeseed oil - EU biodiesel feedstock, ZL substitute
+  { id: "PROILUSDM", name: "Global price of Rapeseed Oil (proxy for palm kernel)", tags: ["palm", "substitutes", "crush", "biofuel"] },
 ];
 
 const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
-  { id: "SP500", name: "S&P 500 Index", tags: ["volatility"] },
+  // Equity indices - risk appetite, demand proxy
+  { id: "SP500", name: "S&P 500 Index", tags: ["volatility", "fed"] },
   { id: "NASDAQCOM", name: "NASDAQ Composite Index", tags: ["volatility"] },
-  { id: "VIXCLS", name: "VIX Index", tags: ["volatility"] },
-  { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility"] },
-  { id: "STLFSI", name: "St. Louis Financial Stress", tags: ["volatility"] },
-  { id: "STLFSI4", name: "St. Louis Financial Stress", tags: ["volatility"] },
-  { id: "TEDRATE", name: "TED Spread", tags: ["volatility"] },
-  { id: "NFCI", name: "Chicago Fed Financial Conditions", tags: ["volatility"] },
-  { id: "BAMLH0A0HYM2", name: "High Yield OAS", tags: ["volatility"] },
-  { id: "BAMLC0A0CM", name: "Corporate OAS", tags: ["volatility"] },
+  // VIX - fear gauge, affects all risk assets
+  { id: "VIXCLS", name: "VIX Index", tags: ["volatility", "crush", "energy"] },
+  // OVX - crude oil specific volatility, energy sector stress
+  { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility", "energy", "biofuel"] },
+  // Financial stress - credit conditions, demand destruction risk
+  { id: "STLFSI", name: "St. Louis Financial Stress", tags: ["volatility", "fed"] },
+  { id: "STLFSI4", name: "St. Louis Financial Stress", tags: ["volatility", "fed"] },
+  // TED spread - interbank stress, funding costs
+  { id: "TEDRATE", name: "TED Spread", tags: ["volatility", "fed", "fx"] },
+  // NFCI - broad financial conditions
+  { id: "NFCI", name: "Chicago Fed Financial Conditions", tags: ["volatility", "fed"] },
+  // Credit spreads - risk appetite, economic stress
+  { id: "BAMLH0A0HYM2", name: "High Yield OAS", tags: ["volatility", "fed", "energy"] },
+  { id: "BAMLC0A0CM", name: "Corporate OAS", tags: ["volatility", "fed"] },
 ];
 
 const FRED_TRUMP_EFFECT_SERIES: FredSeriesConfig[] = [
-  { id: "USEPUINDXD", name: "US Policy Uncertainty (Daily)", tags: ["trump_effect", "volatility"] },
-  { id: "USEPUINDXM", name: "US Policy Uncertainty (Monthly)", tags: ["trump_effect", "volatility"] },
-  { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["tariff"] },
-  { id: "EMVTRADEPOLEMV", name: "Trade Policy Volatility", tags: ["trump_effect", "volatility"] },
-  { id: "CHNMAINLANDTPU", name: "China Trade Policy Uncertainty", tags: ["trump_effect", "tariff"] },
-  { id: "B235RC1Q027SBEA", name: "Customs Duties (Tariff Receipts)", tags: ["trump_effect", "tariff"] },
-  { id: "IMPCH", name: "US Imports from China", tags: ["trump_effect", "tariff"] },
+  // Policy uncertainty - affects all trade-sensitive commodities
+  { id: "USEPUINDXD", name: "US Policy Uncertainty (Daily)", tags: ["trump_effect", "volatility", "tariff"] },
+  { id: "USEPUINDXM", name: "US Policy Uncertainty (Monthly)", tags: ["trump_effect", "volatility", "tariff"] },
+  // Trade policy specific - direct soy/ZL tariff risk
+  { id: "EPUTRADE", name: "Trade Policy Uncertainty", tags: ["tariff", "trump_effect", "china", "crush"] },
+  { id: "EMVTRADEPOLEMV", name: "Trade Policy Volatility", tags: ["trump_effect", "volatility", "tariff", "china"] },
+  // China trade policy - soybean tariff risk
+  { id: "CHNMAINLANDTPU", name: "China Trade Policy Uncertainty", tags: ["trump_effect", "tariff", "china", "crush"] },
+  // Tariff receipts - actual tariff implementation
+  { id: "B235RC1Q027SBEA", name: "Customs Duties (Tariff Receipts)", tags: ["trump_effect", "tariff", "china"] },
+  // China imports - trade war barometer
+  { id: "IMPCH", name: "US Imports from China", tags: ["trump_effect", "tariff", "china"] },
 ];
 
 const FRED_CHINA_SERIES: FredSeriesConfig[] = [
-  { id: "CHNCPIALLMINMEI", name: "China CPI (Total)", tags: ["china"] },
-  { id: "CHNPRINTO01IXPYM", name: "China Industrial Production", tags: ["china"] },
-  { id: "CHNGDPNQDSMEI", name: "China Real GDP", tags: ["china"] },
-  { id: "IR3TIB01CNM156N", name: "China Interbank Rate (3M)", tags: ["china"] },
-  { id: "MYAGM2CNM189N", name: "China M2", tags: ["china"] },
-  { id: "XTEXVA01CNM667S", name: "China Exports Value", tags: ["china", "tariff"] },
-  { id: "XTIMVA01CNM667S", name: "China Imports Value", tags: ["china", "tariff"] },
+  // China inflation - demand indicator, hog feed economics
+  { id: "CHNCPIALLMINMEI", name: "China CPI (Total)", tags: ["china", "crush", "palm"] },
+  // China industrial production - soybean meal demand, vegetable oil demand
+  { id: "CHNPRINTO01IXPYM", name: "China Industrial Production", tags: ["china", "crush", "energy"] },
+  // China GDP - overall demand driver
+  { id: "CHNGDPNQDSMEI", name: "China Real GDP", tags: ["china", "crush", "energy", "palm"] },
+  // China rates - financing costs, CNY strength
+  { id: "IR3TIB01CNM156N", name: "China Interbank Rate (3M)", tags: ["china", "fx"] },
+  // China M2 - liquidity, stimulus proxy
+  { id: "MYAGM2CNM189N", name: "China M2", tags: ["china", "fx", "crush"] },
+  // China trade - direct soybean flow indicator
+  { id: "XTEXVA01CNM667S", name: "China Exports Value", tags: ["china", "tariff", "fx"] },
+  { id: "XTIMVA01CNM667S", name: "China Imports Value", tags: ["china", "tariff", "crush", "palm"] },
 ];
 
 const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
-  { id: "INDPRO", name: "Industrial Production", tags: ["general"] },
-  { id: "UMCSENT", name: "Consumer Sentiment", tags: ["general"] },
-  { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["general"] },
-  { id: "BOPGSTB", name: "Trade Balance (Goods & Services)", tags: ["tariff"] },
-  { id: "EXPGS", name: "Exports of Goods & Services", tags: ["tariff"] },
-  { id: "IMPGS", name: "Imports of Goods & Services", tags: ["tariff"] },
-  { id: "PCOPPUSDM", name: "Copper Price (Global)", tags: ["substitutes"] },
-  { id: "PRICENPQUSDM", name: "Rice Price (Global)", tags: ["substitutes"] },
-  { id: "PSUNOUSDM", name: "Sunflower Oil Price (Global)", tags: ["substitutes"] },
-  { id: "WPU01830161", name: "PPI Farm Products: Sunflower", tags: ["substitutes"] },
-  { id: "WPU01830171", name: "PPI Farm Products: Canola", tags: ["substitutes"] },
+  // Industrial production affects energy demand, crush margins, and overall demand
+  { id: "INDPRO", name: "Industrial Production", tags: ["energy", "crush", "china"] },
+  // Consumer sentiment affects discretionary spending, fuel demand
+  { id: "UMCSENT", name: "Consumer Sentiment", tags: ["volatility", "biofuel"] },
+  // Freight index affects export logistics, supply chain costs
+  { id: "FRGSHPUSM649NCIS", name: "Cass Freight Index", tags: ["tariff", "crush", "china"] },
+  // Trade balance/exports/imports - core tariff indicators
+  { id: "BOPGSTB", name: "Trade Balance (Goods & Services)", tags: ["tariff", "china"] },
+  { id: "EXPGS", name: "Exports of Goods & Services", tags: ["tariff", "china", "crush"] },
+  { id: "IMPGS", name: "Imports of Goods & Services", tags: ["tariff", "china", "palm"] },
+  // Copper - industrial demand proxy, China construction/manufacturing
+  { id: "PCOPPUSDM", name: "Copper Price (Global)", tags: ["china", "volatility"] },
+  // Rice - food grain substitute, competes for acreage
+  { id: "PRICENPQUSDM", name: "Rice Price (Global)", tags: ["substitutes", "china"] },
+  // Sunflower oil - direct ZL substitute
+  { id: "PSUNOUSDM", name: "Sunflower Oil Price (Global)", tags: ["substitutes", "crush", "palm"] },
+  // Olive oil - premium substitute, EU production
+  { id: "POLVOILUSDM", name: "Olive Oil Price (Global)", tags: ["substitutes", "palm"] },
+  // Sugar - biofuel feedstock competitor (ethanol)
+  { id: "PSUGAISAUSDM", name: "Sugar Price (Global)", tags: ["substitutes", "biofuel", "energy"] },
+  // PPI Sunflower/Canola - domestic oilseed substitutes
+  { id: "WPU01830161", name: "PPI Farm Products: Sunflower", tags: ["substitutes", "crush"] },
+  { id: "WPU01830171", name: "PPI Farm Products: Canola", tags: ["substitutes", "crush", "biofuel"] },
 ];
+
+// =============================================================================
+// FRED SERIES → TABLE ROUTING
+// =============================================================================
+// Routes FRED series to the correct econ.* table based on series type.
+// Default: rates_1d for interest rates and anything unmapped.
+
+const FRED_TABLE_MAP: Record<string, string> = {
+  // Inflation → econ.inflation_1d
+  CPIAUCSL: "econ.inflation_1d",
+  CPILFESL: "econ.inflation_1d",
+  PCEPI: "econ.inflation_1d",
+  PCEPILFE: "econ.inflation_1d",
+  PPIACO: "econ.inflation_1d",
+  PPIFGS: "econ.inflation_1d",
+
+  // Labor → econ.labor_1d
+  UNRATE: "econ.labor_1d",
+  PAYEMS: "econ.labor_1d",
+  MANEMP: "econ.labor_1d",
+  ICSA: "econ.labor_1d",
+  CCSA: "econ.labor_1d",
+
+  // Activity → econ.activity_1d (GDP, production, housing, trade, consumption)
+  GDP: "econ.activity_1d",
+  GDPC1: "econ.activity_1d",
+  INDPRO: "econ.activity_1d",
+  HOUST: "econ.activity_1d",
+  PERMIT: "econ.activity_1d",
+  RSXFS: "econ.activity_1d",
+  PCE: "econ.activity_1d",
+  UMCSENT: "econ.activity_1d",
+  FRGSHPUSM649NCIS: "econ.activity_1d",
+  BOPGSTB: "econ.activity_1d",
+  EXPGS: "econ.activity_1d",
+  IMPGS: "econ.activity_1d",
+  BUSLOANS: "econ.activity_1d",
+  // China economic data
+  CHNCPIALLMINMEI: "econ.activity_1d",
+  CHNPRINTO01IXPYM: "econ.activity_1d",
+  CHNGDPNQDSMEI: "econ.activity_1d",
+  CHNMAINLANDTPU: "econ.activity_1d",
+  XTEXVA01CNM667S: "econ.activity_1d",
+  XTIMVA01CNM667S: "econ.activity_1d",
+  IMPCH: "econ.activity_1d",
+  B235RC1Q027SBEA: "econ.activity_1d",
+
+  // Vol Indices → econ.vol_indices_1d
+  VIXCLS: "econ.vol_indices_1d",
+  OVXCLS: "econ.vol_indices_1d",
+  STLFSI: "econ.vol_indices_1d",
+  STLFSI4: "econ.vol_indices_1d",
+  NFCI: "econ.vol_indices_1d",
+  TEDRATE: "econ.vol_indices_1d",
+  BAMLH0A0HYM2: "econ.vol_indices_1d",
+  BAMLC0A0CM: "econ.vol_indices_1d",
+  GVZCLS: "econ.vol_indices_1d",
+  SP500: "econ.vol_indices_1d",
+  NASDAQCOM: "econ.vol_indices_1d",
+  USEPUINDXD: "econ.vol_indices_1d",
+  USEPUINDXM: "econ.vol_indices_1d",
+  EPUTRADE: "econ.vol_indices_1d",
+  EMVTRADEPOLEMV: "econ.vol_indices_1d",
+
+  // Commodities → econ.commodities_1d
+  DCOILWTICO: "econ.commodities_1d",
+  DCOILBRENTEU: "econ.commodities_1d",
+  DHHNGSP: "econ.commodities_1d",
+  DHOILNYH: "econ.commodities_1d",
+  PNGASEUUSDM: "econ.commodities_1d",
+  DDFUELUSGULF: "econ.commodities_1d",
+  DGASUSGULF: "econ.commodities_1d",
+  DJFUELUSGULF: "econ.commodities_1d",
+  DPROPANEMBTX: "econ.commodities_1d",
+  WPU057303: "econ.commodities_1d",
+  PCU32411032411012: "econ.commodities_1d",
+  APU000074714: "econ.commodities_1d",
+  GASREGW: "econ.commodities_1d",
+  GASDESW: "econ.commodities_1d",
+  WPU06140341: "econ.commodities_1d",
+  PSOILUSDM: "econ.commodities_1d",
+  PSOYBUSDM: "econ.commodities_1d",
+  PCU311224311224: "econ.commodities_1d",
+  PMAIZMTUSDM: "econ.commodities_1d",
+  PWHEAMTUSDM: "econ.commodities_1d",
+  PBARLUSDM: "econ.commodities_1d",
+  PPOILUSDM: "econ.commodities_1d",
+  PROILUSDM: "econ.commodities_1d",
+  PCOPPUSDM: "econ.commodities_1d",
+  PRICENPQUSDM: "econ.commodities_1d",
+  PSUNOUSDM: "econ.commodities_1d",
+  POLVOILUSDM: "econ.commodities_1d",
+  PSUGAISAUSDM: "econ.commodities_1d",
+  WPU01830161: "econ.commodities_1d",
+  WPU01830171: "econ.commodities_1d",
+
+  // Money → econ.money_1d
+  M2SL: "econ.money_1d",
+  WALCL: "econ.money_1d",
+  BOGMBASE: "econ.money_1d",
+  WRESBAL: "econ.money_1d",
+  RRPONTSYD: "econ.money_1d",
+  TOTRESNS: "econ.money_1d",
+  MYAGM2CNM189N: "econ.money_1d",
+  IR3TIB01CNM156N: "econ.money_1d",
+};
+
+/**
+ * Get target table for a FRED series.
+ * Default: econ.rates_1d for interest rates and unmapped series.
+ */
+function getTargetTable(seriesId: string): string {
+  return FRED_TABLE_MAP[seriesId] || "econ.rates_1d";
+}
 
 const DEFAULT_FRED_RATE_LIMIT_MS = 500;
 const DEFAULT_FRED_FETCH_TIMEOUT_MS = 15000;
@@ -436,9 +624,9 @@ async function quarantineRecord(
 /**
  * Check if row hash already exists in database
  */
-async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
+async function hashExists(client: PoolClient, rowHash: string, targetTable: string): Promise<boolean> {
   const result = await client.query(
-    `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1 LIMIT 1`,
+    `SELECT 1 FROM ${targetTable} WHERE row_hash = $1 LIMIT 1`,
     [rowHash]
   );
   return result.rows.length > 0;
@@ -450,11 +638,12 @@ async function hashExists(client: PoolClient, rowHash: string): Promise<boolean>
 async function getLatestRevision(
   client: PoolClient,
   seriesId: string,
-  eventDate: string
+  eventDate: string,
+  targetTable: string
 ): Promise<{ value: number; revisionNo: number } | null> {
   const result = await client.query(
-    `SELECT value, revision_no 
-     FROM econ.rates_1d 
+    `SELECT value, revision_no
+     FROM ${targetTable}
      WHERE series_id = $1 AND event_date = $2
      ORDER BY revision_no DESC
      LIMIT 1`,
@@ -606,6 +795,7 @@ async function ingestFredSegment(
 
   for (const series of seriesList) {
     attempted++;
+    const targetTable = getTargetTable(series.id);
 
     try {
       const fetchResult = await fetchFredSeries(series.id, apiKey, options);
@@ -629,7 +819,7 @@ async function ingestFredSegment(
         await quarantineRecord(
           client,
           runId,
-          "econ.rates_1d",
+          targetTable,
           { series_id: series.id, date: obs.date, raw_value: obs.value },
           ["Invalid numeric value: " + obs.value],
           "error"
@@ -641,20 +831,20 @@ async function ingestFredSegment(
 
       const rowHash = computeRowHash(series.id, obs.date, value);
 
-      if (await hashExists(client, rowHash)) {
+      if (await hashExists(client, rowHash, targetTable)) {
         results.push({ series: series.id, status: "skipped_duplicate" });
         skipped++;
         continue;
       }
 
-      const existing = await getLatestRevision(client, series.id, obs.date);
+      const existing = await getLatestRevision(client, series.id, obs.date, targetTable);
       let revisionNo = 1;
       if (existing && existing.value !== value) {
         revisionNo = existing.revisionNo + 1;
       }
 
       await client.query(
-        `INSERT INTO econ.rates_1d (
+        `INSERT INTO ${targetTable} (
            series_id,
            value,
            event_date,
@@ -697,7 +887,7 @@ async function ingestFredSegment(
       await quarantineRecord(
         client,
         runId,
-        "econ.rates_1d",
+        targetTable,
         { series_id: series.id, error: errorMsg },
         ["Fetch/insert error: " + errorMsg],
         "error"
