@@ -50,7 +50,7 @@ already covered, and identify safe additions that do not touch schemas.
 - fed/volatility: `fred-daily-volatility`, `nyfed-daily`, `barchart-options-daily`
 - energy: `yahoo-eod` (CL/HO), `eia-today`
 - china: `conab-news`, `cbp-trade`, `usda-export-sales-weekly`, FRED China series
-- substitutes: `barchart-futures-daily` (RS/Canola), `yahoo-eod`
+- substitutes: `yahoo-eod` (RS/Canola), `barchart-futures-daily` (CT/OJ/LBR softs)
 - tariff/trump_effect: `federal-register`, `whitehouse-press`, `alt.news_1d`
 
 ## Safe Additions (No Schema Changes)

@@ -1,10 +1,12 @@
 /**
  * Barchart Futures Daily Price Ingestion
  *
- * Fetches daily OHLCV data from Barchart for symbols not available on Yahoo:
- * - RS (Canola) - Yahoo shows as "possibly delisted"
- * - CPO (Crude Palm Oil) - Not on Yahoo (traded on Bursa Malaysia)
- * - Other softs and agricultural futures
+ * Fetches daily OHLCV data from Barchart for soft commodities:
+ * - CT (Cotton)
+ * - OJ (Orange Juice)
+ * - LBR (Lumber)
+ *
+ * Note: RS (Canola) moved to yahoo-eod.ts. CPO handled by cpo-daily.ts.
  *
  * Uses Barchart's core-api proxy (same method as barchart-zl-news.ts)
  */
@@ -26,7 +28,8 @@ const BARCHART_SYMBOLS = [
 ];
 
 const BARCHART_QUOTE_URL = "https://www.barchart.com/proxies/core-api/v1/quotes/get";
-const SEED_URL = "https://www.barchart.com/futures/quotes/RS*0/overview";
+// Use CT (Cotton) for session bootstrap - must be a symbol we actually fetch
+const SEED_URL = "https://www.barchart.com/futures/quotes/CT*0/overview";
 
 type BarchartQuote = {
   symbol: string;
