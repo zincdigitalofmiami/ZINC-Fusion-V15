@@ -51,8 +51,9 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
 }
 
 async function fetchFromYahooFinance(): Promise<CpoData | null> {
-  // Yahoo Finance provides FCPO (Bursa Malaysia Crude Palm Oil Futures)
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/FCPO=F?interval=1d&range=5d";
+  // Yahoo Finance CPO=F (CME Malaysian Crude Palm Oil Cash Futures)
+  // Note: FCPO=F (Bursa Malaysia symbol) was delisted, using CPO=F instead
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/CPO=F?interval=1d&range=5d";
 
   const res = await fetch(url, {
     headers: {

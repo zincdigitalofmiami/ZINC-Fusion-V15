@@ -243,6 +243,9 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "NASDAQCOM", name: "NASDAQ Composite Index", tags: ["volatility"] },
   // VIX - fear gauge, affects all risk assets
   { id: "VIXCLS", name: "VIX Index", tags: ["volatility", "crush", "energy"] },
+  // VIX3M (VXVCLS) - 3-month VIX for term structure analysis
+  // VIX/VIX3M spread: backwardation = panic, contango = complacency
+  { id: "VXVCLS", name: "VIX3M (3-Month VIX)", tags: ["volatility", "fed", "energy"] },
   // OVX - crude oil specific volatility, energy sector stress
   { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility", "energy", "biofuel"] },
   // Financial stress - credit conditions, demand destruction risk
@@ -362,6 +365,7 @@ const FRED_TABLE_MAP: Record<string, string> = {
 
   // Vol Indices → econ.vol_indices_1d
   VIXCLS: "econ.vol_indices_1d",
+  VXVCLS: "econ.vol_indices_1d", // VIX3M (3-month VIX)
   OVXCLS: "econ.vol_indices_1d",
   STLFSI: "econ.vol_indices_1d",
   STLFSI4: "econ.vol_indices_1d",
@@ -837,45 +841,32 @@ async function ingestFredSegment(
         continue;
       }
 
-      const existing = await getLatestRevision(client, series.id, obs.date, targetTable);
-      let revisionNo = 1;
-      if (existing && existing.value !== value) {
-        revisionNo = existing.revisionNo + 1;
-      }
-
+      // Use simplified column set that matches actual econ.* table structure
       await client.query(
         `INSERT INTO ${targetTable} (
            series_id,
            value,
            event_date,
            knowledge_time,
-           revision_no,
-           is_preliminary,
-           validation_status,
            source,
-           source_url,
-           ingestion_batch_id,
-           row_hash,
-           specialist_tags
-         ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11)`,
+           row_hash
+         ) VALUES ($1, $2, $3, NOW(), $4, $5)
+         ON CONFLICT (series_id, event_date) DO UPDATE SET
+           value = EXCLUDED.value,
+           knowledge_time = NOW(),
+           source = EXCLUDED.source`,
         [
           series.id,
           value,
           obs.date,
-          revisionNo,
-          false,
-          "validated",
           "fred_api",
-          `https://fred.stlouisfed.org/series/${series.id}`,
-          runId,
           rowHash,
-          series.tags,
         ]
       );
 
       results.push({
         series: series.id,
-        status: revisionNo > 1 ? "inserted_revision" : "inserted",
+        status: "inserted",
         value,
         tags: series.tags,
       });

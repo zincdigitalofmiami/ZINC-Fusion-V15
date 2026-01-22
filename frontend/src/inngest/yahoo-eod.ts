@@ -37,43 +37,128 @@ const YAHOO_SYMBOLS = [
   { yahoo: "SB=F", db: "SB", name: "Sugar" },
 ];
 
-interface YahooQuote {
+interface YahooChartResult {
+  meta: {
+    symbol: string;
+    regularMarketPrice: number;
+  };
+  timestamp?: number[];
+  indicators?: {
+    quote?: Array<{
+      open?: (number | null)[];
+      high?: (number | null)[];
+      low?: (number | null)[];
+      close?: (number | null)[];
+      volume?: (number | null)[];
+    }>;
+  };
+}
+
+interface ParsedQuote {
   symbol: string;
-  regularMarketOpen: number;
-  regularMarketHigh: number;
-  regularMarketLow: number;
-  regularMarketPrice: number;
-  regularMarketVolume: number;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  close: number;
+  volume: number;
+}
+
+/**
+ * Fetch quote from Yahoo Finance v8 chart API (v7 quote API is now blocked)
+ */
+async function fetchYahooChart(symbol: string): Promise<ParsedQuote | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`,
+      { headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" } }
+    );
+
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const result = json?.chart?.result?.[0] as YahooChartResult | undefined;
+    if (!result) return null;
+
+    const quote = result.indicators?.quote?.[0];
+    const timestamps = result.timestamp;
+    if (!quote || !timestamps || timestamps.length === 0) {
+      // Use meta price as fallback
+      return {
+        symbol: result.meta.symbol,
+        open: null,
+        high: null,
+        low: null,
+        close: result.meta.regularMarketPrice,
+        volume: 0,
+      };
+    }
+
+    // Get the last valid data point
+    let lastIdx = timestamps.length - 1;
+    while (lastIdx >= 0 && quote.close?.[lastIdx] == null) {
+      lastIdx--;
+    }
+    if (lastIdx < 0) {
+      return {
+        symbol: result.meta.symbol,
+        open: null,
+        high: null,
+        low: null,
+        close: result.meta.regularMarketPrice,
+        volume: 0,
+      };
+    }
+
+    return {
+      symbol: result.meta.symbol,
+      open: quote.open?.[lastIdx] ?? null,
+      high: quote.high?.[lastIdx] ?? null,
+      low: quote.low?.[lastIdx] ?? null,
+      close: quote.close?.[lastIdx] ?? result.meta.regularMarketPrice,
+      volume: quote.volume?.[lastIdx] ?? 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Fetch end-of-day prices from Yahoo Finance for multiple symbols
  * Runs daily at 6:00 PM ET (after market close)
+ * Note: Uses v8 chart API since v7 quote API is now blocked
  */
 export const yahooEod = inngest.createFunction(
   { id: "yahoo-eod", name: "Yahoo EOD Prices" },
   { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
-  async ({ step }) => {
+  async ({ step, logger }) => {
     const results: { symbol: string; status: string; close?: number }[] = [];
 
-    // Step 1: Fetch all quotes from Yahoo
+    // Fetch quotes individually using v8 chart API (v7 quote API is blocked)
     const quotes = await step.run("fetch-yahoo-quotes", async () => {
-      const symbols = YAHOO_SYMBOLS.map((s) => s.yahoo).join(",");
-      const res = await fetch(
-        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`
-      );
-      const json = await res.json();
-      return json.quoteResponse?.result as YahooQuote[] | undefined;
+      const fetchedQuotes: ParsedQuote[] = [];
+
+      for (const config of YAHOO_SYMBOLS) {
+        const quote = await fetchYahooChart(config.yahoo);
+        if (quote) {
+          fetchedQuotes.push({ ...quote, symbol: config.yahoo });
+        }
+        // Rate limit to avoid being blocked
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
+      return fetchedQuotes;
     });
 
-    if (!quotes || quotes.length === 0) {
+    logger.info(`Fetched ${quotes.length}/${YAHOO_SYMBOLS.length} quotes from Yahoo`);
+
+    if (quotes.length === 0) {
       return { status: "error", message: "No quotes returned from Yahoo" };
     }
 
     // Step 2: Insert each quote into the database
     for (const config of YAHOO_SYMBOLS) {
       const quote = quotes.find(
-        (q) => q.symbol === config.yahoo || q.symbol === config.yahoo.replace("=F", "")
+        (q) => q.symbol === config.yahoo || q.symbol === config.yahoo.replace("=F", "") || q.symbol === config.yahoo.replace("^", "")
       );
 
       if (!quote) {
@@ -89,28 +174,29 @@ export const yahooEod = inngest.createFunction(
               (event_date, symbol, open, high, low, close, volume, source, ingested_at)
              VALUES (CURRENT_DATE, $1, $2, $3, $4, $5, $6, 'yahoo_eod', NOW())
              ON CONFLICT (event_date, symbol) DO UPDATE SET
-               open = EXCLUDED.open,
-               high = EXCLUDED.high,
-               low = EXCLUDED.low,
+               open = COALESCE(EXCLUDED.open, mkt.futures_1d.open),
+               high = COALESCE(EXCLUDED.high, mkt.futures_1d.high),
+               low = COALESCE(EXCLUDED.low, mkt.futures_1d.low),
                close = EXCLUDED.close,
                volume = EXCLUDED.volume,
                source = EXCLUDED.source,
                ingested_at = NOW()`,
             [
               config.db,
-              quote.regularMarketOpen,
-              quote.regularMarketHigh,
-              quote.regularMarketLow,
-              quote.regularMarketPrice,
-              quote.regularMarketVolume || 0,
+              quote.open,
+              quote.high,
+              quote.low,
+              quote.close,
+              quote.volume || 0,
             ]
           );
           results.push({
             symbol: config.db,
             status: "success",
-            close: quote.regularMarketPrice,
+            close: quote.close,
           });
-        } catch {
+        } catch (err) {
+          logger.warn(`Failed to insert ${config.db}: ${err}`);
           results.push({
             symbol: config.db,
             status: "error",
