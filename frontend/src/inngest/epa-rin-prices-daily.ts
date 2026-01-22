@@ -104,7 +104,7 @@ class QlikRpcClient {
   private nextId = 1;
   private pending = new Map<number, PendingRpc>();
 
-  async connect(url: string): Promise<void> {
+  async connect(url: string, timeoutMs: number = 30_000): Promise<void> {
     if (typeof WebSocket !== "function") {
       throw new Error("Global WebSocket is not available in this runtime (need Node >= 20).");
     }
@@ -112,19 +112,26 @@ class QlikRpcClient {
     this.ws = new WebSocket(url);
 
     await new Promise<void>((resolve, reject) => {
+      const connectionTimeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(`EPA Qlik WebSocket connection timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+
       const onOpen = () => {
         cleanup();
         resolve();
       };
-      const onError = () => {
+      const onError = (event: Event) => {
         cleanup();
-        reject(new Error("EPA Qlik WebSocket connection failed"));
+        const errorDetail = (event as ErrorEvent)?.message || "unknown error";
+        reject(new Error(`EPA Qlik WebSocket connection failed: ${errorDetail}`));
       };
-      const onClose = () => {
+      const onClose = (event: CloseEvent) => {
         cleanup();
-        reject(new Error("EPA Qlik WebSocket closed before opening"));
+        reject(new Error(`EPA Qlik WebSocket closed before opening: code=${event?.code}, reason=${event?.reason || "none"}`));
       };
       const cleanup = () => {
+        clearTimeout(connectionTimeout);
         this.ws?.removeEventListener("open", onOpen);
         this.ws?.removeEventListener("error", onError);
         this.ws?.removeEventListener("close", onClose);
@@ -193,10 +200,13 @@ type RinPricePoint = {
   qlikLastReloadTime: string;
 };
 
-async function fetchRinPricesFromQlik(): Promise<{ lastReloadTime: string; points: RinPricePoint[] }> {
-  const rpc = new QlikRpcClient();
-  try {
-    await rpc.connect(EPA_QLIK_WS_URL);
+async function fetchRinPricesFromQlik(maxRetries: number = 3): Promise<{ lastReloadTime: string; points: RinPricePoint[] }> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const rpc = new QlikRpcClient();
+    try {
+      await rpc.connect(EPA_QLIK_WS_URL, 45_000); // 45s timeout for connection
     const openRes = await rpc.call<QlikOpenDocResult>(-1, "OpenDoc", [EPA_QLIK_APP_ID, "", "", "", false]);
     const docHandle: number | undefined = openRes?.qReturn?.qHandle;
     if (!docHandle) throw new Error("EPA Qlik OpenDoc returned no doc handle");
@@ -268,10 +278,20 @@ async function fetchRinPricesFromQlik(): Promise<{ lastReloadTime: string; point
       });
     }
 
-    return { lastReloadTime, points };
-  } finally {
-    rpc.close();
+      return { lastReloadTime, points };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      rpc.close();
+
+      if (attempt < maxRetries) {
+        // Exponential backoff: 5s, 15s, 45s
+        const backoffMs = 5000 * Math.pow(3, attempt - 1);
+        await new Promise((r) => setTimeout(r, backoffMs));
+      }
+    }
   }
+
+  throw lastError || new Error("EPA Qlik fetch failed after all retries");
 }
 
 export const epaRinPricesDaily = inngest.createFunction(

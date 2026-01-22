@@ -24,7 +24,7 @@ const pool = new Pool({
 });
 
 const PROFARMER_BASE = "https://www.profarmer.com";
-const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/login`;
+const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;
 
 // Reports to scrape with their specialist tags
 const REPORTS = [

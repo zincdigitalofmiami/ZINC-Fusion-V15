@@ -13,7 +13,13 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-const REGIONS = ["AR", "BR", "US"] as const;
+// Country codes mapped to full names used in alt.weather_1d
+const REGION_CODES = ["AR", "BR", "US"] as const;
+const COUNTRY_NAMES: Record<typeof REGION_CODES[number], string> = {
+  AR: "Argentina",
+  BR: "Brazil",
+  US: "United States",
+};
 
 interface RegionAggregates {
   trade_date: string;
@@ -76,7 +82,7 @@ async function aggregateWeatherByRegion(
        AVG(awnd_ms) as awnd_ms
      FROM alt.weather_1d
      WHERE event_date > $1::date
-       AND country IN ('AR', 'BR', 'US')
+       AND country IN ('Argentina', 'Brazil', 'United States')
      GROUP BY event_date, country
      ORDER BY event_date, country`,
     [startDate]
@@ -84,15 +90,23 @@ async function aggregateWeatherByRegion(
   return result.rows;
 }
 
+// Reverse mapping: full country name -> region code
+const COUNTRY_TO_REGION: Record<string, typeof REGION_CODES[number]> = {
+  Argentina: "AR",
+  Brazil: "BR",
+  "United States": "US",
+};
+
 function pivotToFeatureRow(
   tradeDate: string,
   regionData: Map<string, RegionAggregates>
 ): Record<string, unknown> {
   const row: Record<string, unknown> = { trade_date: tradeDate };
 
-  for (const region of REGIONS) {
-    const data = regionData.get(region);
-    const r = region.toLowerCase();
+  // Iterate using full country names and map to region codes for column names
+  for (const [countryName, regionCode] of Object.entries(COUNTRY_TO_REGION)) {
+    const data = regionData.get(countryName);
+    const r = regionCode.toLowerCase();
 
     row[`wx_${r}_tavg_c`] = data?.tavg_c ?? null;
     row[`wx_${r}_tmin_c`] = data?.tmin_c ?? null;

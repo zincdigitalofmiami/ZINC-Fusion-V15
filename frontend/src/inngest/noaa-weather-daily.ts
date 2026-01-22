@@ -130,6 +130,12 @@ async function fetchNoaaStation(
       continue;
     }
     if (!res.ok) {
+      // 400 errors often indicate invalid station ID or station no longer reporting
+      // Don't throw - return empty array so other stations can continue
+      if (res.status === 400 || res.status === 404) {
+        console.warn(`NOAA station ${stationId} returned ${res.status} - station may be inactive`);
+        return [];
+      }
       throw new Error(`NOAA fetch failed for ${stationId}: ${res.status}`);
     }
 
@@ -195,12 +201,23 @@ export const noaaWeatherDaily = inngest.createFunction(
       const today = new Date().toISOString().slice(0, 10);
       const endDate = addDays(today, -1); // avoid same-day partials
 
+      const stationErrors: string[] = [];
+
       for (const station of stationsNoaa) {
         await step.run(`station-${station.station_id}`, async () => {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
           if (startDate > endDate) return;
 
-          const rows = await fetchNoaaStation(station.noaa_station_id, startDate, endDate);
+          let rows: Array<{ date: string; datatype: string; value: number }>;
+          try {
+            rows = await fetchNoaaStation(station.noaa_station_id, startDate, endDate);
+          } catch (err) {
+            // Log but don't fail the entire job for one station
+            const msg = err instanceof Error ? err.message : String(err);
+            stationErrors.push(`${station.station_id}: ${msg}`);
+            quarantined++;
+            return;
+          }
           if (rows.length === 0) return;
 
           // Group by YYYY-MM-DD
@@ -267,7 +284,13 @@ export const noaaWeatherDaily = inngest.createFunction(
       }
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
-      return { status: "success", runId, attempted, inserted, skipped, quarantined };
+
+      // Log any station errors for debugging (but don't fail the job)
+      if (stationErrors.length > 0) {
+        logger.warn(`Station errors (${stationErrors.length}): ${stationErrors.slice(0, 5).join("; ")}`);
+      }
+
+      return { status: "success", runId, attempted, inserted, skipped, quarantined, stationErrors: stationErrors.length };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (runId) {
