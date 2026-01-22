@@ -66,3 +66,7 @@ training_*.log
 backup_pre_migration_20260118_114613.sql
 *.sql.bak
 mlflow.db
+
+# Local artifacts (ignore permanently)
+Docs/screencapture-app-inngest-env-production-runs-2026-01-20-11_57_04.png
+data-alloy/prometheus.remote_write.metrics_service/wal/00000002
