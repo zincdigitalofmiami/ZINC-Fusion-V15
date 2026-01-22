@@ -431,7 +431,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT horizon_days || 'd' as \"Horizon\", window_id as \"Window\", to_char(cutoff_date, 'MM/DD/YY') as \"Cutoff\", COUNT(*) as \"Predictions\", ROUND(AVG(core_p50)::numeric, 4) as \"Avg P50\", ROUND(AVG(target_value)::numeric, 4) as \"Avg Target\", ROUND(AVG(ABS(core_p50 - target_value))::numeric, 4) as \"MAE\" FROM training.oof_core_zl_1d WHERE target_value IS NOT NULL GROUP BY horizon_days, window_id, cutoff_date ORDER BY horizon_days, window_id",
+          "rawSql": "SELECT horizon_days || 'd' as \"Horizon\", window_id as \"Window\", to_char(cutoff_date, 'MM/DD/YY') as \"Cutoff\", COUNT(*) as \"Predictions\", ROUND(AVG(p30)::numeric, 4) as \"Avg P30\", ROUND(AVG(p50)::numeric, 4) as \"Avg P50\", ROUND(AVG(p70)::numeric, 4) as \"Avg P70\", ROUND(AVG(target_value)::numeric, 4) as \"Avg Target\", ROUND(AVG(ABS(p50 - target_value))::numeric, 4) as \"MAE\" FROM training.oof_core_1d WHERE target_value IS NOT NULL GROUP BY horizon_days, window_id, cutoff_date ORDER BY horizon_days, window_id",
           "refId": "A"
         }
       ],

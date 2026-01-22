@@ -42,7 +42,7 @@ These tables already exist in Prisma and are expected to be **empty prior to fir
 ### Pre-Training Readiness
 Before running any v2 training jobs, run:
 ```bash
-python3 scripts/pretrain_readiness_audit.py --strict
+python3 scripts/validate_db_state.py
 ```
 and resolve blockers (core matrix population, target columns, stale inputs).
 

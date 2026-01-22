@@ -8,7 +8,7 @@
 ### ✅ Active (Keep Using)
 - `populate_core_matrix.py` - Builds training matrix with targets
 - `generate_specialist_features.py` - Feature generation for 11 specialists
-- `pretrain_readiness_audit.py` - Pre-training validation
+- `validate_db_state.py` - Pre-training validation
 - `register_models.py` - Model registry management
 
 ### 🏗️ SoT v2 (To Be Built)
@@ -42,7 +42,7 @@ See `scripts/legacy/README.md` for details on what was moved and why.
 
 1. **Verify table schemas:**
    ```bash
-   python scripts/pretrain_readiness_audit.py --strict
+   python scripts/validate_db_state.py
    ```
 
 2. **Build SoT v2 training scripts** that write to proper tables

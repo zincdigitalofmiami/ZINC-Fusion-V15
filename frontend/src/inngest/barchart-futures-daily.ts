@@ -17,13 +17,9 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Symbols to fetch from Barchart (use continuous contract notation)
+// Symbols to fetch from Barchart (use continuous contract notation).
+// Yahoo is preferred when available.
 const BARCHART_SYMBOLS = [
-  { barchart: "RS*0", db: "RS", name: "Canola" },
-  { barchart: "CPO*0", db: "CPO", name: "Crude Palm Oil" },
-  { barchart: "CC*0", db: "CC", name: "Cocoa" },
-  { barchart: "KC*0", db: "KC", name: "Coffee" },
-  { barchart: "SB*0", db: "SB", name: "Sugar" },
   { barchart: "CT*0", db: "CT", name: "Cotton" },
   { barchart: "OJ*0", db: "OJ", name: "Orange Juice" },
   { barchart: "LBR*0", db: "LBR", name: "Lumber" },
@@ -42,6 +38,17 @@ type BarchartQuote = {
   volume: number;
   tradeTime: string;
 };
+
+function parseBarchartNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/,/g, "").replace(/[^0-9.+-]/g, "");
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function getSetCookieHeaders(res: Response): string[] {
   const headersAny = res.headers as unknown as { getSetCookie?: () => string[] };
@@ -117,12 +124,12 @@ async function fetchBarchartQuotes(symbols: string[]): Promise<BarchartQuote[]> 
 
   return quotes.map((q: Record<string, unknown>) => ({
     symbol: String(q.symbol || ""),
-    lastPrice: Number(q.lastPrice) || 0,
-    open: Number(q.open) || Number(q.lastPrice) || 0,
-    high: Number(q.high) || Number(q.lastPrice) || 0,
-    low: Number(q.low) || Number(q.lastPrice) || 0,
-    previousClose: Number(q.previousClose) || 0,
-    volume: Number(q.volume) || 0,
+    lastPrice: parseBarchartNumber(q.lastPrice) ?? 0,
+    open: parseBarchartNumber(q.open) ?? parseBarchartNumber(q.lastPrice) ?? 0,
+    high: parseBarchartNumber(q.high) ?? parseBarchartNumber(q.lastPrice) ?? 0,
+    low: parseBarchartNumber(q.low) ?? parseBarchartNumber(q.lastPrice) ?? 0,
+    previousClose: parseBarchartNumber(q.previousClose) ?? 0,
+    volume: parseBarchartNumber(q.volume) ?? 0,
     tradeTime: String(q.tradeTime || ""),
   }));
 }
