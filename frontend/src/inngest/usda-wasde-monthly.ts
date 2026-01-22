@@ -13,6 +13,12 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+// Minimum acceptable rows (allow partial data rather than failing completely)
+// Full expected: 3 commodities × 5 countries × 4 metrics = 60
+// Minimum: at least get core soy complex data (3 commodities × 2 countries × 2 metrics = 12)
+const MIN_ACCEPTABLE_ROWS = 12;
+const IDEAL_ROW_COUNT = 60;
+
 function computeRowHash(parts: string[]): string {
   return createHash("sha256").update(parts.join("|")).digest("hex");
 }
@@ -47,10 +53,18 @@ function mapCountry(rawRegion: string): string | null {
 
 function mapMetric(rawAttribute: string): string | null {
   const attr = normalizeWhitespace(rawAttribute);
+  // Primary metrics
   if (attr === "Production") return "production";
   if (attr === "Exports") return "exports";
   if (attr === "Ending Stocks") return "ending_stocks";
   if (attr === "Domestic Total") return "consumption";
+  // Alternative metric names USDA sometimes uses
+  if (attr === "Total Production") return "production";
+  if (attr === "Total Exports") return "exports";
+  if (attr === "Stocks") return "ending_stocks";
+  if (attr === "Domestic Consumption") return "consumption";
+  if (attr === "Domestic Use") return "consumption";
+  if (attr === "Crushings") return "consumption";
   return null;
 }
 
@@ -154,16 +168,26 @@ interface WasdeAttributeGroup {
 function extractCommodityRows(
   parsed: WasdeXmlParsed,
   srKey: string,
-  commodity: string
+  commodity: string,
+  logger?: { warn: (msg: string) => void }
 ): WasdeRow[] {
   const report = parsed?.Report?.[srKey]?.Report;
-  if (!report) throw new Error(`Missing subreport ${srKey} in WASDE XML`);
+  if (!report) {
+    logger?.warn(`Missing subreport ${srKey} in WASDE XML - skipping ${commodity}`);
+    return [];
+  }
 
   const matrix5 = report.matrix5;
-  if (!matrix5) throw new Error(`Missing ${srKey}.Report.matrix5 in WASDE XML`);
+  if (!matrix5) {
+    logger?.warn(`Missing ${srKey}.Report.matrix5 in WASDE XML - skipping ${commodity}`);
+    return [];
+  }
 
   const regionGroups = toArray(matrix5?.m2_region_group2_Collection?.m2_region_group2);
-  if (regionGroups.length === 0) throw new Error(`No region groups found for ${srKey} matrix5`);
+  if (regionGroups.length === 0) {
+    logger?.warn(`No region groups found for ${srKey} matrix5 - skipping ${commodity}`);
+    return [];
+  }
 
   const rows: WasdeRow[] = [];
   for (const rg of regionGroups) {
@@ -180,22 +204,29 @@ function extractCommodityRows(
       if (!metric) continue;
 
       const cellValue: string | undefined = ag?.Cell?.["@_cell_value5"];
-      if (!cellValue) throw new Error(`Missing cell value for ${srKey} ${country} ${attributeRaw}`);
+      if (!cellValue) {
+        logger?.warn(`Missing cell value for ${srKey} ${country} ${attributeRaw} - skipping`);
+        continue;
+      }
 
-      rows.push({
-        commodity,
-        country,
-        metric,
-        value: parseFloatStrict(cellValue),
-        unit: "MMT",
-      });
+      try {
+        rows.push({
+          commodity,
+          country,
+          metric,
+          value: parseFloatStrict(cellValue),
+          unit: "MMT",
+        });
+      } catch (e) {
+        logger?.warn(`Failed to parse value for ${commodity}/${country}/${metric}: ${cellValue}`);
+      }
     }
   }
 
   return rows;
 }
 
-async function fetchLatestWasdeRows(): Promise<{ release: WasdeRelease; rows: WasdeRow[] }> {
+async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn: (msg: string) => void }): Promise<{ release: WasdeRelease; rows: WasdeRow[] }> {
   const pubRes = await fetch(CORNELL_PUBLICATIONS_URL, { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
   if (!pubRes.ok) throw new Error(`Cornell publications fetch failed: ${pubRes.status}`);
   const html = await pubRes.text();
@@ -208,17 +239,35 @@ async function fetchLatestWasdeRows(): Promise<{ release: WasdeRelease; rows: Wa
   const parser = new XMLParser({ ignoreAttributes: false });
   const parsed = parser.parse(xmlText);
 
+  // Extract rows from each commodity section, allowing partial failures
   const rows: WasdeRow[] = [
-    ...extractCommodityRows(parsed, "sr28", "Soybeans"),
-    ...extractCommodityRows(parsed, "sr29", "Soybean Meal"),
-    ...extractCommodityRows(parsed, "sr30", "Soybean Oil"),
+    ...extractCommodityRows(parsed, "sr28", "Soybeans", logger),
+    ...extractCommodityRows(parsed, "sr29", "Soybean Meal", logger),
+    ...extractCommodityRows(parsed, "sr30", "Soybean Oil", logger),
   ];
 
-  const expected = 3 * 5 * 4;
-  if (rows.length !== expected) {
+  // Log extraction summary
+  const byCommodity = rows.reduce((acc, r) => {
+    acc[r.commodity] = (acc[r.commodity] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  logger?.info(`WASDE extraction: ${rows.length} rows - ${JSON.stringify(byCommodity)}`);
+
+  // Validate we have minimum acceptable data
+  if (rows.length < MIN_ACCEPTABLE_ROWS) {
     const keySet = new Set(rows.map((r) => `${r.commodity}|${r.country}|${r.metric}`));
     throw new Error(
-      `WASDE parse incomplete: expected ${expected} rows (3 commodities × 5 countries × 4 metrics), got ${rows.length} (unique keys=${keySet.size})`
+      `WASDE parse failed: got ${rows.length} rows (minimum ${MIN_ACCEPTABLE_ROWS} required). ` +
+      `Expected ~${IDEAL_ROW_COUNT} rows (3 commodities × 5 countries × 4 metrics). ` +
+      `Unique keys: ${keySet.size}. This may indicate USDA changed their XML format.`
+    );
+  }
+
+  // Warn if we got partial data but continue
+  if (rows.length < IDEAL_ROW_COUNT) {
+    logger?.warn(
+      `WASDE partial data: got ${rows.length}/${IDEAL_ROW_COUNT} expected rows. ` +
+      `Proceeding with available data.`
     );
   }
 
@@ -247,7 +296,7 @@ export const usdaWasdeMonthly = inngest.createFunction(
       });
 
       const { release, rows } = await step.run("fetch-wasde", async () => {
-        return await fetchLatestWasdeRows();
+        return await fetchLatestWasdeRows(logger);
       });
 
       logger.info(`Latest WASDE release: ${release.reportDateTime} (${release.xmlUrl})`);
@@ -262,17 +311,25 @@ export const usdaWasdeMonthly = inngest.createFunction(
         return Number(r.rows[0].n);
       });
 
-      if (existingCount === 60) {
-        skipped = 60;
+      // Skip if we already have data for this report (any amount indicates already processed)
+      if (existingCount >= rows.length) {
+        skipped = existingCount;
         await step.run("complete-skip", async () => {
           await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
         });
-        return { status: "skipped_already_ingested", runId, reportDate: release.reportDate };
+        return { status: "skipped_already_ingested", runId, reportDate: release.reportDate, existingCount };
       }
-      if (existingCount > 0 && existingCount !== 60) {
-        throw new Error(
-          `Partial WASDE rows already exist for ${release.reportDate} (source=usda_wasde_cornell, count=${existingCount})`
-        );
+
+      // If partial data exists, delete and re-ingest to ensure consistency
+      if (existingCount > 0) {
+        await step.run("delete-partial", async () => {
+          await client.query(
+            `DELETE FROM supply.usda_wasde_1m
+             WHERE event_date = $1::date AND source = 'usda_wasde_cornell'`,
+            [release.reportDate]
+          );
+          logger.warn(`Deleted ${existingCount} partial rows for ${release.reportDate} before re-ingesting`);
+        });
       }
 
       await step.run("insert-rows", async () => {
@@ -294,7 +351,13 @@ export const usdaWasdeMonthly = inngest.createFunction(
               `INSERT INTO supply.usda_wasde_1m
                  (event_date, commodity, country, metric, value, unit, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at, knowledge_time)
                VALUES
-                 ($1::date, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, NOW(), $13::timestamptz)`,
+                 ($1::date, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, NOW(), $13::timestamptz)
+               ON CONFLICT (event_date, commodity, country, metric) DO UPDATE SET
+                 value = EXCLUDED.value,
+                 source_url = EXCLUDED.source_url,
+                 raw_payload = EXCLUDED.raw_payload,
+                 row_hash = EXCLUDED.row_hash,
+                 ingested_at = NOW()`,
               [
                 release.reportDate,
                 row.commodity,
@@ -335,10 +398,17 @@ export const usdaWasdeMonthly = inngest.createFunction(
       });
 
       await step.run("complete", async () => {
-        await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
+        const status = inserted === IDEAL_ROW_COUNT ? "success" : "partial_success";
+        await updateIngestRun(client, runId!, status, attempted, inserted, skipped, quarantined);
       });
 
-      return { status: "success", runId, reportDate: release.reportDate, inserted };
+      return {
+        status: inserted === IDEAL_ROW_COUNT ? "success" : "partial_success",
+        runId,
+        reportDate: release.reportDate,
+        inserted,
+        expected: IDEAL_ROW_COUNT,
+      };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (runId) {
