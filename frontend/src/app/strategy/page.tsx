@@ -29,8 +29,8 @@ export default function StrategyPage() {
                 ACCUMULATE
               </h2>
               <p className="text-slate-500 max-w-md text-sm leading-relaxed">
-                Forecast weighted by <span className="text-white">Technical Momentum (35%)</span> and{' '}
-                <span className="text-white">China Demand Flows (25%)</span>.
+                Forecast driven by <span className="text-white">Technical Momentum</span> and{' '}
+                <span className="text-white">China Demand Flows</span>.
                 Satellite crop health suggests tightening supply.
               </p>
             </div>

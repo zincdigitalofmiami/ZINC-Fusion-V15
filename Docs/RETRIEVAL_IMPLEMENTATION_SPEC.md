@@ -50,7 +50,7 @@ NO_KEY_NEEDED = [
 ## SOURCE CONFIGURATIONS BY DOMAIN
 
 ### SPECIALIST 1: CRUSH (Soybean Complex)
-**Priority**: P0 - CRITICAL (28-35% variance)
+**Priority**: P0 - CRITICAL
 
 ```python
 CRUSH_SOURCES = {
@@ -147,7 +147,7 @@ CRUSH_SOURCES = {
 ```
 
 ### SPECIALIST 2: CHINA (Trade Flows)
-**Priority**: P0 - CRITICAL (16-22% variance)
+**Priority**: P0 - CRITICAL
 
 ```python
 CHINA_SOURCES = {
@@ -218,7 +218,7 @@ CHINA_SOURCES = {
 ```
 
 ### SPECIALIST 3: FX (Currency Competitiveness)
-**Priority**: P1 (3-5% variance)
+**Priority**: P1
 
 ```python
 FX_SOURCES = {
@@ -264,7 +264,7 @@ FX_SOURCES = {
 ```
 
 ### SPECIALIST 4: FED (Monetary Policy)
-**Priority**: P1 (2-4% variance)
+**Priority**: P1
 
 ```python
 FED_SOURCES = {
@@ -334,7 +334,7 @@ FED_SOURCES = {
 ```
 
 ### SPECIALIST 5: TARIFF (Trade Policy)
-**Priority**: P1 (3-5% variance)
+**Priority**: P1
 
 ```python
 TARIFF_SOURCES = {
@@ -386,7 +386,7 @@ TARIFF_SOURCES = {
 ```
 
 ### SPECIALIST 6: ENERGY (Crude Oil & Energy Complex)
-**Priority**: P0 - CRITICAL (10-14% variance)
+**Priority**: P0 - CRITICAL
 
 ```python
 ENERGY_SOURCES = {
@@ -443,7 +443,7 @@ ENERGY_SOURCES = {
 ```
 
 ### SPECIALIST 7: BIOFUEL (Biodiesel & Renewable Fuel)
-**Priority**: P1 (6-10% variance)
+**Priority**: P1
 
 ```python
 BIOFUEL_SOURCES = {
@@ -489,7 +489,7 @@ BIOFUEL_SOURCES = {
 ```
 
 ### SPECIALIST 8: PALM (Palm Oil Substitution)
-**Priority**: P1 (8-12% variance)
+**Priority**: P1
 
 ```python
 PALM_SOURCES = {
@@ -544,7 +544,7 @@ PALM_SOURCES = {
 ```
 
 ### SPECIALIST 9: VOLATILITY (Financial Stress)
-**Priority**: P2 (2-3% variance)
+**Priority**: P2
 
 ```python
 VOLATILITY_SOURCES = {
@@ -584,7 +584,7 @@ VOLATILITY_SOURCES = {
 ```
 
 ### SPECIALIST 10: SUBSTITUTES (Vegetable Oil Competition)
-**Priority**: P2 (4-6% variance)
+**Priority**: P2
 
 ```python
 SUBSTITUTES_SOURCES = {
@@ -612,7 +612,7 @@ SUBSTITUTES_SOURCES = {
 ```
 
 ### SPECIALIST 11: TRUMP EFFECT (Political & Policy Volatility)
-**Priority**: P1 (5-10% regime-dependent)
+**Priority**: P1
 
 ```python
 TRUMP_SOURCES = {

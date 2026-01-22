@@ -92,7 +92,7 @@ logger = logging.getLogger(__name__)
 
 NEWS_SOURCES = [
     # =========================================================================
-    # SPECIALIST 1: CRUSH (Soybean Complex Fundamentals) - 28-35% variance
+    # SPECIALIST 1: CRUSH (Soybean Complex Fundamentals)
     # =========================================================================
     {
         "name": "Farm Policy News",
@@ -184,7 +184,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 2: CHINA (Trade Flows) - 16-22% variance
+    # SPECIALIST 2: CHINA (Trade Flows)
     # =========================================================================
     {
         "name": "Reuters China",
@@ -212,7 +212,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 3: FX (Currency Competitiveness) - 3-5% variance
+    # SPECIALIST 3: FX (Currency Competitiveness)
     # =========================================================================
     {
         "name": "ECB Press Releases",
@@ -224,7 +224,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 4: FED (Monetary Policy) - 2-4% variance
+    # SPECIALIST 4: FED (Monetary Policy)
     # =========================================================================
     {
         "name": "Federal Reserve News",
@@ -244,7 +244,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 5: TARIFF (Trade Policy) - 3-5% variance
+    # SPECIALIST 5: TARIFF (Trade Policy)
     # =========================================================================
     {
         "name": "White House Briefing",
@@ -272,7 +272,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 6: ENERGY (Crude Oil & Energy Complex) - 10-14% variance
+    # SPECIALIST 6: ENERGY (Crude Oil & Energy Complex)
     # =========================================================================
     {
         "name": "EIA Today in Energy",
@@ -292,7 +292,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 7: BIOFUEL (Biodiesel & Renewable Fuel) - 6-10% variance
+    # SPECIALIST 7: BIOFUEL (Biodiesel & Renewable Fuel)
     # =========================================================================
     {
         "name": "EPA News Releases",
@@ -312,7 +312,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 8: PALM (Palm Oil Substitution) - 8-12% variance
+    # SPECIALIST 8: PALM (Palm Oil Substitution)
     # =========================================================================
     {
         "name": "MPOB Malaysia",
@@ -356,7 +356,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 9: VOLATILITY (Financial Stress) - 2-3% variance
+    # SPECIALIST 9: VOLATILITY (Financial Stress)
     # =========================================================================
     {
         "name": "CBOE Insights",
@@ -368,7 +368,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 10: SUBSTITUTES (Vegetable Oil Competition) - 4-6% variance
+    # SPECIALIST 10: SUBSTITUTES (Vegetable Oil Competition)
     # Covers: Canola, Sunflower, Rapeseed, other veg oils
     # =========================================================================
     {
@@ -429,7 +429,7 @@ NEWS_SOURCES = [
     },
 
     # =========================================================================
-    # SPECIALIST 11: TRUMP EFFECT (Political & Policy Volatility) - 5-10%
+    # SPECIALIST 11: TRUMP EFFECT (Political & Policy Volatility)
     # =========================================================================
     {
         "name": "White House Executive Orders",

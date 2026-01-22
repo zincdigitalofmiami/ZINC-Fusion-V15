@@ -28,7 +28,6 @@
 ---
 
 ## SPECIALIST 1: CRUSH (Soybean Complex Fundamentals)
-**Variance Contribution: 28-35%**
 
 ### USDA Sources
 | Source | URL | Data | Frequency |
@@ -67,7 +66,6 @@
 ---
 
 ## SPECIALIST 2: CHINA (Trade Flows)
-**Variance Contribution: 16-22%**
 
 ### Official Chinese Sources
 | Source | URL | Data | Frequency |
@@ -95,7 +93,6 @@
 ---
 
 ## SPECIALIST 3: FX (Currency Competitiveness)
-**Variance Contribution: 3-5%**
 
 ### FRED Exchange Rates
 | Series ID | URL | Currency |
@@ -129,7 +126,6 @@
 ---
 
 ## SPECIALIST 4: FED (Monetary Policy)
-**Variance Contribution: 2-4%**
 
 ### FRED API Base
 ```
@@ -196,7 +192,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 5: TARIFF (Trade Policy)
-**Variance Contribution: 3-5%**
 
 ### Official Government
 | Source | URL | Data | Frequency |
@@ -225,7 +220,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 6: ENERGY (Crude Oil & Energy Complex)
-**Variance Contribution: 10-14%**
 
 ### EIA Sources
 | Source | URL | Data | Frequency |
@@ -255,7 +249,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 7: BIOFUEL (Biodiesel & Renewable Fuel)
-**Variance Contribution: 6-10%**
 
 ### EPA Sources
 | Source | URL | Data | Priority |
@@ -280,7 +273,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 8: PALM (Palm Oil Substitution)
-**Variance Contribution: 8-12%**
 
 ### Malaysian Sources
 | Source | URL | Data | Frequency |
@@ -308,7 +300,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 9: VOLATILITY (Financial Stress)
-**Variance Contribution: 2-3%**
 
 ### VIX Sources
 | Source | URL | Data | Frequency |
@@ -335,7 +326,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 10: SUBSTITUTES (Vegetable Oil Competition)
-**Variance Contribution: 4-6%**
 
 ### TradingEconomics Oils
 | Source | URL |
@@ -352,7 +342,6 @@ https://api.stlouisfed.org/fred/series/observations
 ---
 
 ## SPECIALIST 11: TRUMP EFFECT (Political & Policy Volatility)
-**Variance Contribution: 5-10% (regime-dependent)**
 
 ### Official White House
 | Source | URL | Data | Frequency |

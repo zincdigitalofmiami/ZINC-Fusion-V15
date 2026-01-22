@@ -699,19 +699,21 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 
 ### Economic Drivers (11)
 
-| # | Bucket | Variance | Key Features | Primary Sources |
-|---|--------|----------|--------------|-----------------|
-| 1 | `crush` | 28-35% | Board crush, oil share, NOPA | USDA, CFTC, News |
-| 2 | `china` | 16-22% | Soy imports, Dalian prices | MOFCOM, FAS |
-| 3 | `fx` | 3-5% | USD/BRL, USD/CNY | FRED FX |
-| 4 | `fed` | 2-4% | Fed funds, yield curve | FRED rates |
-| 5 | `tariff` | 3-5% | Trade policy, USTR | Federal Register |
-| 6 | `energy` | 10-14% | WTI, crack spreads | EIA, FRED |
-| 7 | `biofuel` | 6-10% | RIN prices, RFS mandates | EPA |
-| 8 | `palm` | 8-12% | CPO, Malaysia/Indonesia | MPOB, GAPKI |
-| 9 | `volatility` | 2-3% | VIX, financial stress | CBOE, FRED |
-| 10 | `substitutes` | 4-6% | Canola, sunflower, rapeseed | TradingEconomics |
-| 11 | `trump_effect` | 5-10% | EPU indices, tariff threats | White House, Fed Reg |
+| # | Bucket | Key Features | Primary Sources |
+|---|--------|--------------|-----------------|
+| 1 | `crush` | Board crush, oil share, NOPA | USDA, CFTC, News |
+| 2 | `china` | Soy imports, Dalian prices | MOFCOM, FAS |
+| 3 | `fx` | USD/BRL, USD/CNY | FRED FX |
+| 4 | `fed` | Fed funds, yield curve | FRED rates |
+| 5 | `tariff` | Trade policy, USTR | Federal Register |
+| 6 | `energy` | WTI, crack spreads | EIA, FRED |
+| 7 | `biofuel` | RIN prices, RFS mandates | EPA |
+| 8 | `palm` | CPO, Malaysia/Indonesia | MPOB, GAPKI |
+| 9 | `volatility` | VIX, financial stress | CBOE, FRED |
+| 10 | `substitutes` | Canola, sunflower, rapeseed | TradingEconomics |
+| 11 | `trump_effect` | EPU indices, tariff threats | White House, Fed Reg |
+
+> **⚠️ Specialist weights are learned by the L1 meta-ensemble, not predetermined.**
 
 ### Neural Drivers (5)
 

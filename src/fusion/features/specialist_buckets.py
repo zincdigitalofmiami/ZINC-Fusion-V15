@@ -3,21 +3,23 @@ ZINC Fusion V15: Big-11 Specialist Bucket Indicators
 =====================================================
 Domain-specific indicators for each of the 11 specialist buckets.
 
-Each bucket has custom indicators, weightings, and regime detection
-tailored to its specific market drivers.
+Each bucket has custom indicators and regime detection tailored to its specific market drivers.
+
+⚠️ CRITICAL: Specialist weights are LEARNED by the L1 meta-ensemble from market data.
+   NEVER hardcode weight percentages - the market determines importance, not humans.
 
 Buckets:
-1. CRUSH (28-35% weight) - Soybean complex fundamentals
-2. CHINA (16-22% weight) - Chinese import demand
-3. ENERGY (10-14% weight) - Petroleum complex (CL, HO, cracks)
-4. PALM (8-12% weight) - Palm oil complex (Malaysia/Indonesia) [CHRIS REQUEST]
-5. BIOFUEL (6-10% weight) - Renewable mandates (RINs, LCFS, RFS)
-6. SUBSTITUTES (4-6% weight) - Other competing oils (canola, sunflower, rapeseed)
-7. TARIFF (3-5% weight) - Trade policy impacts
-8. FX (3-5% weight) - Currency effects
-9. FED (2-4% weight) - Monetary policy
-10. VOLATILITY (2-3% weight) - Financial stress/fear
-11. TRUMP_EFFECT (5-10% weight) - Trump/policy regime dynamics, trade war, EPA waivers
+1. CRUSH - Soybean complex fundamentals
+2. CHINA - Chinese import demand
+3. ENERGY - Petroleum complex (CL, HO, cracks)
+4. PALM - Palm oil complex (Malaysia/Indonesia)
+5. BIOFUEL - Renewable mandates (RINs, LCFS, RFS)
+6. SUBSTITUTES - Other competing oils (canola, sunflower, rapeseed)
+7. TARIFF - Trade policy impacts
+8. FX - Currency effects
+9. FED - Monetary policy
+10. VOLATILITY - Financial stress/fear
+11. TRUMP_EFFECT - Policy regime dynamics, trade war, EPA waivers
 """
 
 import pandas as pd
@@ -31,10 +33,12 @@ warnings.filterwarnings("ignore")
 
 @dataclass
 class BucketConfig:
-    """Configuration for a specialist bucket."""
+    """Configuration for a specialist bucket.
+
+    NOTE: No weight_range field - weights are learned by L1 meta-ensemble.
+    """
 
     name: str
-    weight_range: Tuple[float, float]
     primary_features: List[str]
     secondary_features: List[str]
     regime_thresholds: Dict[str, float]
@@ -47,7 +51,6 @@ class BucketConfig:
 BUCKET_CONFIGS = {
     "crush": BucketConfig(
         name="Crush",
-        weight_range=(0.28, 0.35),
         primary_features=[
             "board_crush",
             "oil_share",
@@ -73,7 +76,6 @@ BUCKET_CONFIGS = {
     ),
     "china": BucketConfig(
         name="China",
-        weight_range=(0.16, 0.22),
         primary_features=[
             "china_soy_imports",
             "dalian_soy_close",
@@ -98,7 +100,6 @@ BUCKET_CONFIGS = {
     ),
     "energy": BucketConfig(
         name="Energy",
-        weight_range=(0.10, 0.14),
         primary_features=[
             "cl_close",
             "ho_close",
@@ -123,7 +124,6 @@ BUCKET_CONFIGS = {
     ),
     "palm": BucketConfig(
         name="Palm",
-        weight_range=(0.08, 0.12),
         primary_features=[
             "palm_oil_close",
             "palm_oil_front",
@@ -149,7 +149,6 @@ BUCKET_CONFIGS = {
     ),
     "biofuel": BucketConfig(
         name="Biofuel",
-        weight_range=(0.06, 0.10),
         primary_features=[
             "rin_d4_price",
             "rin_d6_price",
@@ -174,7 +173,6 @@ BUCKET_CONFIGS = {
     ),
     "substitutes": BucketConfig(
         name="Substitutes",
-        weight_range=(0.04, 0.06),
         primary_features=[
             "canola_close",
             "sunflower_close",
@@ -199,7 +197,6 @@ BUCKET_CONFIGS = {
     ),
     "tariff": BucketConfig(
         name="Tariff",
-        weight_range=(0.03, 0.06),
         primary_features=[
             "effective_tariff_rate",
             "trade_war_sentiment",
@@ -223,7 +220,6 @@ BUCKET_CONFIGS = {
     ),
     "fx": BucketConfig(
         name="FX",
-        weight_range=(0.03, 0.06),
         primary_features=[
             "dxy",
             "usd_brl",
@@ -249,7 +245,6 @@ BUCKET_CONFIGS = {
     ),
     "fed": BucketConfig(
         name="Fed",
-        weight_range=(0.03, 0.05),
         primary_features=[
             "fed_funds_rate",
             "fed_funds_target",
@@ -276,7 +271,6 @@ BUCKET_CONFIGS = {
     ),
     "volatility": BucketConfig(
         name="Volatility",
-        weight_range=(0.02, 0.04),
         primary_features=[
             "vix",
             "ovx",
@@ -312,7 +306,6 @@ BUCKET_CONFIGS = {
 class CrushBucketIndicators:
     """
     CRUSH Bucket: Soybean complex fundamentals
-    Weight: 35-45% of total signal
 
     Key Drivers:
     - Board crush margin (processing economics)
@@ -512,7 +505,6 @@ class CrushBucketIndicators:
 class ChinaBucketIndicators:
     """
     CHINA Bucket: Chinese import demand proxy
-    Weight: 20-30% of total signal
 
     Key Drivers:
     - China soybean imports (60%+ of global trade)
@@ -684,7 +676,6 @@ class ChinaBucketIndicators:
 class EnergyBucketIndicators:
     """
     ENERGY Bucket: Energy complex coupling
-    Weight: 15-20% of total signal
 
     Key Drivers:
     - Crude oil (biodiesel feedstock economics)
@@ -871,7 +862,6 @@ class EnergyBucketIndicators:
 class BiofuelBucketIndicators:
     """
     BIOFUEL Bucket: Renewable fuel mandates
-    Weight: 10-15% of total signal
 
     Key Drivers:
     - RIN prices (D4 biodiesel, D6 ethanol)
@@ -992,7 +982,6 @@ class BiofuelBucketIndicators:
 class PalmBucketIndicators:
     """
     PALM Bucket: Malaysia/Indonesia palm oil dynamics
-    Weight: 8-12% of total signal
 
     Key Drivers:
     - BMD palm oil futures (Malaysia)
@@ -1241,7 +1230,6 @@ class PalmBucketIndicators:
 class SubstitutesBucketIndicators:
     """
     SUBSTITUTES Bucket: Non-palm competing vegetable oils
-    Weight: 4-6% of total signal
 
     Key Drivers:
     - Canola/Rapeseed prices (Canada, EU)
@@ -1371,7 +1359,6 @@ class SubstitutesBucketIndicators:
 class FXBucketIndicators:
     """
     FX Bucket: Currency effects on export competitiveness
-    Weight: 5-10% of total signal
 
     Key Drivers:
     - DXY (dollar strength)
@@ -1460,7 +1447,6 @@ class FXBucketIndicators:
 class FedBucketIndicators:
     """
     FED Bucket: US monetary policy impacts
-    Weight: 5-10% of total signal
 
     Key Drivers:
     - Fed funds rate
@@ -1572,7 +1558,6 @@ class FedBucketIndicators:
 class VolatilityBucketIndicators:
     """
     VOLATILITY Bucket: Financial stress and fear
-    Weight: 5-10% of total signal
 
     Key Drivers:
     - VIX (equity fear gauge)
@@ -1776,7 +1761,6 @@ class VolatilityBucketIndicators:
 class TariffBucketIndicators:
     """
     TARIFF Bucket: Trade policy impacts
-    Weight: 5-10% of total signal
 
     Key Drivers:
     - Effective tariff rates
@@ -2093,8 +2077,5 @@ if __name__ == "__main__":
     # Show bucket configurations
     for bucket_name, config in BUCKET_CONFIGS.items():
         print(f"\n{config.name.upper()} Bucket:")
-        print(
-            f"   Weight: {config.weight_range[0] * 100:.0f}-{config.weight_range[1] * 100:.0f}%"
-        )
         print(f"   Primary features: {len(config.primary_features)}")
         print(f"   Secondary features: {len(config.secondary_features)}")

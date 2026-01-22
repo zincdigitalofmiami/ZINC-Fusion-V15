@@ -409,19 +409,21 @@ The dashboard is deployed on Vercel. The `frontend/` folder contains the Next.js
 
 Specialists are organized around these buckets (names should remain consistent across code, tables, and docs):
 
-| Specialist | Variance | Data Nature | Primary Tables |
-|------------|----------|-------------|----------------|
-| `crush` | 28-35% | 100% Quantitative | mkt.futures_1d (ZL/ZS/ZM), pos.cftc_1w |
-| `china` | 16-22% | 70% Quant / 30% Qual | mkt.futures_1d (HG), mkt.fx_1d (CNY), alt.news_1d |
-| `fx` | 3-5% | 100% Quantitative | mkt.fx_1d |
-| `fed` | 2-4% | 100% Quantitative | econ.rates_1d |
-| `tariff` | 3-5% | 40% Quant / 60% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
-| `energy` | 10-14% | 100% Quantitative | mkt.futures_1d (CL/HO), econ.commodities_1d |
-| `biofuel` | 6-10% | 80% Quant / 20% Qual | supply.epa_rin_1d, alt.news_1d |
-| `palm` | 8-12% | 80% Quant / 20% Qual | mkt.futures_1d (FCPO), alt.news_1d |
-| `volatility` | 2-3% | 100% Quantitative | econ.vol_indices_1d, econ.rates_1d |
-| `substitutes` | 4-6% | 100% Quantitative | mkt.futures_1d, econ.commodities_1d |
-| `trump_effect` | 5-10% | 50% Quant / 50% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+| Specialist | Data Nature | Primary Tables |
+|------------|-------------|----------------|
+| `crush` | 100% Quantitative | mkt.futures_1d (ZL/ZS/ZM), pos.cftc_1w |
+| `china` | 70% Quant / 30% Qual | mkt.futures_1d (HG), mkt.fx_1d (CNY), alt.news_1d |
+| `fx` | 100% Quantitative | mkt.fx_1d |
+| `fed` | 100% Quantitative | econ.rates_1d |
+| `tariff` | 40% Quant / 60% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+| `energy` | 100% Quantitative | mkt.futures_1d (CL/HO), econ.commodities_1d |
+| `biofuel` | 80% Quant / 20% Qual | supply.epa_rin_1d, alt.news_1d |
+| `palm` | 80% Quant / 20% Qual | mkt.futures_1d (FCPO), alt.news_1d |
+| `volatility` | 100% Quantitative | econ.vol_indices_1d, econ.rates_1d |
+| `substitutes` | 100% Quantitative | mkt.futures_1d, econ.commodities_1d |
+| `trump_effect` | 50% Quant / 50% Qual | econ.rates_1d (EPU), alt.news_1d, alt.legislation_1d |
+
+> **⚠️ NO HARDCODED WEIGHTS**: Specialist importance is learned by the L1 meta-ensemble from market data. Never assign predetermined weight percentages.
 
 **Key Insight:** 6 specialists are purely quantitative (crush, fx, fed, energy, volatility, substitutes). 5 specialists require news/policy sentiment data (china, tariff, biofuel, palm, trump_effect).
 

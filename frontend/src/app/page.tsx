@@ -67,10 +67,6 @@ export default function HomePage() {
               </p>
               <div className="card-metrics">
                 <div className="metric">
-                  <span className="metric-value">28-35%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
-                <div className="metric">
                   <span className="metric-value">High</span>
                   <span className="metric-label">Signal</span>
                 </div>
@@ -91,10 +87,6 @@ export default function HomePage() {
               </p>
               <div className="card-metrics">
                 <div className="metric">
-                  <span className="metric-value">16-22%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
-                <div className="metric">
                   <span className="metric-value">Medium</span>
                   <span className="metric-label">Signal</span>
                 </div>
@@ -113,10 +105,6 @@ export default function HomePage() {
                 Dollar strength and EM currency impact
               </p>
               <div className="card-metrics">
-                <div className="metric">
-                  <span className="metric-value">3-5%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
                 <div className="metric">
                   <span className="metric-value">Low</span>
                   <span className="metric-label">Signal</span>
@@ -138,10 +126,6 @@ export default function HomePage() {
               </p>
               <div className="card-metrics">
                 <div className="metric">
-                  <span className="metric-value">2-4%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
-                <div className="metric">
                   <span className="metric-value">Low</span>
                   <span className="metric-label">Signal</span>
                 </div>
@@ -159,10 +143,6 @@ export default function HomePage() {
                 Crude, natgas, and energy complex correlation
               </p>
               <div className="card-metrics">
-                <div className="metric">
-                  <span className="metric-value">10-14%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
                 <div className="metric">
                   <span className="metric-value">High</span>
                   <span className="metric-label">Signal</span>
@@ -182,10 +162,6 @@ export default function HomePage() {
               </p>
               <div className="card-metrics">
                 <div className="metric">
-                  <span className="metric-value">6-10%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
-                <div className="metric">
                   <span className="metric-value">High</span>
                   <span className="metric-label">Signal</span>
                 </div>
@@ -203,10 +179,6 @@ export default function HomePage() {
                 Malaysian palm and substitute dynamics
               </p>
               <div className="card-metrics">
-                <div className="metric">
-                  <span className="metric-value">8-12%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
                 <div className="metric">
                   <span className="metric-value">Medium</span>
                   <span className="metric-label">Signal</span>
@@ -232,10 +204,6 @@ export default function HomePage() {
                 VIX regime and cross-asset vol dynamics
               </p>
               <div className="card-metrics">
-                <div className="metric">
-                  <span className="metric-value">2-3%</span>
-                  <span className="metric-label">Weight</span>
-                </div>
                 <div className="metric">
                   <span className="metric-value">Low</span>
                   <span className="metric-label">Signal</span>
