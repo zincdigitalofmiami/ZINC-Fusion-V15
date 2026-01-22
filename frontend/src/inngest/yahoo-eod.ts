@@ -31,7 +31,8 @@ const YAHOO_SYMBOLS = [
   { yahoo: "DX-Y.NYB", db: "DX", name: "Dollar Index" },
   { yahoo: "^VIX", db: "VX", name: "VIX" },
   { yahoo: "^GVZ", db: "GVZ", name: "Gold VIX" },
-  // Softs (no CPO on Yahoo - using Trading Economics)
+  // Softs
+  { yahoo: "CPO=F", db: "CPO", name: "Crude Palm Oil" },
   { yahoo: "CC=F", db: "CC", name: "Cocoa" },
   { yahoo: "KC=F", db: "KC", name: "Coffee" },
   { yahoo: "SB=F", db: "SB", name: "Sugar" },

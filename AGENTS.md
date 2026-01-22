@@ -20,6 +20,39 @@ You are an expert data/ML engineering assistant focused on:
 - This is the production database for all ML pipelines
 - Frontend deployed on Vercel (Next.js + Inngest)
 
+## Runtime Connection Architecture
+
+**Prisma = Schema Authority, NOT Runtime Client**
+
+This project intentionally uses Prisma for schema management only:
+
+| Layer | Tool | Purpose |
+| --- | --- | --- |
+| Schema Definition | `prisma/schema.prisma` | Single source of truth for tables |
+| Migrations | `prisma migrate` | DDL version control |
+| TypeScript Runtime | `pg` Pool | All Inngest job queries |
+| Python Runtime | psycopg2 / SQLAlchemy | All training script queries |
+
+**Why not PrismaClient for queries?**
+1. Multi-schema support (`mkt.*`, `econ.*`) — Prisma Client handles poorly
+2. Performance — Raw pg Pool faster for bulk operations
+3. Flexibility — Complex CTEs, window functions, cross-schema joins
+
+**Connection Patterns:**
+
+```typescript
+// TypeScript (frontend/src/lib/db.ts)
+import { Pool } from 'pg';
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+```
+
+```python
+# Python (src/fusion/db/connection.py)
+from fusion.db import get_read_engine, get_write_connection
+```
+
+DO NOT attempt to migrate to PrismaClient for runtime queries.
+
 ## Non‑Negotiables
 
 1. **No fabricated artifacts:** do not invent schemas, tables, columns, symbols, API endpoints, credentials, or file paths.
@@ -93,21 +126,24 @@ Domains are logical tags; physical storage uses institutional schemas.
 | Frequency | Table | Allowed Destination | Forbidden |
 |-----------|-------|---------------------|-----------|
 | Daily (1d) | `mkt.futures_1d` | features → training → model | - |
-| Intraday (15m) | `analytics.intraday_prices` | Dashboard display ONLY | training.*, features.*, any ML tables |
-| Intraday (1h) | `analytics.specialist_*_1h` | Dashboard display ONLY | training.*, model.* |
+| Daily (1d, dashboard copy) | `analytics.zl_price_1d` | Dashboard display ONLY | training.*, features.*, any ML tables |
+| Intraday (15m) | `analytics.zl_price_15m` | Dashboard display ONLY | training.*, features.*, any ML tables |
+| Intraday (1h) | `analytics.zl_price_1h` | Dashboard display ONLY | training.*, model.* |
 
-**ZL Only:** Intraday 15m data is collected ONLY for ZL (soybean oil) - the procurement target. No other instruments need intraday tracking.
+**ZL Only:** Intraday 15m/1h data is collected ONLY for ZL (soybean oil) - the procurement target. No other instruments need intraday tracking.
 
 **Rationale:** Intraday data is for dashboard display and real-time monitoring only. Training models use daily data to avoid:
 - Noise amplification from microstructure
 - Inconsistent bar boundaries across instruments
 - Data volume issues (15m = 26x daily storage)
 
-**Note:** All `specialist_*_1h` tables were moved from `training` to `analytics` schema (2026-01-15) to enforce this contract.
+**Note:** `analytics.specialist_*_1h` tables (specialist signal outputs) were moved from `training` to `analytics` (2026-01-15) and are dashboard-only.
 
 **Scripts:**
 - `scripts/ingest_yahoo_eod.py` → `mkt.futures_1d` → training path
-- `scripts/ingest_yahoo_15m.py` → `analytics.intraday_prices` (ZL only, dashboard)
+- `frontend/src/inngest/yahoo-eod.ts` → `analytics.zl_price_1d` (dashboard copy)
+- `frontend/src/inngest/zl-15m.ts` → `analytics.zl_price_15m` (ZL only, dashboard)
+- `frontend/src/inngest/zl-1h.ts` → `analytics.zl_price_1h` (ZL only, dashboard)
 
 ### Naming Contracts
 
@@ -231,7 +267,7 @@ metadata.symbol_mapping: [
 | Goes in `analytics` | Goes in `ops` |
 |---------------------|---------------|
 | latest_prices | data_source_registry |
-| intraday_prices | job_run_status |
+| zl_price_15m / zl_price_1h / zl_price_1d | job_run_status |
 | dashboard_metrics | ingestion_health |
 | risk_metrics | system_alerts |
 | Any user-facing data | Any infrastructure metadata |

@@ -636,30 +636,6 @@ async function hashExists(client: PoolClient, rowHash: string, targetTable: stri
   return result.rows.length > 0;
 }
 
-/**
- * Check for existing observation with different value (revision detection)
- */
-async function getLatestRevision(
-  client: PoolClient,
-  seriesId: string,
-  eventDate: string,
-  targetTable: string
-): Promise<{ value: number; revisionNo: number } | null> {
-  const result = await client.query(
-    `SELECT value, revision_no
-     FROM ${targetTable}
-     WHERE series_id = $1 AND event_date = $2
-     ORDER BY revision_no DESC
-     LIMIT 1`,
-    [seriesId, eventDate]
-  );
-  if (result.rows.length === 0) return null;
-  return {
-    value: parseFloat(result.rows[0].value),
-    revisionNo: parseInt(result.rows[0].revision_no),
-  };
-}
-
 // =============================================================================
 // FRED API FETCH
 // =============================================================================

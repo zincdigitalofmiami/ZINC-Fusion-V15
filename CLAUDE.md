@@ -23,6 +23,20 @@ This repository has strict governance. Treat `AGENTS.md` as the primary source o
 - Schema: `prisma/schema.prisma`
 - Frontend: Vercel (Next.js + Inngest)
 
+### Connection Layer (DO NOT CHANGE)
+
+Runtime queries use raw SQL, NOT PrismaClient:
+
+- **TypeScript**: `pg` Pool via `frontend/src/lib/db.ts`
+- **Python**: psycopg2/SQLAlchemy via `src/fusion/db/connection.py`
+
+This is intentional architecture, not drift. Prisma manages schema only.
+
+**Forbidden:**
+- Do not suggest migrating to PrismaClient for queries
+- Do not create alternative connection utilities
+- Do not modify `frontend/src/lib/db.ts` or `src/fusion/db/connection.py`
+
 ## Non‑negotiables
 
 - Do not invent schemas, tables, columns, symbols, endpoints, credentials, or file paths.
