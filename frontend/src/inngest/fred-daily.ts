@@ -106,8 +106,16 @@ const FRED_FED_SERIES: FredSeriesConfig[] = [
   // Yield curve spreads - recession indicator, risk sentiment
   { id: "T10Y2Y", name: "10Y-2Y Spread (Yield Curve)", tags: ["fed", "volatility"] },
   { id: "T10Y3M", name: "10Y-3M Spread", tags: ["fed", "volatility"] },
-  // Inflation expectations - affects real rates
+  // Inflation expectations (DAILY) - affects real rates, biofuel economics
+  { id: "T5YIE", name: "5Y Breakeven Inflation", tags: ["fed", "energy", "biofuel"] },
   { id: "T10YIE", name: "10Y Breakeven Inflation", tags: ["fed", "energy", "biofuel"] },
+  { id: "T5YIFR", name: "5Y-5Y Forward Inflation Expectation", tags: ["fed", "energy"] },
+  // TIPS real yields (DAILY) - inverse inflation proxy
+  { id: "DFII5", name: "5Y TIPS Yield", tags: ["fed", "volatility"] },
+  { id: "DFII7", name: "7Y TIPS Yield", tags: ["fed"] },
+  { id: "DFII10", name: "10Y TIPS Yield", tags: ["fed", "volatility"] },
+  { id: "DFII20", name: "20Y TIPS Yield", tags: ["fed"] },
+  { id: "DFII30", name: "30Y TIPS Yield", tags: ["fed"] },
   { id: "SOFR", name: "SOFR Rate", tags: ["fed"] },
   { id: "DPRIME", name: "Prime Rate", tags: ["fed"] },
   { id: "MORTGAGE30US", name: "30-Year Mortgage Rate", tags: ["fed"] },
@@ -127,9 +135,9 @@ const FRED_FED_SERIES: FredSeriesConfig[] = [
   { id: "PCEPI", name: "PCE Price Index", tags: ["fed", "energy"] },
   { id: "PCEPILFE", name: "Core PCE", tags: ["fed"] },
   { id: "PCE", name: "Personal Consumption Expenditures", tags: ["fed", "biofuel"] },
-  // PPI - production cost pressures
+  // PPI - production cost pressures (monthly)
   { id: "PPIACO", name: "PPI All Commodities", tags: ["fed", "energy", "crush"] },
-  { id: "PPIFGS", name: "PPI Finished Goods", tags: ["fed", "crush"] },
+  { id: "PPIFIS", name: "PPI Final Demand", tags: ["fed", "crush"] },  // Replaced PPIFGS (discontinued 2015)
   // Labor market - demand indicator
   { id: "UNRATE", name: "Unemployment Rate", tags: ["fed", "volatility"] },
   { id: "PAYEMS", name: "Nonfarm Payrolls", tags: ["fed"] },
@@ -248,13 +256,11 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "VXVCLS", name: "VIX3M (3-Month VIX)", tags: ["volatility", "fed", "energy"] },
   // OVX - crude oil specific volatility, energy sector stress
   { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility", "energy", "biofuel"] },
-  // Financial stress - credit conditions, demand destruction risk
-  { id: "STLFSI", name: "St. Louis Financial Stress", tags: ["volatility", "fed"] },
-  { id: "STLFSI4", name: "St. Louis Financial Stress", tags: ["volatility", "fed"] },
-  // TED spread - interbank stress, funding costs
-  { id: "TEDRATE", name: "TED Spread", tags: ["volatility", "fed", "fx"] },
-  // NFCI - broad financial conditions
-  { id: "NFCI", name: "Chicago Fed Financial Conditions", tags: ["volatility", "fed"] },
+  // Financial stress (weekly) - credit conditions, demand destruction risk
+  // NOTE: STLFSI discontinued 2020, TEDRATE discontinued 2022 - using replacements
+  { id: "STLFSI4", name: "St. Louis Financial Stress Index", tags: ["volatility", "fed"] },
+  { id: "NFCI", name: "Chicago Fed National Financial Conditions", tags: ["volatility", "fed"] },
+  { id: "ANFCI", name: "Chicago Fed Adjusted NFCI", tags: ["volatility", "fed"] },
   // Credit spreads - risk appetite, economic stress
   { id: "BAMLH0A0HYM2", name: "High Yield OAS", tags: ["volatility", "fed", "energy"] },
   { id: "BAMLC0A0CM", name: "Corporate OAS", tags: ["volatility", "fed"] },
@@ -324,13 +330,23 @@ const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
 // Default: rates_1d for interest rates and anything unmapped.
 
 const FRED_TABLE_MAP: Record<string, string> = {
-  // Inflation → econ.inflation_1d
+  // Inflation (monthly) → econ.inflation_1d
   CPIAUCSL: "econ.inflation_1d",
   CPILFESL: "econ.inflation_1d",
   PCEPI: "econ.inflation_1d",
   PCEPILFE: "econ.inflation_1d",
   PPIACO: "econ.inflation_1d",
-  PPIFGS: "econ.inflation_1d",
+  PPIFIS: "econ.inflation_1d",  // Replaced PPIFGS (discontinued 2015)
+  // Inflation expectations (DAILY) → econ.inflation_1d
+  T5YIE: "econ.inflation_1d",
+  T10YIE: "econ.inflation_1d",
+  T5YIFR: "econ.inflation_1d",
+  // TIPS real yields (DAILY) → econ.inflation_1d
+  DFII5: "econ.inflation_1d",
+  DFII7: "econ.inflation_1d",
+  DFII10: "econ.inflation_1d",
+  DFII20: "econ.inflation_1d",
+  DFII30: "econ.inflation_1d",
 
   // Labor → econ.labor_1d
   UNRATE: "econ.labor_1d",
@@ -367,10 +383,11 @@ const FRED_TABLE_MAP: Record<string, string> = {
   VIXCLS: "econ.vol_indices_1d",
   VXVCLS: "econ.vol_indices_1d", // VIX3M (3-month VIX)
   OVXCLS: "econ.vol_indices_1d",
-  STLFSI: "econ.vol_indices_1d",
+  // Financial stress (weekly) - STLFSI/TEDRATE discontinued, using replacements
   STLFSI4: "econ.vol_indices_1d",
   NFCI: "econ.vol_indices_1d",
-  TEDRATE: "econ.vol_indices_1d",
+  ANFCI: "econ.vol_indices_1d",
+  // Credit spreads (daily) - better than TED spread
   BAMLH0A0HYM2: "econ.vol_indices_1d",
   BAMLC0A0CM: "econ.vol_indices_1d",
   GVZCLS: "econ.vol_indices_1d",

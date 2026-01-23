@@ -673,6 +673,16 @@ export type oof_trump_effect_1d = $Result.DefaultSelection<Prisma.$oof_trump_eff
  * 
  */
 export type oof_volatility_1d = $Result.DefaultSelection<Prisma.$oof_volatility_1dPayload>
+/**
+ * Model specialist_signals_1d
+ * 
+ */
+export type specialist_signals_1d = $Result.DefaultSelection<Prisma.$specialist_signals_1dPayload>
+/**
+ * Model AblationResults
+ * 
+ */
+export type AblationResults = $Result.DefaultSelection<Prisma.$AblationResultsPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -2110,6 +2120,26 @@ export class PrismaClient<
     * ```
     */
   get oof_volatility_1d(): Prisma.oof_volatility_1dDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.specialist_signals_1d`: Exposes CRUD operations for the **specialist_signals_1d** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Specialist_signals_1ds
+    * const specialist_signals_1ds = await prisma.specialist_signals_1d.findMany()
+    * ```
+    */
+  get specialist_signals_1d(): Prisma.specialist_signals_1dDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ablationResults`: Exposes CRUD operations for the **AblationResults** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AblationResults
+    * const ablationResults = await prisma.ablationResults.findMany()
+    * ```
+    */
+  get ablationResults(): Prisma.AblationResultsDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2675,7 +2705,9 @@ export namespace Prisma {
     oof_substitutes_1d: 'oof_substitutes_1d',
     oof_tariff_1d: 'oof_tariff_1d',
     oof_trump_effect_1d: 'oof_trump_effect_1d',
-    oof_volatility_1d: 'oof_volatility_1d'
+    oof_volatility_1d: 'oof_volatility_1d',
+    specialist_signals_1d: 'specialist_signals_1d',
+    AblationResults: 'AblationResults'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2691,7 +2723,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_price_15m" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "zl_price_1d" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktFx1d" | "mktEtf1d" | "mktOptions1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d"
+      modelProps: "trainingMatrix1d" | "trainingFeatures1d" | "oofCore1d" | "metaInputs1d" | "realizedVolatility" | "specialistFeatures" | "volatilitySurface" | "specialistTrumpEffect1d" | "specialistTrumpEffect1h" | "cvFolds" | "garchParameters" | "lassoCoefficients" | "metaEnsemble" | "metaWeights" | "modelLeaderboard" | "modelRegistry" | "oofPredictions" | "regimeProbabilities" | "shapSummary" | "shapValues" | "chartOverlays" | "dashboardMetrics" | "driverScores" | "marketPosture" | "procurementActions" | "riskMetrics" | "scenarioAnalysis" | "valueTimingWindows" | "volRegimes" | "dataSourceRegistry" | "ingestRun" | "quarantinedRecord" | "instrument" | "symbolMapping" | "intelDrop" | "driver_attribution_1d" | "regime_state_1d" | "zl_price_15m" | "elite_indicators_1d" | "featuresOptions1d" | "featuresWeather1d" | "featuresNewsSentiment1d" | "specialist_drivers" | "data_quality_log" | "data_quality_metrics" | "model_core_audit" | "prediction_accuracy" | "source_relabel_audit" | "training_run_log" | "training_runs" | "zl_price_1h" | "zl_price_1d" | "public_intraday_prices" | "public_latest_prices" | "trump_effect_1d" | "forecast_summary_1d" | "core_cone_1d" | "core_mc_1d" | "forecast_quantiles" | "garch_forecasts" | "horizon_reconciliation_1d" | "monte_carlo_runs" | "probability_distributions" | "vegasRestaurant" | "vegasCasino" | "vegasFryer" | "vegasExportList" | "vegasScheduledReport" | "vegasShift" | "vegasShiftCasino" | "vegasShiftRestaurant" | "vegasEvent" | "vegasEventProfile" | "vegasCasinoProfile" | "vegasCuisineMatch" | "vegasIntelSheet" | "vegasCustomerScore" | "vegasActivityLog" | "vegasCuisineAffinity" | "vegasDailySpend" | "mktFutures1d" | "mktFutures1h" | "mktFx1d" | "mktEtf1d" | "mktOptions1d" | "mktOptionsGreeks1d" | "econRates1d" | "econInflation1d" | "econLabor1d" | "econActivity1d" | "econVolIndices1d" | "econCommodities1d" | "econMoney1d" | "posCftc1w" | "posCftcCits1w" | "supplyUsdaWasde1m" | "supplyUsdaExports1w" | "supplyEpaRin1d" | "supplyWorldbankImports1y" | "altNews1d" | "altWeather1d" | "altLegislation1d" | "event_probabilities_126d_1d" | "event_probabilities_21d_1d" | "event_probabilities_5d_1d" | "event_probabilities_63d_1d" | "price_scenarios_126d_1d" | "price_scenarios_21d_1d" | "price_scenarios_5d_1d" | "price_scenarios_63d_1d" | "production_126d_1d" | "production_21d_1d" | "production_5d_1d" | "production_63d_1d" | "forecast_metrics" | "vegas_event_entities" | "vegas_event_impact" | "vegas_event_labels" | "vegas_event_venues" | "vegas_venues" | "model_runs" | "oof_biofuel_1d" | "oof_china_1d" | "oof_crush_1d" | "oof_energy_1d" | "oof_fed_1d" | "oof_fx_1d" | "oof_palm_1d" | "oof_substitutes_1d" | "oof_tariff_1d" | "oof_trump_effect_1d" | "oof_volatility_1d" | "specialist_signals_1d" | "ablationResults"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -12463,6 +12495,154 @@ export namespace Prisma {
           }
         }
       }
+      specialist_signals_1d: {
+        payload: Prisma.$specialist_signals_1dPayload<ExtArgs>
+        fields: Prisma.specialist_signals_1dFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.specialist_signals_1dFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.specialist_signals_1dFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          findFirst: {
+            args: Prisma.specialist_signals_1dFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.specialist_signals_1dFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          findMany: {
+            args: Prisma.specialist_signals_1dFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>[]
+          }
+          create: {
+            args: Prisma.specialist_signals_1dCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          createMany: {
+            args: Prisma.specialist_signals_1dCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.specialist_signals_1dCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>[]
+          }
+          delete: {
+            args: Prisma.specialist_signals_1dDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          update: {
+            args: Prisma.specialist_signals_1dUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          deleteMany: {
+            args: Prisma.specialist_signals_1dDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.specialist_signals_1dUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.specialist_signals_1dUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>[]
+          }
+          upsert: {
+            args: Prisma.specialist_signals_1dUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$specialist_signals_1dPayload>
+          }
+          aggregate: {
+            args: Prisma.Specialist_signals_1dAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSpecialist_signals_1d>
+          }
+          groupBy: {
+            args: Prisma.specialist_signals_1dGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Specialist_signals_1dGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.specialist_signals_1dCountArgs<ExtArgs>
+            result: $Utils.Optional<Specialist_signals_1dCountAggregateOutputType> | number
+          }
+        }
+      }
+      AblationResults: {
+        payload: Prisma.$AblationResultsPayload<ExtArgs>
+        fields: Prisma.AblationResultsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AblationResultsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AblationResultsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          findFirst: {
+            args: Prisma.AblationResultsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AblationResultsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          findMany: {
+            args: Prisma.AblationResultsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>[]
+          }
+          create: {
+            args: Prisma.AblationResultsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          createMany: {
+            args: Prisma.AblationResultsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AblationResultsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>[]
+          }
+          delete: {
+            args: Prisma.AblationResultsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          update: {
+            args: Prisma.AblationResultsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          deleteMany: {
+            args: Prisma.AblationResultsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AblationResultsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AblationResultsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>[]
+          }
+          upsert: {
+            args: Prisma.AblationResultsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AblationResultsPayload>
+          }
+          aggregate: {
+            args: Prisma.AblationResultsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAblationResults>
+          }
+          groupBy: {
+            args: Prisma.AblationResultsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AblationResultsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AblationResultsCountArgs<ExtArgs>
+            result: $Utils.Optional<AblationResultsCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -12703,6 +12883,8 @@ export namespace Prisma {
     oof_tariff_1d?: oof_tariff_1dOmit
     oof_trump_effect_1d?: oof_trump_effect_1dOmit
     oof_volatility_1d?: oof_volatility_1dOmit
+    specialist_signals_1d?: specialist_signals_1dOmit
+    ablationResults?: AblationResultsOmit
   }
 
   /* Types for Logging */
@@ -166956,6 +167138,2247 @@ export namespace Prisma {
 
 
   /**
+   * Model specialist_signals_1d
+   */
+
+  export type AggregateSpecialist_signals_1d = {
+    _count: Specialist_signals_1dCountAggregateOutputType | null
+    _avg: Specialist_signals_1dAvgAggregateOutputType | null
+    _sum: Specialist_signals_1dSumAggregateOutputType | null
+    _min: Specialist_signals_1dMinAggregateOutputType | null
+    _max: Specialist_signals_1dMaxAggregateOutputType | null
+  }
+
+  export type Specialist_signals_1dAvgAggregateOutputType = {
+    id: number | null
+    signal_1: number | null
+    signal_2: number | null
+    confidence: number | null
+  }
+
+  export type Specialist_signals_1dSumAggregateOutputType = {
+    id: number | null
+    signal_1: number | null
+    signal_2: number | null
+    confidence: number | null
+  }
+
+  export type Specialist_signals_1dMinAggregateOutputType = {
+    id: number | null
+    as_of_date: Date | null
+    bucket: string | null
+    signal_1: number | null
+    signal_2: number | null
+    confidence: number | null
+    model_type: string | null
+    run_hash: string | null
+    created_at: Date | null
+  }
+
+  export type Specialist_signals_1dMaxAggregateOutputType = {
+    id: number | null
+    as_of_date: Date | null
+    bucket: string | null
+    signal_1: number | null
+    signal_2: number | null
+    confidence: number | null
+    model_type: string | null
+    run_hash: string | null
+    created_at: Date | null
+  }
+
+  export type Specialist_signals_1dCountAggregateOutputType = {
+    id: number
+    as_of_date: number
+    bucket: number
+    signal_1: number
+    signal_2: number
+    confidence: number
+    model_type: number
+    run_hash: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Specialist_signals_1dAvgAggregateInputType = {
+    id?: true
+    signal_1?: true
+    signal_2?: true
+    confidence?: true
+  }
+
+  export type Specialist_signals_1dSumAggregateInputType = {
+    id?: true
+    signal_1?: true
+    signal_2?: true
+    confidence?: true
+  }
+
+  export type Specialist_signals_1dMinAggregateInputType = {
+    id?: true
+    as_of_date?: true
+    bucket?: true
+    signal_1?: true
+    signal_2?: true
+    confidence?: true
+    model_type?: true
+    run_hash?: true
+    created_at?: true
+  }
+
+  export type Specialist_signals_1dMaxAggregateInputType = {
+    id?: true
+    as_of_date?: true
+    bucket?: true
+    signal_1?: true
+    signal_2?: true
+    confidence?: true
+    model_type?: true
+    run_hash?: true
+    created_at?: true
+  }
+
+  export type Specialist_signals_1dCountAggregateInputType = {
+    id?: true
+    as_of_date?: true
+    bucket?: true
+    signal_1?: true
+    signal_2?: true
+    confidence?: true
+    model_type?: true
+    run_hash?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Specialist_signals_1dAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which specialist_signals_1d to aggregate.
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of specialist_signals_1ds to fetch.
+     */
+    orderBy?: specialist_signals_1dOrderByWithRelationInput | specialist_signals_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: specialist_signals_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` specialist_signals_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` specialist_signals_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned specialist_signals_1ds
+    **/
+    _count?: true | Specialist_signals_1dCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Specialist_signals_1dAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Specialist_signals_1dSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Specialist_signals_1dMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Specialist_signals_1dMaxAggregateInputType
+  }
+
+  export type GetSpecialist_signals_1dAggregateType<T extends Specialist_signals_1dAggregateArgs> = {
+        [P in keyof T & keyof AggregateSpecialist_signals_1d]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSpecialist_signals_1d[P]>
+      : GetScalarType<T[P], AggregateSpecialist_signals_1d[P]>
+  }
+
+
+
+
+  export type specialist_signals_1dGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: specialist_signals_1dWhereInput
+    orderBy?: specialist_signals_1dOrderByWithAggregationInput | specialist_signals_1dOrderByWithAggregationInput[]
+    by: Specialist_signals_1dScalarFieldEnum[] | Specialist_signals_1dScalarFieldEnum
+    having?: specialist_signals_1dScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Specialist_signals_1dCountAggregateInputType | true
+    _avg?: Specialist_signals_1dAvgAggregateInputType
+    _sum?: Specialist_signals_1dSumAggregateInputType
+    _min?: Specialist_signals_1dMinAggregateInputType
+    _max?: Specialist_signals_1dMaxAggregateInputType
+  }
+
+  export type Specialist_signals_1dGroupByOutputType = {
+    id: number
+    as_of_date: Date
+    bucket: string
+    signal_1: number
+    signal_2: number | null
+    confidence: number | null
+    model_type: string
+    run_hash: string
+    created_at: Date
+    _count: Specialist_signals_1dCountAggregateOutputType | null
+    _avg: Specialist_signals_1dAvgAggregateOutputType | null
+    _sum: Specialist_signals_1dSumAggregateOutputType | null
+    _min: Specialist_signals_1dMinAggregateOutputType | null
+    _max: Specialist_signals_1dMaxAggregateOutputType | null
+  }
+
+  type GetSpecialist_signals_1dGroupByPayload<T extends specialist_signals_1dGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Specialist_signals_1dGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Specialist_signals_1dGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Specialist_signals_1dGroupByOutputType[P]>
+            : GetScalarType<T[P], Specialist_signals_1dGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type specialist_signals_1dSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    as_of_date?: boolean
+    bucket?: boolean
+    signal_1?: boolean
+    signal_2?: boolean
+    confidence?: boolean
+    model_type?: boolean
+    run_hash?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["specialist_signals_1d"]>
+
+  export type specialist_signals_1dSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    as_of_date?: boolean
+    bucket?: boolean
+    signal_1?: boolean
+    signal_2?: boolean
+    confidence?: boolean
+    model_type?: boolean
+    run_hash?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["specialist_signals_1d"]>
+
+  export type specialist_signals_1dSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    as_of_date?: boolean
+    bucket?: boolean
+    signal_1?: boolean
+    signal_2?: boolean
+    confidence?: boolean
+    model_type?: boolean
+    run_hash?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["specialist_signals_1d"]>
+
+  export type specialist_signals_1dSelectScalar = {
+    id?: boolean
+    as_of_date?: boolean
+    bucket?: boolean
+    signal_1?: boolean
+    signal_2?: boolean
+    confidence?: boolean
+    model_type?: boolean
+    run_hash?: boolean
+    created_at?: boolean
+  }
+
+  export type specialist_signals_1dOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "as_of_date" | "bucket" | "signal_1" | "signal_2" | "confidence" | "model_type" | "run_hash" | "created_at", ExtArgs["result"]["specialist_signals_1d"]>
+
+  export type $specialist_signals_1dPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "specialist_signals_1d"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      as_of_date: Date
+      bucket: string
+      signal_1: number
+      signal_2: number | null
+      confidence: number | null
+      model_type: string
+      run_hash: string
+      created_at: Date
+    }, ExtArgs["result"]["specialist_signals_1d"]>
+    composites: {}
+  }
+
+  type specialist_signals_1dGetPayload<S extends boolean | null | undefined | specialist_signals_1dDefaultArgs> = $Result.GetResult<Prisma.$specialist_signals_1dPayload, S>
+
+  type specialist_signals_1dCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<specialist_signals_1dFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Specialist_signals_1dCountAggregateInputType | true
+    }
+
+  export interface specialist_signals_1dDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['specialist_signals_1d'], meta: { name: 'specialist_signals_1d' } }
+    /**
+     * Find zero or one Specialist_signals_1d that matches the filter.
+     * @param {specialist_signals_1dFindUniqueArgs} args - Arguments to find a Specialist_signals_1d
+     * @example
+     * // Get one Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends specialist_signals_1dFindUniqueArgs>(args: SelectSubset<T, specialist_signals_1dFindUniqueArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Specialist_signals_1d that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {specialist_signals_1dFindUniqueOrThrowArgs} args - Arguments to find a Specialist_signals_1d
+     * @example
+     * // Get one Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends specialist_signals_1dFindUniqueOrThrowArgs>(args: SelectSubset<T, specialist_signals_1dFindUniqueOrThrowArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Specialist_signals_1d that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dFindFirstArgs} args - Arguments to find a Specialist_signals_1d
+     * @example
+     * // Get one Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends specialist_signals_1dFindFirstArgs>(args?: SelectSubset<T, specialist_signals_1dFindFirstArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Specialist_signals_1d that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dFindFirstOrThrowArgs} args - Arguments to find a Specialist_signals_1d
+     * @example
+     * // Get one Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends specialist_signals_1dFindFirstOrThrowArgs>(args?: SelectSubset<T, specialist_signals_1dFindFirstOrThrowArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Specialist_signals_1ds that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Specialist_signals_1ds
+     * const specialist_signals_1ds = await prisma.specialist_signals_1d.findMany()
+     * 
+     * // Get first 10 Specialist_signals_1ds
+     * const specialist_signals_1ds = await prisma.specialist_signals_1d.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const specialist_signals_1dWithIdOnly = await prisma.specialist_signals_1d.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends specialist_signals_1dFindManyArgs>(args?: SelectSubset<T, specialist_signals_1dFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Specialist_signals_1d.
+     * @param {specialist_signals_1dCreateArgs} args - Arguments to create a Specialist_signals_1d.
+     * @example
+     * // Create one Specialist_signals_1d
+     * const Specialist_signals_1d = await prisma.specialist_signals_1d.create({
+     *   data: {
+     *     // ... data to create a Specialist_signals_1d
+     *   }
+     * })
+     * 
+     */
+    create<T extends specialist_signals_1dCreateArgs>(args: SelectSubset<T, specialist_signals_1dCreateArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Specialist_signals_1ds.
+     * @param {specialist_signals_1dCreateManyArgs} args - Arguments to create many Specialist_signals_1ds.
+     * @example
+     * // Create many Specialist_signals_1ds
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends specialist_signals_1dCreateManyArgs>(args?: SelectSubset<T, specialist_signals_1dCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Specialist_signals_1ds and returns the data saved in the database.
+     * @param {specialist_signals_1dCreateManyAndReturnArgs} args - Arguments to create many Specialist_signals_1ds.
+     * @example
+     * // Create many Specialist_signals_1ds
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Specialist_signals_1ds and only return the `id`
+     * const specialist_signals_1dWithIdOnly = await prisma.specialist_signals_1d.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends specialist_signals_1dCreateManyAndReturnArgs>(args?: SelectSubset<T, specialist_signals_1dCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Specialist_signals_1d.
+     * @param {specialist_signals_1dDeleteArgs} args - Arguments to delete one Specialist_signals_1d.
+     * @example
+     * // Delete one Specialist_signals_1d
+     * const Specialist_signals_1d = await prisma.specialist_signals_1d.delete({
+     *   where: {
+     *     // ... filter to delete one Specialist_signals_1d
+     *   }
+     * })
+     * 
+     */
+    delete<T extends specialist_signals_1dDeleteArgs>(args: SelectSubset<T, specialist_signals_1dDeleteArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Specialist_signals_1d.
+     * @param {specialist_signals_1dUpdateArgs} args - Arguments to update one Specialist_signals_1d.
+     * @example
+     * // Update one Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends specialist_signals_1dUpdateArgs>(args: SelectSubset<T, specialist_signals_1dUpdateArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Specialist_signals_1ds.
+     * @param {specialist_signals_1dDeleteManyArgs} args - Arguments to filter Specialist_signals_1ds to delete.
+     * @example
+     * // Delete a few Specialist_signals_1ds
+     * const { count } = await prisma.specialist_signals_1d.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends specialist_signals_1dDeleteManyArgs>(args?: SelectSubset<T, specialist_signals_1dDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Specialist_signals_1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Specialist_signals_1ds
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends specialist_signals_1dUpdateManyArgs>(args: SelectSubset<T, specialist_signals_1dUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Specialist_signals_1ds and returns the data updated in the database.
+     * @param {specialist_signals_1dUpdateManyAndReturnArgs} args - Arguments to update many Specialist_signals_1ds.
+     * @example
+     * // Update many Specialist_signals_1ds
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Specialist_signals_1ds and only return the `id`
+     * const specialist_signals_1dWithIdOnly = await prisma.specialist_signals_1d.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends specialist_signals_1dUpdateManyAndReturnArgs>(args: SelectSubset<T, specialist_signals_1dUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Specialist_signals_1d.
+     * @param {specialist_signals_1dUpsertArgs} args - Arguments to update or create a Specialist_signals_1d.
+     * @example
+     * // Update or create a Specialist_signals_1d
+     * const specialist_signals_1d = await prisma.specialist_signals_1d.upsert({
+     *   create: {
+     *     // ... data to create a Specialist_signals_1d
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Specialist_signals_1d we want to update
+     *   }
+     * })
+     */
+    upsert<T extends specialist_signals_1dUpsertArgs>(args: SelectSubset<T, specialist_signals_1dUpsertArgs<ExtArgs>>): Prisma__specialist_signals_1dClient<$Result.GetResult<Prisma.$specialist_signals_1dPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Specialist_signals_1ds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dCountArgs} args - Arguments to filter Specialist_signals_1ds to count.
+     * @example
+     * // Count the number of Specialist_signals_1ds
+     * const count = await prisma.specialist_signals_1d.count({
+     *   where: {
+     *     // ... the filter for the Specialist_signals_1ds we want to count
+     *   }
+     * })
+    **/
+    count<T extends specialist_signals_1dCountArgs>(
+      args?: Subset<T, specialist_signals_1dCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Specialist_signals_1dCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Specialist_signals_1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Specialist_signals_1dAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Specialist_signals_1dAggregateArgs>(args: Subset<T, Specialist_signals_1dAggregateArgs>): Prisma.PrismaPromise<GetSpecialist_signals_1dAggregateType<T>>
+
+    /**
+     * Group by Specialist_signals_1d.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {specialist_signals_1dGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends specialist_signals_1dGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: specialist_signals_1dGroupByArgs['orderBy'] }
+        : { orderBy?: specialist_signals_1dGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, specialist_signals_1dGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSpecialist_signals_1dGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the specialist_signals_1d model
+   */
+  readonly fields: specialist_signals_1dFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for specialist_signals_1d.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__specialist_signals_1dClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the specialist_signals_1d model
+   */
+  interface specialist_signals_1dFieldRefs {
+    readonly id: FieldRef<"specialist_signals_1d", 'Int'>
+    readonly as_of_date: FieldRef<"specialist_signals_1d", 'DateTime'>
+    readonly bucket: FieldRef<"specialist_signals_1d", 'String'>
+    readonly signal_1: FieldRef<"specialist_signals_1d", 'Float'>
+    readonly signal_2: FieldRef<"specialist_signals_1d", 'Float'>
+    readonly confidence: FieldRef<"specialist_signals_1d", 'Float'>
+    readonly model_type: FieldRef<"specialist_signals_1d", 'String'>
+    readonly run_hash: FieldRef<"specialist_signals_1d", 'String'>
+    readonly created_at: FieldRef<"specialist_signals_1d", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * specialist_signals_1d findUnique
+   */
+  export type specialist_signals_1dFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which specialist_signals_1d to fetch.
+     */
+    where: specialist_signals_1dWhereUniqueInput
+  }
+
+  /**
+   * specialist_signals_1d findUniqueOrThrow
+   */
+  export type specialist_signals_1dFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which specialist_signals_1d to fetch.
+     */
+    where: specialist_signals_1dWhereUniqueInput
+  }
+
+  /**
+   * specialist_signals_1d findFirst
+   */
+  export type specialist_signals_1dFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which specialist_signals_1d to fetch.
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of specialist_signals_1ds to fetch.
+     */
+    orderBy?: specialist_signals_1dOrderByWithRelationInput | specialist_signals_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for specialist_signals_1ds.
+     */
+    cursor?: specialist_signals_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` specialist_signals_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` specialist_signals_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of specialist_signals_1ds.
+     */
+    distinct?: Specialist_signals_1dScalarFieldEnum | Specialist_signals_1dScalarFieldEnum[]
+  }
+
+  /**
+   * specialist_signals_1d findFirstOrThrow
+   */
+  export type specialist_signals_1dFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which specialist_signals_1d to fetch.
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of specialist_signals_1ds to fetch.
+     */
+    orderBy?: specialist_signals_1dOrderByWithRelationInput | specialist_signals_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for specialist_signals_1ds.
+     */
+    cursor?: specialist_signals_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` specialist_signals_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` specialist_signals_1ds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of specialist_signals_1ds.
+     */
+    distinct?: Specialist_signals_1dScalarFieldEnum | Specialist_signals_1dScalarFieldEnum[]
+  }
+
+  /**
+   * specialist_signals_1d findMany
+   */
+  export type specialist_signals_1dFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter, which specialist_signals_1ds to fetch.
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of specialist_signals_1ds to fetch.
+     */
+    orderBy?: specialist_signals_1dOrderByWithRelationInput | specialist_signals_1dOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing specialist_signals_1ds.
+     */
+    cursor?: specialist_signals_1dWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` specialist_signals_1ds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` specialist_signals_1ds.
+     */
+    skip?: number
+    distinct?: Specialist_signals_1dScalarFieldEnum | Specialist_signals_1dScalarFieldEnum[]
+  }
+
+  /**
+   * specialist_signals_1d create
+   */
+  export type specialist_signals_1dCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * The data needed to create a specialist_signals_1d.
+     */
+    data: XOR<specialist_signals_1dCreateInput, specialist_signals_1dUncheckedCreateInput>
+  }
+
+  /**
+   * specialist_signals_1d createMany
+   */
+  export type specialist_signals_1dCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many specialist_signals_1ds.
+     */
+    data: specialist_signals_1dCreateManyInput | specialist_signals_1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * specialist_signals_1d createManyAndReturn
+   */
+  export type specialist_signals_1dCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * The data used to create many specialist_signals_1ds.
+     */
+    data: specialist_signals_1dCreateManyInput | specialist_signals_1dCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * specialist_signals_1d update
+   */
+  export type specialist_signals_1dUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * The data needed to update a specialist_signals_1d.
+     */
+    data: XOR<specialist_signals_1dUpdateInput, specialist_signals_1dUncheckedUpdateInput>
+    /**
+     * Choose, which specialist_signals_1d to update.
+     */
+    where: specialist_signals_1dWhereUniqueInput
+  }
+
+  /**
+   * specialist_signals_1d updateMany
+   */
+  export type specialist_signals_1dUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update specialist_signals_1ds.
+     */
+    data: XOR<specialist_signals_1dUpdateManyMutationInput, specialist_signals_1dUncheckedUpdateManyInput>
+    /**
+     * Filter which specialist_signals_1ds to update
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * Limit how many specialist_signals_1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * specialist_signals_1d updateManyAndReturn
+   */
+  export type specialist_signals_1dUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * The data used to update specialist_signals_1ds.
+     */
+    data: XOR<specialist_signals_1dUpdateManyMutationInput, specialist_signals_1dUncheckedUpdateManyInput>
+    /**
+     * Filter which specialist_signals_1ds to update
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * Limit how many specialist_signals_1ds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * specialist_signals_1d upsert
+   */
+  export type specialist_signals_1dUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * The filter to search for the specialist_signals_1d to update in case it exists.
+     */
+    where: specialist_signals_1dWhereUniqueInput
+    /**
+     * In case the specialist_signals_1d found by the `where` argument doesn't exist, create a new specialist_signals_1d with this data.
+     */
+    create: XOR<specialist_signals_1dCreateInput, specialist_signals_1dUncheckedCreateInput>
+    /**
+     * In case the specialist_signals_1d was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<specialist_signals_1dUpdateInput, specialist_signals_1dUncheckedUpdateInput>
+  }
+
+  /**
+   * specialist_signals_1d delete
+   */
+  export type specialist_signals_1dDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+    /**
+     * Filter which specialist_signals_1d to delete.
+     */
+    where: specialist_signals_1dWhereUniqueInput
+  }
+
+  /**
+   * specialist_signals_1d deleteMany
+   */
+  export type specialist_signals_1dDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which specialist_signals_1ds to delete
+     */
+    where?: specialist_signals_1dWhereInput
+    /**
+     * Limit how many specialist_signals_1ds to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * specialist_signals_1d without action
+   */
+  export type specialist_signals_1dDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the specialist_signals_1d
+     */
+    select?: specialist_signals_1dSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the specialist_signals_1d
+     */
+    omit?: specialist_signals_1dOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AblationResults
+   */
+
+  export type AggregateAblationResults = {
+    _count: AblationResultsCountAggregateOutputType | null
+    _avg: AblationResultsAvgAggregateOutputType | null
+    _sum: AblationResultsSumAggregateOutputType | null
+    _min: AblationResultsMinAggregateOutputType | null
+    _max: AblationResultsMaxAggregateOutputType | null
+  }
+
+  export type AblationResultsAvgAggregateOutputType = {
+    id: number | null
+    horizonDays: number | null
+    baselineMae: number | null
+    withSignalMae: number | null
+    deltaMae: number | null
+    baselineCoverage40: number | null
+    withSignalCoverage40: number | null
+    regimeStabilityScore: number | null
+  }
+
+  export type AblationResultsSumAggregateOutputType = {
+    id: number | null
+    horizonDays: number | null
+    baselineMae: number | null
+    withSignalMae: number | null
+    deltaMae: number | null
+    baselineCoverage40: number | null
+    withSignalCoverage40: number | null
+    regimeStabilityScore: number | null
+  }
+
+  export type AblationResultsMinAggregateOutputType = {
+    id: number | null
+    runId: string | null
+    bucket: string | null
+    horizonDays: number | null
+    baselineMae: number | null
+    withSignalMae: number | null
+    deltaMae: number | null
+    baselineCoverage40: number | null
+    withSignalCoverage40: number | null
+    regimeStabilityScore: number | null
+    recommendation: string | null
+    testedAt: Date | null
+  }
+
+  export type AblationResultsMaxAggregateOutputType = {
+    id: number | null
+    runId: string | null
+    bucket: string | null
+    horizonDays: number | null
+    baselineMae: number | null
+    withSignalMae: number | null
+    deltaMae: number | null
+    baselineCoverage40: number | null
+    withSignalCoverage40: number | null
+    regimeStabilityScore: number | null
+    recommendation: string | null
+    testedAt: Date | null
+  }
+
+  export type AblationResultsCountAggregateOutputType = {
+    id: number
+    runId: number
+    bucket: number
+    horizonDays: number
+    baselineMae: number
+    withSignalMae: number
+    deltaMae: number
+    baselineCoverage40: number
+    withSignalCoverage40: number
+    regimeStabilityScore: number
+    recommendation: number
+    testedAt: number
+    _all: number
+  }
+
+
+  export type AblationResultsAvgAggregateInputType = {
+    id?: true
+    horizonDays?: true
+    baselineMae?: true
+    withSignalMae?: true
+    deltaMae?: true
+    baselineCoverage40?: true
+    withSignalCoverage40?: true
+    regimeStabilityScore?: true
+  }
+
+  export type AblationResultsSumAggregateInputType = {
+    id?: true
+    horizonDays?: true
+    baselineMae?: true
+    withSignalMae?: true
+    deltaMae?: true
+    baselineCoverage40?: true
+    withSignalCoverage40?: true
+    regimeStabilityScore?: true
+  }
+
+  export type AblationResultsMinAggregateInputType = {
+    id?: true
+    runId?: true
+    bucket?: true
+    horizonDays?: true
+    baselineMae?: true
+    withSignalMae?: true
+    deltaMae?: true
+    baselineCoverage40?: true
+    withSignalCoverage40?: true
+    regimeStabilityScore?: true
+    recommendation?: true
+    testedAt?: true
+  }
+
+  export type AblationResultsMaxAggregateInputType = {
+    id?: true
+    runId?: true
+    bucket?: true
+    horizonDays?: true
+    baselineMae?: true
+    withSignalMae?: true
+    deltaMae?: true
+    baselineCoverage40?: true
+    withSignalCoverage40?: true
+    regimeStabilityScore?: true
+    recommendation?: true
+    testedAt?: true
+  }
+
+  export type AblationResultsCountAggregateInputType = {
+    id?: true
+    runId?: true
+    bucket?: true
+    horizonDays?: true
+    baselineMae?: true
+    withSignalMae?: true
+    deltaMae?: true
+    baselineCoverage40?: true
+    withSignalCoverage40?: true
+    regimeStabilityScore?: true
+    recommendation?: true
+    testedAt?: true
+    _all?: true
+  }
+
+  export type AblationResultsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AblationResults to aggregate.
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AblationResults to fetch.
+     */
+    orderBy?: AblationResultsOrderByWithRelationInput | AblationResultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AblationResultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AblationResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AblationResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AblationResults
+    **/
+    _count?: true | AblationResultsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AblationResultsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AblationResultsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AblationResultsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AblationResultsMaxAggregateInputType
+  }
+
+  export type GetAblationResultsAggregateType<T extends AblationResultsAggregateArgs> = {
+        [P in keyof T & keyof AggregateAblationResults]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAblationResults[P]>
+      : GetScalarType<T[P], AggregateAblationResults[P]>
+  }
+
+
+
+
+  export type AblationResultsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AblationResultsWhereInput
+    orderBy?: AblationResultsOrderByWithAggregationInput | AblationResultsOrderByWithAggregationInput[]
+    by: AblationResultsScalarFieldEnum[] | AblationResultsScalarFieldEnum
+    having?: AblationResultsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AblationResultsCountAggregateInputType | true
+    _avg?: AblationResultsAvgAggregateInputType
+    _sum?: AblationResultsSumAggregateInputType
+    _min?: AblationResultsMinAggregateInputType
+    _max?: AblationResultsMaxAggregateInputType
+  }
+
+  export type AblationResultsGroupByOutputType = {
+    id: number
+    runId: string
+    bucket: string
+    horizonDays: number
+    baselineMae: number
+    withSignalMae: number
+    deltaMae: number
+    baselineCoverage40: number
+    withSignalCoverage40: number
+    regimeStabilityScore: number | null
+    recommendation: string
+    testedAt: Date
+    _count: AblationResultsCountAggregateOutputType | null
+    _avg: AblationResultsAvgAggregateOutputType | null
+    _sum: AblationResultsSumAggregateOutputType | null
+    _min: AblationResultsMinAggregateOutputType | null
+    _max: AblationResultsMaxAggregateOutputType | null
+  }
+
+  type GetAblationResultsGroupByPayload<T extends AblationResultsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AblationResultsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AblationResultsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AblationResultsGroupByOutputType[P]>
+            : GetScalarType<T[P], AblationResultsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AblationResultsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    bucket?: boolean
+    horizonDays?: boolean
+    baselineMae?: boolean
+    withSignalMae?: boolean
+    deltaMae?: boolean
+    baselineCoverage40?: boolean
+    withSignalCoverage40?: boolean
+    regimeStabilityScore?: boolean
+    recommendation?: boolean
+    testedAt?: boolean
+  }, ExtArgs["result"]["ablationResults"]>
+
+  export type AblationResultsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    bucket?: boolean
+    horizonDays?: boolean
+    baselineMae?: boolean
+    withSignalMae?: boolean
+    deltaMae?: boolean
+    baselineCoverage40?: boolean
+    withSignalCoverage40?: boolean
+    regimeStabilityScore?: boolean
+    recommendation?: boolean
+    testedAt?: boolean
+  }, ExtArgs["result"]["ablationResults"]>
+
+  export type AblationResultsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    bucket?: boolean
+    horizonDays?: boolean
+    baselineMae?: boolean
+    withSignalMae?: boolean
+    deltaMae?: boolean
+    baselineCoverage40?: boolean
+    withSignalCoverage40?: boolean
+    regimeStabilityScore?: boolean
+    recommendation?: boolean
+    testedAt?: boolean
+  }, ExtArgs["result"]["ablationResults"]>
+
+  export type AblationResultsSelectScalar = {
+    id?: boolean
+    runId?: boolean
+    bucket?: boolean
+    horizonDays?: boolean
+    baselineMae?: boolean
+    withSignalMae?: boolean
+    deltaMae?: boolean
+    baselineCoverage40?: boolean
+    withSignalCoverage40?: boolean
+    regimeStabilityScore?: boolean
+    recommendation?: boolean
+    testedAt?: boolean
+  }
+
+  export type AblationResultsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "runId" | "bucket" | "horizonDays" | "baselineMae" | "withSignalMae" | "deltaMae" | "baselineCoverage40" | "withSignalCoverage40" | "regimeStabilityScore" | "recommendation" | "testedAt", ExtArgs["result"]["ablationResults"]>
+
+  export type $AblationResultsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AblationResults"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      runId: string
+      bucket: string
+      horizonDays: number
+      baselineMae: number
+      withSignalMae: number
+      deltaMae: number
+      baselineCoverage40: number
+      withSignalCoverage40: number
+      regimeStabilityScore: number | null
+      recommendation: string
+      testedAt: Date
+    }, ExtArgs["result"]["ablationResults"]>
+    composites: {}
+  }
+
+  type AblationResultsGetPayload<S extends boolean | null | undefined | AblationResultsDefaultArgs> = $Result.GetResult<Prisma.$AblationResultsPayload, S>
+
+  type AblationResultsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AblationResultsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AblationResultsCountAggregateInputType | true
+    }
+
+  export interface AblationResultsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AblationResults'], meta: { name: 'AblationResults' } }
+    /**
+     * Find zero or one AblationResults that matches the filter.
+     * @param {AblationResultsFindUniqueArgs} args - Arguments to find a AblationResults
+     * @example
+     * // Get one AblationResults
+     * const ablationResults = await prisma.ablationResults.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AblationResultsFindUniqueArgs>(args: SelectSubset<T, AblationResultsFindUniqueArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AblationResults that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AblationResultsFindUniqueOrThrowArgs} args - Arguments to find a AblationResults
+     * @example
+     * // Get one AblationResults
+     * const ablationResults = await prisma.ablationResults.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AblationResultsFindUniqueOrThrowArgs>(args: SelectSubset<T, AblationResultsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AblationResults that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsFindFirstArgs} args - Arguments to find a AblationResults
+     * @example
+     * // Get one AblationResults
+     * const ablationResults = await prisma.ablationResults.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AblationResultsFindFirstArgs>(args?: SelectSubset<T, AblationResultsFindFirstArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AblationResults that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsFindFirstOrThrowArgs} args - Arguments to find a AblationResults
+     * @example
+     * // Get one AblationResults
+     * const ablationResults = await prisma.ablationResults.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AblationResultsFindFirstOrThrowArgs>(args?: SelectSubset<T, AblationResultsFindFirstOrThrowArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AblationResults that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AblationResults
+     * const ablationResults = await prisma.ablationResults.findMany()
+     * 
+     * // Get first 10 AblationResults
+     * const ablationResults = await prisma.ablationResults.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ablationResultsWithIdOnly = await prisma.ablationResults.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AblationResultsFindManyArgs>(args?: SelectSubset<T, AblationResultsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AblationResults.
+     * @param {AblationResultsCreateArgs} args - Arguments to create a AblationResults.
+     * @example
+     * // Create one AblationResults
+     * const AblationResults = await prisma.ablationResults.create({
+     *   data: {
+     *     // ... data to create a AblationResults
+     *   }
+     * })
+     * 
+     */
+    create<T extends AblationResultsCreateArgs>(args: SelectSubset<T, AblationResultsCreateArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AblationResults.
+     * @param {AblationResultsCreateManyArgs} args - Arguments to create many AblationResults.
+     * @example
+     * // Create many AblationResults
+     * const ablationResults = await prisma.ablationResults.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AblationResultsCreateManyArgs>(args?: SelectSubset<T, AblationResultsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AblationResults and returns the data saved in the database.
+     * @param {AblationResultsCreateManyAndReturnArgs} args - Arguments to create many AblationResults.
+     * @example
+     * // Create many AblationResults
+     * const ablationResults = await prisma.ablationResults.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AblationResults and only return the `id`
+     * const ablationResultsWithIdOnly = await prisma.ablationResults.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AblationResultsCreateManyAndReturnArgs>(args?: SelectSubset<T, AblationResultsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AblationResults.
+     * @param {AblationResultsDeleteArgs} args - Arguments to delete one AblationResults.
+     * @example
+     * // Delete one AblationResults
+     * const AblationResults = await prisma.ablationResults.delete({
+     *   where: {
+     *     // ... filter to delete one AblationResults
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AblationResultsDeleteArgs>(args: SelectSubset<T, AblationResultsDeleteArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AblationResults.
+     * @param {AblationResultsUpdateArgs} args - Arguments to update one AblationResults.
+     * @example
+     * // Update one AblationResults
+     * const ablationResults = await prisma.ablationResults.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AblationResultsUpdateArgs>(args: SelectSubset<T, AblationResultsUpdateArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AblationResults.
+     * @param {AblationResultsDeleteManyArgs} args - Arguments to filter AblationResults to delete.
+     * @example
+     * // Delete a few AblationResults
+     * const { count } = await prisma.ablationResults.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AblationResultsDeleteManyArgs>(args?: SelectSubset<T, AblationResultsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AblationResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AblationResults
+     * const ablationResults = await prisma.ablationResults.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AblationResultsUpdateManyArgs>(args: SelectSubset<T, AblationResultsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AblationResults and returns the data updated in the database.
+     * @param {AblationResultsUpdateManyAndReturnArgs} args - Arguments to update many AblationResults.
+     * @example
+     * // Update many AblationResults
+     * const ablationResults = await prisma.ablationResults.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AblationResults and only return the `id`
+     * const ablationResultsWithIdOnly = await prisma.ablationResults.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AblationResultsUpdateManyAndReturnArgs>(args: SelectSubset<T, AblationResultsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AblationResults.
+     * @param {AblationResultsUpsertArgs} args - Arguments to update or create a AblationResults.
+     * @example
+     * // Update or create a AblationResults
+     * const ablationResults = await prisma.ablationResults.upsert({
+     *   create: {
+     *     // ... data to create a AblationResults
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AblationResults we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AblationResultsUpsertArgs>(args: SelectSubset<T, AblationResultsUpsertArgs<ExtArgs>>): Prisma__AblationResultsClient<$Result.GetResult<Prisma.$AblationResultsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AblationResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsCountArgs} args - Arguments to filter AblationResults to count.
+     * @example
+     * // Count the number of AblationResults
+     * const count = await prisma.ablationResults.count({
+     *   where: {
+     *     // ... the filter for the AblationResults we want to count
+     *   }
+     * })
+    **/
+    count<T extends AblationResultsCountArgs>(
+      args?: Subset<T, AblationResultsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AblationResultsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AblationResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AblationResultsAggregateArgs>(args: Subset<T, AblationResultsAggregateArgs>): Prisma.PrismaPromise<GetAblationResultsAggregateType<T>>
+
+    /**
+     * Group by AblationResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AblationResultsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AblationResultsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AblationResultsGroupByArgs['orderBy'] }
+        : { orderBy?: AblationResultsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AblationResultsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAblationResultsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AblationResults model
+   */
+  readonly fields: AblationResultsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AblationResults.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AblationResultsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AblationResults model
+   */
+  interface AblationResultsFieldRefs {
+    readonly id: FieldRef<"AblationResults", 'Int'>
+    readonly runId: FieldRef<"AblationResults", 'String'>
+    readonly bucket: FieldRef<"AblationResults", 'String'>
+    readonly horizonDays: FieldRef<"AblationResults", 'Int'>
+    readonly baselineMae: FieldRef<"AblationResults", 'Float'>
+    readonly withSignalMae: FieldRef<"AblationResults", 'Float'>
+    readonly deltaMae: FieldRef<"AblationResults", 'Float'>
+    readonly baselineCoverage40: FieldRef<"AblationResults", 'Float'>
+    readonly withSignalCoverage40: FieldRef<"AblationResults", 'Float'>
+    readonly regimeStabilityScore: FieldRef<"AblationResults", 'Float'>
+    readonly recommendation: FieldRef<"AblationResults", 'String'>
+    readonly testedAt: FieldRef<"AblationResults", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AblationResults findUnique
+   */
+  export type AblationResultsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter, which AblationResults to fetch.
+     */
+    where: AblationResultsWhereUniqueInput
+  }
+
+  /**
+   * AblationResults findUniqueOrThrow
+   */
+  export type AblationResultsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter, which AblationResults to fetch.
+     */
+    where: AblationResultsWhereUniqueInput
+  }
+
+  /**
+   * AblationResults findFirst
+   */
+  export type AblationResultsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter, which AblationResults to fetch.
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AblationResults to fetch.
+     */
+    orderBy?: AblationResultsOrderByWithRelationInput | AblationResultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AblationResults.
+     */
+    cursor?: AblationResultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AblationResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AblationResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AblationResults.
+     */
+    distinct?: AblationResultsScalarFieldEnum | AblationResultsScalarFieldEnum[]
+  }
+
+  /**
+   * AblationResults findFirstOrThrow
+   */
+  export type AblationResultsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter, which AblationResults to fetch.
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AblationResults to fetch.
+     */
+    orderBy?: AblationResultsOrderByWithRelationInput | AblationResultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AblationResults.
+     */
+    cursor?: AblationResultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AblationResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AblationResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AblationResults.
+     */
+    distinct?: AblationResultsScalarFieldEnum | AblationResultsScalarFieldEnum[]
+  }
+
+  /**
+   * AblationResults findMany
+   */
+  export type AblationResultsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter, which AblationResults to fetch.
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AblationResults to fetch.
+     */
+    orderBy?: AblationResultsOrderByWithRelationInput | AblationResultsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AblationResults.
+     */
+    cursor?: AblationResultsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AblationResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AblationResults.
+     */
+    skip?: number
+    distinct?: AblationResultsScalarFieldEnum | AblationResultsScalarFieldEnum[]
+  }
+
+  /**
+   * AblationResults create
+   */
+  export type AblationResultsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a AblationResults.
+     */
+    data: XOR<AblationResultsCreateInput, AblationResultsUncheckedCreateInput>
+  }
+
+  /**
+   * AblationResults createMany
+   */
+  export type AblationResultsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AblationResults.
+     */
+    data: AblationResultsCreateManyInput | AblationResultsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AblationResults createManyAndReturn
+   */
+  export type AblationResultsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * The data used to create many AblationResults.
+     */
+    data: AblationResultsCreateManyInput | AblationResultsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AblationResults update
+   */
+  export type AblationResultsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a AblationResults.
+     */
+    data: XOR<AblationResultsUpdateInput, AblationResultsUncheckedUpdateInput>
+    /**
+     * Choose, which AblationResults to update.
+     */
+    where: AblationResultsWhereUniqueInput
+  }
+
+  /**
+   * AblationResults updateMany
+   */
+  export type AblationResultsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AblationResults.
+     */
+    data: XOR<AblationResultsUpdateManyMutationInput, AblationResultsUncheckedUpdateManyInput>
+    /**
+     * Filter which AblationResults to update
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * Limit how many AblationResults to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AblationResults updateManyAndReturn
+   */
+  export type AblationResultsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * The data used to update AblationResults.
+     */
+    data: XOR<AblationResultsUpdateManyMutationInput, AblationResultsUncheckedUpdateManyInput>
+    /**
+     * Filter which AblationResults to update
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * Limit how many AblationResults to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AblationResults upsert
+   */
+  export type AblationResultsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the AblationResults to update in case it exists.
+     */
+    where: AblationResultsWhereUniqueInput
+    /**
+     * In case the AblationResults found by the `where` argument doesn't exist, create a new AblationResults with this data.
+     */
+    create: XOR<AblationResultsCreateInput, AblationResultsUncheckedCreateInput>
+    /**
+     * In case the AblationResults was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AblationResultsUpdateInput, AblationResultsUncheckedUpdateInput>
+  }
+
+  /**
+   * AblationResults delete
+   */
+  export type AblationResultsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+    /**
+     * Filter which AblationResults to delete.
+     */
+    where: AblationResultsWhereUniqueInput
+  }
+
+  /**
+   * AblationResults deleteMany
+   */
+  export type AblationResultsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AblationResults to delete
+     */
+    where?: AblationResultsWhereInput
+    /**
+     * Limit how many AblationResults to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AblationResults without action
+   */
+  export type AblationResultsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AblationResults
+     */
+    select?: AblationResultsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AblationResults
+     */
+    omit?: AblationResultsOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -169553,6 +171976,39 @@ export namespace Prisma {
   };
 
   export type Oof_volatility_1dScalarFieldEnum = (typeof Oof_volatility_1dScalarFieldEnum)[keyof typeof Oof_volatility_1dScalarFieldEnum]
+
+
+  export const Specialist_signals_1dScalarFieldEnum: {
+    id: 'id',
+    as_of_date: 'as_of_date',
+    bucket: 'bucket',
+    signal_1: 'signal_1',
+    signal_2: 'signal_2',
+    confidence: 'confidence',
+    model_type: 'model_type',
+    run_hash: 'run_hash',
+    created_at: 'created_at'
+  };
+
+  export type Specialist_signals_1dScalarFieldEnum = (typeof Specialist_signals_1dScalarFieldEnum)[keyof typeof Specialist_signals_1dScalarFieldEnum]
+
+
+  export const AblationResultsScalarFieldEnum: {
+    id: 'id',
+    runId: 'runId',
+    bucket: 'bucket',
+    horizonDays: 'horizonDays',
+    baselineMae: 'baselineMae',
+    withSignalMae: 'withSignalMae',
+    deltaMae: 'deltaMae',
+    baselineCoverage40: 'baselineCoverage40',
+    withSignalCoverage40: 'withSignalCoverage40',
+    regimeStabilityScore: 'regimeStabilityScore',
+    recommendation: 'recommendation',
+    testedAt: 'testedAt'
+  };
+
+  export type AblationResultsScalarFieldEnum = (typeof AblationResultsScalarFieldEnum)[keyof typeof AblationResultsScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -182608,6 +185064,171 @@ export namespace Prisma {
     trained_at?: DateTimeWithAggregatesFilter<"oof_volatility_1d"> | Date | string
     run_hash?: StringWithAggregatesFilter<"oof_volatility_1d"> | string
     matrix_version?: StringNullableWithAggregatesFilter<"oof_volatility_1d"> | string | null
+  }
+
+  export type specialist_signals_1dWhereInput = {
+    AND?: specialist_signals_1dWhereInput | specialist_signals_1dWhereInput[]
+    OR?: specialist_signals_1dWhereInput[]
+    NOT?: specialist_signals_1dWhereInput | specialist_signals_1dWhereInput[]
+    id?: IntFilter<"specialist_signals_1d"> | number
+    as_of_date?: DateTimeFilter<"specialist_signals_1d"> | Date | string
+    bucket?: StringFilter<"specialist_signals_1d"> | string
+    signal_1?: FloatFilter<"specialist_signals_1d"> | number
+    signal_2?: FloatNullableFilter<"specialist_signals_1d"> | number | null
+    confidence?: FloatNullableFilter<"specialist_signals_1d"> | number | null
+    model_type?: StringFilter<"specialist_signals_1d"> | string
+    run_hash?: StringFilter<"specialist_signals_1d"> | string
+    created_at?: DateTimeFilter<"specialist_signals_1d"> | Date | string
+  }
+
+  export type specialist_signals_1dOrderByWithRelationInput = {
+    id?: SortOrder
+    as_of_date?: SortOrder
+    bucket?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrderInput | SortOrder
+    confidence?: SortOrderInput | SortOrder
+    model_type?: SortOrder
+    run_hash?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type specialist_signals_1dWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    as_of_date_bucket?: specialist_signals_1dAs_of_dateBucketCompoundUniqueInput
+    AND?: specialist_signals_1dWhereInput | specialist_signals_1dWhereInput[]
+    OR?: specialist_signals_1dWhereInput[]
+    NOT?: specialist_signals_1dWhereInput | specialist_signals_1dWhereInput[]
+    as_of_date?: DateTimeFilter<"specialist_signals_1d"> | Date | string
+    bucket?: StringFilter<"specialist_signals_1d"> | string
+    signal_1?: FloatFilter<"specialist_signals_1d"> | number
+    signal_2?: FloatNullableFilter<"specialist_signals_1d"> | number | null
+    confidence?: FloatNullableFilter<"specialist_signals_1d"> | number | null
+    model_type?: StringFilter<"specialist_signals_1d"> | string
+    run_hash?: StringFilter<"specialist_signals_1d"> | string
+    created_at?: DateTimeFilter<"specialist_signals_1d"> | Date | string
+  }, "id" | "as_of_date_bucket">
+
+  export type specialist_signals_1dOrderByWithAggregationInput = {
+    id?: SortOrder
+    as_of_date?: SortOrder
+    bucket?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrderInput | SortOrder
+    confidence?: SortOrderInput | SortOrder
+    model_type?: SortOrder
+    run_hash?: SortOrder
+    created_at?: SortOrder
+    _count?: specialist_signals_1dCountOrderByAggregateInput
+    _avg?: specialist_signals_1dAvgOrderByAggregateInput
+    _max?: specialist_signals_1dMaxOrderByAggregateInput
+    _min?: specialist_signals_1dMinOrderByAggregateInput
+    _sum?: specialist_signals_1dSumOrderByAggregateInput
+  }
+
+  export type specialist_signals_1dScalarWhereWithAggregatesInput = {
+    AND?: specialist_signals_1dScalarWhereWithAggregatesInput | specialist_signals_1dScalarWhereWithAggregatesInput[]
+    OR?: specialist_signals_1dScalarWhereWithAggregatesInput[]
+    NOT?: specialist_signals_1dScalarWhereWithAggregatesInput | specialist_signals_1dScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"specialist_signals_1d"> | number
+    as_of_date?: DateTimeWithAggregatesFilter<"specialist_signals_1d"> | Date | string
+    bucket?: StringWithAggregatesFilter<"specialist_signals_1d"> | string
+    signal_1?: FloatWithAggregatesFilter<"specialist_signals_1d"> | number
+    signal_2?: FloatNullableWithAggregatesFilter<"specialist_signals_1d"> | number | null
+    confidence?: FloatNullableWithAggregatesFilter<"specialist_signals_1d"> | number | null
+    model_type?: StringWithAggregatesFilter<"specialist_signals_1d"> | string
+    run_hash?: StringWithAggregatesFilter<"specialist_signals_1d"> | string
+    created_at?: DateTimeWithAggregatesFilter<"specialist_signals_1d"> | Date | string
+  }
+
+  export type AblationResultsWhereInput = {
+    AND?: AblationResultsWhereInput | AblationResultsWhereInput[]
+    OR?: AblationResultsWhereInput[]
+    NOT?: AblationResultsWhereInput | AblationResultsWhereInput[]
+    id?: IntFilter<"AblationResults"> | number
+    runId?: StringFilter<"AblationResults"> | string
+    bucket?: StringFilter<"AblationResults"> | string
+    horizonDays?: IntFilter<"AblationResults"> | number
+    baselineMae?: FloatFilter<"AblationResults"> | number
+    withSignalMae?: FloatFilter<"AblationResults"> | number
+    deltaMae?: FloatFilter<"AblationResults"> | number
+    baselineCoverage40?: FloatFilter<"AblationResults"> | number
+    withSignalCoverage40?: FloatFilter<"AblationResults"> | number
+    regimeStabilityScore?: FloatNullableFilter<"AblationResults"> | number | null
+    recommendation?: StringFilter<"AblationResults"> | string
+    testedAt?: DateTimeFilter<"AblationResults"> | Date | string
+  }
+
+  export type AblationResultsOrderByWithRelationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    bucket?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrderInput | SortOrder
+    recommendation?: SortOrder
+    testedAt?: SortOrder
+  }
+
+  export type AblationResultsWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    runId_bucket_horizonDays?: AblationResultsRunIdBucketHorizonDaysCompoundUniqueInput
+    AND?: AblationResultsWhereInput | AblationResultsWhereInput[]
+    OR?: AblationResultsWhereInput[]
+    NOT?: AblationResultsWhereInput | AblationResultsWhereInput[]
+    runId?: StringFilter<"AblationResults"> | string
+    bucket?: StringFilter<"AblationResults"> | string
+    horizonDays?: IntFilter<"AblationResults"> | number
+    baselineMae?: FloatFilter<"AblationResults"> | number
+    withSignalMae?: FloatFilter<"AblationResults"> | number
+    deltaMae?: FloatFilter<"AblationResults"> | number
+    baselineCoverage40?: FloatFilter<"AblationResults"> | number
+    withSignalCoverage40?: FloatFilter<"AblationResults"> | number
+    regimeStabilityScore?: FloatNullableFilter<"AblationResults"> | number | null
+    recommendation?: StringFilter<"AblationResults"> | string
+    testedAt?: DateTimeFilter<"AblationResults"> | Date | string
+  }, "id" | "runId_bucket_horizonDays">
+
+  export type AblationResultsOrderByWithAggregationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    bucket?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrderInput | SortOrder
+    recommendation?: SortOrder
+    testedAt?: SortOrder
+    _count?: AblationResultsCountOrderByAggregateInput
+    _avg?: AblationResultsAvgOrderByAggregateInput
+    _max?: AblationResultsMaxOrderByAggregateInput
+    _min?: AblationResultsMinOrderByAggregateInput
+    _sum?: AblationResultsSumOrderByAggregateInput
+  }
+
+  export type AblationResultsScalarWhereWithAggregatesInput = {
+    AND?: AblationResultsScalarWhereWithAggregatesInput | AblationResultsScalarWhereWithAggregatesInput[]
+    OR?: AblationResultsScalarWhereWithAggregatesInput[]
+    NOT?: AblationResultsScalarWhereWithAggregatesInput | AblationResultsScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"AblationResults"> | number
+    runId?: StringWithAggregatesFilter<"AblationResults"> | string
+    bucket?: StringWithAggregatesFilter<"AblationResults"> | string
+    horizonDays?: IntWithAggregatesFilter<"AblationResults"> | number
+    baselineMae?: FloatWithAggregatesFilter<"AblationResults"> | number
+    withSignalMae?: FloatWithAggregatesFilter<"AblationResults"> | number
+    deltaMae?: FloatWithAggregatesFilter<"AblationResults"> | number
+    baselineCoverage40?: FloatWithAggregatesFilter<"AblationResults"> | number
+    withSignalCoverage40?: FloatWithAggregatesFilter<"AblationResults"> | number
+    regimeStabilityScore?: FloatNullableWithAggregatesFilter<"AblationResults"> | number | null
+    recommendation?: StringWithAggregatesFilter<"AblationResults"> | string
+    testedAt?: DateTimeWithAggregatesFilter<"AblationResults"> | Date | string
   }
 
   export type TrainingMatrix1dCreateInput = {
@@ -197571,6 +200192,189 @@ export namespace Prisma {
     matrix_version?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type specialist_signals_1dCreateInput = {
+    as_of_date: Date | string
+    bucket: string
+    signal_1: number
+    signal_2?: number | null
+    confidence?: number | null
+    model_type: string
+    run_hash: string
+    created_at?: Date | string
+  }
+
+  export type specialist_signals_1dUncheckedCreateInput = {
+    id?: number
+    as_of_date: Date | string
+    bucket: string
+    signal_1: number
+    signal_2?: number | null
+    confidence?: number | null
+    model_type: string
+    run_hash: string
+    created_at?: Date | string
+  }
+
+  export type specialist_signals_1dUpdateInput = {
+    as_of_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    signal_1?: FloatFieldUpdateOperationsInput | number
+    signal_2?: NullableFloatFieldUpdateOperationsInput | number | null
+    confidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    model_type?: StringFieldUpdateOperationsInput | string
+    run_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type specialist_signals_1dUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    as_of_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    signal_1?: FloatFieldUpdateOperationsInput | number
+    signal_2?: NullableFloatFieldUpdateOperationsInput | number | null
+    confidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    model_type?: StringFieldUpdateOperationsInput | string
+    run_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type specialist_signals_1dCreateManyInput = {
+    id?: number
+    as_of_date: Date | string
+    bucket: string
+    signal_1: number
+    signal_2?: number | null
+    confidence?: number | null
+    model_type: string
+    run_hash: string
+    created_at?: Date | string
+  }
+
+  export type specialist_signals_1dUpdateManyMutationInput = {
+    as_of_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    signal_1?: FloatFieldUpdateOperationsInput | number
+    signal_2?: NullableFloatFieldUpdateOperationsInput | number | null
+    confidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    model_type?: StringFieldUpdateOperationsInput | string
+    run_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type specialist_signals_1dUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    as_of_date?: DateTimeFieldUpdateOperationsInput | Date | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    signal_1?: FloatFieldUpdateOperationsInput | number
+    signal_2?: NullableFloatFieldUpdateOperationsInput | number | null
+    confidence?: NullableFloatFieldUpdateOperationsInput | number | null
+    model_type?: StringFieldUpdateOperationsInput | string
+    run_hash?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AblationResultsCreateInput = {
+    runId: string
+    bucket: string
+    horizonDays: number
+    baselineMae: number
+    withSignalMae: number
+    deltaMae: number
+    baselineCoverage40: number
+    withSignalCoverage40: number
+    regimeStabilityScore?: number | null
+    recommendation: string
+    testedAt?: Date | string
+  }
+
+  export type AblationResultsUncheckedCreateInput = {
+    id?: number
+    runId: string
+    bucket: string
+    horizonDays: number
+    baselineMae: number
+    withSignalMae: number
+    deltaMae: number
+    baselineCoverage40: number
+    withSignalCoverage40: number
+    regimeStabilityScore?: number | null
+    recommendation: string
+    testedAt?: Date | string
+  }
+
+  export type AblationResultsUpdateInput = {
+    runId?: StringFieldUpdateOperationsInput | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    horizonDays?: IntFieldUpdateOperationsInput | number
+    baselineMae?: FloatFieldUpdateOperationsInput | number
+    withSignalMae?: FloatFieldUpdateOperationsInput | number
+    deltaMae?: FloatFieldUpdateOperationsInput | number
+    baselineCoverage40?: FloatFieldUpdateOperationsInput | number
+    withSignalCoverage40?: FloatFieldUpdateOperationsInput | number
+    regimeStabilityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    recommendation?: StringFieldUpdateOperationsInput | string
+    testedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AblationResultsUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    runId?: StringFieldUpdateOperationsInput | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    horizonDays?: IntFieldUpdateOperationsInput | number
+    baselineMae?: FloatFieldUpdateOperationsInput | number
+    withSignalMae?: FloatFieldUpdateOperationsInput | number
+    deltaMae?: FloatFieldUpdateOperationsInput | number
+    baselineCoverage40?: FloatFieldUpdateOperationsInput | number
+    withSignalCoverage40?: FloatFieldUpdateOperationsInput | number
+    regimeStabilityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    recommendation?: StringFieldUpdateOperationsInput | string
+    testedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AblationResultsCreateManyInput = {
+    id?: number
+    runId: string
+    bucket: string
+    horizonDays: number
+    baselineMae: number
+    withSignalMae: number
+    deltaMae: number
+    baselineCoverage40: number
+    withSignalCoverage40: number
+    regimeStabilityScore?: number | null
+    recommendation: string
+    testedAt?: Date | string
+  }
+
+  export type AblationResultsUpdateManyMutationInput = {
+    runId?: StringFieldUpdateOperationsInput | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    horizonDays?: IntFieldUpdateOperationsInput | number
+    baselineMae?: FloatFieldUpdateOperationsInput | number
+    withSignalMae?: FloatFieldUpdateOperationsInput | number
+    deltaMae?: FloatFieldUpdateOperationsInput | number
+    baselineCoverage40?: FloatFieldUpdateOperationsInput | number
+    withSignalCoverage40?: FloatFieldUpdateOperationsInput | number
+    regimeStabilityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    recommendation?: StringFieldUpdateOperationsInput | string
+    testedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AblationResultsUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    runId?: StringFieldUpdateOperationsInput | string
+    bucket?: StringFieldUpdateOperationsInput | string
+    horizonDays?: IntFieldUpdateOperationsInput | number
+    baselineMae?: FloatFieldUpdateOperationsInput | number
+    withSignalMae?: FloatFieldUpdateOperationsInput | number
+    deltaMae?: FloatFieldUpdateOperationsInput | number
+    baselineCoverage40?: FloatFieldUpdateOperationsInput | number
+    withSignalCoverage40?: FloatFieldUpdateOperationsInput | number
+    regimeStabilityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    recommendation?: StringFieldUpdateOperationsInput | string
+    testedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type BigIntNullableFilter<$PrismaModel = never> = {
     equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
     in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
@@ -207762,6 +210566,134 @@ export namespace Prisma {
     p50?: SortOrder
     p70?: SortOrder
     target_value?: SortOrder
+  }
+
+  export type specialist_signals_1dAs_of_dateBucketCompoundUniqueInput = {
+    as_of_date: Date | string
+    bucket: string
+  }
+
+  export type specialist_signals_1dCountOrderByAggregateInput = {
+    id?: SortOrder
+    as_of_date?: SortOrder
+    bucket?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrder
+    confidence?: SortOrder
+    model_type?: SortOrder
+    run_hash?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type specialist_signals_1dAvgOrderByAggregateInput = {
+    id?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrder
+    confidence?: SortOrder
+  }
+
+  export type specialist_signals_1dMaxOrderByAggregateInput = {
+    id?: SortOrder
+    as_of_date?: SortOrder
+    bucket?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrder
+    confidence?: SortOrder
+    model_type?: SortOrder
+    run_hash?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type specialist_signals_1dMinOrderByAggregateInput = {
+    id?: SortOrder
+    as_of_date?: SortOrder
+    bucket?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrder
+    confidence?: SortOrder
+    model_type?: SortOrder
+    run_hash?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type specialist_signals_1dSumOrderByAggregateInput = {
+    id?: SortOrder
+    signal_1?: SortOrder
+    signal_2?: SortOrder
+    confidence?: SortOrder
+  }
+
+  export type AblationResultsRunIdBucketHorizonDaysCompoundUniqueInput = {
+    runId: string
+    bucket: string
+    horizonDays: number
+  }
+
+  export type AblationResultsCountOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    bucket?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrder
+    recommendation?: SortOrder
+    testedAt?: SortOrder
+  }
+
+  export type AblationResultsAvgOrderByAggregateInput = {
+    id?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrder
+  }
+
+  export type AblationResultsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    bucket?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrder
+    recommendation?: SortOrder
+    testedAt?: SortOrder
+  }
+
+  export type AblationResultsMinOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    bucket?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrder
+    recommendation?: SortOrder
+    testedAt?: SortOrder
+  }
+
+  export type AblationResultsSumOrderByAggregateInput = {
+    id?: SortOrder
+    horizonDays?: SortOrder
+    baselineMae?: SortOrder
+    withSignalMae?: SortOrder
+    deltaMae?: SortOrder
+    baselineCoverage40?: SortOrder
+    withSignalCoverage40?: SortOrder
+    regimeStabilityScore?: SortOrder
   }
 
   export type NullableBigIntFieldUpdateOperationsInput = {

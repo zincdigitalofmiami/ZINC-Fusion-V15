@@ -139,10 +139,10 @@ def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
 
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT as_of_date, close
-            FROM "raw"."market_futures_1d"
+            SELECT event_date, close
+            FROM "mkt"."futures_1d"
             WHERE symbol = 'ZL'
-            ORDER BY as_of_date DESC
+            ORDER BY event_date DESC
             LIMIT %s
         """, (lookback_days + 1,))
 

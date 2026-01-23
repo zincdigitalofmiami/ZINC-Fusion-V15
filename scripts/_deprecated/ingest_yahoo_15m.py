@@ -2,11 +2,11 @@
 """
 ZINC-FUSION-V15: Yahoo Finance 15-Minute Intraday Ingestion (ZL Only)
 
-Ingests 15-minute OHLCV bars for ZL (soybean oil) ONLY into analytics.intraday_prices.
+Ingests 15-minute OHLCV bars for ZL (soybean oil) ONLY into analytics.zl_price_15m.
 This is the procurement target - no other instruments need intraday tracking.
 
 Data Flow:
-    Yahoo (ZL=F) → analytics.intraday_prices → Dashboard
+    Yahoo (ZL=F) → analytics.zl_price_15m → Dashboard
 
     ❌ NEVER: training.*, features.*, any ML tables
     ✅ Dashboard real-time charts
@@ -14,13 +14,13 @@ Data Flow:
 
 Usage:
     # Default: fetch last 7 days of 15m bars
-    python scripts/ingest_yahoo_15m.py
+    python scripts/_deprecated/ingest_yahoo_15m.py
 
     # More history (max 60 days per Yahoo)
-    python scripts/ingest_yahoo_15m.py --days-back 30
+    python scripts/_deprecated/ingest_yahoo_15m.py --days-back 30
 
     # Dry run
-    python scripts/ingest_yahoo_15m.py --dry-run
+    python scripts/_deprecated/ingest_yahoo_15m.py --dry-run
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ load_dotenv()
 # Constants - ZL ONLY
 SYMBOL = "ZL"
 YAHOO_TICKER = "ZL=F"
-TARGET_TABLE = "analytics.intraday_prices"
+TARGET_TABLE = "analytics.zl_price_15m"
 SOURCE_VALUE = "yahoo"
 
 # Yahoo limits: 15m data only available for last 60 days
@@ -65,12 +65,12 @@ def get_connection():
 
 
 def get_previous_close(conn) -> Optional[float]:
-    """Get the most recent daily close for ZL from raw.market_futures_1d."""
+    """Get the most recent daily close for ZL from mkt.futures_1d."""
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT close FROM raw.market_futures_1d 
+                SELECT close FROM mkt.futures_1d
                 WHERE symbol = 'ZL' 
                 ORDER BY event_date DESC 
                 LIMIT 1
@@ -171,10 +171,10 @@ def download_zl_15m(days_back: int = 7) -> pd.DataFrame:
 def upsert_to_analytics(
     conn, df: pd.DataFrame, previous_close: Optional[float], dry_run: bool = False
 ) -> int:
-    """Upsert 15m data directly to analytics.intraday_prices.
+    """Upsert 15m data directly to analytics.zl_price_15m.
 
     Matches existing schema:
-    - symbol, timestamp, open, high, low, close, volume
+    - timestamp, open, high, low, close, volume
     - previous_close, change, change_percent (computed)
     - day_high, day_low (computed per day)
     - source, created_at
@@ -183,7 +183,6 @@ def upsert_to_analytics(
         return 0
 
     # Add computed columns
-    df["symbol"] = SYMBOL
     df["source"] = SOURCE_VALUE
     df["previous_close"] = previous_close
 
@@ -211,12 +210,12 @@ def upsert_to_analytics(
 
     # Upsert matching existing schema (no id column - it's serial)
     upsert_sql = """
-        INSERT INTO analytics.intraday_prices
-            (symbol, timestamp, open, high, low, close, volume, 
-             previous_close, change, change_percent, day_high, day_low, 
+        INSERT INTO analytics.zl_price_15m
+            (timestamp, open, high, low, close, volume,
+             previous_close, change, change_percent, day_high, day_low,
              source, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (symbol, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (timestamp)
         DO UPDATE SET
             open = EXCLUDED.open,
             high = EXCLUDED.high,
@@ -228,13 +227,13 @@ def upsert_to_analytics(
             change_percent = EXCLUDED.change_percent,
             day_high = EXCLUDED.day_high,
             day_low = EXCLUDED.day_low,
+            source = EXCLUDED.source,
             created_at = EXCLUDED.created_at
     """
 
     now = datetime.now(timezone.utc)
     records = [
         (
-            row["symbol"],
             row["timestamp"],
             row["open"],
             row["high"],

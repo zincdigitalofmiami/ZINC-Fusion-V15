@@ -184,11 +184,19 @@ Not all data series have 25+ years of history. Training scripts MUST tier data b
 
 **Reference:** This section (“Data Availability by Horizon (Training Constraint)”) is the canonical guidance in this repo.
 
-### FRED Routing (Specialist Ownership)
+### FRED Routing (Two-Layer System)
 
-- FRED is landed in long format across `econ.*` tables and routed downstream by `series_id`.
-- The explicit mapping lives in `src/fusion/ingestion/router.py` (`FRED_SERIES_BUCKETS` / `get_fred_bucket`).
-- When adding or changing ownership for a series, update the mapping and keep tests green (`tests/test_fred_routing.py`).
+FRED series are routed at two levels:
+
+1. **Table Routing** (which `econ.*` table): `src/fusion/db/fred_routing.py`
+   - 136 series mapped to 7 domain tables
+   - Use `get_fred_table(series_id)` for ingestion
+   - Tables: `rates_1d`, `activity_1d`, `commodities_1d`, `vol_indices_1d`, `inflation_1d`, `labor_1d`, `money_1d`
+
+2. **Specialist Routing** (which Big 11 bucket): `src/fusion/ingestion/router.py`
+   - Routes series to specialist training buckets
+   - Use `get_fred_bucket(series_id)` for feature generation
+   - Updates require keeping tests green (`tests/test_fred_routing.py`)
 
 ### Allowed Schemas (v2, 12 total)
 
@@ -215,7 +223,7 @@ Institutional schema taxonomy. Migrated 2026-01-18.
 | `alt` | Alternative data (news, weather, legislation) | Append-only |
 | `pos` | Positioning data (CFTC) | Append-only |
 | `supply` | Supply/demand (USDA, EPA, trade flows) | Append-only |
-| `features` | Denormalized feature store | Computed / rebuilt |
+| `features` | Denormalized feature store (elite_1d, news_scored_1d, weather_1d) | Computed / rebuilt |
 | `training` | Matrices + OOF + specialist features | Rebuilt on demand |
 | `model` | Model registry + training runs | Versioned |
 | `forecasts` | Prediction outputs | Versioned |

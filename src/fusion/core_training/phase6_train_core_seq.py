@@ -150,7 +150,7 @@ def get_model_config(horizon: int) -> dict:
             "time_limit": 600,  # 10 minutes
             # Chronos disabled - hangs during import on macOS ARM64
             "hyperparameters": {"DirectTabular": {}},
-            "window_start": TRAINING_CONFIG.tactical_window_start,  # "2020-01-01"
+            "window_start": TRAINING_CONFIG.tactical_window_start,  # None = use all data
         }
     else:
         return {
@@ -158,7 +158,7 @@ def get_model_config(horizon: int) -> dict:
             "time_limit": 1200,  # 20 minutes
             # Chronos disabled - hangs during import on macOS ARM64
             "hyperparameters": {"DirectTabular": {}},
-            "window_start": TRAINING_CONFIG.strategic_window_start,  # "1980-01-01"
+            "window_start": TRAINING_CONFIG.strategic_window_start,  # None = use all data
         }
 
 

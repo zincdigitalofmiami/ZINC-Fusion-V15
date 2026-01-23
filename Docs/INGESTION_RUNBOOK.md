@@ -9,7 +9,7 @@ already covered, and identify safe additions that do not touch schemas.
 
 ### Market Prices (mkt.* / analytics.*)
 
-- `yahoo-eod` → `mkt.futures_1d` (core futures: ZL/ZS/ZM/CL/HO/etc).
+- `yahoo-eod` → `mkt.futures_1d` (core futures: ZL/ZS/ZM/CL/HO/etc) + `analytics.zl_price_1d` (dashboard copy).
 - `barchart-futures-daily` → `mkt.futures_1d` (softs: CT/OJ/LBR only; Yahoo preferred when available).
 - `cpo-daily` / `cpo-trading-economics` → `mkt.futures_1d` (CPO backup).
 - `fx-spot-daily` → `mkt.fx_1d` (USD/BRL, USD/CNY, USD/ARS, etc).
@@ -76,4 +76,4 @@ These additions are optional and can be implemented without new tables/columns:
 ## Notes
 
 - Schema is untouched. All additions must target existing tables only.
-- Intraday data stays in `analytics.*` and is dashboard-only by contract.
+- Intraday data stays in `analytics.zl_price_15m` / `analytics.zl_price_1h` and is dashboard-only by contract.

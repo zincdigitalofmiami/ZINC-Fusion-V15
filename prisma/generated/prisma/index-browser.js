@@ -2310,6 +2310,33 @@ exports.Prisma.Oof_volatility_1dScalarFieldEnum = {
   matrix_version: 'matrix_version'
 };
 
+exports.Prisma.Specialist_signals_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  bucket: 'bucket',
+  signal_1: 'signal_1',
+  signal_2: 'signal_2',
+  confidence: 'confidence',
+  model_type: 'model_type',
+  run_hash: 'run_hash',
+  created_at: 'created_at'
+};
+
+exports.Prisma.AblationResultsScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  bucket: 'bucket',
+  horizonDays: 'horizonDays',
+  baselineMae: 'baselineMae',
+  withSignalMae: 'withSignalMae',
+  deltaMae: 'deltaMae',
+  baselineCoverage40: 'baselineCoverage40',
+  withSignalCoverage40: 'withSignalCoverage40',
+  regimeStabilityScore: 'regimeStabilityScore',
+  recommendation: 'recommendation',
+  testedAt: 'testedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2473,7 +2500,9 @@ exports.Prisma.ModelName = {
   oof_substitutes_1d: 'oof_substitutes_1d',
   oof_tariff_1d: 'oof_tariff_1d',
   oof_trump_effect_1d: 'oof_trump_effect_1d',
-  oof_volatility_1d: 'oof_volatility_1d'
+  oof_volatility_1d: 'oof_volatility_1d',
+  specialist_signals_1d: 'specialist_signals_1d',
+  AblationResults: 'AblationResults'
 };
 
 /**

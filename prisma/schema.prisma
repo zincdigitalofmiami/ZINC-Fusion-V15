@@ -1060,6 +1060,51 @@ model FeaturesNewsSentiment1d {
   @@schema("features")
 }
 
+/// Scored news articles with specialist routing flags (Big 11)
+/// Primary table for specialist feature generation - maps news to trade dates
+model FeaturesNewsScored1d {
+  id                   Int       @id @default(autoincrement())
+  rawNewsId            Int?      @map("raw_news_id")
+  publishedAt          DateTime  @map("published_at") @db.Timestamptz(6)
+  headline             String?
+  sentimentScore       Float?    @map("sentiment_score")
+  sentimentConfidence  Float?    @map("sentiment_confidence")
+  sentimentDirection   String?   @map("sentiment_direction") @db.VarChar(20)
+  zlImpactScore        Float?    @map("zl_impact_score")
+
+  // Big 11 specialist routing flags
+  affectsCrush         Boolean   @default(false) @map("affects_crush")
+  affectsChina         Boolean   @default(false) @map("affects_china")
+  affectsFx            Boolean   @default(false) @map("affects_fx")
+  affectsFed           Boolean   @default(false) @map("affects_fed")
+  affectsTariff        Boolean   @default(false) @map("affects_tariff")
+  affectsEnergy        Boolean   @default(false) @map("affects_energy")
+  affectsBiofuel       Boolean   @default(false) @map("affects_biofuel")
+  affectsPalm          Boolean   @default(false) @map("affects_palm")
+  affectsVolatility    Boolean   @default(false) @map("affects_volatility")
+  affectsSubstitutes   Boolean   @default(false) @map("affects_substitutes")
+  affectsTrumpEffect   Boolean   @default(false) @map("affects_trump_effect")
+
+  // Audit fields
+  ingestedAt           DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  modelVersion         String?   @map("model_version") @db.VarChar(50)
+
+  @@index([publishedAt], map: "idx_news_scored_published")
+  @@index([affectsCrush], map: "idx_news_scored_crush")
+  @@index([affectsChina], map: "idx_news_scored_china")
+  @@index([affectsFx], map: "idx_news_scored_fx")
+  @@index([affectsFed], map: "idx_news_scored_fed")
+  @@index([affectsTariff], map: "idx_news_scored_tariff")
+  @@index([affectsEnergy], map: "idx_news_scored_energy")
+  @@index([affectsBiofuel], map: "idx_news_scored_biofuel")
+  @@index([affectsPalm], map: "idx_news_scored_palm")
+  @@index([affectsVolatility], map: "idx_news_scored_volatility")
+  @@index([affectsSubstitutes], map: "idx_news_scored_substitutes")
+  @@index([affectsTrumpEffect], map: "idx_news_scored_trump")
+  @@map("news_scored_1d")
+  @@schema("features")
+}
+
 model specialist_drivers {
   id          Int    @id @default(autoincrement())
   driver_id   String @unique
@@ -2845,4 +2890,50 @@ model oof_volatility_1d {
   @@index([horizon_days], map: "idx_oof_volatility_horizon")
   @@index([run_hash], map: "idx_oof_volatility_run")
   @@schema("training")
+}
+
+// =============================================================================
+// SPECIALIST SIGNALS (v3 Architecture)
+// =============================================================================
+// Compact signal outputs from 11 specialist models (1-2 values per date/bucket)
+// Signals feed into Core as input features rather than stacking at L1 meta
+
+model specialist_signals_1d {
+  id          Int       @id @default(autoincrement())
+  as_of_date  DateTime  @db.Date
+  bucket      String    @db.VarChar(30)
+  signal_1    Float                              // Primary signal (always present)
+  signal_2    Float?                             // Secondary signal (optional)
+  confidence  Float?                             // Model confidence 0-1
+  model_type  String    @db.VarChar(50)          // xgb, garch, ecm, var, ardl, rule_based
+  run_hash    String    @db.VarChar(64)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+
+  @@unique([as_of_date, bucket])
+  @@index([as_of_date], map: "idx_specialist_signals_date")
+  @@index([bucket], map: "idx_specialist_signals_bucket")
+  @@index([run_hash], map: "idx_specialist_signals_run")
+  @@schema("training")
+}
+
+// Ablation test results for validating signal contributions to Core model
+model AblationResults {
+  id                     Int       @id @default(autoincrement())
+  runId                  String    @map("run_id") @db.VarChar(64)
+  bucket                 String    @db.VarChar(30)
+  horizonDays            Int       @map("horizon_days")
+  baselineMae            Float     @map("baseline_mae")
+  withSignalMae          Float     @map("with_signal_mae")
+  deltaMae               Float     @map("delta_mae")
+  baselineCoverage40     Float     @map("baseline_coverage_40")
+  withSignalCoverage40   Float     @map("with_signal_coverage_40")
+  regimeStabilityScore   Float?    @map("regime_stability_score")
+  recommendation         String    @db.VarChar(20)          // accept, reject, review
+  testedAt               DateTime  @default(now()) @map("tested_at") @db.Timestamp(6)
+
+  @@unique([runId, bucket, horizonDays])
+  @@index([bucket], map: "idx_ablation_bucket")
+  @@index([horizonDays], map: "idx_ablation_horizon")
+  @@map("ablation_results")
+  @@schema("analytics")
 }

@@ -14,7 +14,7 @@ not multi-horizon price predictions.
 - Output is a compact signal (1-2 values) per date and symbol.
 - Signals are inputs to the core and meta-learner; horizons are owned by the core.
 - No decision semantics (no buy/sell/act-now outputs).
-- Use daily data only; intraday tables are dashboard-only.
+- Use daily data only; intraday tables (`analytics.zl_price_15m`, `analytics.zl_price_1h`) are dashboard-only; daily dashboard copy is `analytics.zl_price_1d`.
 - Proposed signals require explicit approval before implementation.
 
 ## Specialist Specs (Candidate Mapping)

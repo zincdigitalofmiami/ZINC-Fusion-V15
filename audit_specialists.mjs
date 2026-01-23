@@ -11,12 +11,12 @@ async function audit() {
   try {
     // Check news_articles_1d specialist tags
     const newsTagStats = await prisma.$queryRaw`
-      SELECT 
+      SELECT
         unnest(specialist_tags) as specialist,
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.news_articles_1d
+      FROM alt.news_1d
       WHERE specialist_tags IS NOT NULL AND array_length(specialist_tags, 1) > 0
       GROUP BY 1
       ORDER BY 1
@@ -26,12 +26,12 @@ async function audit() {
 
     // Check news by bucket_name (legacy)
     const newsBucketStats = await prisma.$queryRaw`
-      SELECT 
+      SELECT
         bucket_name,
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.news_articles_1d
+      FROM alt.news_1d
       WHERE bucket_name IS NOT NULL
       GROUP BY 1
       ORDER BY 1
@@ -46,7 +46,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.cftc_cot_1w
+      FROM pos.cftc_1w
       GROUP BY symbol
       ORDER BY row_count DESC
       LIMIT 20
@@ -61,7 +61,7 @@ async function audit() {
         COUNT(DISTINCT series_id)::int as series,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.fred_observations_1d
+      FROM econ.rates_1d
     `;
     console.log('\n=== FRED DATA ===');
     console.table(fredStats);
@@ -73,7 +73,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.market_futures_1d
+      FROM mkt.futures_1d
       GROUP BY symbol
       ORDER BY symbol
     `;
@@ -87,7 +87,7 @@ async function audit() {
         COUNT(DISTINCT station_id)::int as stations,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.weather_noaa_1d
+      FROM alt.weather_1d
     `;
     console.log('\n=== WEATHER DATA ===');
     console.table(weatherStats);
@@ -99,7 +99,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.epa_rin_prices_1d
+      FROM supply.epa_rin_1d
       GROUP BY rin_type
       ORDER BY rin_type
     `;
@@ -113,7 +113,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.fx_spot_1d
+      FROM mkt.fx_1d
       GROUP BY pair
       ORDER BY pair
     `;
@@ -127,7 +127,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.legislation_federal_register_1d
+      FROM alt.legislation_1d
       GROUP BY document_type
       ORDER BY row_count DESC
     `;
@@ -141,7 +141,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.usda_export_sales_1w
+      FROM supply.usda_exports_1w
       GROUP BY commodity
       ORDER BY commodity
     `;
@@ -155,7 +155,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.usda_wasde_1m
+      FROM supply.usda_wasde_1m
       GROUP BY commodity
       ORDER BY row_count DESC
       LIMIT 15
@@ -170,7 +170,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(action_date)::date as earliest,
         MAX(action_date)::date as latest
-      FROM raw.whitehouse_actions_event
+      FROM alt.legislation_1d
       GROUP BY action_type
       ORDER BY row_count DESC
     `;
@@ -184,7 +184,7 @@ async function audit() {
         COUNT(*)::int as row_count,
         MIN(event_date)::date as earliest,
         MAX(event_date)::date as latest
-      FROM raw.yahoo_equity_1d
+      FROM mkt.etf_1d
       GROUP BY symbol
       ORDER BY symbol
     `;

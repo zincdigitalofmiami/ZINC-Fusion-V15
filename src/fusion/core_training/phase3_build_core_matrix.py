@@ -2,12 +2,22 @@
 Phase 3: Build Core Feature Matrix
 ===================================
 
-Assembles training.matrix_1d from:
+Assembles training.matrix_1d from ALL source data:
 - features.elite_1d (27 elite indicators + OHLCV)
 - features.options_1d (IV/Greeks from Phase 1)
 - features.weather_1d (weather aggregates)
-- econ.* tables (rates, inflation, labor, activity, vol_indices, commodities, fx, money)
+- econ.* tables (rates, inflation, labor, activity, vol_indices, commodities, money)
 - mkt.fx_1d (FX rates)
+- pos.cftc_1w (COT managed money, commercials)
+- pos.cftc_cits_1w (index trader positions)
+- supply.epa_rin_1d (biofuel RIN prices)
+- supply.usda_exports_1w (export sales)
+- supply.usda_wasde_1m (WASDE supply/demand balances)
+
+SCHEMA UPDATE 2026-01-22:
+- Added supply.* tables (EPA RINs, USDA exports, WASDE)
+- Removed 70% coverage filter (AutoGluon handles nulls)
+- Removed date window mandates (use all available data)
 
 SCHEMA UPDATE 2026-01-17:
 - FRED data migrated from raw.fred_observations_1d to domain-specific econ.* tables
@@ -30,7 +40,7 @@ from __future__ import annotations
 
 import logging
 import hashlib
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Tuple, List
 
 import pandas as pd
@@ -41,6 +51,24 @@ from psycopg2.extras import execute_values
 from .config import DATABASE_URL, TARGET_SYMBOL, HORIZONS, FeatureMatrixConfig as FMC
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# DATE NORMALIZATION HELPER (CRITICAL FIX)
+# =============================================================================
+
+def normalize_date_column(df: pd.DataFrame, col: str = "trade_date") -> pd.DataFrame:
+    """
+    Normalize date column to datetime.date for consistent merging.
+
+    This fixes the silent merge failure where different date types
+    (datetime64[ns] vs datetime.date) cause zero matches.
+
+    PATCH: 2026-01-21 - Resolves weather data merge failure
+    """
+    if col in df.columns and len(df) > 0:
+        df[col] = pd.to_datetime(df[col]).dt.date
+    return df
 
 
 def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
@@ -207,15 +235,7 @@ def load_weather_aggregates(conn) -> pd.DataFrame:
     """Load weather data aggregated by region from features.weather_1d."""
     logger.info("Loading weather aggregates from features.weather_1d...")
 
-    FMC_INSTANCE = FMC()
-
     try:
-        # Load pre-computed weather features from features layer
-        # features.weather_1d has regional aggregates (US, BR, AR) with:
-        # - Temperature (avg, min, max), precipitation, humidity, wind
-        # - Anomalies vs 30-day rolling mean
-        # - Growing degree days (GDD)
-        # - Rolling sums (7d, 14d precip)
         query = """
             SELECT *
             FROM features.weather_1d
@@ -227,15 +247,437 @@ def load_weather_aggregates(conn) -> pd.DataFrame:
         if len(df) > 0:
             # Drop id and created_at columns
             df = df.drop(columns=["id", "created_at"], errors="ignore")
+
+            # CRITICAL FIX: Normalize date type for merge compatibility
+            df = normalize_date_column(df, "trade_date")
+
+            # Log coverage statistics
+            null_pct = df.drop(columns=['trade_date'], errors='ignore').isnull().mean().mean() * 100
             logger.info(
                 f"   Loaded {len(df):,} rows, {len(df.columns)-1} weather features"
             )
+            logger.info(f"   Average null percentage: {null_pct:.1f}%")
             return df
 
     except Exception as e:
         logger.warning(f"   Weather data not available: {e}")
 
     return pd.DataFrame()
+
+
+# =============================================================================
+# CFTC POSITIONING DATA (NEW - 2026-01-21)
+# =============================================================================
+
+def load_cftc_positioning(conn, symbol: str = "ZL") -> pd.DataFrame:
+    """
+    Load CFTC COT positioning data for soybean oil.
+
+    NEW (2026-01-21): Adds managed money and commercial positioning signals.
+
+    Key features:
+    - cot_managed_money_net: Speculator net position (contrarian indicator)
+    - cot_prod_merc_net: Commercial hedger net (informed money)
+    - cot_open_interest: Total market participation
+    - cot_mm_pct_oi: Managed money as % of open interest
+
+    Args:
+        conn: Database connection
+        symbol: Target symbol (ZL for soybean oil)
+
+    Returns:
+        DataFrame with trade_date and COT features
+    """
+    logger.info("Loading CFTC COT positioning from pos.cftc_1w...")
+
+    try:
+        # pos.cftc_1w uses symbol directly (ZL, ZS, ZM, etc.)
+        # It already has managed_money_net and prod_merc_net computed
+        query = """
+            SELECT
+                event_date as trade_date,
+                managed_money_net as cot_managed_money_net,
+                prod_merc_net as cot_prod_merc_net,
+                open_interest as cot_open_interest,
+                managed_money_net_pct_oi as cot_mm_pct_oi
+            FROM pos.cftc_1w
+            WHERE symbol = %s
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn, params=(symbol,))
+
+        if len(df) > 0:
+            # Commercials as percentage of open interest
+            df['cot_comm_pct_oi'] = np.where(
+                df['cot_open_interest'] > 0,
+                df['cot_prod_merc_net'] / df['cot_open_interest'] * 100,
+                0
+            )
+
+            # Changes (week-over-week)
+            df['cot_mm_net_chg'] = df['cot_managed_money_net'].diff()
+            df['cot_comm_net_chg'] = df['cot_prod_merc_net'].diff()
+
+            # Keep only relevant columns
+            keep_cols = [
+                'trade_date',
+                'cot_managed_money_net',
+                'cot_prod_merc_net',
+                'cot_open_interest',
+                'cot_mm_pct_oi',
+                'cot_comm_pct_oi',
+                'cot_mm_net_chg',
+                'cot_comm_net_chg'
+            ]
+            df = df[keep_cols]
+
+            # Normalize date type
+            df = normalize_date_column(df, "trade_date")
+
+            logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} COT features")
+            logger.info(f"   Date range: {df['trade_date'].min()} to {df['trade_date'].max()}")
+            return df
+        else:
+            logger.warning(f"   No CFTC COT data found for {symbol}")
+
+    except Exception as e:
+        logger.warning(f"   CFTC COT data not available: {e}")
+
+    return pd.DataFrame()
+
+
+def load_cftc_cits(conn) -> pd.DataFrame:
+    """
+    Load CFTC CITS (Commodity Index Trader) positions if available.
+
+    NEW (2026-01-21): Index fund flows as a separate signal.
+    """
+    logger.info("Loading CFTC CITS (index traders) if available...")
+
+    try:
+        # Check if cits table exists
+        check_query = """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'pos' AND table_name = 'cftc_cits_1w'
+            )
+        """
+        with conn.cursor() as cur:
+            cur.execute(check_query)
+            exists = cur.fetchone()[0]
+
+        if not exists:
+            logger.info("   pos.cftc_cits_1w table not found - skipping CITS")
+            return pd.DataFrame()
+
+        query = """
+            SELECT
+                event_date as trade_date,
+                cit_long,
+                cit_short,
+                (cit_long - cit_short) as cits_net_position,
+                open_interest as cits_open_interest
+            FROM pos.cftc_cits_1w
+            WHERE symbol = 'ZL'
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
+
+        if len(df) > 0:
+            # Calculate index trader % of OI
+            df['cits_pct_oi'] = np.where(
+                df['cits_open_interest'] > 0,
+                df['cits_net_position'] / df['cits_open_interest'] * 100,
+                0
+            )
+
+            # Change
+            df['cits_net_chg'] = df['cits_net_position'].diff()
+
+            # Keep only relevant columns
+            keep_cols = [
+                'trade_date',
+                'cits_net_position',
+                'cits_pct_oi',
+                'cits_net_chg'
+            ]
+            df = df[keep_cols]
+
+            df = normalize_date_column(df, "trade_date")
+            logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} CITS features")
+            return df
+        else:
+            logger.warning("   No CITS data found for ZL")
+
+    except Exception as e:
+        logger.warning(f"   CFTC CITS data not available: {e}")
+
+    return pd.DataFrame()
+
+
+# =============================================================================
+# SUPPLY DATA (NEW - 2026-01-22)
+# =============================================================================
+
+def load_epa_rin_prices(conn) -> pd.DataFrame:
+    """
+    Load EPA RIN prices from supply.epa_rin_1d.
+
+    NEW (2026-01-22): Biofuel RIN prices are critical for soybean oil demand.
+
+    Key features:
+    - rin_d3: Cellulosic biofuel RINs
+    - rin_d4: Biodiesel/renewable diesel RINs (most relevant for ZL)
+    - rin_d5: Advanced biofuel RINs
+    - rin_d6: Conventional biofuel (ethanol) RINs
+
+    Returns:
+        DataFrame with trade_date and RIN price columns
+    """
+    logger.info("Loading EPA RIN prices from supply.epa_rin_1d...")
+
+    try:
+        query = """
+            SELECT
+                event_date as trade_date,
+                rin_type,
+                price
+            FROM supply.epa_rin_1d
+            ORDER BY event_date, rin_type
+        """
+        df = pd.read_sql(query, conn)
+
+        if len(df) == 0:
+            logger.warning("   No EPA RIN data found")
+            return pd.DataFrame()
+
+        # Pivot to wide format (one column per RIN type)
+        df_wide = df.pivot(index="trade_date", columns="rin_type", values="price")
+        df_wide = df_wide.reset_index()
+        df_wide.columns = ["trade_date"] + [
+            f"rin_{col.lower()}" for col in df_wide.columns[1:]
+        ]
+
+        df_wide = normalize_date_column(df_wide, "trade_date")
+        logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} RIN types")
+        logger.info(f"   Date range: {df_wide['trade_date'].min()} to {df_wide['trade_date'].max()}")
+        return df_wide
+
+    except Exception as e:
+        logger.warning(f"   EPA RIN data not available: {e}")
+        return pd.DataFrame()
+
+
+def load_usda_exports(conn) -> pd.DataFrame:
+    """
+    Load USDA export sales from supply.usda_exports_1w.
+
+    NEW (2026-01-22): Export demand signals for soybean complex.
+
+    Key features:
+    - usda_zl_exports: Soybean oil total exports (MT)
+    - usda_zl_net_sales: Soybean oil net sales (MT)
+    - usda_zl_outstanding: Soybean oil outstanding sales
+    - usda_zs_exports: Soybeans total exports
+    - usda_zm_exports: Soybean meal total exports
+
+    Returns:
+        DataFrame with trade_date and export columns
+    """
+    logger.info("Loading USDA export sales from supply.usda_exports_1w...")
+
+    try:
+        # Get totals for soybean complex commodities
+        query = """
+            SELECT
+                event_date as trade_date,
+                commodity,
+                SUM(net_sales_mt) as net_sales_mt,
+                SUM(exports_mt) as exports_mt,
+                SUM(outstanding_sales_mt) as outstanding_mt
+            FROM supply.usda_exports_1w
+            WHERE destination_country = 'TOTAL'
+            AND commodity IN ('Soybean Oil', 'Soybeans', 'Soybean Meal')
+            GROUP BY event_date, commodity
+            ORDER BY event_date, commodity
+        """
+        df = pd.read_sql(query, conn)
+
+        if len(df) == 0:
+            logger.warning("   No USDA export data found")
+            return pd.DataFrame()
+
+        # Create columns for each commodity
+        result_dfs = []
+        for commodity, prefix in [('Soybean Oil', 'usda_zl'), ('Soybeans', 'usda_zs'), ('Soybean Meal', 'usda_zm')]:
+            df_comm = df[df['commodity'] == commodity].copy()
+            if len(df_comm) > 0:
+                df_comm = df_comm.rename(columns={
+                    'exports_mt': f'{prefix}_exports',
+                    'net_sales_mt': f'{prefix}_net_sales',
+                    'outstanding_mt': f'{prefix}_outstanding'
+                })
+                df_comm = df_comm[['trade_date', f'{prefix}_exports', f'{prefix}_net_sales', f'{prefix}_outstanding']]
+                result_dfs.append(df_comm)
+
+        if not result_dfs:
+            return pd.DataFrame()
+
+        # Merge all commodities
+        result = result_dfs[0]
+        for df_add in result_dfs[1:]:
+            result = result.merge(df_add, on='trade_date', how='outer')
+
+        result = normalize_date_column(result, "trade_date")
+        logger.info(f"   Loaded {len(result):,} rows, {len(result.columns)-1} export columns")
+        return result
+
+    except Exception as e:
+        logger.warning(f"   USDA export data not available: {e}")
+        return pd.DataFrame()
+
+
+def load_usda_wasde(conn) -> pd.DataFrame:
+    """
+    Load USDA WASDE supply/demand balances from supply.usda_wasde_1m.
+
+    NEW (2026-01-22): Fundamental supply/demand data - THE key driver.
+
+    Key features:
+    - wasde_us_zs_production: US soybean production
+    - wasde_us_zs_crush: US soybean crush
+    - wasde_us_zs_stocks: US ending stocks
+    - wasde_us_zl_production: US soybean oil production
+    - wasde_world_zs_stocks_to_use: World stocks-to-use ratio
+
+    Returns:
+        DataFrame with trade_date and WASDE columns
+    """
+    logger.info("Loading USDA WASDE from supply.usda_wasde_1m...")
+
+    try:
+        # Get key US metrics for soybean complex
+        query = """
+            SELECT
+                event_date as trade_date,
+                commodity,
+                country,
+                metric,
+                value
+            FROM supply.usda_wasde_1m
+            WHERE commodity IN ('Soybeans', 'Soybean Oil', 'Soybean Meal')
+            AND country IN ('United States', 'World')
+            AND metric IN ('production', 'consumption', 'exports', 'ending_stocks', 'crush')
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
+
+        if len(df) == 0:
+            logger.warning("   No USDA WASDE data found")
+            return pd.DataFrame()
+
+        # Create composite key for pivoting
+        df['col_name'] = 'wasde_' + df['country'].str.lower().str.replace(' ', '_') + '_' + \
+                         df['commodity'].str.lower().str.replace(' ', '_').str.replace('soybean_', 'z') + '_' + \
+                         df['metric']
+
+        # Simplify column names
+        df['col_name'] = df['col_name'].str.replace('united_states', 'us')
+        df['col_name'] = df['col_name'].str.replace('soybeans', 'zs')
+        df['col_name'] = df['col_name'].str.replace('oil', 'l')
+        df['col_name'] = df['col_name'].str.replace('meal', 'm')
+
+        # Pivot to wide format
+        df_wide = df.pivot(index='trade_date', columns='col_name', values='value')
+        df_wide = df_wide.reset_index()
+
+        df_wide = normalize_date_column(df_wide, "trade_date")
+        logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} WASDE columns")
+        return df_wide
+
+    except Exception as e:
+        logger.warning(f"   USDA WASDE data not available: {e}")
+        return pd.DataFrame()
+
+
+def load_specialist_signals(conn, include_signals: bool = True) -> pd.DataFrame:
+    """
+    Load specialist signals from training.specialist_signals_1d.
+
+    NEW v3 ARCHITECTURE (2026-01-21):
+    Specialist signals are compact (1-2 values per date) and feed into Core
+    as input features. This replaces the old 44-model stacking approach.
+
+    Signal columns added:
+    - sig_{bucket}_1: Primary signal
+    - sig_{bucket}_2: Secondary signal (if present)
+    - sig_{bucket}_conf: Model confidence
+
+    Args:
+        conn: Database connection
+        include_signals: If False, returns empty DataFrame (for ablation testing)
+
+    Returns:
+        DataFrame with trade_date and signal columns
+    """
+    if not include_signals:
+        logger.info("Specialist signals disabled (include_signals=False)")
+        return pd.DataFrame()
+
+    logger.info("Loading specialist signals from training.specialist_signals_1d...")
+
+    try:
+        query = """
+            SELECT
+                as_of_date as trade_date,
+                bucket,
+                signal_1,
+                signal_2,
+                confidence
+            FROM training.specialist_signals_1d
+            ORDER BY as_of_date, bucket
+        """
+        df = pd.read_sql(query, conn)
+
+        if len(df) == 0:
+            logger.warning("   No specialist signals found - table may be empty")
+            return pd.DataFrame()
+
+        # Pivot to wide format
+        # Each bucket becomes columns: sig_{bucket}_1, sig_{bucket}_2, sig_{bucket}_conf
+        df["trade_date"] = pd.to_datetime(df["trade_date"])
+
+        # Pivot signal_1
+        pivot_1 = df.pivot(index="trade_date", columns="bucket", values="signal_1")
+        pivot_1.columns = [f"sig_{col}_1" for col in pivot_1.columns]
+
+        # Pivot signal_2
+        pivot_2 = df.pivot(index="trade_date", columns="bucket", values="signal_2")
+        pivot_2.columns = [f"sig_{col}_2" for col in pivot_2.columns]
+
+        # Pivot confidence
+        pivot_conf = df.pivot(index="trade_date", columns="bucket", values="confidence")
+        pivot_conf.columns = [f"sig_{col}_conf" for col in pivot_conf.columns]
+
+        # Combine all pivots
+        result = pivot_1.join(pivot_2).join(pivot_conf).reset_index()
+
+        # Ensure trade_date is datetime for consistent merging
+        result["trade_date"] = pd.to_datetime(result["trade_date"]).dt.date
+
+        # Count non-null signal columns
+        signal_cols = [c for c in result.columns if c.startswith("sig_")]
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(signal_cols)} signal columns"
+        )
+        logger.info(f"   Buckets: {df['bucket'].unique().tolist()}")
+
+        return result
+
+    except Exception as e:
+        logger.warning(f"   Specialist signals not available: {e}")
+        logger.warning("   Run scripts/generate_specialist_signals.py to populate")
+        return pd.DataFrame()
 
 
 def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -405,17 +847,28 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
     """
     Execute Phase 3: Build Core Feature Matrix.
 
+    PATCHED 2026-01-22:
+    - Added supply.* tables (EPA RINs, USDA exports, WASDE)
+    - Removed 70% coverage filter (AutoGluon handles nulls natively)
+    - Removed date window mandates (use all available data)
+
+    PATCHED 2026-01-21:
+    - Fixed weather data merge (date type normalization)
+    - Added CFTC COT positioning data
+    - Added CFTC CITS index trader data
+
     Returns:
         (success: bool, matrix_version: Optional[str], feature_count: int)
     """
-    logger.info("=" * 60)
-    logger.info("PHASE 3: BUILD CORE FEATURE MATRIX")
-    logger.info("=" * 60)
+    logger.info("=" * 70)
+    logger.info("PHASE 3: BUILD CORE FEATURE MATRIX (ALL SOURCE DATA)")
+    logger.info("=" * 70)
     logger.info(f"Symbol: {symbol}")
     logger.info(
         f"Target features: {FMC.TARGET_FEATURES} (guardrails: {FMC.MIN_FEATURES}-{FMC.MAX_FEATURES})"
     )
-    logger.info("=" * 60)
+    logger.info("Sources: elite, options, FRED, FX, weather, CFTC, RINs, exports, WASDE")
+    logger.info("=" * 70)
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -427,54 +880,136 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         df_fred = load_fred_macro(conn)
         df_fx = load_fx_rates(conn)
         df_weather = load_weather_aggregates(conn)
+        df_cot = load_cftc_positioning(conn, symbol)
+        df_cits = load_cftc_cits(conn)
+        # NEW (2026-01-22): Supply data
+        df_rin = load_epa_rin_prices(conn)
+        df_exports = load_usda_exports(conn)
+        df_wasde = load_usda_wasde(conn)
 
         # Start with elite indicators as base
         df = df_elite.copy()
 
+        # CRITICAL: Normalize date column in base for all subsequent merges
+        df = normalize_date_column(df, "trade_date")
+        logger.info(f"Base matrix: {len(df):,} rows from elite indicators")
+
         # Merge options features
         if len(df_options) > 0:
             logger.info("Merging options features...")
+            df_options = normalize_date_column(df_options, "trade_date")
             df = df.merge(
                 df_options,
                 on=["trade_date", "symbol"],
                 how="left",
                 suffixes=("", "_opt"),
             )
+            logger.info(f"   After merge: {len(df):,} rows")
 
         # Merge FRED macro
         if len(df_fred) > 0:
             logger.info("Merging FRED macro...")
+            df_fred = normalize_date_column(df_fred, "trade_date")
+            before_cols = len(df.columns)
             df = df.merge(df_fred, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} FRED columns")
 
         # Merge FX rates
         if len(df_fx) > 0:
             logger.info("Merging FX rates...")
+            df_fx = normalize_date_column(df_fx, "trade_date")
+            before_cols = len(df.columns)
             df = df.merge(df_fx, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} FX columns")
 
-        # Merge weather
+        # Merge weather (FIXED - date normalized in loader)
         if len(df_weather) > 0:
-            logger.info("Merging weather aggregates...")
+            logger.info("Merging weather aggregates (FIXED)...")
+            before_cols = len(df.columns)
+            before_rows = len(df)
             df = df.merge(df_weather, on="trade_date", how="left")
+            wx_cols = [c for c in df.columns if c.startswith("wx_")]
+            non_null = df[wx_cols].notna().any(axis=1).sum() if wx_cols else 0
+            logger.info(f"   Added {len(df.columns) - before_cols} weather columns")
+            logger.info(f"   Weather matched on {non_null:,} / {len(df):,} rows")
+            if non_null == 0:
+                logger.error("   ❌ WEATHER MERGE STILL FAILING")
+
+        # Merge CFTC COT positioning (NEW)
+        if len(df_cot) > 0:
+            logger.info("Merging CFTC COT positioning (NEW)...")
+            before_cols = len(df.columns)
+            df = df.merge(df_cot, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} COT columns")
+
+        # Merge CFTC CITS (NEW)
+        if len(df_cits) > 0:
+            logger.info("Merging CFTC CITS index traders (NEW)...")
+            before_cols = len(df.columns)
+            df = df.merge(df_cits, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} CITS columns")
+
+        # Merge EPA RIN prices (NEW 2026-01-22)
+        if len(df_rin) > 0:
+            logger.info("Merging EPA RIN prices (NEW)...")
+            before_cols = len(df.columns)
+            df = df.merge(df_rin, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} RIN columns")
+
+        # Merge USDA export sales (NEW 2026-01-22)
+        if len(df_exports) > 0:
+            logger.info("Merging USDA export sales (NEW)...")
+            before_cols = len(df.columns)
+            df = df.merge(df_exports, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} USDA export columns")
+
+        # Merge USDA WASDE (NEW 2026-01-22)
+        if len(df_wasde) > 0:
+            logger.info("Merging USDA WASDE supply/demand (NEW)...")
+            before_cols = len(df.columns)
+            df = df.merge(df_wasde, on="trade_date", how="left")
+            logger.info(f"   Added {len(df.columns) - before_cols} WASDE columns")
+
+        # Merge specialist signals (v3 architecture)
+        df_signals = load_specialist_signals(conn, include_signals=True)
+        if len(df_signals) > 0:
+            logger.info("Merging specialist signals...")
+            df = df.merge(df_signals, on="trade_date", how="left")
+            signal_cols = [c for c in df.columns if c.startswith("sig_")]
+            logger.info(f"   Added {len(signal_cols)} specialist signal columns")
 
         logger.info(f"Combined matrix: {len(df):,} rows, {len(df.columns)} columns")
 
         # Create target columns (forward returns)
         df = create_target_columns(df)
 
-        # Forward-fill macro/fx/weather data (they update less frequently)
+        # Forward-fill slow-updating series (macro, fx, weather, positioning, supply)
         logger.info("Forward-filling slow-updating series...")
-        macro_cols = [
+        slow_cols = [
             c
             for c in df.columns
             if c.startswith("fred_") or c.startswith("fx_") or c.startswith("wx_")
+            or c.startswith("cot_") or c.startswith("cits_")
+            or c.startswith("rin_") or c.startswith("usda_") or c.startswith("wasde_")
         ]
-        df[macro_cols] = df[macro_cols].fillna(method="ffill")
+        if slow_cols:
+            df[slow_cols] = df[slow_cols].fillna(method="ffill")
+            logger.info(f"   Forward-filled {len(slow_cols)} columns")
 
-        # Drop low-coverage columns
-        exclude_from_drop = ["trade_date", "symbol"] + [
-            f"target_ret_{h}d" for h in HORIZONS
-        ]
-        df = drop_low_coverage_cols(df, min_coverage=0.7)
+        # Coverage filter REMOVED (2026-01-22)
+        # AutoGluon's DirectTabular handles missing values natively via gradient boosting
+        # This allows series with different start dates to be used without being dropped
+        # Log coverage stats for visibility instead of filtering
+        logger.info("Logging feature coverage (no filtering - AutoGluon handles nulls)...")
+        coverage = df.notna().mean()
+        feature_cols = [c for c in df.columns if c not in ["trade_date", "symbol"]]
+        low_coverage = [(c, coverage[c]) for c in feature_cols if coverage[c] < 0.7]
+        if low_coverage:
+            logger.info(f"   {len(low_coverage)} features with <70% coverage (kept for AutoGluon):")
+            for col, cov in sorted(low_coverage, key=lambda x: x[1])[:10]:
+                logger.info(f"      {col}: {cov*100:.1f}%")
+            if len(low_coverage) > 10:
+                logger.info(f"      ... and {len(low_coverage) - 10} more")
 
         # NOTE: NO NORMALIZATION HERE
         # Normalization happens in Phase 6 per CV window to prevent leakage

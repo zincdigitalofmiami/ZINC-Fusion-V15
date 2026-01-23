@@ -37,7 +37,7 @@ async function main() {
     SELECT schemaname || '.' || relname AS table_name,
            n_live_tup AS approx_rows
     FROM pg_stat_user_tables
-    WHERE schemaname IN ('raw','silver','gold','training','model','analytics','ops','metadata')
+    WHERE schemaname IN ('mkt','econ','pos','supply','alt','features','training')
     ORDER BY schemaname, n_live_tup DESC
   `);
   console.table(inventory.rows);
@@ -69,7 +69,7 @@ async function main() {
            SUM(CASE WHEN column_name='specialist_tags' THEN 1 ELSE 0 END)::int AS has_tags,
            SUM(CASE WHEN column_name='validation_status' THEN 1 ELSE 0 END)::int AS has_validation
     FROM information_schema.columns
-    WHERE table_schema='raw'
+    WHERE table_schema IN ('mkt','econ','pos','supply','alt')
     GROUP BY table_name
     ORDER BY table_name
   `);
@@ -86,7 +86,7 @@ async function main() {
     JOIN pg_class t ON t.oid = ix.indrelid
     JOIN pg_class i ON i.oid = ix.indexrelid
     JOIN pg_namespace n ON n.oid = t.relnamespace
-    WHERE n.nspname = 'raw'
+    WHERE n.nspname IN ('mkt','econ','pos','supply','alt')
       AND ix.indisunique = TRUE
       AND i.relname NOT LIKE '%_pkey'
     ORDER BY t.relname, i.relname
@@ -108,7 +108,7 @@ async function main() {
     JOIN pg_class t ON t.oid = ix.indrelid
     JOIN pg_class i ON i.oid = ix.indexrelid
     JOIN pg_namespace n ON n.oid = t.relnamespace
-    WHERE n.nspname='raw'
+    WHERE n.nspname IN ('mkt','econ','pos','supply','alt')
       AND i.relname ILIKE '%row_hash%'
     ORDER BY t.relname
   `);
@@ -145,7 +145,7 @@ async function main() {
            MIN(event_date)::text AS earliest,
            MAX(event_date)::text AS latest,
            COUNT(*)::int AS rows
-    FROM raw.fred_observations_1d
+    FROM econ.rates_1d
     GROUP BY series_id
     ORDER BY rows DESC
     LIMIT 15
@@ -157,11 +157,11 @@ async function main() {
   console.log('-'.repeat(40));
   const summaryCounts = await client.query(`
     SELECT 
-      (SELECT COUNT(*) FROM raw.fred_observations_1d) AS fred_rows,
-      (SELECT COUNT(*) FROM raw.market_futures_1d) AS market_1d_rows,
-      (SELECT COUNT(*) FROM raw.market_futures_1h) AS market_1h_rows,
-      (SELECT COUNT(*) FROM raw.cftc_cot_1w) AS cftc_rows,
-      (SELECT COUNT(*) FROM raw.fx_spot_1d) AS fx_rows
+      (SELECT COUNT(*) FROM econ.rates_1d) AS fred_rows,
+      (SELECT COUNT(*) FROM mkt.futures_1d) AS market_1d_rows,
+      (SELECT COUNT(*) FROM mkt.futures_1h) AS market_1h_rows,
+      (SELECT COUNT(*) FROM pos.cftc_1w) AS cftc_rows,
+      (SELECT COUNT(*) FROM mkt.fx_1d) AS fx_rows
   `);
   console.table(summaryCounts.rows);
 

@@ -252,10 +252,10 @@ def load_actual_outcomes(conn, horizon: int) -> Dict[datetime, float]:
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT as_of_date, close
-                FROM "raw"."market_futures_1d"
+                SELECT event_date, close
+                FROM "mkt"."futures_1d"
                 WHERE symbol = 'ZL'
-                ORDER BY as_of_date
+                ORDER BY event_date
             """)
             rows = cur.fetchall()
 

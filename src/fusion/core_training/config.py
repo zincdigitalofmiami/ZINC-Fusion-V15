@@ -14,7 +14,7 @@ UPDATED: 2026-01-16
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -66,11 +66,12 @@ class FeatureMatrixConfig:
     """LOCKED: Blanket inclusion with curation rules."""
 
     # Feature count guardrails (HARD FAIL, not smoke alarm)
-    # Updated 2026-01-15: Expanded FRED from 19 to 69 series
-    # Elite (44) + FRED (69) + FX (5) + targets (4) + metadata = ~130 features
+    # Updated 2026-01-22: Coverage filter removed - all features retained
+    # Elite (44) + FRED (77) + FX (5) + Weather (~28) + COT + targets = ~170+ features
+    # Expanded MAX to accommodate all features without coverage filtering
     MIN_FEATURES: int = 100
-    MAX_FEATURES: int = 200
-    TARGET_FEATURES: int = 130
+    MAX_FEATURES: int = 300
+    TARGET_FEATURES: int = 170
 
     # Normalization
     NORMALIZE_METHOD: str = "zscore"
@@ -120,10 +121,18 @@ class FeatureMatrixConfig:
             "T10Y2Y",
             "T10Y3M",
             "T10YIE",  # Breakeven inflation
+            # === INFLATION EXPECTATIONS (daily) ===
+            "T5YIE",  # 5Y breakeven inflation
+            "T5YIFR",  # 5Y-5Y forward inflation expectation
+            # === TIPS REAL YIELDS (daily) ===
+            "DFII5",  # 5Y TIPS yield
+            "DFII7",  # 7Y TIPS yield
+            "DFII10",  # 10Y TIPS yield
+            "DFII20",  # 20Y TIPS yield
+            "DFII30",  # 30Y TIPS yield
             # === CREDIT (4) ===
             "BAMLH0A0HYM2",  # HY spread
             "BAMLC0A0CM",  # IG spread
-            "TEDRATE",  # TED spread (ended 2022)
             "DPRIME",  # Prime rate
             # === VOLATILITY (3) ===
             "VIXCLS",
@@ -156,7 +165,7 @@ class FeatureMatrixConfig:
             "DDFUELUSGULF",  # Diesel Gulf
             "DJFUELUSGULF",  # Jet fuel Gulf
             "DPROPANEMBTX",  # Propane
-            # === MACRO INDICATORS (10) ===
+            # === MACRO INDICATORS (11) ===
             "GDP",
             "GDPC1",
             "INDPRO",
@@ -167,6 +176,7 @@ class FeatureMatrixConfig:
             "UMCSENT",  # Michigan sentiment
             "PCE",
             "PCEPI",
+            "PPIFIS",  # PPI Final Demand (replaced discontinued PPIFGS)
             # === COMMODITY PRICES (7) ===
             "PSOILUSDM",  # Soybean oil price (IMF)
             "PSOYBUSDM",  # Soybean price
@@ -175,8 +185,9 @@ class FeatureMatrixConfig:
             "PCOPPUSDM",  # Copper price
             "PPOILUSDM",  # Palm oil price
             "PROILUSDM",  # Rapeseed oil
-            # === FINANCIAL CONDITIONS (4) ===
+            # === FINANCIAL CONDITIONS (5) ===
             "NFCI",  # Chicago Fed NFCI
+            "ANFCI",  # Chicago Fed Adjusted NFCI
             "STLFSI4",  # St Louis FSI
             "M2SL",  # Money supply
             "WALCL",  # Fed balance sheet
@@ -249,9 +260,12 @@ class TrainingConfig:
     """
     Training configuration per CORE_TRAINING_SPEC_LOCKED.md
 
-    UPDATED 2026-01-16:
-    - Tactical (5d/21d): 2020+ data, Chronos-Bolt + RecursiveTabular
-    - Strategic (63d/126d): 1980+ data, Chronos-2 LoRA (no RecursiveTabular)
+    UPDATED 2026-01-22:
+    - Date window mandates REMOVED - use all available data
+    - AutoGluon's DirectTabular handles missing values natively
+    - Features with different start dates are retained (not filtered)
+    - Tactical (5d/21d): Chronos-Bolt + RecursiveTabular
+    - Strategic (63d/126d): GA-VMD-LSTM + DirectTabular ensemble
     """
 
     # Validation
@@ -268,8 +282,10 @@ class TrainingConfig:
     # ==========================================================================
     # TACTICAL CONFIG (5d, 21d) - Short-term operational forecasts
     # ==========================================================================
-    # Per locked spec: 2020+ data, Chronos-Bolt, RecursiveTabular INCLUDED
-    tactical_window_start: str = "2020-01-01"
+    # UPDATED 2026-01-22: Removed date window mandate
+    # AutoGluon handles missing values natively; use all available data
+    # Features with different start dates are retained (not filtered)
+    tactical_window_start: Optional[str] = None  # Use all available data
     tactical_models: List[str] = field(
         default_factory=lambda: [
             "Chronos",  # chronos-bolt-small
@@ -299,7 +315,8 @@ class TrainingConfig:
     # 3. Ensemble all IMF predictions for final forecast
     #
     # Fallback ensemble: DirectTabular + AutoETS + Theta for robustness
-    strategic_window_start: str = "1980-01-01"
+    # UPDATED 2026-01-22: Removed date window mandate - use all available data
+    strategic_window_start: Optional[str] = None  # Use all available data
     strategic_models: List[str] = field(
         default_factory=lambda: [
             "GA-VMD-LSTM",  # Primary: Nature 2025 paper, soybean oil optimized

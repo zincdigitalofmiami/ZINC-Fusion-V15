@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ZL Price Fetcher - Scheduled Job
-Fetches current ZL price from Yahoo and writes to analytics.intraday_prices.
+Fetches current ZL price from Yahoo and writes to analytics.zl_price_15m.
 Runs every 15 minutes via cron or Inngest.
 """
 
@@ -61,7 +61,7 @@ def fetch_zl_price() -> dict | None:
 
 
 def upsert_price(conn, data: dict, previous_close: float | None):
-    """Insert or update price in analytics.intraday_prices."""
+    """Insert or update price in analytics.zl_price_15m."""
     now = datetime.now(timezone.utc)
 
     # Calculate change
@@ -74,12 +74,12 @@ def upsert_price(conn, data: dict, previous_close: float | None):
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO analytics.intraday_prices
-                (symbol, timestamp, open, high, low, close, volume,
+            INSERT INTO analytics.zl_price_15m
+                (timestamp, open, high, low, close, volume,
                  previous_close, change, change_percent, day_high, day_low,
                  source, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (symbol, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (timestamp)
             DO UPDATE SET
                 open = EXCLUDED.open,
                 high = EXCLUDED.high,
@@ -91,10 +91,10 @@ def upsert_price(conn, data: dict, previous_close: float | None):
                 change_percent = EXCLUDED.change_percent,
                 day_high = EXCLUDED.day_high,
                 day_low = EXCLUDED.day_low,
+                source = EXCLUDED.source,
                 created_at = EXCLUDED.created_at
         """,
             (
-                SYMBOL,
                 now,
                 data["open"],
                 data["high"],

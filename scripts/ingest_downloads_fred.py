@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Quick script to ingest FRED data from Downloads folder CSVs.
+
+Routes each series to the correct econ.* domain table using the
+FRED_SERIES_ROUTING map from src/fusion/db/fred_routing.py.
 """
 
 import os
@@ -18,6 +21,10 @@ try:
     load_dotenv()
 except ImportError:
     pass
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.fusion.db.fred_routing import get_fred_table, get_fred_schema_table
 
 
 def get_postgres_connection():
@@ -65,6 +72,10 @@ def ingest_file(conn, filepath: Path, series_id: str, date_col: str, value_col: 
             print(f"  No valid data in {filepath.name}")
             return 0
 
+        # Route to correct econ.* table based on series_id
+        schema, table = get_fred_schema_table(series_id)
+        qualified_table = f'"{schema}"."{table}"'
+
         records = [
             (series_id, row["as_of_date"], row["value"], "FRED")
             for _, row in df.iterrows()
@@ -73,11 +84,11 @@ def ingest_file(conn, filepath: Path, series_id: str, date_col: str, value_col: 
         with conn.cursor() as cur:
             execute_batch(
                 cur,
-                """
-                INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                f"""
+                INSERT INTO {qualified_table}
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
                 page_size=500
@@ -85,6 +96,7 @@ def ingest_file(conn, filepath: Path, series_id: str, date_col: str, value_col: 
             inserted = cur.rowcount
 
         conn.commit()
+        print(f"  Routed to: {qualified_table}")
         return inserted
 
     except Exception as e:

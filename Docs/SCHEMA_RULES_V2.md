@@ -110,7 +110,9 @@ Known tables:
 Purpose: dashboard-facing tables and real-time displays.
 Examples:
 - analytics.latest_prices
-- analytics.intraday_prices
+- analytics.zl_price_15m
+- analytics.zl_price_1h
+- analytics.zl_price_1d
 - analytics.dashboard_metrics
 - analytics.risk_metrics
 
@@ -128,7 +130,7 @@ Examples:
 
 ## Cross-Schema Rules
 - No new writes to legacy schemas (raw, gold, silver). Deprecate and migrate.
-- Training uses daily data only. Intraday data is dashboard-only in analytics.
+- Training uses daily data only. Intraday data is dashboard-only in analytics (`analytics.zl_price_15m`, `analytics.zl_price_1h`); daily dashboard copy uses `analytics.zl_price_1d`.
 - FRED routing is centralized in `src/fusion/ingestion/router.py`.
 - Feature/label horizons remain 5/21/63/126 (integers only).
 - OOF quantiles use p30/p50/p70 (no prefix).

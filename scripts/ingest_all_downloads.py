@@ -2,6 +2,10 @@
 """
 Comprehensive ingestion script for all CSV data in Downloads folder.
 Handles multiple formats: TradingView, Barchart, CME, FRED direct downloads.
+
+Routes data to v2 schema tables:
+- FRED data → econ.* tables via FRED_SERIES_ROUTING
+- Futures data → mkt.futures_1d
 """
 
 import os
@@ -21,6 +25,10 @@ try:
     load_dotenv()
 except ImportError:
     pass
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.fusion.db.fred_routing import get_fred_table, get_fred_schema_table
 
 
 def get_postgres_connection():
@@ -85,6 +93,10 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
         if df.empty:
             return 0
 
+        # Route to correct econ.* table based on series_id
+        schema, table = get_fred_schema_table(series_id)
+        qualified_table = f'"{schema}"."{table}"'
+
         records = [
             (series_id, row["as_of_date"], row["value"], "FRED")
             for _, row in df.iterrows()
@@ -93,11 +105,11 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
         with conn.cursor() as cur:
             execute_batch(
                 cur,
-                """
-                INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                f"""
+                INSERT INTO {qualified_table}
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
                 page_size=500
@@ -105,6 +117,7 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
             inserted = cur.rowcount
 
         conn.commit()
+        print(f"    Routed to: {qualified_table}")
         return inserted
 
     except Exception as e:
@@ -114,7 +127,7 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
 
 
 def ingest_fx_barchart(conn, filepath: Path, series_id: str) -> int:
-    """Ingest Barchart FX CSV into fred_observations_1d."""
+    """Ingest Barchart FX CSV into econ.* table via routing."""
     try:
         df = pd.read_csv(filepath)
 
@@ -128,6 +141,10 @@ def ingest_fx_barchart(conn, filepath: Path, series_id: str) -> int:
         if df.empty:
             return 0
 
+        # Route to correct econ.* table based on series_id
+        schema, table = get_fred_schema_table(series_id)
+        qualified_table = f'"{schema}"."{table}"'
+
         records = [
             (series_id, row["as_of_date"], row["value"], "Barchart")
             for _, row in df.iterrows()
@@ -136,11 +153,11 @@ def ingest_fx_barchart(conn, filepath: Path, series_id: str) -> int:
         with conn.cursor() as cur:
             execute_batch(
                 cur,
-                """
-                INSERT INTO "raw"."fred_observations_1d"
-                (series_id, as_of_date, value, source)
+                f"""
+                INSERT INTO {qualified_table}
+                (series_id, event_date, value, source)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, as_of_date) DO NOTHING
+                ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
                 page_size=500
@@ -226,10 +243,10 @@ def ingest_futures_ohlc(conn, filepath: Path, symbol: str) -> int:
             execute_batch(
                 cur,
                 """
-                INSERT INTO "raw"."market_futures_1d"
-                (symbol, as_of_date, open, high, low, close, volume, source)
+                INSERT INTO "mkt"."futures_1d"
+                (symbol, event_date, open, high, low, close, volume, source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (symbol, as_of_date) DO NOTHING
+                ON CONFLICT (event_date, symbol) DO NOTHING
                 """,
                 records,
                 page_size=500
@@ -316,10 +333,10 @@ def ingest_multi_commodity_dataset(conn, filepath: Path) -> int:
                 execute_batch(
                     cur,
                     """
-                    INSERT INTO "raw"."market_futures_1d"
-                    (symbol, as_of_date, open, high, low, close, volume, source)
+                    INSERT INTO "mkt"."futures_1d"
+                    (symbol, event_date, open, high, low, close, volume, source)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (symbol, as_of_date) DO NOTHING
+                    ON CONFLICT (event_date, symbol) DO NOTHING
                     """,
                     records,
                     page_size=500
