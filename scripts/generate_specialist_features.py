@@ -45,6 +45,16 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Import FRED routing module for v2 schema (7 econ.* tables)
+# Option B: bucket-aware loading queries only 1-2 tables per specialist
+from src.fusion.db.fred_routing import (
+    get_fred_table,
+    get_tables_for_series,
+    get_all_econ_tables,
+    build_specialist_query,
+    get_specialist_series,
+)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SPECIALIST FEATURE POLICY (NOT ALL DATA!)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -509,7 +519,7 @@ def load_all_market_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT symbol, event_date AS as_of_date, open, high, low, close, volume
-            FROM "raw"."market_futures_1d"
+            FROM "mkt"."futures_1d"
             WHERE event_date >= %s
             ORDER BY event_date, symbol
         """, (start_date,))
@@ -521,82 +531,66 @@ def load_all_market_data(conn, start_date: str = "2000-01-01") -> pd.DataFrame:
     return df
 
 
-def load_market_data_by_tags(conn, bucket: str, start_date: str = "2000-01-01") -> pd.DataFrame:
-    """
-    Load market data filtered by specialist_tags.
-
-    This uses the specialist_tags array column to get data that BELONGS to this bucket,
-    rather than hardcoded symbol lists.
-    """
-    logger.info(f"Loading market data for bucket '{bucket}' via specialist_tags...")
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT symbol, event_date AS as_of_date, open, high, low, close, volume
-            FROM "raw"."market_futures_1d"
-            WHERE event_date >= %s
-              AND specialist_tags @> ARRAY[%s]
-            ORDER BY event_date, symbol
-        """, (start_date, bucket))
-        columns = [desc[0] for desc in cur.description]
-        rows = cur.fetchall()
-    df = pd.DataFrame(rows, columns=columns)
-    if not df.empty:
-        df["as_of_date"] = pd.to_datetime(df["as_of_date"])
-    logger.info(f"  Loaded {len(df):,} rows, {df['symbol'].nunique() if not df.empty else 0} symbols for '{bucket}'")
-    return df
-
-
-def load_fred_data_by_tags(conn, bucket: str) -> pd.DataFrame:
-    """
-    Load FRED data filtered by specialist_tags.
-    """
-    logger.info(f"Loading FRED data for bucket '{bucket}' via specialist_tags...")
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT event_date AS as_of_date, series_id, value
-            FROM "raw"."fred_observations_1d"
-            WHERE specialist_tags @> ARRAY[%s]
-            ORDER BY event_date, series_id
-        """, (bucket,))
-        columns = [desc[0] for desc in cur.description]
-        rows = cur.fetchall()
-
-    if not rows:
-        logger.info(f"  No FRED data tagged for '{bucket}'")
-        return pd.DataFrame(columns=["as_of_date"])
-
-    df = pd.DataFrame(rows, columns=columns)
-    # Pivot to wide format
-    df_wide = (
-        df.pivot(index="as_of_date", columns="series_id", values="value")
-        .sort_index()
-        .reset_index()
-    )
-    df_wide["as_of_date"] = pd.to_datetime(df_wide["as_of_date"])
-    # Prefix columns with fred_
-    df_wide.columns = ["as_of_date"] + [f"fred_{c}" for c in df_wide.columns[1:]]
-    logger.info(f"  Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} series for '{bucket}'")
-    return df_wide
+# NOTE: The following functions were removed (2026-01-23) as dead code:
+# - load_market_data_by_tags(): Referenced deleted specialist_tags column
+# - load_fred_data_by_tags(): Referenced deleted econ.fred_observations_1d table
+#
+# The v2 schema uses:
+# - Bucket configs with curated "symbols" lists (not tags)
+# - 7 domain-specific econ.* tables routed via fred_routing.py
 
 
 def load_fred_data(conn) -> pd.DataFrame:
-    """Load FRED economic data (long format → pivot wide)."""
-    logger.info("Loading FRED economic data (long → pivot wide)...")
+    """Load FRED economic data (long format → pivot wide).
 
-    # Load long format
+    Post-v2 migration: FRED data is now split across 7 econ.* tables.
+    We UNION ALL from all tables to reconstruct the unified view.
+
+    NOTE: Some series may exist in multiple tables (routing mismatch during migration).
+    We use pivot_table with aggfunc='last' to handle duplicates gracefully.
+    """
+    logger.info("Loading FRED economic data (long → pivot wide)...")
+    logger.info("  Querying all 7 econ.* tables (v2 split schema)...")
+
+    # Load long format from all 7 split tables
     fred_long = pd.read_sql("""
-        SELECT event_date AS as_of_date, series_id, value
-        FROM "raw"."fred_observations_1d"
-        ORDER BY event_date, series_id
+        SELECT event_date AS as_of_date, series_id, value FROM econ.rates_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.activity_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.inflation_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.labor_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.money_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.vol_indices_1d
+        UNION ALL
+        SELECT event_date AS as_of_date, series_id, value FROM econ.commodities_1d
+        ORDER BY as_of_date, series_id
     """, conn)
     logger.info(f"  Long format: {len(fred_long):,} rows, {fred_long['series_id'].nunique()} series")
 
     if fred_long.empty:
-        raise ValueError("FRED observations query returned 0 rows - check fred_observations_1d table")
+        raise ValueError("FRED query returned 0 rows - check econ.* tables")
 
-    # Pivot to wide format
+    # Check for duplicates and warn
+    dup_check = fred_long.groupby(["as_of_date", "series_id"]).size()
+    dups = dup_check[dup_check > 1]
+    if len(dups) > 0:
+        dup_series = dups.reset_index()["series_id"].unique()
+        logger.warning(f"  ⚠️ Found {len(dups):,} duplicate (date, series) pairs across tables")
+        logger.warning(f"     Affected series: {', '.join(list(dup_series)[:10])}...")
+        logger.warning("     Using pivot_table with aggfunc='last' to dedupe")
+
+    # Pivot to wide format using pivot_table (handles duplicates)
     df = (
-        fred_long.pivot(index="as_of_date", columns="series_id", values="value")
+        fred_long.pivot_table(
+            index="as_of_date",
+            columns="series_id",
+            values="value",
+            aggfunc="last"  # If duplicate (date, series), take last value
+        )
         .sort_index()
         .reset_index()
     )
@@ -612,11 +606,70 @@ def load_fred_data(conn) -> pd.DataFrame:
     return df
 
 
+def load_fred_data_for_bucket(conn, bucket_name: str) -> pd.DataFrame:
+    """Load FRED data for a SPECIFIC specialist bucket (Option B: bucket-aware routing).
+
+    Instead of querying all 7 econ.* tables, this function uses build_specialist_query()
+    to query only the 1-2 tables that contain series relevant to this bucket.
+
+    Benefits:
+    - Volatility bucket: 1 table (econ.vol_indices_1d), 3 series
+    - Fed bucket: 2 tables (econ.rates_1d, econ.vol_indices_1d), 5 series
+    - Crush/Palm/Biofuel: 0 tables (no FRED data, use fundamentals)
+
+    Args:
+        conn: Database connection
+        bucket_name: Specialist bucket name (e.g., "volatility", "fed", "crush")
+
+    Returns:
+        DataFrame with as_of_date + series columns (wide format), or empty DataFrame
+        if the bucket doesn't use FRED data.
+    """
+    # Get the series this bucket uses
+    series_list = get_specialist_series(bucket_name)
+    if not series_list:
+        logger.info(f"  [{bucket_name}] No FRED series (using fundamentals only)")
+        return pd.DataFrame(columns=["as_of_date"])
+
+    # Build the optimized query for this bucket
+    query = build_specialist_query(bucket_name)
+    if not query:
+        logger.info(f"  [{bucket_name}] No FRED query (bucket uses no FRED data)")
+        return pd.DataFrame(columns=["as_of_date"])
+
+    logger.info(f"  [{bucket_name}] Loading {len(series_list)} FRED series: {', '.join(series_list)}")
+
+    # Execute bucket-specific query (1-2 tables, not 7!)
+    fred_long = pd.read_sql(query, conn)
+
+    if fred_long.empty:
+        logger.warning(f"  [{bucket_name}] FRED query returned 0 rows")
+        return pd.DataFrame(columns=["as_of_date"])
+
+    logger.info(f"    Long format: {len(fred_long):,} rows")
+
+    # Pivot to wide format
+    df = (
+        fred_long.pivot_table(
+            index="as_of_date",
+            columns="series_id",
+            values="value",
+            aggfunc="last"
+        )
+        .sort_index()
+        .reset_index()
+    )
+    df["as_of_date"] = pd.to_datetime(df["as_of_date"])
+
+    logger.info(f"    Wide format: {len(df):,} rows, {len(df.columns)-1} columns")
+    return df
+
+
 def load_fx_data(conn) -> pd.DataFrame:
     """Load FX spot data and pivot wide."""
     logger.info("Loading FX spot data...")
     with conn.cursor() as cur:
-        cur.execute('SELECT pair, event_date AS as_of_date, rate FROM "raw"."fx_spot_1d" ORDER BY event_date')
+        cur.execute('SELECT pair, event_date AS as_of_date, rate FROM "mkt"."fx_1d" ORDER BY event_date')
         rows = cur.fetchall()
     df = pd.DataFrame(rows, columns=["pair", "as_of_date", "rate"])
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
@@ -635,7 +688,7 @@ def load_cot_data(conn) -> pd.DataFrame:
         cur.execute("""
             SELECT event_date AS as_of_date, symbol, open_interest, managed_money_net,
                    managed_money_net_pct_oi, prod_merc_net, prod_merc_net_pct_oi
-            FROM "raw"."cftc_cot_1w"
+            FROM "pos"."cftc_1w"
             ORDER BY event_date, symbol
         """)
         rows = cur.fetchall()
@@ -677,7 +730,7 @@ def load_usda_exports(conn) -> pd.DataFrame:
                         MAX(CASE WHEN destination_country = 'TOTAL' THEN exports_mt END),
                         SUM(exports_mt)
                     ) AS exports_mt
-                FROM "raw"."usda_export_sales_1w"
+                FROM "supply"."usda_exports_1w"
                 GROUP BY event_date, commodity
             )
             SELECT as_of_date,
@@ -709,7 +762,7 @@ def load_wasde_data(conn) -> pd.DataFrame:
                 SUM(CASE WHEN commodity = 'Soybeans' AND metric = 'ending_stocks' THEN value END) as wasde_soy_stocks,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'production' THEN value END) as wasde_zl_production,
                 SUM(CASE WHEN commodity = 'Soybean Oil' AND metric = 'exports' THEN value END) as wasde_zl_exports
-            FROM "raw"."usda_wasde_1m"
+            FROM "supply"."usda_wasde_1m"
             GROUP BY event_date
             ORDER BY event_date
         """)
@@ -729,8 +782,8 @@ def load_rin_data(conn) -> pd.DataFrame:
             SELECT event_date AS as_of_date, rin_type, price
             FROM (
                 SELECT DISTINCT ON (event_date, rin_type)
-                    event_date, rin_type, price, source, created_at
-                FROM "raw"."epa_rin_prices_1d"
+                    event_date, rin_type, price, source, ingested_at
+                FROM "supply"."epa_rin_1d"
                 ORDER BY
                     event_date,
                     rin_type,
@@ -739,7 +792,7 @@ def load_rin_data(conn) -> pd.DataFrame:
                         WHEN 'epa_api' THEN 1
                         ELSE 2
                     END,
-                    created_at DESC
+                    ingested_at DESC
             ) t
             ORDER BY event_date
         """)
@@ -777,7 +830,7 @@ def load_weather_data(conn) -> pd.DataFrame:
                 -- NEW: Regional humidity
                 AVG(CASE WHEN country = 'United States' THEN rhav_pct END) as weather_humidity_us,
                 AVG(CASE WHEN country = 'Brazil' THEN rhav_pct END) as weather_humidity_brazil
-            FROM "raw"."weather_noaa_1d"
+            FROM "alt"."weather_1d"
             GROUP BY event_date
             ORDER BY event_date
         """)
@@ -835,7 +888,7 @@ def load_news_data(conn) -> pd.DataFrame:
                 SUM(CASE WHEN zl_sentiment = 'bullish' THEN 1 ELSE 0 END) as news_bullish_count,
                 SUM(CASE WHEN zl_sentiment = 'bearish' THEN 1 ELSE 0 END) as news_bearish_count,
                 SUM(CASE WHEN is_trump_related THEN 1 ELSE 0 END) as news_trump_count
-            FROM "raw"."news_articles_1d"
+            FROM "alt"."news_1d"
             GROUP BY event_date
             ORDER BY event_date
         """)
@@ -878,7 +931,7 @@ def load_news_sentiment_by_bucket(conn) -> Dict[str, pd.DataFrame]:
                     SUM(CASE WHEN sentiment_direction = 'bullish' THEN 1 ELSE 0 END) as {bucket}_news_bullish,
                     SUM(CASE WHEN sentiment_direction = 'bearish' THEN 1 ELSE 0 END) as {bucket}_news_bearish,
                     SUM(CASE WHEN sentiment_direction = 'neutral' THEN 1 ELSE 0 END) as {bucket}_news_neutral
-                FROM "silver"."news_scored_1d"
+                FROM "features"."news_scored_1d"
                 WHERE {affects_col} = TRUE
                 GROUP BY DATE(published_at)
                 ORDER BY DATE(published_at)
@@ -923,18 +976,18 @@ def load_whitehouse_actions(conn) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             SELECT
-                action_date AS as_of_date,
+                event_date AS as_of_date,
                 COUNT(*) as wh_action_count,
-                SUM(CASE WHEN action_type = 'executive_order' THEN 1 ELSE 0 END) as wh_eo_count,
-                SUM(CASE WHEN action_type = 'proclamation' THEN 1 ELSE 0 END) as wh_proclamation_count,
-                SUM(CASE WHEN action_type = 'memorandum' THEN 1 ELSE 0 END) as wh_memo_count,
+                SUM(CASE WHEN document_type = 'executive_order' THEN 1 ELSE 0 END) as wh_eo_count,
+                SUM(CASE WHEN document_type = 'proclamation' THEN 1 ELSE 0 END) as wh_proclamation_count,
+                SUM(CASE WHEN document_type = 'memorandum' THEN 1 ELSE 0 END) as wh_memo_count,
                 SUM(CASE WHEN LOWER(title) LIKE '%tariff%' OR LOWER(title) LIKE '%trade%' THEN 1 ELSE 0 END) as wh_trade_related,
                 SUM(CASE WHEN LOWER(title) LIKE '%china%' OR LOWER(title) LIKE '%chinese%' THEN 1 ELSE 0 END) as wh_china_related,
                 SUM(CASE WHEN LOWER(title) LIKE '%soybean%' OR LOWER(title) LIKE '%agricult%' OR LOWER(title) LIKE '%farm%' THEN 1 ELSE 0 END) as wh_ag_related,
                 SUM(CASE WHEN LOWER(title) LIKE '%energy%' OR LOWER(title) LIKE '%oil%' OR LOWER(title) LIKE '%fuel%' THEN 1 ELSE 0 END) as wh_energy_related
             FROM alt.legislation_1d
-            GROUP BY action_date
-            ORDER BY action_date
+            GROUP BY event_date
+            ORDER BY event_date
         """)
         rows = cur.fetchall()
 
@@ -1322,15 +1375,49 @@ def generate_bucket_features(
             # Diesel crack
             zl_df["diesel_crack"] = zl_df["ho_close"] - zl_df["cl_close"]
 
+        # --- FRED-based Energy Features ---
+        # Brent-WTI spread (DCOILBRENTEU vs DCOILWTICO or CL futures)
+        if "DCOILBRENTEU" in zl_df.columns:
+            zl_df["brent"] = zl_df["DCOILBRENTEU"]
+            zl_df["brent_zscore"] = (zl_df["brent"] - zl_df["brent"].rolling(252).mean()) / zl_df["brent"].rolling(252).std()
+            zl_df["brent_momentum_21d"] = zl_df["brent"].pct_change(21) * 100
+
+            # Brent-WTI spread using FRED WTI or futures CL
+            if "DCOILWTICO" in zl_df.columns:
+                zl_df["brent_wti_spread"] = zl_df["DCOILBRENTEU"] - zl_df["DCOILWTICO"]
+            elif "cl_close" in zl_df.columns:
+                zl_df["brent_wti_spread"] = zl_df["DCOILBRENTEU"] - zl_df["cl_close"]
+
+            if "brent_wti_spread" in zl_df.columns:
+                zl_df["brent_wti_zscore"] = (zl_df["brent_wti_spread"] - zl_df["brent_wti_spread"].rolling(252).mean()) / zl_df["brent_wti_spread"].rolling(252).std()
+                zl_df["brent_wti_percentile"] = zl_df["brent_wti_spread"].rolling(252).rank(pct=True) * 100
+                # Arbitrage signal: wide spread = export opportunity
+                zl_df["brent_wti_wide"] = (zl_df["brent_wti_spread"] > zl_df["brent_wti_spread"].rolling(252).quantile(0.8)).astype(int)
+                zl_df["brent_wti_tight"] = (zl_df["brent_wti_spread"] < zl_df["brent_wti_spread"].rolling(252).quantile(0.2)).astype(int)
+
+        # Natural Gas (NG) features if available
+        if "ng_close" in zl_df.columns:
+            zl_df["ng_zscore"] = (zl_df["ng_close"] - zl_df["ng_close"].rolling(252).mean()) / zl_df["ng_close"].rolling(252).std()
+            zl_df["ng_percentile"] = zl_df["ng_close"].rolling(252).rank(pct=True) * 100
+            zl_df["ng_momentum_21d"] = zl_df["ng_close"].pct_change(21) * 100
+            # CL/NG ratio (energy mix indicator)
+            if "cl_close" in zl_df.columns:
+                zl_df["cl_ng_ratio"] = zl_df["cl_close"] / (zl_df["ng_close"] + 0.001)
+
         # Composite energy signal
         energy_signals = []
         if "cl_zscore" in zl_df.columns:
             energy_signals.append(zl_df["cl_zscore"])
         if "boho_zscore" in zl_df.columns:
             energy_signals.append(zl_df["boho_zscore"])
+        if "brent_wti_zscore" in zl_df.columns:
+            energy_signals.append(zl_df["brent_wti_zscore"])
         if energy_signals:
             zl_df["energy_bucket_signal"] = pd.concat(energy_signals, axis=1).mean(axis=1)
             zl_df["energy_signal_strength"] = np.abs(zl_df["energy_bucket_signal"]).clip(0, 3) / 3 * 100
+        else:
+            zl_df["energy_bucket_signal"] = 0
+            zl_df["energy_signal_strength"] = 0
 
     elif bucket_name == "china":
         # =====================================================================
@@ -1547,9 +1634,11 @@ def generate_bucket_features(
     elif bucket_name == "fx":
         # =====================================================================
         # FX: Dollar strength, EM currencies, devaluation risks
+        # FX pairs: EURUSD, USDJPY, USDBRL, USDCNY, USDARS
+        # FRED series: DTWEXBGS (Trade-Weighted Dollar)
         # =====================================================================
         if "dx_close" in zl_df.columns:
-            # DXY indicators
+            # DXY indicators (futures)
             zl_df["dxy_zscore"] = (zl_df["dx_close"] - zl_df["dx_close"].rolling(252).mean()) / zl_df["dx_close"].rolling(252).std()
             zl_df["dxy_percentile"] = zl_df["dx_close"].rolling(252).rank(pct=True) * 100
             zl_df["dxy_momentum_21d"] = zl_df["dx_close"].pct_change(21) * 100
@@ -1562,13 +1651,69 @@ def generate_bucket_features(
             # Dollar/ZL correlation
             zl_df["dxy_zl_corr_21d"] = zl_df["dx_close"].rolling(21).corr(zl_df["zl_close"])
 
-            # Composite
-            zl_df["fx_bucket_signal"] = -zl_df["dxy_zscore"]  # Negative: strong dollar = bearish ZL
-            zl_df["fx_signal_strength"] = np.abs(zl_df["dxy_zscore"]).clip(0, 3) / 3 * 100
+        # Trade-Weighted Dollar from FRED (DTWEXBGS)
+        if "DTWEXBGS" in zl_df.columns:
+            zl_df["trade_weighted_dollar"] = zl_df["DTWEXBGS"]
+            zl_df["twd_zscore"] = (zl_df["trade_weighted_dollar"] - zl_df["trade_weighted_dollar"].rolling(252).mean()) / zl_df["trade_weighted_dollar"].rolling(252).std()
+            zl_df["twd_momentum_21d"] = zl_df["trade_weighted_dollar"].pct_change(21) * 100
+
+        # --- EM Currency Features (from FX pairs merged in section 5) ---
+        # Brazilian Real (USDBRL) - SA exporter currency
+        if "fx_USDBRL" in zl_df.columns:
+            zl_df["brl_rate"] = zl_df["fx_USDBRL"]
+            zl_df["brl_zscore"] = (zl_df["brl_rate"] - zl_df["brl_rate"].rolling(252).mean()) / zl_df["brl_rate"].rolling(252).std()
+            zl_df["brl_momentum_21d"] = zl_df["brl_rate"].pct_change(21) * 100
+            zl_df["brl_volatility_21d"] = zl_df["brl_rate"].pct_change(1).rolling(21).std() * np.sqrt(252)
+            # Devaluation probability: high z-score = weak BRL = devaluation risk
+            zl_df["brl_devalue_prob"] = 1 / (1 + np.exp(-zl_df["brl_zscore"]))
+            # BRL/ZL correlation
+            zl_df["brl_zl_corr_21d"] = zl_df["brl_rate"].rolling(21).corr(zl_df["zl_close"])
+
+        # Chinese Yuan (USDCNY) - demand center currency
+        if "fx_USDCNY" in zl_df.columns:
+            zl_df["cny_rate"] = zl_df["fx_USDCNY"]
+            zl_df["cny_zscore"] = (zl_df["cny_rate"] - zl_df["cny_rate"].rolling(252).mean()) / zl_df["cny_rate"].rolling(252).std()
+            zl_df["cny_momentum_21d"] = zl_df["cny_rate"].pct_change(21) * 100
+            zl_df["cny_volatility_21d"] = zl_df["cny_rate"].pct_change(1).rolling(21).std() * np.sqrt(252)
+            # CNY devaluation probability
+            zl_df["cny_devalue_prob"] = 1 / (1 + np.exp(-zl_df["cny_zscore"]))
+            # CNY/ZL correlation
+            zl_df["cny_zl_corr_21d"] = zl_df["cny_rate"].rolling(21).corr(zl_df["zl_close"])
+
+        # Argentine Peso (USDARS) - SA exporter currency
+        if "fx_USDARS" in zl_df.columns:
+            zl_df["ars_rate"] = zl_df["fx_USDARS"]
+            zl_df["ars_zscore"] = (zl_df["ars_rate"] - zl_df["ars_rate"].rolling(252).mean()) / zl_df["ars_rate"].rolling(252).std()
+            zl_df["ars_momentum_21d"] = zl_df["ars_rate"].pct_change(21) * 100
+            # ARS devaluation probability (often very high)
+            zl_df["ars_devalue_prob"] = 1 / (1 + np.exp(-zl_df["ars_zscore"]))
+
+        # EM Currency Composite Index (average of BRL, CNY, ARS weakness)
+        em_signals = []
+        for col in ["brl_zscore", "cny_zscore", "ars_zscore"]:
+            if col in zl_df.columns:
+                em_signals.append(zl_df[col])
+        if em_signals:
+            zl_df["em_currency_weakness"] = pd.concat(em_signals, axis=1).mean(axis=1)
+            zl_df["em_currency_stress"] = (zl_df["em_currency_weakness"] > 1).astype(int)
+
+        # Composite FX Signal
+        fx_signals = []
+        if "dxy_zscore" in zl_df.columns:
+            fx_signals.append(-zl_df["dxy_zscore"])  # Negative: strong dollar = bearish ZL
+        if "em_currency_weakness" in zl_df.columns:
+            fx_signals.append(zl_df["em_currency_weakness"])  # Weak EM = bearish ZL
+        if fx_signals:
+            zl_df["fx_bucket_signal"] = pd.concat(fx_signals, axis=1).mean(axis=1)
+            zl_df["fx_signal_strength"] = np.abs(zl_df["fx_bucket_signal"]).clip(0, 3) / 3 * 100
+        else:
+            zl_df["fx_bucket_signal"] = 0
+            zl_df["fx_signal_strength"] = 0
 
     elif bucket_name == "fed":
         # =====================================================================
         # FED: Yield curve, financial conditions, rate expectations
+        # FRED series: FEDFUNDS, DGS10, DGS2, T10Y2Y, NFCI
         # =====================================================================
         if "zn_close" in zl_df.columns and "zb_close" in zl_df.columns:
             # Treasury spread (2s10s proxy via futures)
@@ -1580,18 +1725,111 @@ def generate_bucket_features(
             zl_df["zn_momentum_21d"] = zl_df["zn_close"].pct_change(21) * 100
             zl_df["zn_zl_corr_21d"] = zl_df["zn_close"].rolling(21).corr(zl_df["zl_close"])
 
+        # --- FRED-based Fed Policy Features ---
+        # Fed Funds Rate (FEDFUNDS)
+        if "FEDFUNDS" in zl_df.columns:
+            zl_df["fed_funds_rate"] = zl_df["FEDFUNDS"]
+            zl_df["fed_funds_zscore"] = (zl_df["fed_funds_rate"] - zl_df["fed_funds_rate"].rolling(252).mean()) / zl_df["fed_funds_rate"].rolling(252).std()
+            zl_df["fed_funds_change_21d"] = zl_df["fed_funds_rate"].diff(21)
+            # Rate regime (rising/stable/falling)
+            zl_df["fed_rate_regime"] = np.sign(zl_df["fed_funds_change_21d"]).fillna(0).astype(int)
+
+        # Treasury Yields (DGS10, DGS2)
+        if "DGS10" in zl_df.columns:
+            zl_df["dgs10"] = zl_df["DGS10"]
+            zl_df["dgs10_zscore"] = (zl_df["dgs10"] - zl_df["dgs10"].rolling(252).mean()) / zl_df["dgs10"].rolling(252).std()
+            zl_df["dgs10_momentum_21d"] = zl_df["dgs10"].diff(21)
+
+        if "DGS2" in zl_df.columns:
+            zl_df["dgs2"] = zl_df["DGS2"]
+            zl_df["dgs2_zscore"] = (zl_df["dgs2"] - zl_df["dgs2"].rolling(252).mean()) / zl_df["dgs2"].rolling(252).std()
+
+        # Yield Curve (T10Y2Y) - 10Y minus 2Y spread
+        if "T10Y2Y" in zl_df.columns:
+            zl_df["t10y2y"] = zl_df["T10Y2Y"]
+            zl_df["t10y2y_zscore"] = (zl_df["t10y2y"] - zl_df["t10y2y"].rolling(252).mean()) / zl_df["t10y2y"].rolling(252).std()
+            zl_df["t10y2y_momentum_21d"] = zl_df["t10y2y"].diff(21)
+            # Yield curve regime (inverted/flat/steep)
+            zl_df["yield_curve_inverted"] = (zl_df["t10y2y"] < 0).astype(int)
+            zl_df["yield_curve_flat"] = ((zl_df["t10y2y"] >= 0) & (zl_df["t10y2y"] < 0.5)).astype(int)
+            zl_df["yield_curve_steep"] = (zl_df["t10y2y"] >= 0.5).astype(int)
+            # Yield curve regime score (-1=inverted, 0=flat, 1=steep)
+            zl_df["yield_curve_regime"] = np.where(zl_df["t10y2y"] < 0, -1,
+                                                    np.where(zl_df["t10y2y"] < 0.5, 0, 1))
+
+        # Financial Conditions (NFCI) - Chicago Fed National Financial Conditions Index
+        if "NFCI" in zl_df.columns:
+            zl_df["nfci"] = zl_df["NFCI"]
+            zl_df["nfci_zscore"] = (zl_df["nfci"] - zl_df["nfci"].rolling(252).mean()) / zl_df["nfci"].rolling(252).std()
+            zl_df["financial_stress_zscore"] = zl_df["nfci_zscore"]  # Alias for config
+            zl_df["nfci_momentum_21d"] = zl_df["nfci"].diff(21)
+            # Financial conditions regime (loose/neutral/tight)
+            zl_df["nfci_tight"] = (zl_df["nfci"] > 0).astype(int)  # >0 = tighter than average
+            zl_df["nfci_loose"] = (zl_df["nfci"] < -0.5).astype(int)  # very loose
+            zl_df["nfci_crisis"] = (zl_df["nfci"] > 1).astype(int)  # crisis levels
+
+        # Composite Fed Signal
+        fed_signals = []
+        if "t10y2y_zscore" in zl_df.columns:
+            fed_signals.append(zl_df["t10y2y_zscore"])
+        if "nfci_zscore" in zl_df.columns:
+            fed_signals.append(zl_df["nfci_zscore"])
+        if "treasury_spread_zscore" in zl_df.columns:
+            fed_signals.append(zl_df["treasury_spread_zscore"])
+        if fed_signals:
+            zl_df["fed_bucket_signal"] = pd.concat(fed_signals, axis=1).mean(axis=1)
+            zl_df["fed_signal_strength"] = np.abs(zl_df["fed_bucket_signal"]).clip(0, 3) / 3 * 100
+        else:
+            zl_df["fed_bucket_signal"] = 0
+            zl_df["fed_signal_strength"] = 0
+
     elif bucket_name == "tariff":
         # =====================================================================
-        # TARIFF: Trump features added via include_trump_features
-        # Add soy complex positioning for tariff sensitivity here
+        # TARIFF: Trade policy, tariffs, uncertainty, retaliation risk
+        # FRED series: USEPUINDXM (Monthly Economic Policy Uncertainty)
         # =====================================================================
         if "zs_close" in zl_df.columns:
             # Soy complex sensitivity to trade war
             zl_df["zs_zscore"] = (zl_df["zs_close"] - zl_df["zs_close"].rolling(252).mean()) / zl_df["zs_close"].rolling(252).std()
             zl_df["zs_percentile"] = zl_df["zs_close"].rolling(252).rank(pct=True) * 100
+            zl_df["zs_momentum_21d"] = zl_df["zs_close"].pct_change(21) * 100
 
         if "zm_close" in zl_df.columns:
             zl_df["zm_zscore"] = (zl_df["zm_close"] - zl_df["zm_close"].rolling(252).mean()) / zl_df["zm_close"].rolling(252).std()
+            zl_df["zm_momentum_21d"] = zl_df["zm_close"].pct_change(21) * 100
+
+        # Soy complex correlations during trade tensions
+        if "zs_close" in zl_df.columns:
+            zl_df["zl_zs_corr_21d"] = zl_df["zl_close"].rolling(21).corr(zl_df["zs_close"])
+
+        # --- FRED-based Policy Uncertainty Features ---
+        # Economic Policy Uncertainty Index (USEPUINDXM - monthly)
+        if "USEPUINDXM" in zl_df.columns:
+            zl_df["policy_uncertainty_index"] = zl_df["USEPUINDXM"]
+            zl_df["policy_uncertainty_zscore"] = (zl_df["policy_uncertainty_index"] - zl_df["policy_uncertainty_index"].rolling(252).mean()) / zl_df["policy_uncertainty_index"].rolling(252).std()
+            zl_df["policy_uncertainty_percentile"] = zl_df["policy_uncertainty_index"].rolling(252).rank(pct=True) * 100
+            zl_df["policy_uncertainty_momentum"] = zl_df["policy_uncertainty_index"].pct_change(21) * 100
+
+            # Policy uncertainty regime (low/normal/high/extreme)
+            zl_df["policy_uncertainty_low"] = (zl_df["policy_uncertainty_zscore"] < -1).astype(int)
+            zl_df["policy_uncertainty_high"] = (zl_df["policy_uncertainty_zscore"] > 1).astype(int)
+            zl_df["policy_uncertainty_extreme"] = (zl_df["policy_uncertainty_zscore"] > 2).astype(int)
+
+            # Trade war regime score (-5 to +5 scale based on uncertainty)
+            zl_df["trade_war_regime"] = (zl_df["policy_uncertainty_zscore"] * 2.5).clip(-5, 5)
+
+        # Composite Tariff Signal
+        tariff_signals = []
+        if "policy_uncertainty_zscore" in zl_df.columns:
+            tariff_signals.append(zl_df["policy_uncertainty_zscore"])
+        if "zs_zscore" in zl_df.columns:
+            tariff_signals.append(-zl_df["zs_zscore"])  # Negative: tariff fears depress soybeans
+        if tariff_signals:
+            zl_df["tariff_bucket_signal"] = pd.concat(tariff_signals, axis=1).mean(axis=1)
+            zl_df["tariff_signal_strength"] = np.abs(zl_df["tariff_bucket_signal"]).clip(0, 3) / 3 * 100
+        else:
+            zl_df["tariff_bucket_signal"] = 0
+            zl_df["tariff_signal_strength"] = 0
 
     elif bucket_name == "trump_effect":
         # =====================================================================
@@ -1659,6 +1897,61 @@ def generate_bucket_features(
             logger.info(f"    + FX: {len(fx_cols_to_add)-1} pairs")
 
     # ==========================================================================
+    # 5b. POST-MERGE FX PROCESSING (bucket-specific features from FX data)
+    # ==========================================================================
+    # CHINA bucket: Add CNY devaluation features after FX merge
+    if bucket_name == "china" and "fx_USDCNY" in zl_df.columns:
+        zl_df["usd_cny"] = zl_df["fx_USDCNY"]
+        zl_df["cny_zscore"] = (zl_df["usd_cny"] - zl_df["usd_cny"].rolling(252).mean()) / zl_df["usd_cny"].rolling(252).std()
+        zl_df["cny_momentum_21d"] = zl_df["usd_cny"].pct_change(21) * 100
+        zl_df["cny_volatility_21d"] = zl_df["usd_cny"].pct_change(1).rolling(21).std() * np.sqrt(252)
+        # CNY devaluation probability (higher USD/CNY = weaker CNY)
+        zl_df["cny_devalue_prob"] = 1 / (1 + np.exp(-zl_df["cny_zscore"]))
+        # CNY regime flags
+        zl_df["cny_weak"] = (zl_df["cny_zscore"] > 1).astype(int)
+        zl_df["cny_strong"] = (zl_df["cny_zscore"] < -1).astype(int)
+        # Update china_bucket_signal to include CNY
+        if "hg_zscore" in zl_df.columns:
+            # China demand = copper demand - CNY weakness (weak CNY = less imports)
+            zl_df["china_bucket_signal"] = (zl_df["hg_zscore"] - zl_df["cny_zscore"]) / 2
+            zl_df["china_signal_strength"] = np.abs(zl_df["china_bucket_signal"]).clip(0, 3) / 3 * 100
+        logger.info(f"    + CNY features: devaluation prob, regime, updated signal")
+
+    # CRUSH bucket: Add SA currency features (BRL, ARS affect competition)
+    if bucket_name == "crush":
+        sa_signals = []
+        if "fx_USDBRL" in zl_df.columns:
+            zl_df["brl_rate"] = zl_df["fx_USDBRL"]
+            zl_df["brl_zscore"] = (zl_df["brl_rate"] - zl_df["brl_rate"].rolling(252).mean()) / zl_df["brl_rate"].rolling(252).std()
+            zl_df["brl_momentum_21d"] = zl_df["brl_rate"].pct_change(21) * 100
+            # Weak BRL = cheaper SA crush competition = bearish US crush
+            sa_signals.append(zl_df["brl_zscore"])
+        if "fx_USDARS" in zl_df.columns:
+            zl_df["ars_rate"] = zl_df["fx_USDARS"]
+            zl_df["ars_zscore"] = (zl_df["ars_rate"] - zl_df["ars_rate"].rolling(252).mean()) / zl_df["ars_rate"].rolling(252).std()
+            sa_signals.append(zl_df["ars_zscore"])
+        if sa_signals:
+            zl_df["sa_currency_weakness"] = pd.concat(sa_signals, axis=1).mean(axis=1)
+            # Weak SA currencies = cheaper SA crush = bearish US crush
+            zl_df["sa_competition_signal"] = -zl_df["sa_currency_weakness"]
+            logger.info(f"    + SA currency features: BRL, ARS weakness indicators")
+
+    # TARIFF bucket: Add CNY and BRL features for trade flow impact
+    if bucket_name == "tariff":
+        tariff_fx_signals = []
+        if "fx_USDCNY" in zl_df.columns:
+            zl_df["cny_tariff_rate"] = zl_df["fx_USDCNY"]
+            zl_df["cny_tariff_zscore"] = (zl_df["cny_tariff_rate"] - zl_df["cny_tariff_rate"].rolling(252).mean()) / zl_df["cny_tariff_rate"].rolling(252).std()
+            tariff_fx_signals.append(zl_df["cny_tariff_zscore"])
+        if "fx_USDBRL" in zl_df.columns:
+            zl_df["brl_tariff_rate"] = zl_df["fx_USDBRL"]
+            zl_df["brl_tariff_zscore"] = (zl_df["brl_tariff_rate"] - zl_df["brl_tariff_rate"].rolling(252).mean()) / zl_df["brl_tariff_rate"].rolling(252).std()
+            tariff_fx_signals.append(zl_df["brl_tariff_zscore"])
+        if tariff_fx_signals:
+            zl_df["tariff_fx_pressure"] = pd.concat(tariff_fx_signals, axis=1).mean(axis=1)
+            logger.info(f"    + Tariff FX features: CNY/BRL pressure indicators")
+
+    # ==========================================================================
     # 6. ADD COT FOR CONFIGURED SYMBOLS ONLY
     # ==========================================================================
     if cot_symbols and len(cot_df.columns) > 1:
@@ -1675,10 +1968,44 @@ def generate_bucket_features(
     # ==========================================================================
     if include_rin and len(rin_df.columns) > 1:
         zl_df = zl_df.merge(rin_df, on="as_of_date", how="left")
-        # Add RIN z-scores
-        for rin_col in [c for c in zl_df.columns if c.startswith("rin_")]:
+        # Add RIN z-scores for each RIN type
+        for rin_col in [c for c in zl_df.columns if c.startswith("rin_") and not c.endswith("_zscore")]:
             zl_df[f"{rin_col}_zscore"] = (zl_df[rin_col] - zl_df[rin_col].rolling(252).mean()) / zl_df[rin_col].rolling(252).std()
-        logger.info(f"    + RIN: {len(rin_df.columns)-1} types")
+            zl_df[f"{rin_col}_percentile"] = zl_df[rin_col].rolling(252).rank(pct=True) * 100
+            zl_df[f"{rin_col}_momentum_21d"] = zl_df[rin_col].pct_change(21) * 100
+
+        # D4-D6 spread (biodiesel vs ethanol RIN)
+        if "rin_D4" in zl_df.columns and "rin_D6" in zl_df.columns:
+            zl_df["rin_d4_d6_spread"] = zl_df["rin_D4"] - zl_df["rin_D6"]
+            zl_df["rin_d4_d6_zscore"] = (zl_df["rin_d4_d6_spread"] - zl_df["rin_d4_d6_spread"].rolling(252).mean()) / zl_df["rin_d4_d6_spread"].rolling(252).std()
+            # D4 premium flag (biodiesel commanding premium)
+            zl_df["rin_d4_premium"] = (zl_df["rin_d4_d6_spread"] > 0).astype(int)
+
+        # RIN regime (based on D4 levels for biofuel bucket)
+        if "rin_D4_zscore" in zl_df.columns:
+            zl_df["rin_regime_weak"] = (zl_df["rin_D4_zscore"] < -1).astype(int)
+            zl_df["rin_regime_strong"] = (zl_df["rin_D4_zscore"] > 1).astype(int)
+            # RIN regime score (-1=weak, 0=neutral, 1=strong)
+            zl_df["rin_regime"] = np.where(zl_df["rin_D4_zscore"] < -1, -1,
+                                           np.where(zl_df["rin_D4_zscore"] > 1, 1, 0))
+
+        # Biofuel bucket composite signal (if this is the biofuel bucket)
+        if bucket_name == "biofuel":
+            biofuel_signals = []
+            if "rin_D4_zscore" in zl_df.columns:
+                biofuel_signals.append(zl_df["rin_D4_zscore"])
+            if "biodiesel_margin_zscore" in zl_df.columns:
+                biofuel_signals.append(zl_df["biodiesel_margin_zscore"])
+            if "rin_d4_d6_zscore" in zl_df.columns:
+                biofuel_signals.append(zl_df["rin_d4_d6_zscore"])
+            if biofuel_signals:
+                zl_df["biofuel_bucket_signal"] = pd.concat(biofuel_signals, axis=1).mean(axis=1)
+                zl_df["biofuel_signal_strength"] = np.abs(zl_df["biofuel_bucket_signal"]).clip(0, 3) / 3 * 100
+            else:
+                zl_df["biofuel_bucket_signal"] = 0
+                zl_df["biofuel_signal_strength"] = 0
+
+        logger.info(f"    + RIN: {len(rin_df.columns)-1} types + spreads + regime")
 
     # ==========================================================================
     # 8. ADD USDA EXPORTS (only if configured)
@@ -1788,7 +2115,8 @@ def main():
         logger.info("=" * 70)
 
         market_df = load_all_market_data(conn, args.start_date)
-        fred_df = load_fred_data(conn)
+        # NOTE: FRED data now loaded per-bucket using Option B (bucket-aware routing)
+        # This queries only 1-2 tables per bucket instead of all 7 tables
         fx_df = load_fx_data(conn)
         cot_df = load_cot_data(conn)
         usda_df = load_usda_exports(conn)
@@ -1812,6 +2140,9 @@ def main():
                 continue
 
             bucket_config = SPECIALIST_BUCKETS[bucket_name]
+
+            # Option B: Load FRED data per-bucket (queries only 1-2 tables, not all 7)
+            fred_df = load_fred_data_for_bucket(conn, bucket_name)
 
             bucket_df = generate_bucket_features(
                 bucket_name, bucket_config,
