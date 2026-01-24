@@ -154,7 +154,7 @@ Domains are logical tags; physical storage uses institutional schemas.
 | Horizons | integer `5`, `21`, `63`, `126` | string horizons like `"1w"`, `"1m"` in table keys |
 | **Quantile columns (OOF/Stacking)** | `p30`, `p50`, `p70` | `p10`, `p90` in OOF tables |
 | **Quantile columns (Risk/MC/Cones)** | `p10`, `p30`, `p50`, `p70`, `p90` | missing any of the 5 quantiles |
-| OOF table family | `training.oof_core_1d`, `training.oof_{specialist}_1d` | `training.oof_big10_*` (legacy), `training.oof_specialists_1d` (plural) |
+| Core OOF + specialist signals | `training.oof_core_1d`, `training.specialist_signals_1d` | `training.oof_big10_*` (legacy), `training.oof_specialists_1d` (plural) |
 
 ### Quantile Contract (LOCKED)
 
@@ -242,7 +242,7 @@ EXTERNAL SOURCES
            features (elite/options/weather)
                 │
                 ▼
-           training (matrix_1d, oof_core_1d, specialist_features)
+           training (matrix_1d, oof_core_1d, specialist_signals_1d)
                 │
                 ▼
              model (registry, forecasts, metrics)
@@ -584,9 +584,33 @@ These notes exist to help agents/operators quickly unblock the L0→L1 pipeline 
 
 ### Run core OOF (standalone, recommended for iteration)
 
-- Script: `scripts/train_core_oof.py`
-- Example (single horizon): `python3 scripts/train_core_oof.py --horizons 5 --presets medium_quality --time-limit 3600 --num-bag-folds 8 --num-stack-levels 0`
-- Example (tiny smoke run): `python3 scripts/train_core_oof.py --horizons 126 --time-limit 120 --num-bag-folds 2 --num-stack-levels 0 --max-rows 300`
+- Script: `python -m fusion.core_training.run_pipeline`
+- Example (single horizon): `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- Example (all horizons): `python -m fusion.core_training.run_pipeline --skip-matrix`
+
+### Core Training Policy (CPU-only, Full Model Zoo)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ### Common issues and fixes
 
@@ -615,20 +639,18 @@ These notes exist to help agents/operators quickly unblock the L0→L1 pipeline 
 ### Active Model Location
 ```
 models/
-├── core_v15/           # ACTIVE - Production Core models
-│   ├── horizon_5d/     # Tactical (5d)
-│   ├── horizon_21d/    # Tactical (21d)  
-│   └── horizon_63d/    # Strategic (63d)
-├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
+├── core_v2/            # ACTIVE - Core models (CPU-only, full Model Zoo)
 │   ├── horizon_5d/
 │   ├── horizon_21d/
 │   ├── horizon_63d/
 │   └── horizon_126d/
-├── specialists/        # NOT YET TRAINED - Big 11 specialists
-└── hunters/            # NOT YET TRAINED - Opportunity hunters
+├── specialists/        # v3 SIGNAL GENERATORS - Custom models per bucket
 ```
 
-### SoT v3 Training Stack (15 Models)
+**Note:** Core training uses CPU-only execution with the full AutoGluon Model Zoo. AutoGluon selects/ensembles the best models via validation. See `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+**Retention:** Only `models/core_v2` and `models/specialists` are kept under `models/`.
+
+### SoT v3 Training Stack (19 Models)
 - **L0 Core:** `zinc-fusion-v2-core-h{H}d` (4 horizons: 5d, 21d, 63d, 126d)
 - **Specialists:** 11 signal generators (NO horizons - see table above for architectures)
 - **L1 Meta:** `zinc-fusion-v2-meta-h{H}d` (4 horizons)

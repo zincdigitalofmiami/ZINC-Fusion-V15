@@ -1,13 +1,16 @@
-# Specialist Signal Spec (Draft)
+# Specialist Signal Spec (Implementation-Aligned)
 
-Status: Draft for review. This document formalizes specialist signals as inputs
-to the core + meta-learner. It does not introduce schema changes or new features.
+Status: Implementation-aligned (2026-01-24). This document reflects the current
+specialist signal implementations in `src/fusion/specialists/`. Changes require
+explicit approval.
 
 ## Purpose
 
 Define clear, minimal signal outputs per specialist so the ensemble benefits from
 orthogonal information without overfitting. Specialists emit scores/residuals,
 not multi-horizon price predictions.
+
+Specialists are **unaffected** by the Core CPU-only policy.
 
 ## Signal Contract (All Specialists)
 
@@ -17,98 +20,118 @@ not multi-horizon price predictions.
 - Use daily data only; intraday tables (`analytics.zl_price_15m`, `analytics.zl_price_1h`) are dashboard-only; daily dashboard copy is `analytics.zl_price_1d`.
 - Proposed signals require explicit approval before implementation.
 
-## Specialist Specs (Candidate Mapping)
+## Specialist Specs (Implementation Mapping)
 
-Each entry is a proposal and must be validated with ablation tests before use.
+Each entry reflects the current code. Changes should be validated with ablation
+tests before adoption.
 
 ### crush
 
 - Purpose: capture margin-driven production incentives.
-- Inputs: mkt.futures_1d (ZL, ZS, ZM), supply.* as needed.
-- Signal: crush margin level + momentum (1m/3m outlook).
-- Model class: XGBoost on engineered spreads (TFT optional if multivariate).
+- Inputs: ZL/ZS/ZM closes; WASDE fundamentals if present; volume/OI if present.
+- Signal: `signal_1` model prediction of 21d forward ZL return; `signal_2` 21d crush momentum (lagged).
+- Model class: XGBRegressor (fallback: GradientBoostingRegressor).
 
 ### china
 
 - Purpose: demand shifts and shipment intensity.
-- Inputs: alt.news_1d (tagged), supply.* trade flows if present, vessel proxies.
-- Signal: demand outlook score (1-2 values).
-- Model class: GPR or gradient boosting on shipment/import proxies.
+- Inputs: copper (HG), CNY, BRL, shipping proxies (BDRY/SBLK), seasonality encodings.
+- Signal: `signal_1` model prediction of 21d forward ZL return; `signal_2` Brazil competition z-score (BRL).
+- Model class: GradientBoostingRegressor.
 
 ### fx
 
 - Purpose: currency pressure on export competitiveness.
-- Inputs: mkt.fx_1d, econ.rates_1d (optional).
-- Signal: FX pressure index (e.g., USD/BRL, USD/ARS, USD/CNY composite).
-- Model class: ARDL or gradient boosting; LSTM only if it beats baselines.
+- Inputs: DXY + FX pairs (BRL, CNY, MXN, AUD), US rates and foreign rates when available.
+- Signal: `signal_1` FX pressure index (ARDL-based when available); `signal_2` carry trade signal.
+- Model class: statsmodels ARDL with lag selection; composite fallback if ARDL unavailable.
 
 ### fed
 
 - Purpose: macro rate regime influence.
-- Inputs: econ.rates_1d, econ.activity_1d (optional).
-- Signal: rates regime score + change.
-- Model class: ARDL or ridge regression on lagged rates.
+- Inputs: Fed funds, DGS10, DGS2, DGS3MO (or FedFunds proxy), T10YIE (if available), NFCI.
+- Signal: `signal_1` rates regime score; `signal_2` regime change momentum.
+- Model class: weighted z-score composite (ridge-style), no fitted estimator.
 
 ### tariff
 
 - Purpose: discrete policy shocks on trade flows.
-- Inputs: alt.legislation_1d, alt.news_1d (tagged).
-- Signal: tariff risk score (event intensity).
-- Model class: rule-based or shallow tree on event tags.
+- Inputs: EPU indices (USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV).
+- Signal: `signal_1` tariff risk score (weighted EPU composite); `signal_2` EPU spike indicator.
+- Model class: rules-based on EPU thresholds.
 
 ### energy
 
 - Purpose: spillovers from energy complex.
-- Inputs: mkt.futures_1d (CL, HO, RB), econ.commodities_1d.
-- Signal: energy spillover score (level + delta).
-- Model class: VAR on a small energy subset, or GBM on spreads.
+- Inputs: CL/HO/RB, BOHO spread, 3-2-1 crack spread.
+- Signal: `signal_1` energy spillover score (VAR/IRF/FEVD); `signal_2` spillover momentum.
+- Model class: statsmodels VAR with IRF/FEVD (fallback to composite if VAR unavailable).
 
 ### biofuel
 
 - Purpose: regulatory demand shifts (RFS, 45Z, CI scoring).
-- Inputs: supply.epa_rin_1d, alt.legislation_1d, alt.news_1d.
-- Signal: policy pressure score (event-weighted).
-- Model class: NLP sentiment to numeric score + smoothing.
+- Inputs: RIN prices (D4/D6/D3/D5), LCFS credit; HO for margin proxy.
+- Signal: `signal_1` policy pressure (RIN/LCFS z-score, EMA-smoothed); `signal_2` RIN momentum (if RIN/LCFS available).
+- Model class: EMA-smoothed policy proxy (no NLP).
 
 ### palm
 
 - Purpose: substitution pressure from FCPO.
-- Inputs: mkt.futures_1d (FCPO), alt.news_1d.
-- Signal: palm substitution pressure (spread + mean reversion).
-- Model class: ECM on ZL vs FCPO spread.
+- Inputs: FCPO prices (cpo_close or palm_oil_close), optional MYR/USD as a feature.
+- Signal: `signal_1` model prediction from ECM features; `signal_2` mean reversion speed.
+- Model class: ECM cointegration + Ridge regression.
 
 ### volatility
 
 - Purpose: regime risk and variance shifts.
-- Inputs: econ.vol_indices_1d, mkt.futures_1d.
-- Signal: volatility regime level + change.
-- Model class: GARCH with VIX as exogenous input.
+- Inputs: ZL returns, VIX, VIX3M term structure, OVX.
+- Signal: `signal_1` volatility regime level; `signal_2` regime change probability.
+- Model class: GJR-GARCH(1,1) Student-t when available; term-structure overlay.
 
 ### substitutes
 
 - Purpose: switching behavior among soft oils.
-- Inputs: mkt.futures_1d (canola, sunflower, etc), econ.commodities_1d.
-- Signal: substitution pressure score (relative price ratios).
-- Model class: random forest on cross-oil ratios.
+- Inputs: relative prices vs canola/palm/sunflower/rapeseed.
+- Signal: `signal_1` model prediction; `signal_2` ZL richness score (mean ratio z-score).
+- Model class: RandomForestRegressor.
 
 ### trump_effect
 
 - Purpose: trade/rhetoric risk premium.
-- Inputs: alt.news_1d, alt.legislation_1d, econ.rates_1d (EPU).
-- Signal: event intensity + policy uncertainty score.
-- Model class: event study + sentiment score.
+- Inputs: EPU indices (daily/monthly), EPUTRADE, VIX, FXI (China ETF proxy).
+- Signal: `signal_1` event intensity (trade tension + China exposure, regime-weighted); `signal_2` trade uncertainty share (trade EPU / total).
+- Model class: event study + EPU decomposition + proxy composites.
 
 ## Evaluation (Required)
 
-- Primary: MAE/MASE and quantile coverage (p30/p50/p70).
-- Secondary: stability across regimes, signal orthogonality, and ablation deltas.
-- Reject any signal that reduces coverage or increases error outside tolerance.
+- Primary: correlation with forward returns, stability across regimes.
+- Secondary: signal orthogonality and downstream ablation deltas.
+- Reject any change that degrades core/ensemble accuracy or stability.
 
 ## Integration Rules
 
 - Specialists output signals only; core produces multi-horizon forecasts.
 - Meta-learner should be shallow (weighted ensemble or ridge).
 - Log source provenance for each signal (news/event tags, series ids).
+
+## Verification (Code References — 2026-01-24)
+
+Line references below reflect the current implementation and should be re-checked
+after any code edits.
+
+| Specialist | File | Key references |
+| --- | --- | --- |
+| crush | `src/fusion/specialists/xgb_signals.py` | `CrushSignalGenerator` (197), `_create_model` (237-258) |
+| substitutes | `src/fusion/specialists/xgb_signals.py` | `SubstitutesSignalGenerator` (394), `_create_model` (433-442) |
+| china | `src/fusion/specialists/xgb_signals.py` | `ChinaSignalGenerator` (571), `_create_model` (621-630) |
+| fx | `src/fusion/specialists/ardl_signals.py` | `FxSignalGenerator` (49), ARDL fit (495-506) |
+| fed | `src/fusion/specialists/ardl_signals.py` | `FedSignalGenerator` (835), weights (979-1011) |
+| volatility | `src/fusion/specialists/garch_signals.py` | `VolatilitySignalGenerator` (34), GJR-GARCH fit (96-103) |
+| energy | `src/fusion/specialists/var_signals.py` | `EnergySignalGenerator` (52), VAR fit (184-221), IRF/FEVD (236-244) |
+| palm | `src/fusion/specialists/ecm_signals.py` | `PalmSignalGenerator` (203), Ridge model (130-136), coint/OLS (311-317), `signal_2` (529-580) |
+| tariff | `src/fusion/specialists/event_signals.py` | `TariffSignalGenerator` (27), spike/regime (80-115) |
+| biofuel | `src/fusion/specialists/event_signals.py` | `BiofuelSignalGenerator` (216), RIN momentum (314-325) |
+| trump_effect | `src/fusion/specialists/event_signals.py` | `TrumpEffectSignalGenerator` (426), EPU decomp (511-547), regime (549-558) |
 
 ## Open Questions
 

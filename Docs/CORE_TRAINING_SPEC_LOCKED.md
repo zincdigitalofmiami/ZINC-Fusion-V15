@@ -36,162 +36,50 @@ the ALL DATA policy and Light Train configuration.
 
 ---
 
-## �📊 HORIZON STRATEGY
+## Core Training Policy (CPU-only, Full Model Zoo)
 
-### Tactical vs Strategic Split
+Core runs **CPU-only** and must explicitly try **ALL** AutoGluon-TimeSeries Model Zoo models.
+This is a single Core pipeline for all horizons; specialists are unchanged.
 
-| Horizon | Mode | Data Window | Primary Model | RecursiveTabular |
-|---------|------|-------------|---------------|------------------|
-| **5d** | Tactical | 2020-01-01+ (5 years) | Chronos-Bolt-Small | ✅ INCLUDED |
-| **21d** | Tactical | 2020-01-01+ (5 years) | Chronos-Bolt-Small | ✅ INCLUDED |
-| **63d** | Strategic | 2000-01-01+ (25 years) | Chronos-2 (LoRA) | ❌ EXCLUDED |
-| **126d** | Strategic | 2000-01-01+ (25 years) | Chronos-2 (LoRA) | ❌ EXCLUDED |
+### Environment guards (Mac stability)
+Set **before** importing torch/autogluon:
 
-### Rationale
-- **Tactical (5d/21d)**: Short-term operational forecasts. Chronos-Bolt is faster, 
-  RecursiveTabular helps with autoregressive patterns over short horizons.
-- **Strategic (63d/126d)**: Long-term procurement planning. Chronos-2 with LoRA 
-  fine-tuning captures complex patterns. RecursiveTabular EXCLUDED to prevent 
-  error propagation over long horizons.
-
----
-
-## 🖥️ HARDWARE CONFIGURATION (Mac M4 Pro)
-
-### Critical Constraints
-```python
-# MPS is NOT supported for Chronos-2
-# Code only checks CUDA, falls back to CPU
-device = "cpu"  # MUST be explicit
-
-# Memory-safe settings for 16GB RAM
-# Reduce batch sizes and context lengths from defaults
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
 ```
 
-### Environment Variables
-```python
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-os.environ["AUTOGLUON_DISABLE_RAY"] = "1"  # Prevents Ray/GCS failures on macOS
-```
+### Which models are tried (Model Zoo allowlist)
+Core must use an **explicit** `hyperparameters={...}` allowlist containing every Model Zoo name.
+Per AutoGluon docs, the “Model” suffix can be omitted.
 
----
+- **Baselines:** Naive, SeasonalNaive, Average, SeasonalAverage, Zero  
+- **Statistical:** ETS, AutoETS, AutoARIMA, AutoCES, Theta, NPTS, ADIDA, Croston, IMAPA  
+- **Deep/ML:** DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward  
+- **Neural:** TiDE, WaveNet  
+- **Tabular TS:** DirectTabular, PerStepTabular, RecursiveTabular  
+- **Pretrained:** Chronos2, Chronos, Toto  
 
-## 🔧 MODEL CONFIGURATIONS (VERIFIED SAFE)
+If the installed AutoGluon version exposes additional Model Zoo entries, include them too.
 
-### Tactical Horizons (5d, 21d) - Chronos-Bolt
+### How AutoGluon selects the final model
+AutoGluon trains the full allowlist, evaluates on validation/backtests, and
+typically chooses a **WeightedEnsemble** as the best model. This matches the
+Quick Start behavior (e.g., models trained include SeasonalNaive, DirectTabular,
+RecursiveTabular, ETS, Theta, Chronos2, and a WeightedEnsemble).
 
-```python
-TACTICAL_CONFIG = {
-    "Chronos": {
-        "model_path": "autogluon/chronos-bolt-small",
-        # No fine-tuning for Chronos-Bolt
-    },
-    "DirectTabular": {},
-    "RecursiveTabular": {},  # INCLUDED for tactical
-    "AutoETS": {},
-    "Theta": {},
-    "SeasonalNaive": {},
-}
-```
+### Presets vs explicit allowlist
+Presets (e.g., `best_quality`, `chronos2_*`) are convenient, but **do not**
+guarantee “ALL models.” Absolute certainty requires the explicit allowlist.
 
-### Strategic Horizons - Chronos-2 (VERIFIED LIMITS)
+### Time limits
+No time limits are used; Core is allowed to run as long as needed.
 
-#### 63d Configuration
-```python
-CONFIG_63D = {
-    "Chronos2": {
-        # Model (default path is autogluon/chronos-2)
-        "context_length": 1024,           # Reduced from 2048 for Mac
-        "batch_size": 16,                 # Inference batch size
-        "device": "cpu",                  # MPS NOT supported
-        
-        # Fine-tuning
-        "fine_tune": True,
-        "fine_tune_mode": "lora",
-        "fine_tune_lr": 5e-5,
-        "fine_tune_steps": 300,           # Light: 300 steps
-        "fine_tune_batch_size": 4,        # SEPARATE from inference batch_size
-        "fine_tune_context_length": 512,  # Reduced for fine-tune
-        "fine_tune_lora_config": {
-            "r": 4,
-            "lora_alpha": 8,
-        },
-    },
-    "TemporalFusionTransformer": {
-        "context_length": 128,            # 2x horizon
-    },
-    "DirectTabular": {},
-    "AutoETS": {},
-    "Theta": {},
-    "SeasonalNaive": {},
-    # NO RecursiveTabular for strategic
-}
-```
-
-#### 126d Configuration
-```python
-CONFIG_126D = {
-    "Chronos2": {
-        "context_length": 2048,           # More context for strategic
-        "batch_size": 8,                  # Smaller for memory
-        "device": "cpu",
-        
-        "fine_tune": True,
-        "fine_tune_mode": "lora",
-        "fine_tune_lr": 5e-5,
-        "fine_tune_steps": 500,           # Fuller fine-tune
-        "fine_tune_batch_size": 2,        # Very small for 126d
-        "fine_tune_context_length": 1024,
-        "fine_tune_lora_config": {
-            "r": 8,
-            "lora_alpha": 16,
-        },
-    },
-    "TemporalFusionTransformer": {
-        "context_length": 256,            # 2x horizon
-    },
-    "DirectTabular": {},
-    "AutoETS": {},
-    "Theta": {},
-    "SeasonalNaive": {},
-    # NO RecursiveTabular for strategic
-}
-```
-
-### INVALID Parameters (DO NOT USE)
-```python
-# These will cause errors with Chronos-2:
-# - optimization_strategy  ❌ (Chronos-Bolt only)
-# - device="mps"           ❌ (Not supported)
-# - model_path="amazon/chronos-t5-base"  ❌ (Wrong model)
-```
-
----
-
-## ⚡ LIGHT TRAIN SETTINGS
-
-### Predictor Configuration
-```python
-LIGHT_TRAIN_CONFIG = {
-    # Evaluation
-    "eval_metric": "WQL",                    # Weighted Quantile Loss
-    "quantile_levels": [0.10, 0.50, 0.90],   # P10, P50, P90
-    
-    # Training limits
-    "presets": "medium_quality",             # Was "best_quality"
-    "time_limit": 3600,                      # 1 hour (was 4 hours)
-    "num_val_windows": 4,                    # Was 8
-    
-    # Frequency
-    "freq": "B",                             # Business daily
-}
-```
-
-### Unchanged Settings
-```python
-# These remain at full values:
-"monte_carlo_runs": 10000,   # Required for proper P10/P90
-```
+### Specialists
+Specialists are **unchanged** by Core CPU-only policy.
 
 ---
 
@@ -328,31 +216,29 @@ assert df.isna().sum().sum() == 0, "NaN values found in final dataset"
 
 ### Model Artifacts
 ```
-models/core_chronos2/
+models/core_v2/
 ├── horizon_5d/
-│   └── tactical/           # Chronos-Bolt + RecursiveTabular
 ├── horizon_21d/
-│   └── tactical/           # Chronos-Bolt + RecursiveTabular
 ├── horizon_63d/
-│   └── strategic/          # Chronos-2 (LoRA)
 └── horizon_126d/
-    └── strategic/          # Chronos-2 (LoRA)
 ```
 
 ### Database Outputs
 ```sql
 -- OOF predictions written to:
-INSERT INTO "model"."oof_predictions" (
-    specialist,      -- 'core'
-    horizon,         -- 5, 21, 63, 126
-    as_of_date,
-    symbol,          -- 'ZL'
-    pred_p10,
-    pred_p50,
-    pred_p90,
-    actual,
-    fold_id,
-    created_at
+INSERT INTO training.oof_core_1d (
+    trade_date,
+    symbol,
+    horizon_days,
+    window_id,
+    cutoff_date,
+    p30,
+    p50,
+    p70,
+    target_value,
+    trained_at,
+    run_hash,
+    matrix_version
 )
 ```
 
@@ -360,23 +246,10 @@ INSERT INTO "model"."oof_predictions" (
 
 ## ⏱️ TRAINING TIME ESTIMATES
 
-### Mac M4 Pro (CPU-only)
+### CPU-only (no time limit)
 
-| Horizon | Mode | Fine-tune | Est. Time |
-|---------|------|-----------|-----------|
-| 5d | Tactical | No | ~15 min |
-| 21d | Tactical | No | ~15 min |
-| 63d | Strategic | 300 steps | ~45 min |
-| 126d | Strategic | 500 steps | ~90 min |
-| **Total Core** | | | **~2.5-3 hours** |
-
-### Full Pipeline (including specialists)
-| Component | Est. Time |
-|-----------|-----------|
-| Core (all horizons) | ~3 hours |
-| 11 Specialists | ~5.5 hours |
-| Meta-Learner | ~1.5 hours |
-| **Total** | **~10 hours** |
+Training time is **unbounded** and depends on dataset size and the full Model Zoo.
+Expect multi-hour runs on CPU.
 
 ---
 
@@ -389,18 +262,45 @@ Before running training:
 - [ ] 600+ features loaded
 - [ ] Zero NaN values
 - [ ] Date range covers required window
+### Environment Guards
+- [ ] `TOKENIZERS_PARALLELISM=false`
+- [ ] `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
+- [ ] `AUTOGLUON_DISABLE_RAY=1`
+- [ ] `PYTORCH_ENABLE_MPS_FALLBACK=1`
+- [ ] `device="cpu"`
+
+### Model Zoo Allowlist
+- [ ] Explicit `hyperparameters={...}` includes **all** Model Zoo models
+
+---
+
+## Verification checklist (log evidence)
+
+- Run: `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- Confirm logs list **all models** from the allowlist.
+- Confirm a **WeightedEnsemble** is selected as best model.
+- Confirm CPU-only execution (no MPS/CUDA).
+
+---
+
+## Docs drift vs code
+
+As of 2026-01-24, this spec is aligned with `fusion.core_training`:
+- Explicit full Model Zoo allowlist (no presets, no time limits)
+- CPU-only environment guards
 
 ### Configuration Validation
-- [ ] `device="cpu"` (not "mps")
-- [ ] No `optimization_strategy` parameter
-- [ ] `fine_tune_batch_size` set (separate from `batch_size`)
-- [ ] Correct horizon → config mapping (tactical/strategic)
+- [ ] `device="cpu"` only
+- [ ] No presets used; explicit allowlist only
+- [ ] No time limits
+- [ ] Quantile outputs remain p30/p50/p70
 
 ### Environment Validation
+- [ ] `TOKENIZERS_PARALLELISM=false` set
+- [ ] `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` set
 - [ ] `AUTOGLUON_DISABLE_RAY=1` set
 - [ ] `PYTORCH_ENABLE_MPS_FALLBACK=1` set
-- [ ] Sufficient disk space (~10GB)
-- [ ] Sufficient RAM (~16GB)
+- [ ] Sufficient disk space and RAM for full Model Zoo
 
 ---
 
@@ -408,11 +308,10 @@ Before running training:
 
 | Failure | Cause | Fix |
 |---------|-------|-----|
-| OOM during fine-tune | batch_size too large | Reduce `fine_tune_batch_size` |
+| Model key error | Model not in installed AutoGluon | Remove or update allowlist entry |
+| Missing models in logs | Allowlist incomplete | Add missing Model Zoo entries |
 | Ray/GCS errors | Ray enabled on macOS | Set `AUTOGLUON_DISABLE_RAY=1` |
-| MPS error | Using device="mps" | Change to `device="cpu"` |
-| Quantile crossing | Independent quantile models | Post-process to enforce monotonic |
-| Empty OOF predictions | Predictions not saved | Check `save_predictions()` call |
+| CPU stalls / long runtime | Full Model Zoo + no time limit | Expect multi-hour run; monitor resources |
 
 ---
 
@@ -420,15 +319,10 @@ Before running training:
 
 ```bash
 # Single horizon (smoke test)
-python scripts/train_core_chronos.py --horizon 21 --mode quick --dry-run
+python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5
 
 # All horizons (production)
-python scripts/train_core_chronos.py --horizon all --mode quick
-
-# Modes:
-#   ultrafast: Statistical only, 1 val window (~10 min)
-#   quick: Chronos + TFT, 4 val windows (~3 hours)
-#   full: Full ensemble, 4 val windows (~6 hours)
+python -m fusion.core_training.run_pipeline --skip-matrix
 ```
 
 ---

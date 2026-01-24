@@ -58,7 +58,17 @@ AutogluonModels/
 logs/
 
 # Models directory (large artifacts)
-models/
+models/*
+# Keep only these tracked model artifacts
+!models/core_v2/
+!models/core_v2/**
+!models/specialists/
+!models/specialists/**
+# Removed model artifacts (keep only models/core_v2 and models/specialists)
+models/core_v1/
+models/core_chronos2/
+models/hunters/
+models/secondary_models/
 .env
 # Training logs (regenerated)
 *.log

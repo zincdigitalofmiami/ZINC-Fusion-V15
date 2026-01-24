@@ -32,9 +32,9 @@
 # - TARGET_SYMBOL = "ZL"
 # - HORIZONS = [5, 21, 63, 126]
 # - QUANTILES = [0.3, 0.5, 0.7]
-# - Feature guardrails: 120-350 (target ~213)
 # - All features as OBSERVED covariates
-# - Z-score normalization
+# - CPU-only execution (no MPS/CUDA)
+# - Explicit Model Zoo allowlist (no presets, no time limits)
 #
 # ## Output Tables
 #
@@ -43,7 +43,7 @@
 #
 # ## Model Artifacts
 #
-# Models saved to `models/core_v1/{horizon}d/`
+# Models saved to `models/core_v2/{horizon}d/`
 
 __version__ = "1.0.0"
 __author__ = "ZINC-FUSION"

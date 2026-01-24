@@ -780,29 +780,47 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 | 63d | 63 | 3 Months | Quarterly strategy |
 | 126d | 126 | 6 Months | Long-term procurement |
 
-### Models by Horizon
+### Core Model Zoo Allowlist (trained per horizon)
 
-| Model | 5d | 21d | 63d | 126d |
-|-------|:--:|:---:|:---:|:----:|
-| Chronos2 | ✓ | ✓ | ✓ | - |
-| Chronos2SmallFineTuned | ✓ | ✓ | - | ✓ |
-| ChronosWithRegressor[bolt_small] | ✓ | ✓ | - | - |
-| TemporalFusionTransformer | ✓ | ✓ | - | - |
-| DeepAR | ✓ | ✓ | - | - |
-| AutoETS | ✓ | ✓ | - | - |
-| DirectTabular | ✓ | ✓ | ✓ | ✓ |
-| RecursiveTabular | ✓ | ✓ | ✓ | ✓ |
-| DynamicOptimizedTheta | ✓ | ✓ | ✓ | ✓ |
-| SeasonalNaive | ✓ | ✓ | ✓ | ✓ |
-| WeightedEnsemble | ✓ | ✓ | - | - |
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix). The
+full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+- **Baselines:** Naive, SeasonalNaive, Average, SeasonalAverage, Zero
+- **Statistical:** ETS, AutoETS, AutoARIMA, AutoCES, Theta, NPTS, ADIDA, Croston, IMAPA
+- **Deep/ML:** DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward
+- **Neural:** TiDE, WaveNet
+- **Tabular TS:** DirectTabular, PerStepTabular, RecursiveTabular
+- **Pretrained:** Chronos2, Chronos, Toto
+
+If the installed AutoGluon version exposes additional Model Zoo entries, include
+them too.
+
+### How AutoGluon selects the final model
+
+AutoGluon trains the full allowlist, ranks models on internal
+validation/backtests, and typically selects a **WeightedEnsemble** as best.
+No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ### Output Quantiles
 
-| Quantile | Percentile | Description |
-|----------|------------|-------------|
-| p10 | 10th | Bearish scenario |
-| p50 | 50th | Median forecast |
-| p90 | 90th | Bullish scenario |
+- **Core outputs:** p30, p50, p70
+- **Calibrated envelope:** p10_cal, p90_cal (CQR)
 
 ---
 
@@ -822,7 +840,7 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 | **Specialist Buckets (Neural)** | 5 |
 | **Database Tables** | 60+ |
 | **Forecast Horizons** | 4 |
-| **Quantile Outputs** | 3 (p10, p50, p90) |
+| **Quantile Outputs** | 3 (p30, p50, p70) + calibrated envelope |
 
 ### Data Volumes (Approximate)
 

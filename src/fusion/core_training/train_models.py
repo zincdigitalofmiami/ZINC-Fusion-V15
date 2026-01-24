@@ -4,7 +4,7 @@ Phase 6: Sequential Core Training
 
 Trains Core models for all 4 horizons using AutoGluon TimeSeriesPredictor.
 
-Model: DirectTabular for ALL horizons (5d, 21d, 63d, 126d).
+Model: AutoGluon explicit model zoo (CPU-only, Chronos2 + deep + tabular + statistical).
 
 Key Rules:
 - All features as OBSERVED covariates (not known)
@@ -13,15 +13,24 @@ Key Rules:
 - Sequential training: 5 → 21 → 63 → 126
 
 Output:
-- Models saved to models/core_v1/{horizon}d/
+- Models saved to models/core_v2/{horizon}d/
 - OOF predictions written to training.oof_core_1d
 """
 
 from __future__ import annotations
 
+import os
+
+# =============================================================================
+# CPU-ONLY SAFEGUARDS (set before any ML imports)
+# =============================================================================
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+os.environ["AUTOGLUON_DISABLE_RAY"] = "1"
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
 import logging
 import hashlib
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
@@ -60,6 +69,7 @@ def import_autogluon():
 
         TimeSeriesPredictor = TSP
         TimeSeriesDataFrame = TSDF
+
         logger.info("✅ AutoGluon imported")
 
 
@@ -131,12 +141,58 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> "TimeSeriesDataFrame
 def get_model_config(horizon: int) -> dict:
     """Get model configuration for horizon.
 
-    Core uses DirectTabular for ALL horizons (5d, 21d, 63d, 126d).
+    CPU-only: explicit full model list, no presets, no time limits.
     """
+    device = "cpu"
+
+    # FULL Model Zoo (CPU-only) - ALL AutoGluon-TimeSeries models
+    hyperparameters = {
+        # === BASELINES ===
+        "Naive": {},
+        "SeasonalNaive": {},
+        "Average": {},
+        "SeasonalAverage": {},
+        "Zero": {},
+        # === STATISTICAL ===
+        "ETS": {},
+        "AutoETS": {},
+        "AutoARIMA": {},
+        "AutoCES": {},
+        "Theta": {},
+        "DynamicOptimizedTheta": {},
+        "NPTS": {},
+        "ADIDA": {},
+        "Croston": {},
+        "IMAPA": {},
+        # === DEEP LEARNING (CPU) ===
+        "DeepAR": {"device": device},
+        "TemporalFusionTransformer": {"device": device},
+        "DLinear": {"device": device},
+        "PatchTST": {"device": device},
+        "SimpleFeedForward": {"device": device},
+        "TiDE": {"device": device},
+        "WaveNet": {"device": device},
+        # === TABULAR ===
+        "DirectTabular": {},
+        "PerStepTabular": {},
+        "RecursiveTabular": {},
+        # === PRETRAINED (CPU) ===
+        "Chronos2": [
+            {"device": device},
+            {
+                "ag_args": {"name_suffix": "SmallFineTuned"},
+                "model_path": "autogluon/chronos-2-small",
+                "fine_tune": True,
+                "eval_during_fine_tune": True,
+                "device": device,
+            },
+        ],
+        "Chronos": {"device": device},
+        "Toto": {"device": device},
+    }
+
     return {
-        "presets": TRAINING_CONFIG.presets,
-        "time_limit": TRAINING_CONFIG.time_limit,
-        "hyperparameters": {"DirectTabular": {}},
+        "hyperparameters": hyperparameters,
         "window_start": None,  # Use all available data
     }
 
@@ -178,8 +234,8 @@ def train_horizon(
     model_path = model_dir / f"{horizon}d"
     model_path.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"   Presets: {config['presets']}")
-    logger.info(f"   Time limit: {config['time_limit']}s")
+    logger.info("   Presets: NONE (explicit model list)")
+    logger.info("   Time limit: NONE")
     logger.info(f"   Validation windows: {TRAINING_CONFIG.num_val_windows}")
     logger.info(f"   Model path: {model_path}")
 
@@ -197,17 +253,15 @@ def train_horizon(
             target=target_col,
             prediction_length=horizon,
             quantile_levels=QUANTILES,
-            eval_metric="MASE",  # Scale-independent metric
+            eval_metric=TRAINING_CONFIG.eval_metric,  # Use WQL from config
             known_covariates_names=[],  # EMPTY - all features are observed
             freq="B",  # Business day frequency (trading days have gaps)
         )
 
-        # Fit model
+        # Fit model (explicit hyperparameters only; no presets, no time limit)
         predictor.fit(
             train_data=tsdf,
-            presets=config["presets"],
-            time_limit=config["time_limit"],
-            hyperparameters=config["hyperparameters"],
+            hyperparameters=config["hyperparameters"],  # This now controls model selection
             num_val_windows=TRAINING_CONFIG.num_val_windows,
             # Let AutoGluon handle observed covariates automatically
         )
@@ -388,11 +442,11 @@ def run(
     logger.info("=" * 60)
 
     # Generate run ID
-    run_id = f"core_v1_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+    run_id = f"core_v2_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
     logger.info(f"Run ID: {run_id}")
 
     # Model directory
-    model_dir = Path("models/core_v1")
+    model_dir = Path("models/core_v2")
     model_dir.mkdir(parents=True, exist_ok=True)
 
     results = {}

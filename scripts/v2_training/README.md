@@ -17,17 +17,45 @@ Goals:
 ### Active Model Locations
 ```
 models/
-├── core_v15/           # ACTIVE - Core models (5d, 21d, 63d)
-├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
-├── specialists/        # NOT YET TRAINED
-└── hunters/            # NOT YET TRAINED
+├── core_v2/            # ACTIVE - Core (CPU-only, full Model Zoo allowlist)
+├── specialists/        # Specialist signal generators
 ```
+
+**Retention:** Only `models/core_v2` and `models/specialists` are kept under `models/`.
+
+**Note:** Core training uses `fusion.core_training` with an explicit Model Zoo
+allowlist and CPU-only execution. Legacy `core_v15` / `core_chronos2` paths are
+removed.
+
+### Core Training Policy (CPU-only, Full Model Zoo)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ### Model Catalog
 See `scripts/v2_training/MODEL_CATALOG.md` for the full list of:
-- 52 horizon-aligned models (L0 core + 11 specialists × 4 horizons + L1 meta × 4 horizons)
+- Core (4 horizons) + 11 specialist signal generators + L1 meta (4 horizons)
 - Their **model_id** naming convention
-- Their **input/output table contracts** (OOF → meta_inputs → forecasts.production → analytics scenarios)
+- Their **input/output table contracts** (core OOF → specialist signals → meta_inputs → forecasts.production → analytics scenarios)
 
 ### Output Table Families (SoT v2)
 These tables already exist in Prisma and are expected to be **empty prior to first training run**:
@@ -37,14 +65,10 @@ These tables already exist in Prisma and are expected to be **empty prior to fir
 - `analytics.event_probabilities_{5d,21d,63d,126d}_1d` (4 tables)
 - `analytics.price_scenarios_{5d,21d,63d,126d}_1d` (4 tables)
 
-**Schema Design Note:** Training artifacts (OOF, meta_inputs) use a single table with `horizon_days` discriminator for cross-horizon queries. Production outputs use separate tables per horizon for consumer isolation.
+**Schema Design Note:** Core OOF uses a single table with `horizon_days`. Specialist signals live in `training.specialist_signals_1d`. Production outputs use separate tables per horizon for consumer isolation.
 
 ### Pre-Training Readiness
-Before running any v2 training jobs, run:
+Before running Core training, use:
 ```bash
-python3 scripts/validate_db_state.py
+python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5
 ```
-and resolve blockers (core matrix population, target columns, stale inputs).
-
-### Best-Practices Review
-See `Docs/SOT_V2_TRAINING_BEST_PRACTICES_REVIEW_2026_01_14.md` for a pre-execution review of the SoT v2 training plan and the explicit decisions/gates to lock before training.

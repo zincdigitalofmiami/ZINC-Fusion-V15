@@ -11,6 +11,7 @@
 | **v3** | 11 signal generators producing compact signals fed to Core | 11 |
 
 **Key Change**: Specialists are now **signal generators**, not forecasters. The Core model owns all horizon forecasting.
+Specialists are **unaffected** by the Core CPU-only policy.
 
 ---
 
@@ -22,13 +23,13 @@
 | **china** | `ChinaSignalGenerator` | `xgb_signals.py` | `gbm` | GradientBoostingRegressor |
 | **substitutes** | `SubstitutesSignalGenerator` | `xgb_signals.py` | `rf` | RandomForestRegressor |
 | **fx** | `FxSignalGenerator` | `ardl_signals.py` | `ardl` | statsmodels ARDL |
-| **fed** | `FedSignalGenerator` | `ardl_signals.py` | `ridge` | Ridge Regression |
+| **fed** | `FedSignalGenerator` | `ardl_signals.py` | `ridge` | Weighted z-score composite (ridge-style) |
 | **volatility** | `VolatilitySignalGenerator` | `garch_signals.py` | `garch` | GJR-GARCH(1,1) Student-t |
 | **energy** | `EnergySignalGenerator` | `var_signals.py` | `var` | statsmodels VAR + IRF |
 | **palm** | `PalmSignalGenerator` | `ecm_signals.py` | `ecm` | ECM cointegration + Ridge |
 | **tariff** | `TariffSignalGenerator` | `event_signals.py` | `tree` | Rules-based (EPU thresholds) |
-| **biofuel** | `BiofuelSignalGenerator` | `event_signals.py` | `nlp_ema` | EMA-smoothed RIN/policy |
-| **trump_effect** | `TrumpEffectSignalGenerator` | `event_signals.py` | `event_study` | Event study + sentiment |
+| **biofuel** | `BiofuelSignalGenerator` | `event_signals.py` | `nlp_ema` | EMA-smoothed RIN/LCFS/margin proxy |
+| **trump_effect** | `TrumpEffectSignalGenerator` | `event_signals.py` | `event_study` | Event study + EPU decomposition + proxy composites |
 
 ---
 
@@ -95,12 +96,12 @@
 - Model: Autoregressive Distributed Lag with optimal lag selection
 - Persistence: `models/specialists/fx/ardl_model.joblib`
 
-**FED** - Ridge Regression (ardl_signals.py)
+**FED** - Weighted Z-Score Composite (ardl_signals.py)
 - Purpose: Macro rate regime influence
 - Signal 1: Rates regime score
-- Signal 2: Regime change probability
-- Features: Fed Funds, DGS2, DGS10, T10Y2Y spread
-- Model: Ridge regression on lagged rate differentials
+- Signal 2: Regime change momentum
+- Features: Fed Funds, DGS10, DGS2 (curve), DGS3MO (short end), T10YIE (breakeven if available), NFCI
+- Model: Weighted z-score composite (ridge-style), no fitted estimator
 
 **ENERGY** - VAR with IRF (var_signals.py)
 - Purpose: Spillovers from energy complex
@@ -113,7 +114,7 @@
 **PALM** - ECM + Ridge (ecm_signals.py)
 - Purpose: Substitution pressure from FCPO
 - Signal 1: Model prediction based on ECM features
-- Signal 2: Cointegration residual (mean reversion signal)
+- Signal 2: Mean reversion speed (half-life proxy)
 - Features: Palm-soy spread, cointegration residuals, FX conversion
 - Model: Error Correction Model for cointegration + Ridge for prediction
 - Persistence: `models/specialists/palm/model.joblib`
@@ -137,19 +138,19 @@
 - Features: USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV
 - Model: Rule-based on EPU thresholds + event intensity
 
-**BIOFUEL** - NLP + EMA
+**BIOFUEL** - EMA Smoothed Policy Proxy
 - Purpose: Regulatory demand shifts (RFS, 45Z, CI scoring)
 - Signal 1: Policy pressure score (RIN z-score or margin proxy)
 - Signal 2: RIN momentum (fast vs slow EMA)
 - Features: RIN D4/D6 prices, LCFS credits, biodiesel margin
-- Model: EMA-smoothed price signals + policy regime detection
+- Model: EMA-smoothed price signals + policy regime detection (no NLP)
 
 **TRUMP_EFFECT** - Event Study
 - Purpose: Trade/rhetoric risk premium
 - Signal 1: Event intensity (trade tension + China exposure)
 - Signal 2: Trade uncertainty share (trade EPU / total EPU)
 - Features: EPU indices, FXI (China ETF), VIX
-- Model: Event study methodology with regime amplification
+- Model: Event study methodology with EPU decomposition + regime amplification (no sentiment model)
 
 ---
 
@@ -177,22 +178,25 @@ class SignalOutput:
 
 ```
 models/specialists/
-├── biofuel/horizon_5d/
-├── china/horizon_5d/
 ├── crush/
-│   ├── horizon_5d/
-│   ├── horizon_21d/
 │   ├── model.joblib
 │   ├── scaler.joblib
 │   └── metadata.joblib
-├── energy/horizon_5d/
-├── fed/horizon_5d/
-├── fx/horizon_5d/
-├── palm/horizon_5d/
-├── substitutes/horizon_5d/
-├── tariff/horizon_5d/
-├── trump_effect/horizon_21d/
-└── volatility/horizon_5d/
+├── china/
+│   ├── model.joblib
+│   ├── scaler.joblib
+│   └── metadata.joblib
+├── substitutes/
+│   ├── model.joblib
+│   ├── scaler.joblib
+│   └── metadata.joblib
+├── palm/
+│   ├── model.joblib
+│   ├── scaler.joblib
+│   └── metadata.joblib
+├── fx/ardl_model.joblib
+├── energy/var_model.joblib
+└── (volatility, tariff, biofuel, trump_effect persist no model artifacts)
 ```
 
 ---
@@ -220,5 +224,5 @@ models/specialists/
 
 ---
 
-*Last updated: 2026-01-23*
+*Last updated: 2026-01-24*
 *Verified from actual implementation code*

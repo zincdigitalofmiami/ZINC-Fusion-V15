@@ -187,6 +187,30 @@ export default function DashboardPage() {
 
 This component handles the Plotly visualization, including dynamic model switching and a watermark that adjusts padding based on screen width/mobile state.
 
+### Core Training Policy (reference)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
+
 ```tsx
 'use client'
 
@@ -205,9 +229,7 @@ const Plot = dynamic(() => import('react-plotly.js'), {
 
 const AVAILABLE_MODELS = [
   { id: 'l1_ensemble', label: 'L1 Ensemble (Meta-Learner)', color: '#00E676' },
-  { id: 'core_chronos2', label: 'Core Chronos2 (Foundation)', color: '#2979FF' },
-  { id: 'core_deepar', label: 'Core DeepAR (Probabilistic)', color: '#FF9100' },
-  { id: 'core_tide', label: 'Core TiDE (Transformer)', color: '#F50057' },
+  { id: 'core_v2', label: 'Core (Full Model Zoo)', color: '#2979FF' },
 ]
 
 interface ZLPriceChartProps {
@@ -280,9 +302,7 @@ export default function ZLPriceChart({ height = 500, data }: ZLPriceChartProps) 
         
         // Slightly different curve shape per model to show "live" switching
         let noise = 0
-        if (selectedModel.id === 'core_chronos2') noise = Math.sin(i/2) * 0.1
-        if (selectedModel.id === 'core_deepar') noise = Math.cos(i/3) * 0.15
-        if (selectedModel.id === 'core_tide') noise = (Math.random() - 0.5) * 0.2
+        if (selectedModel.id === 'core_v2') noise = Math.sin(i/2) * 0.1
 
         currentP50 = currentP50 + (0.05 * Math.sin(i/3)) + 0.02 + noise
         

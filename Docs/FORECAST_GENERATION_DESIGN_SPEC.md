@@ -16,16 +16,42 @@ Define the contract for `generate_core_forecasts.py` to ensure:
 
 ---
 
+## Core Training Policy (CPU-only, Full Model Zoo)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
+
+---
+
 ## 1. Inputs
 
 ### 1.1 Model Artifacts
 
 | Horizon | Model Path | Required Files |
 |---------|------------|----------------|
-| 5d | `models/core_v15/horizon_5d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
-| 21d | `models/core_v15/horizon_21d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
-| 63d | `models/core_v15/horizon_63d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
-| 126d | `models/core_v15/horizon_126d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
+| 5d | `models/core_v2/horizon_5d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
+| 21d | `models/core_v2/horizon_21d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
+| 63d | `models/core_v2/horizon_63d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
+| 126d | `models/core_v2/horizon_126d/` | `predictor.pkl`, `trainer.pkl`, `models/` |
 
 **Artifact Validation:**
 - Model directory must exist
@@ -73,12 +99,12 @@ On audit gate failure:
 ### 3.1 Shared Function Requirement
 
 The data loading function MUST be:
-- **Identical** to the function used in `train_core_v15.py`
+- **Identical** to the function used in the `fusion.core_training` pipeline
 - Either imported directly or extracted to a shared module
 
 ### 3.2 Current Training Data Loading (Reference)
 
-From `train_core_v15.py`:
+Reference (align to current `fusion.core_training` implementation):
 
 ```python
 def load_base_data(conn, start_date: str) -> pd.DataFrame:
@@ -104,7 +130,7 @@ target_dates = [as_of_date + 1, as_of_date + 2, ..., as_of_date + horizon]
 
 ### 3.4 Feature Engineering
 
-For V15 models, required features (from `train_core_v15.py`):
+For Core models, required features (from the core training pipeline):
 
 **Calendar Features (Known Covariates):**
 - `day_of_week`
@@ -137,7 +163,7 @@ For V15 models, required features (from `train_core_v15.py`):
 For each horizon:
 
 1. Load audit record (gate)
-2. Load predictor from `models/core_v15/horizon_{horizon}d/`
+2. Load predictor from `models/core_v2/horizon_{horizon}d/`
 3. Load data using shared function
 4. Prepare TimeSeriesDataFrame
 5. Call `predictor.predict(ts_data)`
@@ -154,7 +180,7 @@ For each horizon:
 ```sql
 CREATE TABLE model.forecast_quantiles (
     id SERIAL PRIMARY KEY,
-    model_name TEXT NOT NULL,        -- "core_v15_21d"
+    model_name TEXT NOT NULL,        -- "core_v2_21d"
     horizon INT NOT NULL,            -- 21
     forecast_date DATE NOT NULL,     -- as_of_date (when forecast was made)
     target_date DATE NOT NULL,       -- forecast_date + horizon
@@ -176,10 +202,10 @@ CREATE TABLE model.forecast_quantiles (
 
 **Model Naming Convention:**
 ```
-core_v15_{horizon}d
+core_v2_{horizon}d
 ```
 
-Example: `core_v15_21d`
+Example: `core_v2_21d`
 
 ---
 
@@ -257,7 +283,7 @@ THEN forecast generation MUST hard-fail (exit code 1)
 ```
 
 Audit writes belong exclusively to:
-- `train_core_v15.py`
+- `fusion.core_training` (current core training pipeline)
 - or a dedicated `post_training_audit.py`
 
 ---
@@ -266,13 +292,13 @@ Audit writes belong exclusively to:
 
 Use canonical string format:
 ```
-core_v15_<horizon>_<YYYYMMDD>_<git_short_sha>
+core_v2_<horizon>_<YYYYMMDD>_<git_short_sha>
 ```
 
 **Examples:**
-- `core_v15_5d_20260102_5cc6801`
-- `core_v15_21d_20260102_5cc6801`
-- `core_v15_63d_20260102_5cc6801`
+- `core_v2_5d_20260102_5cc6801`
+- `core_v2_21d_20260102_5cc6801`
+- `core_v2_63d_20260102_5cc6801`
 
 **Properties:**
 - Human-readable
@@ -334,9 +360,9 @@ Mandatory. Forecasts are invalidated by model change.
 
 | Horizon | Training Run ID | Approved |
 |---------|-----------------|----------|
-| 5d | `core_v15_5d_20260102_5cc6801` | YES |
-| 21d | `core_v15_21d_20260102_5cc6801` | YES |
-| 63d | `core_v15_63d_20260102_5cc6801` | YES |
+| 5d | `core_v2_5d_20260102_5cc6801` | YES |
+| 21d | `core_v2_21d_20260102_5cc6801` | YES |
+| 63d | `core_v2_63d_20260102_5cc6801` | YES |
 | 126d | N/A (model not trained) | SKIP |
 
 ---
@@ -347,4 +373,3 @@ Mandatory. Forecasts are invalidated by model change.
 |------|--------|--------|
 | 2026-01-03 | Initial design spec | Claude |
 | 2026-01-03 | Locked design decisions, created audit records | Claude |
-

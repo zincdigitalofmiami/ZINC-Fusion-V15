@@ -20,9 +20,9 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# Paths
-BACKUP_DIR = Path("/Volumes/Satechi Hub/Training Evaluations - Last 5/core_chronos2/horizon_63d/core_v15_63d_20260101_chronos2__20260104T202300Z")
-PRODUCTION_DIR = Path("/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_chronos2/horizon_63d")
+# Paths (update to current Core family)
+BACKUP_DIR = Path("/Volumes/Satechi Hub/Training Evaluations - Last 5/core_v2/horizon_63d/core_v2_20260124_120000__20260124T120000Z")
+PRODUCTION_DIR = Path("/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_v2/horizon_63d")
 
 
 def repair_trainer(model_base_dir: Path, dry_run: bool = False):

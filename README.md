@@ -6,10 +6,10 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 
 ## Latest Update (January 2026): SoT v2 Production Ready
 
-**52-model hierarchical ensemble now in production**
+**Hierarchical ensemble now in production**
 
-- **L0 Core**: 4 AutoGluon TimeSeriesPredictor models (one per horizon)
-- **L0 Specialists**: 44 TabularPredictor models (11 specialists × 4 horizons)
+- **L0 Core**: AutoGluon TimeSeriesPredictor per horizon (CPU-only, full Model Zoo allowlist)
+- **L0 Specialists**: 11 specialist signal generators (unchanged)
 - **L1 Meta**: 4 stacking ensemble models combining OOF predictions
 - **L2 Calibration**: CQR (Conformalized Quantile Regression) for outer envelopes
 - **L3 Risk Engine**: Monte Carlo simulation for VaR/CVaR metrics
@@ -28,7 +28,7 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 
 **ZINC Fusion V15** is a 5-layer hierarchical ensemble forecasting system:
 
-- **L0 Layer**: 48 base models (4 Core TimeSeriesPredictor + 44 Specialist TabularPredictors)
+- **L0 Layer**: Core (AutoGluon Model Zoo per horizon) + 11 specialist signal generators
 - **L1 Layer**: Meta-learner combining OOF predictions from L0 models
 - **L2 Layer**: Ensemble fusion producing probabilistic forecasts (P30-P70)
 - **L3 Layer**: Calibration via CQR for outer envelope (P10-P90)
@@ -89,7 +89,7 @@ This prevents PIT leakage and "silent join death."
 
 Forward-fill slow series with staleness encoding (age days, release day flags, delta-on-release). This allows daily training while preserving information arrival timing.
 
-### 3) Model Architecture: 52-model horizon-aligned stack
+### 3) Model Architecture: Core + Specialists + Meta stack
 
 #### Horizons
 
@@ -102,20 +102,18 @@ H ∈ {5, 21, 63, 126} days. Each horizon has its own self-contained stack (dire
 
 AutoGluon TimeSeriesPredictor supports custom quantiles via `quantile_levels`.
 
-#### L0: Base models (12 per horizon)
+#### L0: Base models (Core + Specialists)
 
-**L0 Core (1 per horizon; 4 total)**
+**L0 Core (per horizon)**
 
-- Model: AutoGluon TimeSeriesPredictor (Chronos family)
+- Model: AutoGluon TimeSeriesPredictor (CPU-only, explicit full Model Zoo allowlist)
 - Output: probabilistic multi-step forecasts (quantiles)
-- Training window policy:
-  - 5d/21d: 2020+ (signal purity)
-  - 63d/126d: 1980+ (regime learning)
+- Selection: AutoGluon trains many models and selects/ensembles the best on validation
 
-**L0 Specialists (11 per horizon; 44 total)**
+**L0 Specialists (11 total)**
 
-- Model: AutoGluon TabularPredictor in quantile mode (P30/P50/P70)
-- Targets: `target_{H}d` (ZL close at t+H)
+- Model: Custom domain signal generators (see `src/fusion/specialists/`)
+- Targets: signals only (Core owns horizons)
 
 **The 11 Specialists**: CRUSH, CHINA, FX, FED, TARIFF, ENERGY, BIOFUEL, PALM, VOLATILITY, SUBSTITUTES, TRUMP_EFFECT
 
@@ -125,9 +123,9 @@ AutoGluon TimeSeriesPredictor supports custom quantiles via `quantile_levels`.
 
 **Input matrix (per horizon)**:
 
-- 12 models × 3 quantiles = 36 OOF columns
+- Core OOF quantiles + specialist signals
 - `core_p30/p50/p70`
-- `{specialist}_p30/p50/p70` for all 11 specialists
+- `{specialist}_signal_1`, `{specialist}_signal_2` (optional), `{specialist}_confidence` (optional)
 - minimal regime/calendar features
 
 **OOF integrity (hard rule)**: Meta must train on out-of-fold predictions from base models to avoid leakage.
@@ -223,8 +221,8 @@ When you "blend" scenario forecasts, you are forming a mixture distribution. Mix
 | `training.matrix_1d` | Core features + `target_{H}d` |
 | `training.specialist_features` | Specialist input features |
 | `training.oof_core_1d` | Core OOF with `horizon_days` column |
-| `training.oof_{bucket}_1d` | Specialist OOF with `horizon_days` column |
-| `training.meta_inputs_1d` | All OOF + regime/calendar + `target_{H}d` |
+| `training.specialist_signals_1d` | Specialist signals (signal_1/signal_2/confidence) |
+| `training.meta_inputs_1d` | Core OOF + specialist signals + regime/calendar + `target_{H}d` |
 
 #### Output tables
 
@@ -239,8 +237,8 @@ When you "blend" scenario forecasts, you are forming a mixture distribution. Mix
 1. Build daily training matrices (PIT-correct + staleness encoding)
 2. Build targets `target_{H}d`
 3. Train Core_H (H ∈ {5,21,63,126})
-4. Train 11 specialists × H
-5. Generate + persist OOF for all L0 models
+4. Generate 11 specialist signals (no horizons)
+5. Persist Core OOF + specialist signals
 6. Build meta input tables per horizon
 7. Train Meta_H per horizon
 8. Run L2 CQR calibration → p10_cal/p90_cal
@@ -274,7 +272,7 @@ For each horizon:
 
 ## SoT v2: Model Plan + Code Location
 
-SoT v2 model catalog + naming (52-model stack):
+SoT v2 model catalog + naming (Core + Specialists + Meta):
 
 - `scripts/v2_training/MODEL_CATALOG.md`
 - `scripts/v2_training/README.md`
@@ -332,23 +330,54 @@ All data operations use Prisma Postgres. Key tables:
 
 ## Model Training
 
-### Training Workflow
+### Training Workflow (Core + Specialists)
 
-The ZINC Fusion V15 training workflow follows a strict sequence:
+1. **Core Feature Matrix**: Build `training.matrix_1d` from all sources.
+2. **Core Training (CPU-only, Full Model Zoo)**:
+   - Run `python -m fusion.core_training.run_pipeline --skip-matrix`
+   - Use an explicit Model Zoo allowlist in `hyperparameters={...}` (no presets).
+   - No time limits; AutoGluon trains all models and selects/ensembles the best.
+3. **Specialists (unchanged)**: 11 domain signal generators in `src/fusion/specialists/`.
+4. **Meta + Risk Layers**: consume Core OOF + specialist signals downstream.
 
-1. **Canonical Features**: Use `features.driver_scores_1d` as the canonical feature matrix.
-2. **Train L0 Specialists (Per-Bucket)**: Train each of the 11 Specialists with its own unique model family (independent pipelines). Extract OOF predictions per bucket (before any refit_full). Apply per-bucket bagging to reduce variance.
-3. **Join & Stack**: Horizontally stack all specialist OOF/bagged outputs.
-4. **Train L1 Meta-Learner**: Stacking model over specialist outputs.
-5. **L2 Fusion**: Probabilistic fusion with uncertainty quantification (quantiles).
-6. **L3 Risk**: Monte Carlo VaR/CVaR and risk metrics.
+### Core Training Policy (CPU-only, Full Model Zoo)
 
-See `QUANT_V15_Complete.ipynb` for the complete training specification.
+Core runs **CPU-only** (no MPS, no CUDA). Set environment guards **before**
+importing torch/autogluon:
 
-### Canonical Feature Table
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
 
-- The canonical features table is `features.driver_scores_1d` which provides normalized 0-100 scores for all 11 specialist drivers.
-- Training code: `src/fusion/core_training/` and `scripts/v2_training/`
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+allowlist in `hyperparameters={...}` (model names may omit the “Model” suffix).
+
+### Which models are tried (Model Zoo allowlist)
+
+- **Baselines:** Naive, SeasonalNaive, Average, SeasonalAverage, Zero
+- **Statistical:** ETS, AutoETS, AutoARIMA, AutoCES, Theta, NPTS, ADIDA, Croston, IMAPA
+- **Deep/ML:** DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward
+- **Neural:** TiDE, WaveNet
+- **Tabular TS:** DirectTabular, PerStepTabular, RecursiveTabular
+- **Pretrained:** Chronos2, Chronos, Toto
+
+If the installed AutoGluon version exposes additional Model Zoo entries, include
+them too.
+
+### How AutoGluon selects the final model
+
+AutoGluon trains the full allowlist, ranks models on internal
+validation/backtests, and typically selects a **WeightedEnsemble** as best.
+
+### Verification checklist (log evidence)
+
+- Run `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- Run `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ## Scheduling
 

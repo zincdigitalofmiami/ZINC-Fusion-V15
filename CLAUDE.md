@@ -255,7 +255,7 @@ When tagging or routing data, use these canonical bucket names:
 
 **SoT v3** is the canonical training model architecture for this project.
 
-### Model Stack (15 Models)
+### Model Stack (19 Models)
 - **L0 Core:** 4 models (`zinc-fusion-v2-core-h{5,21,63,126}d`)
 - **Specialists:** 11 signal generators (NO horizons - see architecture table above)
 - **L1 Meta:** 4 models (stacked ensemble per horizon)
@@ -273,7 +273,31 @@ When tagging or routing data, use these canonical bucket names:
 | Production | 4 tables | `forecasts.production_{H}d_1d` (separate per horizon) |
 
 ### Key Principle
-15 models write to ~7 tables. Specialists produce horizon-agnostic signals; Core and Meta handle all horizon forecasting.
+19 models write to ~7 tables. Specialists produce horizon-agnostic signals; Core and Meta handle all horizon forecasting.
+
+### Core Training Policy (CPU-only, Full Model Zoo)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix). The
+full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on internal
+validation/backtests, and typically selects a **WeightedEnsemble** as best.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ### References
 - Full catalog: `scripts/v2_training/MODEL_CATALOG.md`

@@ -2,11 +2,9 @@
 Core Training Package - Shared Configuration
 =============================================
 
-LOCKED: 2026-01-15
-All parameters frozen. Changes require explicit approval.
-
-ACTUAL MODEL: DirectTabular (AutoGluon) for ALL horizons.
-No Chronos. No GA-VMD-LSTM. Just DirectTabular.
+LOCKED: 2026-01-24
+Core uses AutoGluon TimeSeries with an explicit Model Zoo allowlist (CPU-only).
+No presets, no time limits. Specialists are separate and unchanged.
 """
 
 import os
@@ -177,10 +175,12 @@ OOF_COLUMN_NAMES = [col[0] for col in OOF_COLUMNS]
 
 # L1 Interface Contract
 L1_CONTRACT = {
-    "core_columns": 12,  # 4 horizons × 3 quantiles
-    "specialist_columns": 132,  # 11 specialists × 4 horizons × 3 quantiles
-    "total_l1_inputs": 144,
-    "naming_pattern": "{model}_{horizon}_p{quantile}",
+    # Core OOF: 4 horizons × 3 quantiles
+    "core_columns": 12,
+    # Specialist signals (table-level contract; signal columns vary by bucket)
+    "specialist_signals_table": "training.specialist_signals_1d",
+    "specialist_signal_columns": ["signal_1", "signal_2", "confidence"],
+    "specialists": 11,
     "loss": "quantile_pinball",
 }
 
@@ -194,8 +194,8 @@ class TrainingConfig:
     """
     Training configuration for Core models.
 
-    REALITY: DirectTabular for ALL horizons.
-    No Chronos. No GA-VMD-LSTM. Just DirectTabular.
+    UPDATED 2026-01-24: Core uses an explicit AutoGluon Model Zoo allowlist (CPU-only).
+    No presets. No time limits.
     """
 
     # Validation
@@ -206,17 +206,12 @@ class TrainingConfig:
 
     # Predictor settings
     eval_metric: str = "WQL"  # Weighted Quantile Loss
-    presets: str = "best_quality"
-    time_limit: int = 3600  # 1 hour per horizon
+    presets: Optional[str] = None  # Not used (explicit model allowlist)
+    time_limit: Optional[int] = None  # Not used (no time limits)
 
     # Window starts (None = use all available data)
     tactical_window_start: Optional[str] = None
     strategic_window_start: Optional[str] = None
-
-    # THE ONLY MODEL WE USE
-    models: List[str] = field(
-        default_factory=lambda: ["DirectTabular"]
-    )
 
 
 TRAINING_CONFIG = TrainingConfig()

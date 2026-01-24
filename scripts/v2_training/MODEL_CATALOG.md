@@ -1,4 +1,4 @@
-# SoT v2 Model Catalog (52 Models)
+# SoT v2 Model Catalog (Core + Specialists + Meta)
 
 This is the **explicit registry** of the SoT v2 training stack:
 - Horizons: `5d`, `21d`, `63d`, `126d`
@@ -17,18 +17,35 @@ This is the **explicit registry** of the SoT v2 training stack:
 
 ```
 models/
-├── core_v15/           # ACTIVE - Production Core (5d, 21d, 63d trained)
-│   ├── horizon_5d/     # learner.pkl, predictor.pkl
-│   ├── horizon_21d/
-│   └── horizon_63d/
-├── core_chronos2/      # ACTIVE - Chronos-2 variants (all 4 horizons)
-│   ├── horizon_5d/
-│   ├── horizon_21d/
-│   ├── horizon_63d/
-│   └── horizon_126d/
+├── core_v2/            # ACTIVE - Core (CPU-only, full Model Zoo allowlist)
 ├── specialists/        # v3 SIGNAL GENERATORS - Custom models per bucket
-└── hunters/            # NOT YET TRAINED - Opportunity hunters
 ```
+
+**Retention:** Only `models/core_v2` and `models/specialists` are kept under `models/`.
+
+### Core Training Policy (CPU-only, Full Model Zoo)
+
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ## Specialist Signal Generators (v3 Architecture)
 
@@ -54,64 +71,54 @@ models/
 
 ## Model ID Convention (Stable)
 
-All SoT v2 models use a consistent, horizon-qualified `model_id`:
+All SoT v2 models use a consistent naming convention:
 
 - **L0 core:** `zinc-fusion-v2-core-h{H}d`
-- **L0 specialist:** `zinc-fusion-v2-specialist-{bucket}-h{H}d`
+- **L0 specialist (signals only):** `zinc-fusion-v2-specialist-{bucket}`
 - **L1 meta:** `zinc-fusion-v2-meta-h{H}d`
 - **L2 calibration module (non-model):** `zinc-fusion-v2-calibration-cqr-h{H}d`
 - **L3 risk engine module (non-model):** `zinc-fusion-v2-risk-mc-h{H}d`
 
 `{bucket}` ∈ `{crush, china, fx, fed, tariff, energy, biofuel, palm, volatility, substitutes, trump_effect}`
 
-## L0 Base Models (48 model instances → 12 OOF tables)
+## L0 Components (Core OOF + Specialist Signals)
 
-Each horizon has 12 base models (Core + 11 Specialists). Each base model produces OOF quantiles.
+Core produces OOF quantiles per horizon. Specialists produce horizon-agnostic signals.
 
-**Schema Design:** All horizons for a given model write to a **single table** with `horizon_days` as discriminator column. This follows institutional patterns for training artifacts (cross-horizon queries, meta-learner aggregation).
+**Schema Design:** Core OOF uses a single table with `horizon_days`. Specialist outputs
+are signals written to `training.specialist_signals_1d`.
 
-- Output tables: `training.oof_{model}_1d` (12 tables total)
-- Discriminator: `horizon_days` column (5, 21, 63, 126)
-- Columns: `trade_date`, `symbol`, `horizon_days`, `window_id`, `cutoff_date`, `p30`, `p50`, `p70`, `target_value`, `trained_at`, `run_hash`, `matrix_version`
-- Unique constraint: `(trade_date, symbol, horizon_days, window_id)`
-
-### OOF Table Inventory (12 tables)
+### Core OOF Table
 
 | Table | Model IDs (all 4 horizons) |
 |-------|---------------------------|
 | `training.oof_core_1d` | `zinc-fusion-v2-core-h{5,21,63,126}d` |
-| `training.oof_crush_1d` | `zinc-fusion-v2-specialist-crush-h{5,21,63,126}d` |
-| `training.oof_china_1d` | `zinc-fusion-v2-specialist-china-h{5,21,63,126}d` |
-| `training.oof_fx_1d` | `zinc-fusion-v2-specialist-fx-h{5,21,63,126}d` |
-| `training.oof_fed_1d` | `zinc-fusion-v2-specialist-fed-h{5,21,63,126}d` |
-| `training.oof_tariff_1d` | `zinc-fusion-v2-specialist-tariff-h{5,21,63,126}d` |
-| `training.oof_energy_1d` | `zinc-fusion-v2-specialist-energy-h{5,21,63,126}d` |
-| `training.oof_biofuel_1d` | `zinc-fusion-v2-specialist-biofuel-h{5,21,63,126}d` |
-| `training.oof_palm_1d` | `zinc-fusion-v2-specialist-palm-h{5,21,63,126}d` |
-| `training.oof_volatility_1d` | `zinc-fusion-v2-specialist-volatility-h{5,21,63,126}d` |
-| `training.oof_substitutes_1d` | `zinc-fusion-v2-specialist-substitutes-h{5,21,63,126}d` |
-| `training.oof_trump_effect_1d` | `zinc-fusion-v2-specialist-trump_effect-h{5,21,63,126}d` |
+
+### Specialist Signals Table
+
+| Table | Purpose |
+|-------|---------|
+| `training.specialist_signals_1d` | `signal_1`, `signal_2` (optional), `confidence` (optional) |
 
 ### Training Script Pattern
 
 ```python
-# Each model trains all 4 horizons, writes to SAME table
+# Core trains all 4 horizons, writes to SAME table
 for horizon in [5, 21, 63, 126]:
-    model = train_specialist(horizon=horizon)
+    model = train_core(horizon=horizon)
     oof_df = model.get_oof_predictions()
-    oof_df['horizon_days'] = horizon
+    oof_df["horizon_days"] = horizon
 
-    # All horizons → same table
-    INSERT INTO training.oof_{specialist}_1d
+    INSERT INTO training.oof_core_1d
     ON CONFLICT (trade_date, symbol, horizon_days, window_id) DO UPDATE
+
+# Specialists write signals (no horizons)
+INSERT INTO training.specialist_signals_1d
 ```
 
-### Querying OOF by Horizon
+### Querying Core OOF + Signals
 
 ```sql
--- Get 21d OOF predictions for crush specialist
-SELECT * FROM training.oof_crush_1d WHERE horizon_days = 21;
-
 -- Compare all horizons for core model
 SELECT horizon_days, AVG(ABS(p50 - target_value)) as mae
 FROM training.oof_core_1d
@@ -120,9 +127,9 @@ GROUP BY horizon_days;
 
 ## L1 Meta Models (4)
 
-Meta models consume **OOF quantiles only** (hard rule) from the 12 base models for the same horizon.
+Meta models consume **Core OOF quantiles + specialist signals** for the same horizon.
 
-- Input table: `training.meta_inputs_1d` (single table with `horizon_days` discriminator, contains 12×3 quantile columns + minimal regime/calendar features)
+- Input table: `training.meta_inputs_1d` (single table with `horizon_days` discriminator, contains core OOF + specialist signals + minimal regime/calendar features)
 - Output tables: `forecasts.production_{H}d_1d`
 
 Models:
@@ -139,4 +146,3 @@ Calibration writes **outer** `p10_cal`, `p90_cal` into the same `forecasts.produ
 
 Risk engine derives barrier/touch probabilities and scenario path sampling; its outputs are expected to populate:
 - `analytics.risk_metrics` (and/or the SoT v2 scenario tables)
-

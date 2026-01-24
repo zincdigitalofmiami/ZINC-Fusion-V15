@@ -10,11 +10,11 @@ Safe backup utility for AutoGluon model directories.
 
 Usage:
     python scripts/backup_model_training.py \
-      --source "models/core_chronos2/horizon_63d" \
+      --source "models/core_v2/horizon_63d" \
       --archive-root "/Volumes/Satechi Hub/Training Evaluations - Last 5" \
-      --family core_chronos2 \
+      --family core_v2 \
       --horizon horizon_63d \
-      --training-run-id "core_v15_63d_20260101_chronos2" \
+      --training-run-id "core_v2_20260124_120000" \
       --hash
 """
 
@@ -116,7 +116,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Safe backup for AutoGluon model directories")
     ap.add_argument("--source", required=True, help="Source model directory")
     ap.add_argument("--archive-root", required=True, help="Archive root directory")
-    ap.add_argument("--family", required=True, help="Model family (core_chronos2, core_v15, specialists)")
+    ap.add_argument("--family", required=True, help="Model family (core_v2, specialists)")
     ap.add_argument("--horizon", required=True, help="Horizon label (horizon_63d)")
     ap.add_argument("--training-run-id", required=True, help="Canonical training_run_id")
     ap.add_argument("--keep-last", type=int, default=DEFAULT_KEEP_LAST, help="Backups to keep")

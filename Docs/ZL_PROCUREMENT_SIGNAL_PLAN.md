@@ -82,12 +82,29 @@ sources and internal experiments. They are not a commitment to new features.
 - Tariff: rule-based or tree model on tariff schedules.
 - Crush: XGBoost on crush margins (or TFT if multivariate structure is required).
 
-### Core Model (Candidate Direction)
+### Core Training Policy (CPU-only, Full Model Zoo)
 
-- Foundation time-series models (Chronos-2 / Time-MoE) as baseline, with local
-  fine-tuning focused on the 2015-2026 "renewable diesel era."
-- Use v1.5 presets and backtesting config for robustness; evaluate on MAE/MASE
-  and quantile coverage.
+Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+
+```
+TOKENIZERS_PARALLELISM=false
+OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+AUTOGLUON_DISABLE_RAY=1
+PYTORCH_ENABLE_MPS_FALLBACK=1
+device = "cpu"
+```
+
+Core must try **ALL** AutoGluon-TimeSeries Model Zoo models via an explicit
+`hyperparameters={...}` allowlist (model names may omit the “Model” suffix).
+The full allowlist is maintained in `Docs/CORE_TRAINING_SPEC_LOCKED.md`.
+
+AutoGluon trains the full allowlist, ranks models on validation/backtests, and
+typically selects a **WeightedEnsemble** as best. No time limits are used.
+
+Verification:
+- `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
+- `python -m fusion.core_training.run_pipeline --skip-matrix`
+- Confirm logs show the full allowlist and a WeightedEnsemble selection
 
 ## Source Review TODO (Help Needed)
 
