@@ -224,12 +224,12 @@ async function updateIngestRun(
   );
 }
 
-async function verifyRawNewsTable(client: PoolClient): Promise<void> {
+async function verifyNewsTable(client: PoolClient): Promise<void> {
   const result = await client.query(
     `
     SELECT column_name
     FROM information_schema.columns
-    WHERE table_schema='raw' AND table_name='news_articles_event'
+    WHERE table_schema='alt' AND table_name='news_1d'
     `,
   );
   const cols = new Set<string>(result.rows.map((r) => String(r.column_name)));
@@ -239,8 +239,7 @@ async function verifyRawNewsTable(client: PoolClient): Promise<void> {
     "content",
     "source",
     "published_at",
-    "bucket_name",
-    "source_url",
+    "url",
     "raw_payload",
     "ingestion_batch_id",
     "row_hash",
@@ -248,9 +247,7 @@ async function verifyRawNewsTable(client: PoolClient): Promise<void> {
   ];
   const missing = required.filter((c) => !cols.has(c));
   if (missing.length > 0) {
-    throw new Error(
-      `alt.news_1d missing required columns: ${missing.join(", ")}`
-    );
+    throw new Error(`alt.news_1d missing required columns: ${missing.join(", ")}`);
   }
 }
 
@@ -275,7 +272,7 @@ export const barchartZlNewsDaily = inngest.createFunction(
 
     try {
       await step.run("verify-table", async () => {
-        await verifyRawNewsTable(client);
+        await verifyNewsTable(client);
       });
 
       runId = await step.run("create-ingest-run", () =>

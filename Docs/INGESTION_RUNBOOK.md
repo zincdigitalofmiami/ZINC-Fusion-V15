@@ -39,7 +39,8 @@ already covered, and identify safe additions that do not touch schemas.
 - `whitehouse-press`, `conab-news`, `profarmer-daily`, `barchart-zl-news`,
   `farmdoc-rins`, `aei-trade`, `cbp-trade`, `ice-releases` → `alt.news_1d`.
 - `noaa-weather-daily`, `openmeteo-weather-daily` → `alt.weather_1d`.
-- `weather-features-daily` → `features.weather_1d` (derived; not a schema change).
+
+Note: Weather features computed on-the-fly at training time (no features.weather_1d table).
 
 ## Specialist Alignment (Quick Map)
 

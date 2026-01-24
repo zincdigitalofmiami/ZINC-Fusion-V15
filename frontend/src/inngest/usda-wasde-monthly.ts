@@ -349,13 +349,13 @@ export const usdaWasdeMonthly = inngest.createFunction(
 
             await client.query(
               `INSERT INTO supply.usda_wasde_1m
-                 (event_date, commodity, country, metric, value, unit, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at, knowledge_time)
+                 (event_date, commodity, country, metric, value, unit, source, row_hash)
                VALUES
-                 ($1::date, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, NOW(), $13::timestamptz)
+                 ($1::date, $2, $3, $4, $5, $6, $7, $8)
                ON CONFLICT (event_date, commodity, country, metric) DO UPDATE SET
                  value = EXCLUDED.value,
-                 source_url = EXCLUDED.source_url,
-                 raw_payload = EXCLUDED.raw_payload,
+                 unit = EXCLUDED.unit,
+                 source = EXCLUDED.source,
                  row_hash = EXCLUDED.row_hash,
                  ingested_at = NOW()`,
               [
@@ -366,26 +366,7 @@ export const usdaWasdeMonthly = inngest.createFunction(
                 row.value,
                 row.unit,
                 "usda_wasde_cornell",
-                release.xmlUrl,
-                JSON.stringify({
-                  source: "usda_wasde_cornell",
-                  report_datetime: release.reportDateTime,
-                  xml_url: release.xmlUrl,
-                  commodity: row.commodity,
-                  country: row.country,
-                  metric: row.metric,
-                  value: row.value,
-                  unit: row.unit,
-                  tables: {
-                    Soybeans: "sr28.matrix5",
-                    Soybean_Meal: "sr29.matrix5",
-                    Soybean_Oil: "sr30.matrix5",
-                  },
-                }),
-                runId,
                 rowHash,
-                ["crush"],
-                release.reportDateTime,
               ]
             );
             inserted++;

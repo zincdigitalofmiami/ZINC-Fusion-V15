@@ -75,7 +75,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         if "returns_1d" in data.columns:
             return data["returns_1d"]
         elif "close" in data.columns:
-            return data["close"].pct_change()
+            return data["close"].pct_change(fill_method=None)
         else:
             raise ValueError("Neither returns_1d nor close available")
 

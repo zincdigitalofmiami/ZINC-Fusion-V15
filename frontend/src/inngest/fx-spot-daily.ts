@@ -154,18 +154,14 @@ export const fxSpotDaily = inngest.createFunction(
             const rowHash = computeRowHash(pair, eventDate, rate, seriesId);
             await client.query(
               `INSERT INTO mkt.fx_1d
-                (pair, event_date, rate, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags)
-               VALUES ($1, $2::date, $3, $4, $5, $6::jsonb, $7, $8, $9)`,
+                (pair, event_date, rate, source, row_hash)
+               VALUES ($1, $2::date, $3, $4, $5)`,
               [
                 pair,
                 eventDate,
                 rate,
-                "fred_api",
-                "https://api.stlouisfed.org/fred/series/observations",
-                JSON.stringify({ series_id: seriesId, ...obs }),
-                runId,
+                "FRED",
                 rowHash,
-                ["fx"],
               ]
             );
             inserted++;
@@ -189,4 +185,3 @@ export const fxSpotDaily = inngest.createFunction(
     }
   }
 );
-

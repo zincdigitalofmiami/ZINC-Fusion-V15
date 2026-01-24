@@ -201,7 +201,6 @@ def train_quantile_predictor(
         num_stack_levels=num_stack_levels,
         auto_stack=True,
         keep_only_best=False,
-        save_data=True,
     )
 
     return predictor
@@ -245,11 +244,9 @@ def train_and_predict_oof(
         logger.info(f"    Train: {len(train_data):,}, Val: {len(val_features):,}")
 
         if dry_run:
-            preds_df = pd.DataFrame({
-                "0.3": np.random.randn(len(val_features)) * 0.01,
-                "0.5": np.random.randn(len(val_features)) * 0.01,
-                "0.7": np.random.randn(len(val_features)) * 0.01,
-            }, index=val_features.index)
+            logger.info(f"    DRY RUN: Skipping window {w_id} training (no fake predictions generated)")
+            continue
+
         else:
             model_path = (
                 Path("models")
@@ -270,7 +267,8 @@ def train_and_predict_oof(
                 num_stack_levels=num_stack_levels,
             )
 
-            preds = predictor.predict(val_features, quantile_levels=QUANTILES)
+            # AutoGluon 1.5: quantile predictor returns DataFrame with quantile columns
+            preds = predictor.predict(val_features)
             if isinstance(preds, pd.Series):
                 preds_df = pd.DataFrame({"0.5": preds}, index=val_features.index)
             else:

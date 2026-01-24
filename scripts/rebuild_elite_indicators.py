@@ -145,6 +145,14 @@ def write_to_features(conn, df: pd.DataFrame, symbol: str) -> int:
     existing_cols = [c for c in keep_cols if c in df.columns]
     df_out = df[existing_cols].copy()
 
+    # CLAMP numeric values to prevent DB overflow (precision 18, scale 6 = max 10^12)
+    MAX_VALUE = 1e11  # Leave headroom below 10^12
+    numeric_cols = df_out.select_dtypes(include=[np.number]).columns
+    for col in numeric_cols:
+        if col not in ['trade_date']:
+            df_out[col] = df_out[col].clip(-MAX_VALUE, MAX_VALUE)
+    logger.info(f"   Clamped numeric values to ±{MAX_VALUE:.0e}")
+
     # Cast boolean columns (DB expects bool, pandas has int)
     for bool_col in ['ttm_squeeze_on', 'unusual_volume']:
         if bool_col in df_out.columns:
@@ -295,9 +303,8 @@ def process_symbol(conn, symbol: str, dry_run: bool = False) -> dict:
         logger.warning(f"   No data found for {symbol}, skipping")
         return {"symbol": symbol, "status": "no_data", "rows": 0}
 
-    # Filter to 1980+ (expanded training window)
-    df = df[df['trade_date'] >= date(1980, 1, 1)].copy()
-    logger.info(f"   Filtered to 1980+: {len(df):,} rows")
+    # MODIFIED 2026-01-23: NO DATE FILTER - use ALL available data
+    logger.info(f"   Using ALL available data: {len(df):,} rows")
 
     if len(df) < 50:
         logger.warning(f"   Insufficient data ({len(df)} rows < 50 min), skipping")

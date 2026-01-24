@@ -222,25 +222,58 @@ When tagging or routing data, use these canonical bucket names:
 
 `crush`, `china`, `fx`, `fed`, `tariff`, `energy`, `biofuel`, `palm`, `volatility`, `substitutes`, `trump_effect`
 
+### Specialist Model Types (v3 Architecture)
+
+> **CRITICAL**: Each specialist has a UNIQUE, CUSTOM-BUILT model architecture.
+> These are NOT generic AutoGluon fits. Each was meticulously crafted for its domain.
+> Specialists produce SIGNALS (no horizons) that feed into Core as input features.
+> Full details: `Docs/SPECIALIST_MODEL_REGISTRY.md`
+
+| Specialist | Model Type | Full Architecture | Key Features |
+|------------|------------|-------------------|--------------|
+| `crush` | `xgb` | XGBRegressor | Board crush z-score, oil share z-score, WASDE fundamentals |
+| `china` | `gbm` | GradientBoostingRegressor | Copper z-score (demand proxy), CNY, BRL, shipping indices |
+| `substitutes` | `rf` | RandomForestRegressor | Spread/ratio z-scores vs canola, palm, sunflower |
+| `fx` | `ardl` | statsmodels ARDL | DXY, BRL/USD, CNY/USD, MXN/USD, carry trade rates |
+| `fed` | `ridge` | Ridge Regression | Fed Funds, DGS2, DGS10, T10Y2Y spread |
+| `volatility` | `garch` | GJR-GARCH(1,1) Student-t | Asymmetric volatility, VIX, VIX3M term structure, OVX |
+| `energy` | `var` | statsmodels VAR + IRF | CL (crude), HO (heating oil), RB (gasoline), 3-2-1 crack |
+| `palm` | `ecm` | ECM cointegration + Ridge | Palm-soy spread, cointegration residuals, FX conversion |
+| `tariff` | `tree` | Rules-based EPU thresholds | USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV |
+| `biofuel` | `nlp_ema` | EMA-smoothed RIN/policy | RIN D4/D6 prices, LCFS credits, biodiesel margin |
+| `trump_effect` | `event_study` | Event study + sentiment | EPU indices, FXI (China ETF), VIX |
+
+**Code**: `src/fusion/specialists/` | **Artifacts**: `models/specialists/{bucket}/`
+
+### Specialist Signal Contract
+- Specialists are **signal generators**, NOT forecasters
+- Output: `signal_1` (required), `signal_2` (optional), `confidence` (optional)
+- NO horizons - Core owns all horizon forecasting (5d, 21d, 63d, 126d)
+- Signals stored in `training.specialist_signals_1d`
+
 ## SoT v2 Training Architecture (Primary)
 
-**SoT v2** is the canonical training model architecture for this project.
+**SoT v3** is the canonical training model architecture for this project.
 
-### Model Stack (52 Models)
+### Model Stack (15 Models)
 - **L0 Core:** 4 models (`zinc-fusion-v2-core-h{5,21,63,126}d`)
-- **L0 Specialists:** 44 models (11 specialists × 4 horizons)
+- **Specialists:** 11 signal generators (NO horizons - see architecture table above)
 - **L1 Meta:** 4 models (stacked ensemble per horizon)
 - **L2/L3:** Calibration (CQR) + Risk Engine (Monte Carlo)
+
+> **v3 CHANGE**: Specialists produce SIGNALS that feed into Core as input features.
+> They do NOT produce OOF forecasts. Core owns all horizon forecasting.
 
 ### Table Layout (Schema-Aligned)
 | Phase | Tables | Pattern |
 |-------|--------|---------|
-| Training OOF | 12 tables | `training.oof_{model}_1d` with `horizon_days` column |
+| Training OOF | 1 table | `training.oof_core_1d` with `horizon_days` column |
+| Specialist Signals | 1 table | `training.specialist_signals_1d` (signal_1, signal_2, confidence) |
 | Meta Inputs | 1 table | `training.meta_inputs_1d` with `horizon_days` column |
 | Production | 4 tables | `forecasts.production_{H}d_1d` (separate per horizon) |
 
 ### Key Principle
-52 models write to ~17 tables. Training artifacts use `horizon_days` discriminator for cross-horizon queries; production outputs use separate tables per horizon.
+15 models write to ~7 tables. Specialists produce horizon-agnostic signals; Core and Meta handle all horizon forecasting.
 
 ### References
 - Full catalog: `scripts/v2_training/MODEL_CATALOG.md`

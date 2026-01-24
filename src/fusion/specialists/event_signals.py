@@ -309,7 +309,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
             return margin_proxy
         else:
             # Fallback: use ZL momentum as proxy
-            return zl.pct_change(21) * 100
+            return zl.pct_change(21, fill_method=None) * 100
 
     def _compute_rin_momentum(self, rin: pd.Series) -> pd.Series:
         """
@@ -363,7 +363,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
             # Use LCFS as alternative
             lcfs = data["lcfs_credit"]
             policy_pressure = self.compute_zscore(lcfs, window=126, min_periods=42)
-            rin_momentum = lcfs.pct_change(21)  # Simple momentum
+            rin_momentum = lcfs.pct_change(21, fill_method=None)  # Simple momentum
             source = "lcfs"
             use_momentum = True
             base_confidence = 0.75
@@ -486,7 +486,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         else:
             # Ultimate fallback: ZL volatility as stress proxy
             zl = data["close"]
-            zl_vol = zl.pct_change().rolling(21).std() * np.sqrt(252)
+            zl_vol = zl.pct_change(fill_method=None).rolling(21).std() * np.sqrt(252)
             return self.compute_zscore(zl_vol, window=252, min_periods=126) * 0.3
 
     def _compute_china_exposure_proxy(self, data: pd.DataFrame) -> pd.Series:
@@ -498,12 +498,12 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         if "fxi_close" in data.columns:
             fxi = data["fxi_close"]
             # Negative FXI performance = China stress = trade tension
-            fxi_ret = fxi.pct_change(21)
+            fxi_ret = fxi.pct_change(21, fill_method=None)
             return -self.compute_zscore(fxi_ret, window=126, min_periods=42)
         elif "hg_close" in data.columns:
             # Copper as China demand proxy
             hg = data["hg_close"]
-            hg_ret = hg.pct_change(21)
+            hg_ret = hg.pct_change(21, fill_method=None)
             return -self.compute_zscore(hg_ret, window=126, min_periods=42) * 0.5
         else:
             return pd.Series(0.0, index=data.index)

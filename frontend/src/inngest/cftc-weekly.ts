@@ -14,13 +14,6 @@ function computeRowHash(payload: Record<string, unknown>): string {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
-function tagsForSymbol(symbol: string): string[] {
-  const tags = new Set<string>(["volatility"]);
-  if (["ZL", "ZS", "ZM"].includes(symbol)) tags.add("crush");
-  if (["CL", "HO"].includes(symbol)) tags.add("energy");
-  return Array.from(tags);
-}
-
 async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
@@ -205,7 +198,7 @@ export const cftcWeekly = inngest.createFunction(
                  other_rept_long, other_rept_short, other_rept_net,
                  nonrept_long, nonrept_short, nonrept_net,
                  managed_money_net_pct_oi, prod_merc_net_pct_oi,
-                 source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
+                 source, row_hash)
                VALUES ($1::date, $2, $3,
                        $4, $5, $6,
                        $7, $8, $9,
@@ -213,7 +206,7 @@ export const cftcWeekly = inngest.createFunction(
                        $13, $14, $15,
                        $16, $17, $18,
                        $19, $20,
-                       $21, $22, $23::jsonb, $24, $25, $26, NOW())`,
+                       $21, $22)`,
               [
                 reportDate,
                 contract.symbol,
@@ -236,11 +229,7 @@ export const cftcWeekly = inngest.createFunction(
                 payload.managed_money_net_pct_oi,
                 payload.prod_merc_net_pct_oi,
                 "cftc_api",
-                CFTC_SOURCE_URL,
-                JSON.stringify(row),
-                runId,
                 rowHash,
-                tagsForSymbol(contract.symbol),
               ]
             );
             rowsInserted++;

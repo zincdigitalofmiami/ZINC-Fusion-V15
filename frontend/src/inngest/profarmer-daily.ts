@@ -319,10 +319,23 @@ export const profarmerDaily = inngest.createFunction(
       );
       logger.info(`Started ProFarmer ingest run: ${runId}`);
 
+      if (!process.env.PROFARMER_USERNAME || !process.env.PROFARMER_PASSWORD) {
+        const msg = "PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required";
+        await updateIngestRun(client, runId!, "blocked_credentials", attempted, inserted, skipped, quarantined, msg);
+        return { status: "blocked_credentials", runId, error: msg };
+      }
+
       // Step 1: Login to ProFarmer
-      const cookies = await step.run("login", async () => {
-        return await loginToProFarmer();
-      });
+      let cookies: string;
+      try {
+        cookies = await step.run("login", async () => {
+          return await loginToProFarmer();
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await updateIngestRun(client, runId!, "blocked_login", attempted, inserted, skipped, quarantined, msg);
+        return { status: "blocked_login", runId, error: msg };
+      }
       logger.info("Successfully logged into ProFarmer");
 
       // Step 2: Fetch articles from each report
@@ -435,10 +448,23 @@ export const profarmerBackfill = inngest.createFunction(
       );
       logger.info(`Started ProFarmer backfill run: ${runId}`);
 
+      if (!process.env.PROFARMER_USERNAME || !process.env.PROFARMER_PASSWORD) {
+        const msg = "PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required";
+        await updateIngestRun(client, runId!, "blocked_credentials", attempted, inserted, skipped, quarantined, msg);
+        return { status: "blocked_credentials", runId, error: msg };
+      }
+
       // Login
-      const cookies = await step.run("login", async () => {
-        return await loginToProFarmer();
-      });
+      let cookies: string;
+      try {
+        cookies = await step.run("login", async () => {
+          return await loginToProFarmer();
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await updateIngestRun(client, runId!, "blocked_login", attempted, inserted, skipped, quarantined, msg);
+        return { status: "blocked_login", runId, error: msg };
+      }
 
       // For backfill, fetch more pages from archives
       const BACKFILL_PAGES = 30; // ~6 months of daily content

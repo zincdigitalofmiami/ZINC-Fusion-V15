@@ -407,25 +407,12 @@ export const epaRinPricesDaily = inngest.createFunction(
           p.qlikLastReloadTime,
         ]);
 
-        const rawPayload = {
-          source: "epa_qlik_public",
-          app_id: EPA_QLIK_APP_ID,
-          qlik_last_reload_time: p.qlikLastReloadTime,
-          transfer_week_date: p.isoDate,
-          rin_type: p.rinType,
-          price: p.price,
-        };
-
         rowsToInsert.push([
           p.rinType,
           p.isoDate,
           p.price,
           "epa_qlik_public",
-          EPA_RIN_PAGE_URL,
-          JSON.stringify(rawPayload),
-          runId!,
           rowHash,
-          ["biofuel"],
           p.qlikLastReloadTime,
         ]);
 
@@ -435,9 +422,9 @@ export const epaRinPricesDaily = inngest.createFunction(
       if (rowsToInsert.length > 0) {
         await step.run("insert-batches", async () => {
           const cols =
-            "(rin_type, event_date, price, source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, knowledge_time)";
+            "(rin_type, event_date, price, source, row_hash, knowledge_time)";
           const batchSize = 500;
-          const perRow = 10;
+          const perRow = 6;
 
           for (let i = 0; i < rowsToInsert.length; i += batchSize) {
             const batch = rowsToInsert.slice(i, i + batchSize);
@@ -447,7 +434,7 @@ export const epaRinPricesDaily = inngest.createFunction(
             for (let r = 0; r < batch.length; r++) {
               const base = r * perRow;
               values.push(
-                `($${base + 1}, $${base + 2}::date, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::jsonb, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}::timestamptz)`
+                `($${base + 1}, $${base + 2}::date, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}::timestamptz)`
               );
               params.push(...batch[r]);
             }

@@ -44,13 +44,10 @@
 **Isolated (separate business domain):**
 - `vegas` - Vegas CRM (restaurants, casinos, events, intel sheets)
 
-**Deprecated (read-only):**
-- `archive` - Legacy data (no new writes)
-
 ## BANNED SCHEMAS
 
 These schemas are DEPRECATED and must not be used:
-- `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
+- `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
 
 Any reference to banned schemas in new code should fail with hard error.
 
@@ -75,6 +72,29 @@ Any reference to banned schemas in new code should fail with hard error.
 - `analytics.zl_price_1d` - ZL 1d bars (dashboard copy of mkt.futures_1d)
 
 ZL is the only instrument with intraday tracking (15m/1h). Other instruments use daily data only.
+
+## SPECIALIST MODEL ARCHITECTURES (v3 - CRITICAL)
+
+> **v3**: Specialists produce SIGNALS, not OOF forecasts. NO horizons.
+> Each specialist has a UNIQUE, CUSTOM-BUILT model architecture.
+> Signals stored in `training.specialist_signals_1d`. Core owns all horizon forecasting.
+
+| Specialist | Model Type | Full Architecture | Key Features |
+|------------|------------|-------------------|--------------|
+| `crush` | `xgb` | XGBRegressor | Board crush z-score, oil share, WASDE |
+| `china` | `gbm` | GradientBoostingRegressor | Copper z-score, CNY, BRL, shipping |
+| `substitutes` | `rf` | RandomForestRegressor | Spread/ratio z-scores vs canola, palm, sunflower |
+| `fx` | `ardl` | statsmodels ARDL | DXY, BRL/USD, CNY/USD, MXN/USD, carry trade |
+| `fed` | `ridge` | Ridge Regression | Fed Funds, DGS2, DGS10, T10Y2Y spread |
+| `volatility` | `garch` | GJR-GARCH(1,1) Student-t | Asymmetric vol, VIX, VIX3M, OVX |
+| `energy` | `var` | statsmodels VAR + IRF | CL, HO, RB, 3-2-1 crack |
+| `palm` | `ecm` | ECM cointegration + Ridge | Palm-soy spread, coint residuals |
+| `tariff` | `tree` | Rules-based EPU thresholds | USEPUINDXM, EPUTRADE |
+| `biofuel` | `nlp_ema` | EMA-smoothed RIN/policy | RIN D4/D6, biodiesel margin |
+| `trump_effect` | `event_study` | Event study + sentiment | EPU indices, FXI, VIX |
+
+**Signal Output Contract:** `signal_1` (required), `signal_2` (optional), `confidence` (optional)
+**Code:** `src/fusion/specialists/` | **Artifacts:** `models/specialists/{bucket}/`
 
 ## SPECIALIST → TABLE ROUTING (Big 11)
 

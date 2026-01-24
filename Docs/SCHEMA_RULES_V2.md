@@ -25,12 +25,9 @@ Goal: Institutional-grade schema architecture with clear data lineage.
 - **metadata** - Instrument definitions, symbol mappings
 - **ops** - Job health, ingestion registry, alerts
 
-### Deprecated Schemas (read-only)
-- **archive** - Legacy data (no new writes)
-
 ## BANNED Schemas
 These schemas are deprecated and must not be used in new code:
-- raw, gold, silver, bronze, monitoring, specialist, weather
+- raw, gold, silver, bronze, monitoring, specialist, weather, archive
 
 Any reference to banned schemas should fail with hard error.
 
@@ -76,11 +73,14 @@ Known tables:
 - supply.epa_rin_1d
 
 ### features (denormalized features)
-Purpose: business-ready features built from mkt + econ + weather.
+Purpose: business-ready features built from mkt + econ data.
 Known tables:
 - features.elite_1d
-- features.options_1d
-- features.weather_1d
+- features.news_sentiment_1d
+- features.trump_effect_1d
+- features.intel_drops (Pulse feature - future)
+
+Note: Weather features are computed on-the-fly from alt.weather_1d.
 
 ### training (model inputs + OOF)
 Purpose: training-only matrices, specialist features, and OOF outputs.
@@ -305,11 +305,7 @@ ON CONFLICT (article_id) DO NOTHING;
 
 ### Deprecated Schemas (1)
 
-| Schema | Status | Contents |
-|--------|--------|----------|
-| archive | Read-only | public_intraday_prices, public_latest_prices |
-
-### Total: 12 active + 1 deprecated = 13 schemas
+### Total: 11 active schemas
 
 ---
 

@@ -512,45 +512,6 @@ def overview_models() -> Dict[str, Any]:
             ),
         }
 
-    archive_snapshot: list[dict[str, Any]] = []
-    # Postgres doesn't have archive schema - skip for now
-    if backend != "postgres" and _table_exists("archive", "fred_economic_1d"):
-        tables = _fetch_rows(
-            """
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema='archive'
-            ORDER BY table_name
-            """
-        )
-        for t in tables:
-            table = t["table_name"]
-            # Best-effort: count + min/max using common date column names
-            date_col = _first_existing_column(
-                "archive", table, ["as_of_date", "date", "report_date", "published_at"]
-            )
-            if date_col:
-                row = _fetch_rows(
-                    f"""
-                    SELECT 'archive.{table}' as table_name,
-                           COUNT(*)::BIGINT as rows,
-                           MIN({date_col}) as start_date,
-                           MAX({date_col}) as end_date
-                    FROM archive.{table}
-                    """
-                )[0]
-            else:
-                row = _fetch_rows(
-                    f"""
-                    SELECT 'archive.{table}' as table_name,
-                           COUNT(*)::BIGINT as rows,
-                           NULL as start_date,
-                           NULL as end_date
-                    FROM archive.{table}
-                    """
-                )[0]
-            archive_snapshot.append(row)
-
     return {
         "models_contract": {
             "count": 11,
@@ -558,7 +519,6 @@ def overview_models() -> Dict[str, Any]:
             "specialist_asset_keys": [f"ag_train_{s}_specialist" for s in specialists],
         },
         "raw_data": raw_data,
-        "archive": {"tables": archive_snapshot},
         "core_oof": core,
         "specialist_oof": specialist_rows,
         "specialist_oof_combined": combined,

@@ -131,7 +131,7 @@ def load_supplemental_data(conn, df: pd.DataFrame) -> pd.DataFrame:
     SELECT event_date as trade_date, symbol, close, volume, open_interest
     FROM mkt.futures_1d
     WHERE event_date >= %s AND event_date <= %s
-      AND symbol IN ('ZS', 'ZM', 'CL', 'HO', 'RB', 'NG', 'HG', 'RS', 'DX')
+      AND symbol IN ('ZS', 'ZM', 'CL', 'HO', 'RB', 'NG', 'HG', 'RS', 'DX', 'BDRY', 'SBLK')
     ORDER BY event_date, symbol
     """
     futures_df = pd.read_sql(futures_query, conn, params=[start_date, end_date])
@@ -222,6 +222,42 @@ def load_supplemental_data(conn, df: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"Added {len(wasde_pivot.columns)} WASDE columns")
     except Exception as e:
         logger.warning(f"Could not load WASDE data: {e}")
+
+    # Load FRED commodity proxies for sunflower/rapeseed (econ.commodities_1d)
+    commodities_query = """
+    SELECT event_date as trade_date, series_id, value
+    FROM econ.commodities_1d
+    WHERE event_date >= %s AND event_date <= %s
+      AND series_id IN ('PROILUSDM', 'PSUNOUSDM')
+    ORDER BY event_date, series_id
+    """
+    try:
+        comm_df = pd.read_sql(commodities_query, conn, params=[start_date, end_date])
+        if not comm_df.empty:
+            comm_df["trade_date"] = pd.to_datetime(comm_df["trade_date"])
+            comm_pivot = comm_df.pivot(
+                index="trade_date",
+                columns="series_id",
+                values="value"
+            )
+            # Map FRED series IDs to expected column names
+            rename_map = {
+                "PROILUSDM": "rapeseed_close",
+                "PSUNOUSDM": "sunflower_close",
+            }
+            comm_pivot = comm_pivot.rename(columns=rename_map)
+            df = df.join(comm_pivot, how="left")
+            logger.info(f"Added FRED commodity columns: {list(comm_pivot.columns)}")
+    except Exception as e:
+        logger.warning(f"Could not load FRED commodity proxies: {e}")
+
+    # Fallback: alias rapeseed_close to rs_close if missing or empty
+    if "rapeseed_close" not in df.columns or df["rapeseed_close"].isna().all():
+        if "rs_close" in df.columns:
+            df["rapeseed_close"] = df["rs_close"]
+            logger.info("Aliased rapeseed_close from rs_close (no rapeseed series found)")
+        else:
+            logger.warning("rapeseed_close missing and rs_close not available; alias skipped")
 
     return df
 

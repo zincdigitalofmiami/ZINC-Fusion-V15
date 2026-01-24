@@ -166,10 +166,9 @@ TABLE_MAP = {
     "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
     # Features
     "features.elite_1d": '"features"."elite_1d"',
-    "features.options_1d": '"features"."options_1d"',
-    "features.weather_1d": '"features"."weather_1d"',
     "features.intel_drops": '"features"."intel_drops"',
     "features.news_sentiment_1d": '"features"."news_sentiment_1d"',
+    "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training
     "training.matrix_1d": '"training"."matrix_1d"',
     "training.oof_core_1d": '"training"."oof_core_1d"',

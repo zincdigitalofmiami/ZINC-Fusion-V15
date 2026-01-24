@@ -292,8 +292,8 @@ export const usdaExportSalesWeekly = inngest.createFunction(
         await client.query(
           `INSERT INTO supply.usda_exports_1w
             (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
-             source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
-           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,NOW())`,
+             source, row_hash)
+           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
           [
             r.weekEnding,
             r.commodity,
@@ -302,11 +302,7 @@ export const usdaExportSalesWeekly = inngest.createFunction(
             exportsMt,
             outstandingMt,
             "usda_fas_export_sales",
-            SOURCE_URL,
-            JSON.stringify({ level: "summary_total", ...r }),
-            runId,
             rowHash,
-            ["crush", "china"],
           ]
         );
         inserted++;
@@ -347,8 +343,8 @@ export const usdaExportSalesWeekly = inngest.createFunction(
         await client.query(
           `INSERT INTO supply.usda_exports_1w
             (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
-             source, source_url, raw_payload, ingestion_batch_id, row_hash, specialist_tags, ingested_at)
-           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,NOW())`,
+             source, row_hash)
+           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
           [
             row.reportDate,
             row.commodity,
@@ -357,11 +353,7 @@ export const usdaExportSalesWeekly = inngest.createFunction(
             exportsMt,
             outstandingMt,
             "usda_fas_export_sales",
-            SOURCE_URL,
-            JSON.stringify({ level: "destination_breakout", ...row }),
-            runId,
             rowHash,
-            ["crush", "china"],
           ]
         );
         inserted++;

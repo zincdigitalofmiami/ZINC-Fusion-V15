@@ -26,9 +26,31 @@ models/
 │   ├── horizon_21d/
 │   ├── horizon_63d/
 │   └── horizon_126d/
-├── specialists/        # NOT YET TRAINED - Big 11 specialists
+├── specialists/        # v3 SIGNAL GENERATORS - Custom models per bucket
 └── hunters/            # NOT YET TRAINED - Opportunity hunters
 ```
+
+## Specialist Signal Generators (v3 Architecture)
+
+> **CRITICAL**: Specialists are SIGNAL GENERATORS, not forecasters.
+> Each has a UNIQUE model architecture. Core owns all horizon forecasting.
+> Full details: `docs/SPECIALIST_MODEL_REGISTRY.md`
+
+| Specialist | Class | File | Model Type |
+|------------|-------|------|------------|
+| `crush` | `CrushSignalGenerator` | `xgb_signals.py` | `xgb` |
+| `china` | `ChinaSignalGenerator` | `xgb_signals.py` | `gbm` |
+| `substitutes` | `SubstitutesSignalGenerator` | `xgb_signals.py` | `rf` |
+| `fx` | `FxSignalGenerator` | `ardl_signals.py` | `ardl` |
+| `fed` | `FedSignalGenerator` | `ardl_signals.py` | `ridge` |
+| `volatility` | `VolatilitySignalGenerator` | `garch_signals.py` | `garch` |
+| `energy` | `EnergySignalGenerator` | `var_signals.py` | `var` |
+| `palm` | `PalmSignalGenerator` | `ecm_signals.py` | `ecm` |
+| `tariff` | `TariffSignalGenerator` | `event_signals.py` | `tree` |
+| `biofuel` | `BiofuelSignalGenerator` | `event_signals.py` | `nlp_ema` |
+| `trump_effect` | `TrumpEffectSignalGenerator` | `event_signals.py` | `event_study` |
+
+**Code**: `src/fusion/specialists/` | **Artifacts**: `models/specialists/{bucket}/`
 
 ## Model ID Convention (Stable)
 

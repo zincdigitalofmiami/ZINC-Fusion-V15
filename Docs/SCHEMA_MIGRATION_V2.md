@@ -118,7 +118,7 @@ schema, table = get_fred_schema_table("DGS10")  # Returns ("econ", "rates_1d")
 - `bronze` — Deprecated
 - `monitoring` — Not in v2 architecture
 - `specialist` — Use `training.*` instead
-- `weather` — Use `alt.weather_1d` or `features.weather_1d`
+- `weather` — Use `alt.weather_1d` (computed on-the-fly at training time)
 
 ---
 

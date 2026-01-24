@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["alt", "analytics", "econ", "features", "forecasts", "mkt", "model", "ops", "pos", "supply", "training", "vegas"]
+  schemas  = ["alt", "analytics", "econ", "features", "forecasts", "metadata", "mkt", "model", "ops", "pos", "supply", "training", "vegas"]
 }
 
 model TrainingMatrix1d {
@@ -524,6 +524,79 @@ model ModelRegistry {
   @@schema("model")
 }
 
+model OofPredictions {
+  id            Int       @id @default(autoincrement())
+  specialist    String
+  horizon       Int
+  asOfDate      DateTime  @map("as_of_date") @db.Date
+  symbol        String?   @default("ZL")
+  predP50       Decimal?  @map("pred_p50") @db.Decimal(18, 6)
+  actual        Decimal?  @db.Decimal(18, 6)
+  foldId        Int?      @map("fold_id")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  model_version String?
+  predP30       Decimal?  @map("pred_p30") @db.Decimal(18, 6)
+  predP70       Decimal?  @map("pred_p70") @db.Decimal(18, 6)
+  predP10Cal    Decimal?  @map("pred_p10_cal") @db.Decimal(18, 6)
+  predP90Cal    Decimal?  @map("pred_p90_cal") @db.Decimal(18, 6)
+
+  @@unique([specialist, horizon, asOfDate, foldId])
+  @@map("oof_predictions")
+  @@schema("model")
+}
+
+model RegimeProbabilities {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  regimeType   String    @map("regime_type") @db.VarChar(50)
+  regimeName   String    @map("regime_name") @db.VarChar(100)
+  probability  Float
+  confidence   Float?
+  drivers      Json?
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@unique([asOfDate, regimeType, regimeName])
+  @@index([asOfDate], map: "idx_regime_prob_date")
+  @@map("regime_probabilities")
+  @@schema("model")
+}
+
+model ShapSummary {
+  id           Int       @id @default(autoincrement())
+  horizon      Int
+  featureName  String    @map("feature_name") @db.VarChar(100)
+  meanAbsShap  Float     @map("mean_abs_shap")
+  stdShap      Float?    @map("std_shap")
+  rank         Int?
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  trainedAt    DateTime? @map("trained_at") @db.Timestamp(6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@unique([horizon, featureName, modelVersion])
+  @@index([horizon], map: "idx_shap_summary_horizon")
+  @@map("shap_summary")
+  @@schema("model")
+}
+
+model ShapValues {
+  id           Int       @id @default(autoincrement())
+  asOfDate     DateTime  @map("as_of_date") @db.Date
+  horizon      Int
+  featureName  String    @map("feature_name") @db.VarChar(100)
+  shapValue    Float     @map("shap_value")
+  baseValue    Float?    @map("base_value")
+  prediction   Float?
+  modelVersion String?   @map("model_version") @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@unique([asOfDate, horizon, featureName, modelVersion])
+  @@index([asOfDate], map: "idx_shap_values_date")
+  @@index([horizon], map: "idx_shap_values_horizon")
+  @@map("shap_values")
+  @@schema("model")
+}
+
 model ChartOverlays {
   id          Int       @id @default(autoincrement())
   symbol      String
@@ -749,6 +822,37 @@ model QuarantinedRecord {
   @@schema("ops")
 }
 
+model Instrument {
+  id                    Int             @id @default(autoincrement())
+  canonicalId           String          @unique @map("canonical_id") @db.VarChar(50)
+  name                  String?         @db.VarChar(255)
+  assetClass            String          @map("asset_class") @db.VarChar(50)
+  primary_source_table  String?         @db.VarChar(100)
+  primary_source_symbol String?         @db.VarChar(50)
+  createdAt             DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  mappings              SymbolMapping[]
+
+  @@map("instrument")
+  @@schema("metadata")
+}
+
+model SymbolMapping {
+  id               Int        @id @default(autoincrement())
+  canonicalId      String     @map("canonical_id") @db.VarChar(50)
+  sourceTable      String     @map("source_table") @db.VarChar(100)
+  sourceSymbol     String     @map("source_symbol") @db.VarChar(50)
+  isPrimary        Boolean?   @default(false) @map("is_primary")
+  confidence_score Decimal?   @default(1.00) @db.Decimal(3, 2)
+  notes            String?
+  createdAt        DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
+  instrument       Instrument @relation(fields: [canonicalId], references: [canonicalId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([sourceTable, sourceSymbol])
+  @@map("symbol_mapping")
+  @@schema("metadata")
+}
+
 model IntelDrop {
   id            Int       @id @default(autoincrement())
   asOfTs        DateTime  @map("as_of_ts") @db.Timestamp(6)
@@ -876,6 +980,96 @@ model elite_indicators_1d {
   @@schema("features")
 }
 
+model FeaturesOptions1d {
+  id                  Int       @id @default(autoincrement())
+  tradeDate           DateTime  @map("trade_date") @db.Date
+  symbol              String?   @db.VarChar(20)
+  ivAtm               Float?    @map("iv_atm")
+  ivCall              Float?    @map("iv_call")
+  ivPut               Float?    @map("iv_put")
+  skew                Float?
+  putCallRatioOi      Float?    @map("put_call_ratio_oi")
+  putCallRatioVol     Float?    @map("put_call_ratio_vol")
+  deltaWeightedOiNet  Float?    @map("delta_weighted_oi_net")
+  deltaCall           Float?    @map("delta_call")
+  deltaPut            Float?    @map("delta_put")
+  oiCall              BigInt?   @map("oi_call")
+  oiPut               BigInt?   @map("oi_put")
+  volCall             BigInt?   @map("vol_call")
+  volPut              BigInt?   @map("vol_put")
+  ivAtmZ              Float?    @map("iv_atm_z")
+  ivCallZ             Float?    @map("iv_call_z")
+  ivPutZ              Float?    @map("iv_put_z")
+  skewZ               Float?    @map("skew_z")
+  putCallRatioOiZ     Float?    @map("put_call_ratio_oi_z")
+  putCallRatioVolZ    Float?    @map("put_call_ratio_vol_z")
+  deltaWeightedOiNetZ Float?    @map("delta_weighted_oi_net_z")
+  deltaCallZ          Float?    @map("delta_call_z")
+  deltaPutZ           Float?    @map("delta_put_z")
+  computedAt          DateTime? @map("computed_at") @db.Timestamp(6)
+  optionsVersion      String?   @map("options_version")
+
+  @@map("options_1d")
+  @@schema("features")
+}
+
+model FeaturesWeather1d {
+  id               Int       @id @default(autoincrement())
+  tradeDate        DateTime  @map("trade_date") @db.Date
+  wxArTavgC        Float?    @map("wx_ar_tavg_c")
+  wxBrTavgC        Float?    @map("wx_br_tavg_c")
+  wxUsTavgC        Float?    @map("wx_us_tavg_c")
+  wxArTminC        Float?    @map("wx_ar_tmin_c")
+  wxBrTminC        Float?    @map("wx_br_tmin_c")
+  wxUsTminC        Float?    @map("wx_us_tmin_c")
+  wxArTmaxC        Float?    @map("wx_ar_tmax_c")
+  wxBrTmaxC        Float?    @map("wx_br_tmax_c")
+  wxUsTmaxC        Float?    @map("wx_us_tmax_c")
+  wxArPrcpMm       Float?    @map("wx_ar_prcp_mm")
+  wxBrPrcpMm       Float?    @map("wx_br_prcp_mm")
+  wxUsPrcpMm       Float?    @map("wx_us_prcp_mm")
+  wxArPrcpMmTotal  Float?    @map("wx_ar_prcp_mm_total")
+  wxBrPrcpMmTotal  Float?    @map("wx_br_prcp_mm_total")
+  wxUsPrcpMmTotal  Float?    @map("wx_us_prcp_mm_total")
+  wxArSnowMm       Float?    @map("wx_ar_snow_mm")
+  wxBrSnowMm       Float?    @map("wx_br_snow_mm")
+  wxUsSnowMm       Float?    @map("wx_us_snow_mm")
+  wxArRhavPct      Float?    @map("wx_ar_rhav_pct")
+  wxBrRhavPct      Float?    @map("wx_br_rhav_pct")
+  wxUsRhavPct      Float?    @map("wx_us_rhav_pct")
+  wxArAwndMs       Float?    @map("wx_ar_awnd_ms")
+  wxBrAwndMs       Float?    @map("wx_br_awnd_ms")
+  wxUsAwndMs       Float?    @map("wx_us_awnd_ms")
+  wxArStationCount Float?    @map("wx_ar_station_count")
+  wxBrStationCount Float?    @map("wx_br_station_count")
+  wxUsStationCount Float?    @map("wx_us_station_count")
+  wxUsTempAnom30d  Float?    @map("wx_us_temp_anom_30d")
+  wxUsTempVol7d    Float?    @map("wx_us_temp_vol_7d")
+  wxBrTempAnom30d  Float?    @map("wx_br_temp_anom_30d")
+  wxBrTempVol7d    Float?    @map("wx_br_temp_vol_7d")
+  wxArTempAnom30d  Float?    @map("wx_ar_temp_anom_30d")
+  wxArTempVol7d    Float?    @map("wx_ar_temp_vol_7d")
+  wxUsPrcpAnom30d  Float?    @map("wx_us_prcp_anom_30d")
+  wxUsPrcp7dSum    Float?    @map("wx_us_prcp_7d_sum")
+  wxUsPrcp14dSum   Float?    @map("wx_us_prcp_14d_sum")
+  wxBrPrcpAnom30d  Float?    @map("wx_br_prcp_anom_30d")
+  wxBrPrcp7dSum    Float?    @map("wx_br_prcp_7d_sum")
+  wxBrPrcp14dSum   Float?    @map("wx_br_prcp_14d_sum")
+  wxArPrcpAnom30d  Float?    @map("wx_ar_prcp_anom_30d")
+  wxArPrcp7dSum    Float?    @map("wx_ar_prcp_7d_sum")
+  wxArPrcp14dSum   Float?    @map("wx_ar_prcp_14d_sum")
+  wxUsGdd10c       Float?    @map("wx_us_gdd_10c")
+  wxUsGdd30dSum    Float?    @map("wx_us_gdd_30d_sum")
+  wxBrGdd10c       Float?    @map("wx_br_gdd_10c")
+  wxBrGdd30dSum    Float?    @map("wx_br_gdd_30d_sum")
+  wxArGdd10c       Float?    @map("wx_ar_gdd_10c")
+  wxArGdd30dSum    Float?    @map("wx_ar_gdd_30d_sum")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("weather_1d")
+  @@schema("features")
+}
+
 model FeaturesNewsSentiment1d {
   id              Int       @id @default(autoincrement())
   rawId           Int       @unique(map: "news_sentiment_raw_id_unique") @map("raw_id")
@@ -893,6 +1087,44 @@ model FeaturesNewsSentiment1d {
   @@index([canonicalBucket], map: "idx_news_sentiment_bucket")
   @@map("news_sentiment_1d")
   @@schema("features")
+}
+
+/// Scored news articles with specialist routing flags (Big 11)
+/// Primary table for specialist feature generation - maps news to trade dates
+model FeaturesNewsScored1d {
+  id                  Int       @id @default(autoincrement())
+  rawNewsId           Int?      @map("raw_news_id")
+  publishedAt         DateTime  @map("published_at") @db.Timestamptz(6)
+  headline            String?
+  sentimentScore      Float?    @map("sentiment_score")
+  sentimentConfidence Float?    @map("sentiment_confidence")
+  sentimentDirection  String?   @map("sentiment_direction") @db.VarChar(20)
+  zlImpactScore       Float?    @map("zl_impact_score")
+  affectsCrush        Boolean?  @default(false) @map("affects_crush")
+  affectsChina        Boolean?  @default(false) @map("affects_china")
+  affectsFx           Boolean?  @default(false) @map("affects_fx")
+  affectsFed          Boolean?  @default(false) @map("affects_fed")
+  affectsTariff       Boolean?  @default(false) @map("affects_tariff")
+  affectsEnergy       Boolean?  @default(false) @map("affects_energy")
+  affectsBiofuel      Boolean?  @default(false) @map("affects_biofuel")
+  affectsPalm         Boolean?  @default(false) @map("affects_palm")
+  affectsVolatility   Boolean?  @default(false) @map("affects_volatility")
+  affectsSubstitutes  Boolean?  @default(false) @map("affects_substitutes")
+  affectsTrumpEffect  Boolean?  @default(false) @map("affects_trump_effect")
+  ingestedAt          DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  modelVersion        String?   @map("model_version") @db.VarChar(50)
+
+  @@index([publishedAt], map: "idx_news_scored_published")
+  @@map("news_scored_1d")
+  @@schema("features")
+}
+
+model specialist_drivers {
+  id          Int    @id @default(autoincrement())
+  driver_id   String @unique
+  description String
+
+  @@schema("metadata")
 }
 
 model data_quality_log {
@@ -1032,28 +1264,29 @@ model training_run_log {
 }
 
 model training_runs {
-  id               Int       @id @default(autoincrement())
-  run_id           String    @unique
-  run_name         String?
-  experiment_name  String?
-  model_type       String
-  specialist_name  String?
-  horizon          Int?
-  started_at       DateTime  @default(now()) @db.Timestamptz(6)
-  completed_at     DateTime? @db.Timestamptz(6)
-  duration_seconds Decimal?  @db.Decimal
-  status           String?   @default("running")
-  training_mode    String?
-  hyperparameters  Json?     @default("{}")
-  dataset_name     String?
-  dataset_rows     Int?
-  dataset_features Int?
-  metrics          Json?     @default("{}")
-  mase             Decimal?  @db.Decimal
-  error_message    String?
-  artifact_path    String?
-  log_path         String?
-  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  id                Int                @id @default(autoincrement())
+  run_id            String             @unique
+  run_name          String?
+  experiment_name   String?
+  model_type        String
+  specialist_name   String?
+  horizon           Int?
+  started_at        DateTime           @default(now()) @db.Timestamptz(6)
+  completed_at      DateTime?          @db.Timestamptz(6)
+  duration_seconds  Decimal?           @db.Decimal
+  status            String?            @default("running")
+  training_mode     String?
+  hyperparameters   Json?              @default("{}")
+  dataset_name      String?
+  dataset_rows      Int?
+  dataset_features  Int?
+  metrics           Json?              @default("{}")
+  mase              Decimal?           @db.Decimal
+  error_message     String?
+  artifact_path     String?
+  log_path          String?
+  created_at        DateTime?          @default(now()) @db.Timestamptz(6)
+  model_leaderboard ModelLeaderboard[]
 
   @@index([model_type], map: "idx_runs_model_type")
   @@index([started_at], map: "idx_runs_started_at")
@@ -1819,6 +2052,23 @@ model PosCftc1w {
   @@schema("pos")
 }
 
+model PosCftcCits1w {
+  id            Int       @id @default(autoincrement())
+  symbol        String    @db.VarChar(20)
+  source        String?   @db.VarChar(50)
+  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash       String?   @map("row_hash") @db.VarChar(64)
+  eventDate     DateTime  @map("event_date") @db.Date
+  citLong       BigInt?   @map("cit_long")
+  citNet        BigInt?   @map("cit_net")
+  citPctOi      Float?    @map("cit_pct_oi")
+  citShort      BigInt?   @map("cit_short")
+
+  @@map("cftc_cits_1w")
+  @@schema("pos")
+}
+
 model SupplyUsdaWasde1m {
   id            Int       @id @default(autoincrement())
   eventDate     DateTime  @map("event_date") @db.Date
@@ -1925,6 +2175,11 @@ model AltWeather1d {
   tavgC            Float?    @map("tavg_c")
   prcpMm           Float?    @map("prcp_mm")
   snowMm           Float?    @map("snow_mm")
+  snwdMm           Float?    @map("snwd_mm")
+  evapMm           Float?    @map("evap_mm")
+  rhavPct          Float?    @map("rhav_pct")
+  awndMs           Float?    @map("awnd_ms")
+  wsfgMs           Float?    @map("wsfg_ms")
   source           String?   @default("NOAA") @db.VarChar(50)
   ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
   knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
@@ -2234,6 +2489,28 @@ model production_63d_1d {
   @@schema("forecasts")
 }
 
+model forecast_metrics {
+  id            Int       @id @default(autoincrement())
+  horizon       Int
+  model_version String?   @db.VarChar(50)
+  trained_at    DateTime? @db.Timestamptz(6)
+  mae           Decimal?  @db.Decimal(12, 6)
+  mase          Decimal?  @db.Decimal(12, 6)
+  wape          Decimal?  @db.Decimal(12, 6)
+  mse           Decimal?  @db.Decimal(12, 6)
+  rmse          Decimal?  @db.Decimal(12, 6)
+  rmsse         Decimal?  @db.Decimal(12, 6)
+  wql           Decimal?  @db.Decimal(12, 6)
+  coverage_80   Decimal?  @db.Decimal(5, 4)
+  coverage_40   Decimal?  @db.Decimal(5, 4)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([horizon, model_version], map: "uq_forecast_metrics")
+  @@index([horizon], map: "idx_forecast_metrics_horizon")
+  @@index([trained_at(sort: Desc)], map: "idx_forecast_metrics_trained")
+  @@schema("model")
+}
+
 model vegas_event_entities {
   id                Int       @id @default(autoincrement())
   event_id          String    @db.VarChar(100)
@@ -2343,6 +2620,248 @@ model model_runs {
   @@schema("training")
 }
 
+model oof_biofuel_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_biofuel_date")
+  @@index([horizon_days], map: "idx_oof_biofuel_horizon")
+  @@index([run_hash], map: "idx_oof_biofuel_run")
+  @@schema("training")
+}
+
+model oof_china_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_china_date")
+  @@index([horizon_days], map: "idx_oof_china_horizon")
+  @@index([run_hash], map: "idx_oof_china_run")
+  @@schema("training")
+}
+
+model oof_crush_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_crush_date")
+  @@index([horizon_days], map: "idx_oof_crush_horizon")
+  @@index([run_hash], map: "idx_oof_crush_run")
+  @@schema("training")
+}
+
+model oof_energy_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_energy_date")
+  @@index([horizon_days], map: "idx_oof_energy_horizon")
+  @@index([run_hash], map: "idx_oof_energy_run")
+  @@schema("training")
+}
+
+model oof_fed_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_fed_date")
+  @@index([horizon_days], map: "idx_oof_fed_horizon")
+  @@index([run_hash], map: "idx_oof_fed_run")
+  @@schema("training")
+}
+
+model oof_fx_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_fx_date")
+  @@index([horizon_days], map: "idx_oof_fx_horizon")
+  @@index([run_hash], map: "idx_oof_fx_run")
+  @@schema("training")
+}
+
+model oof_palm_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_palm_date")
+  @@index([horizon_days], map: "idx_oof_palm_horizon")
+  @@index([run_hash], map: "idx_oof_palm_run")
+  @@schema("training")
+}
+
+model oof_substitutes_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_substitutes_date")
+  @@index([horizon_days], map: "idx_oof_substitutes_horizon")
+  @@index([run_hash], map: "idx_oof_substitutes_run")
+  @@schema("training")
+}
+
+model oof_tariff_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_tariff_date")
+  @@index([horizon_days], map: "idx_oof_tariff_horizon")
+  @@index([run_hash], map: "idx_oof_tariff_run")
+  @@schema("training")
+}
+
+model oof_trump_effect_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_trump_effect_date")
+  @@index([horizon_days], map: "idx_oof_trump_effect_horizon")
+  @@index([run_hash], map: "idx_oof_trump_effect_run")
+  @@schema("training")
+}
+
+model oof_volatility_1d {
+  id             Int      @id @default(autoincrement())
+  trade_date     DateTime @db.Date
+  symbol         String   @default("ZL") @db.VarChar(20)
+  horizon_days   Int
+  window_id      Int
+  cutoff_date    DateTime @db.Date
+  p30            Float
+  p50            Float
+  p70            Float
+  target_value   Float?
+  trained_at     DateTime @default(now()) @db.Timestamp(6)
+  run_hash       String   @db.VarChar(64)
+  matrix_version String?  @db.VarChar(64)
+
+  @@unique([trade_date, symbol, horizon_days, window_id])
+  @@index([trade_date], map: "idx_oof_volatility_date")
+  @@index([horizon_days], map: "idx_oof_volatility_horizon")
+  @@index([run_hash], map: "idx_oof_volatility_run")
+  @@schema("training")
+}
+
 model specialist_signals_1d {
   id         Int       @id @default(autoincrement())
   as_of_date DateTime  @db.Date
@@ -2362,18 +2881,18 @@ model specialist_signals_1d {
 }
 
 model AblationResults {
-  id                   Int      @id @default(autoincrement())
-  runId                String   @map("run_id") @db.VarChar(64)
-  bucket               String   @db.VarChar(30)
-  horizonDays          Int      @map("horizon_days")
-  baselineMae          Float    @map("baseline_mae")
-  withSignalMae        Float    @map("with_signal_mae")
-  deltaMae             Float    @map("delta_mae")
-  baselineCoverage40   Float    @map("baseline_coverage_40")
-  withSignalCoverage40 Float    @map("with_signal_coverage_40")
-  regimeStabilityScore Float?   @map("regime_stability_score")
-  recommendation       String   @db.VarChar(20)
-  testedAt             DateTime @default(now()) @map("tested_at") @db.Timestamp(6)
+  id                   Int       @id @default(autoincrement())
+  runId                String    @map("run_id") @db.VarChar(64)
+  bucket               String    @db.VarChar(30)
+  horizonDays          Int       @map("horizon_days")
+  baselineMae          Float     @map("baseline_mae")
+  withSignalMae        Float     @map("with_signal_mae")
+  deltaMae             Float     @map("delta_mae")
+  baselineCoverage40   Float     @map("baseline_coverage_40")
+  withSignalCoverage40 Float     @map("with_signal_coverage_40")
+  regimeStabilityScore Float?    @map("regime_stability_score")
+  recommendation       String    @db.VarChar(20)
+  testedAt             DateTime? @default(now()) @map("tested_at") @db.Timestamp(6)
 
   @@unique([runId, bucket, horizonDays])
   @@index([bucket], map: "idx_ablation_bucket")

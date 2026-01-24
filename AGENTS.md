@@ -111,9 +111,9 @@ Domains are logical tags; physical storage uses institutional schemas.
 
 ### Archive Policy (v2)
 
-- No archive tables should be created.
+- No archive schema or archive tables should be created.
 - Use external backups + row-count validation for migrations.
-- BANNED schemas: `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
+- BANNED schemas: `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
 
 ### Staging Rule
 
@@ -198,15 +198,14 @@ FRED series are routed at two levels:
    - Use `get_fred_bucket(series_id)` for feature generation
    - Updates require keeping tests green (`tests/test_fred_routing.py`)
 
-### Allowed Schemas (v2, 12 total)
+### Allowed Schemas (v2, 11 total)
 
 **Landing (append-only):** `mkt`, `econ`, `alt`, `pos`, `supply`
 **Derived (computed):** `features`, `training`
 **Output (versioned):** `model`, `forecasts`, `analytics`
 **Governance:** `metadata`, `ops`
-**Deprecated (read-only):** `archive`
 
-**BANNED:** `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
+**BANNED:** `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
 
 ---
 
@@ -469,6 +468,33 @@ Specialists are organized around these buckets (names should remain consistent a
 
 > **⚠️ NO HARDCODED WEIGHTS**: Specialist importance is learned by the L1 meta-ensemble from market data. Never assign predetermined weight percentages.
 
+### Specialist Model Types (CRITICAL - READ THIS)
+
+> **⚠️ EACH SPECIALIST HAS A UNIQUE, CUSTOM-BUILT MODEL ARCHITECTURE.**
+> These are NOT generic AutoGluon fits. Each was METICULOUSLY CRAFTED for its domain.
+> Specialists produce SIGNALS (no horizons). Core owns all horizon forecasting.
+> Full details: `Docs/SPECIALIST_MODEL_REGISTRY.md`
+
+| Specialist | Model Type | Full Architecture | Key Features |
+|------------|------------|-------------------|--------------|
+| `crush` | `xgb` | XGBRegressor | Board crush z-score, oil share z-score, WASDE fundamentals |
+| `china` | `gbm` | GradientBoostingRegressor | Copper z-score (demand proxy), CNY, BRL, shipping indices |
+| `substitutes` | `rf` | RandomForestRegressor | Spread/ratio z-scores vs canola, palm, sunflower |
+| `fx` | `ardl` | statsmodels ARDL | DXY, BRL/USD, CNY/USD, MXN/USD, carry trade rates |
+| `fed` | `ridge` | Ridge Regression | Fed Funds, DGS2, DGS10, T10Y2Y spread |
+| `volatility` | `garch` | GJR-GARCH(1,1) Student-t | Asymmetric volatility, VIX, VIX3M term structure, OVX |
+| `energy` | `var` | statsmodels VAR + IRF | CL (crude), HO (heating oil), RB (gasoline), 3-2-1 crack |
+| `palm` | `ecm` | ECM cointegration + Ridge | Palm-soy spread, cointegration residuals, FX conversion |
+| `tariff` | `tree` | Rules-based EPU thresholds | USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV |
+| `biofuel` | `nlp_ema` | EMA-smoothed RIN/policy | RIN D4/D6 prices, LCFS credits, biodiesel margin |
+| `trump_effect` | `event_study` | Event study + sentiment | EPU indices, FXI (China ETF), VIX |
+
+**Signal Contract**: All specialists output `signal_1` (required), `signal_2` (optional), `confidence` (optional).
+Signals stored in `training.specialist_signals_1d`. NO OOF tables for specialists.
+
+**Code Location**: `src/fusion/specialists/`
+**Artifacts**: `models/specialists/{bucket}/`
+
 **Key Insight:** 6 specialists are purely quantitative (crush, fx, fed, energy, volatility, substitutes). 5 specialists require news/policy sentiment data (china, tariff, biofuel, palm, trump_effect).
 
 **Data Sources Reference**: See `ZINC_FUSION_V15_BIG11_COMPLETE_SOURCES.md` for complete URL/API registry.
@@ -602,11 +628,14 @@ models/
 └── hunters/            # NOT YET TRAINED - Opportunity hunters
 ```
 
-### SoT v2 Training Stack (52 Models)
-- **L0 Core:** `zinc-fusion-v2-core-h{H}d` (4 horizons)
-- **L0 Specialists:** `zinc-fusion-v2-specialist-{bucket}-h{H}d` (11 buckets × 4 horizons = 44)
+### SoT v3 Training Stack (15 Models)
+- **L0 Core:** `zinc-fusion-v2-core-h{H}d` (4 horizons: 5d, 21d, 63d, 126d)
+- **Specialists:** 11 signal generators (NO horizons - see table above for architectures)
 - **L1 Meta:** `zinc-fusion-v2-meta-h{H}d` (4 horizons)
 - **L2/L3:** Calibration + Risk modules (non-model)
+
+> **v3 CHANGE**: Specialists produce SIGNALS that feed into Core as input features.
+> They do NOT produce OOF forecasts. Core owns all horizon forecasting.
 
 **Full catalog:** `scripts/v2_training/MODEL_CATALOG.md`
 

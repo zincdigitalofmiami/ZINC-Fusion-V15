@@ -808,12 +808,16 @@ def load_rin_data(conn) -> pd.DataFrame:
 
 
 def load_weather_data(conn) -> pd.DataFrame:
-    """Load NOAA weather data aggregated by date with expanded variables."""
+    """Load NOAA weather data aggregated by date.
+
+    Note: rhav_pct, awnd_ms, snwd_mm, evap_mm, wsfg_ms columns were dropped
+    from alt.weather_1d (100% NULL values).
+    """
     logger.info("Loading weather data...")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT event_date AS as_of_date,
-                -- Core temperature & precipitation (existing)
+                -- Core temperature & precipitation
                 AVG(tavg_c) as weather_tavg_global,
                 AVG(prcp_mm) as weather_prcp_global,
                 AVG(CASE WHEN country = 'Brazil' THEN tavg_c END) as weather_tavg_brazil,
@@ -822,14 +826,8 @@ def load_weather_data(conn) -> pd.DataFrame:
                 AVG(CASE WHEN country = 'United States' THEN prcp_mm END) as weather_prcp_us,
                 AVG(CASE WHEN country = 'Argentina' THEN tavg_c END) as weather_tavg_argentina,
                 AVG(CASE WHEN country = 'Argentina' THEN prcp_mm END) as weather_prcp_argentina,
-                -- NEW: Expanded weather variables (global aggregates)
-                AVG(rhav_pct) as weather_humidity_global,
-                AVG(snwd_mm) as weather_snow_depth_global,
-                MAX(wsfg_ms) as weather_max_gust_global,
-                AVG(evap_mm) as weather_evap_global,
-                -- NEW: Regional humidity
-                AVG(CASE WHEN country = 'United States' THEN rhav_pct END) as weather_humidity_us,
-                AVG(CASE WHEN country = 'Brazil' THEN rhav_pct END) as weather_humidity_brazil
+                -- Snow (only useful for US midwest)
+                AVG(CASE WHEN country = 'United States' THEN snow_mm END) as weather_snow_us
             FROM "alt"."weather_1d"
             GROUP BY event_date
             ORDER BY event_date
@@ -841,10 +839,7 @@ def load_weather_data(conn) -> pd.DataFrame:
         "weather_tavg_brazil", "weather_prcp_brazil",
         "weather_tavg_us", "weather_prcp_us",
         "weather_tavg_argentina", "weather_prcp_argentina",
-        # New columns
-        "weather_humidity_global", "weather_snow_depth_global",
-        "weather_max_gust_global", "weather_evap_global",
-        "weather_humidity_us", "weather_humidity_brazil"
+        "weather_snow_us"
     ]
     df = pd.DataFrame(rows, columns=columns)
     df["as_of_date"] = pd.to_datetime(df["as_of_date"])
@@ -904,12 +899,12 @@ def load_news_sentiment_by_bucket(conn) -> Dict[str, pd.DataFrame]:
     """
     Load BUCKET-SPECIFIC news sentiment from features.news_sentiment_1d.
 
-    This uses the affects_* boolean columns to route news to appropriate buckets.
+    Uses canonical_bucket column to route news to appropriate specialist buckets.
     Returns a dict of {bucket_name: DataFrame} with aggregated sentiment features.
     """
     logger.info("Loading bucket-specific news sentiment from features.news_sentiment_1d...")
 
-    # All 11 buckets that have affects_* flags
+    # All 11 buckets
     buckets = [
         "crush", "china", "fx", "fed", "tariff", "energy",
         "biofuel", "palm", "volatility", "substitutes", "trump_effect"
@@ -918,45 +913,32 @@ def load_news_sentiment_by_bucket(conn) -> Dict[str, pd.DataFrame]:
     result = {}
 
     for bucket in buckets:
-        affects_col = f"affects_{bucket}"
-
         with conn.cursor() as cur:
             cur.execute(f"""
                 SELECT
-                    DATE(published_at) AS as_of_date,
+                    trade_date AS as_of_date,
                     COUNT(*) as {bucket}_news_count,
                     AVG(sentiment_score) as {bucket}_news_sentiment_avg,
-                    AVG(sentiment_confidence) as {bucket}_news_confidence_avg,
-                    AVG(zl_impact_score) as {bucket}_news_zl_impact_avg,
-                    SUM(CASE WHEN sentiment_direction = 'bullish' THEN 1 ELSE 0 END) as {bucket}_news_bullish,
-                    SUM(CASE WHEN sentiment_direction = 'bearish' THEN 1 ELSE 0 END) as {bucket}_news_bearish,
-                    SUM(CASE WHEN sentiment_direction = 'neutral' THEN 1 ELSE 0 END) as {bucket}_news_neutral
-                FROM "features"."news_scored_1d"
-                WHERE {affects_col} = TRUE
-                GROUP BY DATE(published_at)
-                ORDER BY DATE(published_at)
-            """)
+                    AVG(relevance_score) as {bucket}_news_relevance_avg,
+                    AVG(zl_sentiment) as {bucket}_news_zl_sentiment_avg
+                FROM "features"."news_sentiment_1d"
+                WHERE canonical_bucket = %s
+                GROUP BY trade_date
+                ORDER BY trade_date
+            """, (bucket,))
             rows = cur.fetchall()
 
         columns = [
             "as_of_date",
             f"{bucket}_news_count",
             f"{bucket}_news_sentiment_avg",
-            f"{bucket}_news_confidence_avg",
-            f"{bucket}_news_zl_impact_avg",
-            f"{bucket}_news_bullish",
-            f"{bucket}_news_bearish",
-            f"{bucket}_news_neutral",
+            f"{bucket}_news_relevance_avg",
+            f"{bucket}_news_zl_sentiment_avg",
         ]
 
         df = pd.DataFrame(rows, columns=columns)
         if not df.empty:
             df["as_of_date"] = pd.to_datetime(df["as_of_date"])
-            # Add derived features
-            total_sentiment = df[f"{bucket}_news_bullish"] + df[f"{bucket}_news_bearish"] + df[f"{bucket}_news_neutral"]
-            df[f"{bucket}_news_bull_pct"] = df[f"{bucket}_news_bullish"] / total_sentiment.replace(0, 1) * 100
-            df[f"{bucket}_news_bear_pct"] = df[f"{bucket}_news_bearish"] / total_sentiment.replace(0, 1) * 100
-            df[f"{bucket}_news_net_sentiment"] = df[f"{bucket}_news_bullish"] - df[f"{bucket}_news_bearish"]
 
         result[bucket] = df
         logger.info(f"    {bucket}: {len(df):,} dates with news")

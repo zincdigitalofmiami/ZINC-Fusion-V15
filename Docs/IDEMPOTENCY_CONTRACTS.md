@@ -37,7 +37,6 @@ This document defines the idempotency contracts for all tables in the ZINC-FUSIO
 |-------|-------------|-----------------|-----------------|
 | `features.elite_1d` | (trade_date, symbol) | DO UPDATE | None |
 | `features.options_1d` | (trade_date, symbol) | DO UPDATE | None |
-| `features.weather_1d` | (trade_date, region) | DO UPDATE | None |
 | `training.matrix_1d` | (trade_date, symbol, matrix_version) | DO UPDATE | matrix_version |
 | `training.oof_core_1d` | (trade_date, symbol, horizon_days, window_id) | DO UPDATE | run_hash |
 | `training.oof_meta_1d` | (trade_date, symbol, horizon_days, window_id) | DO UPDATE | run_hash |
