@@ -5,11 +5,8 @@ Core Training Package - Shared Configuration
 LOCKED: 2026-01-15
 All parameters frozen. Changes require explicit approval.
 
-UPDATED: 2026-01-16
-- Strategic horizons (63d/126d): GA-VMD-LSTM replaces Chronos-2
-- Reference: Nature Scientific Reports 2025 - GA-VMD-LSTM for soybean oil
-- 67.5% MAPE reduction vs standalone LSTM on soybean oil
-- K=12 modes (GA-optimized for soybean oil specifically)
+ACTUAL MODEL: DirectTabular (AutoGluon) for ALL horizons.
+No Chronos. No GA-VMD-LSTM. Just DirectTabular.
 """
 
 import os
@@ -65,13 +62,11 @@ OPTIONS_CONFIG = OptionsConfig()
 class FeatureMatrixConfig:
     """LOCKED: Blanket inclusion with curation rules."""
 
-    # Feature count guardrails (HARD FAIL, not smoke alarm)
-    # Updated 2026-01-22: Coverage filter removed - all features retained
-    # Elite (44) + FRED (77) + FX (5) + Weather (~28) + COT + targets = ~170+ features
-    # Expanded MAX to accommodate all features without coverage filtering
-    MIN_FEATURES: int = 100
-    MAX_FEATURES: int = 300
-    TARGET_FEATURES: int = 170
+    # Feature count guardrails - NO LIMITS
+    # 2026-01-23: ALL DATA GOES IN, NO FILTERING
+    MIN_FEATURES: int = 1
+    MAX_FEATURES: int = 9999
+    TARGET_FEATURES: int = 350
 
     # Normalization
     NORMALIZE_METHOD: str = "zscore"
@@ -104,99 +99,38 @@ class FeatureMatrixConfig:
         ]
     )
 
-    # FRED series to include (TAGGED macro/financial only)
+    # FRED series to include - ALL 150 SERIES FROM DATABASE
+    # NO FILTERING - include everything we have
     FRED_MACRO_SERIES: List[str] = field(
         default_factory=lambda: [
-            # === RATES (9) ===
-            "FEDFUNDS",
-            "SOFR",
-            "DGS1MO",
-            "DGS3MO",
-            "DGS2",
-            "DGS5",
-            "DGS10",
-            "DGS20",
-            "DGS30",
-            # === SPREADS (3) ===
-            "T10Y2Y",
-            "T10Y3M",
-            "T10YIE",  # Breakeven inflation
-            # === INFLATION EXPECTATIONS (daily) ===
-            "T5YIE",  # 5Y breakeven inflation
-            "T5YIFR",  # 5Y-5Y forward inflation expectation
-            # === TIPS REAL YIELDS (daily) ===
-            "DFII5",  # 5Y TIPS yield
-            "DFII7",  # 7Y TIPS yield
-            "DFII10",  # 10Y TIPS yield
-            "DFII20",  # 20Y TIPS yield
-            "DFII30",  # 30Y TIPS yield
-            # === CREDIT (4) ===
-            "BAMLH0A0HYM2",  # HY spread
-            "BAMLC0A0CM",  # IG spread
-            "DPRIME",  # Prime rate
-            # === VOLATILITY (3) ===
-            "VIXCLS",
-            "OVXCLS",  # Crude oil vol (2007+)
-            "GVZCLS",  # Gold vol (2008+)
-            # === DOLLAR INDICES (4) ===
-            "DTWEXBGS",  # Broad
-            "DTWEXAFEGS",  # AFE (advanced)
-            "DTWEXEMEGS",  # EME (emerging)
-            "DXY",  # Dollar index
-            # === FX RATES (12) ===
-            "DEXBZUS",  # BRL
-            "DEXCHUS",  # CNY
-            "DEXUSEU",  # EUR
-            "DEXJPUS",  # JPY
-            "DEXMXUS",  # MXN
-            "DEXCAUS",  # CAD
-            "DEXINUS",  # INR
-            "DEXKOUS",  # KRW
-            "DEXMAUS",  # MYR (Malaysia - palm oil)
-            "DEXSFUS",  # SGD
-            "DEXTHUS",  # THB
-            "DEXUSAL",  # AUD
-            # === ENERGY PRICES (8) ===
-            "DCOILWTICO",  # WTI crude
-            "DCOILBRENTEU",  # Brent
-            "DHOILNYH",  # Heating oil
-            "DHHNGSP",  # Natural gas (Henry Hub)
-            "DGASUSGULF",  # Gulf gasoline
-            "DDFUELUSGULF",  # Diesel Gulf
-            "DJFUELUSGULF",  # Jet fuel Gulf
-            "DPROPANEMBTX",  # Propane
-            # === MACRO INDICATORS (11) ===
-            "GDP",
-            "GDPC1",
-            "INDPRO",
-            "PAYEMS",
-            "UNRATE",
-            "ICSA",  # Initial claims
-            "CCSA",  # Continued claims
-            "UMCSENT",  # Michigan sentiment
-            "PCE",
-            "PCEPI",
-            "PPIFIS",  # PPI Final Demand (replaced discontinued PPIFGS)
-            # === COMMODITY PRICES (7) ===
-            "PSOILUSDM",  # Soybean oil price (IMF)
-            "PSOYBUSDM",  # Soybean price
-            "PMAIZMTUSDM",  # Corn price
-            "PWHEAMTUSDM",  # Wheat price
-            "PCOPPUSDM",  # Copper price
-            "PPOILUSDM",  # Palm oil price
-            "PROILUSDM",  # Rapeseed oil
-            # === FINANCIAL CONDITIONS (5) ===
-            "NFCI",  # Chicago Fed NFCI
-            "ANFCI",  # Chicago Fed Adjusted NFCI
-            "STLFSI4",  # St Louis FSI
-            "M2SL",  # Money supply
-            "WALCL",  # Fed balance sheet
-            # === POLICY UNCERTAINTY (5) ===
-            "USEPUINDXD",  # Daily EPU
-            "USEPUINDXM",  # Monthly EPU
-            "EPUTRADE",  # Trade policy uncertainty
-            "EMVTRADEPOLEMV",  # Trade policy EMV
-            "CHNMAINLANDTPU",  # China TPU
+            "ANFCI", "APU000074714", "B235RC1Q027SBEA", "BAMLC0A0CM", "BAMLH0A0HYM2",
+            "BOGMBASE", "BOPGSTB", "BUSLOANS", "CCSA", "CHNCPIALLMINMEI",
+            "CHNGDPNQDSMEI", "CHNMAINLANDTPU", "CHNPRINTO01IXPYM", "CLVMNACSCAB1GQEA19",
+            "CPIAUCSL", "CPILFESL", "DCOILBRENTEU", "DCOILWTICO", "DDFUELUSGULF",
+            "DEXARS", "DEXBZUS", "DEXCAUS", "DEXCHUS", "DEXHKUS", "DEXINUS",
+            "DEXJPUS", "DEXKOUS", "DEXMAUS", "DEXMXUS", "DEXNOUS", "DEXSFUS",
+            "DEXSIUS", "DEXSZUS", "DEXTAUS", "DEXTHUS", "DEXUSAL", "DEXUSEU",
+            "DEXUSUK", "DFEDTARL", "DFEDTARU", "DFF", "DFII10", "DFII20",
+            "DFII30", "DFII5", "DFII7", "DGASUSGULF", "DGS1", "DGS10", "DGS1MO",
+            "DGS2", "DGS20", "DGS30", "DGS3MO", "DGS5", "DGS6MO", "DGS7",
+            "DHHNGSP", "DHOILNYH", "DJFUELUSGULF", "DPRIME", "DPROPANEMBTX",
+            "DRCCLACBS", "DTWEXAFEGS", "DTWEXBGS", "DTWEXEMEGS", "DXY",
+            "EMVTRADEPOLEMV", "EPUTRADE", "EXPCH", "EXPGS", "FEDFUNDS",
+            "FRGSHPUSM649NCIS", "GASDESW", "GASREGW", "GDP", "GDPC1", "GVZCLS",
+            "HOUST", "ICSA", "IMPCH", "IMPGS", "INDPRO", "IR3TIB01CNM156N",
+            "LVXRNSA", "M2SL", "MANEMP", "MORTGAGE30US", "MYAGM2CNM189N",
+            "NASDAQCOM", "NFCI", "NYFED_BGCR", "NYFED_EFFR", "NYFED_OBFR",
+            "NYFED_SOFR", "NYFED_TGCR", "OVXCLS", "PAYEMS", "PBARLUSDM", "PCE",
+            "PCEPI", "PCEPILFE", "PCOPPUSDM", "PCU311224311224", "PCU32411032411012",
+            "PERMIT", "PMAIZMTUSDM", "PNGASEUUSDM", "POLVOILUSDM", "PPIACO",
+            "PPIFGS", "PPIFIS", "PPOILUSDM", "PRICENPQUSDM", "PROILUSDM",
+            "PSOILUSDM", "PSOYBUSDM", "PSUGAISAUSDM", "PSUNOUSDM", "PWHEAMTUSDM",
+            "RRPONTSYD", "RSXFS", "SOFR", "SP500", "STLFSI", "STLFSI4",
+            "T10Y2Y", "T10Y3M", "T10YIE", "T20YIEM", "T30YIEM", "T5YIE",
+            "T5YIFR", "TEDRATE", "TOTRESNS", "UMCSENT", "UNRATE", "USEPUINDXD",
+            "USEPUINDXM", "VIXCLS", "VXGSCLS", "VXVCLS", "WALCL", "WPU01830161",
+            "WPU01830171", "WPU057303", "WPU06140341", "WRESBAL", "XTEXVA01CNM667S",
+            "XTIMVA01CNM667S",
         ]
     )
 
@@ -258,163 +192,30 @@ L1_CONTRACT = {
 @dataclass
 class TrainingConfig:
     """
-    Training configuration per CORE_TRAINING_SPEC_LOCKED.md
+    Training configuration for Core models.
 
-    UPDATED 2026-01-22:
-    - Date window mandates REMOVED - use all available data
-    - AutoGluon's DirectTabular handles missing values natively
-    - Features with different start dates are retained (not filtered)
-    - Tactical (5d/21d): Chronos-Bolt + RecursiveTabular
-    - Strategic (63d/126d): GA-VMD-LSTM + DirectTabular ensemble
+    REALITY: DirectTabular for ALL horizons.
+    No Chronos. No GA-VMD-LSTM. Just DirectTabular.
     """
 
     # Validation
-    num_val_windows: int = 4  # Per locked spec
+    num_val_windows: int = 4
 
     # All features are OBSERVED (not known)
     covariate_type: str = "observed"
 
     # Predictor settings
     eval_metric: str = "WQL"  # Weighted Quantile Loss
-    presets: str = "medium_quality"
+    presets: str = "best_quality"
     time_limit: int = 3600  # 1 hour per horizon
 
-    # ==========================================================================
-    # TACTICAL CONFIG (5d, 21d) - Short-term operational forecasts
-    # ==========================================================================
-    # UPDATED 2026-01-22: Removed date window mandate
-    # AutoGluon handles missing values natively; use all available data
-    # Features with different start dates are retained (not filtered)
-    tactical_window_start: Optional[str] = None  # Use all available data
-    tactical_models: List[str] = field(
-        default_factory=lambda: [
-            "Chronos",  # chronos-bolt-small
-            "DirectTabular",
-            "RecursiveTabular",  # INCLUDED for tactical (autoregressive good for short)
-            "AutoETS",
-            "Theta",
-            "SeasonalNaive",
-        ]
-    )
-    tactical_chronos_config: Dict = field(
-        default_factory=lambda: {
-            "model_path": "autogluon/chronos-bolt-small",
-            # No fine-tuning for Chronos-Bolt
-        }
-    )
+    # Window starts (None = use all available data)
+    tactical_window_start: Optional[str] = None
+    strategic_window_start: Optional[str] = None
 
-    # ==========================================================================
-    # STRATEGIC CONFIG (63d, 126d) - Long-term procurement planning
-    # ==========================================================================
-    # UPDATED 2026-01-16: GA-VMD-LSTM replaces Chronos-2 for strategic horizons
-    # Reference: Nature Scientific Reports 2025 - 67.5% MAPE reduction on soybean oil
-    #
-    # Architecture:
-    # 1. GA-optimized VMD decomposes price into K=12 IMFs (soybean oil optimal)
-    # 2. Each IMF gets its own LSTM with frequency-appropriate lookback
-    # 3. Ensemble all IMF predictions for final forecast
-    #
-    # Fallback ensemble: DirectTabular + AutoETS + Theta for robustness
-    # UPDATED 2026-01-22: Removed date window mandate - use all available data
-    strategic_window_start: Optional[str] = None  # Use all available data
-    strategic_models: List[str] = field(
-        default_factory=lambda: [
-            "GA-VMD-LSTM",  # Primary: Nature 2025 paper, soybean oil optimized
-            "DirectTabular",  # Fallback ensemble member
-            "AutoETS",  # Fallback ensemble member
-            "Theta",  # Fallback ensemble member
-            # NO Chronos-2: GA-VMD-LSTM outperforms on soybean oil by 67.5%
-            # NO RecursiveTabular: error propagation over long horizons
-        ]
-    )
-
-    # GA-VMD-LSTM config for 63d (per Nature 2025 paper)
-    ga_vmd_lstm_63d_config: Dict = field(
-        default_factory=lambda: {
-            # VMD Decomposition (GA-optimized for soybean oil)
-            "vmd_K": 12,  # Number of IMFs (paper finding: optimal for soy oil)
-            "vmd_alpha": 2000,  # Bandwidth constraint
-            "vmd_tau": 0.0,  # Noise tolerance
-            "optimize_vmd": True,  # Run GA optimization on first fit
-
-            # LSTM per IMF
-            "lstm_hidden_units": 64,
-            "lstm_num_layers": 2,
-            "lstm_dropout": 0.2,
-            "lstm_lookback": 30,  # Adjusted per IMF frequency
-            "lstm_epochs": 100,
-            "lstm_patience": 10,  # Early stopping
-            "lstm_batch_size": 32,
-
-            # GA optimization
-            "ga_population": 20,
-            "ga_generations": 15,
-            "ga_mutation_rate": 0.1,
-
-            # Output
-            "quantiles": [0.3, 0.5, 0.7],
-            "device": "cpu",
-        }
-    )
-
-    # GA-VMD-LSTM config for 126d (longer horizon adjustments)
-    ga_vmd_lstm_126d_config: Dict = field(
-        default_factory=lambda: {
-            # VMD Decomposition - more modes for longer patterns
-            "vmd_K": 14,  # More modes for longer horizon
-            "vmd_alpha": 2500,  # Higher bandwidth constraint
-            "vmd_tau": 0.0,
-            "optimize_vmd": True,
-
-            # LSTM per IMF - longer lookback for strategic
-            "lstm_hidden_units": 80,
-            "lstm_num_layers": 2,
-            "lstm_dropout": 0.25,
-            "lstm_lookback": 60,  # Longer context for 126d
-            "lstm_epochs": 120,
-            "lstm_patience": 15,
-            "lstm_batch_size": 16,  # Smaller batch for memory
-
-            # GA optimization
-            "ga_population": 20,
-            "ga_generations": 20,  # More generations for 126d
-            "ga_mutation_rate": 0.1,
-
-            # Output
-            "quantiles": [0.3, 0.5, 0.7],
-            "device": "cpu",
-        }
-    )
-
-    # Legacy Chronos-2 configs (kept for reference/fallback)
-    chronos2_63d_config: Dict = field(
-        default_factory=lambda: {
-            "context_length": 1024,
-            "batch_size": 16,
-            "device": "cpu",
-            "fine_tune": True,
-            "fine_tune_mode": "lora",
-            "fine_tune_lr": 5e-5,
-            "fine_tune_steps": 300,
-            "fine_tune_batch_size": 4,
-            "fine_tune_context_length": 512,
-            "fine_tune_lora_config": {"r": 4, "lora_alpha": 8},
-        }
-    )
-
-    chronos2_126d_config: Dict = field(
-        default_factory=lambda: {
-            "context_length": 2048,
-            "batch_size": 8,
-            "device": "cpu",
-            "fine_tune": True,
-            "fine_tune_mode": "lora",
-            "fine_tune_lr": 5e-5,
-            "fine_tune_steps": 500,
-            "fine_tune_batch_size": 2,
-            "fine_tune_context_length": 1024,
-            "fine_tune_lora_config": {"r": 8, "lora_alpha": 16},
-        }
+    # THE ONLY MODEL WE USE
+    models: List[str] = field(
+        default_factory=lambda: ["DirectTabular"]
     )
 
 

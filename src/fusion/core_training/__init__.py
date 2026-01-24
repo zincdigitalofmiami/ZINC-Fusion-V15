@@ -9,26 +9,22 @@
 # ## Usage
 #
 # ```bash
-# # Full pipeline
+# # Full pipeline (rebuild matrix + train)
 # python -m fusion.core_training.run_pipeline
 #
-# # Start from specific phase
-# python -m fusion.core_training.run_pipeline --start-phase 3
+# # Train only (use existing matrix)
+# python -m fusion.core_training.run_pipeline --skip-matrix
 #
 # # Train only tactical horizons
 # python -m fusion.core_training.run_pipeline --horizons 5 21
 # ```
 #
-# ## Pipeline Phases
+# ## Pipeline Modules
 #
-# | Phase | Module | Description | Blocking |
-# |-------|--------|-------------|----------|
-# | 1 | phase1_options_features | Compute IV/Greeks from mkt options | ✅ YES |
-# | 2 | phase2_validate_gold_elite | Verify elite indicators (features) | No |
-# | 3 | phase3_build_core_matrix | Assemble ~213 features | No |
-# | 4 | phase4_create_oof_schema | Define OOF table | No |
-# | 5 | phase5_audit_preflight | Mandatory validation gate | ✅ YES |
-# | 6 | phase6_train_core_seq | Train 5→21→63→126 | No |
+# | Module | Description |
+# |--------|-------------|
+# | build_matrix | Assemble ~213 features into training.matrix_1d |
+# | train_models | Train AutoGluon models for horizons 5→21→63→126 |
 #
 # ## Locked Configurations
 #
@@ -42,7 +38,6 @@
 #
 # ## Output Tables
 #
-# - `features.options_1d` - IV/Greeks
 # - `training.matrix_1d` - Feature matrix
 # - `training.oof_core_1d` - OOF predictions
 #
