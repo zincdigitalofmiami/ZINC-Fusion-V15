@@ -455,6 +455,9 @@ def insert_articles(articles: list[dict], tokenizer, model, device):
 
 
 def main():
+    raise SystemExit(
+        "Barchart scraping is disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(
         description="Scrape Barchart news with your login session"
     )

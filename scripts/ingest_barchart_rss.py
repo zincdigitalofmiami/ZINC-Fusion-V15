@@ -551,6 +551,9 @@ def write_articles(conn, articles: list[dict], dry_run: bool = False) -> int:
 
 
 def main():
+    raise SystemExit(
+        "Barchart RSS ingestion is disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(description="Ingest Barchart RSS news feeds")
     parser.add_argument(
         "--feeds",

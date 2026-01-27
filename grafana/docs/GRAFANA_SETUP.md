@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-Fusion Grafana Configuration Guide
 
 ## Overview

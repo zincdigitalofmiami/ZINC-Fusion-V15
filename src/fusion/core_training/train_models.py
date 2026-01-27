@@ -27,7 +27,9 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 os.environ["AUTOGLUON_DISABLE_RAY"] = "1"
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""           # Block CUDA detection
+os.environ["USE_MPS"] = "0"                       # Disable MPS (HuggingFace)
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "0"   # No MPS fallback
 
 import logging
 import hashlib
@@ -63,14 +65,22 @@ def import_autogluon():
     global TimeSeriesPredictor, TimeSeriesDataFrame
 
     if TimeSeriesPredictor is None:
-        logger.info("Importing AutoGluon...")
+        logger.info("Importing AutoGluon (CPU-only mode)...")
+
+        # Force torch to CPU before AutoGluon imports it
+        import torch
+        torch.set_default_device("cpu")
+        if hasattr(torch.backends, "mps"):
+            torch.backends.mps.is_available = lambda: False
+        logger.info(f"   torch device: cpu (MPS disabled)")
+
         from autogluon.timeseries import TimeSeriesPredictor as TSP
         from autogluon.timeseries import TimeSeriesDataFrame as TSDF
 
         TimeSeriesPredictor = TSP
         TimeSeriesDataFrame = TSDF
 
-        logger.info("✅ AutoGluon imported")
+        logger.info("✅ AutoGluon imported (CPU-only)")
 
 
 def load_training_data(conn, symbol: str) -> pd.DataFrame:
@@ -145,50 +155,29 @@ def get_model_config(horizon: int) -> dict:
     """
     device = "cpu"
 
-    # FULL Model Zoo (CPU-only) - ALL AutoGluon-TimeSeries models
+    # Model Zoo (CPU-only) - 25 models across 4 categories
+    # NOTE: Chronos2/Chronos/Toto disabled (HuggingFace mutex lock on macOS ARM)
     hyperparameters = {
-        # === BASELINES ===
+        # === BASELINES (5) ===
         "Naive": {},
         "SeasonalNaive": {},
         "Average": {},
         "SeasonalAverage": {},
         "Zero": {},
-        # === STATISTICAL ===
+        # === STATISTICAL (10) ===
         "ETS": {},
         "AutoETS": {},
         "AutoARIMA": {},
-        "AutoCES": {},
         "Theta": {},
         "DynamicOptimizedTheta": {},
         "NPTS": {},
         "ADIDA": {},
         "Croston": {},
         "IMAPA": {},
-        # === DEEP LEARNING (CPU) ===
-        "DeepAR": {"device": device},
-        "TemporalFusionTransformer": {"device": device},
-        "DLinear": {"device": device},
-        "PatchTST": {"device": device},
-        "SimpleFeedForward": {"device": device},
-        "TiDE": {"device": device},
-        "WaveNet": {"device": device},
-        # === TABULAR ===
+        # === TABULAR (3) ===
         "DirectTabular": {},
         "PerStepTabular": {},
         "RecursiveTabular": {},
-        # === PRETRAINED (CPU) ===
-        "Chronos2": [
-            {"device": device},
-            {
-                "ag_args": {"name_suffix": "SmallFineTuned"},
-                "model_path": "autogluon/chronos-2-small",
-                "fine_tune": True,
-                "eval_during_fine_tune": True,
-                "device": device,
-            },
-        ],
-        "Chronos": {"device": device},
-        "Toto": {"device": device},
     }
 
     return {

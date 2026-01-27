@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Idempotency Contracts
 
 **Last Updated:** 2026-01-18
@@ -129,4 +130,3 @@ HAVING COUNT(*) > 1;
 - Adding new tables requires defining idempotency contract in this document
 - Changing natural keys requires migration plan and approval
 - Switching from DO NOTHING to DO UPDATE requires data audit
-

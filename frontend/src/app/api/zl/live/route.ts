@@ -1,63 +1,115 @@
 /**
  * GET /api/zl/live
- * Current ZL price from analytics.zl_price_15m (latest bar)
- * Updated every ~15 min by Yahoo job
+ * Real-time ZL price from analytics.zl_latest + forming bars
+ * Updated every ~1 min by Databento live connector on Fly.io
  */
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 
-interface ZlLive {
-  close: number
-  previous_close: number
-  change: number
-  change_percent: number
-  day_high: number
-  day_low: number
-  open: number
-  volume: number
+interface ZlLatest {
+  price: number
   timestamp: string
-  source: string
+  volume: number
+  updated_at: string
+}
+
+interface FormingBar {
+  timeframe: string
+  bar_start: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  updated_at: string
 }
 
 export async function GET() {
   try {
-    const rows = await query<ZlLive>(`
-      SELECT
-        close,
-        previous_close,
-        change,
-        change_percent,
-        day_high,
-        day_low,
-        open,
-        volume,
-        timestamp,
-        source
-      FROM analytics.zl_price_15m
-      ORDER BY timestamp DESC
-      LIMIT 1
+    // Get latest price
+    const latestRows = await query<ZlLatest>(`
+      SELECT price, timestamp, volume, updated_at
+      FROM analytics.zl_latest
+      WHERE id = 1
     `)
 
-    if (!rows.length) {
+    // Get forming bars (incomplete candles)
+    const formingRows = await query<FormingBar>(`
+      SELECT timeframe, bar_start, open, high, low, close, volume, updated_at
+      FROM analytics.zl_forming_bar
+      ORDER BY timeframe
+    `)
+
+    // Get previous day close for change calculation
+    const prevCloseRows = await query<{ close: number }>(`
+      SELECT close
+      FROM analytics.zl_price_1d
+      ORDER BY event_date DESC
+      LIMIT 1 OFFSET 1
+    `)
+
+    if (!latestRows.length) {
+      // Fallback to 15m table if live not available yet
+      const fallbackRows = await query<{ close: number; timestamp: string }>(`
+        SELECT close, timestamp
+        FROM analytics.zl_price_15m
+        ORDER BY timestamp DESC
+        LIMIT 1
+      `)
+      if (fallbackRows.length) {
+        return NextResponse.json({
+          symbol: 'ZL',
+          price: fallbackRows[0].close,
+          timestamp: fallbackRows[0].timestamp,
+          source: 'fallback_15m',
+          forming_bars: {},
+        })
+      }
       return NextResponse.json(
         { error: 'No price data available' },
         { status: 404 }
       )
     }
 
-    const row = rows[0]
+    const latest = latestRows[0]
+    const prevClose = prevCloseRows[0]?.close || null
+    const change = prevClose ? latest.price - prevClose : null
+    const changePct = prevClose ? ((latest.price - prevClose) / prevClose) * 100 : null
+
+    // Build forming bars object keyed by timeframe
+    const formingBars: Record<string, {
+      bar_start: string
+      open: number
+      high: number
+      low: number
+      close: number
+      volume: number
+      updated_at: string
+    }> = {}
+    
+    for (const bar of formingRows) {
+      formingBars[bar.timeframe] = {
+        bar_start: bar.bar_start,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume,
+        updated_at: bar.updated_at,
+      }
+    }
+
     return NextResponse.json({
       symbol: 'ZL',
-      price: row.close,
-      previous_close: row.previous_close,
-      change: row.change,
-      change_pct: row.change_percent,
-      day_high: row.day_high,
-      day_low: row.day_low,
-      day_open: row.open,
-      volume: row.volume,
-      timestamp: row.timestamp,
-      source: row.source
+      price: latest.price,
+      timestamp: latest.timestamp,
+      volume: latest.volume,
+      updated_at: latest.updated_at,
+      previous_close: prevClose,
+      change: change,
+      change_pct: changePct,
+      source: 'databento_live',
+      forming_bars: formingBars,
     })
   } catch (error) {
     console.error('Database error:', error)

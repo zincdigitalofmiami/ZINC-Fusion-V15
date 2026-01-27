@@ -6,16 +6,18 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Symbols to fetch daily from Yahoo Finance
+// Symbols to fetch daily from Yahoo Finance (ZL handled via Databento)
 const YAHOO_SYMBOLS = [
   // Soybean complex
-  { yahoo: "ZL=F", db: "ZL", name: "Soybean Oil" },
   { yahoo: "ZS=F", db: "ZS", name: "Soybeans" },
   { yahoo: "ZM=F", db: "ZM", name: "Soybean Meal" },
   // Grains
   { yahoo: "ZC=F", db: "ZC", name: "Corn" },
   { yahoo: "ZW=F", db: "ZW", name: "Wheat" },
   { yahoo: "RS=F", db: "RS", name: "Canola" },
+  { yahoo: "CT=F", db: "CT", name: "Cotton" },
+  { yahoo: "OJ=F", db: "OJ", name: "Orange Juice" },
+  { yahoo: "LBR=F", db: "LBR", name: "Lumber" },
   // Energy
   { yahoo: "CL=F", db: "CL", name: "Crude Oil" },
   { yahoo: "NG=F", db: "NG", name: "Natural Gas" },
@@ -63,6 +65,7 @@ interface ParsedQuote {
   close: number;
   volume: number;
 }
+
 
 /**
  * Fetch quote from Yahoo Finance v8 chart API (v7 quote API is now blocked)
@@ -123,13 +126,14 @@ async function fetchYahooChart(symbol: string): Promise<ParsedQuote | null> {
   }
 }
 
+
 /**
  * Fetch end-of-day prices from Yahoo Finance for multiple symbols
  * Runs daily at 6:00 PM ET (after market close)
  * Note: Uses v8 chart API since v7 quote API is now blocked
  */
 export const yahooEod = inngest.createFunction(
-  { id: "yahoo-eod", name: "Yahoo EOD Prices" },
+  { id: "yahoo-eod", name: "Yahoo EOD Prices (Non-ZL)" },
   { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
   async ({ step, logger }) => {
     const results: { symbol: string; status: string; close?: number }[] = [];
@@ -207,28 +211,6 @@ export const yahooEod = inngest.createFunction(
         }
       });
     }
-
-    // Step 3: Sync ZL to analytics.zl_price_1d for dashboard charts
-    await step.run("sync-zl-analytics", async () => {
-      const client = await pool.connect();
-      try {
-        await client.query(`
-          INSERT INTO analytics.zl_price_1d (event_date, open, high, low, close, volume, source, created_at)
-          SELECT event_date, open, high, low, close, volume, source, ingested_at
-          FROM mkt.futures_1d
-          WHERE symbol = 'ZL' AND event_date = CURRENT_DATE
-          ON CONFLICT (event_date) DO UPDATE SET
-            open = EXCLUDED.open,
-            high = EXCLUDED.high,
-            low = EXCLUDED.low,
-            close = EXCLUDED.close,
-            volume = EXCLUDED.volume,
-            source = EXCLUDED.source
-        `);
-      } finally {
-        client.release();
-      }
-    });
 
     return {
       status: "complete",

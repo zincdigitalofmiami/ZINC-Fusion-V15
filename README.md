@@ -1,8 +1,9 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC Fusion V15 - Soybean Oil Procurement Forecasting
 
 **Institutional-grade quantitative forecasting system for US Oil Solutions**
 
-This project implements a multi-layer ensemble ML pipeline for predicting ZL (Soybean Oil) futures prices across multiple time horizons (5d, 21d, 63d, 126d), enabling strategic procurement decisions for bulk soybean oil purchasing.
+This project implements a multi-layer ensemble ML pipeline that produces probabilistic multi-horizon forecasts for ZL (Soybean Oil) (5d, 21d, 63d, 126d). **Specialists do not produce horizon forecasts** — they are **custom signal generators** (horizon-agnostic) that feed Core and the meta-learner.
 
 ## Latest Update (January 2026): SoT v2 Production Ready
 
@@ -63,7 +64,7 @@ This project implements a multi-layer ensemble ML pipeline for predicting ZL (So
 
 1. Predict events before they happen (e.g., Brazilian drought in 18 days: 68% probability)
 2. Assign probabilities to events (e.g., EPA mandate passage: 82% likely)
-3. Wire event probabilities into forecasting models (L0 Specialists and optionally Core consume as features)
+3. Wire event probabilities into the **signal layer** (L0 Specialists) and optionally into Core as features
 4. Generate probability-weighted price forecasts (baseline vs scenario vs mixture)
 5. Show both on dashboard: predicted events + price impacts
 
@@ -81,7 +82,9 @@ We don't win by "drought → price up." We win by intrinsic connection discovery
 #### Time keys
 
 - **Raw**: `event_date` (or `event_time` for sub-daily) is canonical.
-- **Derived / training / forecasts**: `trade_date` is canonical.
+- **Training matrices**: `trade_date` is canonical (daily bar alignment).
+- **Signals + forecasts**: `as_of_date` is canonical (what we knew/produced *as of* that date).
+- **Forecast target date**: production forecast tables also carry `forecast_date` (the date being predicted).
 
 This prevents PIT leakage and "silent join death."
 
@@ -323,10 +326,10 @@ npx prisma generate
 All data operations use Prisma Postgres. Key tables:
 
 - `mkt.futures_1d` - ZL, ZS, ZM, CL futures OHLCV
-- `econ.fred_observations` - Economic indicators
-- `alt.weather_observations` - Weather data from key growing regions
-- `features.driver_scores_1d` - Normalized specialist driver scores
-- `training.oof_core_1d` - Out-of-fold predictions for stacking
+- `econ.rates_1d`, `econ.activity_1d`, `econ.commodities_1d`, `econ.vol_indices_1d`, `econ.inflation_1d`, `econ.labor_1d`, `econ.money_1d` - FRED macro indicators (routed by domain)
+- `alt.weather_1d` - Weather data from key growing regions
+- `training.oof_core_1d` - Core out-of-fold quantiles for stacking (p30/p50/p70)
+- `training.specialist_signals_1d` - Specialist signals (signal_1/signal_2/confidence), no horizons
 
 ## Model Training
 
@@ -381,7 +384,12 @@ validation/backtests, and typically selects a **WeightedEnsemble** as best.
 
 ## Scheduling
 
-Scheduling/orchestration has been removed from this repository.
+**Production orchestration lives in the frontend** (Vercel Inngest).
+
+- Inngest functions: `frontend/src/inngest/`
+- Inngest route handler: `frontend/src/app/api/inngest/route.ts`
+
+Offline training orchestration lives in `scripts/` and the `src/fusion/` training packages.
 
 ## Development
 
@@ -459,8 +467,8 @@ See `src/fusion/model_registry/` for implementation.
 - **Docker Config**: `docker/README.md` - Docker Compose stack documentation
 - **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
 - **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants
-- **Prisma Docs**: https://www.prisma.io/docs
-- **FRED API Docs**: https://fred.stlouisfed.org/docs/api/
+- **Prisma Docs**: `https://www.prisma.io/docs`
+- **FRED API Docs**: `https://fred.stlouisfed.org/docs/api/`
 
 ## License
 

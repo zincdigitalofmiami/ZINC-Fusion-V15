@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Schema Migration v2 — Deployment Notice
 
 **Date:** 2026-01-22

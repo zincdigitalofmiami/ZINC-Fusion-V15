@@ -2,6 +2,12 @@
 ZINC-FUSION-V15 COMPLETE DATA LIST
 ================================================================================
 
+DEPRECATED: Legacy snapshot file. This list includes legacy/banned schemas and historical table names from earlier iterations.
+Do NOT treat it as authoritative for current production. Current SoT is:
+- `prisma/schema.prisma` (schema authority)
+- `AGENTS.md` (operational contracts)
+- the live Prisma Postgres database state (via `DATABASE_URL`)
+
 TOTAL: 115 tables across 10 schemas
 
 

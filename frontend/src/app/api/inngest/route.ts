@@ -3,7 +3,12 @@ import { inngest } from "@/inngest/client";
 import {
   zl15m,
   zl1h,
+  zlDaily,
+  zlLive15m,
+  zlLive1h,
+  zlLive1d,
   yahooEod,
+  yahooEtfDaily,
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -33,18 +38,13 @@ import {
   epaRinPricesDaily,
   usdaWasdeMonthly,
   usdaExportSalesWeekly,
-  barchartZlNewsDaily,
-  barchartFuturesDaily,
-  barchartFuturesManual,
   glideVegasSync,
   cpoPalmOilDaily,
   cpoTradingEconomics,
   profarmerDaily,
   profarmerBackfill,
-  barchartEtfDaily,
-  barchartEtfBackfill,
-  barchartOptionsDaily,
-  barchartOptionsBackfill,
+  databentoFuturesDaily,
+  databentoStatisticsDaily,
 } from "@/inngest/functions";
 
 /**
@@ -90,9 +90,12 @@ export const { GET, POST, PUT } = serve({
     // Price data
     zl15m,
     zl1h,
+    zlDaily,
+    zlLive15m,
+    zlLive1h,
+    zlLive1d,
     yahooEod,
-    barchartFuturesDaily,
-    barchartFuturesManual,
+    yahooEtfDaily,
     // FRED macro series
     fredDailyFed,
     fredDailyFx,
@@ -122,7 +125,6 @@ export const { GET, POST, PUT } = serve({
     whitehouseDaily,
     usdaDaily,
     nassWeekly,
-    barchartZlNewsDaily,
     // Weather
     noaaWeatherDaily,
     openmeteoWeatherDaily,
@@ -136,11 +138,9 @@ export const { GET, POST, PUT } = serve({
     // Premium subscriptions
     profarmerDaily,
     profarmerBackfill,
-    // ETF/Options
-    barchartEtfDaily,
-    barchartEtfBackfill,
-    barchartOptionsDaily,
-    barchartOptionsBackfill,
+    // Databento market data
+    databentoFuturesDaily,
+    databentoStatisticsDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

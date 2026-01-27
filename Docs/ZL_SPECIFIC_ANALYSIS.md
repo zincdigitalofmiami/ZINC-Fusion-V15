@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZL Soybean Oil Futures - Specific Data Quality Analysis
 
 **Generated:** 2026-01-02

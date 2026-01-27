@@ -1,5 +1,6 @@
 import { inngest } from "./client";
 import { Pool } from "pg";
+import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -7,60 +8,60 @@ const pool = new Pool({
 });
 
 /**
- * Fetch ZL 1-hour bars from Yahoo and write to analytics.zl_price_1h
+ * Fetch ZL 1-hour bars from Databento and write to analytics.zl_price_1h
  * Runs every hour
  */
 export const zl1h = inngest.createFunction(
   { id: "zl-1h", name: "ZL 1h Bars" },
   { cron: "0 * * * *" }, // Every hour on the hour
   async ({ step }) => {
-    // Step 1: Fetch 1h bars from Yahoo v8 chart API
-    const bars = await step.run("fetch-yahoo-1h", async () => {
-      const res = await fetch(
-        "https://query1.finance.yahoo.com/v8/finance/chart/ZL=F?interval=1h&range=5d"
-      );
-      const json = await res.json();
-      const result = json.chart?.result?.[0];
+    const end = await step.run("compute-end-time", async () => {
+      return new Date(Date.now() - 24 * 60 * 60 * 1000);
+    });
 
-      if (!result) {
-        throw new Error("No chart data returned from Yahoo");
+    const start = await step.run("compute-start-time", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query<{ ts: Date | null }>(
+          `SELECT MAX(timestamp) AS ts FROM analytics.zl_price_1h`
+        );
+        const lastTs = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
+        const bufferMs = 12 * 60 * 60 * 1000;
+        const defaultWindowMs = 14 * 24 * 60 * 60 * 1000;
+        const base = lastTs ? lastTs.getTime() - bufferMs : end.getTime() - defaultWindowMs;
+        return new Date(Math.max(0, base));
+      } finally {
+        client.release();
       }
+    });
 
-      const timestamps = result.timestamp ?? [];
-      const ohlc = result.indicators?.quote?.[0] ?? {};
+    if (start >= end) {
+      return { status: "no_data", message: "No new historical window available" };
+    }
 
-      // Build array of bars
-      const barsData: Array<{
-        eventTime: Date;
-        open: number;
-        high: number;
-        low: number;
-        close: number;
-        volume: number;
-      }> = [];
+    // Step 1: Fetch 1h bars from Databento
+    const bars = await step.run("fetch-databento-1h", async () => {
+      const csv = await fetchDatabentoCsv({
+        dataset: "GLBX.MDP3",
+        schema: "ohlcv-1h",
+        symbols: "ZL.n.0",  // OI-ranked for consistency with daily jobs
+        stype_in: "continuous",
+        start: start.toISOString(),
+        end: end.toISOString(),
+        encoding: "csv",
+        pretty_ts: "true",
+        pretty_px: "true",
+      });
 
-      for (let i = 0; i < timestamps.length; i++) {
-        const ts = timestamps[i];
-        const open = ohlc.open?.[i];
-        const high = ohlc.high?.[i];
-        const low = ohlc.low?.[i];
-        const close = ohlc.close?.[i];
-        const volume = ohlc.volume?.[i];
-
-        // Skip bars with null values
-        if (ts && open != null && high != null && low != null && close != null) {
-          barsData.push({
-            eventTime: new Date(ts * 1000),
-            open,
-            high,
-            low,
-            close,
-            volume: volume ?? 0,
-          });
-        }
-      }
-
-      return barsData;
+      const parsed = parseDatabentoOhlcvCsv(csv);
+      return parsed.map((bar) => ({
+        eventTime: bar.tsEvent,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume ?? 0,
+      }));
     });
 
     if (!bars || bars.length === 0) {
@@ -76,14 +77,16 @@ export const zl1h = inngest.createFunction(
           await client.query(
             `INSERT INTO analytics.zl_price_1h
               (timestamp, open, high, low, close, volume, source, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, 'yahoo', NOW())
+             VALUES ($1, $2, $3, $4, $5, $6, 'databento', NOW())
              ON CONFLICT (timestamp) DO UPDATE SET
                open = EXCLUDED.open,
                high = EXCLUDED.high,
                low = EXCLUDED.low,
                close = EXCLUDED.close,
                volume = EXCLUDED.volume,
-               source = EXCLUDED.source`,
+               source = EXCLUDED.source
+             WHERE analytics.zl_price_1h.source IS NULL
+                OR analytics.zl_price_1h.source <> 'databento_live'`,
             [
               bar.eventTime,
               bar.open,

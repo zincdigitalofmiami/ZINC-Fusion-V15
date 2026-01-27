@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Production Readiness Audit - Findings
 **Date**: 2026-01-18  
 **Scope**: Critical violations preventing production deployment

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: COMPREHENSIVE CORRELATION RESEARCH
 ## The Definitive Symbol Tagging Reference
 ### Date: 2026-01-14 | Symbols Analyzed: 86 (with sufficient data)

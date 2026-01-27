@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: Complete Data Inventory
 
 > Generated: January 2026
@@ -782,13 +783,15 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 
 ### Core Model Zoo Allowlist (trained per horizon)
 
-Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+Core runs on CPU. Set guards **before** importing torch/autogluon:
 
 ```
 TOKENIZERS_PARALLELISM=false
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 AUTOGLUON_DISABLE_RAY=1
 PYTORCH_ENABLE_MPS_FALLBACK=1
+PYTORCH_MPS_ENABLED=0
+CUDA_VISIBLE_DEVICES=""
 device = "cpu"
 ```
 

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Schema Audit Report - 2026-01-19
 
 ## Executive Summary

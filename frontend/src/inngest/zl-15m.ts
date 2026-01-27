@@ -1,5 +1,6 @@
 import { inngest } from "./client";
 import { Pool } from "pg";
+import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -7,30 +8,113 @@ const pool = new Pool({
 });
 
 /**
- * Fetch ZL 15-minute bars from Yahoo and write to analytics.zl_price_15m
+ * Fetch ZL 15-minute bars from Databento and write to analytics.zl_price_15m
  * Runs every 15 minutes
  */
 export const zl15m = inngest.createFunction(
   { id: "zl-15m", name: "ZL 15m Bars" },
-  { cron: "*/15 * * * *" }, // Every 15 min
+  { cron: "0 * * * *" }, // Hourly (HTTP historical, 24h delayed)
   async ({ step }) => {
-    // Step 1: Fetch 15m bars from Yahoo v8 chart API
-    const bars = await step.run("fetch-yahoo-15m", async () => {
-      const res = await fetch(
-        "https://query1.finance.yahoo.com/v8/finance/chart/ZL=F?interval=15m&range=1d"
-      );
-      const json = await res.json();
-      const result = json.chart?.result?.[0];
+    const end = await step.run("compute-end-time", async () => {
+      return new Date(Date.now() - 24 * 60 * 60 * 1000);
+    });
 
-      if (!result) {
-        throw new Error("No chart data returned from Yahoo");
+    const start = await step.run("compute-start-time", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query<{ ts: Date | null }>(
+          `SELECT MAX(timestamp) AS ts FROM analytics.zl_price_15m`
+        );
+        const lastTs = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
+        const bufferMs = 6 * 60 * 60 * 1000;
+        const defaultWindowMs = 7 * 24 * 60 * 60 * 1000;
+        const base = lastTs ? lastTs.getTime() - bufferMs : end.getTime() - defaultWindowMs;
+        return new Date(Math.max(0, base));
+      } finally {
+        client.release();
+      }
+    });
+
+    if (start >= end) {
+      return { status: "no_data", message: "No new historical window available" };
+    }
+
+    // Step 1: Fetch 1m bars from Databento and aggregate to 15m
+    const bars = await step.run("fetch-databento-1m", async () => {
+      const csv = await fetchDatabentoCsv({
+        dataset: "GLBX.MDP3",
+        schema: "ohlcv-1m",
+        symbols: "ZL.n.0",  // OI-ranked for consistency with daily jobs
+        stype_in: "continuous",
+        start: start.toISOString(),
+        end: end.toISOString(),
+        encoding: "csv",
+        pretty_ts: "true",
+        pretty_px: "true",
+      });
+
+      const rawBars = parseDatabentoOhlcvCsv(csv);
+      if (!rawBars.length) return [];
+
+      const dayStats = new Map<string, { high: number; low: number; lastClose: number }>();
+      for (const bar of rawBars) {
+        const dayKey = bar.tsEvent.toISOString().slice(0, 10);
+        const existing = dayStats.get(dayKey);
+        if (!existing) {
+          dayStats.set(dayKey, { high: bar.high, low: bar.low, lastClose: bar.close });
+        } else {
+          existing.high = Math.max(existing.high, bar.high);
+          existing.low = Math.min(existing.low, bar.low);
+          existing.lastClose = bar.close;
+        }
       }
 
-      const timestamps = result.timestamp ?? [];
-      const ohlc = result.indicators?.quote?.[0] ?? {};
-      const meta = result.meta;
+      const dayKeys = Array.from(dayStats.keys()).sort();
+      const prevCloseByDay = new Map<string, number | null>();
+      for (let i = 0; i < dayKeys.length; i++) {
+        const key = dayKeys[i];
+        if (i === 0) {
+          prevCloseByDay.set(key, null);
+        } else {
+          const prevKey = dayKeys[i - 1];
+          prevCloseByDay.set(key, dayStats.get(prevKey)?.lastClose ?? null);
+        }
+      }
 
-      // Build array of bars
+      const bucketMs = 15 * 60 * 1000;
+      const buckets = new Map<number, {
+        timestamp: Date;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        dayKey: string;
+      }>();
+
+      for (const bar of rawBars) {
+        const ts = bar.tsEvent.getTime();
+        const bucket = Math.floor(ts / bucketMs) * bucketMs;
+        const dayKey = bar.tsEvent.toISOString().slice(0, 10);
+        const existing = buckets.get(bucket);
+        if (!existing) {
+          buckets.set(bucket, {
+            timestamp: new Date(bucket),
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close,
+            volume: bar.volume ?? 0,
+            dayKey,
+          });
+        } else {
+          existing.high = Math.max(existing.high, bar.high);
+          existing.low = Math.min(existing.low, bar.low);
+          existing.close = bar.close;
+          existing.volume += bar.volume ?? 0;
+        }
+      }
+
       const barsData: Array<{
         timestamp: Date;
         open: number;
@@ -38,33 +122,28 @@ export const zl15m = inngest.createFunction(
         low: number;
         close: number;
         volume: number;
-        previousClose: number;
-        dayHigh: number;
-        dayLow: number;
+        previousClose: number | null;
+        dayHigh: number | null;
+        dayLow: number | null;
       }> = [];
 
-      for (let i = 0; i < timestamps.length; i++) {
-        const ts = timestamps[i];
-        const open = ohlc.open?.[i];
-        const high = ohlc.high?.[i];
-        const low = ohlc.low?.[i];
-        const close = ohlc.close?.[i];
-        const volume = ohlc.volume?.[i];
+      const sortedBuckets = Array.from(buckets.values()).sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
 
-        // Skip bars with null values
-        if (ts && open != null && high != null && low != null && close != null) {
-          barsData.push({
-            timestamp: new Date(ts * 1000),
-            open,
-            high,
-            low,
-            close,
-            volume: volume ?? 0,
-            previousClose: meta.chartPreviousClose ?? meta.previousClose ?? close,
-            dayHigh: meta.regularMarketDayHigh ?? high,
-            dayLow: meta.regularMarketDayLow ?? low,
-          });
-        }
+      for (const bucket of sortedBuckets) {
+        const stats = dayStats.get(bucket.dayKey);
+        barsData.push({
+          timestamp: bucket.timestamp,
+          open: bucket.open,
+          high: bucket.high,
+          low: bucket.low,
+          close: bucket.close,
+          volume: bucket.volume,
+          previousClose: prevCloseByDay.get(bucket.dayKey) ?? null,
+          dayHigh: stats?.high ?? null,
+          dayLow: stats?.low ?? null,
+        });
       }
 
       return barsData;
@@ -80,13 +159,14 @@ export const zl15m = inngest.createFunction(
       let count = 0;
       try {
         for (const bar of bars) {
-          const change = bar.close - bar.previousClose;
-          const changePct = (change / bar.previousClose) * 100;
+          const previousClose = bar.previousClose ?? null;
+          const change = previousClose != null ? bar.close - previousClose : null;
+          const changePct = previousClose != null ? (change! / previousClose) * 100 : null;
 
           await client.query(
             `INSERT INTO analytics.zl_price_15m
               (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'yahoo', NOW())
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'databento', NOW())
              ON CONFLICT (timestamp) DO UPDATE SET
                open = EXCLUDED.open,
                high = EXCLUDED.high,
@@ -98,7 +178,9 @@ export const zl15m = inngest.createFunction(
                change_percent = EXCLUDED.change_percent,
                day_high = EXCLUDED.day_high,
                day_low = EXCLUDED.day_low,
-               source = EXCLUDED.source`,
+               source = EXCLUDED.source
+             WHERE analytics.zl_price_15m.source IS NULL
+                OR analytics.zl_price_15m.source <> 'databento_live'`,
             [
               bar.timestamp,
               bar.open,
@@ -106,7 +188,7 @@ export const zl15m = inngest.createFunction(
               bar.low,
               bar.close,
               bar.volume,
-              bar.previousClose,
+              previousClose,
               change,
               changePct,
               bar.dayHigh,

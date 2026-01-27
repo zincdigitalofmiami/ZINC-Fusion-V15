@@ -1,0 +1,38 @@
+name: Databento Intraday Sync
+
+on:
+  schedule:
+    # Run every 15 minutes during CME trading hours (Sun 5PM - Fri 4PM CT)
+    # CME Globex ZL trades ~23 hours/day
+    - cron: '*/15 * * * 1-5'  # Every 15 min, Mon-Fri
+    - cron: '*/15 0-23 * * 0'  # Sunday (market opens 5PM CT = 23:00 UTC)
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-intraday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install databento psycopg2-binary python-dotenv requests
+          
+      - name: Run intraday sync
+        env:
+          DATABENTO_API_KEY: ${{ secrets.DATABENTO_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY }}
+        run: |
+          python scripts/ingest_databento_live_zl.py \
+            --run-seconds 60 \
+            --buffer-minutes 30 \
+            --max-replay-hours 2 \
+            --default-hours 1

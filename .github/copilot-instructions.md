@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 – GitHub Copilot Instructions
 
 Copilot must follow repo governance. Treat `AGENTS.md` as the primary source of truth.

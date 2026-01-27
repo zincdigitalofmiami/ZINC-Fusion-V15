@@ -1,0 +1,17 @@
+Core OOF Audit (p50 vs target)
+Generated: 2026-01-24 21:15:28
+
+Filters: finite target_value/p50; NaN/Inf removed; target_value != 0 for MAPE
+
+Rank by skill (higher better):
+- 126d: skill 0.4200
+- 5d: skill 0.2252
+- 21d: skill 0.1326
+- 63d: skill 0.0948
+
+Per-horizon metrics:
+H  rows   MAE     RMSE    MAPE    SMAPE   Skill   DirAcc  MajBase DirLift  Cover  Width   WQL
+  5   20 0.01764 0.02432 0.9737 1.3746 0.2252 0.7000 0.8000 -0.1000 0.5000 0.02525 0.00852
+ 21   83 0.02834 0.03585 2.4828 1.4294 0.1326 0.6627 0.5783 0.0843 0.4458 0.04844 0.01311
+ 63  242 0.07311 0.09391 1.9610 1.4816 0.0948 0.6240 0.6281 -0.0041 0.4793 0.10710 0.03283
+126  485 0.06816 0.09168 1.4232 0.7558 0.4200 0.8412 0.5010 0.3402 0.6866 0.16515 0.03351

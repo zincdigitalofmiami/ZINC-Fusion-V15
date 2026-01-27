@@ -5,7 +5,7 @@ Uses GJR-GARCH for asymmetric volatility modeling with VIX as exogenous input.
 """
 
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Dict
 import pandas as pd
 import numpy as np
 import logging
@@ -47,15 +47,55 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
     - Contango (VIX < VIX3M) = complacency
     """
 
+    # =========================================================================
+    # VOLATILITY INDICES - Complete Vol Surface
+    # =========================================================================
+    VOL_INDICES = {
+        # VIX Complex
+        "fred_vixcls": {"name": "VIX", "asset": "spx", "desc": "S&P 500 30-day implied vol"},
+        "fred_vix3mcls": {"name": "VIX3M", "asset": "spx", "desc": "S&P 500 3-month implied vol"},
+        "fred_vix9dcls": {"name": "VIX9D", "asset": "spx", "desc": "S&P 500 9-day implied vol"},
+        "fred_vxvcls": {"name": "VVIX", "asset": "vix", "desc": "VIX of VIX (vol of vol)"},
+        # Commodity Vol
+        "fred_ovxcls": {"name": "OVX", "asset": "oil", "desc": "Crude oil volatility"},
+        "fred_gvzcls": {"name": "GVZ", "asset": "gold", "desc": "Gold volatility"},
+        "fred_evzcls": {"name": "EVZ", "asset": "eur", "desc": "Euro FX volatility"},
+        # EM/FX Vol
+        "fred_vxeemcls": {"name": "VXEEM", "asset": "em", "desc": "Emerging markets vol"},
+        "fred_vxfxicls": {"name": "VXFXI", "asset": "china", "desc": "China FXI volatility"},
+    }
+
     def __init__(self):
         config = SignalConfig(
             bucket="volatility",
             model_type="garch",
-            primary_features=["close", "returns_1d"],
+            primary_features=[
+                "close",
+                "returns_1d",
+                # VIX TERM STRUCTURE - Full curve
+                "fred_vixcls",      # VIX spot (30-day)
+                "fred_vix3mcls",    # VIX 3-month
+                "fred_vix9dcls",    # VIX 9-day (near-term fear)
+                "fred_vxvcls",      # VVIX (vol of vol)
+                # COMMODITY VOL
+                "fred_ovxcls",      # OVX (oil vol - energy spillover)
+                "fred_gvzcls",      # GVZ (gold vol - safe haven)
+            ],
             secondary_features=[
-                "fred_vixcls",     # VIX spot
-                "fred_vix3mcls",   # VIX 3-month (term structure)
-                "fred_ovxcls",     # OVX (oil volatility)
+                # FX/EM VOL
+                "fred_evzcls",      # Euro FX volatility
+                "fred_vxeemcls",    # EM volatility
+                "fred_vxfxicls",    # FXI volatility (China)
+                # CROSS-ASSET for vol correlation
+                "zs_close",         # Soybeans
+                "cl_close",         # Crude oil
+                "hg_close",         # Copper
+                # ELITE INDICATORS ON VIX (computed)
+                "vix_rsi_14",       # VIX RSI
+                "vix_zscore_21d",   # VIX z-score
+                "vix_term_slope",   # VIX - VIX3M
+                "vix_vol_of_vol",   # VVIX z-score
+                "realized_vs_implied", # RV - IV spread
             ],
             lookback_days=504,  # 2 years for GARCH stability
             min_data_points=252,
@@ -64,11 +104,64 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         self._vol_percentiles = None
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Returns can be computed from close if not present."""
+        """Require FULL VIX term structure + commodity vol."""
         missing = []
         if "close" not in data.columns and "returns_1d" not in data.columns:
             missing.append("close_or_returns_1d")
+        # REQUIRE VIX term structure
+        if "fred_vixcls" not in data.columns:
+            missing.append("fred_vixcls")
+        if "fred_vix3mcls" not in data.columns:
+            missing.append("fred_vix3mcls")
+        # REQUIRE commodity vol
+        if "fred_ovxcls" not in data.columns:
+            missing.append("fred_ovxcls")
+        if "fred_gvzcls" not in data.columns:
+            missing.append("fred_gvzcls")
         return missing
+
+    def _compute_elite_vol_indicators(self, data: pd.DataFrame) -> Dict[str, pd.Series]:
+        """Compute elite technical indicators for volatility indices."""
+        elite = {}
+
+        if "fred_vixcls" in data.columns:
+            vix = data["fred_vixcls"]
+
+            # RSI-14 on VIX
+            delta = vix.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, np.nan)
+            elite["vix_rsi_14"] = 100 - (100 / (1 + rs))
+
+            # Z-scores
+            for window in [5, 21, 63]:
+                mean = vix.rolling(window).mean()
+                std = vix.rolling(window).std()
+                elite[f"vix_zscore_{window}d"] = (vix - mean) / std.replace(0, np.nan)
+
+            # VIX percentile rank
+            elite["vix_percentile"] = vix.rolling(252).apply(
+                lambda x: pd.Series(x).rank(pct=True).iloc[-1], raw=False
+            )
+
+        # Term structure slope
+        if "fred_vixcls" in data.columns and "fred_vix3mcls" in data.columns:
+            elite["vix_term_slope"] = data["fred_vixcls"] - data["fred_vix3mcls"]
+            elite["vix_term_slope_zscore"] = self.compute_zscore(elite["vix_term_slope"], 63)
+
+        # Vol of Vol
+        if "fred_vxvcls" in data.columns:
+            vvix = data["fred_vxvcls"]
+            elite["vvix_zscore"] = self.compute_zscore(vvix, 63)
+
+        # Realized vs Implied spread
+        if "returns_1d" in data.columns and "fred_vixcls" in data.columns:
+            realized_vol = data["returns_1d"].rolling(21).std() * np.sqrt(252) * 100
+            elite["realized_vol_21d"] = realized_vol
+            elite["rv_iv_spread"] = realized_vol - data["fred_vixcls"]
+
+        return elite
 
     def _compute_returns(self, data: pd.DataFrame) -> pd.Series:
         """Compute returns from close if not present."""
@@ -175,7 +268,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute volatility regime signals.
+        Compute volatility regime signals with ALL elite indicators.
 
         Uses rolling realized volatility + GARCH conditional variance
         + VIX as exogenous regime indicator.
@@ -183,6 +276,28 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         PATCHED 2026-01-21: Added VIX term structure for improved panic detection
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL VOL INDICES
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # Add elite indicators for all volatility indices
+        for vol_col in ["fred_vixcls", "fred_vix3mcls", "fred_ovxcls", "fred_gvzcls",
+                        "fred_vxvcls", "fred_vxeemcls", "fred_vxfxicls", "fred_evzcls"]:
+            if vol_col in data.columns and data[vol_col].notna().sum() > 30:
+                vol_data = data.copy()
+                vol_data["close"] = data[vol_col]
+                prefix = vol_col.replace("fred_", "").replace("cls", "")
+                vol_data = self.add_all_elite_indicators(vol_data, "close", prefix)
+                for c in vol_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = vol_data[c]
+
+        # Compute elite vol indicators
+        elite_vol = self._compute_elite_vol_indicators(data)
+        for col_name, series in elite_vol.items():
+            data[col_name] = series
 
         # Compute returns
         returns = self._compute_returns(data)

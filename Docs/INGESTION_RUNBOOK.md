@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Ingestion Runbook (Schema-Safe)
 
 Status: Draft for execution. No schema changes required.
@@ -10,12 +11,11 @@ already covered, and identify safe additions that do not touch schemas.
 ### Market Prices (mkt.* / analytics.*)
 
 - `yahoo-eod` → `mkt.futures_1d` (core futures: ZL/ZS/ZM/CL/HO/etc) + `analytics.zl_price_1d` (dashboard copy).
-- `barchart-futures-daily` → `mkt.futures_1d` (softs: CT/OJ/LBR only; Yahoo preferred when available).
+- `yahoo-etf-daily` → `mkt.etf_1d` (ETF prices: SPY/QQQ/VXX/UVXY/FXI/KWEB/etc).
 - `cpo-daily` / `cpo-trading-economics` → `mkt.futures_1d` (CPO backup).
 - `fx-spot-daily` → `mkt.fx_1d` (USD/BRL, USD/CNY, USD/ARS, etc).
-- `barchart-etf-daily` → `mkt.etf_1d` (SPY/QQQ/VXX/UVXY).
-- `barchart-options-daily` → `mkt.options_greeks_1d` (ZL/ZS/ZM/CL).
 - `zl-15m` / `zl-1h` → `analytics.zl_price_15m` / `analytics.zl_price_1h` (dashboard only; not for training).
+Note: Barchart feeds (futures/ETF/options/news) are disabled in production. Legacy data remains in DB but is not used for training.
 
 ### Macro / Rates / Volatility (econ.*)
 
@@ -36,8 +36,8 @@ already covered, and identify safe additions that do not touch schemas.
 ### News / Policy / Alt (alt.*)
 
 - `federal-register` → `alt.legislation_1d`.
-- `whitehouse-press`, `conab-news`, `profarmer-daily`, `barchart-zl-news`,
-  `farmdoc-rins`, `aei-trade`, `cbp-trade`, `ice-releases` → `alt.news_1d`.
+- `whitehouse-press`, `conab-news`, `profarmer-daily`, `farmdoc-rins`,
+  `aei-trade`, `cbp-trade`, `ice-releases` → `alt.news_1d`.
 - `noaa-weather-daily`, `openmeteo-weather-daily` → `alt.weather_1d`.
 
 Note: Weather features computed on-the-fly at training time (no features.weather_1d table).
@@ -45,13 +45,13 @@ Note: Weather features computed on-the-fly at training time (no features.weather
 ## Specialist Alignment (Quick Map)
 
 - biofuel: `epa-rin-prices-daily`, `federal-register`, `farmdoc-rins`, `usda-press`
-- palm: `barchart-futures-daily` (CPO), `cpo-daily` (backup)
+- palm: `cpo-daily`, `cpo-trading-economics`
 - crush: `yahoo-eod` (ZL/ZS/ZM), `cftc-weekly`, `usda-wasde-monthly`
 - fx: `fx-spot-daily`
-- fed/volatility: `fred-daily-volatility`, `nyfed-daily`, `barchart-options-daily`
+- fed/volatility: `fred-daily-volatility`, `nyfed-daily`
 - energy: `yahoo-eod` (CL/HO), `eia-today`
 - china: `conab-news`, `cbp-trade`, `usda-export-sales-weekly`, FRED China series
-- substitutes: `yahoo-eod` (RS/Canola), `barchart-futures-daily` (CT/OJ/LBR softs)
+- substitutes: `yahoo-eod` (RS/Canola)
 - tariff/trump_effect: `federal-register`, `whitehouse-press`, `alt.news_1d`
 
 ## Safe Additions (No Schema Changes)
@@ -67,7 +67,7 @@ These additions are optional and can be implemented without new tables/columns:
 1) Confirm Inngest is running and jobs are registered:
    - `frontend/src/inngest/functions.ts` is the authoritative export list.
 2) Trigger critical jobs manually in Inngest UI (or wait for cron):
-   - `yahoo-eod`, `barchart-futures-daily`, `fx-spot-daily`
+   - `yahoo-eod`, `fx-spot-daily`
    - `epa-rin-prices-daily`, `usda-wasde-monthly`, `usda-export-sales-weekly`
    - `fred-daily-*`, `cftc-weekly`, `federal-register`
 3) Validate data coverage:

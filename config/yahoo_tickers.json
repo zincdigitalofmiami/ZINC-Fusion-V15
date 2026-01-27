@@ -1,6 +1,6 @@
 {
   "_comment": "Canonical symbol → Yahoo Finance ticker mapping",
-  "_updated": "2026-01-06",
+  "_updated": "2026-01-26",
   
   "futures": {
     "_comment": "CME/CBOT futures - use =F suffix",
@@ -9,6 +9,7 @@
     "ZM": "ZM=F",
     "ZC": "ZC=F",
     "ZW": "ZW=F",
+    "RS": "RS=F",
     "CL": "CL=F",
     "HO": "HO=F",
     "RB": "RB=F",
@@ -20,6 +21,8 @@
     "SB": "SB=F",
     "CC": "CC=F",
     "CT": "CT=F",
+    "OJ": "OJ=F",
+    "LBR": "LBR=F",
     "ES": "ES=F",
     "NQ": "NQ=F",
     "YM": "YM=F",
@@ -49,6 +52,8 @@
     "_comment": "Trump/policy proxy tickers for trump_effect specialist",
     "DJT": "DJT",
     "FXI": "FXI",
-    "KWEB": "KWEB"
+    "KWEB": "KWEB",
+    "BDRY": "BDRY",
+    "SBLK": "SBLK"
   }
 }

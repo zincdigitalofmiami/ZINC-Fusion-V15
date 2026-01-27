@@ -55,8 +55,11 @@ export function ZLCandlestickChart({
     const [volatility, setVolatility] = useState<string>('--')
     const [highPrice, setHighPrice] = useState<number | null>(null)
     const [lowPrice, setLowPrice] = useState<number | null>(null)
+    const [isLive, setIsLive] = useState<boolean>(false)
+    const [lastUpdate, setLastUpdate] = useState<string>('')
+    const ohlcDataRef = useRef<OhlcDataSeries | null>(null)
 
-    // Fetch data
+    // Fetch historical data (daily bars)
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -103,9 +106,59 @@ export function ZLCandlestickChart({
             }
         }
         fetchData()
+        // Refresh historical data every 15 minutes
         const interval = setInterval(fetchData, 900000)
         return () => clearInterval(interval)
     }, [])
+
+    // Fetch live data (forming candle) - every 10 seconds
+    useEffect(() => {
+        const fetchLive = async () => {
+            try {
+                const res = await fetch('/api/zl/live')
+                if (!res.ok) return
+                const json = await res.json()
+                
+                if (json.price) {
+                    setLastPrice(json.price)
+                    setIsLive(json.source === 'databento_live')
+                    if (json.updated_at) {
+                        const updated = new Date(json.updated_at)
+                        setLastUpdate(updated.toLocaleTimeString())
+                    }
+                    if (json.change_pct !== null) {
+                        setPriceChange(json.change_pct)
+                    }
+                    
+                    // Update the forming daily candle if we have the data series
+                    if (json.forming_bars?.['1d'] && ohlcDataRef.current && priceData.length > 0) {
+                        const forming = json.forming_bars['1d']
+                        const lastIdx = priceData.length - 1
+                        
+                        // Update the last candle with live forming bar data
+                        ohlcDataRef.current.update(
+                            lastIdx,
+                            forming.open,
+                            forming.high,
+                            forming.low,
+                            forming.close
+                        )
+                        
+                        // Update high/low if forming bar exceeds
+                        if (forming.high > (highPrice || 0)) setHighPrice(forming.high)
+                        if (forming.low < (lowPrice || Infinity)) setLowPrice(forming.low)
+                    }
+                }
+            } catch (err) {
+                // Silent fail for live updates
+            }
+        }
+        
+        fetchLive()
+        // Poll live data every 10 seconds
+        const liveInterval = setInterval(fetchLive, 10000)
+        return () => clearInterval(liveInterval)
+    }, [priceData, highPrice, lowPrice])
 
     // Initialize SciChart
     useEffect(() => {
@@ -238,6 +291,9 @@ export function ZLCandlestickChart({
                 lowValues: priceData.map(d => d.low),
                 closeValues: priceData.map(d => d.close),
             })
+            
+            // Store ref for live updates
+            ohlcDataRef.current = ohlcData
 
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
@@ -293,41 +349,49 @@ export function ZLCandlestickChart({
     }, [priceData])
 
     return (
-        <div className="relative w-full rounded-2xl overflow-hidden border border-white/5" style={{ background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)' }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                <div className="flex items-center gap-4">
+        <div className="relative w-full rounded-xl overflow-hidden border border-white/5" style={{ background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)' }}>
+            {/* Header - compact */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
+                <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50" />
-                        <span className="text-base font-semibold text-white tracking-tight">ZL1!</span>
+                        <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50'}`} />
+                        <span className="text-sm font-semibold text-white tracking-tight">ZL1!</span>
+                        {isLive && (
+                            <span className="px-1.5 py-0.5 text-[8px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded uppercase tracking-wider">
+                                LIVE
+                            </span>
+                        )}
                     </div>
-                    <span className="text-xs text-white/30 font-medium">Soybean Oil Futures • 1D</span>
-                    <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
-                        <span className="text-[9px] text-violet-400 uppercase tracking-wider font-medium">±1σ / ±2σ</span>
+                    <span className="text-[11px] text-white/30 font-medium">Soybean Oil • 1D</span>
+                    {lastUpdate && (
+                        <span className="text-[9px] text-white/20 font-mono">{lastUpdate}</span>
+                    )}
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
+                        <span className="text-[8px] text-violet-400 uppercase tracking-wider font-medium">±1σ/±2σ</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                     {highPrice && lowPrice && (
-                        <div className="flex items-center gap-4 text-xs">
-                            <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-3 text-[11px]">
+                            <div className="flex items-center gap-1">
                                 <span className="text-white/30">H</span>
                                 <span className="text-white/60 font-mono">{highPrice.toFixed(2)}</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                                 <span className="text-white/30">L</span>
                                 <span className="text-white/60 font-mono">{lowPrice.toFixed(2)}</span>
                             </div>
                         </div>
                     )}
-                    <div className="h-4 w-px bg-white/10" />
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5">
-                        <span className="text-[10px] text-white/30 uppercase tracking-wider">IV</span>
-                        <span className="text-xs font-mono text-violet-400">{volatility}</span>
+                    <div className="h-3 w-px bg-white/10" />
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5">
+                        <span className="text-[9px] text-white/30 uppercase">IV</span>
+                        <span className="text-[11px] font-mono text-violet-400">{volatility}</span>
                     </div>
                     {lastPrice && (
-                        <div className="flex items-center gap-3">
-                            <span className="text-2xl font-semibold text-white tabular-nums">{lastPrice.toFixed(2)}</span>
-                            <span className={`text-sm font-medium tabular-nums ${priceChange >= 0 ? 'text-cyan-400' : 'text-pink-400'}`}>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl font-semibold text-white tabular-nums">{lastPrice.toFixed(2)}</span>
+                            <span className={`text-xs font-medium tabular-nums ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                             </span>
                         </div>
@@ -335,14 +399,14 @@ export function ZLCandlestickChart({
                 </div>
             </div>
 
-            {/* Chart with Watermark */}
-            <div className="relative w-full" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
-                {/* ZINC Digital Watermark - offset to right */}
-                <div className="absolute inset-0 flex items-center justify-end pr-20 pointer-events-none z-0">
+            {/* Chart area - takes remaining space */}
+            <div className="relative w-full" style={{ height: `calc(${typeof height === 'number' ? height + 'px' : height} - 70px)` }}>
+                {/* Watermark */}
+                <div className="absolute inset-0 flex items-center justify-end pr-16 pointer-events-none z-0">
                     <img
                         src="/chart_watermark.svg"
                         alt=""
-                        className="w-[400px] h-auto opacity-[0.04]"
+                        className="w-[300px] h-auto opacity-[0.03]"
                         style={{ filter: 'grayscale(100%) brightness(2)' }}
                     />
                 </div>
@@ -353,19 +417,19 @@ export function ZLCandlestickChart({
                 />
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-8 px-6 py-3 border-t border-white/5 bg-black/20">
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-4 rounded-sm" style={{ backgroundColor: '#00ff00' }} />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Bullish</span>
+            {/* Legend - minimal */}
+            <div className="flex items-center justify-center gap-6 px-4 py-1.5 border-t border-white/5 bg-black/20">
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#00ff00' }} />
+                    <span className="text-[9px] text-white/40 uppercase">Bull</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-4 rounded-sm bg-white/80" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">Bearish</span>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-3 rounded-sm bg-white/80" />
+                    <span className="text-[9px] text-white/40 uppercase">Bear</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-2 rounded-sm bg-violet-500/15 border border-violet-500/25" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider">±1σ / ±2σ</span>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-1.5 rounded-sm bg-violet-500/15 border border-violet-500/25" />
+                    <span className="text-[9px] text-white/40 uppercase">Vol Bands</span>
                 </div>
             </div>
         </div>

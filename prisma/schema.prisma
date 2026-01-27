@@ -1868,6 +1868,19 @@ model SupplyEpaRin1d {
   @@schema("supply")
 }
 
+model SupplyLcfs1d {
+  eventDate        DateTime @map("event_date") @db.Date
+  priceUsdPerMt    Decimal  @map("price_usd_per_mt") @db.Decimal(12, 4)
+  source           String   @db.VarChar(100)
+  ingestionBatchId String?  @map("ingestion_batch_id") @db.VarChar(100)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([eventDate])
+  @@index([createdAt], map: "idx_supply_lcfs_created_at")
+  @@map("lcfs_1d")
+  @@schema("supply")
+}
+
 model SupplyWorldbankImports1y {
   id                 Int       @id @default(autoincrement())
   eventDate          DateTime  @map("event_date") @db.Date

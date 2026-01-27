@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: HUGGINGFACE GOLDMINE CATALOG
 ## 🔒 LOCKED: January 7, 2026
 

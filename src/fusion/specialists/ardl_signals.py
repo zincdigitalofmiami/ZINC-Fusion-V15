@@ -69,62 +69,240 @@ class FxSignalGenerator(BaseSignalGenerator):
     - Trade-weighted effective exchange rate
     """
 
+    # =========================================================================
+    # ALL FX PAIRS - Complete Currency Universe
+    # =========================================================================
+    ALL_FX_PAIRS = {
+        # AG-CRITICAL (Tier 1) - Direct soy/oil trade impact
+        "fred_dexbzus": {"name": "BRL/USD", "region": "latam", "weight": 0.20, "ag_relevance": "Brazil #1 soy competitor"},
+        "fred_dexchus": {"name": "CNY/USD", "region": "asia", "weight": 0.25, "ag_relevance": "China #1 importer"},
+        "fred_dexmxus": {"name": "MXN/USD", "region": "latam", "weight": 0.10, "ag_relevance": "Mexico USMCA partner"},
+        "fred_dexcaus": {"name": "CAD/USD", "region": "americas", "weight": 0.08, "ag_relevance": "Canada canola"},
+        "fred_dexusal": {"name": "AUD/USD", "region": "apac", "weight": 0.05, "ag_relevance": "Australia competitor"},
+        "fred_dexars": {"name": "ARS/USD", "region": "latam", "weight": 0.07, "ag_relevance": "Argentina soy producer"},
+        # ASIA-PACIFIC (Tier 2) - Regional demand
+        "fred_dexjpus": {"name": "JPY/USD", "region": "asia", "weight": 0.05, "ag_relevance": "Japan importer"},
+        "fred_dexkous": {"name": "KRW/USD", "region": "asia", "weight": 0.03, "ag_relevance": "Korea importer"},
+        "fred_dexinus": {"name": "INR/USD", "region": "asia", "weight": 0.03, "ag_relevance": "India palm/soy demand"},
+        "fred_dexmaus": {"name": "MYR/USD", "region": "asia", "weight": 0.04, "ag_relevance": "Malaysia palm producer"},
+        "fred_dextaus": {"name": "TWD/USD", "region": "asia", "weight": 0.02, "ag_relevance": "Taiwan importer"},
+        "fred_dexthus": {"name": "THB/USD", "region": "asia", "weight": 0.02, "ag_relevance": "Thailand palm/rice"},
+        "fred_dexsius": {"name": "SGD/USD", "region": "asia", "weight": 0.01, "ag_relevance": "Singapore trade hub"},
+        "fred_dexhkus": {"name": "HKD/USD", "region": "asia", "weight": 0.01, "ag_relevance": "HK China proxy"},
+        # EUROPE (Tier 3) - EU rapeseed/sunflower
+        "fred_dexuseu": {"name": "EUR/USD", "region": "europe", "weight": 0.04, "ag_relevance": "EU rapeseed market"},
+        "fred_dexusuk": {"name": "GBP/USD", "region": "europe", "weight": 0.02, "ag_relevance": "UK trade"},
+        "fred_dexsfus": {"name": "CHF/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Swiss safe haven"},
+        "fred_dexnous": {"name": "NOK/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Norway oil correlation"},
+        "fred_dexszus": {"name": "SEK/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Sweden trade"},
+    }
+
+    # Trade-weighted indices
+    TRADE_WEIGHTED_INDICES = {
+        "fred_dtwexbgs": "Broad Trade-Weighted USD",
+        "fred_dtwexafegs": "Advanced Foreign Economies TWI",
+        "fred_dtwexemegs": "Emerging Markets TWI",
+        "fred_dxy": "DXY Dollar Index",
+    }
+
     def __init__(self):
+        # Build primary features from ALL FX pairs
+        primary_fx = [
+            "close",
+            # DOLLAR INDICES
+            "fred_dxy",             # DXY - Broad dollar benchmark
+            "fred_dtwexbgs",        # Broad Trade-Weighted USD
+            "fred_dtwexemegs",      # Emerging Markets TWI
+            # AG-CRITICAL FX (Tier 1)
+            "fred_dexbzus",         # BRL/USD - Brazil
+            "fred_dexchus",         # CNY/USD - China
+            "fred_dexmxus",         # MXN/USD - Mexico
+            "fred_dexcaus",         # CAD/USD - Canada
+            "fred_dexusal",         # AUD/USD - Australia
+            "fred_dexars",          # ARS/USD - Argentina
+            # ASIA-PACIFIC (Tier 2)
+            "fred_dexjpus",         # JPY/USD - Japan
+            "fred_dexkous",         # KRW/USD - Korea
+            "fred_dexinus",         # INR/USD - India
+            "fred_dexmaus",         # MYR/USD - Malaysia
+            # CARRY TRADE INPUTS
+            "fred_fedfunds",        # US Fed Funds rate
+            "fred_dgs2",            # US 2Y Treasury
+            "fred_dgs10",           # US 10Y Treasury
+        ]
+
+        secondary_fx = [
+            # ASIA-PACIFIC Extended
+            "fred_dextaus",         # TWD/USD - Taiwan
+            "fred_dexthus",         # THB/USD - Thailand
+            "fred_dexsius",         # SGD/USD - Singapore
+            "fred_dexhkus",         # HKD/USD - Hong Kong
+            # EUROPE
+            "fred_dexuseu",         # EUR/USD - EU
+            "fred_dexusuk",         # GBP/USD - UK
+            "fred_dexsfus",         # CHF/USD - Swiss
+            "fred_dexnous",         # NOK/USD - Norway
+            "fred_dexszus",         # SEK/USD - Sweden
+            # ADVANCED TWI
+            "fred_dtwexafegs",      # Advanced Foreign Economies TWI
+            # FOREIGN INTEREST RATES
+            "fred_ir3tib01cnm156n", # China 3M interbank rate
+            # ELITE INDICATORS ON FX (computed)
+            "dxy_rsi_14",           # DXY RSI
+            "dxy_macd",             # DXY MACD
+            "dxy_atr_14",           # DXY ATR
+            "brl_zscore_63d",       # BRL z-score
+            "cny_zscore_63d",       # CNY z-score
+            "fx_correlation_matrix",# Cross-pair correlations
+        ]
+
         config = SignalConfig(
             bucket="fx",
             model_type="ardl",
-            primary_features=["close"],
-            secondary_features=[
-                "fred_dexbzus",  # BRL/USD (inverted to USD/BRL)
-                "fred_dexchus",  # CNY/USD (inverted to USD/CNY)
-                "fred_dxy",      # DXY index
-                "fred_dexmxus",  # MXN/USD
-                "fred_dexusal",  # AUD/USD
-                # Interest rates for carry trade
-                "fred_fedfunds",  # US Fed Funds
-                "fred_dgs2",      # US 2Y
-                # Foreign interest rates (dynamic when available)
-                "fred_ir3tib01cnm156n",  # China 3M interbank rate
-            ],
-            lookback_days=2520,   # 10 years of historical data for deep context
-            min_data_points=756,   # Minimum 3 years of data required for robust estimation
+            primary_features=primary_fx,
+            secondary_features=secondary_fx,
+            lookback_days=2520,   # 10 years for deep context
+            min_data_points=756,  # 3 years minimum
         )
         super().__init__(config)
 
-        # Base trade weights for FX pairs (from USDA export data)
-        # These are starting points, dynamically adjusted by correlation
-        self.base_trade_weights = {
-            "fred_dexbzus": 0.30,   # Brazil - #1 soy competitor
-            "fred_dexchus": 0.35,   # China - #1 importer
-            "fred_dxy": 0.15,       # Broad dollar benchmark
-            "fred_dexmxus": 0.12,   # Mexico - USMCA partner
-            "fred_dexusal": 0.08,   # Australia - competitor
-        }
+        # Dynamic trade weights (adjusted by correlation with ZL)
+        self.base_trade_weights = {k: v["weight"] for k, v in self.ALL_FX_PAIRS.items()}
 
-        # Foreign interest rate columns (dynamic rates from FRED when available)
-        # Maps country -> FRED column name in DataFrame
+        # Foreign interest rate columns
         self.foreign_rate_columns = {
-            "china": "fred_ir3tib01cnm156n",  # China 3M interbank rate
-            # Note: Brazil/Mexico/Australia rates require dynamic series columns
+            "china": "fred_ir3tib01cnm156n",
         }
 
         self.ardl_model = None
         self.dynamic_weights = None
-        self.ardl_lags = 5  # Default ARDL lags
-        self.correlation_window = 504   # 2-year rolling correlation for stable dynamic weights
-        self.zscore_window = 1260       # 5-year z-score normalization for deep context
+        self.ardl_lags = 5
+        self.correlation_window = 504
+        self.zscore_window = 1260
+
+        # Store computed correlations
+        self.fx_correlations = {}
+        self.zl_fx_correlations = {}
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Need at least one FX indicator."""
+        """Require AG-CRITICAL FX pairs + dollar indices + carry inputs."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
 
-        # Check for at least one FX series
-        available_fx = [col for col in self.base_trade_weights.keys() if col in data.columns]
-        if not available_fx:
-            missing.append("at_least_one_fx_pair")
+        # REQUIRE dollar indices
+        if "fred_dxy" not in data.columns:
+            missing.append("fred_dxy")
+
+        # REQUIRE AG-CRITICAL Tier 1 pairs
+        tier1_required = ["fred_dexbzus", "fred_dexchus", "fred_dexmxus", "fred_dexcaus"]
+        for fx in tier1_required:
+            if fx not in data.columns:
+                missing.append(fx)
+
+        # REQUIRE carry trade inputs
+        if "fred_fedfunds" not in data.columns:
+            missing.append("fred_fedfunds")
+        if "fred_dgs2" not in data.columns:
+            missing.append("fred_dgs2")
+        if "fred_dgs10" not in data.columns:
+            missing.append("fred_dgs10")
+
         return missing
+
+    def _compute_fx_correlations(self, data: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+        """
+        Compute rolling correlations between ALL FX pairs.
+
+        Returns dict with:
+        - zl_correlations: Each FX pair's correlation with ZL
+        - cross_correlations: FX pair cross-correlations
+        """
+        zl = data["close"]
+        zl_returns = zl.pct_change(fill_method=None)
+
+        # Compute ZL correlation for each FX pair
+        zl_correlations = {}
+        available_fx = [col for col in self.ALL_FX_PAIRS.keys() if col in data.columns]
+
+        for fx_col in available_fx:
+            fx_series = data[fx_col]
+            # Invert non-DXY pairs to get USD strength
+            if fx_col != "fred_dxy" and not fx_col.startswith("fred_dtwex"):
+                fx_returns = (1 / fx_series).pct_change(fill_method=None)
+            else:
+                fx_returns = fx_series.pct_change(fill_method=None)
+
+            # Rolling correlation with ZL
+            rolling_corr = zl_returns.rolling(self.correlation_window, min_periods=126).corr(fx_returns)
+            zl_correlations[fx_col] = rolling_corr
+
+        self.zl_fx_correlations = zl_correlations
+
+        # Compute cross-correlations between FX pairs (for regime detection)
+        cross_correlations = {}
+        for i, fx1 in enumerate(available_fx):
+            for fx2 in available_fx[i+1:]:
+                fx1_ret = data[fx1].pct_change(fill_method=None)
+                fx2_ret = data[fx2].pct_change(fill_method=None)
+                corr_key = f"{fx1}_x_{fx2}"
+                cross_correlations[corr_key] = fx1_ret.rolling(126).corr(fx2_ret)
+
+        self.fx_correlations = cross_correlations
+
+        return {"zl": zl_correlations, "cross": cross_correlations}
+
+    def _compute_elite_fx_indicators(self, data: pd.DataFrame) -> Dict[str, pd.Series]:
+        """
+        Compute elite technical indicators for key FX pairs.
+
+        Returns dict of indicator series.
+        """
+        elite_indicators = {}
+
+        # Key pairs to compute elite indicators for
+        key_pairs = ["fred_dxy", "fred_dexbzus", "fred_dexchus", "fred_dexmxus"]
+
+        for fx_col in key_pairs:
+            if fx_col not in data.columns:
+                continue
+
+            fx = data[fx_col]
+            prefix = fx_col.replace("fred_", "").replace("dex", "")
+
+            # RSI-14
+            delta = fx.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, np.nan)
+            elite_indicators[f"{prefix}_rsi_14"] = 100 - (100 / (1 + rs))
+
+            # MACD (12, 26, 9)
+            ema12 = fx.ewm(span=12, adjust=False).mean()
+            ema26 = fx.ewm(span=26, adjust=False).mean()
+            macd = ema12 - ema26
+            signal = macd.ewm(span=9, adjust=False).mean()
+            elite_indicators[f"{prefix}_macd"] = macd
+            elite_indicators[f"{prefix}_macd_signal"] = signal
+            elite_indicators[f"{prefix}_macd_hist"] = macd - signal
+
+            # ATR-14 (using high/low proxy from close)
+            high_proxy = fx.rolling(14).max()
+            low_proxy = fx.rolling(14).min()
+            tr = high_proxy - low_proxy
+            elite_indicators[f"{prefix}_atr_14"] = tr.rolling(14).mean()
+
+            # Z-scores at multiple horizons
+            for window in [21, 63, 126]:
+                mean = fx.rolling(window).mean()
+                std = fx.rolling(window).std()
+                elite_indicators[f"{prefix}_zscore_{window}d"] = (fx - mean) / std.replace(0, np.nan)
+
+            # Momentum
+            elite_indicators[f"{prefix}_mom_5d"] = fx.pct_change(5, fill_method=None)
+            elite_indicators[f"{prefix}_mom_21d"] = fx.pct_change(21, fill_method=None)
+
+        return elite_indicators
 
     def _compute_dynamic_weights(
         self,
@@ -302,89 +480,89 @@ class FxSignalGenerator(BaseSignalGenerator):
     def _compute_proxy_carry_signal(
         self,
         data: pd.DataFrame,
-        us_rate: pd.Series,
+        us_rate: pd.Series = None,  # Kept for backward compat, but now derived internally
     ) -> Tuple[pd.Series, Dict[str, pd.Series]]:
         """
-        Compute proxy carry trade signal when individual country rates unavailable.
-
-        Uses market-based proxies that reflect global carry conditions:
-        1. TED spread: 3M LIBOR - T-Bill (credit/liquidity risk premium)
-        2. High Yield spread: EM rates correlate with HY (risk appetite)
-        3. Yield curve slope: Steeper = higher future rates = USD attractive
-        4. DXY momentum: Confirms/dampens carry signal
-
-        Theory:
-        - Higher credit spreads = risk-off = capital flows to USD = bullish USD
-        - Steeper yield curve = US rate expectations rising = bullish USD
-        - DXY strength confirms carry flow direction
-
+        Proxy carry signal built from available US rate/credit/curve risk proxies.
+        
+        Key rules:
+          - If T10Y2Y isn't present but DGS10 and DGS2 are, derive it.
+          - Do NOT fill warmup NaNs with 0 (that creates fake "no signal").
+          - Filter components by coverage before combining.
+          - Combine by averaging only available z-scored components.
+        
         Returns:
-            (proxy_carry_zscore, proxy_components)
+            (proxy_carry_signal, proxy_components)
         """
+        df = data.copy()
+
+        # --- Patch 2: derived T10Y2Y fallback ---
+        if "fred_t10y2y" not in df.columns:
+            if "fred_dgs10" in df.columns and "fred_dgs2" in df.columns:
+                df["fred_t10y2y"] = df["fred_dgs10"] - df["fred_dgs2"]
+                logger.info("   Derived fred_t10y2y from DGS10 - DGS2")
+
+        # Helper: rolling z-score with warmup handling (NO fillna(0))
+        def rolling_zscore(s: pd.Series, window: int = 504, min_periods: int = 126) -> pd.Series:
+            s = pd.to_numeric(s, errors="coerce")
+            mu = s.rolling(window=window, min_periods=min_periods).mean()
+            sd = s.rolling(window=window, min_periods=min_periods).std(ddof=0)
+            # Prevent division by 0 without masking missingness
+            sd = sd.replace(0, np.nan)
+            return (s - mu) / sd
+
+        # Candidate proxy components (use what we actually have)
         components = {}
 
-        # === Component 1: TED Spread (credit risk) ===
-        # Higher TED = more credit risk = flight to safety = USD strength
-        if "fred_tedrate" in data.columns:
-            ted = data["fred_tedrate"].copy()
-            ted_zscore = (ted - ted.rolling(504).mean()) / ted.rolling(504).std().replace(0, 1)
-            components["ted_spread"] = ted_zscore.fillna(0)
-            logger.debug("   Using TED spread for carry proxy")
+        if "fred_fedfunds" in df.columns:
+            components["us_rate_level"] = df["fred_fedfunds"]
 
-        # === Component 2: High Yield Spread (EM risk proxy) ===
-        # EM rates track HY spreads; wider HY = EM weakness = USD strength
-        # Use change in HY spread as signal (rising = risk-off)
-        if "fred_bamlh0a0hym2" in data.columns:
-            hy = data["fred_bamlh0a0hym2"].copy()
-            hy_change = hy.pct_change(21, fill_method=None)  # 1-month change
-            hy_zscore = (hy_change - hy_change.rolling(252).mean()) / hy_change.rolling(252).std().replace(0, 1)
-            components["hy_spread"] = hy_zscore.fillna(0)
-            logger.debug("   Using HY spread for carry proxy")
+        if "fred_t10y2y" in df.columns:
+            components["curve_slope"] = df["fred_t10y2y"]
 
-        # === Component 3: Yield Curve Slope ===
-        # Steeper curve = higher future rates = USD attractive
-        if "fred_t10y2y" in data.columns:
-            curve = data["fred_t10y2y"].copy()
-            curve_zscore = (curve - curve.rolling(504).mean()) / curve.rolling(504).std().replace(0, 1)
-            components["yield_curve"] = curve_zscore.fillna(0)
-            logger.debug("   Using yield curve for carry proxy")
+        if "fred_tedrate" in df.columns:
+            components["ted_spread"] = df["fred_tedrate"]
 
-        # === Component 4: US Rate Level ===
-        # Higher absolute US rate = more attractive to hold USD
-        us_rate_zscore = (us_rate - us_rate.rolling(504).mean()) / us_rate.rolling(504).std().replace(0, 1)
-        components["us_rate_level"] = us_rate_zscore.fillna(0)
+        if "fred_bamlh0a0hym2" in df.columns:
+            components["hy_spread"] = df["fred_bamlh0a0hym2"]
 
         if not components:
-            logger.warning("   No proxy data available for carry trade")
-            return pd.Series(0.0, index=data.index), {}
+            # No inputs = explicit failure (NaN), not fake zeros
+            logger.warning("   No proxy data available for carry trade - returning NaN signal")
+            return pd.Series(index=df.index, dtype="float64"), {}
 
-        # === Combine Components ===
-        # Weight by theoretical importance for FX carry
-        weights = {
-            "ted_spread": 0.25,      # Credit risk is key driver
-            "hy_spread": 0.30,       # EM risk proxy (most relevant for ag FX)
-            "yield_curve": 0.20,     # Future rate expectations
-            "us_rate_level": 0.25,   # Absolute rate attractiveness
-        }
+        comp_df = pd.DataFrame(components, index=df.index)
 
-        composite = pd.Series(0.0, index=data.index)
-        active_weight = 0.0
+        # Coverage filter: keep only components with decent data availability
+        coverage = comp_df.notna().mean().sort_values(ascending=False)
+        good_cols = coverage[coverage > 0.80].index.tolist()
+        dropped_cols = [c for c in comp_df.columns if c not in good_cols]
+        
+        if dropped_cols:
+            logger.info(f"   Carry proxy dropping low-coverage components: {dropped_cols}")
+        
+        comp_df = comp_df[good_cols]
 
-        for name, component in components.items():
-            w = weights.get(name, 0.1)
-            composite += w * component
-            active_weight += w
+        # If nothing survives coverage, return NaN (explicit failure)
+        if comp_df.shape[1] == 0:
+            logger.warning("   No carry proxy components survived coverage filter - returning NaN signal")
+            return pd.Series(index=df.index, dtype="float64"), {}
 
-        # Normalize by active weight
-        if active_weight > 0:
-            composite = composite / active_weight
+        # Z-score each component with warmup; do NOT fill NaNs
+        z_df = comp_df.apply(lambda s: rolling_zscore(s, window=504, min_periods=126))
 
-        # Final z-score normalization
-        composite_zscore = (composite - composite.rolling(504).mean()) / composite.rolling(504).std().replace(0, 1)
+        # Combine: average only across available components per row
+        signal = z_df.mean(axis=1, skipna=True)
 
-        logger.info(f"   Carry trade proxy computed using: {list(components.keys())}")
+        # Require at least 2 components to avoid single noisy series dominating
+        min_components = 2
+        n_avail = z_df.notna().sum(axis=1)
+        signal = signal.where(n_avail >= min_components)
 
-        return composite_zscore.fillna(0), components
+        logger.info(f"   Carry trade proxy computed using: {good_cols} (coverage: {dict(coverage[good_cols].round(3))})")
+
+        # Return components dict for debugging
+        return signal, {col: comp_df[col] for col in good_cols}
 
     def _fit_ardl_model(
         self,
@@ -424,12 +602,77 @@ class FxSignalGenerator(BaseSignalGenerator):
                     inverted = 1.0 / fx.where(fx.abs() > 1e-10, np.nan)
                     fx_returns_data[col] = inverted.pct_change(fill_method=None)
 
-            fx_returns = pd.DataFrame(fx_returns_data).dropna()
+            fx_returns = pd.DataFrame(fx_returns_data)
+
+            # Step 2b: Coverage filter - don't let sparse exotic pairs nuke the dataset
+            # Major FX pairs allowlist for determinism (prefer these over random survivors)
+            MAJOR_FX_PAIRS = [
+                "fred_dxy",      # Dollar index
+                "fred_dexbzus",  # BRL/USD (Brazil - key soy exporter)
+                "fred_dexchus",  # CNY/USD (China - key soy importer)
+                "fred_dexjpus",  # JPY/USD (Japan)
+                "fred_dexuseu",  # EUR/USD (Europe)
+                "fred_dexcaus",  # CAD/USD (Canada - canola)
+                "fred_dexmxus",  # MXN/USD (Mexico)
+                "fred_dexkous",  # KRW/USD (Korea)
+                "fred_dexinus",  # INR/USD (India)
+                "fred_dexmaus",  # MYR/USD (Malaysia - palm oil)
+            ]
+
+            # Calculate coverage (% non-null per column)
+            coverage = fx_returns.notna().mean().sort_values(ascending=False)
+
+            # Log what we're seeing
+            logger.info(f"   ARDL FX coverage - best: {dict(coverage.head(5).round(3))}")
+            logger.info(f"   ARDL FX coverage - worst: {dict(coverage.tail(5).round(3))}")
+
+            # Keep only columns with >80% coverage
+            MIN_COVERAGE = 0.80
+            good_cols = coverage[coverage > MIN_COVERAGE].index.tolist()
+
+            # Intersect with majors for determinism (prefer majors that have good coverage)
+            majors_available = [c for c in MAJOR_FX_PAIRS if c in good_cols]
+            other_good = [c for c in good_cols if c not in MAJOR_FX_PAIRS]
+
+            # Use majors first, then fill with other good columns
+            final_cols = majors_available + other_good[:max(0, 10 - len(majors_available))]
+
+            dropped_cols = [c for c in fx_returns.columns if c not in final_cols]
+            if dropped_cols:
+                logger.info(f"   ARDL dropping sparse columns: {dropped_cols}")
+
+            # Apply filter and dropna on remaining columns
+            fx_returns = fx_returns[final_cols].dropna()
+
+            # Hard guardrails - don't silently fit nonsense
+            MIN_ROWS = 250   # ~1 trading year
+            MIN_COLS = 3     # ARDL with 1-2 cols is usually junk
+
+            if fx_returns.shape[1] < MIN_COLS:
+                logger.warning(
+                    f"ARDL insufficient columns after coverage filter: "
+                    f"cols={fx_returns.shape[1]} < {MIN_COLS}. Kept={final_cols}"
+                )
+                return None
+
+            if fx_returns.shape[0] < MIN_ROWS:
+                logger.warning(
+                    f"ARDL insufficient rows after coverage filter: "
+                    f"rows={fx_returns.shape[0]} < {MIN_ROWS}. Kept={final_cols}"
+                )
+                return None
+
+            # === VERIFICATION CHECKPOINT 1: Input frame sanity ===
+            final_coverage = coverage[final_cols]
+            logger.info(f"   ARDL input: {fx_returns.shape[0]} rows, {fx_returns.shape[1]} cols")
+            logger.info(f"   ARDL cols: {final_cols[:5]}{'...' if len(final_cols) > 5 else ''}")
+            logger.info(f"   ARDL coverage min/median/max: {final_coverage.min():.3f} / {final_coverage.median():.3f} / {final_coverage.max():.3f}")
+            logger.info(f"   ARDL date range: {fx_returns.index.min().date()} to {fx_returns.index.max().date()}")
 
             # Step 3: Align indices
             common_idx = zl_returns.index.intersection(fx_returns.index)
-            if len(common_idx) < 500:
-                logger.warning(f"Insufficient data for ARDL: {len(common_idx)} < 500 required")
+            if len(common_idx) < MIN_ROWS:
+                logger.warning(f"ARDL FALLBACK: Insufficient aligned data {len(common_idx)} < {MIN_ROWS}")
                 return None
 
             y = zl_returns.loc[common_idx].copy()
@@ -511,20 +754,34 @@ class FxSignalGenerator(BaseSignalGenerator):
                             continue
 
             if best_model is not None:
-                # Validate coefficients are numerically stable
+                # === VERIFICATION CHECKPOINT 2: Model actually fits ===
                 params = best_model.params
+                
+                # Validate coefficients are numerically stable
                 if not np.isfinite(params).all():
-                    logger.warning("   ARDL model has non-finite coefficients, rejecting")
+                    logger.warning("   ARDL FALLBACK: Non-finite coefficients")
                     return None
 
                 max_coef = np.abs(params).max()
                 if max_coef > 1e6:
-                    logger.warning(f"   ARDL model has extreme coefficients (max={max_coef:.2e}), rejecting")
+                    logger.warning(f"   ARDL FALLBACK: Extreme coefficients (max={max_coef:.2e})")
                     return None
+
+                # === VERIFICATION CHECKPOINT 3: Residual sanity ===
+                try:
+                    resid = best_model.resid
+                    resid_std = resid.std()
+                    resid_mean = resid.mean()
+                    if resid_std < 1e-10:
+                        logger.warning(f"   ARDL FALLBACK: Residual std ~0 ({resid_std:.2e}) - degenerate fit")
+                        return None
+                    logger.info(f"   ARDL residuals: mean={resid_mean:.4f}, std={resid_std:.4f}")
+                except Exception as e:
+                    logger.warning(f"   ARDL residual check failed: {e}")
 
                 # Log coefficient summary
                 coef_stats = f"min={params.min():.4f}, max={params.max():.4f}, mean={params.mean():.4f}"
-                logger.info(f"   ARDL fitted: AR({best_lags[0]}), DL({best_lags[1]}), AIC={best_aic:.2f}")
+                logger.info(f"   ARDL FIT OK: AR({best_lags[0]}), DL({best_lags[1]}), AIC={best_aic:.2f}")
                 logger.info(f"   ARDL observations: {best_model.nobs}, coefficients: {coef_stats}")
                 self.ardl_lags = best_lags
 
@@ -535,7 +792,7 @@ class FxSignalGenerator(BaseSignalGenerator):
 
                 return best_model
 
-            logger.warning("   No valid ARDL model found")
+            logger.warning("   ARDL FALLBACK: No valid model found in lag search")
             return None
 
         except Exception as e:
@@ -674,14 +931,41 @@ class FxSignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute FX pressure index with real ARDL and carry trade.
+        Compute FX pressure index with real ARDL, carry trade, and ALL elite indicators.
 
         Components:
         1. Dynamic-weighted FX z-scores
         2. ARDL model fitted value (if available)
         3. Carry trade signal
+        4. ALL elite indicators on all FX pairs
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL FX PAIRS
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # Add elite indicators for DXY and all major FX pairs
+        for fx_col in ["fred_dxy", "fred_dexbzus", "fred_dexchus", "fred_dexmxus", 
+                       "fred_dexcaus", "fred_dexusal", "fred_dexjpus", "fred_dexkous",
+                       "fred_dexinus", "fred_dexmaus", "fred_dexuseu", "fred_dexusuk"]:
+            if fx_col in data.columns and data[fx_col].notna().sum() > 30:
+                fx_data = data.copy()
+                fx_data["close"] = data[fx_col]
+                prefix = fx_col.replace("fred_", "").replace("dex", "")
+                fx_data = self.add_all_elite_indicators(fx_data, "close", prefix)
+                for c in fx_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = fx_data[c]
+
+        # Compute FX correlations
+        self._compute_fx_correlations(data)
+
+        # Compute elite FX indicators
+        elite_fx = self._compute_elite_fx_indicators(data)
+        for col_name, series in elite_fx.items():
+            data[col_name] = series
 
         # Step 1: Compute dynamic weights
         dynamic_weights = self._compute_dynamic_weights(data)
@@ -856,14 +1140,27 @@ class FedSignalGenerator(BaseSignalGenerator):
         config = SignalConfig(
             bucket="fed",
             model_type="ridge",
-            primary_features=["close"],
+            primary_features=[
+                "close",
+                # YIELD CURVE COMPLEX - Full term structure
+                "fred_fedfunds",    # Fed Funds rate (policy rate)
+                "fred_dgs3mo",      # 3-month Treasury (near-term)
+                "fred_dgs2",        # 2Y Treasury (policy expectations)
+                "fred_dgs10",       # 10Y Treasury (long-term)
+                # FINANCIAL CONDITIONS
+                "fred_nfci",        # Chicago NFCI (financial stress)
+            ],
             secondary_features=[
-                "fred_fedfunds",   # Fed funds rate
-                "fred_dgs10",      # 10Y Treasury
-                "fred_dgs2",       # 2Y Treasury
-                "fred_dgs3mo",     # 3-month Treasury
-                "fred_t10yie",     # 10Y breakeven inflation
-                "fred_nfci",       # Chicago NFCI
+                # Extended yield curve
+                "fred_dgs1",        # 1Y Treasury
+                "fred_dgs5",        # 5Y Treasury
+                "fred_dgs30",       # 30Y Treasury
+                # Inflation expectations
+                "fred_t10yie",      # 10Y breakeven inflation
+                "fred_t5yie",       # 5Y breakeven inflation
+                # Credit spreads
+                "fred_bamlh0a0hym2",  # High yield spread
+                "fred_tedrate",     # TED spread (stress)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -871,15 +1168,22 @@ class FedSignalGenerator(BaseSignalGenerator):
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Need at least one rates indicator."""
+        """Require FULL yield curve + financial conditions."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-
-        rate_cols = ["fred_fedfunds", "fred_dgs10", "fred_dgs2", "fred_nfci"]
-        available = [col for col in rate_cols if col in data.columns]
-        if not available:
-            missing.append("at_least_one_rate_indicator")
+        # REQUIRE full yield curve
+        if "fred_fedfunds" not in data.columns:
+            missing.append("fred_fedfunds")
+        if "fred_dgs3mo" not in data.columns:
+            missing.append("fred_dgs3mo")
+        if "fred_dgs2" not in data.columns:
+            missing.append("fred_dgs2")
+        if "fred_dgs10" not in data.columns:
+            missing.append("fred_dgs10")
+        # REQUIRE financial conditions
+        if "fred_nfci" not in data.columns:
+            missing.append("fred_nfci")
         return missing
 
     def _compute_yield_curve(self, data: pd.DataFrame) -> Optional[pd.Series]:
@@ -954,7 +1258,7 @@ class FedSignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute Fed regime signals.
+        Compute Fed regime signals with ALL elite indicators.
 
         PATCHED 2026-01-21: Enhanced with curve dynamics and real rates
 
@@ -964,8 +1268,26 @@ class FedSignalGenerator(BaseSignalGenerator):
         - Yield curve (10Y-2Y) z-score + dynamics
         - Real rate z-score (nominal - breakeven)
         - NFCI (if available)
+        - ALL elite indicators on rates
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL RATE SERIES
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # Add elite indicators for key rate series
+        for rate_col in ["fred_fedfunds", "fred_dgs2", "fred_dgs10", "fred_dgs30",
+                         "fred_dgs3mo", "fred_nfci", "fred_t10yie"]:
+            if rate_col in data.columns and data[rate_col].notna().sum() > 30:
+                rate_data = data.copy()
+                rate_data["close"] = data[rate_col]
+                prefix = rate_col.replace("fred_", "")
+                rate_data = self.add_all_elite_indicators(rate_data, "close", prefix)
+                for c in rate_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = rate_data[c]
 
         # Compute component z-scores
         components = {}

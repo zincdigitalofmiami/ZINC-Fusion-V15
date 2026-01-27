@@ -1,0 +1,1 @@
+*/5 * * * * /Volumes/Satechi\ Hub/ZINC-FUSION-V15/scripts/run_databento_live_zl_burst.sh >> /tmp/zl-live.log 2>&1

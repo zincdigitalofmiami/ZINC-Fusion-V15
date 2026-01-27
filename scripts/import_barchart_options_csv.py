@@ -224,6 +224,9 @@ def import_options_ohlcv_csv(filepath: Path, conn) -> dict:
 
 
 def main():
+    raise SystemExit(
+        "Barchart options/greeks CSV import is disabled in production. Existing data is retained."
+    )
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
 
     total_inserted = 0

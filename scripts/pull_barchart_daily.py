@@ -91,6 +91,9 @@ def parse_num(val):
 
 
 def main():
+    raise SystemExit(
+        "Barchart pulls are disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(description="Pull Barchart daily prices")
     parser.add_argument("--symbols", help="Comma-separated symbols (default: all)")
     parser.add_argument("--date", help="Override event date (YYYY-MM-DD)")

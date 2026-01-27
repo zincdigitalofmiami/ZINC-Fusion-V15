@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: Specialist Model Registry (v3 Architecture)
 
 > **CRITICAL**: Each specialist has a UNIQUE, CUSTOM model architecture.

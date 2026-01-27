@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: Complete Retrieval Implementation Specification
 
 **For**: GPT/Codex Implementation

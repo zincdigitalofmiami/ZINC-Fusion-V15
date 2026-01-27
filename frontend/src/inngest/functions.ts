@@ -1,6 +1,9 @@
 export { zl15m } from "./zl-15m";
 export { zl1h } from "./zl-1h";
+export { zlDaily } from "./zl-daily";
+export { zlLive15m, zlLive1h, zlLive1d } from "./zl-live";
 export { yahooEod } from "./yahoo-eod";
+export { yahooEtfDaily } from "./yahoo-etf-daily";
 export {
   fredDailyFed,
   fredDailyFx,
@@ -31,10 +34,8 @@ export { fxSpotDaily } from "./fx-spot-daily";
 export { epaRinPricesDaily } from "./epa-rin-prices-daily";
 export { usdaWasdeMonthly } from "./usda-wasde-monthly";
 export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
-export { barchartZlNewsDaily } from "./barchart-zl-news";
-export { barchartFuturesDaily, barchartFuturesManual } from "./barchart-futures-daily";
 export { glideVegasSync } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
 export { profarmerDaily, profarmerBackfill } from "./profarmer-daily";
-export { barchartEtfDaily, barchartEtfBackfill } from "./barchart-etf-daily";
-export { barchartOptionsDaily, barchartOptionsBackfill } from "./barchart-options-daily";
+export { databentoFuturesDaily } from "./databento-futures-daily";
+export { databentoStatisticsDaily } from "./databento-statistics-daily";

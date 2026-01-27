@@ -1,0 +1,1076 @@
+{
+  "source_distribution_15m": {
+    "description": "Source distribution in zl_price_15m",
+    "success": true,
+    "row_count": 1,
+    "columns": [
+      "source",
+      "count",
+      "min_ts",
+      "max_ts"
+    ],
+    "data": [
+      {
+        "source": "yahoo",
+        "count": 789,
+        "min_ts": "2026-01-20 08:15:00+00:00",
+        "max_ts": "2026-01-27 19:19:58+00:00"
+      }
+    ],
+    "summary": {
+      "count": {
+        "count": 1.0,
+        "mean": 789.0,
+        "std": NaN,
+        "min": 789.0,
+        "25%": 789.0,
+        "50%": 789.0,
+        "75%": 789.0,
+        "max": 789.0
+      }
+    }
+  },
+  "source_distribution_1h": {
+    "description": "Source distribution in zl_price_1h",
+    "success": true,
+    "row_count": 1,
+    "columns": [
+      "source",
+      "count",
+      "min_ts",
+      "max_ts"
+    ],
+    "data": [
+      {
+        "source": "yahoo",
+        "count": 9549,
+        "min_ts": "2024-01-16 05:00:00+00:00",
+        "max_ts": "2026-01-27 19:19:58+00:00"
+      }
+    ],
+    "summary": {
+      "count": {
+        "count": 1.0,
+        "mean": 9549.0,
+        "std": NaN,
+        "min": 9549.0,
+        "25%": 9549.0,
+        "50%": 9549.0,
+        "75%": 9549.0,
+        "max": 9549.0
+      }
+    }
+  },
+  "source_distribution_1d": {
+    "description": "Source distribution in zl_price_1d",
+    "success": true,
+    "row_count": 6,
+    "columns": [
+      "source",
+      "count",
+      "min_date",
+      "max_date"
+    ],
+    "data": [
+      {
+        "source": "databento_historical",
+        "count": 6516,
+        "min_date": "2000-03-15",
+        "max_date": "2025-12-26"
+      },
+      {
+        "source": "TradingView",
+        "count": 1869,
+        "min_date": "1970-01-01",
+        "max_date": "2023-09-04"
+      },
+      {
+        "source": "yahoo_backfill",
+        "count": 23,
+        "min_date": "2025-12-17",
+        "max_date": "2026-01-19"
+      },
+      {
+        "source": "yahoo_eod",
+        "count": 3,
+        "min_date": "2026-01-23",
+        "max_date": "2026-01-27"
+      },
+      {
+        "source": "yahoo_manual",
+        "count": 2,
+        "min_date": "2026-01-20",
+        "max_date": "2026-01-22"
+      },
+      {
+        "source": "yahoo",
+        "count": 2,
+        "min_date": "2025-12-31",
+        "max_date": "2026-01-02"
+      }
+    ],
+    "summary": {
+      "count": {
+        "count": 6.0,
+        "mean": 1402.5,
+        "std": 2613.424018409565,
+        "min": 2.0,
+        "25%": 2.25,
+        "50%": 13.0,
+        "75%": 1407.5,
+        "max": 6516.0
+      }
+    }
+  },
+  "price_discontinuities_15m": {
+    "description": "Price discontinuities in zl_price_15m (last 7 days)",
+    "success": true,
+    "row_count": 20,
+    "columns": [
+      "timestamp",
+      "close",
+      "prev_close",
+      "pct_change",
+      "source"
+    ],
+    "data": [
+      {
+        "timestamp": "2026-01-21 15:45:00+00:00",
+        "close": 53.810001373291016,
+        "prev_close": 53.459999084472656,
+        "pct_change": 0.654699391717754,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 14:30:00+00:00",
+        "close": 54.5,
+        "prev_close": 54.150001525878906,
+        "pct_change": 0.6463498878274739,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-27 01:45:00+00:00",
+        "close": 53.43000030517578,
+        "prev_close": 53.77000045776367,
+        "pct_change": 0.6323231350071509,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 15:00:00+00:00",
+        "close": 54.369998931884766,
+        "prev_close": 54.68000030517578,
+        "pct_change": 0.5669374022693123,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 15:50:04+00:00",
+        "close": 53.5099983215332,
+        "prev_close": 53.810001373291016,
+        "pct_change": 0.5575228472428941,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 14:45:00+00:00",
+        "close": 53.4900016784668,
+        "prev_close": 53.20000076293945,
+        "pct_change": 0.5451144950534779,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 14:50:03+00:00",
+        "close": 54.68000030517578,
+        "prev_close": 54.400001525878906,
+        "pct_change": 0.5147036239763253,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 14:30:00+00:00",
+        "close": 53.209999084472656,
+        "prev_close": 52.939998626708984,
+        "pct_change": 0.5100122114991004,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-23 18:15:00+00:00",
+        "close": 53.84000015258789,
+        "prev_close": 54.11000061035156,
+        "pct_change": 0.49898439238239295,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 16:00:00+00:00",
+        "close": 53.77000045776367,
+        "prev_close": 53.5099983215332,
+        "pct_change": 0.48589449520845923,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 16:00:00+00:00",
+        "close": 53.939998626708984,
+        "prev_close": 54.189998626708984,
+        "pct_change": 0.4613397422689375,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 14:45:00+00:00",
+        "close": 54.400001525878906,
+        "prev_close": 54.650001525878906,
+        "pct_change": 0.4574565288559329,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 15:00:00+00:00",
+        "close": 53.529998779296875,
+        "prev_close": 53.290000915527344,
+        "pct_change": 0.45036190588542857,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-22 16:45:00+00:00",
+        "close": 53.75,
+        "prev_close": 53.9900016784668,
+        "pct_change": 0.4445298592433984,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-26 01:00:00+00:00",
+        "close": 54.150001525878906,
+        "prev_close": 53.93000030517578,
+        "pct_change": 0.40793847479732165,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-22 13:00:00+00:00",
+        "close": 53.810001373291016,
+        "prev_close": 54.029998779296875,
+        "pct_change": 0.40717640380580133,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 13:00:00+00:00",
+        "close": 53.029998779296875,
+        "prev_close": 52.81999969482422,
+        "pct_change": 0.3975749445020043,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-22 01:15:00+00:00",
+        "close": 54.150001525878906,
+        "prev_close": 53.939998626708984,
+        "pct_change": 0.38932685301541076,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-21 14:50:01+00:00",
+        "close": 53.290000915527344,
+        "prev_close": 53.4900016784668,
+        "pct_change": 0.3739030784513257,
+        "source": "yahoo"
+      },
+      {
+        "timestamp": "2026-01-27 05:45:00+00:00",
+        "close": 53.83000183105469,
+        "prev_close": 53.630001068115234,
+        "pct_change": 0.3729270165134493,
+        "source": "yahoo"
+      }
+    ],
+    "summary": {
+      "close": {
+        "count": 20.0,
+        "mean": 53.824500274658206,
+        "std": 0.4471606431696047,
+        "min": 53.029998779296875,
+        "25%": 53.5049991607666,
+        "50%": 53.810001373291016,
+        "75%": 54.150001525878906,
+        "max": 54.68000030517578
+      },
+      "prev_close": {
+        "count": 20.0,
+        "mean": 53.7995002746582,
+        "std": 0.5129328168413662,
+        "min": 52.81999969482422,
+        "25%": 53.48250102996826,
+        "50%": 53.8700008392334,
+        "75%": 54.1200008392334,
+        "max": 54.68000030517578
+      },
+      "pct_change": {
+        "count": 20.0,
+        "mean": 0.48875383447616755,
+        "std": 0.08926475283062674,
+        "min": 0.3729270165134493,
+        "25%": 0.40774795704944156,
+        "50%": 0.4736171187386984,
+        "75%": 0.5482165831008319,
+        "max": 0.654699391717754
+      }
+    }
+  },
+  "price_discontinuities_1d": {
+    "description": "Price discontinuities in zl_price_1d (last 30 days)",
+    "success": true,
+    "row_count": 20,
+    "columns": [
+      "event_date",
+      "open",
+      "close",
+      "intraday_pct_change",
+      "source"
+    ],
+    "data": [
+      {
+        "event_date": "2026-01-15",
+        "open": 51.02,
+        "close": 52.97,
+        "intraday_pct_change": 3.82203057624461,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-20",
+        "open": 52.52,
+        "close": 54.01,
+        "intraday_pct_change": 2.837014470677837,
+        "source": "yahoo_manual"
+      },
+      {
+        "event_date": "2025-12-30",
+        "open": 48.88,
+        "close": 48.07,
+        "intraday_pct_change": 1.6571194762684125,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2025-12-31",
+        "open": 48.88,
+        "close": 48.07,
+        "intraday_pct_change": 1.6571194762684125,
+        "source": "yahoo"
+      },
+      {
+        "event_date": "2026-01-02",
+        "open": 48.12,
+        "close": 48.87,
+        "intraday_pct_change": 1.5586034912718205,
+        "source": "yahoo"
+      },
+      {
+        "event_date": "2026-01-01",
+        "open": 48.12,
+        "close": 48.87,
+        "intraday_pct_change": 1.5586034912718205,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-05",
+        "open": 49.37,
+        "close": 49.0,
+        "intraday_pct_change": 0.7494429815677537,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-23",
+        "open": 53.78,
+        "close": 54.15,
+        "intraday_pct_change": 0.687988099665303,
+        "source": "yahoo_eod"
+      },
+      {
+        "event_date": "2026-01-16",
+        "open": 52.97,
+        "close": 52.61,
+        "intraday_pct_change": 0.6796299792335284,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-27",
+        "open": 53.75,
+        "close": 54.1,
+        "intraday_pct_change": 0.6511627906976745,
+        "source": "yahoo_eod"
+      },
+      {
+        "event_date": "2026-01-06",
+        "open": 49.02,
+        "close": 48.82,
+        "intraday_pct_change": 0.4079967360261118,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-12",
+        "open": 50.02,
+        "close": 49.82,
+        "intraday_pct_change": 0.39984006397441024,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-11",
+        "open": 50.02,
+        "close": 49.82,
+        "intraday_pct_change": 0.39984006397441024,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-22",
+        "open": 53.95,
+        "close": 53.74,
+        "intraday_pct_change": 0.38924930491195553,
+        "source": "yahoo_manual"
+      },
+      {
+        "event_date": "2026-01-08",
+        "open": 48.84,
+        "close": 49.03,
+        "intraday_pct_change": 0.389025389025389,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-07",
+        "open": 48.84,
+        "close": 49.03,
+        "intraday_pct_change": 0.389025389025389,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2025-12-29",
+        "open": 48.78,
+        "close": 48.93,
+        "intraday_pct_change": 0.3075030750307503,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-26",
+        "open": 54.08,
+        "close": 54.19,
+        "intraday_pct_change": 0.20340236686390534,
+        "source": "yahoo_eod"
+      },
+      {
+        "event_date": "2025-12-28",
+        "open": 48.8,
+        "close": 48.78,
+        "intraday_pct_change": 0.040983606557377046,
+        "source": "yahoo_backfill"
+      },
+      {
+        "event_date": "2026-01-19",
+        "open": 52.68,
+        "close": 52.66,
+        "intraday_pct_change": 0.037965072133637055,
+        "source": "yahoo_backfill"
+      }
+    ],
+    "summary": {
+      "open": {
+        "count": 20.0,
+        "mean": 50.622,
+        "std": 2.2101621755213494,
+        "min": 48.12,
+        "25%": 48.84,
+        "50%": 49.695,
+        "75%": 52.7525,
+        "max": 54.08
+      },
+      "close": {
+        "count": 20.0,
+        "mean": 50.776999999999994,
+        "std": 2.398093760512821,
+        "min": 48.07,
+        "25%": 48.87,
+        "50%": 49.425,
+        "75%": 53.1625,
+        "max": 54.19
+      },
+      "intraday_pct_change": {
+        "count": 20.0,
+        "mean": 0.9411772950345254,
+        "std": 0.9811703646120261,
+        "min": 0.037965072133637055,
+        "25%": 0.389025389025389,
+        "50%": 0.5295797633618932,
+        "75%": 1.5586034912718205,
+        "max": 3.82203057624461
+      }
+    }
+  },
+  "symbol_usage": {
+    "description": "ZL symbol usage in mkt.futures_1d",
+    "success": true,
+    "row_count": 5,
+    "columns": [
+      "source",
+      "count",
+      "with_oi",
+      "earliest",
+      "latest"
+    ],
+    "data": [
+      {
+        "source": "databento",
+        "count": 6515,
+        "with_oi": 311,
+        "earliest": "2000-03-15",
+        "latest": "2026-01-21"
+      },
+      {
+        "source": "TradingView",
+        "count": 1869,
+        "with_oi": 0,
+        "earliest": "1970-01-01",
+        "latest": "2023-09-04"
+      },
+      {
+        "source": "yahoo_backfill",
+        "count": 27,
+        "with_oi": 4,
+        "earliest": "2025-12-17",
+        "latest": "2026-01-19"
+      },
+      {
+        "source": "yahoo_eod",
+        "count": 3,
+        "with_oi": 0,
+        "earliest": "2026-01-23",
+        "latest": "2026-01-27"
+      },
+      {
+        "source": "yahoo_manual",
+        "count": 2,
+        "with_oi": 0,
+        "earliest": "2026-01-20",
+        "latest": "2026-01-22"
+      }
+    ],
+    "summary": {
+      "count": {
+        "count": 5.0,
+        "mean": 1683.2,
+        "std": 2818.391243244983,
+        "min": 2.0,
+        "25%": 3.0,
+        "50%": 27.0,
+        "75%": 1869.0,
+        "max": 6515.0
+      },
+      "with_oi": {
+        "count": 5.0,
+        "mean": 63.0,
+        "std": 138.6470338665779,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 4.0,
+        "max": 311.0
+      }
+    }
+  },
+  "coverage_gaps_15m": {
+    "description": "Coverage gaps in zl_price_15m (>30 min)",
+    "success": true,
+    "row_count": 9,
+    "columns": [
+      "gap_start",
+      "gap_end",
+      "gap",
+      "gap_minutes"
+    ],
+    "data": [
+      {
+        "gap_start": "2026-01-27 13:44:55+00:00",
+        "gap_end": "2026-01-27 14:30:00+00:00",
+        "gap": "0 days 00:45:05",
+        "gap_minutes": 45.083333333333336
+      },
+      {
+        "gap_start": "2026-01-26 19:19:59+00:00",
+        "gap_end": "2026-01-27 01:00:00+00:00",
+        "gap": "0 days 05:40:01",
+        "gap_minutes": 340.01666666666665
+      },
+      {
+        "gap_start": "2026-01-26 13:44:59+00:00",
+        "gap_end": "2026-01-26 14:30:00+00:00",
+        "gap": "0 days 00:45:01",
+        "gap_minutes": 45.016666666666666
+      },
+      {
+        "gap_start": "2026-01-23 19:19:59+00:00",
+        "gap_end": "2026-01-26 01:00:00+00:00",
+        "gap": "2 days 05:40:01",
+        "gap_minutes": 3220.016666666667
+      },
+      {
+        "gap_start": "2026-01-23 13:44:58+00:00",
+        "gap_end": "2026-01-23 14:30:00+00:00",
+        "gap": "0 days 00:45:02",
+        "gap_minutes": 45.03333333333333
+      },
+      {
+        "gap_start": "2026-01-22 19:19:57+00:00",
+        "gap_end": "2026-01-23 01:00:00+00:00",
+        "gap": "0 days 05:40:03",
+        "gap_minutes": 340.05
+      },
+      {
+        "gap_start": "2026-01-22 13:44:47+00:00",
+        "gap_end": "2026-01-22 14:30:00+00:00",
+        "gap": "0 days 00:45:13",
+        "gap_minutes": 45.21666666666667
+      },
+      {
+        "gap_start": "2026-01-21 19:19:59+00:00",
+        "gap_end": "2026-01-22 01:00:00+00:00",
+        "gap": "0 days 05:40:01",
+        "gap_minutes": 340.01666666666665
+      },
+      {
+        "gap_start": "2026-01-21 13:44:56+00:00",
+        "gap_end": "2026-01-21 14:30:00+00:00",
+        "gap": "0 days 00:45:04",
+        "gap_minutes": 45.06666666666667
+      }
+    ],
+    "summary": {
+      "gap": {
+        "count": 9,
+        "mean": "0 days 08:16:10.111111111",
+        "std": "0 days 17:11:22.509632052",
+        "min": "0 days 00:45:01",
+        "25%": "0 days 00:45:04",
+        "50%": "0 days 00:45:13",
+        "75%": "0 days 05:40:01",
+        "max": "2 days 05:40:01"
+      },
+      "gap_minutes": {
+        "count": 9.0,
+        "mean": 496.16851851851857,
+        "std": 1031.375160534214,
+        "min": 45.016666666666666,
+        "25%": 45.06666666666667,
+        "50%": 45.21666666666667,
+        "75%": 340.01666666666665,
+        "max": 3220.016666666667
+      }
+    }
+  },
+  "coverage_gaps_1d": {
+    "description": "Missing dates in zl_price_1d (last 30 days)",
+    "success": true,
+    "row_count": 1,
+    "columns": [
+      "missing_date"
+    ],
+    "data": [
+      {
+        "missing_date": "2026-01-21"
+      }
+    ],
+    "summary": {
+      "missing_date": {
+        "count": 1,
+        "unique": 1,
+        "top": "2026-01-21",
+        "freq": 1
+      }
+    }
+  },
+  "source_conflicts_15m": {
+    "description": "Source conflicts in zl_price_15m (same timestamp, different sources)",
+    "success": true,
+    "row_count": 0,
+    "columns": [
+      "timestamp",
+      "sources",
+      "count"
+    ],
+    "data": [],
+    "summary": {}
+  },
+  "source_conflicts_1d": {
+    "description": "Source conflicts in zl_price_1d (same date, different sources)",
+    "success": true,
+    "row_count": 0,
+    "columns": [
+      "event_date",
+      "sources",
+      "count"
+    ],
+    "data": [],
+    "summary": {}
+  },
+  "volume_consistency": {
+    "description": "Volume consistency per day in zl_price_15m",
+    "success": true,
+    "row_count": 5,
+    "columns": [
+      "day",
+      "bars_per_day",
+      "total_volume",
+      "avg_volume",
+      "min_volume",
+      "max_volume",
+      "source"
+    ],
+    "data": [
+      {
+        "day": "2026-01-27 00:00:00+00:00",
+        "bars_per_day": 141,
+        "total_volume": 65456,
+        "avg_volume": 464.2269503546099,
+        "min_volume": 0,
+        "max_volume": 8698,
+        "source": "yahoo"
+      },
+      {
+        "day": "2026-01-26 00:00:00+00:00",
+        "bars_per_day": 141,
+        "total_volume": 69678,
+        "avg_volume": 494.17021276595744,
+        "min_volume": 0,
+        "max_volume": 10502,
+        "source": "yahoo"
+      },
+      {
+        "day": "2026-01-23 00:00:00+00:00",
+        "bars_per_day": 141,
+        "total_volume": 67444,
+        "avg_volume": 478.3262411347518,
+        "min_volume": 0,
+        "max_volume": 10740,
+        "source": "yahoo"
+      },
+      {
+        "day": "2026-01-22 00:00:00+00:00",
+        "bars_per_day": 141,
+        "total_volume": 84452,
+        "avg_volume": 598.950354609929,
+        "min_volume": 0,
+        "max_volume": 11423,
+        "source": "yahoo"
+      },
+      {
+        "day": "2026-01-21 00:00:00+00:00",
+        "bars_per_day": 141,
+        "total_volume": 96327,
+        "avg_volume": 683.1702127659574,
+        "min_volume": 0,
+        "max_volume": 11446,
+        "source": "yahoo"
+      }
+    ],
+    "summary": {
+      "bars_per_day": {
+        "count": 5.0,
+        "mean": 141.0,
+        "std": 0.0,
+        "min": 141.0,
+        "25%": 141.0,
+        "50%": 141.0,
+        "75%": 141.0,
+        "max": 141.0
+      },
+      "total_volume": {
+        "count": 5.0,
+        "mean": 76671.4,
+        "std": 13292.085043363213,
+        "min": 65456.0,
+        "25%": 67444.0,
+        "50%": 69678.0,
+        "75%": 84452.0,
+        "max": 96327.0
+      },
+      "avg_volume": {
+        "count": 5.0,
+        "mean": 543.768794326241,
+        "std": 94.27010669051923,
+        "min": 464.2269503546099,
+        "25%": 478.3262411347518,
+        "50%": 494.17021276595744,
+        "75%": 598.950354609929,
+        "max": 683.1702127659574
+      },
+      "min_volume": {
+        "count": 5.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "max_volume": {
+        "count": 5.0,
+        "mean": 10561.8,
+        "std": 1121.6680435850885,
+        "min": 8698.0,
+        "25%": 10502.0,
+        "50%": 10740.0,
+        "75%": 11423.0,
+        "max": 11446.0
+      }
+    }
+  },
+  "data_freshness": {
+    "description": "Data freshness by source and interval",
+    "success": true,
+    "row_count": 8,
+    "columns": [
+      "interval_type",
+      "latest_timestamp",
+      "age_hours",
+      "source"
+    ],
+    "data": [
+      {
+        "interval_type": "15m",
+        "latest_timestamp": "2026-01-27 19:19:58+00:00",
+        "age_hours": 1.0246405955555555,
+        "source": "yahoo"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2023-09-04 00:00:00+00:00",
+        "age_hours": 876.8482257655555,
+        "source": "TradingView"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2025-12-26 00:00:00+00:00",
+        "age_hours": 32.848225765555554,
+        "source": "databento_historical"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2026-01-02 00:00:00+00:00",
+        "age_hours": 25.848225765555554,
+        "source": "yahoo"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2026-01-19 00:00:00+00:00",
+        "age_hours": 8.848225765555556,
+        "source": "yahoo_backfill"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2026-01-27 00:00:00+00:00",
+        "age_hours": 0.8482257655555555,
+        "source": "yahoo_eod"
+      },
+      {
+        "interval_type": "1d",
+        "latest_timestamp": "2026-01-22 00:00:00+00:00",
+        "age_hours": 5.848225765555555,
+        "source": "yahoo_manual"
+      },
+      {
+        "interval_type": "1h",
+        "latest_timestamp": "2026-01-27 19:19:58+00:00",
+        "age_hours": 1.0246405955555555,
+        "source": "yahoo"
+      }
+    ],
+    "summary": {
+      "age_hours": {
+        "count": 8.0,
+        "mean": 119.14232947305555,
+        "std": 306.399856039853,
+        "min": 0.8482257655555555,
+        "25%": 1.0246405955555555,
+        "50%": 7.348225765555556,
+        "75%": 27.598225765555554,
+        "max": 876.8482257655555
+      }
+    }
+  },
+  "data_quality_15m": {
+    "description": "Data quality issues in zl_price_15m",
+    "success": true,
+    "row_count": 1,
+    "columns": [
+      "null_closes",
+      "null_opens",
+      "null_highs",
+      "null_lows",
+      "invalid_closes",
+      "invalid_ohlc",
+      "total_rows"
+    ],
+    "data": [
+      {
+        "null_closes": 0,
+        "null_opens": 0,
+        "null_highs": 0,
+        "null_lows": 0,
+        "invalid_closes": 0,
+        "invalid_ohlc": 0,
+        "total_rows": 705
+      }
+    ],
+    "summary": {
+      "null_closes": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "null_opens": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "null_highs": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "null_lows": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "invalid_closes": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "invalid_ohlc": {
+        "count": 1.0,
+        "mean": 0.0,
+        "std": NaN,
+        "min": 0.0,
+        "25%": 0.0,
+        "50%": 0.0,
+        "75%": 0.0,
+        "max": 0.0
+      },
+      "total_rows": {
+        "count": 1.0,
+        "mean": 705.0,
+        "std": NaN,
+        "min": 705.0,
+        "25%": 705.0,
+        "50%": 705.0,
+        "75%": 705.0,
+        "max": 705.0
+      }
+    }
+  },
+  "summary": {
+    "description": "Overall summary statistics",
+    "success": true,
+    "row_count": 1,
+    "columns": [
+      "zl_15m_last_7d",
+      "zl_1h_last_7d",
+      "zl_1d_last_30d",
+      "unique_sources_15m",
+      "unique_sources_1h",
+      "unique_sources_1d",
+      "latest_15m",
+      "latest_1h",
+      "latest_1d"
+    ],
+    "data": [
+      {
+        "zl_15m_last_7d": 705,
+        "zl_1h_last_7d": 189,
+        "zl_1d_last_30d": 24,
+        "unique_sources_15m": 1,
+        "unique_sources_1h": 1,
+        "unique_sources_1d": 6,
+        "latest_15m": "2026-01-27 19:19:58+00:00",
+        "latest_1h": "2026-01-27 19:19:58+00:00",
+        "latest_1d": "2026-01-27"
+      }
+    ],
+    "summary": {
+      "zl_15m_last_7d": {
+        "count": 1.0,
+        "mean": 705.0,
+        "std": NaN,
+        "min": 705.0,
+        "25%": 705.0,
+        "50%": 705.0,
+        "75%": 705.0,
+        "max": 705.0
+      },
+      "zl_1h_last_7d": {
+        "count": 1.0,
+        "mean": 189.0,
+        "std": NaN,
+        "min": 189.0,
+        "25%": 189.0,
+        "50%": 189.0,
+        "75%": 189.0,
+        "max": 189.0
+      },
+      "zl_1d_last_30d": {
+        "count": 1.0,
+        "mean": 24.0,
+        "std": NaN,
+        "min": 24.0,
+        "25%": 24.0,
+        "50%": 24.0,
+        "75%": 24.0,
+        "max": 24.0
+      },
+      "unique_sources_15m": {
+        "count": 1.0,
+        "mean": 1.0,
+        "std": NaN,
+        "min": 1.0,
+        "25%": 1.0,
+        "50%": 1.0,
+        "75%": 1.0,
+        "max": 1.0
+      },
+      "unique_sources_1h": {
+        "count": 1.0,
+        "mean": 1.0,
+        "std": NaN,
+        "min": 1.0,
+        "25%": 1.0,
+        "50%": 1.0,
+        "75%": 1.0,
+        "max": 1.0
+      },
+      "unique_sources_1d": {
+        "count": 1.0,
+        "mean": 6.0,
+        "std": NaN,
+        "min": 6.0,
+        "25%": 6.0,
+        "50%": 6.0,
+        "75%": 6.0,
+        "max": 6.0
+      }
+    }
+  }
+}

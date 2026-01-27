@@ -1,0 +1,595 @@
+Beginning AutoGluon training...
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/src/models/core_v2/5d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       12.34 GB / 24.00 GB (51.4%)
+Disk Space Avail:   818.21 GB / 931.32 GB (87.9%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'freq': 'B',
+ 'hyperparameters': {'ADIDA': {},
+                     'AutoARIMA': {},
+                     'AutoETS': {},
+                     'Average': {},
+                     'Croston': {},
+                     'DirectTabular': {},
+                     'DynamicOptimizedTheta': {},
+                     'ETS': {},
+                     'IMAPA': {},
+                     'NPTS': {},
+                     'Naive': {},
+                     'PerStepTabular': {},
+                     'RecursiveTabular': {},
+                     'SeasonalAverage': {},
+                     'SeasonalNaive': {},
+                     'Theta': {},
+                     'Zero': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 4,
+ 'prediction_length': 5,
+ 'quantile_levels': [0.3, 0.5, 0.7],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target_ret_5d',
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'B'.
+Provided train_data has 14621 rows (NaN fraction=43.3%), 1 time series. Median time series length is 14621 (min=14621, max=14621). 
+
+Provided data contains following columns:
+	target: 'target_ret_5d'
+	past_covariates:
+		categorical:        ['hurst_regime']
+		continuous (float): ['open', 'high', 'low', 'close', 'volume', 'hurst_exponent', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['fx_usdkrw', 'rapeseed_close', 'sunflower_close', 'wasde_us_zm_crush', 'wasde_us_zs_crush']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-01-24 19:19:53
+Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA']
+Training timeseries model Naive. 
+	-1.3925       = Validation score (-WQL)
+	2.46    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive. 
+	-1.5853       = Validation score (-WQL)
+	0.23    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Average. 
+	-1.0283       = Validation score (-WQL)
+	0.22    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model SeasonalAverage. 
+	-1.0272       = Validation score (-WQL)
+	0.22    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Zero. 
+	-1.0612       = Validation score (-WQL)
+	2.03    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. 
+	-1.1290       = Validation score (-WQL)
+	11.19   s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. 
+	-0.8789       = Validation score (-WQL)
+	39.79   s     = Training runtime
+	0.08    s     = Validation (prediction) runtime
+Training timeseries model ETS. 
+	-1.2264       = Validation score (-WQL)
+	2.71    s     = Training runtime
+	0.47    s     = Validation (prediction) runtime
+Training timeseries model NPTS. 
+	-1.0806       = Validation score (-WQL)
+	0.28    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model Croston. 
+	-1.0630       = Validation score (-WQL)
+	3.12    s     = Training runtime
+	1.27    s     = Validation (prediction) runtime
+Training timeseries model PerStepTabular. 
+	-1.2416       = Validation score (-WQL)
+	21.23   s     = Training runtime
+	0.16    s     = Validation (prediction) runtime
+Training timeseries model Theta. 
+	-1.3341       = Validation score (-WQL)
+	1.23    s     = Training runtime
+	0.12    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. 
+	-1.3337       = Validation score (-WQL)
+	2.78    s     = Training runtime
+	0.22    s     = Validation (prediction) runtime
+Training timeseries model AutoETS. 
+	-1.2264       = Validation score (-WQL)
+	1.39    s     = Training runtime
+	0.15    s     = Validation (prediction) runtime
+Training timeseries model AutoARIMA. 
+	-1.0777       = Validation score (-WQL)
+	3.70    s     = Training runtime
+	2.83    s     = Validation (prediction) runtime
+Training timeseries model ADIDA. 
+	-1.0795       = Validation score (-WQL)
+	0.96    s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model IMAPA. 
+	-1.0795       = Validation score (-WQL)
+	2.59    s     = Training runtime
+	0.27    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. 
+	Ensemble weights: {'ADIDA': 0.02, 'Croston': 0.09, 'DirectTabular': 0.74, 'PerStepTabular': 0.03, 'RecursiveTabular': 0.11}
+	-0.8389       = Validation score (-WQL)
+	1.05    s     = Training runtime
+	1.62    s     = Validation (prediction) runtime
+Training complete. Models trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA', 'WeightedEnsemble']
+Total runtime: 103.61 s
+Best model: WeightedEnsemble
+Best model score: -0.8389
+Warning: path already exists! This predictor may overwrite an existing predictor! path="models/core_v2/21d"
+Beginning AutoGluon training...
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/src/models/core_v2/21d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       9.72 GB / 24.00 GB (40.5%)
+Disk Space Avail:   818.18 GB / 931.32 GB (87.9%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'freq': 'B',
+ 'hyperparameters': {'ADIDA': {},
+                     'AutoARIMA': {},
+                     'AutoETS': {},
+                     'Average': {},
+                     'Croston': {},
+                     'DirectTabular': {},
+                     'DynamicOptimizedTheta': {},
+                     'ETS': {},
+                     'IMAPA': {},
+                     'NPTS': {},
+                     'Naive': {},
+                     'PerStepTabular': {},
+                     'RecursiveTabular': {},
+                     'SeasonalAverage': {},
+                     'SeasonalNaive': {},
+                     'Theta': {},
+                     'Zero': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 4,
+ 'prediction_length': 21,
+ 'quantile_levels': [0.3, 0.5, 0.7],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target_ret_21d',
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'B'.
+Provided train_data has 14607 rows (NaN fraction=43.3%), 1 time series. Median time series length is 14607 (min=14607, max=14607). 
+
+Provided data contains following columns:
+	target: 'target_ret_21d'
+	past_covariates:
+		categorical:        ['hurst_regime']
+		continuous (float): ['open', 'high', 'low', 'close', 'volume', 'hurst_exponent', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['fx_usdkrw', 'rapeseed_close', 'sunflower_close', 'wasde_us_zm_crush', 'wasde_us_zs_crush']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-01-24 19:21:37
+Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA']
+Training timeseries model Naive. 
+	-1.4910       = Validation score (-WQL)
+	0.25    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive. 
+	-1.4401       = Validation score (-WQL)
+	0.24    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Average. 
+	-1.0395       = Validation score (-WQL)
+	0.25    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model SeasonalAverage. 
+	-1.0490       = Validation score (-WQL)
+	0.29    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Zero. 
+	-1.0178       = Validation score (-WQL)
+	0.52    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. 
+	-1.2159       = Validation score (-WQL)
+	11.80   s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. 
+	-0.8970       = Validation score (-WQL)
+	69.28   s     = Training runtime
+	0.10    s     = Validation (prediction) runtime
+Training timeseries model ETS. 
+	-1.4110       = Validation score (-WQL)
+	1.07    s     = Training runtime
+	0.19    s     = Validation (prediction) runtime
+Training timeseries model NPTS. 
+	-1.1029       = Validation score (-WQL)
+	0.50    s     = Training runtime
+	0.09    s     = Validation (prediction) runtime
+Training timeseries model Croston. 
+	-1.7877       = Validation score (-WQL)
+	0.64    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model PerStepTabular. 
+	-1.2645       = Validation score (-WQL)
+	79.16   s     = Training runtime
+	0.58    s     = Validation (prediction) runtime
+Training timeseries model Theta. 
+	-1.4799       = Validation score (-WQL)
+	0.94    s     = Training runtime
+	0.11    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. 
+	-1.4789       = Validation score (-WQL)
+	1.22    s     = Training runtime
+	0.25    s     = Validation (prediction) runtime
+Training timeseries model AutoETS. 
+	-1.4110       = Validation score (-WQL)
+	1.19    s     = Training runtime
+	0.17    s     = Validation (prediction) runtime
+Training timeseries model AutoARIMA. 
+	-1.0539       = Validation score (-WQL)
+	1.68    s     = Training runtime
+	0.81    s     = Validation (prediction) runtime
+Training timeseries model ADIDA. 
+	-1.3850       = Validation score (-WQL)
+	0.66    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Training timeseries model IMAPA. 
+	-1.3850       = Validation score (-WQL)
+	0.70    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. 
+	Ensemble weights: {'Average': 0.09, 'DirectTabular': 0.75, 'NPTS': 0.05, 'RecursiveTabular': 0.09, 'Zero': 0.02}
+	-0.8830       = Validation score (-WQL)
+	1.03    s     = Training runtime
+	0.29    s     = Validation (prediction) runtime
+Training complete. Models trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA', 'WeightedEnsemble']
+Total runtime: 174.26 s
+Best model: WeightedEnsemble
+Best model score: -0.8830
+Warning: path already exists! This predictor may overwrite an existing predictor! path="models/core_v2/63d"
+Beginning AutoGluon training...
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/src/models/core_v2/63d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       9.86 GB / 24.00 GB (41.1%)
+Disk Space Avail:   818.11 GB / 931.32 GB (87.8%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'freq': 'B',
+ 'hyperparameters': {'ADIDA': {},
+                     'AutoARIMA': {},
+                     'AutoETS': {},
+                     'Average': {},
+                     'Croston': {},
+                     'DirectTabular': {},
+                     'DynamicOptimizedTheta': {},
+                     'ETS': {},
+                     'IMAPA': {},
+                     'NPTS': {},
+                     'Naive': {},
+                     'PerStepTabular': {},
+                     'RecursiveTabular': {},
+                     'SeasonalAverage': {},
+                     'SeasonalNaive': {},
+                     'Theta': {},
+                     'Zero': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 4,
+ 'prediction_length': 63,
+ 'quantile_levels': [0.3, 0.5, 0.7],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target_ret_63d',
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'B'.
+Provided train_data has 14566 rows (NaN fraction=43.4%), 1 time series. Median time series length is 14566 (min=14566, max=14566). 
+
+Provided data contains following columns:
+	target: 'target_ret_63d'
+	past_covariates:
+		categorical:        ['hurst_regime']
+		continuous (float): ['open', 'high', 'low', 'close', 'volume', 'hurst_exponent', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['fx_audusd', 'fx_eurusd', 'fx_usdcad', 'fx_usdkrw', 'rapeseed_close', 'sunflower_close', 'wasde_us_zm_crush', 'wasde_us_zs_crush']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-01-24 19:24:32
+Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA']
+Training timeseries model Naive. 
+	-1.2155       = Validation score (-WQL)
+	0.25    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive. 
+	-1.2087       = Validation score (-WQL)
+	0.24    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model Average. 
+	-0.9068       = Validation score (-WQL)
+	0.30    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model SeasonalAverage. 
+	-0.9045       = Validation score (-WQL)
+	0.24    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Zero. 
+	-0.9209       = Validation score (-WQL)
+	0.65    s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. 
+	-1.1555       = Validation score (-WQL)
+	10.07   s     = Training runtime
+	0.08    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. 
+	-0.9008       = Validation score (-WQL)
+	97.72   s     = Training runtime
+	0.10    s     = Validation (prediction) runtime
+Training timeseries model ETS. 
+	-1.1850       = Validation score (-WQL)
+	1.03    s     = Training runtime
+	0.18    s     = Validation (prediction) runtime
+Training timeseries model NPTS. 
+	-0.9456       = Validation score (-WQL)
+	0.97    s     = Training runtime
+	0.25    s     = Validation (prediction) runtime
+Training timeseries model Croston. 
+	-1.3508       = Validation score (-WQL)
+	0.60    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model PerStepTabular. 
+	-0.8665       = Validation score (-WQL)
+	206.78  s     = Training runtime
+	1.73    s     = Validation (prediction) runtime
+Training timeseries model Theta. 
+	-1.2502       = Validation score (-WQL)
+	1.00    s     = Training runtime
+	1.20    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. 
+	-1.2490       = Validation score (-WQL)
+	2.21    s     = Training runtime
+	0.27    s     = Validation (prediction) runtime
+Training timeseries model AutoETS. 
+	-1.1850       = Validation score (-WQL)
+	0.96    s     = Training runtime
+	0.16    s     = Validation (prediction) runtime
+Training timeseries model AutoARIMA. 
+	-1.1850       = Validation score (-WQL)
+	1.05    s     = Training runtime
+	0.17    s     = Validation (prediction) runtime
+Training timeseries model ADIDA. 
+	-1.2073       = Validation score (-WQL)
+	1.08    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Training timeseries model IMAPA. 
+	-1.2073       = Validation score (-WQL)
+	0.80    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. 
+	Ensemble weights: {'PerStepTabular': 0.68, 'SeasonalAverage': 0.32}
+	-0.8302       = Validation score (-WQL)
+	1.04    s     = Training runtime
+	1.75    s     = Validation (prediction) runtime
+Training complete. Models trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA', 'WeightedEnsemble']
+Total runtime: 331.63 s
+Best model: WeightedEnsemble
+Best model score: -0.8302
+Warning: path already exists! This predictor may overwrite an existing predictor! path="models/core_v2/126d"
+Beginning AutoGluon training...
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/src/models/core_v2/126d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       9.60 GB / 24.00 GB (40.0%)
+Disk Space Avail:   818.03 GB / 931.32 GB (87.8%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'freq': 'B',
+ 'hyperparameters': {'ADIDA': {},
+                     'AutoARIMA': {},
+                     'AutoETS': {},
+                     'Average': {},
+                     'Croston': {},
+                     'DirectTabular': {},
+                     'DynamicOptimizedTheta': {},
+                     'ETS': {},
+                     'IMAPA': {},
+                     'NPTS': {},
+                     'Naive': {},
+                     'PerStepTabular': {},
+                     'RecursiveTabular': {},
+                     'SeasonalAverage': {},
+                     'SeasonalNaive': {},
+                     'Theta': {},
+                     'Zero': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 4,
+ 'prediction_length': 126,
+ 'quantile_levels': [0.3, 0.5, 0.7],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target_ret_126d',
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'B'.
+Provided train_data has 14502 rows (NaN fraction=43.6%), 1 time series. Median time series length is 14502 (min=14502, max=14502). 
+
+Provided data contains following columns:
+	target: 'target_ret_126d'
+	past_covariates:
+		categorical:        ['hurst_regime']
+		continuous (float): ['open', 'high', 'low', 'close', 'volume', 'hurst_exponent', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['fx_audusd', 'fx_eurusd', 'fx_usdcad', 'fx_usdkrw', 'rapeseed_close', 'sunflower_close', 'wasde_us_zm_crush', 'wasde_us_zs_crush']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-01-24 19:30:04
+Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA']
+Training timeseries model Naive. 
+	-0.9262       = Validation score (-WQL)
+	0.25    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive. 
+	-0.9381       = Validation score (-WQL)
+	0.24    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model Average. 
+	-0.9015       = Validation score (-WQL)
+	0.23    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model SeasonalAverage. 
+	-0.9097       = Validation score (-WQL)
+	0.29    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model Zero. 
+	-0.8953       = Validation score (-WQL)
+	0.65    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. 
+	-0.9251       = Validation score (-WQL)
+	10.47   s     = Training runtime
+	0.15    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. 
+	-0.8518       = Validation score (-WQL)
+	25.41   s     = Training runtime
+	0.10    s     = Validation (prediction) runtime
+Training timeseries model ETS. 
+	-0.9223       = Validation score (-WQL)
+	1.09    s     = Training runtime
+	0.18    s     = Validation (prediction) runtime
+Training timeseries model NPTS. 
+	-0.9023       = Validation score (-WQL)
+	1.74    s     = Training runtime
+	0.50    s     = Validation (prediction) runtime
+Training timeseries model Croston. 
+	-1.1293       = Validation score (-WQL)
+	0.64    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Training timeseries model PerStepTabular. 
+	-0.6935       = Validation score (-WQL)
+	359.50  s     = Training runtime
+	3.28    s     = Validation (prediction) runtime
+Training timeseries model Theta. 
+	-0.9355       = Validation score (-WQL)
+	4.38    s     = Training runtime
+	1.20    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. 
+	-0.9363       = Validation score (-WQL)
+	2.38    s     = Training runtime
+	0.23    s     = Validation (prediction) runtime
+Training timeseries model AutoETS. 
+	-0.9223       = Validation score (-WQL)
+	3.30    s     = Training runtime
+	0.16    s     = Validation (prediction) runtime
+Training timeseries model AutoARIMA. 
+	-0.9223       = Validation score (-WQL)
+	2.22    s     = Training runtime
+	0.15    s     = Validation (prediction) runtime
+Training timeseries model ADIDA. 
+	-0.9716       = Validation score (-WQL)
+	3.45    s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model IMAPA. 
+	-0.9716       = Validation score (-WQL)
+	0.88    s     = Training runtime
+	0.06    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. 
+	Ensemble weights: {'AutoARIMA': 0.33, 'NPTS': 0.14, 'PerStepTabular': 0.53}
+	-0.6052       = Validation score (-WQL)
+	1.09    s     = Training runtime
+	3.93    s     = Validation (prediction) runtime
+Training complete. Models trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA', 'WeightedEnsemble']
+Total runtime: 424.69 s
+Best model: WeightedEnsemble
+Best model score: -0.6052

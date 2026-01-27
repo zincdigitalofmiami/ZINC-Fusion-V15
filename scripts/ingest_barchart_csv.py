@@ -110,6 +110,14 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
                     or row.get("close")
                 )
                 volume = row.get("Volume") or row.get("volume") or "0"
+                open_interest = (
+                    row.get("Open Interest")
+                    or row.get("OpenInterest")
+                    or row.get("open_interest")
+                    or row.get("openInterest")
+                    or row.get("open interest")
+                    or "0"
+                )
 
                 if not symbol or not date_str:
                     continue
@@ -140,6 +148,11 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
                     low_val = float(low_price) if low_price else None
                     close_val = float(close_price) if close_price else None
                     volume_val = int(float(volume.replace(",", ""))) if volume else 0
+                    oi_val = (
+                        int(float(str(open_interest).replace(",", "")))
+                        if open_interest
+                        else 0
+                    )
                 except (ValueError, AttributeError):
                     log.warning(
                         f"Skipping row with bad price data: {symbol} {date_str}"
@@ -161,6 +174,7 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
                         "low": low_val,
                         "close": close_val,
                         "volume": volume_val,
+                        "open_interest": oi_val,
                         "source": "barchart_csv",
                     }
                 )
@@ -188,8 +202,8 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
             cur.execute(
                 """
                 INSERT INTO mkt.futures_1d 
-                (symbol, event_date, open, high, low, close, volume, source)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (symbol, event_date, open, high, low, close, volume, open_interest, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (symbol, event_date) 
                 DO UPDATE SET
                     open = COALESCE(EXCLUDED.open, mkt.futures_1d.open),
@@ -197,6 +211,7 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
                     low = COALESCE(EXCLUDED.low, mkt.futures_1d.low),
                     close = COALESCE(EXCLUDED.close, mkt.futures_1d.close),
                     volume = COALESCE(EXCLUDED.volume, mkt.futures_1d.volume),
+                    open_interest = COALESCE(EXCLUDED.open_interest, mkt.futures_1d.open_interest),
                     source = CASE 
                         WHEN mkt.futures_1d.source = 'yahoo_finance' 
                         THEN 'yahoo_finance'  -- Keep yahoo as primary
@@ -212,6 +227,7 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
                     row_data["low"],
                     row_data["close"],
                     row_data["volume"],
+                    row_data["open_interest"],
                     row_data["source"],
                 ),
             )
@@ -244,6 +260,9 @@ def ingest_csv_file(filepath: Path, dry_run: bool = False) -> dict:
 
 
 def main():
+    raise SystemExit(
+        "Barchart CSV ingestion is disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(description="Ingest Barchart CSV files")
     parser.add_argument(
         "--all", action="store_true", help="Ingest all CSV files in data/Barchart/"

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Specialist Model Verification Report
 **Date**: 2026-01-24  
 **Auditor**: Claude  

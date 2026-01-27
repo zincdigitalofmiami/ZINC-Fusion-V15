@@ -55,11 +55,22 @@ class TariffSignalGenerator(BaseSignalGenerator):
         config = SignalConfig(
             bucket="tariff",
             model_type="tree",
-            primary_features=["close"],
-            secondary_features=[
-                "fred_usepuindxm",   # US Economic Policy Uncertainty
-                "fred_eputrade",     # Trade Policy Uncertainty
+            primary_features=[
+                "close",
+                # EPU COMPLEX - Full policy uncertainty suite
+                "fred_eputrade",        # Trade Policy Uncertainty (CORE)
+                "fred_usepuindxm",      # US Economic Policy Uncertainty (monthly)
                 "fred_emvtradepolemv",  # Equity Market Vol - Trade Policy
+            ],
+            secondary_features=[
+                # Extended EPU indices
+                "fred_usepuindxd",      # US EPU (daily when available)
+                "fred_chnmainlandtpu",  # China Trade Policy Uncertainty
+                # Trade flow proxies
+                "fred_impch",           # US Imports from China
+                "fred_b235rc1q027sbea", # Customs duties (tariff receipts)
+                # Market fear gauge
+                "fred_vixcls",          # VIX (general uncertainty)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -67,14 +78,17 @@ class TariffSignalGenerator(BaseSignalGenerator):
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Need at least one policy uncertainty indicator."""
+        """Require FULL EPU complex for tariff risk."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-
-        epu_cols = ["fred_usepuindxm", "fred_eputrade", "fred_emvtradepolemv"]
-        if not any(col in data.columns for col in epu_cols):
-            missing.append("at_least_one_epu_indicator")
+        # REQUIRE full EPU complex
+        if "fred_eputrade" not in data.columns:
+            missing.append("fred_eputrade")
+        if "fred_usepuindxm" not in data.columns:
+            missing.append("fred_usepuindxm")
+        if "fred_emvtradepolemv" not in data.columns:
+            missing.append("fred_emvtradepolemv")
         return missing
 
     def _detect_epu_spike(self, zscore: pd.Series, threshold: float = 2.0) -> pd.Series:
@@ -116,7 +130,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute tariff risk score.
+        Compute tariff risk score with ALL elite indicators.
 
         PATCHED 2026-01-21: Enhanced with spike detection and regime tracking
 
@@ -124,6 +138,23 @@ class TariffSignalGenerator(BaseSignalGenerator):
         signal_2: EPU spike indicator (event flag)
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND EPU SERIES
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # Add elite indicators for EPU series
+        for epu_col in ["fred_eputrade", "fred_usepuindxm", "fred_emvtradepolemv",
+                        "fred_usepuindxd", "fred_chnmainlandtpu"]:
+            if epu_col in data.columns and data[epu_col].notna().sum() > 30:
+                epu_data = data.copy()
+                epu_data["close"] = data[epu_col]
+                prefix = epu_col.replace("fred_", "")
+                epu_data = self.add_all_elite_indicators(epu_data, "close", prefix)
+                for c in epu_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = epu_data[c]
 
         # Collect available EPU z-scores
         epu_components = {}
@@ -234,13 +265,24 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         config = SignalConfig(
             bucket="biofuel",
             model_type="nlp_ema",
-            primary_features=["close"],
+            primary_features=[
+                "close",
+                # RIN COMPLEX - Full renewable fuel credit suite
+                "rin_d4_price",     # D4 RIN (biomass-based diesel) - CORE
+                "rin_d6_price",     # D6 RIN (cellulosic ethanol)
+                # BIODIESEL ECONOMICS
+                "ho_close",         # Heating Oil (biodiesel value proxy)
+                "lcfs_credit",      # CA LCFS credit price
+            ],
             secondary_features=[
-                "rin_d4_price",     # D4 RIN (biomass-based diesel)
-                "rin_d6_price",     # D6 RIN (cellulosic)
+                # Additional RINs
                 "rin_d3_price",     # D3 RIN (cellulosic biofuel)
                 "rin_d5_price",     # D5 RIN (advanced biofuel)
-                "lcfs_credit",      # CA LCFS credit price
+                # Feedstock/margin inputs
+                "cl_close",         # Crude (energy parity)
+                "zm_close",         # Soybean meal (byproduct value)
+                # Ethanol for full biofuel picture
+                "fred_dpropanembtx",  # Propane (energy arbitrage)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -248,17 +290,20 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """
-        Biofuel data often sparse - use proxy if RINs unavailable.
-
-        Falls back to:
-        - Biodiesel margin (ZL - HO spread)
-        - Soy oil crush share
-        """
+        """Require FULL RIN complex + biodiesel economics."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-        # Biofuel signal can work with just ZL if needed
+        # REQUIRE RIN complex
+        if "rin_d4_price" not in data.columns:
+            missing.append("rin_d4_price")
+        if "rin_d6_price" not in data.columns:
+            missing.append("rin_d6_price")
+        # REQUIRE biodiesel economics
+        if "ho_close" not in data.columns:
+            missing.append("ho_close")
+        if "lcfs_credit" not in data.columns:
+            missing.append("lcfs_credit")
         return missing
 
     def _get_rin_series(self, data: pd.DataFrame) -> tuple:
@@ -340,7 +385,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute biofuel policy pressure signal.
+        Compute biofuel policy pressure signal with ALL elite indicators.
 
         PATCHED: Now properly uses EPA RIN prices from supply.epa_rin_1d
 
@@ -348,6 +393,40 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         signal_2: RIN momentum (if using real RIN data)
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL, HO, RIN SERIES
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # HO elite indicators (biodiesel proxy)
+        if "ho_close" in data.columns and data["ho_close"].notna().sum() > 30:
+            ho_data = data.copy()
+            ho_data["close"] = data["ho_close"]
+            ho_data = self.add_all_elite_indicators(ho_data, "close", "ho")
+            for c in ho_data.columns:
+                if c.startswith("ho_") and c not in data.columns:
+                    data[c] = ho_data[c]
+
+        # RIN elite indicators
+        for rin_col in ["rin_d4_price", "rin_d6_price"]:
+            if rin_col in data.columns and data[rin_col].notna().sum() > 30:
+                rin_data = data.copy()
+                rin_data["close"] = data[rin_col]
+                prefix = rin_col.replace("_price", "")
+                rin_data = self.add_all_elite_indicators(rin_data, "close", prefix)
+                for c in rin_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = rin_data[c]
+
+        # LCFS elite indicators
+        if "lcfs_credit" in data.columns and data["lcfs_credit"].notna().sum() > 30:
+            lcfs_data = data.copy()
+            lcfs_data["close"] = data["lcfs_credit"]
+            lcfs_data = self.add_all_elite_indicators(lcfs_data, "close", "lcfs")
+            for c in lcfs_data.columns:
+                if c.startswith("lcfs_") and c not in data.columns:
+                    data[c] = lcfs_data[c]
 
         # Try to get real RIN data
         rin_series, rin_source = self._get_rin_series(data)
@@ -437,7 +516,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
     - EPA waiver activity
     - MFP (Market Facilitation Program) payments
 
-    Inputs: EPU indices, news sentiment, proxy tickers (DJT, FXI, KWEB)
+    Inputs: EPU indices, news sentiment, proxy tickers (HG copper)
     Model: Event study + sentiment composite
 
     PATCHED 2026-01-21: Added EPU decomposition (trade share) and regime amplification
@@ -447,13 +526,27 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         config = SignalConfig(
             bucket="trump_effect",
             model_type="event_study",
-            primary_features=["close"],
+            primary_features=[
+                "close",
+                # EPU COMPLEX - Full policy uncertainty decomposition
+                "fred_eputrade",        # Trade Policy Uncertainty (CORE)
+                "fred_usepuindxm",      # US Economic Policy Uncertainty
+                # MARKET FEAR GAUGE
+                "fred_vixcls",          # VIX (fear index)
+                # CHINA EXPOSURE PROXIES
+                "hg_close",             # Copper (China demand proxy)
+                "fxi_close",            # China Large-Cap ETF (direct China exposure)
+            ],
             secondary_features=[
-                "fred_usepuindxd",    # Daily EPU
-                "fred_usepuindxm",    # Monthly EPU (more coverage)
-                "fred_eputrade",      # Trade EPU
-                "fred_vixcls",        # VIX for risk sentiment
-                "fxi_close",          # China ETF proxy
+                # Extended EPU
+                "fred_usepuindxd",      # US EPU (daily)
+                "fred_chnmainlandtpu",  # China Trade Policy Uncertainty
+                "fred_emvtradepolemv",  # Equity Market Vol - Trade Policy
+                # Additional China proxies
+                "kweb_close",           # China Internet ETF
+                "usd_cny",              # CNY (currency pressure)
+                # Trump-linked proxies
+                "djt_close",            # Trump Media stock (sentiment proxy)
             ],
             lookback_days=504,  # 2 years for regime detection
             min_data_points=126,
@@ -461,10 +554,23 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Can work with minimal data, falls back to VIX."""
+        """Require FULL EPU + China exposure + market fear."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
+        # REQUIRE EPU complex
+        if "fred_eputrade" not in data.columns:
+            missing.append("fred_eputrade")
+        if "fred_usepuindxm" not in data.columns:
+            missing.append("fred_usepuindxm")
+        # REQUIRE market fear
+        if "fred_vixcls" not in data.columns:
+            missing.append("fred_vixcls")
+        # REQUIRE China exposure
+        if "hg_close" not in data.columns:
+            missing.append("hg_close")
+        if "fxi_close" not in data.columns:
+            missing.append("fxi_close")
         return missing
 
     def _compute_trade_tension_proxy(self, data: pd.DataFrame) -> pd.Series:
@@ -493,20 +599,14 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         """
         Compute China exposure/risk proxy.
 
-        Uses China ETF (FXI) if available, otherwise ZL-HG correlation.
+        Uses copper (HG) as the China demand proxy.
         """
-        if "fxi_close" in data.columns:
-            fxi = data["fxi_close"]
-            # Negative FXI performance = China stress = trade tension
-            fxi_ret = fxi.pct_change(21, fill_method=None)
-            return -self.compute_zscore(fxi_ret, window=126, min_periods=42)
-        elif "hg_close" in data.columns:
+        if "hg_close" in data.columns and not data["hg_close"].isna().all():
             # Copper as China demand proxy
             hg = data["hg_close"]
             hg_ret = hg.pct_change(21, fill_method=None)
             return -self.compute_zscore(hg_ret, window=126, min_periods=42) * 0.5
-        else:
-            return pd.Series(0.0, index=data.index)
+        return pd.Series(0.0, index=data.index)
 
     def _compute_epu_decomposition(self, data: pd.DataFrame) -> tuple:
         """
@@ -559,7 +659,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute Trump Effect signals.
+        Compute Trump Effect signals with ALL elite indicators.
 
         PATCHED 2026-01-21: Enhanced with EPU decomposition and regime amplification
 
@@ -567,6 +667,58 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         signal_2: Trade uncertainty share (trade EPU / total EPU)
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, FXI, KWEB, EPU
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # HG elite indicators (China demand)
+        if "hg_close" in data.columns and data["hg_close"].notna().sum() > 30:
+            hg_data = data.copy()
+            hg_data["close"] = data["hg_close"]
+            hg_data = self.add_all_elite_indicators(hg_data, "close", "hg")
+            for c in hg_data.columns:
+                if c.startswith("hg_") and c not in data.columns:
+                    data[c] = hg_data[c]
+
+        # FXI elite indicators (China ETF)
+        if "fxi_close" in data.columns and data["fxi_close"].notna().sum() > 30:
+            fxi_data = data.copy()
+            fxi_data["close"] = data["fxi_close"]
+            fxi_data = self.add_all_elite_indicators(fxi_data, "close", "fxi")
+            for c in fxi_data.columns:
+                if c.startswith("fxi_") and c not in data.columns:
+                    data[c] = fxi_data[c]
+
+        # KWEB elite indicators (China tech)
+        if "kweb_close" in data.columns and data["kweb_close"].notna().sum() > 30:
+            kweb_data = data.copy()
+            kweb_data["close"] = data["kweb_close"]
+            kweb_data = self.add_all_elite_indicators(kweb_data, "close", "kweb")
+            for c in kweb_data.columns:
+                if c.startswith("kweb_") and c not in data.columns:
+                    data[c] = kweb_data[c]
+
+        # VIX elite indicators
+        if "fred_vixcls" in data.columns and data["fred_vixcls"].notna().sum() > 30:
+            vix_data = data.copy()
+            vix_data["close"] = data["fred_vixcls"]
+            vix_data = self.add_all_elite_indicators(vix_data, "close", "vix")
+            for c in vix_data.columns:
+                if c.startswith("vix_") and c not in data.columns:
+                    data[c] = vix_data[c]
+
+        # EPU elite indicators
+        for epu_col in ["fred_eputrade", "fred_usepuindxm"]:
+            if epu_col in data.columns and data[epu_col].notna().sum() > 30:
+                epu_data = data.copy()
+                epu_data["close"] = data[epu_col]
+                prefix = epu_col.replace("fred_", "")
+                epu_data = self.add_all_elite_indicators(epu_data, "close", prefix)
+                for c in epu_data.columns:
+                    if c.startswith(f"{prefix}_") and c not in data.columns:
+                        data[c] = epu_data[c]
 
         # Trade tension proxy
         trade_tension = self._compute_trade_tension_proxy(data)
@@ -610,9 +762,9 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                         confidence += 0.15
                 except:
                     pass
-            if "fxi_close" in data.columns:
+            if "hg_close" in data.columns:
                 try:
-                    if not pd.isna(data.loc[idx, "fxi_close"]):
+                    if not pd.isna(data.loc[idx, "hg_close"]):
                         confidence += 0.1
                 except:
                     pass

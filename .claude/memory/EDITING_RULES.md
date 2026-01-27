@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # EDITING RULES
 
 ## BEFORE ANY EDIT

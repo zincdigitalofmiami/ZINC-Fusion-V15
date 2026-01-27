@@ -356,6 +356,9 @@ def write_to_db(records: List[Dict], dry_run: bool = False) -> int:
 
 
 def main():
+    raise SystemExit(
+        "Barchart options/greeks ingestion is disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(description="Ingest Barchart options Greeks CSVs")
     parser.add_argument("files", nargs="+", help="CSV files to ingest")
     parser.add_argument(

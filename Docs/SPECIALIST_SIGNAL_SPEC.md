@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Specialist Signal Spec (Implementation-Aligned)
 
 Status: Implementation-aligned (2026-01-24). This document reflects the current
@@ -179,14 +180,12 @@ Do not use a claim in model logic until it has a source and tag.
 - CME rule filing (BMD FCPO spot limit mention): https://www.cmegroup.com/market-regulation/rule-filings/2020/11/20-462_1.pdf
 - IndexBox mirror of Platts survey (palm oil, 2026): https://www.indexbox.io/blog/palm-oil-prices-to-average-lower-in-2026-on-rising-indonesia-malaysia-supply/
 - MarketMinute summary of BofA outlook (soy oil bullish 2026): https://markets.chroniclejournal.com/chroniclejournal/article/marketminute-2025-11-25-bank-of-america-forecasts-divergent-paths-for-key-agricultural-commodities-in-2026
-- Barchart ZL continuous opinion: https://www.barchart.com/futures/quotes/ZL%2A0/opinion
-- Barchart ZL continuous technical analysis: https://www.barchart.com/futures/quotes/ZL%2A0/technical-analysis
 
 ### Pending (URL Needed)
 
 - Palm oil market source (Bursa Malaysia specs/circulars; blocked here)
 - Investing.com bullish 2026 BofA note (blocked here)
-- StockInvest.us ZL forecast (blocked here; replaced by Barchart)
+- StockInvest.us ZL forecast (blocked here; no replacement)
 - S&P Global palm oil survey (blocked here; replaced by IndexBox mirror)
 
 ### User-Provided Sources (Unverified; Needs Link Validation)
@@ -222,8 +221,6 @@ Context (intended):
 - S&P Global palm oil survey: https://www.spglobal.com/energy/en/news-research/latest-news/agriculture/010626-palm-oil-prices-to-weaken-in-2026-biofuel-policy-clarity-crucial-survey
 - IndexBox mirror of Platts survey: https://www.indexbox.io/blog/palm-oil-prices-to-average-lower-in-2026-on-rising-indonesia-malaysia-supply/
 - StockInvest.us ZL forecast: https://stockinvest.us/stock/ZLUSX
-- Barchart ZL continuous opinion: https://www.barchart.com/futures/quotes/ZL%2A0/opinion
-- Barchart ZL continuous technical analysis: https://www.barchart.com/futures/quotes/ZL%2A0/technical-analysis
 - FCPO specs mirror (uTrade): https://www.utrade.com.my/pdf/UserGuides/FCPO_specification_english.pdf
 - FCPO overview deck (Kenanga Futures): https://www.kenangafutures.com.my/wp-content/uploads/sites/3/2018/11/Crude-Palm-Oil-Futures-Options-FCPO-and-OCPO.pdf
 - CME rule filing (BMD FCPO spot limit mention): https://www.cmegroup.com/market-regulation/rule-filings/2020/11/20-462_1.pdf
@@ -256,8 +253,6 @@ verified unless a source tag indicates otherwise.
 | Soybean Market Report 2025-2033: Biofuel Expansion and Plant Protein Demand | Research and Markets (Renub Research) | https://www.researchandmarkets.com/report/soybean-oil | Press release projecting global soybean market growth with biofuel and plant-protein demand drivers. |
 | USDA: July WASDE boosts forecast for soybean oil use in biofuel production (Jul 11, 2025) | Biodiesel Magazine | https://biodieselmagazine.com/articles/usda-july-wasde-boosts-forecast-for-soybean-oil-use-in-biofuel-production | Report on USDA WASDE update raising 2025/26 soy oil-for-biofuel use estimates. |
 | Global Soybean Oil Market Projected to Grow at 7.1% CAGR, Reaching $87.63B by 2029 (Jul 31, 2025) | The Business Research Company | https://www.thebusinessresearchcompany.com/report/soybean-oil-global-market-report | Market report summary forecasting global soybean oil market growth and drivers. |
-| Soybean Oil Futures Opinion (ZL continuous) | Barchart | https://www.barchart.com/futures/quotes/ZL%2A0/opinion | Public opinion page with buy/sell/hold-style signal for ZL continuous contract. |
-| Soybean Oil Futures Technical Analysis (ZL continuous) | Barchart | https://www.barchart.com/futures/quotes/ZL%2A0/technical-analysis | Public technical indicators page (moving averages, momentum, etc.) for ZL continuous contract. |
 | Strong demand for soybean oil elevated U.S. prices in 2021 and 2022 (Apr 27, 2022) | USDA Economic Research Service | https://ers.usda.gov/data-products/charts-of-note/chart-detail?chartId=103795 | ERS chart/note describing biofuel demand and tight veg oil supplies driving 2021-2022 price gains. |
 
 ### Link Validation Results (2026-01-21)

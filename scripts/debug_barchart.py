@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Debug script to inspect Barchart news page structure."""
 
+raise SystemExit(
+    "Barchart debug tooling is disabled in production. Existing data is retained."
+)
+
 from playwright.sync_api import sync_playwright
 import json
 from pathlib import Path

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Active Training Scripts (SoT v2)
 
 **Updated:** January 15, 2026  
@@ -13,7 +14,7 @@
 
 ### Core Training Policy (CPU-only, Full Model Zoo)
 
-Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+Core runs on CPU. Set guards **before** importing torch/autogluon:
 
 ```
 TOKENIZERS_PARALLELISM=false

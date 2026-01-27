@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 Repository Organization Summary
 
 ## Completed Cleanup (January 11, 2026)

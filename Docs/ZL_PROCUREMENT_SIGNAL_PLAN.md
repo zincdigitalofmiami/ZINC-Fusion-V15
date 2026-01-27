@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZL Procurement Signal Plan (Draft)
 
 Status: Draft for review. This document captures proposed monitoring and feature ideas
@@ -84,13 +85,15 @@ sources and internal experiments. They are not a commitment to new features.
 
 ### Core Training Policy (CPU-only, Full Model Zoo)
 
-Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+Core runs on CPU. Set guards **before** importing torch/autogluon:
 
 ```
 TOKENIZERS_PARALLELISM=false
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 AUTOGLUON_DISABLE_RAY=1
 PYTORCH_ENABLE_MPS_FALLBACK=1
+PYTORCH_MPS_ENABLED=0
+CUDA_VISIBLE_DEVICES=""
 device = "cpu"
 ```
 

@@ -387,6 +387,9 @@ def write_options_to_db(records: List[Dict], contract: str, event_date: datetime
 
 
 def main():
+    raise SystemExit(
+        "Barchart options ingestion is disabled in production. Existing data is retained."
+    )
     parser = argparse.ArgumentParser(description="Ingest ZL options from Barchart")
     parser.add_argument("--all", action="store_true", help="Ingest all available months")
     parser.add_argument("--month", type=str, help="Specific month code (e.g., ZLH26)")

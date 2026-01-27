@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: CORE TRAINING SPECIFICATION (LOCKED)
 
 **Version:** 1.0
@@ -49,6 +50,8 @@ TOKENIZERS_PARALLELISM=false
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 AUTOGLUON_DISABLE_RAY=1
 PYTORCH_ENABLE_MPS_FALLBACK=1
+PYTORCH_MPS_ENABLED=0
+CUDA_VISIBLE_DEVICES=""
 device = "cpu"
 ```
 
@@ -246,7 +249,7 @@ INSERT INTO training.oof_core_1d (
 
 ## ⏱️ TRAINING TIME ESTIMATES
 
-### CPU-only (no time limit)
+### CPU-only, no time limit
 
 Training time is **unbounded** and depends on dataset size and the full Model Zoo.
 Expect multi-hour runs on CPU.
@@ -267,6 +270,8 @@ Before running training:
 - [ ] `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
 - [ ] `AUTOGLUON_DISABLE_RAY=1`
 - [ ] `PYTORCH_ENABLE_MPS_FALLBACK=1`
+- [ ] `PYTORCH_MPS_ENABLED=0`
+- [ ] `CUDA_VISIBLE_DEVICES=""`
 - [ ] `device="cpu"`
 
 ### Model Zoo Allowlist
@@ -279,7 +284,7 @@ Before running training:
 - Run: `python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5`
 - Confirm logs list **all models** from the allowlist.
 - Confirm a **WeightedEnsemble** is selected as best model.
-- Confirm CPU-only execution (no MPS/CUDA).
+- Confirm CPU-only execution.
 
 ---
 
@@ -300,7 +305,9 @@ As of 2026-01-24, this spec is aligned with `fusion.core_training`:
 - [ ] `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` set
 - [ ] `AUTOGLUON_DISABLE_RAY=1` set
 - [ ] `PYTORCH_ENABLE_MPS_FALLBACK=1` set
-- [ ] Sufficient disk space and RAM for full Model Zoo
+- [ ] `PYTORCH_MPS_ENABLED=0` set
+- [ ] `CUDA_VISIBLE_DEVICES=""` set
+- [ ] Sufficient disk space for full Model Zoo
 
 ---
 

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 OFFICIAL ARCHITECTURE SPECIFICATION
 ## Progressive Curriculum Learning for Commodity Price Forecasting
 
@@ -5,6 +6,8 @@
 **Documented by:** Claude (Humbled Assistant)  
 **Date:** 2025-12-27  
 **Status:** LOCKED - Research Validated
+
+> **Implementation note (2026):** This document is a research/vision spec. The implemented v3 system in this repo uses **Core horizon forecasters** plus **11 specialist signal generators (no horizons)**. This project forbids decision/execution semantics; any directional “signal” examples below are illustrative only and must not be treated as “buy/sell/act now” outputs.
 
 ---
 
@@ -21,13 +24,15 @@ This approach is validated by 15+ academic papers across commodity forecasting, 
 
 ## Core Training Policy (CPU-only, Full Model Zoo)
 
-Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+Core runs on CPU. Set guards **before** importing torch/autogluon:
 
 ```
 TOKENIZERS_PARALLELISM=false
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 AUTOGLUON_DISABLE_RAY=1
 PYTORCH_ENABLE_MPS_FALLBACK=1
+PYTORCH_MPS_ENABLED=0
+CUDA_VISIBLE_DEVICES=""
 device = "cpu"
 ```
 
@@ -156,7 +161,7 @@ FORECAST:
 PROBABILITY UP: XX.X%
 CONFIDENCE: HIGH/MEDIUM/LOW
 REGIME: BULL/BEAR/SIDEWAYS
-SIGNAL: BUY NOW / WAIT / HOLD
+SIGNAL: (informational only; no execution semantics)
 
 CONTRACT IMPACT (60,000 lbs):
   Expected: +$X,XXX
@@ -182,7 +187,7 @@ CONTRACT IMPACT (60,000 lbs):
 
 ## WHAT WE BUILT WRONG (DO NOT REPEAT)
 
-❌ L1, L2, L3 all identical TabularPredictor on same target  
+❌ L1, L2, L3 all identical generic predictors on same target  
 ❌ No progressive refinement  
 ❌ No discovery phase  
 ❌ No LLM correlation mining  
@@ -198,7 +203,7 @@ Each horizon gets its own complete L0→L3→MC stack:
 
 | Horizon | Use Case |
 |---------|----------|
-| 5-day | Immediate buy/wait decision |
+| 5-day | Tactical procurement timing window |
 | 21-day | Monthly procurement planning |
 | 63-day | Quarterly contract timing |
 | 126-day | Semi-annual hedging strategy |

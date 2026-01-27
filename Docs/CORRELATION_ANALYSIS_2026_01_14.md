@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: Correlation Analysis Results
 ## Date: 2026-01-14
 

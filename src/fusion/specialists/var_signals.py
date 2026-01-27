@@ -72,15 +72,56 @@ class EnergySignalGenerator(BaseSignalGenerator):
     - Uses spillover index methodology
     """
 
+    # =========================================================================
+    # PETROLEUM COMPLEX - Complete Energy Universe
+    # =========================================================================
+    PETROLEUM_PRODUCTS = {
+        # Crude Oil
+        "cl_close": {"name": "WTI Crude", "unit": "$/bbl", "role": "primary_shock"},
+        "bz_close": {"name": "Brent Crude", "unit": "$/bbl", "role": "global_benchmark"},
+        # Refined Products
+        "ho_close": {"name": "Heating Oil", "unit": "$/gal", "role": "diesel_proxy"},
+        "rb_close": {"name": "RBOB Gasoline", "unit": "$/gal", "role": "crack_spread"},
+        # Natural Gas
+        "ng_close": {"name": "Natural Gas", "unit": "$/mmbtu", "role": "energy_correlation"},
+    }
+
+    SPREAD_CALCULATIONS = {
+        "crack_321": "3-2-1 Crack Spread (refining margin)",
+        "boho": "ZL - HO (biodiesel premium)",
+        "wti_brent": "WTI - Brent (US vs global)",
+        "gasoline_diesel": "RB - HO (product spread)",
+    }
+
     def __init__(self):
         config = SignalConfig(
             bucket="energy",
             model_type="var",
-            primary_features=["close"],
+            primary_features=[
+                "close",
+                # PETROLEUM COMPLEX - Full VAR system
+                "cl_close",         # WTI Crude ($/barrel) - PRIMARY shock source
+                "ho_close",         # Heating Oil ($/gallon) - Diesel/biodiesel proxy
+                "rb_close",         # RBOB Gasoline ($/gallon) - 3-2-1 crack
+                "ng_close",         # Natural Gas - Energy correlation
+                "bz_close",         # Brent Crude - Global benchmark
+            ],
             secondary_features=[
-                "cl_close",   # WTI Crude ($/barrel)
-                "ho_close",   # Heating Oil ($/gallon)
-                "rb_close",   # RBOB Gasoline ($/gallon)
+                # ENERGY ETFs
+                "xle_close",        # Energy sector ETF
+                "uso_close",        # US Oil ETF
+                "ung_close",        # Natural Gas ETF
+                # FRED BACKUP
+                "fred_dcoilwtico",  # FRED WTI
+                "fred_dcoilbrenteu",# FRED Brent
+                # ELITE INDICATORS (computed)
+                "cl_rsi_14",        # Crude RSI
+                "cl_macd",          # Crude MACD
+                "cl_zscore_21d",    # Crude z-score
+                "crack_spread_321", # 3-2-1 crack spread
+                "boho_spread",      # ZL - HO spread
+                "wti_brent_spread", # WTI - Brent spread
+                "energy_momentum",  # Composite momentum
             ],
             lookback_days=252,
             min_data_points=126,
@@ -89,16 +130,67 @@ class EnergySignalGenerator(BaseSignalGenerator):
         self.last_var_result = None
         self.last_irf = None
         self.last_fevd = None
-        self.irf_horizon: int = 21  # 21-period (1 month) impulse response for full shock propagation
+        self.irf_horizon: int = 21
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Need at least crude oil for energy signal."""
+        """Require FULL petroleum complex for VAR estimation."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
+        # REQUIRE full petroleum complex
         if "cl_close" not in data.columns:
             missing.append("cl_close")
+        if "ho_close" not in data.columns:
+            missing.append("ho_close")
+        if "rb_close" not in data.columns:
+            missing.append("rb_close")
+        if "ng_close" not in data.columns:
+            missing.append("ng_close")
         return missing
+
+    def _compute_elite_energy_indicators(self, data: pd.DataFrame) -> Dict[str, pd.Series]:
+        """Compute elite technical indicators for energy products."""
+        elite = {}
+
+        for product_col in ["cl_close", "ho_close", "rb_close", "ng_close"]:
+            if product_col not in data.columns:
+                continue
+
+            price = data[product_col]
+            prefix = product_col.replace("_close", "")
+
+            # RSI-14
+            delta = price.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss.replace(0, np.nan)
+            elite[f"{prefix}_rsi_14"] = 100 - (100 / (1 + rs))
+
+            # MACD
+            ema12 = price.ewm(span=12, adjust=False).mean()
+            ema26 = price.ewm(span=26, adjust=False).mean()
+            elite[f"{prefix}_macd"] = ema12 - ema26
+
+            # Z-scores
+            for window in [21, 63]:
+                mean = price.rolling(window).mean()
+                std = price.rolling(window).std()
+                elite[f"{prefix}_zscore_{window}d"] = (price - mean) / std.replace(0, np.nan)
+
+            # Momentum
+            elite[f"{prefix}_mom_5d"] = price.pct_change(5, fill_method=None)
+            elite[f"{prefix}_mom_21d"] = price.pct_change(21, fill_method=None)
+
+        # WTI-Brent spread
+        if "cl_close" in data.columns and "bz_close" in data.columns:
+            elite["wti_brent_spread"] = data["cl_close"] - data["bz_close"]
+            elite["wti_brent_zscore"] = self.compute_zscore(elite["wti_brent_spread"], 63)
+
+        # Gasoline-Diesel spread
+        if "rb_close" in data.columns and "ho_close" in data.columns:
+            elite["gasoline_diesel_spread"] = data["rb_close"] - data["ho_close"]
+
+        return elite
 
     def _compute_energy_spreads(self, data: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
         """
@@ -346,9 +438,29 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute energy spillover signals with REAL VAR IRF.
+        Compute energy spillover signals with REAL VAR IRF and ALL elite indicators.
         """
         signals = []
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL PETROLEUM PRODUCTS
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        for energy_sym in ["cl", "ho", "rb", "ng", "bz"]:
+            col = f"{energy_sym}_close"
+            if col in data.columns and data[col].notna().sum() > 30:
+                energy_data = data.copy()
+                energy_data["close"] = data[col]
+                energy_data = self.add_all_elite_indicators(energy_data, "close", energy_sym)
+                for c in energy_data.columns:
+                    if c.startswith(f"{energy_sym}_") and c not in data.columns:
+                        data[c] = energy_data[c]
+
+        # Compute elite energy indicators
+        elite_energy = self._compute_elite_energy_indicators(data)
+        for col_name, series in elite_energy.items():
+            data[col_name] = series
 
         # Core energy indicator: crude oil z-score
         cl = data["cl_close"]

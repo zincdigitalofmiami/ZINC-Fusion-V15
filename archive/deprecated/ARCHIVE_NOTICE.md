@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ⚠️ DEPRECATED FILES
 
 **Date**: December 26, 2025

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # Micro-Planner (Active)
 
 ## Purpose

@@ -221,12 +221,29 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         config = SignalConfig(
             bucket="crush",
             model_type="xgb",
-            primary_features=["close", "zs_close", "zm_close"],
+            primary_features=[
+                "close",
+                # SOYBEAN COMPLEX - Full crush calculation inputs
+                "zs_close",         # Soybeans (feedstock)
+                "zm_close",         # Soybean Meal (byproduct)
+                # MARKET MICROSTRUCTURE
+                "volume",           # ZL volume (liquidity)
+                "open_interest",    # ZL open interest (positioning)
+            ],
             secondary_features=[
-                "volume", "open_interest",
+                # WASDE FUNDAMENTALS - Supply/demand balance
                 "wasde_soybean_oil_ending_stocks",
                 "wasde_soybean_oil_production",
                 "wasde_soybeans_crush",
+                "wasde_soybean_oil_exports",
+                "wasde_soybean_oil_domestic",
+                # Extended complex
+                "zs_volume",        # Soybeans volume
+                "zm_volume",        # Meal volume
+                "zs_open_interest", # Soybeans OI
+                "zm_open_interest", # Meal OI
+                # CFTC positioning
+                "cftc_zl_net_spec", # ZL speculator positioning
             ],
             lookback_days=252,
             min_data_points=63,
@@ -258,8 +275,38 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
             )
 
     def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
-        """Prepare crush-specific features."""
+        """Prepare crush-specific features with ALL elite indicators."""
         features = {}
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL, ZS, ZM
+        # =====================================================================
+        # ZL elite indicators
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # ZS elite indicators
+        if "zs_close" in data.columns:
+            zs_data = data.copy()
+            zs_data["close"] = data["zs_close"]
+            if "zs_high" in data.columns:
+                zs_data["zs_high_temp"] = data["zs_high"]
+            if "zs_low" in data.columns:
+                zs_data["zs_low_temp"] = data["zs_low"]
+            if "zs_volume" in data.columns:
+                zs_data["zs_volume_temp"] = data["zs_volume"]
+            zs_data = self.add_all_elite_indicators(zs_data, "close", "zs")
+            for col in zs_data.columns:
+                if col.startswith("zs_") and col not in data.columns:
+                    data[col] = zs_data[col]
+
+        # ZM elite indicators
+        if "zm_close" in data.columns:
+            zm_data = data.copy()
+            zm_data["close"] = data["zm_close"]
+            zm_data = self.add_all_elite_indicators(zm_data, "close", "zm")
+            for col in zm_data.columns:
+                if col.startswith("zm_") and col not in data.columns:
+                    data[col] = zm_data[col]
 
         zl = data["close"]
         zs = data["zs_close"]
@@ -294,6 +341,12 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         for col in data.columns:
             if 'wasde' in col.lower():
                 features[f"{col}_zscore"] = self.compute_zscore(data[col], window=24, min_periods=12)
+
+        # ADD ALL ZL/ZS/ZM ELITE INDICATORS TO FEATURES
+        for col in data.columns:
+            if col.startswith("zl_") or col.startswith("zs_") or col.startswith("zm_"):
+                if col not in features:
+                    features[col] = data[col]
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
@@ -346,11 +399,16 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 continue
 
             row_features = X_full.loc[[idx]]
-            if row_features.isna().any().any():
+            # Only check NaN in features the model uses (not all columns)
+            if self.feature_names:
+                model_features = row_features[self.feature_names]
+                if model_features.isna().all().all():  # Skip if ALL model features are NaN
+                    continue
+            elif row_features.isna().any().any():
                 continue
 
             try:
-                # REAL MODEL PREDICTION
+                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
                 prediction = self._predict(row_features)[0]
 
                 # Confidence from model's feature importance weighted by feature values
@@ -417,12 +475,23 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         config = SignalConfig(
             bucket="substitutes",
             model_type="rf",
-            primary_features=["close"],
+            primary_features=[
+                "close",
+                # SUBSTITUTE OILS COMPLEX - Full relative value
+                "cpo_close",        # Crude Palm Oil (Malaysia)
+                "rs_close",         # Canola/Rapeseed (Canada)
+                "sunflower_close",  # Sunflower Oil (Ukraine/Russia)
+                "rapeseed_close",   # Rapeseed (EU)
+            ],
             secondary_features=[
-                "rs_close",
-                "cpo_close",
-                "sunflower_close",
-                "rapeseed_close",
+                # Extended substitutes
+                "corn_oil_close",   # Corn oil (US)
+                "cotton_oil_close", # Cottonseed oil
+                # FX for conversion
+                "fred_dexmaus",     # MYR/USD (palm conversion)
+                "fred_dexcaus",     # CAD/USD (canola conversion)
+                # Cross-commodity
+                "zs_close",         # Soybeans (feedstock arbitrage)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -442,21 +511,28 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Override to allow partial secondary features."""
+        """Require core substitute oils (CPO, RS daily). Sunflower/rapeseed are monthly, optional."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-        # At least one substitute must be present
-        substitutes = ["rs_close", "cpo_close", "sunflower_close", "rapeseed_close"]
-        available = [s for s in substitutes if s in data.columns]
-        if not available:
-            missing.append("at_least_one_substitute")
+        # REQUIRE daily substitutes
+        if "cpo_close" not in data.columns:
+            missing.append("cpo_close")
+        if "rs_close" not in data.columns:
+            missing.append("rs_close")
+        # sunflower_close and rapeseed_close are MONTHLY data (48 unique values)
+        # Used for spread/ratio only, not elite indicators
         return missing
 
     def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
-        """Prepare substitutes-specific features."""
+        """Prepare substitutes-specific features with ALL elite indicators."""
         features = {}
         zl = data["close"]
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL SUBSTITUTES
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
 
         substitutes = {
             "rs": ("rs_close", 1.0),  # Canola - same units
@@ -467,25 +543,40 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
         for name, (col, divisor) in substitutes.items():
             if col in data.columns and data[col].notna().sum() > 30:
+                # Check if daily data (>100 unique values) or monthly (~48)
+                is_daily = data[col].nunique() > 100
+                
+                # ADD ELITE INDICATORS ONLY FOR DAILY DATA (CPO, RS)
+                if is_daily:
+                    sub_data = data.copy()
+                    sub_data["close"] = data[col]
+                    sub_data = self.add_all_elite_indicators(sub_data, "close", name)
+                    for c in sub_data.columns:
+                        if c.startswith(f"{name}_") and c not in data.columns:
+                            data[c] = sub_data[c]
+
                 sub_price = data[col] / divisor
 
-                # Spread
+                # Spread (works for both daily and monthly)
                 spread = zl - sub_price
                 features[f"spread_{name}_zscore"] = self.compute_zscore(spread, window=126, min_periods=42)
-                # Lag by 1 day to prevent leakage
-                features[f"spread_{name}_mom_21d"] = spread.pct_change(21, fill_method=None).shift(1)
+                if is_daily:  # Only compute momentum for daily data
+                    features[f"spread_{name}_mom_21d"] = spread.pct_change(21, fill_method=None).shift(1)
 
-                # Ratio
+                # Ratio (works for both)
                 ratio = zl / sub_price.replace(0, np.nan)
                 features[f"ratio_{name}_zscore"] = self.compute_zscore(ratio, window=252, min_periods=63)
 
-                # Correlation
-                features[f"corr_{name}_63d"] = zl.rolling(63).corr(sub_price)
+                # Correlation (only for daily data with sufficient variance)
+                if is_daily:
+                    features[f"corr_{name}_63d"] = zl.rolling(63, min_periods=30).corr(sub_price)
 
-        # ZL momentum (lagged to prevent leakage)
-        features["zl_mom_5d"] = zl.pct_change(5, fill_method=None).shift(1)
-        features["zl_mom_21d"] = zl.pct_change(21, fill_method=None).shift(1)
-        features["zl_vol_21d"] = zl.pct_change(fill_method=None).rolling(21).std()
+        # ADD ALL ELITE INDICATORS TO FEATURES (deterministic, no filtering)
+        for col in data.columns:
+            if col.startswith("zl_") or col.startswith("rs_") or col.startswith("cpo_"):
+                # Note: sunf_ and rape_ elite indicators not added (monthly data)
+                if col not in features:
+                    features[col] = data[col]
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
@@ -531,11 +622,16 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 continue
 
             row_features = X_full.loc[[idx]]
-            if row_features.isna().any().any():
+            # Only check NaN in features the model uses (not all columns)
+            if self.feature_names:
+                model_features = row_features[self.feature_names]
+                if model_features.isna().all().all():  # Skip if ALL model features are NaN
+                    continue
+            elif row_features.isna().any().any():
                 continue
 
             try:
-                # REAL MODEL PREDICTION
+                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
                 prediction = self._predict(row_features)[0]
 
                 # Confidence based on number of substitutes and feature importance
@@ -602,15 +698,28 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         config = SignalConfig(
             bucket="china",
             model_type="gbm",
-            primary_features=["close", "hg_close"],
+            primary_features=[
+                "close",
+                # CHINA DEMAND PROXIES - Full complex
+                "hg_close",         # Copper (industrial demand)
+                "usd_cny",          # CNY/USD (import capacity)
+                # SHIPPING/LOGISTICS
+                "bdry_close",       # Baltic Dry Index (shipping demand)
+                "sblk_close",       # Dry bulk shipping ETF
+                # BRAZIL COMPETITION
+                "fred_dexbzus",     # BRL/USD (Brazil export competitiveness)
+            ],
             secondary_features=[
-                "usd_cny",
-                "fred_dexbzus",
-                "fx_usdbrl",
-                "bdry_close",
-                "sblk_close",
-                "dalian_soy",
-                "china_pmi",
+                # Extended China exposure
+                "fxi_close",        # China Large-Cap ETF
+                "kweb_close",       # China Internet ETF
+                "china_pmi",        # Manufacturing PMI
+                # Alternative BRL
+                "fx_usdbrl",        # BRL (alternative source)
+                # Additional demand proxies
+                "fred_chnprinto01ixpym",  # China industrial production
+                # Soybean complex for context
+                "zs_close",         # Soybeans (main China import)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -630,12 +739,20 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Copper is required; others optional."""
+        """Require China demand features. Shipping (BDRY/SBLK) is optional due to sparse coverage."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
+        # REQUIRE demand proxies
         if "hg_close" not in data.columns:
             missing.append("hg_close")
+        if "usd_cny" not in data.columns:
+            missing.append("usd_cny")
+        # Shipping is OPTIONAL (13% coverage in BDRY/SBLK)
+        # Use FXI/KWEB as China sentiment proxies instead
+        # REQUIRE Brazil competition
+        if "fred_dexbzus" not in data.columns:
+            missing.append("fred_dexbzus")
         return missing
 
     def _get_brl_column(self, data: pd.DataFrame) -> Optional[str]:
@@ -653,20 +770,55 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         return None
 
     def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
-        """Prepare China-specific features."""
+        """Prepare China-specific features with ALL elite indicators."""
         features = {}
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, SHIPPING
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # Copper elite indicators
+        if "hg_close" in data.columns:
+            hg_data = data.copy()
+            hg_data["close"] = data["hg_close"]
+            hg_data = self.add_all_elite_indicators(hg_data, "close", "hg")
+            for c in hg_data.columns:
+                if c.startswith("hg_") and c not in data.columns:
+                    data[c] = hg_data[c]
+
+        # BDRY elite indicators
+        if "bdry_close" in data.columns:
+            bdry_data = data.copy()
+            bdry_data["close"] = data["bdry_close"]
+            bdry_data = self.add_all_elite_indicators(bdry_data, "close", "bdry")
+            for c in bdry_data.columns:
+                if c.startswith("bdry_") and c not in data.columns:
+                    data[c] = bdry_data[c]
+
+        # SBLK elite indicators
+        if "sblk_close" in data.columns:
+            sblk_data = data.copy()
+            sblk_data["close"] = data["sblk_close"]
+            sblk_data = self.add_all_elite_indicators(sblk_data, "close", "sblk")
+            for c in sblk_data.columns:
+                if c.startswith("sblk_") and c not in data.columns:
+                    data[c] = sblk_data[c]
+
+        # FXI elite indicators (China proxy)
+        if "fxi_close" in data.columns:
+            fxi_data = data.copy()
+            fxi_data["close"] = data["fxi_close"]
+            fxi_data = self.add_all_elite_indicators(fxi_data, "close", "fxi")
+            for c in fxi_data.columns:
+                if c.startswith("fxi_") and c not in data.columns:
+                    data[c] = fxi_data[c]
 
         zl = data["close"]
         hg = data["hg_close"]
 
-        # Copper features (primary demand proxy)
-        features["hg_zscore"] = self.compute_zscore(hg, window=126, min_periods=42)
-        features["hg_mom_5d"] = hg.pct_change(5, fill_method=None)
-        features["hg_mom_21d"] = hg.pct_change(21, fill_method=None)
-        features["hg_vol_21d"] = hg.pct_change(fill_method=None).rolling(21).std()
-
-        # ZL-Copper correlation
-        features["zl_hg_corr_63d"] = zl.rolling(63).corr(hg)
+        # Additional features (kept for domain logic)
+        features["zl_hg_corr_63d"] = zl.rolling(63, min_periods=30).corr(hg)
 
         # CNY features
         if "usd_cny" in data.columns:
@@ -678,30 +830,25 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         brl_col = self._get_brl_column(data)
         if brl_col:
             brl = data[brl_col]
-            # FRED format is foreign/USD, invert for USD/foreign
             if "dexbzus" in brl_col.lower():
                 brl = 1 / brl
             features["brl_zscore"] = self.compute_zscore(brl, window=126, min_periods=42)
             features["brl_mom_21d"] = brl.pct_change(21, fill_method=None)
 
-        # Shipping features
-        ship_col = self._get_shipping_column(data)
-        if ship_col:
-            ship = data[ship_col]
-            features["shipping_zscore"] = self.compute_zscore(ship, window=126, min_periods=42)
-            features["shipping_mom_21d"] = ship.pct_change(21, fill_method=None)
-            features["shipping_vol_21d"] = ship.pct_change(fill_method=None).rolling(21).std()
-
-        # Seasonality features (one-hot encoded months)
+        # Seasonality
         features["month_sin"] = np.sin(2 * np.pi * pd.to_datetime(data.index).month / 12)
         features["month_cos"] = np.cos(2 * np.pi * pd.to_datetime(data.index).month / 12)
-
-        # Seasonality weight
         seasonality = pd.Series(index=data.index, dtype=float)
         for idx in data.index:
             month = pd.to_datetime(idx).month
             seasonality.loc[idx] = self.CHINA_SEASONALITY.get(month, 1.0) - 1.0
         features["seasonality"] = seasonality
+
+        # ADD ALL ELITE INDICATORS TO FEATURES (deterministic, no filtering)
+        for col in data.columns:
+            if col.startswith("zl_") or col.startswith("hg_") or col.startswith("bdry_") or col.startswith("sblk_") or col.startswith("fxi_"):
+                if col not in features:
+                    features[col] = data[col]
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
@@ -731,11 +878,13 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # Prepare features
         X_full, feature_names = self._prepare_features(data)
 
-        last_valid_idx = X_full.dropna().index[-1] if len(X_full.dropna()) > 0 else None
-        if last_valid_idx is None:
+        # Find last valid date from core data (not all features - some may be all-NaN)
+        core_data_valid = data["close"].notna()
+        if core_data_valid.sum() == 0:
             logger.warning("ChinaSignalGenerator: No valid data")
             return signals
-
+        
+        last_valid_idx = data[core_data_valid].index[-1]
         current_date = last_valid_idx.date() if hasattr(last_valid_idx, 'date') else last_valid_idx
 
         # Check if retraining needed
@@ -757,18 +906,23 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # ZL-Copper correlation for confidence
         zl = data["close"]
         hg = data["hg_close"]
-        zl_hg_corr = zl.rolling(63).corr(hg)
+        zl_hg_corr = zl.rolling(63, min_periods=30).corr(hg)
 
         for idx in data.index:
             if idx not in X_full.index:
                 continue
 
             row_features = X_full.loc[[idx]]
-            if row_features.isna().any().any():
+            # Only check NaN in features the model uses (not all columns)
+            if self.feature_names:
+                model_features = row_features[self.feature_names]
+                if model_features.isna().all().all():  # Skip if ALL model features are NaN
+                    continue
+            elif row_features.isna().any().any():
                 continue
 
             try:
-                # REAL MODEL PREDICTION
+                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
                 prediction = self._predict(row_features)[0]
 
                 # Confidence based on correlation and data availability

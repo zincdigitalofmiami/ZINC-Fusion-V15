@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 Schema Contract v2
 
 Status: ACTIVE (migrated 2026-01-18)

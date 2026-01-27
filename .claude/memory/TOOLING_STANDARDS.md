@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # TOOLING STANDARDS - ZINC-FUSION-V15
 
 ## CORE PRINCIPLE

@@ -23,18 +23,16 @@ import os
 import sys
 import logging
 import argparse
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from pathlib import Path
 from typing import List, Dict, Optional
 import hashlib
 
-import pandas as pd
-import numpy as np
 from dotenv import load_dotenv
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Setup logging
 logging.basicConfig(
@@ -72,236 +70,64 @@ def get_connection():
 
 
 # =============================================================================
-# DATA LOADING
-# =============================================================================
-
-def load_training_matrix(
-    conn,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-) -> pd.DataFrame:
-    """
-    Load training matrix from database.
-
-    Returns DataFrame with trade_date as index and all feature columns.
-    """
-    query = """
-    SELECT *
-    FROM training.matrix_1d
-    WHERE symbol = 'ZL'
-    """
-    params = []
-
-    if start_date:
-        query += " AND trade_date >= %s"
-        params.append(start_date)
-    if end_date:
-        query += " AND trade_date <= %s"
-        params.append(end_date)
-
-    query += " ORDER BY trade_date"
-
-    df = pd.read_sql(query, conn, params=params if params else None)
-
-    if df.empty:
-        raise ValueError("No data found in training.matrix_1d")
-
-    # Set trade_date as index
-    df["trade_date"] = pd.to_datetime(df["trade_date"])
-    df = df.set_index("trade_date")
-
-    logger.info(f"Loaded {len(df)} rows from training.matrix_1d ({df.index.min()} to {df.index.max()})")
-    return df
-
-
-def load_supplemental_data(conn, df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Load supplemental data that may not be in the training matrix.
-
-    Includes:
-    - Related futures (ZS, ZM, CL, HO, etc.)
-    - FX pairs
-    - Commodity prices (CPO, HG, etc.)
-    """
-    start_date = df.index.min().date()
-    end_date = df.index.max().date()
-
-    # Load related futures
-    futures_query = """
-    SELECT event_date as trade_date, symbol, close, volume, open_interest
-    FROM mkt.futures_1d
-    WHERE event_date >= %s AND event_date <= %s
-      AND symbol IN ('ZS', 'ZM', 'CL', 'HO', 'RB', 'NG', 'HG', 'RS', 'DX', 'BDRY', 'SBLK')
-    ORDER BY event_date, symbol
-    """
-    futures_df = pd.read_sql(futures_query, conn, params=[start_date, end_date])
-
-    if not futures_df.empty:
-        futures_df["trade_date"] = pd.to_datetime(futures_df["trade_date"])
-        futures_pivot = futures_df.pivot(
-            index="trade_date",
-            columns="symbol",
-            values="close"
-        )
-        futures_pivot.columns = [f"{col.lower()}_close" for col in futures_pivot.columns]
-
-        # Merge into main dataframe (rsuffix for overlapping columns)
-        df = df.join(futures_pivot, how="left", rsuffix="_supp")
-        logger.info(f"Added {len(futures_pivot.columns)} supplemental futures columns")
-
-    # Load CPO (palm oil) if available
-    cpo_query = """
-    SELECT event_date as trade_date, close as cpo_close
-    FROM mkt.futures_1d
-    WHERE event_date >= %s AND event_date <= %s
-      AND symbol = 'CPO'
-    ORDER BY event_date
-    """
-    try:
-        cpo_df = pd.read_sql(cpo_query, conn, params=[start_date, end_date])
-        if not cpo_df.empty:
-            cpo_df["trade_date"] = pd.to_datetime(cpo_df["trade_date"])
-            cpo_df = cpo_df.set_index("trade_date")
-            df = df.join(cpo_df, how="left")
-            logger.info("Added CPO (palm oil) data")
-    except Exception as e:
-        logger.warning(f"Could not load CPO data: {e}")
-
-    # Load RIN prices for biofuel specialist (NEW - 2026-01-21)
-    rin_query = """
-    SELECT event_date as trade_date, rin_type, price
-    FROM supply.epa_rin_1d
-    WHERE event_date >= %s AND event_date <= %s
-    ORDER BY event_date, rin_type
-    """
-    try:
-        rin_df = pd.read_sql(rin_query, conn, params=[start_date, end_date])
-        if not rin_df.empty:
-            rin_df["trade_date"] = pd.to_datetime(rin_df["trade_date"])
-            # Pivot RIN types to columns
-            rin_pivot = rin_df.pivot(
-                index="trade_date",
-                columns="rin_type",
-                values="price"
-            )
-            # Rename columns to match expected names
-            rin_pivot.columns = [f"rin_{col.lower()}_price" for col in rin_pivot.columns]
-            df = df.join(rin_pivot, how="left")
-            logger.info(f"Added {len(rin_pivot.columns)} RIN price columns: {list(rin_pivot.columns)}")
-    except Exception as e:
-        logger.warning(f"Could not load RIN prices: {e}")
-
-    # Load WASDE fundamentals for crush specialist (NEW - 2026-01-21)
-    wasde_query = """
-    SELECT
-        event_date as trade_date,
-        commodity,
-        metric,
-        value
-    FROM supply.usda_wasde_1m
-    WHERE event_date >= %s AND event_date <= %s
-      AND commodity IN ('Soybean Oil', 'Soybeans', 'Soybean Meal')
-      AND country = 'United States'
-    ORDER BY event_date
-    """
-    try:
-        wasde_df = pd.read_sql(wasde_query, conn, params=[start_date, end_date])
-        if not wasde_df.empty:
-            wasde_df["trade_date"] = pd.to_datetime(wasde_df["trade_date"])
-            # Create key from commodity + metric
-            wasde_df["key"] = wasde_df["commodity"].str.replace(" ", "_").str.lower() + "_" + \
-                             wasde_df["metric"].str.replace(" ", "_").str.lower()
-            # Pivot to wide format
-            wasde_pivot = wasde_df.pivot(
-                index="trade_date",
-                columns="key",
-                values="value"
-            )
-            wasde_pivot.columns = [f"wasde_{col}" for col in wasde_pivot.columns]
-            df = df.join(wasde_pivot, how="left")
-            logger.info(f"Added {len(wasde_pivot.columns)} WASDE columns")
-    except Exception as e:
-        logger.warning(f"Could not load WASDE data: {e}")
-
-    # Load FRED commodity proxies for sunflower/rapeseed (econ.commodities_1d)
-    commodities_query = """
-    SELECT event_date as trade_date, series_id, value
-    FROM econ.commodities_1d
-    WHERE event_date >= %s AND event_date <= %s
-      AND series_id IN ('PROILUSDM', 'PSUNOUSDM')
-    ORDER BY event_date, series_id
-    """
-    try:
-        comm_df = pd.read_sql(commodities_query, conn, params=[start_date, end_date])
-        if not comm_df.empty:
-            comm_df["trade_date"] = pd.to_datetime(comm_df["trade_date"])
-            comm_pivot = comm_df.pivot(
-                index="trade_date",
-                columns="series_id",
-                values="value"
-            )
-            # Map FRED series IDs to expected column names
-            rename_map = {
-                "PROILUSDM": "rapeseed_close",
-                "PSUNOUSDM": "sunflower_close",
-            }
-            comm_pivot = comm_pivot.rename(columns=rename_map)
-            df = df.join(comm_pivot, how="left")
-            logger.info(f"Added FRED commodity columns: {list(comm_pivot.columns)}")
-    except Exception as e:
-        logger.warning(f"Could not load FRED commodity proxies: {e}")
-
-    # Fallback: alias rapeseed_close to rs_close if missing or empty
-    if "rapeseed_close" not in df.columns or df["rapeseed_close"].isna().all():
-        if "rs_close" in df.columns:
-            df["rapeseed_close"] = df["rs_close"]
-            logger.info("Aliased rapeseed_close from rs_close (no rapeseed series found)")
-        else:
-            logger.warning("rapeseed_close missing and rs_close not available; alias skipped")
-
-    return df
-
-
-# =============================================================================
 # SIGNAL GENERATION
 # =============================================================================
 
 def generate_signals_for_bucket(
     bucket: str,
-    data: pd.DataFrame,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    strict_mode: bool = False,
 ) -> List[Dict]:
     """
     Generate signals for a single specialist bucket.
 
+    EACH SPECIALIST LOADS ITS OWN DATA via data_loaders.py.
+    No shared matrix - each bucket queries exactly what it needs.
+
     Returns list of signal dictionaries ready for database insertion.
     """
     from fusion.specialists import get_generator, SignalOutput
+    from fusion.specialists.data_loaders import load_specialist_data
 
     try:
+        # LOAD THIS SPECIALIST'S OWN DATA
+        logger.info(f"   Loading {bucket}-specific data...")
+        specialist_data = load_specialist_data(bucket, start_date, end_date)
+        logger.info(f"   {bucket} data: {len(specialist_data)} rows, {len(specialist_data.columns)} columns")
+        
+        # Get the generator and run
         generator = get_generator(bucket)
-        signals = generator.generate(data, start_date, end_date)
+        signals = generator.generate(specialist_data, start_date, end_date)
 
         # Convert to dicts for insertion
         return [sig.to_dict() for sig in signals]
 
     except ValueError as e:
+        if strict_mode:
+            logger.error(f"Strict mode: {bucket} failed validation: {e}")
+            raise
         logger.warning(f"Skipping {bucket}: {e}")
         return []
     except Exception as e:
         logger.error(f"Error generating {bucket} signals: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        if strict_mode:
+            raise
         return []
 
 
 def generate_all_signals(
-    data: pd.DataFrame,
     buckets: List[str],
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    strict_mode: bool = False,
 ) -> Dict[str, List[Dict]]:
     """
     Generate signals for all specified buckets.
+
+    Each bucket loads its OWN data independently.
 
     Returns dict mapping bucket name to list of signal dicts.
     """
@@ -309,7 +135,7 @@ def generate_all_signals(
 
     for bucket in buckets:
         logger.info(f"Generating signals for {bucket}...")
-        signals = generate_signals_for_bucket(bucket, data, start_date, end_date)
+        signals = generate_signals_for_bucket(bucket, start_date, end_date, strict_mode=strict_mode)
         all_signals[bucket] = signals
         logger.info(f"  {bucket}: {len(signals)} signals generated")
 
@@ -421,6 +247,11 @@ def main():
         action="store_true",
         help="Don't write to database, just show what would be done",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Strict mode: fail immediately on missing features or validation errors.",
+    )
     args = parser.parse_args()
 
     # Determine buckets to process
@@ -442,20 +273,17 @@ def main():
     logger.info(f"Run hash: {run_hash}")
     logger.info(f"Buckets: {buckets}")
     logger.info(f"Date range: {start_date or 'earliest'} to {end_date}")
+    strict_mode = args.strict
+    os.environ["STRICT_DATA"] = "true" if strict_mode else "false"
     logger.info(f"Dry run: {args.dry_run}")
+    logger.info(f"Strict mode: {strict_mode}")
 
-    # Connect and load data
+    # Connect to database
     conn = get_connection()
 
     try:
-        # Load training matrix
-        data = load_training_matrix(conn, start_date, end_date)
-
-        # Add supplemental data
-        data = load_supplemental_data(conn, data)
-
-        # Generate signals
-        signals = generate_all_signals(data, buckets, start_date, end_date)
+        # Generate signals - EACH specialist loads its own data
+        signals = generate_all_signals(buckets, start_date, end_date, strict_mode=strict_mode)
 
         # Write to database
         total = sum(len(sigs) for sigs in signals.values())

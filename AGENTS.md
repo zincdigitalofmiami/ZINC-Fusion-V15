@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 Workspace Guide (Assistant/Agent)
 
 This file is the operational and architectural guide for any automated assistant or human operator working in this repository.

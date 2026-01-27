@@ -1,0 +1,76 @@
+================================================================================
+Databento Integration - Comprehensive Audit
+================================================================================
+Started: 2026-01-27T13:31:28.547753
+
+1. Checking source distribution...
+2. Checking price discontinuities...
+3. Checking symbol usage in mkt.futures_1d...
+4. Checking data coverage gaps...
+5. Checking source conflicts...
+6. Checking volume consistency...
+7. Checking recent data freshness...
+8. Checking data quality...
+9. Generating summary...
+
+================================================================================
+Audit Summary
+================================================================================
+✓ Source distribution in zl_price_15m: 1 rows
+✓ Source distribution in zl_price_1h: 1 rows
+✓ Source distribution in zl_price_1d: 6 rows
+✓ Price discontinuities in zl_price_15m (last 7 days): 20 rows
+✓ Price discontinuities in zl_price_1d (last 30 days): 20 rows
+✓ ZL symbol usage in mkt.futures_1d: 6 rows
+✓ Coverage gaps in zl_price_15m (>30 min): 9 rows
+✗ Missing dates in zl_price_1d (last 30 days): ERROR - (psycopg2.errors.UndefinedColumn) column "generate_series" does not exist
+LINE 8:             WHERE EXTRACT(DOW FROM generate_series) NOT IN (...
+                                           ^
+
+[SQL: 
+        WITH date_series AS (
+            SELECT generate_series(
+                CURRENT_DATE - INTERVAL '30 days',
+                CURRENT_DATE - INTERVAL '1 day',
+                '1 day'::interval
+            )::date AS day
+            WHERE EXTRACT(DOW FROM generate_series) NOT IN (0, 6)
+        )
+        SELECT 
+            ds.day as missing_date
+        FROM date_series ds
+        LEFT JOIN analytics.zl_price_1d z ON ds.day = z.event_date
+        WHERE z.event_date IS NULL
+        ORDER BY ds.day DESC
+        ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+✓ Source conflicts in zl_price_15m (same timestamp, different sources): 0 rows
+✓ Source conflicts in zl_price_1d (same date, different sources): 0 rows
+✓ Volume consistency per day in zl_price_15m: 5 rows
+✓ Data freshness by source and interval: 8 rows
+✓ Data quality issues in zl_price_15m: 1 rows
+✓ Overall summary statistics: 1 rows
+
+Full results saved to: audit_results_databento.json
+
+================================================================================
+Key Findings
+================================================================================
+
+15m Sources: yahoo
+
+✓ No source conflicts in 15m data
+
+✓ No large price discontinuities found
+
+Data Freshness:
+  ✓ 15m (yahoo): 0.2 hours old
+  ⚠️  1d (TradingView): 876.8 hours old
+  ⚠️  1d (databento_historical): 32.8 hours old
+  ⚠️  1d (yahoo): 25.8 hours old
+  ✓ 1d (yahoo_backfill): 8.8 hours old
+  ✓ 1d (yahoo_eod): 0.8 hours old
+  ✓ 1d (yahoo_manual): 5.8 hours old
+  ✓ 1h (yahoo): 0.7 hours old
+
+Review audit_results_databento.json for detailed findings.

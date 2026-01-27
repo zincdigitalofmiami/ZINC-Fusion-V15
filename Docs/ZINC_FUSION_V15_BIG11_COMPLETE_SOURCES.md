@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15: Complete Data Source Registry
 
 **Version**: 2.0 (Big 11 Specialists)

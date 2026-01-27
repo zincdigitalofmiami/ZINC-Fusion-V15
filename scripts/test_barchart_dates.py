@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Test if Barchart search supports date filtering."""
+
+raise SystemExit(
+    "Barchart test tooling is disabled in production. Existing data is retained."
+)
 from playwright.sync_api import sync_playwright
 import json
 from pathlib import Path

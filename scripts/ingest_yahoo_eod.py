@@ -217,7 +217,9 @@ def _process_ticker_df(canonical: str, df: pd.DataFrame) -> List[dict]:
     return rows
 
 
-def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int]:
+def upsert_data(
+    conn, df: pd.DataFrame, dry_run: bool = False, replace_barchart: bool = False
+) -> Tuple[int, int]:
     """Upsert data using A+ conditional pattern.
 
     Returns (inserted, updated) counts.
@@ -245,8 +247,13 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
     # A+ conditional upsert:
     # - Insert new rows
     # - Update existing Yahoo rows (for corrections)
-    # - Skip existing non-Yahoo rows (preserve historical backfill)
-    upsert_sql = """
+    # - Optionally replace barchart_api rows post-cutoff
+    if replace_barchart:
+        where_clause = "mkt.futures_1d.source IN ('yahoo', 'barchart_api')"
+    else:
+        where_clause = "mkt.futures_1d.source = 'yahoo'"
+
+    upsert_sql = f"""
         INSERT INTO mkt.futures_1d
             (event_date, symbol, open, high, low, close, volume, source, ingested_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -259,7 +266,7 @@ def upsert_data(conn, df: pd.DataFrame, dry_run: bool = False) -> Tuple[int, int
             volume = EXCLUDED.volume,
             source = EXCLUDED.source,
             ingested_at = NOW()
-        WHERE mkt.futures_1d.source = 'yahoo'
+        WHERE {where_clause}
     """
 
     records = [
@@ -312,6 +319,11 @@ def main():
         help="Specific symbols to fetch (canonical names)",
     )
     parser.add_argument(
+        "--replace-barchart",
+        action="store_true",
+        help="Allow Yahoo to overwrite barchart_api rows after the cutoff date",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default=str(CONFIG_PATH),
@@ -360,7 +372,9 @@ def main():
     # Upsert to database
     conn = get_connection()
     try:
-        inserted, updated = upsert_data(conn, df, args.dry_run)
+        inserted, updated = upsert_data(
+            conn, df, args.dry_run, replace_barchart=args.replace_barchart
+        )
         logger.info(f"✅ Complete: {inserted} rows processed")
     finally:
         conn.close()

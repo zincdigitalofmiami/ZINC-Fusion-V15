@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC-FUSION-V15 — Codex/GPT Instructions (Repo Rules)
 
 This file exists so editor/agent tooling can reliably pick up project rules.
@@ -24,4 +25,3 @@ Primary governance lives in `AGENTS.md` and must be followed.
 
 - Prefer the repo venv:
   - `.venv/bin/pytest -q`
-

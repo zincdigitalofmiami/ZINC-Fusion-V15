@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # STOP AND THINK BEFORE EDITING
 
 ## MANDATORY PROCESS BEFORE ANY FILE EDIT

@@ -127,12 +127,12 @@ def load_futures_base(conn, symbol: str) -> pd.DataFrame:
     """Load raw futures data as base - ALL available data, no date limits."""
     logger.info(f"Loading futures base from mkt.futures_1d for {symbol}...")
 
-    # NOTE: open_interest excluded - 100% NULL in source data for ZL
+    # NOTE: open_interest is required by strict specialists; backfilled from CFTC where available.
     query = """
         SELECT
             event_date as trade_date,
             symbol,
-            open, high, low, close, volume
+            open, high, low, close, volume, open_interest
         FROM mkt.futures_1d
         WHERE symbol = %s
         ORDER BY event_date
@@ -140,6 +140,83 @@ def load_futures_base(conn, symbol: str) -> pd.DataFrame:
     df = pd.read_sql(query, conn, params=(symbol,))
     logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
     return df
+
+
+def load_lcfs_credit(conn) -> pd.DataFrame:
+    """Load LCFS credit prices from supply.lcfs_1d."""
+    logger.info("Loading LCFS credit prices from supply.lcfs_1d...")
+    try:
+        query = """
+            SELECT
+                event_date as trade_date,
+                price_usd_per_mt::float as lcfs_credit
+            FROM supply.lcfs_1d
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
+        if len(df) == 0:
+            logger.warning("   No LCFS data found")
+            return pd.DataFrame()
+        df = normalize_date_column(df, "trade_date")
+        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        return df
+    except Exception as e:
+        logger.warning(f"   LCFS data not available: {e}")
+        return pd.DataFrame()
+
+
+def load_china_pmi(conn) -> pd.DataFrame:
+    """Load China manufacturing PMI from econ.activity_1d where series_id='china_pmi'."""
+    logger.info("Loading China PMI from econ.activity_1d (series_id='china_pmi')...")
+    try:
+        query = """
+            SELECT
+                event_date as trade_date,
+                value::float as china_pmi
+            FROM econ.activity_1d
+            WHERE series_id = 'china_pmi'
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
+        if len(df) == 0:
+            logger.warning("   No China PMI data found (series_id='china_pmi')")
+            return pd.DataFrame()
+        df = normalize_date_column(df, "trade_date")
+        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        return df
+    except Exception as e:
+        logger.warning(f"   China PMI not available: {e}")
+        return pd.DataFrame()
+
+
+def load_dalian_soy(conn) -> pd.DataFrame:
+    """
+    Load Dalian soybean oil futures proxy from mkt.futures_1d.
+
+    Convention:
+    - Symbol used for DCE soybean oil continuous proxy: 'DCE_Y'
+    - Column exposed to specialists/matrix: dalian_soy
+    """
+    logger.info("Loading Dalian soybean oil proxy from mkt.futures_1d (symbol='DCE_Y')...")
+    try:
+        query = """
+            SELECT
+                event_date as trade_date,
+                close::float as dalian_soy
+            FROM mkt.futures_1d
+            WHERE symbol = 'DCE_Y'
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
+        if len(df) == 0:
+            logger.warning("   No DCE_Y data found in mkt.futures_1d")
+            return pd.DataFrame()
+        df = normalize_date_column(df, "trade_date")
+        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        return df
+    except Exception as e:
+        logger.warning(f"   Dalian soy not available: {e}")
+        return pd.DataFrame()
 
 
 def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
@@ -1037,8 +1114,11 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         df_cot = load_cftc_positioning(conn, symbol)
         df_cits = load_cftc_cits(conn)
         df_rin = load_epa_rin_prices(conn)
+        df_lcfs = load_lcfs_credit(conn)
         df_exports = load_usda_exports(conn)
         df_wasde = load_usda_wasde(conn)
+        df_china_pmi = load_china_pmi(conn)
+        df_dalian = load_dalian_soy(conn)
         df_news = load_news_sentiment(conn)
 
         # FUTURES AS BASE - ALL DATA
@@ -1073,6 +1153,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             if 'fred_psunousdm' in df.columns:
                 df['sunflower_close'] = df['fred_psunousdm']
                 logger.info("   Mapped fred_psunousdm → sunflower_close")
+            if 'fred_dexchus' in df.columns and 'usd_cny' not in df.columns:
+                df['usd_cny'] = df['fred_dexchus']
+                logger.info("   Mapped fred_dexchus → usd_cny")
 
         # Merge FX rates
         if len(df_fx) > 0:
@@ -1122,6 +1205,13 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             logger.info(f"   Added {len(df.columns) - before_cols} RIN columns")
             logger.info(f"   RIN matched on {non_null:,} / {len(df):,} rows")
 
+        # Merge LCFS credit (WEEKLY/DISCRETE - use asof merge)
+        if len(df_lcfs) > 0:
+            logger.info("Merging LCFS credit prices (asof)...")
+            before_cols = len(df.columns)
+            df = merge_asof_to_trading_days(df, df_lcfs)
+            logger.info(f"   Added {len(df.columns) - before_cols} LCFS columns")
+
         # Merge USDA export sales (WEEKLY - use asof merge)
         if len(df_exports) > 0:
             logger.info("Merging USDA export sales (asof)...")
@@ -1141,6 +1231,31 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             non_null = df[wasde_cols].notna().any(axis=1).sum() if wasde_cols else 0
             logger.info(f"   Added {len(df.columns) - before_cols} WASDE columns")
             logger.info(f"   WASDE matched on {non_null:,} / {len(df):,} rows")
+
+        # Map WASDE columns to strict specialist expectations (if present)
+        if "wasde_us_zs_crush" in df.columns and "wasde_soybeans_crush" not in df.columns:
+            df["wasde_soybeans_crush"] = df["wasde_us_zs_crush"]
+            logger.info("   Mapped wasde_us_zs_crush → wasde_soybeans_crush")
+        if "wasde_us_zl_production" in df.columns and "wasde_soybean_oil_production" not in df.columns:
+            df["wasde_soybean_oil_production"] = df["wasde_us_zl_production"]
+            logger.info("   Mapped wasde_us_zl_production → wasde_soybean_oil_production")
+        if "wasde_us_zl_ending_stocks" in df.columns and "wasde_soybean_oil_ending_stocks" not in df.columns:
+            df["wasde_soybean_oil_ending_stocks"] = df["wasde_us_zl_ending_stocks"]
+            logger.info("   Mapped wasde_us_zl_ending_stocks → wasde_soybean_oil_ending_stocks")
+
+        # Merge China PMI (MONTHLY - use asof merge)
+        if len(df_china_pmi) > 0:
+            logger.info("Merging China PMI (asof)...")
+            before_cols = len(df.columns)
+            df = merge_asof_to_trading_days(df, df_china_pmi)
+            logger.info(f"   Added {len(df.columns) - before_cols} China PMI columns")
+
+        # Merge Dalian soy proxy (non-US trading calendar - use asof merge)
+        if len(df_dalian) > 0:
+            logger.info("Merging Dalian soybean oil proxy (asof)...")
+            before_cols = len(df.columns)
+            df = merge_asof_to_trading_days(df, df_dalian)
+            logger.info(f"   Added {len(df.columns) - before_cols} Dalian soy columns")
 
         # Merge news sentiment (NEW 2026-01-23)
         if len(df_news) > 0:

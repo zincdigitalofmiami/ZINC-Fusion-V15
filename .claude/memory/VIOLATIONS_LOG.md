@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # VIOLATIONS LOG
 
 This file documents rule violations to learn from.

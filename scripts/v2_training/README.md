@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 ## SoT v2 Training (Code Location)
 
 This folder is the **designated home** for the **SoT v2 (P30/P50/P70 + CQR P10_cal/P90_cal)** training stack.
@@ -29,13 +30,15 @@ removed.
 
 ### Core Training Policy (CPU-only, Full Model Zoo)
 
-Core runs **CPU-only** (no MPS, no CUDA). Set guards **before** importing torch/autogluon:
+Core runs on CPU. Set guards **before** importing torch/autogluon:
 
 ```
 TOKENIZERS_PARALLELISM=false
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 AUTOGLUON_DISABLE_RAY=1
 PYTORCH_ENABLE_MPS_FALLBACK=1
+PYTORCH_MPS_ENABLED=0
+CUDA_VISIBLE_DEVICES=""
 device = "cpu"
 ```
 

@@ -1,3 +1,4 @@
+NOTE: Production is the dashboard/frontend, not the repo root.
 # DATABASE TRUTH
 
 **Last Updated:** 2026-01-18 (Institutional Schema Migration)

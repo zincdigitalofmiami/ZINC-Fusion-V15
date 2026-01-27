@@ -229,13 +229,27 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
     def __init__(self):
         config = SignalConfig(
             bucket="palm",
-            model_type="ridge",  # Updated to reflect actual model
-            primary_features=["close"],
+            model_type="ridge",  # ECM + Ridge for cointegration modeling
+            primary_features=[
+                "close",
+                # PALM COMPLEX - Full cointegration system
+                "cpo_close",        # Crude Palm Oil (Bursa Malaysia FCPO)
+                "fred_dexmaus",     # MYR/USD (FX conversion for spread)
+                # PRODUCTION REGION FX
+                "fred_dexinus",     # IDR/USD (Indonesia - #1 producer)
+            ],
             secondary_features=[
-                "cpo_close",       # Crude palm oil (Bursa Malaysia FCPO)
-                "palm_oil_close",  # Alternative name
-                "fred_dexmaus",    # MYR/USD exchange rate (FRED)
-                "myr_usd",         # Alternative MYR FX column
+                # Alternative names
+                "palm_oil_close",   # Alternative CPO column
+                "myr_usd",          # Alternative MYR column
+                # Extended palm complex
+                "pko_close",        # Palm kernel oil
+                # Indonesian production proxies
+                "indo_palm_production",
+                # Weather/seasonal
+                "el_nino_index",    # El Nino (production impact)
+                # Cross-commodity
+                "cpo_zl_spread",    # Pre-computed spread
             ],
             lookback_days=504,  # 2 years for cointegration stability
             min_data_points=252,
@@ -246,14 +260,16 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         self._hedge_ratio_cache = None
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Need ZL and at least one palm price series."""
+        """Require FULL palm cointegration complex."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-
-        palm_cols = ["cpo_close", "palm_oil_close"]
-        if not any(col in data.columns for col in palm_cols):
-            missing.append("cpo_close_or_palm_oil_close")
+        # REQUIRE palm oil
+        if "cpo_close" not in data.columns:
+            missing.append("cpo_close")
+        # REQUIRE FX for proper spread calculation
+        if "fred_dexmaus" not in data.columns:
+            missing.append("fred_dexmaus")
         return missing
 
     def _get_palm_series(self, data: pd.DataFrame) -> pd.Series:
@@ -420,7 +436,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
 
     def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
         """
-        Prepare ECM-specific features for Ridge regression.
+        Prepare ECM-specific features for Ridge regression with ALL elite indicators.
 
         Features designed to capture:
         1. Current deviation from equilibrium (spread z-score)
@@ -428,8 +444,43 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         3. Spread dynamics (momentum at multiple horizons)
         4. Cointegration strength (regime indicator)
         5. Cross-market correlations
+        6. ALL elite indicators on ZL, CPO, and FX
         """
         features = {}
+
+        # =====================================================================
+        # ADD ALL 81 ELITE INDICATORS FOR ZL, CPO, MYR
+        # =====================================================================
+        data = self.add_all_elite_indicators(data, "close", "zl")
+
+        # CPO elite indicators
+        if "cpo_close" in data.columns and data["cpo_close"].notna().sum() > 30:
+            cpo_data = data.copy()
+            cpo_data["close"] = data["cpo_close"]
+            cpo_data = self.add_all_elite_indicators(cpo_data, "close", "cpo")
+            for c in cpo_data.columns:
+                if c.startswith("cpo_") and c not in data.columns:
+                    data[c] = cpo_data[c]
+
+        # MYR/USD elite indicators
+        for fx_col in ["fred_dexmaus", "myr_usd"]:
+            if fx_col in data.columns and data[fx_col].notna().sum() > 30:
+                fx_data = data.copy()
+                fx_data["close"] = data[fx_col]
+                fx_data = self.add_all_elite_indicators(fx_data, "close", "myr")
+                for c in fx_data.columns:
+                    if c.startswith("myr_") and c not in data.columns:
+                        data[c] = fx_data[c]
+                break
+
+        # IDR/USD elite indicators
+        if "fred_dexinus" in data.columns and data["fred_dexinus"].notna().sum() > 30:
+            idr_data = data.copy()
+            idr_data["close"] = data["fred_dexinus"]
+            idr_data = self.add_all_elite_indicators(idr_data, "close", "idr")
+            for c in idr_data.columns:
+                if c.startswith("idr_") and c not in data.columns:
+                    data[c] = idr_data[c]
 
         zl = data["close"]
         cpo = self._get_palm_series(data)
@@ -491,6 +542,12 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         if myr_usd is not None:
             features["myr_zscore"] = self.compute_zscore(myr_usd, window=126, min_periods=42)
             features["myr_mom_21d"] = myr_usd.pct_change(21, fill_method=None)
+
+        # ADD ALL ELITE INDICATORS TO FEATURES
+        for col in data.columns:
+            if col.startswith("zl_") or col.startswith("cpo_") or col.startswith("myr_") or col.startswith("idr_"):
+                if col not in features:
+                    features[col] = data[col]
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
