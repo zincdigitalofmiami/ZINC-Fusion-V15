@@ -268,7 +268,7 @@ SPECIALIST_FEATURE_CONFIGS = {
             "epa_waivers",           # Small refinery exemptions
             "saf_demand",            # Sustainable aviation fuel
             "carbon_credit_price",   # Global carbon
-            "blender_tax_credit",    # $1/gal BTC status
+            "blender_tax_credit",    # $1/gal blender tax credit status
             "e15_waiver_status",     # E15 summer status
         ],
         "derived_indicators": [

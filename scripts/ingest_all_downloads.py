@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive ingestion script for all CSV data in Downloads folder.
-Handles multiple formats: TradingView, Barchart, CME, FRED direct downloads.
+Handles multiple formats: TradingView, CME, FRED direct downloads.
 
 Routes data to v2 schema tables:
 - FRED data → econ.* tables via FRED_SERIES_ROUTING
@@ -118,53 +118,6 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
 
         conn.commit()
         print(f"    Routed to: {qualified_table}")
-        return inserted
-
-    except Exception as e:
-        print(f"    Error: {e}")
-        conn.rollback()
-        return 0
-
-
-def ingest_fx_barchart(conn, filepath: Path, series_id: str) -> int:
-    """Ingest Barchart FX CSV into econ.* table via routing."""
-    try:
-        df = pd.read_csv(filepath)
-
-        if "Time" not in df.columns or "Last" not in df.columns:
-            return 0
-
-        df["as_of_date"] = pd.to_datetime(df["Time"], errors="coerce")
-        df["value"] = pd.to_numeric(df["Last"], errors="coerce")
-        df = df.dropna(subset=["as_of_date", "value"])
-
-        if df.empty:
-            return 0
-
-        # Route to correct econ.* table based on series_id
-        schema, table = get_fred_schema_table(series_id)
-        qualified_table = f'"{schema}"."{table}"'
-
-        records = [
-            (series_id, row["as_of_date"], row["value"], "Barchart")
-            for _, row in df.iterrows()
-        ]
-
-        with conn.cursor() as cur:
-            execute_batch(
-                cur,
-                f"""
-                INSERT INTO {qualified_table}
-                (series_id, event_date, value, source)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (series_id, event_date) DO NOTHING
-                """,
-                records,
-                page_size=500
-            )
-            inserted = cur.rowcount
-
-        conn.commit()
         return inserted
 
     except Exception as e:
@@ -391,34 +344,10 @@ def main():
         print(f"    -> Inserted: {inserted:,}")
         total_inserted += inserted
 
-    # 2. FX files (Barchart format)
+    # 2. Multi-commodity datasets
     print()
     print("=" * 50)
-    print("[2] FX RATES")
-    print("=" * 50)
-
-    fx_files = {
-        "usdbrl_daily_historical-data-10-15-2025 2.csv": "DEXBZUS",
-        "usdcny_daily_historical-data-10-15-2025 2.csv": "DEXCHUS",
-        "usdars_daily_historical-data-10-15-2025 2.csv": "DEXARS",
-        "usdmyr_daily_historical-data-10-15-2025 2.csv": "DEXMAUS",
-        "dxy_daily_historical-data-10-15-2025 2.csv": "DXY",
-    }
-
-    for filename, series_id in fx_files.items():
-        filepath = downloads / filename
-        if not filepath.exists():
-            continue
-        df = pd.read_csv(filepath)
-        print(f"  {series_id}: {filename} ({len(df):,} rows)")
-        inserted = ingest_fx_barchart(conn, filepath, series_id)
-        print(f"    -> Inserted: {inserted:,}")
-        total_inserted += inserted
-
-    # 3. Multi-commodity datasets
-    print()
-    print("=" * 50)
-    print("[3] MULTI-COMMODITY DATASETS")
+    print("[2] MULTI-COMMODITY DATASETS")
     print("=" * 50)
 
     multi_files = [
@@ -436,10 +365,10 @@ def main():
         print(f"    -> Total inserted: {inserted:,}")
         total_inserted += inserted
 
-    # 4. CME futures files
+    # 3. CME futures files
     print()
     print("=" * 50)
-    print("[4] CME FUTURES (ZS/ZL)")
+    print("[3] CME FUTURES (ZS/ZL)")
     print("=" * 50)
 
     # Find all CME files
@@ -454,10 +383,10 @@ def main():
             print(f"    -> Inserted: {inserted:,}")
             total_inserted += inserted
 
-    # 5. Other futures (crude, wheat, corn, etc.)
+    # 4. Other futures (crude, wheat, corn, etc.)
     print()
     print("=" * 50)
-    print("[5] OTHER FUTURES")
+    print("[4] OTHER FUTURES")
     print("=" * 50)
 
     other_futures = {

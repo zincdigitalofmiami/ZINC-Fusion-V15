@@ -82,9 +82,16 @@ const TAG_RULES: TagRule[] = [
   { pattern: /renewable[\s_-]?fuel[\s_-]?standard|rfs/i, tags: ["biofuel"] },
   { pattern: /\brin\b|renewable[\s_-]?identification[\s_-]?number/i, tags: ["biofuel"] },
   { pattern: /biodiesel|renewable[\s_-]?diesel/i, tags: ["biofuel"] },
-  { pattern: /\b45z\b|lcfs|clean[\s_-]?fuel/i, tags: ["biofuel"] },
+  // 45Z Clean Fuel Production Credit - specific tracking
+  { pattern: /\b45z\b|section[\s_-]?45z/i, tags: ["biofuel", "45z_credit"] },
+  { pattern: /clean[\s_-]?fuel[\s_-]?production[\s_-]?credit/i, tags: ["biofuel", "45z_credit"] },
+  { pattern: /sustainable[\s_-]?aviation[\s_-]?fuel|saf[\s_-]?credit/i, tags: ["biofuel", "45z_credit"] },
+  { pattern: /carbon[\s_-]?intensity[\s_-]?score|greet[\s_-]?model/i, tags: ["biofuel", "45z_credit"] },
+  { pattern: /lcfs|low[\s_-]?carbon[\s_-]?fuel[\s_-]?standard/i, tags: ["biofuel"] },
+  { pattern: /clean[\s_-]?fuel/i, tags: ["biofuel"] },
   { pattern: /epa.*fuel|fuel.*epa/i, tags: ["biofuel"] },
   { pattern: /blending[\s_-]?mandate|blender/i, tags: ["biofuel"] },
+  { pattern: /feedstock[\s_-]?restriction|domestic[\s_-]?feedstock/i, tags: ["biofuel", "45z_credit"] },
   
   // Energy (ENERGY specialist)
   { pattern: /petroleum|crude[\s_-]?oil|refiner/i, tags: ["energy"] },
