@@ -39,7 +39,9 @@ PROJECT_ROOT = Path(__file__).parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 DATABENTO_API_KEY = os.getenv("DATABENTO_API_KEY")
-INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY") or os.getenv("WORKFLOW_INNGEST_EVENT_KEY")
+INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY") or os.getenv(
+    "WORKFLOW_INNGEST_EVENT_KEY"
+)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 DATASET = "GLBX.MDP3"
@@ -50,7 +52,9 @@ PRICE_SCALE = 1_000_000_000  # Databento fixed-point price divisor
 EVENT_URL = f"https://inn.gs/e/{INNGEST_EVENT_KEY}" if INNGEST_EVENT_KEY else None
 
 logger = logging.getLogger("databento_live_zl")
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 
 def require_env() -> None:
@@ -76,8 +80,15 @@ def send_event(name: str, data: dict) -> None:
     if not EVENT_URL:
         raise RuntimeError("INNGEST_EVENT_KEY not configured")
     payload = {"name": name, "data": data}
-    resp = requests.post(EVENT_URL, json=payload, timeout=10)
-    resp.raise_for_status()
+    try:
+        resp = requests.post(EVENT_URL, json=payload, timeout=10)
+        resp.raise_for_status()
+        logger.info(
+            f"Successfully sent event {name} to Inngest (status={resp.status_code})"
+        )
+    except Exception as e:
+        logger.error(f"Failed to send event {name} to Inngest: {e}")
+        raise
 
 
 def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
@@ -104,7 +115,9 @@ def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
         conn.close()
 
 
-def update_forming_bar(timeframe: str, bar_start: datetime, o: float, h: float, l: float, c: float, v: int) -> None:
+def update_forming_bar(
+    timeframe: str, bar_start: datetime, o: float, h: float, l: float, c: float, v: int
+) -> None:
     """Update the forming (incomplete) bar for a timeframe."""
     if not DATABASE_URL:
         return
@@ -188,12 +201,30 @@ def compute_replay_start(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Databento Live connector for ZL with replay.")
-    parser.add_argument("--run-seconds", type=int, default=120, help="Duration to keep live connection open.")
-    parser.add_argument("--start", type=str, default=None, help="ISO start timestamp for replay.")
-    parser.add_argument("--buffer-minutes", type=int, default=15, help="Replay buffer before last bar.")
-    parser.add_argument("--max-replay-hours", type=int, default=24, help="Clamp replay window to last N hours.")
-    parser.add_argument("--default-hours", type=int, default=6, help="Replay window if DB is empty.")
+    parser = argparse.ArgumentParser(
+        description="Databento Live connector for ZL with replay."
+    )
+    parser.add_argument(
+        "--run-seconds",
+        type=int,
+        default=120,
+        help="Duration to keep live connection open.",
+    )
+    parser.add_argument(
+        "--start", type=str, default=None, help="ISO start timestamp for replay."
+    )
+    parser.add_argument(
+        "--buffer-minutes", type=int, default=15, help="Replay buffer before last bar."
+    )
+    parser.add_argument(
+        "--max-replay-hours",
+        type=int,
+        default=24,
+        help="Clamp replay window to last N hours.",
+    )
+    parser.add_argument(
+        "--default-hours", type=int, default=6, help="Replay window if DB is empty."
+    )
     args = parser.parse_args()
 
     require_env()
@@ -237,8 +268,15 @@ def main() -> None:
                     replay_start.isoformat(),
                 )
             else:
-                client.subscribe(dataset=DATASET, schema=SCHEMA, symbols=[SYMBOL], stype_in="continuous")
-                logger.info("Subscribed to live feed: %s %s %s", DATASET, SCHEMA, SYMBOL)
+                client.subscribe(
+                    dataset=DATASET,
+                    schema=SCHEMA,
+                    symbols=[SYMBOL],
+                    stype_in="continuous",
+                )
+                logger.info(
+                    "Subscribed to live feed: %s %s %s", DATASET, SCHEMA, SYMBOL
+                )
 
             stop_at = time.time() + max(1, args.run_seconds)
 
@@ -249,6 +287,8 @@ def main() -> None:
                 # Skip non-OHLCV records (e.g., system/symbology messages).
                 if not hasattr(record, "open"):
                     continue
+
+                # LOG: Received OHLCV bar
                 ts = to_datetime(record.ts_event)
                 ts_ms = int(ts.timestamp() * 1000)
                 # Convert from Databento fixed-point to decimal
@@ -256,7 +296,14 @@ def main() -> None:
                 h = float(record.high) / PRICE_SCALE
                 l = float(record.low) / PRICE_SCALE
                 c = float(record.close) / PRICE_SCALE
-                v = int(record.volume) if hasattr(record, "volume") and record.volume is not None else 0
+                v = (
+                    int(record.volume)
+                    if hasattr(record, "volume") and record.volume is not None
+                    else 0
+                )
+                logger.info(
+                    f"Received 1m bar: ts={ts.isoformat()} o={o:.2f} h={h:.2f} l={l:.2f} c={c:.2f} v={v}"
+                )
 
                 # Daily aggregation
                 bar_day = ts.date()
@@ -300,10 +347,16 @@ def main() -> None:
                 if current_15m is None:
                     current_15m = AggBar(b15, o, h, l, c, v)
                 elif b15 != current_15m.start_ts:
+                    bar_ts = datetime.fromtimestamp(
+                        current_15m.start_ts / 1000, tz=timezone.utc
+                    )
+                    logger.info(
+                        f"Emitting 15m bar: ts={bar_ts.isoformat()} o={current_15m.open:.2f} c={current_15m.close:.2f} v={current_15m.volume}"
+                    )
                     send_event(
                         "zl.bar.15m",
                         {
-                            "timestamp": datetime.fromtimestamp(current_15m.start_ts / 1000, tz=timezone.utc).isoformat(),
+                            "timestamp": bar_ts.isoformat(),
                             "open": current_15m.open,
                             "high": current_15m.high,
                             "low": current_15m.low,
@@ -327,10 +380,16 @@ def main() -> None:
                 if current_1h is None:
                     current_1h = AggBar(b1h, o, h, l, c, v)
                 elif b1h != current_1h.start_ts:
+                    bar_ts = datetime.fromtimestamp(
+                        current_1h.start_ts / 1000, tz=timezone.utc
+                    )
+                    logger.info(
+                        f"Emitting 1h bar: ts={bar_ts.isoformat()} o={current_1h.open:.2f} c={current_1h.close:.2f} v={current_1h.volume}"
+                    )
                     send_event(
                         "zl.bar.1h",
                         {
-                            "timestamp": datetime.fromtimestamp(current_1h.start_ts / 1000, tz=timezone.utc).isoformat(),
+                            "timestamp": bar_ts.isoformat(),
                             "open": current_1h.open,
                             "high": current_1h.high,
                             "low": current_1h.low,
@@ -354,20 +413,38 @@ def main() -> None:
                 if current_15m:
                     update_forming_bar(
                         "15m",
-                        datetime.fromtimestamp(current_15m.start_ts / 1000, tz=timezone.utc),
-                        current_15m.open, current_15m.high, current_15m.low, current_15m.close, current_15m.volume,
+                        datetime.fromtimestamp(
+                            current_15m.start_ts / 1000, tz=timezone.utc
+                        ),
+                        current_15m.open,
+                        current_15m.high,
+                        current_15m.low,
+                        current_15m.close,
+                        current_15m.volume,
                     )
                 if current_1h:
                     update_forming_bar(
                         "1h",
-                        datetime.fromtimestamp(current_1h.start_ts / 1000, tz=timezone.utc),
-                        current_1h.open, current_1h.high, current_1h.low, current_1h.close, current_1h.volume,
+                        datetime.fromtimestamp(
+                            current_1h.start_ts / 1000, tz=timezone.utc
+                        ),
+                        current_1h.open,
+                        current_1h.high,
+                        current_1h.low,
+                        current_1h.close,
+                        current_1h.volume,
                     )
                 if day_open is not None:
                     update_forming_bar(
                         "1d",
-                        datetime.combine(current_day, datetime.min.time(), tzinfo=timezone.utc),
-                        day_open, day_high, day_low, day_close, day_volume,
+                        datetime.combine(
+                            current_day, datetime.min.time(), tzinfo=timezone.utc
+                        ),
+                        day_open,
+                        day_high,
+                        day_low,
+                        day_close,
+                        day_volume,
                     )
 
             retry_count = 0
@@ -377,7 +454,7 @@ def main() -> None:
             break
         except Exception as exc:
             retry_count += 1
-            wait_time = min(base_sleep * (2 ** retry_count), 300)
+            wait_time = min(base_sleep * (2**retry_count), 300)
             logger.error("Live feed error (%s/%s): %s", retry_count, max_retries, exc)
             if retry_count >= max_retries:
                 logger.critical("Max retries reached. Exiting.")

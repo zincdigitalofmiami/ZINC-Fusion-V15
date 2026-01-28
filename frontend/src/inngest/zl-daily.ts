@@ -103,7 +103,7 @@ export const zlDaily = inngest.createFunction(
     return {
       status: "success",
       symbol: "ZL",
-      eventDate: zlQuote.eventDate.toISOString().split("T")[0],
+      eventDate: new Date(zlQuote.eventDate).toISOString().split("T")[0],
       close: zlQuote.close,
     };
   }

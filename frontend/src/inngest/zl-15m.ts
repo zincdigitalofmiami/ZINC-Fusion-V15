@@ -15,25 +15,30 @@ export const zl15m = inngest.createFunction(
   { id: "zl-15m", name: "ZL 15m Bars" },
   { cron: "0 * * * *" }, // Hourly (HTTP historical, 24h delayed)
   async ({ step }) => {
-    const end = await step.run("compute-end-time", async () => {
-      return new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const endStr = await step.run("compute-end-time", async () => {
+      const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return d.toISOString();
     });
+    const end = new Date(endStr);
 
-    const start = await step.run("compute-start-time", async () => {
+    const startStr = await step.run("compute-start-time", async () => {
       const client = await pool.connect();
       try {
         const result = await client.query<{ ts: Date | null }>(
           `SELECT MAX(timestamp) AS ts FROM analytics.zl_price_15m`
         );
-        const lastTs = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
+        const lastTs: Date | null = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
         const bufferMs = 6 * 60 * 60 * 1000;
         const defaultWindowMs = 7 * 24 * 60 * 60 * 1000;
-        const base = lastTs ? lastTs.getTime() - bufferMs : end.getTime() - defaultWindowMs;
-        return new Date(Math.max(0, base));
+        const endDate = new Date(endStr);
+        const base = lastTs ? lastTs.getTime() - bufferMs : endDate.getTime() - defaultWindowMs;
+        const d = new Date(Math.max(0, base));
+        return d.toISOString();
       } finally {
         client.release();
       }
     });
+    const start = new Date(startStr);
 
     if (start >= end) {
       return { status: "no_data", message: "No new historical window available" };
@@ -46,8 +51,8 @@ export const zl15m = inngest.createFunction(
         schema: "ohlcv-1m",
         symbols: "ZL.n.0",  // OI-ranked for consistency with daily jobs
         stype_in: "continuous",
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: startStr,
+        end: endStr,
         encoding: "csv",
         pretty_ts: "true",
         pretty_px: "true",
