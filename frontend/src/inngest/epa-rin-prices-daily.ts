@@ -372,16 +372,12 @@ export const epaRinPricesDaily = inngest.createFunction(
 
       const rowsToInsert: Array<
         [
-          string,
-          string,
-          number,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string[],
-          string,
+          string,  // rin_type
+          string,  // event_date
+          number,  // price
+          string,  // source
+          string,  // row_hash
+          string,  // knowledge_time
         ]
       > = [];
 
