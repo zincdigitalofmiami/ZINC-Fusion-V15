@@ -33,7 +33,6 @@ import {
   nassWeekly,
   noaaWeatherDaily,
   openmeteoWeatherDaily,
-  weatherFeaturesDaily,
   fxSpotDaily,
   epaRinPricesDaily,
   usdaWasdeMonthly,
@@ -45,6 +44,8 @@ import {
   profarmerBackfill,
   databentoFuturesDaily,
   databentoStatisticsDaily,
+  boardCrushDaily,
+  eiaBiodieselMonthly,
 } from "@/inngest/functions";
 
 /**
@@ -128,7 +129,6 @@ export const { GET, POST, PUT } = serve({
     // Weather
     noaaWeatherDaily,
     openmeteoWeatherDaily,
-    weatherFeaturesDaily,
     // FX/commodities
     fxSpotDaily,
     cpoPalmOilDaily,
@@ -141,6 +141,10 @@ export const { GET, POST, PUT } = serve({
     // Databento market data
     databentoFuturesDaily,
     databentoStatisticsDaily,
+    // Analytics calculations
+    boardCrushDaily,
+    // EIA biofuel data
+    eiaBiodieselMonthly,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

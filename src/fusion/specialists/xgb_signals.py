@@ -312,13 +312,27 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         zs = data["zs_close"]
         zm = data["zm_close"]
 
-        # Core crush calculations
-        board_crush = (zs * 11) - (zl * 11) - zm
-        oil_share = (zl * 11) / ((zl * 11) + zm)
+        # Core crush calculations (CME standard formula)
+        # 1 bushel soybeans (60 lbs) yields 11 lbs oil + 44 lbs meal (48% protein)
+        # Board Crush = (ZL × 0.11) + (ZM × 0.022) - (ZS / 100)
+        # Oil Share = (ZL × 0.11) / ((ZL × 0.11) + (ZM × 0.022))
+        oil_value = zl * 0.11      # 11 lbs oil per bushel
+        meal_value = zm * 0.022    # 44 lbs meal / 2000 lbs per ton
+        board_crush = (oil_value + meal_value) - (zs / 100)
+        oil_share = oil_value / (oil_value + meal_value)
 
-        # Z-scores
-        features["crush_zscore"] = self.compute_zscore(board_crush, window=252, min_periods=63)
-        features["oil_share_zscore"] = self.compute_zscore(oil_share, window=252, min_periods=63)
+        # Z-scores (126-day = ~6 months rolling window)
+        features["crush_zscore"] = self.compute_zscore(board_crush, window=126, min_periods=63)
+        features["oil_share_zscore"] = self.compute_zscore(oil_share, window=126, min_periods=63)
+
+        # Crush margin regime classification (signal enhancement)
+        # Regime: -2=very_low, -1=low, 0=neutral, 1=high, 2=very_high
+        crush_z = features["crush_zscore"]
+        features["crush_margin_regime"] = pd.cut(
+            crush_z,
+            bins=[-np.inf, -1.5, -0.5, 0.5, 1.5, np.inf],
+            labels=[-2, -1, 0, 1, 2],
+        ).astype(float)
 
         # Momentum at multiple horizons
         features["crush_mom_5d"] = board_crush.pct_change(5, fill_method=None)
@@ -384,14 +398,17 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
             return signals
 
         # Compute auxiliary signals for signal_2 and metadata
+        # Using CME standard formula
         zl = data["close"]
         zs = data["zs_close"]
         zm = data["zm_close"]
-        board_crush = (zs * 11) - (zl * 11) - zm
+        oil_value = zl * 0.11
+        meal_value = zm * 0.022
+        board_crush = (oil_value + meal_value) - (zs / 100)
         # Lag by 1 day to prevent leakage: signal at t uses data up to t-1
         crush_momentum = board_crush.pct_change(periods=21).shift(1) * 100
-        oil_share = (zl * 11) / ((zl * 11) + zm)
-        oil_share_zscore = self.compute_zscore(oil_share, window=252, min_periods=63)
+        oil_share = oil_value / (oil_value + meal_value)
+        oil_share_zscore = self.compute_zscore(oil_share, window=126, min_periods=63)
 
         # Generate predictions for each valid date
         for idx in data.index:

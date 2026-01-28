@@ -249,6 +249,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 pd.Series(0.0, index=data.index),
                 pd.Series(False, index=data.index),
                 pd.Series(0.0, index=data.index),
+                pd.Series(0.0, index=data.index),  # normalized
             )
 
         vix = data[vix_col]
@@ -257,14 +258,18 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         # Term structure slope: positive = backwardation (fear)
         term_slope = vix - vix3m
 
-        # Backwardation indicator
+        # Normalized term slope as per plan: (VIX3M - VIX) / VIX
+        # Positive = contango (normal), Negative = backwardation (stress)
+        term_slope_normalized = (vix3m - vix) / vix.replace(0, np.nan)
+
+        # Backwardation indicator (using unnormalized for clarity)
         is_backwardation = term_slope > 0
 
         # Z-score of term slope for magnitude
         term_zscore = self.compute_zscore(term_slope, window=252, min_periods=63)
 
         logger.info(f"   VIX term structure: using {vix_col} and {vix3m_col}")
-        return term_slope, is_backwardation, term_zscore
+        return term_slope, is_backwardation, term_zscore, term_slope_normalized
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
@@ -319,7 +324,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             vix_adjustment = 0.3 * vix_zscore.clip(-2, 2)
 
         # VIX term structure (NEW)
-        term_slope, is_backwardation, term_zscore = self._compute_vix_term_structure(data)
+        term_slope, is_backwardation, term_zscore, term_slope_normalized = self._compute_vix_term_structure(data)
         has_term_structure = term_slope.abs().sum() > 0
 
         # Term structure adjustment: backwardation adds to fear signal
@@ -385,6 +390,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # Add term structure metadata if available
             if has_term_structure:
                 meta["vix_term_slope"] = float(term_slope.loc[idx]) if not pd.isna(term_slope.loc[idx]) else None
+                meta["vix_term_slope_normalized"] = float(term_slope_normalized.loc[idx]) if not pd.isna(term_slope_normalized.loc[idx]) else None
                 meta["is_backwardation"] = bool(is_backwardation.loc[idx])
 
             signals.append(SignalOutput(

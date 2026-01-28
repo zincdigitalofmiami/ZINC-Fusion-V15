@@ -70,7 +70,12 @@ Specialists are **unaffected** by the Core CPU-only policy.
 - Purpose: Margin-driven production incentives
 - Signal 1: Model prediction of forward ZL return
 - Signal 2: 21-day crush momentum
-- Features: Board crush z-score, oil share z-score, WASDE fundamentals
+- Features:
+  - `crush_zscore`: Board crush z-score (CME formula, 126d window)
+  - `oil_share_zscore`: Oil share of crush value (126d window)
+  - `crush_margin_regime`: Categorical regime (-2=very_low to +2=very_high) *(NEW Jan 2026)*
+  - WASDE fundamentals (ending stocks, crush volume, exports)
+- Data Source: `analytics.board_crush_1d` (pre-calculated) or computed from ZS/ZL/ZM
 - Persistence: `models/specialists/crush/model.joblib`
 
 **CHINA** - GradientBoostingRegressor
@@ -126,7 +131,14 @@ Specialists are **unaffected** by the Core CPU-only policy.
 - Purpose: Regime risk and variance shifts
 - Signal 1: Volatility regime level (0-3: low/normal/high/crisis)
 - Signal 2: Regime shift probability
-- Features: ZL returns, VIX, VIX3M term structure, OVX
+- Features:
+  - ZL realized volatility (21-day rolling, annualized)
+  - VIX spot (30-day implied)
+  - `vix_term_slope`: VIX - VIX3M (positive = backwardation = fear)
+  - `vix_term_slope_normalized`: (VIX3M - VIX) / VIX *(NEW Jan 2026)*
+  - OVX (oil volatility), GVZ (gold volatility)
+  - VVIX (vol of vol)
+- Backwardation Detection: VIX > VIX3M triggers crisis regime boost
 - Model: GJR-GARCH(1,1) with Student-t errors (asymmetric volatility)
 - Lookback: 504 days (2 years) for GARCH stability
 
@@ -134,10 +146,17 @@ Specialists are **unaffected** by the Core CPU-only policy.
 
 **TARIFF** - Rules-based
 - Purpose: Discrete policy shocks on trade flows
-- Signal 1: Tariff risk score (EPU composite z-score)
+- Signal 1: Combined tariff risk (EPU + deadline risk)
 - Signal 2: EPU spike indicator (event detection)
-- Features: USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV
-- Model: Rule-based on EPU thresholds + event intensity
+- Features:
+  - EPU indices (USEPUINDXM, EPUTRADE, EMVTRADEPOLEMV)
+  - `deadline_risk_score`: Sigmoid-based urgency (accelerates at 90 days) *(NEW Jan 2026)*
+  - `deadline_vol_multiplier`: Volatility adjustment (1.0-1.5) *(NEW Jan 2026)*
+  - `min_days_to_deadline`: Days until nearest policy expiration
+  - Tariff regime (pre-war/active/phase-one/trump-2.0)
+- Data Source: `alt.tariff_deadlines` for policy expiration dates
+- Key Deadlines: Nov 10, 2026 (Section 301), Dec 31, 2026 (China ag)
+- Model: Rule-based on EPU thresholds + deadline risk + event intensity
 
 **BIOFUEL** - EMA Smoothed Policy Proxy
 - Purpose: Regulatory demand shifts (RFS, 45Z, CI scoring)

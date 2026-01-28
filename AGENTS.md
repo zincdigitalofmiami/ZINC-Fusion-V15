@@ -637,6 +637,22 @@ Verification:
 
 **Note:** Historical backfill was completed 2025-12-29. No additional historical data sources are required or planned.
 
+### January 2026 Data Enhancements
+
+| New Table/Function | Purpose | Cadence |
+|--------------------|---------|---------|
+| `analytics.board_crush_1d` | CME board crush + oil share calculations | Daily (6 PM CT) |
+| `alt.tariff_deadlines` | Policy expiration countdown (Section 301, China ag) | Daily update |
+| `supply.eia_biodiesel_1m` | EIA biodiesel/RD production | Monthly (18th) |
+| `board-crush-daily.ts` | Inngest function for crush calculations | Daily cron |
+| `eia-biodiesel-monthly.ts` | Inngest function for EIA API | Monthly cron |
+
+**Specialist Feature Enhancements (Jan 2026):**
+- **Crush**: Added `crush_margin_regime` (categorical -2 to +2)
+- **Tariff**: Added `deadline_risk_score` (sigmoid urgency) + `deadline_vol_multiplier`
+- **Volatility**: Added `vix_term_slope_normalized` for backwardation detection
+- **Federal Register**: Added 45Z tax credit tracking patterns
+
 ### Active Model Location
 ```
 models/

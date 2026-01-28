@@ -755,6 +755,48 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 | `driver_scores` | Per-specialist attribution |
 | `lasso_coefficients` | Feature importance (sparse) |
 
+### Analytics Tables (`analytics` schema)
+
+| Table | Frequency | Description |
+|-------|-----------|-------------|
+| `zl_price_1d` | Daily | ZL OHLCV for analytics |
+| `board_crush_1d` | Daily | Board crush calculations (NEW Jan 2026) |
+
+**Board Crush Columns:**
+- `trade_date` (DATE, PK)
+- `zs_close`, `zl_close`, `zm_close` - Raw prices
+- `board_crush` - CME formula: (ZL×0.11 + ZM×0.022) - ZS/100
+- `oil_share` - ZL×0.11 / (ZL×0.11 + ZM×0.022)
+
+### Policy/Alternative Tables (`alt` schema)
+
+| Table | Frequency | Description |
+|-------|-----------|-------------|
+| `legislation_1d` | Daily | Federal Register documents |
+| `tariff_deadlines` | As needed | Tariff policy deadlines (NEW Jan 2026) |
+
+**Tariff Deadlines Columns:**
+- `deadline_name` - Policy identifier (e.g., "section_301_suspension")
+- `deadline_date` - Expiration date
+- `days_to_expiry` - Countdown (updated daily)
+- `renewal_probability` - Market-implied odds
+
+### Supply/Production Tables (`supply` schema)
+
+| Table | Frequency | Description |
+|-------|-----------|-------------|
+| `epa_rin_1d` | Weekly | EPA RIN prices (D4, D6) |
+| `usda_export_sales_1w` | Weekly | USDA export sales |
+| `usda_wasde_1m` | Monthly | USDA WASDE reports |
+| `eia_biodiesel_1m` | Monthly | EIA biodiesel production (NEW Jan 2026) |
+
+**EIA Biodiesel Columns:**
+- `report_month` (DATE, PK)
+- `biodiesel_production_mgal` - Biodiesel output
+- `renewable_diesel_production_mgal` - RD output
+- `feedstock_soybean_oil_pct` - SBO share of feedstock
+- `capacity_utilization_pct` - Plant utilization
+
 ### Analysis/Risk Tables
 
 | Table | Description |
@@ -765,7 +807,7 @@ Example: `cot_net_commercial_ZL`, `cot_open_interest_CL`
 | `regime_probabilities` | Regime detection |
 | `shap_values` | Per-sample attributions |
 
-**Total Tables: 60+**
+**Total Tables: 65+ (including 3 new tables added Jan 2026)**
 
 ---
 

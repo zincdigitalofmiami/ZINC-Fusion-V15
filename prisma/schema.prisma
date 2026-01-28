@@ -1901,6 +1901,22 @@ model SupplyWorldbankImports1y {
   @@schema("supply")
 }
 
+/// EIA Biodiesel & Renewable Diesel Production (Monthly)
+/// Source: https://api.eia.gov/v2/biofuels/biodiesel/production/
+model SupplyEiaBiodiesel1m {
+  reportMonth                     DateTime  @id @map("report_month") @db.Date
+  biodieselProductionMgal         Decimal?  @map("biodiesel_production_mgal") @db.Decimal(12, 2)
+  renewableDieselProductionMgal   Decimal?  @map("renewable_diesel_production_mgal") @db.Decimal(12, 2)
+  feedstockSoybeanOilPct          Decimal?  @map("feedstock_soybean_oil_pct") @db.Decimal(5, 2)
+  capacityUtilizationPct          Decimal?  @map("capacity_utilization_pct") @db.Decimal(5, 2)
+  ingestedAt                      DateTime  @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash                         String?   @map("row_hash") @db.VarChar(64)
+
+  @@index([reportMonth], map: "idx_supply_eia_biodiesel_month")
+  @@map("eia_biodiesel_1m")
+  @@schema("supply")
+}
+
 model AltNews1d {
   id               Int       @id @default(autoincrement())
   articleId        String?   @map("article_id") @db.VarChar(100)
@@ -1968,6 +1984,26 @@ model AltLegislation1d {
   ingestionBatchId String?   @map("ingestion_batch_id") @db.Uuid
 
   @@map("legislation_1d")
+  @@schema("alt")
+}
+
+/// Tariff Policy Deadline Tracking
+/// Tracks key policy expiration dates for tariff specialist
+model AltTariffDeadlines {
+  id                  Int       @id @default(autoincrement())
+  deadlineName        String    @map("deadline_name") @db.VarChar(100)
+  deadlineDate        DateTime  @map("deadline_date") @db.Date
+  daysToExpiry        Int       @map("days_to_expiry")
+  renewalProbability  Decimal?  @map("renewal_probability") @db.Decimal(5, 4)
+  policyType          String?   @map("policy_type") @db.VarChar(50)
+  description         String?   @db.Text
+  isActive            Boolean   @default(true) @map("is_active")
+  lastUpdated         DateTime  @default(now()) @map("last_updated") @db.Timestamptz(6)
+
+  @@unique([deadlineName, deadlineDate])
+  @@index([deadlineDate], map: "idx_alt_tariff_deadline_date")
+  @@index([isActive], map: "idx_alt_tariff_deadline_active")
+  @@map("tariff_deadlines")
   @@schema("alt")
 }
 
@@ -2392,5 +2428,23 @@ model AblationResults {
   @@index([bucket], map: "idx_ablation_bucket")
   @@index([horizonDays], map: "idx_ablation_horizon")
   @@map("ablation_results")
+  @@schema("analytics")
+}
+
+/// Board Crush & Oil Share Daily Calculations
+/// Derived from ZS/ZL/ZM closes in mkt.futures_1d
+/// Formula: board_crush = ZS - (ZL * 0.11) - (ZM * 0.022)
+/// Formula: oil_share = (ZL * 0.11) / ((ZL * 0.11) + (ZM * 0.022))
+model AnalyticsBoardCrush1d {
+  tradeDate   DateTime  @id @map("trade_date") @db.Date
+  zsClose     Decimal   @map("zs_close") @db.Decimal(10, 4)
+  zlClose     Decimal   @map("zl_close") @db.Decimal(10, 4)
+  zmClose     Decimal   @map("zm_close") @db.Decimal(10, 4)
+  boardCrush  Decimal   @map("board_crush") @db.Decimal(10, 4)
+  oilShare    Decimal   @map("oil_share") @db.Decimal(10, 6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([tradeDate], map: "idx_analytics_board_crush_date")
+  @@map("board_crush_1d")
   @@schema("analytics")
 }

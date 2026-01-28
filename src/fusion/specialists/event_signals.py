@@ -17,6 +17,18 @@ from fusion.specialists.base import (
     SignalOutput,
 )
 
+# Tariff deadline features integration
+try:
+    from fusion.features.tariff_deadlines import (
+        TariffDeadlineFeatureEngine,
+        calculate_deadline_risk_score,
+    )
+    HAS_TARIFF_DEADLINES = True
+except ImportError:
+    HAS_TARIFF_DEADLINES = False
+    TariffDeadlineFeatureEngine = None
+    calculate_deadline_risk_score = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -128,6 +140,74 @@ class TariffSignalGenerator(BaseSignalGenerator):
 
         return regime
 
+    def _compute_deadline_risk(self, data: pd.DataFrame) -> tuple:
+        """
+        Compute tariff deadline risk features.
+
+        Uses sigmoid function: risk accelerates as deadline approaches.
+        - At 180+ days: ~0.05 (low risk)
+        - At 90 days: 0.5 (medium risk - inflection point)
+        - At 30 days: ~0.88 (high risk)
+        - At 0 days: ~0.95 (very high risk)
+
+        Returns:
+            (deadline_risk, deadline_vol_multiplier, min_days_to_deadline, deadline_names)
+        """
+        deadline_risk = pd.Series(0.0, index=data.index)
+        vol_multiplier = pd.Series(1.0, index=data.index)
+        min_days = pd.Series(365, index=data.index)
+        deadline_names = {}
+
+        if HAS_TARIFF_DEADLINES and TariffDeadlineFeatureEngine is not None:
+            try:
+                engine = TariffDeadlineFeatureEngine()
+
+                for idx in data.index:
+                    as_of_date = idx.date() if hasattr(idx, 'date') else idx
+                    features = engine.compute_features_for_date(as_of_date)
+
+                    deadline_risk.loc[idx] = features.deadline_risk_score
+                    vol_multiplier.loc[idx] = features.deadline_vol_multiplier
+                    min_days.loc[idx] = features.min_days_to_any_deadline
+                    deadline_names[idx] = features.active_deadline_names
+
+                logger.info(f"   Loaded tariff deadline features for {len(data)} dates")
+            except Exception as e:
+                logger.warning(f"   Could not load tariff deadline features: {e}")
+        else:
+            # Fallback: hardcoded key dates if module not available
+            import math
+            DEADLINES = [
+                (date(2026, 11, 10), "section_301_suspension"),
+                (date(2026, 12, 31), "china_ag_tariff_suspension"),
+            ]
+
+            for idx in data.index:
+                as_of_date = idx.date() if hasattr(idx, 'date') else idx
+                min_days_val = 365
+                active_names = []
+
+                for deadline_date, name in DEADLINES:
+                    days_to_expiry = (deadline_date - as_of_date).days
+                    if days_to_expiry >= 0:
+                        active_names.append(name)
+                        if days_to_expiry < min_days_val:
+                            min_days_val = days_to_expiry
+
+                # Sigmoid risk calculation
+                if min_days_val < 365:
+                    exponent = (min_days_val - 90) / 30
+                    risk = 1.0 / (1.0 + math.exp(exponent))
+                else:
+                    risk = 0.0
+
+                deadline_risk.loc[idx] = risk
+                vol_multiplier.loc[idx] = 1.0 + (0.5 * risk)
+                min_days.loc[idx] = min_days_val
+                deadline_names[idx] = active_names
+
+        return deadline_risk, vol_multiplier, min_days, deadline_names
+
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
         Compute tariff risk score with ALL elite indicators.
@@ -200,6 +280,13 @@ class TariffSignalGenerator(BaseSignalGenerator):
         # Tariff regime (NEW)
         tariff_regime = self._compute_tariff_regime(data)
 
+        # Deadline risk (NEW - integrates tariff_deadlines.py)
+        deadline_risk, deadline_vol_mult, min_days_to_deadline, deadline_names = self._compute_deadline_risk(data)
+
+        # Combine EPU-based risk with deadline risk
+        # When deadline is approaching, amplify the tariff risk signal
+        combined_risk = tariff_risk + (deadline_risk * deadline_vol_mult - 1.0)
+
         for idx in data.index:
             if pd.isna(tariff_risk.loc[idx]):
                 continue
@@ -221,10 +308,16 @@ class TariffSignalGenerator(BaseSignalGenerator):
             # Signal 2: spike indicator
             spike = epu_spike.loc[idx] if not pd.isna(epu_spike.loc[idx]) else 0.0
 
+            # Get deadline info for this date
+            dl_risk = deadline_risk.loc[idx] if not pd.isna(deadline_risk.loc[idx]) else 0.0
+            dl_vol = deadline_vol_mult.loc[idx] if not pd.isna(deadline_vol_mult.loc[idx]) else 1.0
+            dl_days = min_days_to_deadline.loc[idx] if not pd.isna(min_days_to_deadline.loc[idx]) else 365
+            dl_names = deadline_names.get(idx, [])
+
             signals.append(SignalOutput(
                 as_of_date=idx.date() if hasattr(idx, 'date') else idx,
                 bucket="tariff",
-                signal_1=float(tariff_risk.loc[idx]),
+                signal_1=float(combined_risk.loc[idx]),  # Now includes deadline risk
                 signal_2=float(spike),
                 confidence=float(confidence),
                 model_type="tree",
@@ -232,11 +325,18 @@ class TariffSignalGenerator(BaseSignalGenerator):
                     "components_used": list(epu_components.keys()),
                     "tariff_regime": int(regime),
                     "is_spike": spike > 0,
+                    "epu_risk": float(tariff_risk.loc[idx]),  # Pure EPU component
+                    "deadline_risk_score": float(dl_risk),
+                    "deadline_vol_multiplier": float(dl_vol),
+                    "min_days_to_deadline": int(dl_days),
+                    "active_deadlines": dl_names,
                     "run_hash": run_hash,
                 },
             ))
 
-        logger.info(f"TariffSignalGenerator: Generated {len(signals)} signals (spikes: {int(epu_spike.sum())})")
+        # Count imminent deadlines for logging
+        imminent_count = sum(1 for idx in data.index if min_days_to_deadline.loc[idx] < 60)
+        logger.info(f"TariffSignalGenerator: Generated {len(signals)} signals (spikes: {int(epu_spike.sum())}, imminent_deadlines: {imminent_count})")
         return signals
 
 
