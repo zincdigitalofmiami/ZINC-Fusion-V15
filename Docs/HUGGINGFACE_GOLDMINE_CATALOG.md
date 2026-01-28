@@ -52,15 +52,6 @@ NOTE: Production is the dashboard/frontend, not the repo root.
 | [ZombitX64/xauusd-gold-price-historical-data-2004-2025](https://huggingface.co/datasets/ZombitX64/xauusd-gold-price-historical-data-2004-2025) | **1M-10M** | Gold price 2004-2025 |
 | [mltrev23/gold-price](https://huggingface.co/datasets/mltrev23/gold-price) | 1K-10K | Gold + market indicators |
 
-### 🪙 CRYPTO DATA
-| Dataset | Size | Purpose |
-|---------|------|---------|
-| [Abraxasccs/kraken-market-data](https://huggingface.co/datasets/Abraxasccs/kraken-market-data) | 1M-10M | Real-time Kraken exchange (updated daily!) |
-| [linxy/CryptoCoin](https://huggingface.co/datasets/linxy/CryptoCoin) | **10M-100M** | Crypto historical 2018-2025 |
-| [WinkingFace/CryptoLM-Bitcoin-BTC-USDT](https://huggingface.co/datasets/WinkingFace/CryptoLM-Bitcoin-BTC-USDT) | 1M-10M | BTC with technical indicators |
-| [arthurneuron/cryptocurrency-futures-ohlcv-dataset-1m](https://huggingface.co/datasets/arthurneuron/cryptocurrency-futures-ohlcv-dataset-1m) | **100M-1B** | Crypto futures OHLCV |
-| [sebdg/crypto_data](https://huggingface.co/datasets/sebdg/crypto_data) | Various | Comprehensive crypto data |
-
 ### 📰 NEWS & NLP
 | Dataset | Size | Purpose |
 |---------|------|---------|

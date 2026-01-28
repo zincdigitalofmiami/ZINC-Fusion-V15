@@ -43,11 +43,6 @@ PHASE3_TAG_MAP: List[UpdateSpec] = [
     UpdateSpec(symbol="MYM", tags=["core", "volatility"]),
     # Energy
     UpdateSpec(symbol="QG", tags=["energy"]),
-    # Crypto (risk proxy)
-    UpdateSpec(symbol="BTC", tags=["volatility"]),
-    UpdateSpec(symbol="ETH", tags=["volatility"]),
-    UpdateSpec(symbol="MBT", tags=["volatility"]),
-    UpdateSpec(symbol="MET", tags=["volatility"]),
     # Livestock (protein demand / substitutes)
     UpdateSpec(symbol="LE", tags=["substitutes", "volatility"]),
     UpdateSpec(symbol="HE", tags=["substitutes", "volatility"]),

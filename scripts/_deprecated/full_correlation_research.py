@@ -184,7 +184,6 @@ categories = {
     'EQUITY_INDEX': ['ES', 'NQ', 'YM', 'RTY', 'EMD', 'MES', 'MNQ', 'MYM', 'M2K'],
     'FX': ['6E', '6J', '6B', '6A', '6C', '6S', '6N', '6M', 'DX'],
     'RATES': ['ZN', 'ZB', 'ZF', 'ZT', 'GE', 'ZQ'],
-    'CRYPTO': ['BTC', 'ETH', 'MBT', 'MET'],
     'VOLATILITY': ['VX'],
 }
 

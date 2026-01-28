@@ -48,12 +48,11 @@ NOTE: Production is the dashboard/frontend, not the repo root.
 | NG | Natural Gas (Henry Hub) |
 | CPO/FCPO | Crude Palm Oil (Malaysia) |
 
-### Macro/Equity Proxies (3)
+### Macro/Equity Proxies (2)
 | Symbol | Description |
 |--------|-------------|
 | ES | S&P 500 E-mini |
 | GC | Gold |
-| BTC | Bitcoin |
 
 ### Equity/ETF Proxies (3)
 | Symbol | Description |

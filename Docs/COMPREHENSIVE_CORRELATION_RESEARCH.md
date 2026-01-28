@@ -53,7 +53,6 @@ These symbols' **yesterday returns** predict **today's ZL returns**:
 | **6A** | AUD/USD | 0.153 | 0.090 | **0.0094** | POSITIVE |
 | **MES** | Micro S&P 500 | 0.150 | 0.081 | 0.0253 | POSITIVE |
 | **M2K** | Micro Russell | 0.150 | 0.062 | 0.0273 | POSITIVE |
-| **ETH** | Ethereum | 0.092 | 0.026 | 0.0282 | POSITIVE |
 | **30Y** | 30-Year Bond | 0.059 | 0.085 | 0.0306 | POSITIVE |
 | **MYM** | Micro Dow | 0.153 | 0.078 | 0.0412 | POSITIVE |
 | **VX** | VIX Futures | -0.129 | -0.007 | 0.0426 | **NEGATIVE** |
@@ -139,14 +138,6 @@ These symbols' **yesterday returns** predict **today's ZL returns**:
 | 6N | 0.096 | 0.047 | NZD (commodity) |
 | DX | **-0.094** | -0.079 | Dollar INVERSE |
 | 6E | 0.073 | 0.060 | Euro |
-
-### CRYPTO (Risk-On Proxy)
-| Symbol | Correlation | HiVol | Predictive? |
-|--------|-------------|-------|-------------|
-| ETH | 0.092 | 0.102 | ✅ YES (p=0.028) |
-| MET | 0.082 | 0.084 | |
-| MBT | 0.070 | 0.073 | |
-| BTC | 0.059 | 0.021 | |
 
 ### VOLATILITY
 | Symbol | Correlation | HiVol | Predictive? |
@@ -234,7 +225,6 @@ CPO → ['palm', 'core']
 VX, GVZ → ['volatility']
 ES, NQ, YM, RTY, EMD → ['volatility']
 MES, MNQ, MYM, M2K → ['volatility']
-BTC, ETH, MBT, MET → ['volatility']
 SI, GC → ['volatility']
 ```
 
@@ -263,15 +253,11 @@ GE, 30Y, 10Y, 2YY → ['fed']
    - Biodiesel/renewable diesel demand signal
    - Add to BIOFUEL features
 
-3. **Ethereum (ETH) predicts ZL** (p=0.028)
-   - Risk-on sentiment indicator
-   - Add to VOLATILITY features
-
-4. **VIX (VX) is NEGATIVELY predictive** (p=0.043)
+3. **VIX (VX) is NEGATIVELY predictive** (p=0.043)
    - Fear = ZL weakness
    - Use as regime indicator
 
-5. **Equity indices lose correlation in crisis**
+4. **Equity indices lose correlation in crisis**
    - LoVol: ~0.22 correlation
    - HiVol: ~0.09 correlation
    - **Build regime-aware feature weights**
