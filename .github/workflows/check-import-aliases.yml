@@ -1,0 +1,36 @@
+name: Check Import Aliases
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/**/*.ts'
+      - 'frontend/src/**/*.tsx'
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/src/**/*.ts'
+      - 'frontend/src/**/*.tsx'
+
+jobs:
+  check-aliases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for invalid ~ alias imports
+        run: |
+          echo "Checking for invalid ~ alias imports in frontend/src..."
+          if grep -r "from ['\"]~/" frontend/src || grep -r "import.*['\"]~/" frontend/src; then
+            echo "❌ ERROR: Found invalid ~ alias imports!"
+            echo ""
+            echo "Next.js/Turbopack only resolves aliases defined in tsconfig.json paths."
+            echo "The ~ alias is not configured. Use @/ instead (defined in tsconfig.json)."
+            echo ""
+            echo "Files with ~ imports:"
+            grep -rn "from ['\"]~/" frontend/src || grep -rn "['\"]~/" frontend/src
+            exit 1
+          else
+            echo "✅ No invalid ~ alias imports found"
+          fi
