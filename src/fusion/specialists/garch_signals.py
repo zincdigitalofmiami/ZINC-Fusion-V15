@@ -55,7 +55,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         "fred_vixcls": {"name": "VIX", "asset": "spx", "desc": "S&P 500 30-day implied vol"},
         "fred_vix3mcls": {"name": "VIX3M", "asset": "spx", "desc": "S&P 500 3-month implied vol"},
         "fred_vix9dcls": {"name": "VIX9D", "asset": "spx", "desc": "S&P 500 9-day implied vol"},
-        "fred_vxvcls": {"name": "VVIX", "asset": "vix", "desc": "VIX of VIX (vol of vol)"},
+        "fred_vxvcls": {"name": "VXV", "asset": "spx", "desc": "S&P 500 3-month implied vol (CBOE VIX3M)"},
         # Commodity Vol
         "fred_ovxcls": {"name": "OVX", "asset": "oil", "desc": "Crude oil volatility"},
         "fred_gvzcls": {"name": "GVZ", "asset": "gold", "desc": "Gold volatility"},
@@ -244,12 +244,24 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 vix3m_col = col
 
         if vix_col is None or vix3m_col is None:
-            # Return empty series if term structure data not available
+            # LOUD WARNING: Missing data should never silently become zeros
+            missing = []
+            if vix_col is None:
+                missing.append("VIX (VIXCLS)")
+            if vix3m_col is None:
+                missing.append("VIX3M (VXVCLS)")
+            logger.warning(
+                f"MISSING_TERM_STRUCTURE_DATA: {', '.join(missing)} not found. "
+                f"Available columns: {[c for c in data.columns if 'vix' in c.lower() or 'vxv' in c.lower()]}. "
+                f"Term structure feature will return NaN, not zeros."
+            )
+            # Return NaN/NA, not zeros/False — those are data fabrication
+            # pd.NA for boolean = "unknown", not "False" (which would imply contango)
             return (
-                pd.Series(0.0, index=data.index),
-                pd.Series(False, index=data.index),
-                pd.Series(0.0, index=data.index),
-                pd.Series(0.0, index=data.index),  # normalized
+                pd.Series(np.nan, index=data.index),           # term_slope
+                pd.Series(pd.NA, index=data.index, dtype="boolean"),  # is_backwardation (unknown, not False)
+                pd.Series(np.nan, index=data.index),           # term_zscore
+                pd.Series(np.nan, index=data.index),           # term_slope_normalized
             )
 
         vix = data[vix_col]
@@ -271,6 +283,52 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         logger.info(f"   VIX term structure: using {vix_col} and {vix3m_col}")
         return term_slope, is_backwardation, term_zscore, term_slope_normalized
 
+    def _validate_required_series(self, data: pd.DataFrame, min_recent_days: int = 5) -> dict:
+        """
+        Validate required series are present and fresh.
+
+        Data Contract:
+        - VIXCLS: Required for VIX adjustment
+        - VXVCLS: Required for term structure (via fred_vxvcls or fred_vix3mcls alias)
+
+        Returns dict with validation status and any warnings.
+        """
+        issues = []
+        warnings = []
+
+        # Check for VIXCLS
+        if "fred_vixcls" not in data.columns:
+            issues.append("VIXCLS not in data columns")
+        else:
+            recent_vix = data["fred_vixcls"].iloc[-min_recent_days:].notna().sum()
+            if recent_vix == 0:
+                warnings.append(f"VIXCLS has no data in last {min_recent_days} days")
+
+        # Check for VXVCLS (term structure)
+        vxv_col = None
+        for col in ["fred_vxvcls", "fred_vix3mcls"]:
+            if col in data.columns:
+                vxv_col = col
+                break
+        if vxv_col is None:
+            warnings.append("VXVCLS/VIX3M not in data columns - term structure will be NaN")
+        else:
+            recent_vxv = data[vxv_col].iloc[-min_recent_days:].notna().sum()
+            if recent_vxv == 0:
+                warnings.append(f"{vxv_col} has no data in last {min_recent_days} days")
+
+        # Log issues
+        for issue in issues:
+            logger.error(f"VOLATILITY_DATA_CONTRACT_VIOLATION: {issue}")
+        for warn in warnings:
+            logger.warning(f"VOLATILITY_DATA_FRESHNESS: {warn}")
+
+        return {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "warnings": warnings,
+        }
+
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
         Compute volatility regime signals with ALL elite indicators.
@@ -279,7 +337,13 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         + VIX as exogenous regime indicator.
 
         PATCHED 2026-01-21: Added VIX term structure for improved panic detection
+        PATCHED 2026-01-28: Added data contract validation to prevent silent failures
         """
+        # Validate data contract before computing
+        validation = self._validate_required_series(data)
+        if not validation["valid"]:
+            raise ValueError(f"Volatility specialist data contract violated: {validation['issues']}")
+
         signals = []
 
         # =====================================================================
@@ -403,5 +467,19 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 metadata=meta,
             ))
 
-        logger.info(f"VolatilitySignalGenerator: Generated {len(signals)} signals (term_structure: {has_term_structure})")
+        # Operational metrics for data quality monitoring
+        term_nan_count = term_slope.isna().sum() if term_slope is not None else len(data)
+        term_nan_pct = (term_nan_count / len(data) * 100) if len(data) > 0 else 0
+        backwardation_na_count = is_backwardation.isna().sum() if is_backwardation is not None else len(data)
+
+        if term_nan_pct > 10:
+            logger.warning(
+                f"VOLATILITY_DATA_QUALITY: term_structure NaN rate = {term_nan_pct:.1f}% "
+                f"({term_nan_count}/{len(data)}). Check VIXCLS/VXVCLS freshness."
+            )
+
+        logger.info(
+            f"VolatilitySignalGenerator: Generated {len(signals)} signals "
+            f"(term_structure: {has_term_structure}, term_nan: {term_nan_count}, backwardation_na: {backwardation_na_count})"
+        )
         return signals
