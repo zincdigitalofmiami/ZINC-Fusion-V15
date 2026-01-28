@@ -10,7 +10,7 @@
 
 import { inngest } from "./client";
 import { Pool } from "pg";
-import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "~/lib/databento";
+import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

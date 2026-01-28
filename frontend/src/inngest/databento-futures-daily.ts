@@ -11,7 +11,7 @@
 
 import { inngest } from "./client";
 import { Pool } from "pg";
-import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "~/lib/databento";
+import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 
 const pool = new Pool({
