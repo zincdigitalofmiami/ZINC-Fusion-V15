@@ -104,6 +104,18 @@ export const zlLive15m = inngest.createFunction(
   { id: "zl-live-15m", name: "ZL Live 15m Bars" },
   { event: "zl.bar.15m" },
   async ({ event }) => {
+    // DEBUG: Write receipt to prove function was invoked
+    const receiptClient = await pool.connect();
+    try {
+      await receiptClient.query(
+        `INSERT INTO analytics.inngest_receipts (function_id, event_name, event_id, payload)
+         VALUES ($1, $2, $3, $4)`,
+        ["zl-live-15m", "zl.bar.15m", event.id ?? "unknown", JSON.stringify(event.data)]
+      );
+    } finally {
+      receiptClient.release();
+    }
+
     const bar = event.data as ZlBar15mEvent;
     validateBar15m(bar);
     const previousClose = bar.previousClose ?? null;
