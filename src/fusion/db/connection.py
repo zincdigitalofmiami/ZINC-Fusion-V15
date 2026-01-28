@@ -36,10 +36,18 @@ import os
 from contextlib import contextmanager
 from typing import Generator, Tuple, Optional
 
+from pathlib import Path
+
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2.extras import execute_batch  # noqa: F401 - re-export
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+
+# Load .env file from project root (works regardless of cwd)
+# override=False ensures real env vars (CI/prod) take precedence over .env
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+load_dotenv(_PROJECT_ROOT / ".env", override=False)
 
 # Module-level engine cache (disposed on exit)
 _engine_cache: Optional[Engine] = None
