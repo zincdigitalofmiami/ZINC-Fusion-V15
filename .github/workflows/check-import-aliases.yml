@@ -19,17 +19,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
       - name: Check for invalid ~ alias imports
         run: |
           echo "Checking for invalid ~ alias imports in frontend/src..."
-          if grep -r "from ['\"]~/" frontend/src || grep -r "import.*['\"]~/" frontend/src; then
+          
+          # Patterns to catch all import forms:
+          # - from "~/..." or from '~/...'
+          # - import("~/...") or import('~/...')
+          # - require("~/...") or require('~/...')
+          # - export * from "~/..."
+          # - export { x } from "~/..."
+          
+          PATTERNS=(
+            "from\\s+['\"]~/"
+            "import\\s*\\(\\s*['\"]~/"
+            "require\\s*\\(\\s*['\"]~/"
+            "export\\s+\\*\\s+from\\s+['\"]~/"
+            "export\\s+\\{[^}]*\\}\\s+from\\s+['\"]~/"
+          )
+          
+          FOUND=false
+          for pattern in "${PATTERNS[@]}"; do
+            if rg -n "$pattern" frontend/src; then
+              FOUND=true
+            fi
+          done
+          
+          if [ "$FOUND" = true ]; then
+            echo ""
             echo "❌ ERROR: Found invalid ~ alias imports!"
             echo ""
             echo "Next.js/Turbopack only resolves aliases defined in tsconfig.json paths."
             echo "The ~ alias is not configured. Use @/ instead (defined in tsconfig.json)."
             echo ""
-            echo "Files with ~ imports:"
-            grep -rn "from ['\"]~/" frontend/src || grep -rn "['\"]~/" frontend/src
+            echo "All matches:"
+            for pattern in "${PATTERNS[@]}"; do
+              rg -n "$pattern" frontend/src || true
+            done
             exit 1
           else
             echo "✅ No invalid ~ alias imports found"
