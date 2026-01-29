@@ -30,13 +30,20 @@ interface ForecastPoint {
   price_p70: number | null
 }
 
-// Exact colors from SciChart ZLCandlestickChart.tsx
+// TradingView exact settings (from user screenshots)
 const THEME = {
-  // Candle colors (TradingView style)
+  // Candle body colors
   upColor: '#26C6DA',
-  downColor: '#EC0000',
-  // Grid and crosshair
-  gridColor: 'rgba(255,255,255,0.05)',
+  downColor: '#FF0000',
+  // Borders: 0% opacity (transparent per TradingView settings)
+  borderUpColor: 'transparent',
+  borderDownColor: 'transparent',
+  // Wicks: White/light gray (NOT body color - per TradingView)
+  wickUpColor: '#FFFFFF',           // 100% white
+  wickDownColor: 'rgba(178,181,190,0.83)', // ~83% gray
+  // Grid: 4-7% opacity (TradingView default)
+  gridColor: 'rgba(255,255,255,0.04)',
+  // Crosshair
   crosshairColor: 'rgba(139,92,246,0.6)',
   labelBgColor: 'rgba(20,10,40,0.9)',
   textColor: 'rgba(255,255,255,0.4)',
@@ -71,7 +78,7 @@ export function LightweightZlCandlestickChart({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/zl/price-1d?days=130')
+        const res = await fetch('/api/zl/price-1d?days=730') // ~2 years of daily data
         if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
         if (json.data && json.data.length > 0) {
@@ -233,26 +240,31 @@ export function LightweightZlCandlestickChart({
       },
       rightPriceScale: {
         borderColor: 'transparent',
+        autoScale: true,
+        scaleMargins: {
+          top: 0.05,    // 5% padding at top (TradingView-tight)
+          bottom: 0.05, // 5% padding at bottom
+        },
       },
       timeScale: {
         borderColor: 'transparent',
         timeVisible: false,
-        fixLeftEdge: true,
-        fixRightEdge: false,
-        rightOffset: 12,
+        fixLeftEdge: false,  // Allow scroll back past data start
+        fixRightEdge: false, // Allow scroll forward past data end
+        rightOffset: 20,     // Space on right for forward scroll
       },
-      // Axis-only interactions (page scroll works over chart)
+      // Interactions: axis drag to scroll, double-click to reset
       handleScroll: {
-        mouseWheel: false,
-        pressedMouseMove: false,
-        horzTouchDrag: true,
-        vertTouchDrag: false,
+        mouseWheel: false,        // Page scroll not hijacked
+        pressedMouseMove: true,   // Allow drag to pan horizontally
+        horzTouchDrag: true,      // Touch horizontal pan
+        vertTouchDrag: false,     // Allow page scroll on vertical swipe
       },
       handleScale: {
-        mouseWheel: false,
-        pinch: true,
+        mouseWheel: false,        // No wheel zoom on plot area
+        pinch: true,              // Pinch to zoom on touch
         axisPressedMouseMove: { time: true, price: true },
-        axisDoubleClickReset: { time: true, price: true },
+        axisDoubleClickReset: { time: true, price: true }, // Double-click axis to reset
       },
     })
 
@@ -335,14 +347,14 @@ export function LightweightZlCandlestickChart({
       }
     }
 
-    // Add candlestick series
+    // Add candlestick series (TradingView exact: transparent borders, white/gray wicks)
     const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: THEME.upColor,
       downColor: THEME.downColor,
-      borderUpColor: 'transparent',
-      borderDownColor: 'transparent',
-      wickUpColor: THEME.upColor,
-      wickDownColor: THEME.downColor,
+      borderUpColor: THEME.borderUpColor,
+      borderDownColor: THEME.borderDownColor,
+      wickUpColor: THEME.wickUpColor,
+      wickDownColor: THEME.wickDownColor,
       priceLineVisible: true,
     })
 
@@ -444,13 +456,13 @@ export function LightweightZlCandlestickChart({
 
       {/* Chart area */}
       <div className="relative w-full flex-1 min-h-0">
-        {/* Watermark (DOM overlay) */}
-        <div className="absolute inset-0 flex items-center justify-end pr-16 pointer-events-none z-0">
+        {/* Watermark (DOM overlay - 10% opacity per TradingView) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <img
             src="/chart_watermark.svg"
             alt=""
-            className="w-[300px] h-auto opacity-[0.03]"
-            style={{ filter: 'grayscale(100%) brightness(2)' }}
+            className="w-[280px] h-auto opacity-[0.10]"
+            style={{ filter: 'grayscale(100%)' }}
           />
         </div>
         <div
