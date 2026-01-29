@@ -75,7 +75,7 @@ export function ZLCandlestickChart({
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/zl/price-1d?days=240') // ~8 months like TradingView screenshot
+                const res = await fetch('/api/zl/price-1d?days=130') // ~6 months for better candle spacing
                 if (!res.ok) throw new Error('Failed to fetch')
                 const json = await res.json()
                 if (json.data && json.data.length > 0) {
@@ -344,7 +344,7 @@ export function ZLCandlestickChart({
                 brushUp: '#00ff00',       // Bright green fill
                 strokeDown: '#ffffff',    // White outline for down candles
                 brushDown: '#F23645',     // TradingView electric magenta-red fill
-                dataPointWidth: 0.5,
+                dataPointWidth: 0.3,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
 
