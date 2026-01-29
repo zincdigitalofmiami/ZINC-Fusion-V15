@@ -361,9 +361,14 @@ export function LightweightZlCandlestickChart({
     candleSeries.setData(candleData)
     candleSeriesRef.current = candleSeries
 
-    // Fit content once
-    if (!fitContentCalledRef.current) {
-      chart.timeScale().fitContent()
+    // Set initial visible range to last 5 months (~150 bars) instead of all data
+    if (!fitContentCalledRef.current && candleData.length > 0) {
+      const totalBars = candleData.length
+      const visibleBars = Math.min(150, totalBars) // 5 months or all if less
+      chart.timeScale().setVisibleLogicalRange({
+        from: totalBars - visibleBars,
+        to: totalBars + 10, // Small offset for forward scroll space
+      })
       fitContentCalledRef.current = true
     }
 
