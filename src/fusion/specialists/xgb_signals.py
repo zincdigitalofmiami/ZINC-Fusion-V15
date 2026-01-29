@@ -28,6 +28,7 @@ from sklearn.model_selection import TimeSeriesSplit
 # XGBoost - install if missing
 try:
     import xgboost as xgb
+
     HAS_XGBOOST = True
 except ImportError:
     HAS_XGBOOST = False
@@ -49,6 +50,7 @@ MODELS_DIR = Path(__file__).parent.parent.parent.parent / "models" / "specialist
 # ML MODEL BASE MIXIN
 # =============================================================================
 
+
 class MLModelMixin:
     """
     Mixin providing real ML model training, prediction, and persistence.
@@ -64,6 +66,8 @@ class MLModelMixin:
         self.train_frequency_days: int = 21  # Retrain monthly
         self.min_train_samples: int = 126  # ~6 months minimum
         self.target_horizon: int = 21  # Predict 21-day forward return
+        self.missingness_threshold: float = 0.30
+        self.degraded_confidence: float = 0.20
 
     def _get_model_path(self) -> Path:
         """Get path for model persistence."""
@@ -155,7 +159,9 @@ class MLModelMixin:
         y_clean = y[valid_mask]
 
         if len(X_clean) < self.min_train_samples:
-            logger.warning(f"   Insufficient training data: {len(X_clean)} < {self.min_train_samples}")
+            logger.warning(
+                f"   Insufficient training data: {len(X_clean)} < {self.min_train_samples}"
+            )
             return False
 
         # Scale features
@@ -168,31 +174,79 @@ class MLModelMixin:
         self.last_train_date = current_date
 
         # Log feature importances
-        if hasattr(self.model, 'feature_importances_'):
+        if hasattr(self.model, "feature_importances_"):
             importances = dict(zip(feature_names, self.model.feature_importances_))
-            top_features = sorted(importances.items(), key=lambda x: x[1], reverse=True)[:5]
+            top_features = sorted(
+                importances.items(), key=lambda x: x[1], reverse=True
+            )[:5]
             logger.info(f"   Top features: {top_features}")
 
         # Save model
         self._save_model()
 
-        logger.info(f"   Trained on {len(X_clean)} samples, {len(feature_names)} features")
+        logger.info(
+            f"   Trained on {len(X_clean)} samples, {len(feature_names)} features"
+        )
         return True
 
-    def _predict(self, features: pd.DataFrame) -> np.ndarray:
-        """Generate predictions from trained model."""
+    def _predict(
+        self, features: pd.DataFrame
+    ) -> Tuple[Optional[np.ndarray], Dict[str, Any]]:
+        """Generate predictions from trained model with missingness policy."""
         if self.model is None:
             raise ValueError("Model not trained")
 
         # Ensure feature order matches training
         X = features[self.feature_names] if self.feature_names else features
-        X_scaled = self.scaler.transform(X.fillna(0))
-        return self.model.predict(X_scaled)
+        if X.empty:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": 1.0,
+                "missing_features": [],
+                "abstained": True,
+                "reason": "empty_features",
+            }
+
+        latest = X.iloc[-1]
+        nan_pct_latest = float(latest.isna().mean())
+        missing_features = latest[latest.isna()].index.tolist()
+
+        if nan_pct_latest > self.missingness_threshold:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": nan_pct_latest,
+                "missing_features": missing_features,
+                "abstained": True,
+                "reason": "nan_pct_threshold",
+            }
+
+        if nan_pct_latest > 0:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": nan_pct_latest,
+                "missing_features": missing_features,
+                "abstained": True,
+                "reason": "missing_features",
+            }
+
+        X_scaled = self.scaler.transform(X)
+        return self.model.predict(X_scaled), {
+            "nan_pct_latest": nan_pct_latest,
+            "missing_features": missing_features,
+            "abstained": False,
+        }
 
 
 # =============================================================================
 # CRUSH SIGNAL GENERATOR - REAL XGBOOST
 # =============================================================================
+
 
 class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
     """
@@ -224,11 +278,11 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
             primary_features=[
                 "close",
                 # SOYBEAN COMPLEX - Full crush calculation inputs
-                "zs_close",         # Soybeans (feedstock)
-                "zm_close",         # Soybean Meal (byproduct)
+                "zs_close",  # Soybeans (feedstock)
+                "zm_close",  # Soybean Meal (byproduct)
                 # MARKET MICROSTRUCTURE
-                "volume",           # ZL volume (liquidity)
-                "open_interest",    # ZL open interest (positioning)
+                "volume",  # ZL volume (liquidity)
+                "open_interest",  # ZL open interest (positioning)
             ],
             secondary_features=[
                 # WASDE FUNDAMENTALS - Supply/demand balance
@@ -238,12 +292,12 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 "wasde_soybean_oil_exports",
                 "wasde_soybean_oil_domestic",
                 # Extended complex
-                "zs_volume",        # Soybeans volume
-                "zm_volume",        # Meal volume
-                "zs_open_interest", # Soybeans OI
-                "zm_open_interest", # Meal OI
+                "zs_volume",  # Soybeans volume
+                "zm_volume",  # Meal volume
+                "zs_open_interest",  # Soybeans OI
+                "zm_open_interest",  # Meal OI
                 # CFTC positioning
-                "cftc_zl_net_spec", # ZL speculator positioning
+                "cftc_zl_net_spec",  # ZL speculator positioning
             ],
             lookback_days=252,
             min_data_points=63,
@@ -316,14 +370,18 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # 1 bushel soybeans (60 lbs) yields 11 lbs oil + 44 lbs meal (48% protein)
         # Board Crush = (ZL × 0.11) + (ZM × 0.022) - (ZS / 100)
         # Oil Share = (ZL × 0.11) / ((ZL × 0.11) + (ZM × 0.022))
-        oil_value = zl * 0.11      # 11 lbs oil per bushel
-        meal_value = zm * 0.022    # 44 lbs meal / 2000 lbs per ton
+        oil_value = zl * 0.11  # 11 lbs oil per bushel
+        meal_value = zm * 0.022  # 44 lbs meal / 2000 lbs per ton
         board_crush = (oil_value + meal_value) - (zs / 100)
         oil_share = oil_value / (oil_value + meal_value)
 
         # Z-scores (126-day = ~6 months rolling window)
-        features["crush_zscore"] = self.compute_zscore(board_crush, window=126, min_periods=63)
-        features["oil_share_zscore"] = self.compute_zscore(oil_share, window=126, min_periods=63)
+        features["crush_zscore"] = self.compute_zscore(
+            board_crush, window=126, min_periods=63
+        )
+        features["oil_share_zscore"] = self.compute_zscore(
+            oil_share, window=126, min_periods=63
+        )
 
         # Crush margin regime classification (signal enhancement)
         # Regime: -2=very_low, -1=low, 0=neutral, 1=high, 2=very_high
@@ -343,18 +401,24 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         features["oil_share_mom_21d"] = oil_share.pct_change(21, fill_method=None)
 
         # Rolling volatility
-        features["crush_vol_21d"] = board_crush.pct_change(fill_method=None).rolling(21).std()
+        features["crush_vol_21d"] = (
+            board_crush.pct_change(fill_method=None).rolling(21).std()
+        )
 
         # Volume/OI if available
         if "volume" in data.columns:
             features["volume_zscore"] = self.compute_zscore(data["volume"], window=63)
         if "open_interest" in data.columns:
-            features["oi_zscore"] = self.compute_zscore(data["open_interest"], window=63)
+            features["oi_zscore"] = self.compute_zscore(
+                data["open_interest"], window=63
+            )
 
         # WASDE features if available
         for col in data.columns:
-            if 'wasde' in col.lower():
-                features[f"{col}_zscore"] = self.compute_zscore(data[col], window=24, min_periods=12)
+            if "wasde" in col.lower():
+                features[f"{col}_zscore"] = self.compute_zscore(
+                    data[col], window=24, min_periods=12
+                )
 
         # ADD ALL ZL/ZS/ZM ELITE INDICATORS TO FEATURES
         for col in data.columns:
@@ -385,7 +449,9 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
             logger.warning("CrushSignalGenerator: No valid data")
             return signals
 
-        current_date = last_valid_idx.date() if hasattr(last_valid_idx, 'date') else last_valid_idx
+        current_date = (
+            last_valid_idx.date() if hasattr(last_valid_idx, "date") else last_valid_idx
+        )
 
         # Check if retraining needed
         if self._should_retrain(current_date):
@@ -417,54 +483,97 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
             row_features = X_full.loc[[idx]]
             # Only check NaN in features the model uses (not all columns)
-            if self.feature_names:
-                model_features = row_features[self.feature_names]
-                if model_features.isna().all().all():  # Skip if ALL model features are NaN
-                    continue
-            elif row_features.isna().any().any():
-                continue
-
             try:
-                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
-                prediction = self._predict(row_features)[0]
+                prediction, pred_meta = self._predict(row_features)
+                if prediction is None:
+                    degraded_conf = float(
+                        pred_meta.get("conf", self.degraded_confidence)
+                    )
+                    logger.warning(
+                        f"   Crush abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
+                    )
+                    signals.append(
+                        SignalOutput(
+                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            bucket="crush",
+                            signal_1=0.0,
+                            signal_2=None,
+                            confidence=degraded_conf,
+                            model_type="xgb",
+                            max_input_age_days=None,
+                            source_tag=pred_meta.get(
+                                "source_tag", "insufficient_features"
+                            ),
+                            degraded_level=pred_meta.get("degraded_level", 2),
+                            conf=degraded_conf,
+                            data_quality={
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                            metadata={
+                                "run_hash": run_hash,
+                                "abstained": True,
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                        )
+                    )
+                    continue
+
+                # REAL MODEL PREDICTION
+                prediction = prediction[0]
 
                 # Confidence from model's feature importance weighted by feature values
                 base_confidence = 0.6
-                if hasattr(self.model, 'feature_importances_') and self.feature_names:
+                if hasattr(self.model, "feature_importances_") and self.feature_names:
                     # Use only the features the model was trained on
                     model_features = row_features[self.feature_names]
-                    importance_weighted = np.abs(model_features.values[0]) * self.model.feature_importances_
+                    importance_weighted = (
+                        np.abs(model_features.values[0])
+                        * self.model.feature_importances_
+                    )
                     confidence_boost = min(np.mean(importance_weighted) * 0.2, 0.3)
                     base_confidence += confidence_boost
 
                 confidence = min(base_confidence, 0.95)
 
-                signals.append(SignalOutput(
-                    as_of_date=idx.date() if hasattr(idx, 'date') else idx,
-                    bucket="crush",
-                    signal_1=float(prediction),  # MODEL PREDICTION
-                    signal_2=float(crush_momentum.loc[idx]) if not pd.isna(crush_momentum.loc[idx]) else None,
-                    confidence=float(confidence),
-                    model_type="xgb",
-                    metadata={
-                        "board_crush": float(board_crush.loc[idx]),
-                        "oil_share": float(oil_share.loc[idx]),
-                        "model_trained": str(self.last_train_date),
-                        "n_features": len(self.feature_names),
-                        "run_hash": run_hash,
-                    },
-                ))
+                signals.append(
+                    SignalOutput(
+                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        bucket="crush",
+                        signal_1=float(prediction),  # MODEL PREDICTION
+                        signal_2=(
+                            float(crush_momentum.loc[idx])
+                            if not pd.isna(crush_momentum.loc[idx])
+                            else None
+                        ),
+                        confidence=float(confidence),
+                        model_type="xgb",
+                        metadata={
+                            "board_crush": float(board_crush.loc[idx]),
+                            "oil_share": float(oil_share.loc[idx]),
+                            "model_trained": str(self.last_train_date),
+                            "n_features": len(self.feature_names),
+                            "run_hash": run_hash,
+                        },
+                    )
+                )
             except Exception as e:
                 logger.debug(f"   Skipping {idx}: {e}")
                 continue
 
-        logger.info(f"CrushSignalGenerator: Generated {len(signals)} signals (XGBoost model)")
+        logger.info(
+            f"CrushSignalGenerator: Generated {len(signals)} signals (XGBoost model)"
+        )
         return signals
 
 
 # =============================================================================
 # SUBSTITUTES SIGNAL GENERATOR - REAL RANDOM FOREST
 # =============================================================================
+
 
 class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
     """
@@ -495,20 +604,20 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
             primary_features=[
                 "close",
                 # SUBSTITUTE OILS COMPLEX - Full relative value
-                "cpo_close",        # Crude Palm Oil (Malaysia)
-                "rs_close",         # Canola/Rapeseed (Canada)
+                "cpo_close",  # Crude Palm Oil (Malaysia)
+                "rs_close",  # Canola/Rapeseed (Canada)
                 "sunflower_close",  # Sunflower Oil (Ukraine/Russia)
-                "rapeseed_close",   # Rapeseed (EU)
+                "rapeseed_close",  # Rapeseed (EU)
             ],
             secondary_features=[
                 # Extended substitutes
-                "corn_oil_close",   # Corn oil (US)
-                "cotton_oil_close", # Cottonseed oil
+                "corn_oil_close",  # Corn oil (US)
+                "cotton_oil_close",  # Cottonseed oil
                 # FX for conversion
-                "fred_dexmaus",     # MYR/USD (palm conversion)
-                "fred_dexcaus",     # CAD/USD (canola conversion)
+                "fred_dexmaus",  # MYR/USD (palm conversion)
+                "fred_dexcaus",  # CAD/USD (canola conversion)
                 # Cross-commodity
-                "zs_close",         # Soybeans (feedstock arbitrage)
+                "zs_close",  # Soybeans (feedstock arbitrage)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -562,7 +671,7 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
             if col in data.columns and data[col].notna().sum() > 30:
                 # Check if daily data (>100 unique values) or monthly (~48)
                 is_daily = data[col].nunique() > 100
-                
+
                 # ADD ELITE INDICATORS ONLY FOR DAILY DATA (CPO, RS)
                 if is_daily:
                     sub_data = data.copy()
@@ -576,17 +685,25 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
                 # Spread (works for both daily and monthly)
                 spread = zl - sub_price
-                features[f"spread_{name}_zscore"] = self.compute_zscore(spread, window=126, min_periods=42)
+                features[f"spread_{name}_zscore"] = self.compute_zscore(
+                    spread, window=126, min_periods=42
+                )
                 if is_daily:  # Only compute momentum for daily data
-                    features[f"spread_{name}_mom_21d"] = spread.pct_change(21, fill_method=None).shift(1)
+                    features[f"spread_{name}_mom_21d"] = spread.pct_change(
+                        21, fill_method=None
+                    ).shift(1)
 
                 # Ratio (works for both)
                 ratio = zl / sub_price.replace(0, np.nan)
-                features[f"ratio_{name}_zscore"] = self.compute_zscore(ratio, window=252, min_periods=63)
+                features[f"ratio_{name}_zscore"] = self.compute_zscore(
+                    ratio, window=252, min_periods=63
+                )
 
                 # Correlation (only for daily data with sufficient variance)
                 if is_daily:
-                    features[f"corr_{name}_63d"] = zl.rolling(63, min_periods=30).corr(sub_price)
+                    features[f"corr_{name}_63d"] = zl.rolling(63, min_periods=30).corr(
+                        sub_price
+                    )
 
         # ADD ALL ELITE INDICATORS TO FEATURES (deterministic, no filtering)
         for col in data.columns:
@@ -616,7 +733,9 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
             logger.warning("SubstitutesSignalGenerator: No valid data")
             return signals
 
-        current_date = last_valid_idx.date() if hasattr(last_valid_idx, 'date') else last_valid_idx
+        current_date = (
+            last_valid_idx.date() if hasattr(last_valid_idx, "date") else last_valid_idx
+        )
 
         # Check if retraining needed
         if self._should_retrain(current_date):
@@ -629,10 +748,16 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
         # Compute richness score for signal_2 (mean of ratio z-scores)
         ratio_cols = [c for c in X_full.columns if c.startswith("ratio_")]
-        richness = X_full[ratio_cols].mean(axis=1) if ratio_cols else pd.Series(np.nan, index=data.index)
+        richness = (
+            X_full[ratio_cols].mean(axis=1)
+            if ratio_cols
+            else pd.Series(np.nan, index=data.index)
+        )
 
         # Count available substitutes
-        spread_cols = [c for c in X_full.columns if c.startswith("spread_") and "zscore" in c]
+        spread_cols = [
+            c for c in X_full.columns if c.startswith("spread_") and "zscore" in c
+        ]
 
         for idx in data.index:
             if idx not in X_full.index:
@@ -640,46 +765,88 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
             row_features = X_full.loc[[idx]]
             # Only check NaN in features the model uses (not all columns)
-            if self.feature_names:
-                model_features = row_features[self.feature_names]
-                if model_features.isna().all().all():  # Skip if ALL model features are NaN
-                    continue
-            elif row_features.isna().any().any():
-                continue
-
             try:
-                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
-                prediction = self._predict(row_features)[0]
+                prediction, pred_meta = self._predict(row_features)
+                if prediction is None:
+                    degraded_conf = float(
+                        pred_meta.get("conf", self.degraded_confidence)
+                    )
+                    logger.warning(
+                        f"   Substitutes abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
+                    )
+                    signals.append(
+                        SignalOutput(
+                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            bucket="substitutes",
+                            signal_1=0.0,
+                            signal_2=None,
+                            confidence=degraded_conf,
+                            model_type="rf",
+                            max_input_age_days=None,
+                            source_tag=pred_meta.get(
+                                "source_tag", "insufficient_features"
+                            ),
+                            degraded_level=pred_meta.get("degraded_level", 2),
+                            conf=degraded_conf,
+                            data_quality={
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                            metadata={
+                                "run_hash": run_hash,
+                                "abstained": True,
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                        )
+                    )
+                    continue
+
+                # REAL MODEL PREDICTION
+                prediction = prediction[0]
 
                 # Confidence based on number of substitutes and feature importance
-                n_subs = sum(1 for c in spread_cols if not pd.isna(row_features[c].values[0]))
+                n_subs = sum(
+                    1 for c in spread_cols if not pd.isna(row_features[c].values[0])
+                )
                 base_confidence = min(n_subs / 4, 1.0) * 0.6 + 0.3
 
-                signals.append(SignalOutput(
-                    as_of_date=idx.date() if hasattr(idx, 'date') else idx,
-                    bucket="substitutes",
-                    signal_1=float(prediction),  # MODEL PREDICTION
-                    signal_2=float(richness.loc[idx]) if not pd.isna(richness.loc[idx]) else None,
-                    confidence=float(min(base_confidence, 0.95)),
-                    model_type="rf",
-                    metadata={
-                        "n_substitutes": n_subs,
-                        "model_trained": str(self.last_train_date),
-                        "n_features": len(self.feature_names),
-                        "run_hash": run_hash,
-                    },
-                ))
+                signals.append(
+                    SignalOutput(
+                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        bucket="substitutes",
+                        signal_1=float(prediction),  # MODEL PREDICTION
+                        signal_2=(
+                            float(richness.loc[idx])
+                            if not pd.isna(richness.loc[idx])
+                            else None
+                        ),
+                        confidence=float(min(base_confidence, 0.95)),
+                        model_type="rf",
+                        metadata={
+                            "n_substitutes": n_subs,
+                            "model_trained": str(self.last_train_date),
+                            "n_features": len(self.feature_names),
+                            "run_hash": run_hash,
+                        },
+                    )
+                )
             except Exception as e:
                 logger.debug(f"   Skipping {idx}: {e}")
                 continue
 
-        logger.info(f"SubstitutesSignalGenerator: Generated {len(signals)} signals (RandomForest model)")
+        logger.info(
+            f"SubstitutesSignalGenerator: Generated {len(signals)} signals (RandomForest model)"
+        )
         return signals
 
 
 # =============================================================================
 # CHINA SIGNAL GENERATOR - REAL GRADIENT BOOSTING
 # =============================================================================
+
 
 class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
     """
@@ -707,8 +874,18 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
     # China soybean import seasonality (empirical weights)
     CHINA_SEASONALITY = {
-        1: 1.15, 2: 1.10, 3: 1.05, 4: 0.85, 5: 0.80, 6: 0.85,
-        7: 0.90, 8: 0.95, 9: 1.00, 10: 1.10, 11: 1.15, 12: 1.20
+        1: 1.15,
+        2: 1.10,
+        3: 1.05,
+        4: 0.85,
+        5: 0.80,
+        6: 0.85,
+        7: 0.90,
+        8: 0.95,
+        9: 1.00,
+        10: 1.10,
+        11: 1.15,
+        12: 1.20,
     }
 
     def __init__(self):
@@ -718,25 +895,25 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
             primary_features=[
                 "close",
                 # CHINA DEMAND PROXIES - Full complex
-                "hg_close",         # Copper (industrial demand)
-                "usd_cny",          # CNY/USD (import capacity)
+                "hg_close",  # Copper (industrial demand)
+                "usd_cny",  # CNY/USD (import capacity)
                 # SHIPPING/LOGISTICS
-                "bdry_close",       # Baltic Dry Index (shipping demand)
-                "sblk_close",       # Dry bulk shipping ETF
+                "bdry_close",  # Baltic Dry Index (shipping demand)
+                "sblk_close",  # Dry bulk shipping ETF
                 # BRAZIL COMPETITION
-                "fred_dexbzus",     # BRL/USD (Brazil export competitiveness)
+                "fred_dexbzus",  # BRL/USD (Brazil export competitiveness)
             ],
             secondary_features=[
                 # Extended China exposure
-                "fxi_close",        # China Large-Cap ETF
-                "kweb_close",       # China Internet ETF
-                "china_pmi",        # Manufacturing PMI
+                "fxi_close",  # China Large-Cap ETF
+                "kweb_close",  # China Internet ETF
+                "china_pmi",  # Manufacturing PMI
                 # Alternative BRL
-                "fx_usdbrl",        # BRL (alternative source)
+                "fx_usdbrl",  # BRL (alternative source)
                 # Additional demand proxies
                 "fred_chnprinto01ixpym",  # China industrial production
                 # Soybean complex for context
-                "zs_close",         # Soybeans (main China import)
+                "zs_close",  # Soybeans (main China import)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -840,7 +1017,9 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # CNY features
         if "usd_cny" in data.columns:
             cny = data["usd_cny"]
-            features["cny_zscore"] = self.compute_zscore(cny, window=126, min_periods=42)
+            features["cny_zscore"] = self.compute_zscore(
+                cny, window=126, min_periods=42
+            )
             features["cny_mom_21d"] = cny.pct_change(21, fill_method=None)
 
         # BRL features (Brazil competition)
@@ -849,12 +1028,18 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
             brl = data[brl_col]
             if "dexbzus" in brl_col.lower():
                 brl = 1 / brl
-            features["brl_zscore"] = self.compute_zscore(brl, window=126, min_periods=42)
+            features["brl_zscore"] = self.compute_zscore(
+                brl, window=126, min_periods=42
+            )
             features["brl_mom_21d"] = brl.pct_change(21, fill_method=None)
 
         # Seasonality
-        features["month_sin"] = np.sin(2 * np.pi * pd.to_datetime(data.index).month / 12)
-        features["month_cos"] = np.cos(2 * np.pi * pd.to_datetime(data.index).month / 12)
+        features["month_sin"] = np.sin(
+            2 * np.pi * pd.to_datetime(data.index).month / 12
+        )
+        features["month_cos"] = np.cos(
+            2 * np.pi * pd.to_datetime(data.index).month / 12
+        )
         seasonality = pd.Series(index=data.index, dtype=float)
         for idx in data.index:
             month = pd.to_datetime(idx).month
@@ -863,7 +1048,13 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
         # ADD ALL ELITE INDICATORS TO FEATURES (deterministic, no filtering)
         for col in data.columns:
-            if col.startswith("zl_") or col.startswith("hg_") or col.startswith("bdry_") or col.startswith("sblk_") or col.startswith("fxi_"):
+            if (
+                col.startswith("zl_")
+                or col.startswith("hg_")
+                or col.startswith("bdry_")
+                or col.startswith("sblk_")
+                or col.startswith("fxi_")
+            ):
                 if col not in features:
                     features[col] = data[col]
 
@@ -900,9 +1091,11 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         if core_data_valid.sum() == 0:
             logger.warning("ChinaSignalGenerator: No valid data")
             return signals
-        
+
         last_valid_idx = data[core_data_valid].index[-1]
-        current_date = last_valid_idx.date() if hasattr(last_valid_idx, 'date') else last_valid_idx
+        current_date = (
+            last_valid_idx.date() if hasattr(last_valid_idx, "date") else last_valid_idx
+        )
 
         # Check if retraining needed
         if self._should_retrain(current_date):
@@ -931,16 +1124,47 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
             row_features = X_full.loc[[idx]]
             # Only check NaN in features the model uses (not all columns)
-            if self.feature_names:
-                model_features = row_features[self.feature_names]
-                if model_features.isna().all().all():  # Skip if ALL model features are NaN
-                    continue
-            elif row_features.isna().any().any():
-                continue
-
             try:
-                # REAL MODEL PREDICTION (fillna(0) handles remaining NaN)
-                prediction = self._predict(row_features)[0]
+                prediction, pred_meta = self._predict(row_features)
+                if prediction is None:
+                    degraded_conf = float(
+                        pred_meta.get("conf", self.degraded_confidence)
+                    )
+                    logger.warning(
+                        f"   China abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
+                    )
+                    signals.append(
+                        SignalOutput(
+                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            bucket="china",
+                            signal_1=0.0,
+                            signal_2=None,
+                            confidence=degraded_conf,
+                            model_type="gbm",
+                            max_input_age_days=None,
+                            source_tag=pred_meta.get(
+                                "source_tag", "insufficient_features"
+                            ),
+                            degraded_level=pred_meta.get("degraded_level", 2),
+                            conf=degraded_conf,
+                            data_quality={
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                            metadata={
+                                "run_hash": run_hash,
+                                "abstained": True,
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                        )
+                    )
+                    continue
+
+                # REAL MODEL PREDICTION
+                prediction = prediction[0]
 
                 # Confidence based on correlation and data availability
                 corr = zl_hg_corr.loc[idx] if not pd.isna(zl_hg_corr.loc[idx]) else 0.3
@@ -952,25 +1176,33 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if has_shipping:
                     base_confidence += 0.1
 
-                signals.append(SignalOutput(
-                    as_of_date=idx.date() if hasattr(idx, 'date') else idx,
-                    bucket="china",
-                    signal_1=float(prediction),  # MODEL PREDICTION
-                    signal_2=float(brazil_zscore.loc[idx]) if has_brazil and not pd.isna(brazil_zscore.loc[idx]) else None,
-                    confidence=float(min(base_confidence, 0.95)),
-                    model_type="gbm",
-                    metadata={
-                        "has_brazil": has_brazil,
-                        "has_cny": has_cny,
-                        "has_shipping": has_shipping,
-                        "model_trained": str(self.last_train_date),
-                        "n_features": len(self.feature_names),
-                        "run_hash": run_hash,
-                    },
-                ))
+                signals.append(
+                    SignalOutput(
+                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        bucket="china",
+                        signal_1=float(prediction),  # MODEL PREDICTION
+                        signal_2=(
+                            float(brazil_zscore.loc[idx])
+                            if has_brazil and not pd.isna(brazil_zscore.loc[idx])
+                            else None
+                        ),
+                        confidence=float(min(base_confidence, 0.95)),
+                        model_type="gbm",
+                        metadata={
+                            "has_brazil": has_brazil,
+                            "has_cny": has_cny,
+                            "has_shipping": has_shipping,
+                            "model_trained": str(self.last_train_date),
+                            "n_features": len(self.feature_names),
+                            "run_hash": run_hash,
+                        },
+                    )
+                )
             except Exception as e:
                 logger.debug(f"   Skipping {idx}: {e}")
                 continue
 
-        logger.info(f"ChinaSignalGenerator: Generated {len(signals)} signals (GBM model, brazil: {has_brazil}, shipping: {has_shipping})")
+        logger.info(
+            f"ChinaSignalGenerator: Generated {len(signals)} signals (GBM model, brazil: {has_brazil}, shipping: {has_shipping})"
+        )
         return signals

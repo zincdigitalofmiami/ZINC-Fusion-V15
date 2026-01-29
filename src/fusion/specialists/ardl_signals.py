@@ -911,12 +911,12 @@ class FxSignalGenerator(BaseSignalGenerator):
                 weighted_returns = fx_weights[col] * fx_returns.fillna(0)
                 pressure += weighted_returns
 
-            # Step 6: Cumsum to get cumulative pressure
-            cum_pressure = pressure.cumsum()
-
-            # Step 7: Z-score normalize
-            pressure_zscore = (cum_pressure - cum_pressure.rolling(self.zscore_window, min_periods=252).mean()) / \
-                              cum_pressure.rolling(self.zscore_window, min_periods=252).std().replace(0, 1)
+            # Step 6: Rolling z-score on STATIONARY pressure signal (no cumsum)
+            # P0 Fix: cumsum creates non-stationary series, causing z-score drift
+            # Instead: z-score the stationary daily returns directly
+            pressure_mean = pressure.rolling(self.zscore_window, min_periods=252).mean()
+            pressure_std = pressure.rolling(self.zscore_window, min_periods=252).std().replace(0, 1)
+            pressure_zscore = (pressure - pressure_mean) / pressure_std
 
             # Replace any remaining non-finite values
             pressure_zscore = pressure_zscore.replace([np.inf, -np.inf], np.nan).fillna(0)

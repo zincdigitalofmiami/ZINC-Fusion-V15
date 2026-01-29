@@ -45,7 +45,8 @@ from __future__ import annotations
 import logging
 import hashlib
 from datetime import datetime, date
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict, Any
+from datetime import date, timedelta
 
 import pandas as pd
 import numpy as np
@@ -60,6 +61,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # DATE NORMALIZATION HELPER (CRITICAL FIX)
 # =============================================================================
+
 
 def normalize_date_column(df: pd.DataFrame, col: str = "trade_date") -> pd.DataFrame:
     """
@@ -138,7 +140,9 @@ def load_futures_base(conn, symbol: str) -> pd.DataFrame:
         ORDER BY event_date
     """
     df = pd.read_sql(query, conn, params=(symbol,))
-    logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+    logger.info(
+        f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+    )
     return df
 
 
@@ -158,7 +162,9 @@ def load_lcfs_credit(conn) -> pd.DataFrame:
             logger.warning("   No LCFS data found")
             return pd.DataFrame()
         df = normalize_date_column(df, "trade_date")
-        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        logger.info(
+            f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+        )
         return df
     except Exception as e:
         logger.warning(f"   LCFS data not available: {e}")
@@ -182,7 +188,9 @@ def load_china_pmi(conn) -> pd.DataFrame:
             logger.warning("   No China PMI data found (series_id='china_pmi')")
             return pd.DataFrame()
         df = normalize_date_column(df, "trade_date")
-        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        logger.info(
+            f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+        )
         return df
     except Exception as e:
         logger.warning(f"   China PMI not available: {e}")
@@ -197,7 +205,9 @@ def load_dalian_soy(conn) -> pd.DataFrame:
     - Symbol used for DCE soybean oil continuous proxy: 'DCE_Y'
     - Column exposed to specialists/matrix: dalian_soy
     """
-    logger.info("Loading Dalian soybean oil proxy from mkt.futures_1d (symbol='DCE_Y')...")
+    logger.info(
+        "Loading Dalian soybean oil proxy from mkt.futures_1d (symbol='DCE_Y')..."
+    )
     try:
         query = """
             SELECT
@@ -212,7 +222,9 @@ def load_dalian_soy(conn) -> pd.DataFrame:
             logger.warning("   No DCE_Y data found in mkt.futures_1d")
             return pd.DataFrame()
         df = normalize_date_column(df, "trade_date")
-        logger.info(f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}")
+        logger.info(
+            f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+        )
         return df
     except Exception as e:
         logger.warning(f"   Dalian soy not available: {e}")
@@ -327,7 +339,9 @@ def load_fred_macro(conn) -> pd.DataFrame:
         # Log sparsity fix
         non_null_before = df.groupby("trade_date")["value"].count().mean()
         logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} series")
-        logger.info(f"   Applied forward-fill to sparse pivot (avg {non_null_before:.1f} series per row → all)")
+        logger.info(
+            f"   Applied forward-fill to sparse pivot (avg {non_null_before:.1f} series per row → all)"
+        )
         return df_wide
 
     logger.warning("   No FRED data loaded")
@@ -352,9 +366,7 @@ def load_fx_rates(conn) -> pd.DataFrame:
 
         # Pivot to wide format
         if len(df) > 0:
-            df_wide = df.pivot(
-                index="trade_date", columns="pair", values="fx_rate"
-            )
+            df_wide = df.pivot(index="trade_date", columns="pair", values="fx_rate")
             df_wide = df_wide.reset_index()
             df_wide.columns = ["trade_date"] + [
                 f"fx_{col.lower().replace('/', '_')}" for col in df_wide.columns[1:]
@@ -429,22 +441,38 @@ def load_weather_aggregates(conn) -> pd.DataFrame:
             return pd.DataFrame()
 
         # Pivot from long to wide format (one row per date, columns per region)
-        pivot_cols = ['tavg_c', 'tmin_c', 'tmax_c', 'prcp_mm', 'snow_mm',
-                      'gdd_10c', 'gdd_30d_sum', 'prcp_7d_sum', 'prcp_14d_sum',
-                      'temp_anom_30d', 'prcp_anom_30d', 'temp_vol_7d']
+        pivot_cols = [
+            "tavg_c",
+            "tmin_c",
+            "tmax_c",
+            "prcp_mm",
+            "snow_mm",
+            "gdd_10c",
+            "gdd_30d_sum",
+            "prcp_7d_sum",
+            "prcp_14d_sum",
+            "temp_anom_30d",
+            "prcp_anom_30d",
+            "temp_vol_7d",
+        ]
 
-        result = df.pivot(index='trade_date', columns='region', values=pivot_cols)
+        result = df.pivot(index="trade_date", columns="region", values=pivot_cols)
 
         # Flatten column names: (metric, region) -> wx_{region}_{metric}
-        result.columns = [f'wx_{region}_{metric}' for metric, region in result.columns]
+        result.columns = [f"wx_{region}_{metric}" for metric, region in result.columns]
         result = result.reset_index()
 
         # Normalize date type for merge compatibility
         result = normalize_date_column(result, "trade_date")
 
         # Log coverage statistics
-        null_pct = result.drop(columns=['trade_date'], errors='ignore').isnull().mean().mean() * 100
-        logger.info(f"   Computed {len(result):,} rows, {len(result.columns)-1} weather features")
+        null_pct = (
+            result.drop(columns=["trade_date"], errors="ignore").isnull().mean().mean()
+            * 100
+        )
+        logger.info(
+            f"   Computed {len(result):,} rows, {len(result.columns)-1} weather features"
+        )
         logger.info(f"   Average null percentage: {null_pct:.1f}%")
         return result
 
@@ -457,6 +485,7 @@ def load_weather_aggregates(conn) -> pd.DataFrame:
 # =============================================================================
 # CFTC POSITIONING DATA (NEW - 2026-01-21)
 # =============================================================================
+
 
 def load_cftc_positioning(conn, symbol: str = "ZL") -> pd.DataFrame:
     """
@@ -497,26 +526,26 @@ def load_cftc_positioning(conn, symbol: str = "ZL") -> pd.DataFrame:
 
         if len(df) > 0:
             # Commercials as percentage of open interest
-            df['cot_comm_pct_oi'] = np.where(
-                df['cot_open_interest'] > 0,
-                df['cot_prod_merc_net'] / df['cot_open_interest'] * 100,
-                0
+            df["cot_comm_pct_oi"] = np.where(
+                df["cot_open_interest"] > 0,
+                df["cot_prod_merc_net"] / df["cot_open_interest"] * 100,
+                0,
             )
 
             # Changes (week-over-week)
-            df['cot_mm_net_chg'] = df['cot_managed_money_net'].diff()
-            df['cot_comm_net_chg'] = df['cot_prod_merc_net'].diff()
+            df["cot_mm_net_chg"] = df["cot_managed_money_net"].diff()
+            df["cot_comm_net_chg"] = df["cot_prod_merc_net"].diff()
 
             # Keep only relevant columns
             keep_cols = [
-                'trade_date',
-                'cot_managed_money_net',
-                'cot_prod_merc_net',
-                'cot_open_interest',
-                'cot_mm_pct_oi',
-                'cot_comm_pct_oi',
-                'cot_mm_net_chg',
-                'cot_comm_net_chg'
+                "trade_date",
+                "cot_managed_money_net",
+                "cot_prod_merc_net",
+                "cot_open_interest",
+                "cot_mm_pct_oi",
+                "cot_comm_pct_oi",
+                "cot_mm_net_chg",
+                "cot_comm_net_chg",
             ]
             df = df[keep_cols]
 
@@ -524,7 +553,9 @@ def load_cftc_positioning(conn, symbol: str = "ZL") -> pd.DataFrame:
             df = normalize_date_column(df, "trade_date")
 
             logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} COT features")
-            logger.info(f"   Date range: {df['trade_date'].min()} to {df['trade_date'].max()}")
+            logger.info(
+                f"   Date range: {df['trade_date'].min()} to {df['trade_date'].max()}"
+            )
             return df
         else:
             logger.warning(f"   No CFTC COT data found for {symbol}")
@@ -574,27 +605,27 @@ def load_cftc_cits(conn) -> pd.DataFrame:
 
         if len(df) > 0:
             # Change in net position
-            df['cits_net_chg'] = df['cits_net_position'].diff()
+            df["cits_net_chg"] = df["cits_net_position"].diff()
 
             # Long/short ratio
-            df['cits_long_short_ratio'] = np.where(
-                df['cit_short'] > 0,
-                df['cit_long'] / df['cit_short'],
-                1.0
+            df["cits_long_short_ratio"] = np.where(
+                df["cit_short"] > 0, df["cit_long"] / df["cit_short"], 1.0
             )
 
             # Keep only relevant columns
             keep_cols = [
-                'trade_date',
-                'cits_net_position',
-                'cits_pct_oi',
-                'cits_net_chg',
-                'cits_long_short_ratio'
+                "trade_date",
+                "cits_net_position",
+                "cits_pct_oi",
+                "cits_net_chg",
+                "cits_long_short_ratio",
             ]
             df = df[keep_cols]
 
             df = normalize_date_column(df, "trade_date")
-            logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} CITS features")
+            logger.info(
+                f"   Loaded {len(df):,} rows, {len(df.columns)-1} CITS features"
+            )
             return df
         else:
             logger.warning("   No CITS data found for ZL")
@@ -608,6 +639,7 @@ def load_cftc_cits(conn) -> pd.DataFrame:
 # =============================================================================
 # SUPPLY DATA (NEW - 2026-01-22)
 # =============================================================================
+
 
 def load_epa_rin_prices(conn) -> pd.DataFrame:
     """
@@ -649,8 +681,12 @@ def load_epa_rin_prices(conn) -> pd.DataFrame:
         ]
 
         df_wide = normalize_date_column(df_wide, "trade_date")
-        logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} RIN types")
-        logger.info(f"   Date range: {df_wide['trade_date'].min()} to {df_wide['trade_date'].max()}")
+        logger.info(
+            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} RIN types"
+        )
+        logger.info(
+            f"   Date range: {df_wide['trade_date'].min()} to {df_wide['trade_date'].max()}"
+        )
         return df_wide
 
     except Exception as e:
@@ -699,15 +735,28 @@ def load_usda_exports(conn) -> pd.DataFrame:
 
         # Create columns for each commodity
         result_dfs = []
-        for commodity, prefix in [('Soybean Oil', 'usda_zl'), ('Soybeans', 'usda_zs'), ('Soybean Meal', 'usda_zm')]:
-            df_comm = df[df['commodity'] == commodity].copy()
+        for commodity, prefix in [
+            ("Soybean Oil", "usda_zl"),
+            ("Soybeans", "usda_zs"),
+            ("Soybean Meal", "usda_zm"),
+        ]:
+            df_comm = df[df["commodity"] == commodity].copy()
             if len(df_comm) > 0:
-                df_comm = df_comm.rename(columns={
-                    'exports_mt': f'{prefix}_exports',
-                    'net_sales_mt': f'{prefix}_net_sales',
-                    'outstanding_mt': f'{prefix}_outstanding'
-                })
-                df_comm = df_comm[['trade_date', f'{prefix}_exports', f'{prefix}_net_sales', f'{prefix}_outstanding']]
+                df_comm = df_comm.rename(
+                    columns={
+                        "exports_mt": f"{prefix}_exports",
+                        "net_sales_mt": f"{prefix}_net_sales",
+                        "outstanding_mt": f"{prefix}_outstanding",
+                    }
+                )
+                df_comm = df_comm[
+                    [
+                        "trade_date",
+                        f"{prefix}_exports",
+                        f"{prefix}_net_sales",
+                        f"{prefix}_outstanding",
+                    ]
+                ]
                 result_dfs.append(df_comm)
 
         if not result_dfs:
@@ -716,10 +765,12 @@ def load_usda_exports(conn) -> pd.DataFrame:
         # Merge all commodities
         result = result_dfs[0]
         for df_add in result_dfs[1:]:
-            result = result.merge(df_add, on='trade_date', how='outer')
+            result = result.merge(df_add, on="trade_date", how="outer")
 
         result = normalize_date_column(result, "trade_date")
-        logger.info(f"   Loaded {len(result):,} rows, {len(result.columns)-1} export columns")
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(result.columns)-1} export columns"
+        )
         return result
 
     except Exception as e:
@@ -767,22 +818,32 @@ def load_usda_wasde(conn) -> pd.DataFrame:
             return pd.DataFrame()
 
         # Create composite key for pivoting
-        df['col_name'] = 'wasde_' + df['country'].str.lower().str.replace(' ', '_') + '_' + \
-                         df['commodity'].str.lower().str.replace(' ', '_').str.replace('soybean_', 'z') + '_' + \
-                         df['metric']
+        df["col_name"] = (
+            "wasde_"
+            + df["country"].str.lower().str.replace(" ", "_")
+            + "_"
+            + df["commodity"]
+            .str.lower()
+            .str.replace(" ", "_")
+            .str.replace("soybean_", "z")
+            + "_"
+            + df["metric"]
+        )
 
         # Simplify column names
-        df['col_name'] = df['col_name'].str.replace('united_states', 'us')
-        df['col_name'] = df['col_name'].str.replace('soybeans', 'zs')
-        df['col_name'] = df['col_name'].str.replace('oil', 'l')
-        df['col_name'] = df['col_name'].str.replace('meal', 'm')
+        df["col_name"] = df["col_name"].str.replace("united_states", "us")
+        df["col_name"] = df["col_name"].str.replace("soybeans", "zs")
+        df["col_name"] = df["col_name"].str.replace("oil", "l")
+        df["col_name"] = df["col_name"].str.replace("meal", "m")
 
         # Pivot to wide format
-        df_wide = df.pivot(index='trade_date', columns='col_name', values='value')
+        df_wide = df.pivot(index="trade_date", columns="col_name", values="value")
         df_wide = df_wide.reset_index()
 
         df_wide = normalize_date_column(df_wide, "trade_date")
-        logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} WASDE columns")
+        logger.info(
+            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} WASDE columns"
+        )
         return df_wide
 
     except Exception as e:
@@ -820,7 +881,9 @@ def load_news_sentiment(conn) -> pd.DataFrame:
 
         if len(df) > 0:
             df = normalize_date_column(df, "trade_date")
-            logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} news features")
+            logger.info(
+                f"   Loaded {len(df):,} rows, {len(df.columns)-1} news features"
+            )
             return df
         else:
             logger.warning("   No news data found")
@@ -909,6 +972,102 @@ def load_specialist_signals(conn, include_signals: bool = True) -> pd.DataFrame:
         logger.warning(f"   Specialist signals not available: {e}")
         logger.warning("   Run scripts/generate_specialist_signals.py to populate")
         return pd.DataFrame()
+
+
+def validate_specialist_signals_for_core(
+    signals_df: pd.DataFrame,
+    conn,
+) -> Dict[str, Any]:
+    """
+    Task 4.5: Validate specialist signals before Core training integration.
+
+    Checks:
+    1. Coverage: ≥90% daily rows per bucket (last 180 days)
+    2. Signal columns exist in matrix
+    3. No excessive null rates
+    4. Recent signal availability
+
+    Args:
+        signals_df: DataFrame with specialist signals (from load_specialist_signals)
+        conn: Database connection for additional queries
+
+    Returns:
+        Dict with validation results and issues list
+    """
+    from fusion.specialists.base import SPECIALIST_BUCKETS
+
+    issues = []
+    coverage_by_bucket = {}
+
+    if signals_df.empty:
+        issues.append("No specialist signals loaded")
+        return {
+            "valid": False,
+            "issues": issues,
+            "coverage_by_bucket": {},
+        }
+
+    # Get expected trading days (last 180 days)
+    expected_rows_query = """
+    SELECT COUNT(DISTINCT event_date) as n_days
+    FROM mkt.futures_1d
+    WHERE symbol = 'ZL'
+      AND event_date >= CURRENT_DATE - INTERVAL '180 days'
+    """
+    expected_rows = pd.read_sql(expected_rows_query, conn).iloc[0]["n_days"]
+
+    # Check coverage per bucket
+    signal_cols = [
+        c for c in signals_df.columns if c.startswith("sig_") and c.endswith("_1")
+    ]
+
+    for bucket in SPECIALIST_BUCKETS:
+        sig_col = f"sig_{bucket}_1"
+
+        if sig_col not in signals_df.columns:
+            issues.append(f"{bucket}: signal column missing")
+            coverage_by_bucket[bucket] = 0.0
+            continue
+
+        # Count non-null signals in recent period
+        cutoff_date = date.today() - timedelta(days=180)
+        recent_signals = signals_df[
+            (pd.to_datetime(signals_df["trade_date"]).dt.date >= cutoff_date)
+            & signals_df[sig_col].notna()
+        ]
+        n_signals = len(recent_signals)
+        coverage = n_signals / expected_rows if expected_rows > 0 else 0.0
+
+        coverage_by_bucket[bucket] = coverage
+
+        if coverage < 0.90:
+            issues.append(
+                f"{bucket}: coverage {coverage*100:.1f}% < 90% ({n_signals}/{expected_rows} days)"
+            )
+
+    # Check for missing buckets
+    present_buckets = {col.replace("sig_", "").replace("_1", "") for col in signal_cols}
+    missing_buckets = set(SPECIALIST_BUCKETS) - present_buckets
+    if missing_buckets:
+        issues.append(f"Missing buckets: {', '.join(sorted(missing_buckets))}")
+
+    # Check null rates in recent data
+    recent_cutoff = date.today() - timedelta(days=30)
+    recent_df = signals_df[
+        pd.to_datetime(signals_df["trade_date"]).dt.date >= recent_cutoff
+    ]
+    if len(recent_df) > 0:
+        for sig_col in signal_cols:
+            null_rate = recent_df[sig_col].isna().mean()
+            if null_rate > 0.50:  # More than 50% null in last 30 days
+                bucket = sig_col.replace("sig_", "").replace("_1", "")
+                issues.append(f"{bucket}: {null_rate*100:.1f}% null in last 30 days")
+
+    return {
+        "valid": len(issues) == 0,
+        "issues": issues,
+        "coverage_by_bucket": coverage_by_bucket,
+    }
 
 
 def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -1098,7 +1257,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
     logger.info(
         f"Target features: {FMC.TARGET_FEATURES} (guardrails: {FMC.MIN_FEATURES}-{FMC.MAX_FEATURES})"
     )
-    logger.info("Sources: elite, options, FRED, FX, weather, CFTC, RINs, exports, WASDE")
+    logger.info(
+        "Sources: elite, options, FRED, FX, weather, CFTC, RINs, exports, WASDE"
+    )
     logger.info("=" * 70)
 
     try:
@@ -1124,13 +1285,19 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         # FUTURES AS BASE - ALL DATA
         df = df_futures.copy()
         df = normalize_date_column(df, "trade_date")
-        logger.info(f"Base: {len(df):,} rows from futures ({df['trade_date'].min()} to {df['trade_date'].max()})")
+        logger.info(
+            f"Base: {len(df):,} rows from futures ({df['trade_date'].min()} to {df['trade_date'].max()})"
+        )
 
         # Merge elite indicators
         if len(df_elite) > 0:
             logger.info("Merging elite indicators...")
             df_elite = normalize_date_column(df_elite, "trade_date")
-            elite_cols = [c for c in df_elite.columns if c not in ['symbol', 'id', 'open', 'high', 'low', 'close', 'volume']]
+            elite_cols = [
+                c
+                for c in df_elite.columns
+                if c not in ["symbol", "id", "open", "high", "low", "close", "volume"]
+            ]
             before_cols = len(df.columns)
             df = df.merge(df_elite[elite_cols], on="trade_date", how="left")
             logger.info(f"   Added {len(df.columns) - before_cols} elite columns")
@@ -1147,14 +1314,14 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             logger.info(f"   FRED matched on {non_null:,} / {len(df):,} rows")
 
             # Map FRED series to cleaner substitute oil column names
-            if 'fred_proilusdm' in df.columns:
-                df['rapeseed_close'] = df['fred_proilusdm']
+            if "fred_proilusdm" in df.columns:
+                df["rapeseed_close"] = df["fred_proilusdm"]
                 logger.info("   Mapped fred_proilusdm → rapeseed_close")
-            if 'fred_psunousdm' in df.columns:
-                df['sunflower_close'] = df['fred_psunousdm']
+            if "fred_psunousdm" in df.columns:
+                df["sunflower_close"] = df["fred_psunousdm"]
                 logger.info("   Mapped fred_psunousdm → sunflower_close")
-            if 'fred_dexchus' in df.columns and 'usd_cny' not in df.columns:
-                df['usd_cny'] = df['fred_dexchus']
+            if "fred_dexchus" in df.columns and "usd_cny" not in df.columns:
+                df["usd_cny"] = df["fred_dexchus"]
                 logger.info("   Mapped fred_dexchus → usd_cny")
 
         # Merge FX rates
@@ -1233,15 +1400,28 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             logger.info(f"   WASDE matched on {non_null:,} / {len(df):,} rows")
 
         # Map WASDE columns to strict specialist expectations (if present)
-        if "wasde_us_zs_crush" in df.columns and "wasde_soybeans_crush" not in df.columns:
+        if (
+            "wasde_us_zs_crush" in df.columns
+            and "wasde_soybeans_crush" not in df.columns
+        ):
             df["wasde_soybeans_crush"] = df["wasde_us_zs_crush"]
             logger.info("   Mapped wasde_us_zs_crush → wasde_soybeans_crush")
-        if "wasde_us_zl_production" in df.columns and "wasde_soybean_oil_production" not in df.columns:
+        if (
+            "wasde_us_zl_production" in df.columns
+            and "wasde_soybean_oil_production" not in df.columns
+        ):
             df["wasde_soybean_oil_production"] = df["wasde_us_zl_production"]
-            logger.info("   Mapped wasde_us_zl_production → wasde_soybean_oil_production")
-        if "wasde_us_zl_ending_stocks" in df.columns and "wasde_soybean_oil_ending_stocks" not in df.columns:
+            logger.info(
+                "   Mapped wasde_us_zl_production → wasde_soybean_oil_production"
+            )
+        if (
+            "wasde_us_zl_ending_stocks" in df.columns
+            and "wasde_soybean_oil_ending_stocks" not in df.columns
+        ):
             df["wasde_soybean_oil_ending_stocks"] = df["wasde_us_zl_ending_stocks"]
-            logger.info("   Mapped wasde_us_zl_ending_stocks → wasde_soybean_oil_ending_stocks")
+            logger.info(
+                "   Mapped wasde_us_zl_ending_stocks → wasde_soybean_oil_ending_stocks"
+            )
 
         # Merge China PMI (MONTHLY - use asof merge)
         if len(df_china_pmi) > 0:
@@ -1268,6 +1448,17 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         df_signals = load_specialist_signals(conn, include_signals=True)
         if len(df_signals) > 0:
             logger.info("Merging specialist signals...")
+
+            # Task 4.5: Validate specialist signals before Core integration
+            validation_result = validate_specialist_signals_for_core(df_signals, conn)
+            if not validation_result["valid"]:
+                logger.warning("⚠️  Specialist signal quality issues detected:")
+                for issue in validation_result["issues"]:
+                    logger.warning(f"   - {issue}")
+                logger.warning(
+                    "   Proceeding with integration, but Core training may be degraded"
+                )
+
             df = df.merge(df_signals, on="trade_date", how="left")
             signal_cols = [c for c in df.columns if c.startswith("sig_")]
             logger.info(f"   Added {len(signal_cols)} specialist signal columns")
@@ -1285,12 +1476,16 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         # AutoGluon's DirectTabular handles missing values natively via gradient boosting
         # This allows series with different start dates to be used without being dropped
         # Log coverage stats for visibility instead of filtering
-        logger.info("Logging feature coverage (no filtering - AutoGluon handles nulls)...")
+        logger.info(
+            "Logging feature coverage (no filtering - AutoGluon handles nulls)..."
+        )
         coverage = df.notna().mean()
         feature_cols = [c for c in df.columns if c not in ["trade_date", "symbol"]]
         low_coverage = [(c, coverage[c]) for c in feature_cols if coverage[c] < 0.7]
         if low_coverage:
-            logger.info(f"   {len(low_coverage)} features with <70% coverage (kept for AutoGluon):")
+            logger.info(
+                f"   {len(low_coverage)} features with <70% coverage (kept for AutoGluon):"
+            )
             for col, cov in sorted(low_coverage, key=lambda x: x[1])[:10]:
                 logger.info(f"      {col}: {cov*100:.1f}%")
             if len(low_coverage) > 10:

@@ -12,7 +12,7 @@ PATCHED 2026-01-23: Implemented real Ridge regression model
 """
 
 from datetime import date
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -38,6 +38,7 @@ MODELS_DIR = Path(__file__).parent.parent.parent.parent / "models" / "specialist
 try:
     from statsmodels.tsa.stattools import coint, adfuller
     from statsmodels.regression.linear_model import OLS
+
     STATSMODELS_AVAILABLE = True
 except ImportError:
     STATSMODELS_AVAILABLE = False
@@ -47,6 +48,7 @@ except ImportError:
 # =============================================================================
 # ML MODEL MIXIN FOR PALM (Ridge-specific)
 # =============================================================================
+
 
 class PalmMLMixin:
     """
@@ -66,6 +68,8 @@ class PalmMLMixin:
         self.train_frequency_days: int = 21  # Retrain monthly
         self.min_train_samples: int = 126  # ~6 months minimum
         self.target_horizon: int = 21  # Predict 21-day forward return
+        self.missingness_threshold: float = 0.30
+        self.degraded_confidence: float = 0.20
 
     def _get_model_path(self) -> Path:
         """Get path for model persistence."""
@@ -161,7 +165,9 @@ class PalmMLMixin:
         y_clean = y[valid_mask]
 
         if len(X_clean) < self.min_train_samples:
-            logger.warning(f"   Insufficient training data: {len(X_clean)} < {self.min_train_samples}")
+            logger.warning(
+                f"   Insufficient training data: {len(X_clean)} < {self.min_train_samples}"
+            )
             return False
 
         # Scale features
@@ -174,7 +180,7 @@ class PalmMLMixin:
         self.last_train_date = current_date
 
         # Log coefficients (Ridge doesn't have feature_importances_, use coef_)
-        if hasattr(self.model, 'coef_'):
+        if hasattr(self.model, "coef_"):
             coefs = dict(zip(feature_names, self.model.coef_))
             top_coefs = sorted(coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
             logger.info(f"   Top coefficients: {top_coefs}")
@@ -182,23 +188,69 @@ class PalmMLMixin:
         # Save model
         self._save_model()
 
-        logger.info(f"   Trained on {len(X_clean)} samples, {len(feature_names)} features")
+        logger.info(
+            f"   Trained on {len(X_clean)} samples, {len(feature_names)} features"
+        )
         return True
 
-    def _predict(self, features: pd.DataFrame) -> np.ndarray:
-        """Generate predictions from trained model."""
+    def _predict(
+        self, features: pd.DataFrame
+    ) -> Tuple[Optional[np.ndarray], Dict[str, Any]]:
+        """Generate predictions from trained model with missingness policy."""
         if self.model is None:
             raise ValueError("Model not trained")
 
         # Ensure feature order matches training
         X = features[self.feature_names] if self.feature_names else features
-        X_scaled = self.scaler.transform(X.fillna(0))
-        return self.model.predict(X_scaled)
+        if X.empty:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": 1.0,
+                "missing_features": [],
+                "abstained": True,
+                "reason": "empty_features",
+            }
+
+        latest = X.iloc[-1]
+        nan_pct_latest = float(latest.isna().mean())
+        missing_features = latest[latest.isna()].index.tolist()
+
+        if nan_pct_latest > self.missingness_threshold:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": nan_pct_latest,
+                "missing_features": missing_features,
+                "abstained": True,
+                "reason": "nan_pct_threshold",
+            }
+
+        if nan_pct_latest > 0:
+            return None, {
+                "degraded_level": 2,
+                "source_tag": "insufficient_features",
+                "conf": self.degraded_confidence,
+                "nan_pct_latest": nan_pct_latest,
+                "missing_features": missing_features,
+                "abstained": True,
+                "reason": "missing_features",
+            }
+
+        X_scaled = self.scaler.transform(X)
+        return self.model.predict(X_scaled), {
+            "nan_pct_latest": nan_pct_latest,
+            "missing_features": missing_features,
+            "abstained": False,
+        }
 
 
 # =============================================================================
 # PALM SIGNAL GENERATOR - REAL RIDGE REGRESSION
 # =============================================================================
+
 
 class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
     """
@@ -233,23 +285,23 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             primary_features=[
                 "close",
                 # PALM COMPLEX - Full cointegration system
-                "cpo_close",        # Crude Palm Oil (Bursa Malaysia FCPO)
-                "fred_dexmaus",     # MYR/USD (FX conversion for spread)
+                "cpo_close",  # Crude Palm Oil (Bursa Malaysia FCPO)
+                "fred_dexmaus",  # MYR/USD (FX conversion for spread)
                 # PRODUCTION REGION FX
-                "fred_dexinus",     # IDR/USD (Indonesia - #1 producer)
+                "fred_dexinus",  # IDR/USD (Indonesia - #1 producer)
             ],
             secondary_features=[
                 # Alternative names
-                "palm_oil_close",   # Alternative CPO column
-                "myr_usd",          # Alternative MYR column
+                "palm_oil_close",  # Alternative CPO column
+                "myr_usd",  # Alternative MYR column
                 # Extended palm complex
-                "pko_close",        # Palm kernel oil
+                "pko_close",  # Palm kernel oil
                 # Indonesian production proxies
                 "indo_palm_production",
                 # Weather/seasonal
-                "el_nino_index",    # El Nino (production impact)
+                "el_nino_index",  # El Nino (production impact)
                 # Cross-commodity
-                "cpo_zl_spread",    # Pre-computed spread
+                "cpo_zl_spread",  # Pre-computed spread
             ],
             lookback_days=504,  # 2 years for cointegration stability
             min_data_points=252,
@@ -297,7 +349,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
 
         # Fallback: check for any column with 'myr' in name
         for col in data.columns:
-            if 'myr' in col.lower() and data[col].notna().sum() > 30:
+            if "myr" in col.lower() and data[col].notna().sum() > 30:
                 logger.info(f"   Using MYR FX column as feature: {col}")
                 return data[col]
 
@@ -370,7 +422,9 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             # 1 tonne = 2204.6 lbs
             cpo_cents_lb = (cpo / 2204.6) * 100
 
-            logger.debug(f"   CPO conversion: {cpo.iloc[-1]:.2f} USD/tonne → {cpo_cents_lb.iloc[-1]:.2f} cents/lb")
+            logger.debug(
+                f"   CPO conversion: {cpo.iloc[-1]:.2f} USD/tonne → {cpo_cents_lb.iloc[-1]:.2f} cents/lb"
+            )
 
             return zl - cpo_cents_lb
 
@@ -393,7 +447,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             half_life = pd.Series(np.nan, index=spread.index)
 
             for i in range(window, len(spread)):
-                window_spread = spread.iloc[i - window:i].dropna()
+                window_spread = spread.iloc[i - window : i].dropna()
                 if len(window_spread) < 42:
                     continue
 
@@ -496,12 +550,16 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         # === Core ECM Features ===
 
         # 1. Spread z-score (current deviation from equilibrium)
-        features["spread_zscore"] = self.compute_zscore(spread, window=252, min_periods=126)
+        features["spread_zscore"] = self.compute_zscore(
+            spread, window=252, min_periods=126
+        )
 
         # 2. ECM residual (if cointegrated)
         if hedge_ratio is not None:
             ecm_resid = self._compute_ecm_residual(zl, cpo, hedge_ratio)
-            features["ecm_residual_zscore"] = self.compute_zscore(ecm_resid, window=252, min_periods=126)
+            features["ecm_residual_zscore"] = self.compute_zscore(
+                ecm_resid, window=252, min_periods=126
+            )
 
         # 3. Mean reversion speed
         reversion_speed = self._compute_mean_reversion_speed(spread)
@@ -540,12 +598,19 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         # === FX Features (if available) ===
 
         if myr_usd is not None:
-            features["myr_zscore"] = self.compute_zscore(myr_usd, window=126, min_periods=42)
+            features["myr_zscore"] = self.compute_zscore(
+                myr_usd, window=126, min_periods=42
+            )
             features["myr_mom_21d"] = myr_usd.pct_change(21, fill_method=None)
 
         # ADD ALL ELITE INDICATORS TO FEATURES
         for col in data.columns:
-            if col.startswith("zl_") or col.startswith("cpo_") or col.startswith("myr_") or col.startswith("idr_"):
+            if (
+                col.startswith("zl_")
+                or col.startswith("cpo_")
+                or col.startswith("myr_")
+                or col.startswith("idr_")
+            ):
                 if col not in features:
                     features[col] = data[col]
 
@@ -593,7 +658,9 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             logger.warning("PalmSignalGenerator: No valid data")
             return signals
 
-        current_date = last_valid_idx.date() if hasattr(last_valid_idx, 'date') else last_valid_idx
+        current_date = (
+            last_valid_idx.date() if hasattr(last_valid_idx, "date") else last_valid_idx
+        )
 
         # Check if retraining needed
         if self._should_retrain(current_date):
@@ -610,12 +677,48 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
                 continue
 
             row_features = X_full.loc[[idx]]
-            if row_features.isna().any().any():
-                continue
 
             try:
+                prediction, pred_meta = self._predict(row_features)
+                if prediction is None:
+                    degraded_conf = float(
+                        pred_meta.get("conf", self.degraded_confidence)
+                    )
+                    logger.warning(
+                        f"   Palm abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
+                    )
+                    signals.append(
+                        SignalOutput(
+                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            bucket="palm",
+                            signal_1=0.0,
+                            signal_2=None,
+                            confidence=degraded_conf,
+                            model_type="ridge",
+                            max_input_age_days=None,
+                            source_tag=pred_meta.get(
+                                "source_tag", "insufficient_features"
+                            ),
+                            degraded_level=pred_meta.get("degraded_level", 2),
+                            conf=degraded_conf,
+                            data_quality={
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                            metadata={
+                                "run_hash": run_hash,
+                                "abstained": True,
+                                "nan_pct_latest": pred_meta.get("nan_pct_latest"),
+                                "missing_features": pred_meta.get("missing_features"),
+                                "reason": pred_meta.get("reason"),
+                            },
+                        )
+                    )
+                    continue
+
                 # REAL MODEL PREDICTION
-                prediction = self._predict(row_features)[0]
+                prediction = prediction[0]
 
                 # Confidence based on cointegration and data quality
                 base_confidence = 0.5 + (0.3 if is_coint else 0.0)
@@ -625,33 +728,49 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
                     base_confidence += 0.05
 
                 # Boost for strong reversion speed
-                speed = reversion_speed.loc[idx] if not pd.isna(reversion_speed.loc[idx]) else 1.0
+                speed = (
+                    reversion_speed.loc[idx]
+                    if not pd.isna(reversion_speed.loc[idx])
+                    else 1.0
+                )
                 base_confidence += 0.05 * min(speed, 2)
 
                 confidence = min(base_confidence, 0.95)
 
-                signals.append(SignalOutput(
-                    as_of_date=idx.date() if hasattr(idx, 'date') else idx,
-                    bucket="palm",
-                    signal_1=float(prediction),  # MODEL PREDICTION
-                    signal_2=float(speed) if not pd.isna(speed) else None,  # Reversion speed
-                    confidence=float(confidence),
-                    model_type="ridge",
-                    metadata={
-                        "spread_zscore": float(spread_zscore.loc[idx]) if not pd.isna(spread_zscore.loc[idx]) else None,
-                        "reversion_speed": float(speed) if not pd.isna(speed) else None,
-                        "is_cointegrated": is_coint,
-                        "coint_pvalue": float(coint_pvalue),
-                        "hedge_ratio": float(hedge_ratio) if hedge_ratio else None,
-                        "has_real_fx": myr_usd is not None,
-                        "model_trained": str(self.last_train_date),
-                        "n_features": len(self.feature_names),
-                        "run_hash": run_hash,
-                    },
-                ))
+                signals.append(
+                    SignalOutput(
+                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        bucket="palm",
+                        signal_1=float(prediction),  # MODEL PREDICTION
+                        signal_2=(
+                            float(speed) if not pd.isna(speed) else None
+                        ),  # Reversion speed
+                        confidence=float(confidence),
+                        model_type="ridge",
+                        metadata={
+                            "spread_zscore": (
+                                float(spread_zscore.loc[idx])
+                                if not pd.isna(spread_zscore.loc[idx])
+                                else None
+                            ),
+                            "reversion_speed": (
+                                float(speed) if not pd.isna(speed) else None
+                            ),
+                            "is_cointegrated": is_coint,
+                            "coint_pvalue": float(coint_pvalue),
+                            "hedge_ratio": float(hedge_ratio) if hedge_ratio else None,
+                            "has_real_fx": myr_usd is not None,
+                            "model_trained": str(self.last_train_date),
+                            "n_features": len(self.feature_names),
+                            "run_hash": run_hash,
+                        },
+                    )
+                )
             except Exception as e:
                 logger.debug(f"   Skipping {idx}: {e}")
                 continue
 
-        logger.info(f"PalmSignalGenerator: Generated {len(signals)} signals (Ridge model, coint: {is_coint})")
+        logger.info(
+            f"PalmSignalGenerator: Generated {len(signals)} signals (Ridge model, coint: {is_coint})"
+        )
         return signals

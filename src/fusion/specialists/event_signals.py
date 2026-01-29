@@ -151,12 +151,13 @@ class TariffSignalGenerator(BaseSignalGenerator):
         - At 0 days: ~0.95 (very high risk)
 
         Returns:
-            (deadline_risk, deadline_vol_multiplier, min_days_to_deadline, deadline_names)
+            (deadline_risk, deadline_vol_multiplier, min_days_to_deadline, deadline_names, nearest_deadline_dates)
         """
         deadline_risk = pd.Series(0.0, index=data.index)
         vol_multiplier = pd.Series(1.0, index=data.index)
         min_days = pd.Series(365, index=data.index)
         deadline_names = {}
+        nearest_deadline_dates = {}  # NEW: Track actual deadline dates
 
         if HAS_TARIFF_DEADLINES and TariffDeadlineFeatureEngine is not None:
             try:
@@ -170,6 +171,11 @@ class TariffSignalGenerator(BaseSignalGenerator):
                     vol_multiplier.loc[idx] = features.deadline_vol_multiplier
                     min_days.loc[idx] = features.min_days_to_any_deadline
                     deadline_names[idx] = features.active_deadline_names
+                    # Track nearest deadline date if available
+                    if hasattr(features, 'nearest_deadline_date'):
+                        nearest_deadline_dates[idx] = features.nearest_deadline_date
+                    else:
+                        nearest_deadline_dates[idx] = None
 
                 logger.info(f"   Loaded tariff deadline features for {len(data)} dates")
             except Exception as e:
@@ -186,6 +192,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
                 as_of_date = idx.date() if hasattr(idx, 'date') else idx
                 min_days_val = 365
                 active_names = []
+                nearest_date = None  # Track nearest deadline date
 
                 for deadline_date, name in DEADLINES:
                     days_to_expiry = (deadline_date - as_of_date).days
@@ -193,6 +200,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
                         active_names.append(name)
                         if days_to_expiry < min_days_val:
                             min_days_val = days_to_expiry
+                            nearest_date = deadline_date  # Track the date
 
                 # Sigmoid risk calculation
                 if min_days_val < 365:
@@ -205,8 +213,9 @@ class TariffSignalGenerator(BaseSignalGenerator):
                 vol_multiplier.loc[idx] = 1.0 + (0.5 * risk)
                 min_days.loc[idx] = min_days_val
                 deadline_names[idx] = active_names
+                nearest_deadline_dates[idx] = nearest_date  # Store the date
 
-        return deadline_risk, vol_multiplier, min_days, deadline_names
+        return deadline_risk, vol_multiplier, min_days, deadline_names, nearest_deadline_dates
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
@@ -281,7 +290,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
         tariff_regime = self._compute_tariff_regime(data)
 
         # Deadline risk (NEW - integrates tariff_deadlines.py)
-        deadline_risk, deadline_vol_mult, min_days_to_deadline, deadline_names = self._compute_deadline_risk(data)
+        deadline_risk, deadline_vol_mult, min_days_to_deadline, deadline_names, nearest_deadline_dates = self._compute_deadline_risk(data)
 
         # Combine EPU-based risk with deadline risk
         # When deadline is approaching, amplify the tariff risk signal
@@ -313,6 +322,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
             dl_vol = deadline_vol_mult.loc[idx] if not pd.isna(deadline_vol_mult.loc[idx]) else 1.0
             dl_days = min_days_to_deadline.loc[idx] if not pd.isna(min_days_to_deadline.loc[idx]) else 365
             dl_names = deadline_names.get(idx, [])
+            dl_nearest_date = nearest_deadline_dates.get(idx)  # May be None if no deadline
 
             signals.append(SignalOutput(
                 as_of_date=idx.date() if hasattr(idx, 'date') else idx,
@@ -326,6 +336,11 @@ class TariffSignalGenerator(BaseSignalGenerator):
                     "tariff_regime": int(regime),
                     "is_spike": spike > 0,
                     "epu_risk": float(tariff_risk.loc[idx]),  # Pure EPU component
+                    # Deadline proximity tracking (Task 4.3)
+                    "nearest_deadline": dl_nearest_date.isoformat() if dl_nearest_date else None,
+                    "days_to_deadline": int(dl_days),
+                    "deadline_risk_factor": float(dl_risk),
+                    # Original fields (kept for backwards compatibility)
                     "deadline_risk_score": float(dl_risk),
                     "deadline_vol_multiplier": float(dl_vol),
                     "min_days_to_deadline": int(dl_days),
@@ -548,7 +563,9 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
             base_confidence = 0.75
         else:
             # Fallback to biodiesel margin proxy
-            logger.info("   Using margin proxy (no RIN/LCFS data)")
+            # WARNING: This is a fundamentally different signal than RIN-based policy pressure
+            logger.warning("Biofuel: No RIN or LCFS data available - falling back to margin_proxy")
+            logger.warning("   margin_proxy uses ZL/HO ratio, NOT policy incentives")
             margin_proxy = self._compute_biodiesel_margin_proxy(data)
             policy_pressure = self.compute_zscore(margin_proxy, window=126, min_periods=42)
             rin_momentum = None
@@ -579,6 +596,9 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
                     if recent_mask.any() and rin_series[recent_mask].notna().sum() > 0:
                         confidence = min(confidence + 0.05, 0.95)
 
+            # Determine if signal is degraded (using fallback proxy instead of real policy data)
+            is_degraded = source == "margin_proxy"
+
             signals.append(SignalOutput(
                 as_of_date=idx.date() if hasattr(idx, 'date') else idx,
                 bucket="biofuel",
@@ -587,7 +607,11 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
                 confidence=float(confidence),
                 model_type="nlp_ema",
                 metadata={
-                    "source": source,
+                    # Signal source tracking (prominent placement)
+                    "signal_source": source,  # "rin_d4", "rin_d6", "lcfs", or "margin_proxy"
+                    "signal_degraded": is_degraded,  # True if using margin_proxy fallback
+                    # Original fields
+                    "source": source,  # Kept for backwards compatibility
                     "raw_zscore": float(policy_pressure.loc[idx]) if not pd.isna(policy_pressure.loc[idx]) else None,
                     "rin_momentum": sig2,
                     "run_hash": run_hash,
@@ -826,6 +850,25 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         # China exposure proxy
         china_exposure = self._compute_china_exposure_proxy(data)
 
+        # =====================================================================
+        # COMPUTE INDIVIDUAL EVENT COMPONENT Z-SCORES (Task 4.4)
+        # =====================================================================
+        # FXI z-score (China ETF - direct China exposure)
+        fxi_zscore = pd.Series(np.nan, index=data.index)
+        if "fxi_close" in data.columns and data["fxi_close"].notna().sum() > 30:
+            fxi_ret = data["fxi_close"].pct_change(21, fill_method=None)
+            fxi_zscore = self.compute_zscore(fxi_ret, window=126, min_periods=42)
+
+        # VIX z-score (fear gauge)
+        vix_zscore = pd.Series(np.nan, index=data.index)
+        if "fred_vixcls" in data.columns and data["fred_vixcls"].notna().sum() > 30:
+            vix_zscore = self.compute_zscore(data["fred_vixcls"], window=252, min_periods=126)
+
+        # EPU z-score (trade policy uncertainty)
+        epu_zscore = pd.Series(np.nan, index=data.index)
+        if "fred_eputrade" in data.columns and data["fred_eputrade"].notna().sum() > 30:
+            epu_zscore = self.compute_zscore(data["fred_eputrade"], window=252, min_periods=126)
+
         # EPU decomposition (NEW)
         total_zscore, trade_share, trade_zscore = self._compute_epu_decomposition(data)
         has_decomposition = not trade_share.isna().all()
@@ -878,6 +921,9 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
 
             sig2 = signal_2_series.loc[idx] if not pd.isna(signal_2_series.loc[idx]) else 0.0
 
+            # Task 4.4: Event detection flag (threshold = 1.5 for significant events)
+            event_detected = float(event_intensity.loc[idx]) > 1.5
+
             signals.append(SignalOutput(
                 as_of_date=idx.date() if hasattr(idx, 'date') else idx,
                 bucket="trump_effect",
@@ -890,6 +936,13 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                     "china_exposure": float(china_exposure.loc[idx]) if not pd.isna(china_exposure.loc[idx]) else None,
                     "is_trump_regime": is_trump,
                     "has_epu_decomposition": has_decomposition,
+                    # Task 4.4: Event detection and component z-scores
+                    "event_detected": event_detected,
+                    "event_components": {
+                        "fxi_zscore": float(fxi_zscore.loc[idx]) if not pd.isna(fxi_zscore.loc[idx]) else None,
+                        "vix_zscore": float(vix_zscore.loc[idx]) if not pd.isna(vix_zscore.loc[idx]) else None,
+                        "epu_zscore": float(epu_zscore.loc[idx]) if not pd.isna(epu_zscore.loc[idx]) else None,
+                    },
                     "run_hash": run_hash,
                 },
             ))

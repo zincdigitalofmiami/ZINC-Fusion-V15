@@ -36,8 +36,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -50,9 +49,17 @@ load_dotenv(PROJECT_ROOT / ".env")
 # =============================================================================
 
 SPECIALISTS = [
-    "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility",
-    "substitutes", "trump_effect",
+    "crush",
+    "china",
+    "fx",
+    "fed",
+    "tariff",
+    "energy",
+    "biofuel",
+    "palm",
+    "volatility",
+    "substitutes",
+    "trump_effect",
 ]
 
 
@@ -60,9 +67,11 @@ SPECIALISTS = [
 # DATABASE CONNECTION
 # =============================================================================
 
+
 def get_connection():
     """Get database connection from DATABASE_URL."""
     import psycopg2
+
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL not found in environment")
@@ -72,6 +81,7 @@ def get_connection():
 # =============================================================================
 # SIGNAL GENERATION
 # =============================================================================
+
 
 def generate_signals_for_bucket(
     bucket: str,
@@ -94,8 +104,10 @@ def generate_signals_for_bucket(
         # LOAD THIS SPECIALIST'S OWN DATA
         logger.info(f"   Loading {bucket}-specific data...")
         specialist_data = load_specialist_data(bucket, start_date, end_date)
-        logger.info(f"   {bucket} data: {len(specialist_data)} rows, {len(specialist_data.columns)} columns")
-        
+        logger.info(
+            f"   {bucket} data: {len(specialist_data)} rows, {len(specialist_data.columns)} columns"
+        )
+
         # Get the generator and run
         generator = get_generator(bucket)
         signals = generator.generate(specialist_data, start_date, end_date)
@@ -112,6 +124,7 @@ def generate_signals_for_bucket(
     except Exception as e:
         logger.error(f"Error generating {bucket} signals: {e}")
         import traceback
+
         logger.error(traceback.format_exc())
         if strict_mode:
             raise
@@ -135,7 +148,9 @@ def generate_all_signals(
 
     for bucket in buckets:
         logger.info(f"Generating signals for {bucket}...")
-        signals = generate_signals_for_bucket(bucket, start_date, end_date, strict_mode=strict_mode)
+        signals = generate_signals_for_bucket(
+            bucket, start_date, end_date, strict_mode=strict_mode
+        )
         all_signals[bucket] = signals
         logger.info(f"  {bucket}: {len(signals)} signals generated")
 
@@ -145,6 +160,7 @@ def generate_all_signals(
 # =============================================================================
 # DATABASE WRITING
 # =============================================================================
+
 
 def write_signals_to_db(
     conn,
@@ -159,13 +175,14 @@ def write_signals_to_db(
 
     Returns number of signals written.
     """
-    from psycopg2.extras import execute_values
+    from psycopg2.extras import execute_values, Json
 
     total_written = 0
 
     upsert_query = """
     INSERT INTO training.specialist_signals_1d
-        (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash)
+        (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash,
+         max_input_age_days, source_tag, degraded_level, conf, data_quality)
     VALUES %s
     ON CONFLICT (as_of_date, bucket)
     DO UPDATE SET
@@ -174,6 +191,11 @@ def write_signals_to_db(
         confidence = EXCLUDED.confidence,
         model_type = EXCLUDED.model_type,
         run_hash = EXCLUDED.run_hash,
+        max_input_age_days = EXCLUDED.max_input_age_days,
+        source_tag = EXCLUDED.source_tag,
+        degraded_level = EXCLUDED.degraded_level,
+        conf = EXCLUDED.conf,
+        data_quality = EXCLUDED.data_quality,
         created_at = NOW()
     """
 
@@ -191,6 +213,15 @@ def write_signals_to_db(
                 sig.get("confidence"),
                 sig["model_type"],
                 run_hash,
+                sig.get("max_input_age_days"),
+                sig.get("source_tag"),
+                sig.get("degraded_level"),
+                sig.get("conf"),
+                (
+                    Json(sig.get("data_quality"))
+                    if sig.get("data_quality") is not None
+                    else None
+                ),
             )
             for sig in bucket_signals
         ]
@@ -214,6 +245,27 @@ def write_signals_to_db(
 # =============================================================================
 # MAIN
 # =============================================================================
+
+
+def generate_run_report(signals: Dict[str, List[Dict]], run_hash: str) -> Dict:
+    """Task 4.6: Generate run report for specialist signal generation."""
+    import numpy as np
+
+    report = {
+        "run_hash": run_hash,
+        "timestamp": datetime.now().isoformat(),
+        "buckets_processed": list(signals.keys()),
+        "buckets_failed": [
+            b for b in SPECIALISTS if b not in signals or len(signals.get(b, [])) == 0
+        ],
+        "total_signals": sum(len(s) for s in signals.values()),
+        "coverage_by_bucket": {b: len(s) for b, s in signals.items()},
+    }
+    logger.info(
+        f"Run report: {report['total_signals']} signals across {len(report['buckets_processed'])} buckets"
+    )
+    return report
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -283,7 +335,9 @@ def main():
 
     try:
         # Generate signals - EACH specialist loads its own data
-        signals = generate_all_signals(buckets, start_date, end_date, strict_mode=strict_mode)
+        signals = generate_all_signals(
+            buckets, start_date, end_date, strict_mode=strict_mode
+        )
 
         # Write to database
         total = sum(len(sigs) for sigs in signals.values())
