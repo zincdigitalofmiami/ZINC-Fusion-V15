@@ -6,8 +6,10 @@ import {
     NumericAxis,
     FastCandlestickRenderableSeries,
     FastBandRenderableSeries,
+    FastLineRenderableSeries,
     OhlcDataSeries,
     XyyDataSeries,
+    XyDataSeries,
     EAxisAlignment,
     EAutoRange,
     NumberRange,
@@ -15,6 +17,7 @@ import {
     ZoomPanModifier,
     RolloverModifier,
     CursorModifier,
+    NumericLabelProvider,
 } from 'scichart'
 
 interface PriceData {
@@ -24,6 +27,13 @@ interface PriceData {
     low: number
     close: number
     volume: number
+}
+
+interface ForecastPoint {
+    horizon_days: number
+    price_p30: number | null
+    price_p50: number | null
+    price_p70: number | null
 }
 
 // Custom dark theme for quant look
@@ -50,6 +60,7 @@ export function ZLCandlestickChart({
     const chartRef = useRef<HTMLDivElement>(null)
     const sciChartSurfaceRef = useRef<SciChartSurface | null>(null)
     const [priceData, setPriceData] = useState<PriceData[]>([])
+    const [forecastData, setForecastData] = useState<ForecastPoint[]>([])
     const [lastPrice, setLastPrice] = useState<number | null>(null)
     const [priceChange, setPriceChange] = useState<number>(0)
     const [volatility, setVolatility] = useState<string>('--')
@@ -57,13 +68,14 @@ export function ZLCandlestickChart({
     const [lowPrice, setLowPrice] = useState<number | null>(null)
     const [isLive, setIsLive] = useState<boolean>(false)
     const [lastUpdate, setLastUpdate] = useState<string>('')
+    const [hasForecast, setHasForecast] = useState<boolean>(false)
     const ohlcDataRef = useRef<OhlcDataSeries | null>(null)
 
     // Fetch historical data (daily bars)
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/zl/price-1d?days=365')
+                const res = await fetch('/api/zl/price-1d?days=240') // ~8 months like TradingView screenshot
                 if (!res.ok) throw new Error('Failed to fetch')
                 const json = await res.json()
                 if (json.data && json.data.length > 0) {
@@ -106,8 +118,34 @@ export function ZLCandlestickChart({
             }
         }
         fetchData()
-        // Refresh historical data every 15 minutes
         const interval = setInterval(fetchData, 900000)
+        return () => clearInterval(interval)
+    }, [])
+
+    // Fetch forecast data
+    useEffect(() => {
+        const fetchForecast = async () => {
+            try {
+                const res = await fetch('/api/zl/forecast')
+                if (!res.ok) {
+                    setHasForecast(false)
+                    return
+                }
+                const json = await res.json()
+                if (json.forecasts && json.forecasts.length > 0) {
+                    setForecastData(json.forecasts)
+                    setHasForecast(true)
+                } else {
+                    setHasForecast(false)
+                }
+            } catch (err) {
+                console.error('Forecast fetch error:', err)
+                setHasForecast(false)
+            }
+        }
+        fetchForecast()
+        // Refresh forecast every 5 minutes
+        const interval = setInterval(fetchForecast, 300000)
         return () => clearInterval(interval)
     }, [])
 
@@ -130,12 +168,9 @@ export function ZLCandlestickChart({
                         setPriceChange(json.change_pct)
                     }
                     
-                    // Update the forming daily candle if we have the data series
                     if (json.forming_bars?.['1d'] && ohlcDataRef.current && priceData.length > 0) {
                         const forming = json.forming_bars['1d']
                         const lastIdx = priceData.length - 1
-                        
-                        // Update the last candle with live forming bar data
                         ohlcDataRef.current.update(
                             lastIdx,
                             forming.open,
@@ -143,8 +178,6 @@ export function ZLCandlestickChart({
                             forming.low,
                             forming.close
                         )
-                        
-                        // Update high/low if forming bar exceeds
                         if (forming.high > (highPrice || 0)) setHighPrice(forming.high)
                         if (forming.low < (lowPrice || Infinity)) setLowPrice(forming.low)
                     }
@@ -155,7 +188,6 @@ export function ZLCandlestickChart({
         }
         
         fetchLive()
-        // Poll live data every 10 seconds
         const liveInterval = setInterval(fetchLive, 10000)
         return () => clearInterval(liveInterval)
     }, [priceData, highPrice, lowPrice])
@@ -165,12 +197,10 @@ export function ZLCandlestickChart({
         if (!chartRef.current || priceData.length === 0) return
 
         const initChart = async () => {
-            // Clean up previous instance
             if (sciChartSurfaceRef.current) {
                 sciChartSurfaceRef.current.delete()
             }
 
-            // Configure WASM location and license
             SciChartSurface.useWasmFromCDN()
             SciChartSurface.setRuntimeLicenseKey('')
 
@@ -180,64 +210,81 @@ export function ZLCandlestickChart({
             )
             sciChartSurfaceRef.current = sciChartSurface
 
-            // Calculate volatility bands (±1σ and ±2σ)
-            const closes = priceData.map(d => d.close)
-            const calcBands = () => {
-                const lookback = 20
-                const upper2: number[] = []
-                const upper1: number[] = []
-                const lower1: number[] = []
-                const lower2: number[] = []
+            const xValues = priceData.map((_, i) => i)
+            const lastCandleIdx = priceData.length - 1
+            const currentPrice = priceData[lastCandleIdx].close
 
-                for (let i = 0; i < closes.length; i++) {
-                    if (i < lookback) {
-                        upper2.push(closes[i])
-                        upper1.push(closes[i])
-                        lower1.push(closes[i])
-                        lower2.push(closes[i])
-                    } else {
-                        const slice = closes.slice(i - lookback, i)
-                        const mean = slice.reduce((a, b) => a + b, 0) / lookback
-                        const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / lookback
-                        const std = Math.sqrt(variance)
-                        upper2.push(mean + 2 * std)
-                        upper1.push(mean + 1 * std)
-                        lower1.push(mean - 1 * std)
-                        lower2.push(mean - 2 * std)
+            // Build forecast fan data (starts at current price, extends into future)
+            // X positions: current candle, then future points at horizons
+            const forecastXValues: number[] = [lastCandleIdx]
+            const forecastP50: number[] = [currentPrice]
+            const forecastP30: number[] = [currentPrice]
+            const forecastP70: number[] = [currentPrice]
+
+            if (hasForecast && forecastData.length > 0) {
+                // Map horizon days to approximate x position (1 candle = 1 day)
+                for (const fc of forecastData) {
+                    if (fc.price_p30 !== null && fc.price_p50 !== null && fc.price_p70 !== null) {
+                        forecastXValues.push(lastCandleIdx + fc.horizon_days)
+                        forecastP50.push(fc.price_p50)
+                        forecastP30.push(fc.price_p30)
+                        forecastP70.push(fc.price_p70)
                     }
                 }
-                return { upper2, upper1, lower1, lower2 }
             }
 
-            const bands = calcBands()
-            const xValues = priceData.map((_, i) => i)
+            // Calculate Y-axis range including forecast cone
+            const candleHighs = priceData.map(d => d.high)
+            const candleLows = priceData.map(d => d.low)
+            let yMin = Math.min(...candleLows)
+            let yMax = Math.max(...candleHighs)
+            
+            // Extend Y range if forecast data exists
+            if (forecastP70.length > 1) {
+                yMax = Math.max(yMax, ...forecastP70)
+                yMin = Math.min(yMin, ...forecastP30)
+            }
+            
+            const yRange = yMax - yMin
+            const paddingAmount = yRange * 0.05 // Tighter fit like TradingView
 
-            // X Axis - with padding so candles don't touch edges (like TradingView)
+            // X Axis - show actual dates
+            const dateLabelProvider = new NumericLabelProvider()
+            dateLabelProvider.formatLabel = (dataValue: number) => {
+                const idx = Math.round(dataValue)
+                if (idx >= 0 && idx < priceData.length) {
+                    const date = new Date(priceData[idx].timestamp)
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                }
+                return ''
+            }
+            dateLabelProvider.formatCursorLabel = (dataValue: number) => {
+                const idx = Math.round(dataValue)
+                if (idx >= 0 && idx < priceData.length) {
+                    const date = new Date(priceData[idx].timestamp)
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                }
+                return ''
+            }
+
             const xAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Bottom,
                 autoRange: EAutoRange.Always,
-                growBy: new NumberRange(0.02, 0.05), // 2% left padding, 5% right padding for last candle
+                growBy: new NumberRange(0.005, 0.02),
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
                 majorGridLineStyle: { color: 'rgba(255,255,255,0.05)', strokeThickness: 1 },
                 axisBorder: { borderTop: 0, color: 'transparent' },
                 labelStyle: { fontSize: 11, fontFamily: 'Inter', color: 'rgba(255,255,255,0.3)' },
+                labelProvider: dateLabelProvider,
             })
             sciChartSurface.xAxes.add(xAxis)
-
-            // Y Axis - manually set range from data bounds with padding
-            const allLows = priceData.map(d => d.low)
-            const allHighs = priceData.map(d => d.high)
-            const dataMin = Math.min(...allLows)
-            const dataMax = Math.max(...allHighs)
-            const dataRange = dataMax - dataMin
-            const padding = dataRange * 0.1 // 10% padding
 
             const yAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Right,
                 autoRange: EAutoRange.Never,
-                visibleRange: new NumberRange(dataMin - padding, dataMax + padding),
+                visibleRange: new NumberRange(yMin - paddingAmount, yMax + paddingAmount),
                 drawMajorBands: false,
                 drawMinorGridLines: false,
                 drawMajorGridLines: true,
@@ -249,41 +296,38 @@ export function ZLCandlestickChart({
             })
             sciChartSurface.yAxes.add(yAxis)
 
-            // 2σ Band (outer) - very subtle
-            const band2Data = new XyyDataSeries(wasmContext, {
-                xValues,
-                yValues: bands.upper2,
-                y1Values: bands.lower2,
-            })
-            const band2Series = new FastBandRenderableSeries(wasmContext, {
-                dataSeries: band2Data,
-                fill: 'rgba(139, 92, 246, 0.03)',
-                fillY1: 'rgba(139, 92, 246, 0.03)',
-                stroke: 'rgba(139, 92, 246, 0.08)',
-                strokeY1: 'rgba(139, 92, 246, 0.08)',
-                strokeThickness: 1,
-            })
-            sciChartSurface.renderableSeries.add(band2Series)
+            // Forecast Fan (p30-p70 band) - only if we have forecast data
+            if (forecastXValues.length > 1) {
+                const forecastBandData = new XyyDataSeries(wasmContext, {
+                    xValues: forecastXValues,
+                    yValues: forecastP70,
+                    y1Values: forecastP30,
+                })
+                const forecastBandSeries = new FastBandRenderableSeries(wasmContext, {
+                    dataSeries: forecastBandData,
+                    fill: 'rgba(236, 72, 153, 0.15)', // Pink/magenta fill
+                    fillY1: 'rgba(236, 72, 153, 0.15)',
+                    stroke: 'rgba(236, 72, 153, 0.4)',
+                    strokeY1: 'rgba(236, 72, 153, 0.4)',
+                    strokeThickness: 1,
+                })
+                sciChartSurface.renderableSeries.add(forecastBandSeries)
 
-            // 1σ Band (inner) - slightly more visible
-            const band1Data = new XyyDataSeries(wasmContext, {
-                xValues,
-                yValues: bands.upper1,
-                y1Values: bands.lower1,
-            })
-            const band1Series = new FastBandRenderableSeries(wasmContext, {
-                dataSeries: band1Data,
-                fill: 'rgba(139, 92, 246, 0.05)',
-                fillY1: 'rgba(139, 92, 246, 0.05)',
-                stroke: 'rgba(139, 92, 246, 0.15)',
-                strokeY1: 'rgba(139, 92, 246, 0.15)',
-                strokeThickness: 1,
-            })
-            sciChartSurface.renderableSeries.add(band1Series)
+                // P50 center line (median forecast)
+                const forecastLineData = new XyDataSeries(wasmContext, {
+                    xValues: forecastXValues,
+                    yValues: forecastP50,
+                })
+                const forecastLineSeries = new FastLineRenderableSeries(wasmContext, {
+                    dataSeries: forecastLineData,
+                    stroke: 'rgba(236, 72, 153, 0.8)',
+                    strokeThickness: 2,
+                    strokeDashArray: [5, 3], // Dashed line for forecast
+                })
+                sciChartSurface.renderableSeries.add(forecastLineSeries)
+            }
 
-            // Candlestick series - TradingView style colors
-            // Up candles: cyan body (#26a69a / light blue), cyan wick
-            // Down candles: pink/magenta body (#ef5350), pink wick
+            // Candlestick series
             const ohlcData = new OhlcDataSeries(wasmContext, {
                 xValues,
                 openValues: priceData.map(d => d.open),
@@ -291,19 +335,16 @@ export function ZLCandlestickChart({
                 lowValues: priceData.map(d => d.low),
                 closeValues: priceData.map(d => d.close),
             })
-            
-            // Store ref for live updates
             ohlcDataRef.current = ohlcData
 
+            // Green: solid fill + white wick | Down: hollow with white outline/wick
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                // Up candle (close > open) - lime green
-                strokeUp: '#00ff00',           // Wick color for up
-                brushUp: '#00ff00',            // Body fill for up
-                // Down candle (close < open) - white
-                strokeDown: '#ffffff',         // Wick color for down
-                brushDown: '#ffffff',          // Body fill for down
-                dataPointWidth: 0.7,
+                strokeUp: '#ffffff',      // White wick for green (up) candles
+                brushUp: '#00ff00',       // Solid green fill
+                strokeDown: '#ffffff',    // White outline + wick for hollow candles
+                brushDown: 'transparent', // Hollow - no fill
+                dataPointWidth: 0.5,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
 
@@ -326,17 +367,14 @@ export function ZLCandlestickChart({
 
         initChart()
 
-        // Handle resize
-        const resizeObserver = new ResizeObserver(() => {
-            if (sciChartSurfaceRef.current && chartRef.current) {
-                sciChartSurfaceRef.current.changeViewportSize(
-                    chartRef.current.clientWidth,
-                    chartRef.current.clientHeight
-                )
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (sciChartSurfaceRef.current && entries[0]) {
+                const { width, height } = entries[0].contentRect;
+                sciChartSurfaceRef.current.changeViewportSize(width, height);
             }
         })
-        if (chartRef.current) {
-            resizeObserver.observe(chartRef.current)
+        if (chartRef.current?.parentElement) {
+            resizeObserver.observe(chartRef.current.parentElement)
         }
 
         return () => {
@@ -346,12 +384,18 @@ export function ZLCandlestickChart({
                 sciChartSurfaceRef.current = null
             }
         }
-    }, [priceData])
+    }, [priceData, forecastData, hasForecast])
 
     return (
-        <div className="relative w-full rounded-xl overflow-hidden border border-white/5" style={{ background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)' }}>
+        <div 
+            className="relative w-full rounded-xl overflow-hidden border border-white/5 flex flex-col" 
+            style={{ 
+                background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)',
+                height: typeof height === 'number' ? `${height}px` : height 
+            }}
+        >
             {/* Header - compact */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-white/5">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50'}`} />
@@ -366,9 +410,11 @@ export function ZLCandlestickChart({
                     {lastUpdate && (
                         <span className="text-[9px] text-white/20 font-mono">{lastUpdate}</span>
                     )}
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20">
-                        <span className="text-[8px] text-violet-400 uppercase tracking-wider font-medium">±1σ/±2σ</span>
-                    </div>
+                    {hasForecast && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-pink-500/10 border border-pink-500/20">
+                            <span className="text-[8px] text-pink-400 uppercase tracking-wider font-medium">Core Model</span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     {highPrice && lowPrice && (
@@ -399,9 +445,8 @@ export function ZLCandlestickChart({
                 </div>
             </div>
 
-            {/* Chart area - takes remaining space */}
-            <div className="relative w-full" style={{ height: `calc(${typeof height === 'number' ? height + 'px' : height} - 70px)` }}>
-                {/* Watermark */}
+            {/* Chart area */}
+            <div className="relative w-full flex-1 min-h-0">
                 <div className="absolute inset-0 flex items-center justify-end pr-16 pointer-events-none z-0">
                     <img
                         src="/chart_watermark.svg"
@@ -410,27 +455,34 @@ export function ZLCandlestickChart({
                         style={{ filter: 'grayscale(100%) brightness(2)' }}
                     />
                 </div>
-                {/* SciChart Canvas */}
                 <div
                     ref={chartRef}
-                    className="absolute inset-0 z-10"
+                    style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
                 />
             </div>
 
-            {/* Legend - minimal */}
-            <div className="flex items-center justify-center gap-6 px-4 py-1.5 border-t border-white/5 bg-black/20">
+            {/* Legend */}
+            <div className="flex-shrink-0 flex items-center justify-center gap-6 px-4 py-1.5 border-t border-white/5 bg-black/20">
                 <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#00ff00' }} />
                     <span className="text-[9px] text-white/40 uppercase">Bull</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-3 rounded-sm bg-white/80" />
+                    <div className="w-2.5 h-3 rounded-sm bg-white" />
                     <span className="text-[9px] text-white/40 uppercase">Bear</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-1.5 rounded-sm bg-violet-500/15 border border-violet-500/25" />
-                    <span className="text-[9px] text-white/40 uppercase">Vol Bands</span>
-                </div>
+                {hasForecast && (
+                    <>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-1.5 rounded-sm bg-pink-500/30 border border-pink-500/50" />
+                            <span className="text-[9px] text-white/40 uppercase">P30-P70</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-0.5 bg-pink-400" style={{ borderTop: '2px dashed' }} />
+                            <span className="text-[9px] text-white/40 uppercase">P50 (Median)</span>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )
