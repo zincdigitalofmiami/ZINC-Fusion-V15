@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ZLCandlestickChart } from '@/components/ZLCandlestickChart';
+import { LightweightZlCandlestickChart } from '@/components/LightweightZlCandlestickChart';
 import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
 import { SignalGauge } from '@/components/ui/SignalGauge';
 
@@ -11,7 +11,7 @@ export default function DashboardPage() {
       
       {/* SECTION 1: HERO CHART */}
       <div>
-        <ZLCandlestickChart height="80vh" />
+        <LightweightZlCandlestickChart height="80vh" />
       </div>
       
       {/* SECTION 2: Multi-Horizon Signals - 4 Big Cards */}
