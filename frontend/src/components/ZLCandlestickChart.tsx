@@ -337,13 +337,13 @@ export function ZLCandlestickChart({
             })
             ohlcDataRef.current = ohlcData
 
-            // TradingView exact colors: cyan up, red down, wicks match body
+            // TradingView colors: teal up, red down, white/gray wicks
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                strokeUp: '#26A69A',      // Wick matches body (teal)
-                brushUp: '#26A69A',       // TradingView teal/cyan
-                strokeDown: '#EF5350',    // Wick matches body (red)
-                brushDown: '#EF5350',     // TradingView red
+                strokeUp: '#ffffff',      // White wick on up candles
+                brushUp: '#26A69A',       // TradingView teal/cyan body
+                strokeDown: '#787B86',    // Muted gray wick on down candles
+                brushDown: '#EF5350',     // TradingView red body
                 dataPointWidth: 0.4,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
