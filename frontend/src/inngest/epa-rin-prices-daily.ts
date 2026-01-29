@@ -296,7 +296,7 @@ async function fetchRinPricesFromQlik(maxRetries: number = 3): Promise<{ lastRel
 
 export const epaRinPricesDaily = inngest.createFunction(
   { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Bronze Ingestion", retries: 3 },
-  { cron: "30 14 * * 1-5" },
+  { cron: "30 */8 * * *" }, // Every 8 hours at :30
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

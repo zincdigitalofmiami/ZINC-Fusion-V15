@@ -101,7 +101,7 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
  */
 export const cpoPalmOilDaily = inngest.createFunction(
   { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3 },
-  { cron: "0 10 * * 1-5" }, // 10AM UTC, Mon-Fri (after Asian markets)
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     // Try to fetch CPO data from multiple sources
     const data = await step.run("fetch-cpo-price", async () => {
@@ -164,7 +164,7 @@ export const cpoPalmOilDaily = inngest.createFunction(
  */
 export const cpoTradingEconomics = inngest.createFunction(
   { id: "cpo-trading-economics", name: "CPO Trading Economics" },
-  { cron: "0 12 * * 1-5" }, // Noon UTC as backup
+  { cron: "30 */8 * * *" }, // Every 8 hours at :30 (backup)
   async ({ step, logger }) => {
     const apiKey = process.env.TRADING_ECONOMICS_API_KEY;
 

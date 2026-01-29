@@ -19,14 +19,27 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Symbols to fetch: Crush-relevant use .n.0 (open-interest-ranked), Energy use .c.0 (calendar)
+// Symbols to fetch from GLBX.MDP3 (CME Globex, COMEX, NYMEX)
+// Crush-relevant use .n.0 (open-interest-ranked), Energy/Metals use .c.0 (calendar)
 const DATABENTO_SYMBOLS = [
-  { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" }, // Crush: OI-ranked
-  { continuous: "ZS.n.0", canonical: "ZS", name: "Soybeans" }, // Crush: OI-ranked
-  { continuous: "ZM.n.0", canonical: "ZM", name: "Soybean Meal" }, // Crush: OI-ranked
-  { continuous: "CL.c.0", canonical: "CL", name: "Crude Oil" }, // Energy: calendar
-  { continuous: "HO.c.0", canonical: "HO", name: "Heating Oil" }, // Energy: calendar
-  { continuous: "RB.c.0", canonical: "RB", name: "RBOB Gasoline" }, // Energy: calendar
+  // Soybean complex (Crush) - OI-ranked
+  { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },
+  { continuous: "ZS.n.0", canonical: "ZS", name: "Soybeans" },
+  { continuous: "ZM.n.0", canonical: "ZM", name: "Soybean Meal" },
+  // Grains - calendar-ranked
+  { continuous: "ZC.c.0", canonical: "ZC", name: "Corn" },
+  { continuous: "ZW.c.0", canonical: "ZW", name: "Wheat" },
+  // Energy - calendar-ranked
+  { continuous: "CL.c.0", canonical: "CL", name: "Crude Oil" },
+  { continuous: "NG.c.0", canonical: "NG", name: "Natural Gas" },
+  { continuous: "HO.c.0", canonical: "HO", name: "Heating Oil" },
+  { continuous: "RB.c.0", canonical: "RB", name: "RBOB Gasoline" },
+  // Metals (COMEX/NYMEX) - calendar-ranked
+  { continuous: "GC.c.0", canonical: "GC", name: "Gold" },
+  { continuous: "SI.c.0", canonical: "SI", name: "Silver" },
+  { continuous: "HG.c.0", canonical: "HG", name: "Copper" },
+  { continuous: "PL.c.0", canonical: "PL", name: "Platinum" },
+  { continuous: "PA.c.0", canonical: "PA", name: "Palladium" },
 ];
 
 interface SymbolResult {
@@ -119,7 +132,7 @@ export const databentoFuturesDaily = inngest.createFunction(
     name: "Databento Futures Daily OHLCV",
     retries: 3,
   },
-  { cron: "TZ=America/Chicago 0 5 * * 1-5" }, // 5AM CT, Mon-Fri
+  { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
   async ({ step, logger }) => {
     const results: SymbolResult[] = [];
 

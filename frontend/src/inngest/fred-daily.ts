@@ -464,7 +464,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-fed",
     jobName: "fred-daily-fed",
     displayName: "FRED Daily - Fed",
-    cron: "0 11 * * 1-5",
+    cron: "0 */8 * * *", // Every 8 hours (0:00, 8:00, 16:00 UTC)
     series: FRED_FED_SERIES,
     rateLimitMs: 500,
     fetchTimeoutMs: 15000,
@@ -475,7 +475,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-fx",
     jobName: "fred-daily-fx",
     displayName: "FRED Daily - FX",
-    cron: "5 11 * * 1-5",
+    cron: "5 */8 * * *", // Every 8 hours at :05
     series: FRED_FX_SERIES,
     rateLimitMs: 500,
     fetchTimeoutMs: 15000,
@@ -486,7 +486,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-energy",
     jobName: "fred-daily-energy",
     displayName: "FRED Daily - Energy",
-    cron: "10 11 * * 1-5",
+    cron: "10 */8 * * *", // Every 8 hours at :10
     series: FRED_ENERGY_SERIES,
     rateLimitMs: 450,
     fetchTimeoutMs: 12000,
@@ -497,7 +497,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-biofuel",
     jobName: "fred-daily-biofuel",
     displayName: "FRED Daily - Biofuel",
-    cron: "15 11 * * 1-5",
+    cron: "15 */8 * * *", // Every 8 hours at :15
     series: FRED_BIOFUEL_SERIES,
     rateLimitMs: 350,
     fetchTimeoutMs: 10000,
@@ -508,7 +508,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-crush",
     jobName: "fred-daily-crush",
     displayName: "FRED Daily - Crush",
-    cron: "20 11 * * 1-5",
+    cron: "20 */8 * * *", // Every 8 hours at :20
     series: FRED_CRUSH_SERIES,
     rateLimitMs: 450,
     fetchTimeoutMs: 12000,
@@ -519,7 +519,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-palm",
     jobName: "fred-daily-palm",
     displayName: "FRED Daily - Palm",
-    cron: "25 11 * * 1-5",
+    cron: "25 */8 * * *", // Every 8 hours at :25
     series: FRED_PALM_SERIES,
     rateLimitMs: 350,
     fetchTimeoutMs: 10000,
@@ -530,7 +530,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-volatility",
     jobName: "fred-daily-volatility",
     displayName: "FRED Daily - Volatility",
-    cron: "30 11 * * 1-5",
+    cron: "30 */8 * * *", // Every 8 hours at :30
     series: FRED_VOLATILITY_SERIES,
     rateLimitMs: 400,
     fetchTimeoutMs: 12000,
@@ -541,7 +541,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-trump-effect",
     jobName: "fred-daily-trump-effect",
     displayName: "FRED Daily - Trump Effect",
-    cron: "35 11 * * 1-5",
+    cron: "35 */8 * * *", // Every 8 hours at :35
     series: FRED_TRUMP_EFFECT_SERIES,
     rateLimitMs: 400,
     fetchTimeoutMs: 10000,
@@ -552,7 +552,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-china",
     jobName: "fred-daily-china",
     displayName: "FRED Daily - China",
-    cron: "40 11 * * 1-5",
+    cron: "40 */8 * * *", // Every 8 hours at :40
     series: FRED_CHINA_SERIES,
     rateLimitMs: 400,
     fetchTimeoutMs: 12000,
@@ -563,7 +563,7 @@ const FRED_SEGMENT_CONFIGS: Record<string, FredSegmentConfig> = {
     id: "fred-daily-general",
     jobName: "fred-daily-general",
     displayName: "FRED Daily - General",
-    cron: "45 11 * * 1-5",
+    cron: "45 */8 * * *", // Every 8 hours at :45
     series: FRED_GENERAL_SERIES,
     rateLimitMs: 350,
     fetchTimeoutMs: 10000,

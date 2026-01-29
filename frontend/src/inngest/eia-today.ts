@@ -53,7 +53,7 @@ export const eiaDaily = inngest.createFunction(
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
   },
-  { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step }) => {
     if (!EIA_API_KEY) {
       throw new Error("EIA_API_KEY not configured");

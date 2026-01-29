@@ -17,14 +17,26 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// Symbols to fetch: match OHLCV function (Crush uses .n.0, Energy uses .c.0)
+// Symbols to fetch: match OHLCV function (Crush uses .n.0, Energy/Metals use .c.0)
 const DATABENTO_SYMBOLS = [
+  // Soybean complex (Crush) - OI-ranked
   { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },
   { continuous: "ZS.n.0", canonical: "ZS", name: "Soybeans" },
   { continuous: "ZM.n.0", canonical: "ZM", name: "Soybean Meal" },
+  // Grains - calendar-ranked
+  { continuous: "ZC.c.0", canonical: "ZC", name: "Corn" },
+  { continuous: "ZW.c.0", canonical: "ZW", name: "Wheat" },
+  // Energy - calendar-ranked
   { continuous: "CL.c.0", canonical: "CL", name: "Crude Oil" },
+  { continuous: "NG.c.0", canonical: "NG", name: "Natural Gas" },
   { continuous: "HO.c.0", canonical: "HO", name: "Heating Oil" },
   { continuous: "RB.c.0", canonical: "RB", name: "RBOB Gasoline" },
+  // Metals (COMEX/NYMEX) - calendar-ranked
+  { continuous: "GC.c.0", canonical: "GC", name: "Gold" },
+  { continuous: "SI.c.0", canonical: "SI", name: "Silver" },
+  { continuous: "HG.c.0", canonical: "HG", name: "Copper" },
+  { continuous: "PL.c.0", canonical: "PL", name: "Platinum" },
+  { continuous: "PA.c.0", canonical: "PA", name: "Palladium" },
 ];
 
 interface SymbolResult {
@@ -72,7 +84,7 @@ export const databentoStatisticsDaily = inngest.createFunction(
     name: "Databento Statistics Daily (Open Interest)",
     retries: 3,
   },
-  { cron: "TZ=America/Chicago 30 5 * * 1-5" }, // 5:30AM CT, Mon-Fri (30min after OHLCV)
+  { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
   async ({ step, logger }) => {
     const results: SymbolResult[] = [];
 

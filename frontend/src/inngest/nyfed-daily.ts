@@ -105,7 +105,7 @@ export const nyfedDaily = inngest.createFunction(
     name: "NY Fed Rates Daily Bronze Ingestion",
     retries: 3,
   },
-  { cron: "0 12 * * 1-5" }, // 6AM CT = 12 UTC, Mon-Fri (after NY Fed publishes)
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

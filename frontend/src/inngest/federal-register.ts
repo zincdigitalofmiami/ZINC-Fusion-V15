@@ -332,7 +332,7 @@ export const federalRegisterDaily = inngest.createFunction(
     name: "Federal Register Daily Bronze Ingestion",
     retries: 3,
   },
-  { cron: "0 11 * * 1-5" }, // 5AM CT = 11AM UTC, Mon-Fri
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     // Get database client
     const client = await pool.connect();

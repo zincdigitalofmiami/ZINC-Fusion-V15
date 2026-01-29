@@ -49,7 +49,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 
 export const aeiTradeDaily = inngest.createFunction(
   { id: "aei-trade-daily", name: "AEI Trade Policy RSS Bronze Ingestion", retries: 3 },
-  { cron: "0 14 * * 1-5" }, // 8AM CT
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

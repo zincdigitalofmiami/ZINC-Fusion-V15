@@ -173,7 +173,7 @@ function toNoaaStationId(stationId: string): string | null {
 
 export const noaaWeatherDaily = inngest.createFunction(
   { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3 },
-  { cron: "0 13 * * 1-5" }, // 7AM CT weekdays
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

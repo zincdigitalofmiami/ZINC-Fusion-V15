@@ -7,8 +7,6 @@ import {
   zlLive15m,
   zlLive1h,
   zlLive1d,
-  yahooEod,
-  yahooEtfDaily,
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -95,8 +93,6 @@ export const { GET, POST, PUT } = serve({
     zlLive15m,
     zlLive1h,
     zlLive1d,
-    yahooEod,
-    yahooEtfDaily,
     // FRED macro series
     fredDailyFed,
     fredDailyFx,

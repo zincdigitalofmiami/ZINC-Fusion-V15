@@ -104,7 +104,7 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 
 export const fxSpotDaily = inngest.createFunction(
   { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3 },
-  { cron: "0 12 * * 1-5" }, // 6AM CT weekdays (after most daily updates)
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

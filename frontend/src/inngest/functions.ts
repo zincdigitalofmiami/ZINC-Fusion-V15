@@ -2,8 +2,6 @@ export { zl15m } from "./zl-15m";
 export { zl1h } from "./zl-1h";
 export { zlDaily } from "./zl-daily";
 export { zlLive15m, zlLive1h, zlLive1d } from "./zl-live";
-export { yahooEod } from "./yahoo-eod";
-export { yahooEtfDaily } from "./yahoo-etf-daily";
 export {
   fredDailyFed,
   fredDailyFx,
