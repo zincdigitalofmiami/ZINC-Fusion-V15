@@ -337,13 +337,13 @@ export function ZLCandlestickChart({
             })
             ohlcDataRef.current = ohlcData
 
-            // Green: solid fill + white wick | Down: hollow with white outline/wick
+            // Green up candles, TradingView electric magenta-red down candles
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                strokeUp: '#ffffff',      // White wick for green (up) candles
-                brushUp: '#00ff00',       // Solid green fill
-                strokeDown: '#ffffff',    // White outline + wick for hollow candles
-                brushDown: 'transparent', // Hollow - no fill
+                strokeUp: '#ffffff',      // White wick/outline for up candles
+                brushUp: '#00ff00',       // Bright green fill
+                strokeDown: '#ffffff',    // White outline for down candles
+                brushDown: '#F23645',     // TradingView electric magenta-red fill
                 dataPointWidth: 0.5,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
@@ -437,7 +437,7 @@ export function ZLCandlestickChart({
                     {lastPrice && (
                         <div className="flex items-center gap-2">
                             <span className="text-xl font-semibold text-white tabular-nums">{lastPrice.toFixed(2)}</span>
-                            <span className={`text-xs font-medium tabular-nums ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <span className={`text-xs font-medium tabular-nums`} style={{ color: priceChange >= 0 ? '#00ff00' : '#F23645' }}>
                                 {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                             </span>
                         </div>
@@ -468,7 +468,7 @@ export function ZLCandlestickChart({
                     <span className="text-[9px] text-white/40 uppercase">Bull</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-3 rounded-sm bg-white" />
+                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#F23645', border: '1px solid #ffffff' }} />
                     <span className="text-[9px] text-white/40 uppercase">Bear</span>
                 </div>
                 {hasForecast && (
