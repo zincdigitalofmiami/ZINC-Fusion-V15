@@ -337,13 +337,14 @@ export function ZLCandlestickChart({
             })
             ohlcDataRef.current = ohlcData
 
-            // TradingView colors: teal up, red down, white/gray wicks
+            // TradingView style: Body colors + transparent borders (0% opacity)
+            // SciChart stroke controls both border AND wick - using transparent hides both
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                strokeUp: '#ffffff',      // White wick on up candles
-                brushUp: '#26A69A',       // TradingView teal/cyan body
-                strokeDown: '#787B86',    // Muted gray wick on down candles
-                brushDown: '#EF5350',     // TradingView red body
+                strokeUp: 'transparent',  // 0% opacity border (TradingView style)
+                brushUp: '#26C6DA',       // TradingView cyan rgb(38,198,218)
+                strokeDown: 'transparent', // 0% opacity border (TradingView style)
+                brushDown: '#EC0000',     // TradingView red rgb(236,0,0)
                 dataPointWidth: 0.4,
             })
             sciChartSurface.renderableSeries.add(candlestickSeries)
@@ -437,7 +438,7 @@ export function ZLCandlestickChart({
                     {lastPrice && (
                         <div className="flex items-center gap-2">
                             <span className="text-xl font-semibold text-white tabular-nums">{lastPrice.toFixed(2)}</span>
-                            <span className={`text-xs font-medium tabular-nums`} style={{ color: priceChange >= 0 ? '#26A69A' : '#EF5350' }}>
+                            <span className={`text-xs font-medium tabular-nums`} style={{ color: priceChange >= 0 ? '#26C6DA' : '#EC0000' }}>
                                 {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                             </span>
                         </div>
@@ -464,11 +465,11 @@ export function ZLCandlestickChart({
             {/* Legend */}
             <div className="flex-shrink-0 flex items-center justify-center gap-6 px-4 py-1.5 border-t border-white/5 bg-black/20">
                 <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#26A69A' }} />
+                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#26C6DA' }} />
                     <span className="text-[9px] text-white/40 uppercase">Bull</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#EF5350' }} />
+                    <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#EC0000' }} />
                     <span className="text-[9px] text-white/40 uppercase">Bear</span>
                 </div>
                 {hasForecast && (
