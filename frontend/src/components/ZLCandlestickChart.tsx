@@ -327,7 +327,57 @@ export function ZLCandlestickChart({
                 sciChartSurface.renderableSeries.add(forecastLineSeries)
             }
 
-            // Candlestick series
+            // Build wick data as separate line series (SciChart ties stroke to both border+wick)
+            // We need disconnected vertical lines: use NaN gaps between each wick
+            const upWickX: number[] = []
+            const upWickY: number[] = []
+            const downWickX: number[] = []
+            const downWickY: number[] = []
+
+            priceData.forEach((d, i) => {
+                const isUp = d.close >= d.open
+                if (isUp) {
+                    // Up candle: white/light wick
+                    upWickX.push(i, i, NaN) // x, x, gap
+                    upWickY.push(d.low, d.high, NaN) // low to high, gap
+                } else {
+                    // Down candle: gray wick
+                    downWickX.push(i, i, NaN)
+                    downWickY.push(d.low, d.high, NaN)
+                }
+            })
+
+            // Up wicks (white/cyan tinted)
+            if (upWickX.length > 0) {
+                const upWickData = new XyDataSeries(wasmContext, {
+                    xValues: upWickX,
+                    yValues: upWickY,
+                    containsNaN: true,
+                })
+                const upWickSeries = new FastLineRenderableSeries(wasmContext, {
+                    dataSeries: upWickData,
+                    stroke: '#26C6DA', // Match body color for clean look
+                    strokeThickness: 1,
+                })
+                sciChartSurface.renderableSeries.add(upWickSeries)
+            }
+
+            // Down wicks (red tinted)
+            if (downWickX.length > 0) {
+                const downWickData = new XyDataSeries(wasmContext, {
+                    xValues: downWickX,
+                    yValues: downWickY,
+                    containsNaN: true,
+                })
+                const downWickSeries = new FastLineRenderableSeries(wasmContext, {
+                    dataSeries: downWickData,
+                    stroke: '#EC0000', // Match body color for clean look
+                    strokeThickness: 1,
+                })
+                sciChartSurface.renderableSeries.add(downWickSeries)
+            }
+
+            // Candlestick series (bodies only - transparent stroke hides built-in wicks)
             const ohlcData = new OhlcDataSeries(wasmContext, {
                 xValues,
                 openValues: priceData.map(d => d.open),
@@ -338,12 +388,12 @@ export function ZLCandlestickChart({
             ohlcDataRef.current = ohlcData
 
             // TradingView style: Body colors + transparent borders (0% opacity)
-            // SciChart stroke controls both border AND wick - using transparent hides both
+            // Wicks are drawn separately above
             const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                 dataSeries: ohlcData,
-                strokeUp: 'transparent',  // 0% opacity border (TradingView style)
+                strokeUp: 'transparent',  // Hide built-in wick/border
                 brushUp: '#26C6DA',       // TradingView cyan rgb(38,198,218)
-                strokeDown: 'transparent', // 0% opacity border (TradingView style)
+                strokeDown: 'transparent', // Hide built-in wick/border
                 brushDown: '#EC0000',     // TradingView red rgb(236,0,0)
                 dataPointWidth: 0.4,
             })
