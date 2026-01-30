@@ -65,18 +65,30 @@ export const aeiTradeDaily = inngest.createFunction(
       logger.info(`Started ingest run: ${runId}`);
 
       const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://www.aei.org/tag/trade-policy/feed/", {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/rss+xml, application/xml, text/xml, */*"
-          },
-          redirect: "follow"
-        });
-        if (!response.ok) throw new Error(`AEI RSS error: ${response.status}`);
-        const xml = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        return parsed?.rss?.channel?.item || [];
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        try {
+          const response = await fetch("https://www.aei.org/tag/trade-policy/feed/", {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept": "application/rss+xml, application/xml, text/xml, */*"
+            },
+            redirect: "follow",
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (!response.ok) throw new Error(`AEI RSS error: ${response.status}`);
+          const xml = await response.text();
+          const parser = new XMLParser({ ignoreAttributes: false });
+          const parsed = parser.parse(xml);
+          return parsed?.rss?.channel?.item || [];
+        } catch (err) {
+          clearTimeout(timeout);
+          if (err instanceof Error && err.name === 'AbortError') {
+            throw new Error('AEI RSS fetch timed out after 15s');
+          }
+          throw err;
+        }
       });
 
       logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from AEI Trade Policy`);

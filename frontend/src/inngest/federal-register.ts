@@ -290,26 +290,41 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
     params.append("conditions[type][]", type);
   });
   
-  // Fetch with pagination
+  // Fetch with pagination and timeout
   let url: string | null = `${baseUrl}?${params.toString()}`;
   let pageCount = 0;
-  const maxPages = 10; // Safety limit
+  const maxPages = 3; // Reduced from 10 to prevent timeouts
   
   while (url && pageCount < maxPages) {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Federal Register API error: ${response.status} ${response.statusText}`);
-    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s per page
     
-    const json: FedRegApiResponse = await response.json();
-    documents.push(...json.results);
-    
-    url = json.next_page_url;
-    pageCount++;
-    
-    // Rate limit: wait 100ms between requests
-    if (url) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        throw new Error(`Federal Register API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const json: FedRegApiResponse = await response.json();
+      documents.push(...json.results);
+      
+      url = json.next_page_url;
+      pageCount++;
+      
+      // Rate limit: wait 100ms between requests
+      if (url) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Timeout on one page, return what we have so far
+        console.warn(`Federal Register fetch timed out on page ${pageCount + 1}, returning ${documents.length} docs`);
+        break;
+      }
+      throw err;
     }
   }
   

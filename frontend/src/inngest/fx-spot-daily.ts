@@ -91,15 +91,29 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
   url.searchParams.set("observation_start", startDate);
   url.searchParams.set("sort_order", "asc");
 
-  const res = await fetch(url.toString(), {
-    headers: { "User-Agent": "ZINC-Fusion/1.0" },
-  });
-  if (!res.ok) {
-    throw new Error(`FRED fetch failed for ${seriesId}: ${res.status}`);
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { "User-Agent": "ZINC-Fusion/1.0" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    
+    if (!res.ok) {
+      throw new Error(`FRED fetch failed for ${seriesId}: ${res.status}`);
+    }
 
-  const json = (await res.json()) as { observations?: Array<{ date: string; value: string }> };
-  return json.observations ?? [];
+    const json = (await res.json()) as { observations?: Array<{ date: string; value: string }> };
+    return json.observations ?? [];
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`FRED fetch timed out for ${seriesId} after 15s`);
+    }
+    throw err;
+  }
 }
 
 export const fxSpotDaily = inngest.createFunction(

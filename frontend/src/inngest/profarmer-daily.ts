@@ -299,7 +299,7 @@ async function fetchArchiveArticles(
 }
 
 export const profarmerDaily = inngest.createFunction(
-  { id: "profarmer-daily", name: "ProFarmer Premium News Daily", retries: 2 },
+  { id: "profarmer-daily", name: "ProFarmer Premium News Daily", retries: 0 }, // No retries - captcha blocks automated login
   { cron: "0 12,23 * * 1-5" }, // 6 AM CT and 5 PM CT weekdays
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

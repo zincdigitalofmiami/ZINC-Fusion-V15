@@ -129,14 +129,27 @@ export const nyfedDaily = inngest.createFunction(
 
       logger.info(`Started ingest run: ${runId}`);
 
-      // Step 3: Fetch from NY Fed API
+      // Step 3: Fetch from NY Fed API with timeout
       const rates = await step.run("fetch-rates", async () => {
-        const response = await fetch("https://markets.newyorkfed.org/api/rates/all/latest.json");
-        if (!response.ok) {
-          throw new Error(`NY Fed API error: ${response.status}`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        try {
+          const response = await fetch("https://markets.newyorkfed.org/api/rates/all/latest.json", {
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (!response.ok) {
+            throw new Error(`NY Fed API error: ${response.status}`);
+          }
+          const json: NYFedResponse = await response.json();
+          return json.refRates || [];
+        } catch (err) {
+          clearTimeout(timeout);
+          if (err instanceof Error && err.name === 'AbortError') {
+            throw new Error('NY Fed API fetch timed out after 15s');
+          }
+          throw err;
         }
-        const json: NYFedResponse = await response.json();
-        return json.refRates || [];
       });
 
       logger.info(`Fetched ${rates.length} rates from NY Fed`);
