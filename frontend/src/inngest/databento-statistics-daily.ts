@@ -18,6 +18,7 @@ const pool = new Pool({
 });
 
 // Symbols to fetch: match OHLCV function (Crush uses .n.0, Energy/Metals use .c.0)
+// Top 50 CME symbols per Databento catalog
 const DATABENTO_SYMBOLS = [
   // Soybean complex (Crush) - OI-ranked
   { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },
@@ -31,12 +32,27 @@ const DATABENTO_SYMBOLS = [
   { continuous: "NG.c.0", canonical: "NG", name: "Natural Gas" },
   { continuous: "HO.c.0", canonical: "HO", name: "Heating Oil" },
   { continuous: "RB.c.0", canonical: "RB", name: "RBOB Gasoline" },
+  { continuous: "BZ.c.0", canonical: "BZ", name: "Brent Crude" },
   // Metals (COMEX/NYMEX) - calendar-ranked
   { continuous: "GC.c.0", canonical: "GC", name: "Gold" },
   { continuous: "SI.c.0", canonical: "SI", name: "Silver" },
   { continuous: "HG.c.0", canonical: "HG", name: "Copper" },
   { continuous: "PL.c.0", canonical: "PL", name: "Platinum" },
   { continuous: "PA.c.0", canonical: "PA", name: "Palladium" },
+  // Equity Indices - calendar-ranked
+  { continuous: "ES.c.0", canonical: "ES", name: "E-mini S&P 500" },
+  { continuous: "NQ.c.0", canonical: "NQ", name: "E-mini Nasdaq 100" },
+  { continuous: "YM.c.0", canonical: "YM", name: "Mini Dow" },
+  { continuous: "RTY.c.0", canonical: "RTY", name: "E-mini Russell 2000" },
+  // Treasury Futures - calendar-ranked
+  { continuous: "ZN.c.0", canonical: "ZN", name: "10-Year Treasury" },
+  { continuous: "ZB.c.0", canonical: "ZB", name: "30-Year Treasury" },
+  { continuous: "ZF.c.0", canonical: "ZF", name: "5-Year Treasury" },
+  { continuous: "ZT.c.0", canonical: "ZT", name: "2-Year Treasury" },
+  // Livestock - calendar-ranked
+  { continuous: "HE.c.0", canonical: "HE", name: "Lean Hogs" },
+  { continuous: "LE.c.0", canonical: "LE", name: "Live Cattle" },
+  { continuous: "GF.c.0", canonical: "GF", name: "Feeder Cattle" },
 ];
 
 interface SymbolResult {

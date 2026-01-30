@@ -42,6 +42,7 @@ import {
   profarmerBackfill,
   databentoFuturesDaily,
   databentoStatisticsDaily,
+  databentoFxDaily,
   boardCrushDaily,
   eiaBiodieselMonthly,
 } from "@/inngest/functions";
@@ -137,6 +138,7 @@ export const { GET, POST, PUT } = serve({
     // Databento market data
     databentoFuturesDaily,
     databentoStatisticsDaily,
+    databentoFxDaily,
     // Analytics calculations
     boardCrushDaily,
     // EIA biofuel data
