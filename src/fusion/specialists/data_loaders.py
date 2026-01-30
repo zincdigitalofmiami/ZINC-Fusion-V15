@@ -86,6 +86,9 @@ def load_crush_data(
             result[c] = pivot[c].values
 
     result["close"] = result["zl_close"]
+    # Alias ZL volume/OI for Crush specialist (expects unprefixed names)
+    result["volume"] = result["zl_volume"]
+    result["open_interest"] = result["zl_open_interest"]
     result.set_index("trade_date", inplace=True)
 
     # WASDE
