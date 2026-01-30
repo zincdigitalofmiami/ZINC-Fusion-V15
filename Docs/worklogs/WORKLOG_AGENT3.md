@@ -116,14 +116,117 @@ Awaiting Agent 1 to flag specific failures from §4 validation path before proce
 
 ---
 
+## 5) PALM Investigation (Priority 1)
+
+**Query run:**
+```sql
+SELECT symbol, COUNT(*) as row_count, MIN(event_date) as min_date, MAX(event_date) as max_date,
+       COUNT(*) FILTER (WHERE event_date >= CURRENT_DATE - INTERVAL '180 days') as last_180d_rows
+FROM mkt.futures_1d WHERE symbol = 'CPO' GROUP BY symbol
+```
+
+**Output:**
+```
+  symbol  row_count    min_date    max_date  last_180d_rows
+0    CPO       3780  2010-05-25  2026-01-29             116
+```
+
+**Finding:** CPO raw data is FRESH (max_date = 2026-01-29, only 1 day stale).
+PALM specialist signal is stale (2025-12-29) because **signal generation pipeline has not run**, NOT because raw data is missing.
+
+**FIX:** Re-run signal generation for PALM bucket.
+
+---
+
+## 6) CRUSH Investigation (Priority 2)
+
+### 6a) Volume/Open Interest Analysis
+
+**Query run:**
+```sql
+SELECT COUNT(*) as total,
+       COUNT(*) FILTER (WHERE volume IS NOT NULL AND volume > 0) as with_volume,
+       COUNT(*) FILTER (WHERE open_interest IS NOT NULL AND open_interest > 0) as with_oi
+FROM mkt.futures_1d WHERE symbol = 'ZL'
+```
+
+**Output:**
+```
+   total  with_volume  with_oi
+0   8417         6507      315
+```
+
+**Finding 1:** ZL has volume (77% coverage) but open_interest is SPARSE (3.7% coverage, only 315 rows).
+
+**Finding 2:** COLUMN NAME MISMATCH
+- Crush specialist expects: `volume`, `open_interest` (no prefix)
+- Data loader produces: `zl_volume`, `zl_open_interest` (with prefix)
+- File: `src/fusion/specialists/xgb_signals.py` L284-285
+- File: `src/fusion/specialists/data_loaders.py` L82-86
+
+### 6b) WASDE Column Name Analysis
+
+**Query run:**
+```sql
+SELECT DISTINCT commodity, metric,
+       CONCAT('wasde_', LOWER(REPLACE(commodity, ' ', '_')), '_', metric) as expected_col
+FROM supply.usda_wasde_1m WHERE commodity = 'Soybean Oil'
+```
+
+**Output:**
+```
+      commodity                 metric                             expected_col
+3   Soybean Oil   domestic_consumption   wasde_soybean_oil_domestic_consumption
+```
+
+**Finding 3:** WASDE COLUMN NAME MISMATCH
+- Crush specialist expects: `wasde_soybean_oil_domestic`
+- Data loader produces: `wasde_soybean_oil_domestic_consumption`
+- File: `src/fusion/specialists/xgb_signals.py` L293
+
+### 6c) Root Cause Summary for CRUSH
+
+| Missing Feature | Expected Name | Actual Name | Issue Type |
+|-----------------|---------------|-------------|------------|
+| volume | `volume` | `zl_volume` | Wiring mismatch |
+| open_interest | `open_interest` | `zl_open_interest` (sparse) | Wiring + data sparseness |
+| wasde_soybean_oil_domestic | `wasde_soybean_oil_domestic` | `wasde_soybean_oil_domestic_consumption` | Naming mismatch |
+
+**FIX OPTIONS:**
+1. **Option A (preferred):** Fix data_loaders.py to add aliases: `volume` = `zl_volume`, `open_interest` = `zl_open_interest`
+2. **Option B:** Fix xgb_signals.py to expect prefixed column names
+3. **For WASDE:** Update xgb_signals.py L293 to use `wasde_soybean_oil_domestic_consumption`
+
+---
+
 ## Blockers Identified
 
 1. **Missing scripts:** `scripts/prisma_status.sh`, `scripts/vercel_env_pull.sh` referenced in docs but don't exist
 2. **Signal pipeline stale:** All specialists need fresh signal generation run
-3. **PALM critically stale:** 32 days behind, needs immediate attention
+3. **PALM:** Signal stale due to pipeline not running (raw CPO data is fresh)
+4. **CRUSH:** Column name wiring mismatches + sparse OI data
+
+---
+
+## Proposed Fixes (Awaiting Agent 1 Approval)
+
+### Fix 1: CRUSH column name aliases (data_loaders.py)
+Add after L88:
+```python
+result["volume"] = result["zl_volume"]
+result["open_interest"] = result["zl_open_interest"]
+```
+
+### Fix 2: CRUSH WASDE column name (xgb_signals.py L293)
+Change `wasde_soybean_oil_domestic` → `wasde_soybean_oil_domestic_consumption`
+
+### Fix 3: Regenerate all specialist signals
+```bash
+PYTHONPATH="${PWD}/src:${PYTHONPATH}" .venv/bin/python scripts/generate_specialist_signals.py --bucket all
+```
 
 ---
 
 ## Commits This Session
 
-(To be updated as work progresses)
+1. `agent3: WORKLOG_AGENT3.md - DB access confirmed, §8.5 baseline captured`
