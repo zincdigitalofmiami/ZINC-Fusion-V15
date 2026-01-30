@@ -289,6 +289,8 @@ export function LightweightZlCandlestickChart({
       chartRef.current = null
       candleSeriesRef.current = null
     }
+    // Reset fit flag so new interval gets proper range
+    fitContentCalledRef.current = false
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -388,6 +390,7 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
         upperBand.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP70[i] })))
 
@@ -399,6 +402,7 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
         lowerBand.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP30[i] })))
 
@@ -409,6 +413,7 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
         centerLine.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP50[i] })))
       }
@@ -428,13 +433,30 @@ export function LightweightZlCandlestickChart({
     candleSeries.setData(candleData)
     candleSeriesRef.current = candleSeries
 
-    // Set initial visible range
+    // Set initial visible range and fit price scale
     if (!fitContentCalledRef.current && candleData.length > 0) {
       const totalBars = candleData.length
-      const visibleBars = Math.min(intervalConfig.visibleBars, totalBars)
-      chart.timeScale().setVisibleLogicalRange({
-        from: totalBars - visibleBars,
-        to: totalBars + 10,
+      const targetVisible = intervalConfig.visibleBars
+
+      // For intervals with limited data (fewer bars than target), just fit all content
+      // For intervals with plenty of data, show the most recent targetVisible bars
+      if (totalBars <= targetVisible * 1.1) {
+        // Limited data - fit everything with small padding
+        chart.timeScale().fitContent()
+      } else {
+        // Plenty of data - show most recent bars
+        const from = Math.max(0, totalBars - targetVisible)
+        chart.timeScale().setVisibleLogicalRange({
+          from,
+          to: totalBars + 10,
+        })
+      }
+
+      // Force price scale to fit visible data
+      requestAnimationFrame(() => {
+        if (chartRef.current) {
+          chartRef.current.priceScale('right').applyOptions({ autoScale: true })
+        }
       })
       fitContentCalledRef.current = true
     }
