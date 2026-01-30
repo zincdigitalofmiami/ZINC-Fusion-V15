@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   createChart,
   CandlestickSeries,
@@ -30,27 +30,6 @@ interface ForecastPoint {
   price_p70: number | null
 }
 
-// Interval configuration
-type IntervalKey = '15m' | '1h' | '1m' | '3m' | '6m' | '1y' | '2y'
-
-interface IntervalConfig {
-  label: string
-  endpoint: string
-  barLabel: string
-  visibleBars: number
-  isIntraday: boolean
-}
-
-const INTERVALS: Record<IntervalKey, IntervalConfig> = {
-  '15m': { label: '15m', endpoint: '/api/zl/intraday?hours=72', barLabel: '15m', visibleBars: 96, isIntraday: true },
-  '1h':  { label: '1H',  endpoint: '/api/zl/intraday?hours=168', barLabel: '1H', visibleBars: 72, isIntraday: true },
-  '1m':  { label: '1M',  endpoint: '/api/zl/price-1d?days=30', barLabel: '1D', visibleBars: 30, isIntraday: false },
-  '3m':  { label: '3M',  endpoint: '/api/zl/price-1d?days=90', barLabel: '1D', visibleBars: 90, isIntraday: false },
-  '6m':  { label: '6M',  endpoint: '/api/zl/price-1d?days=180', barLabel: '1D', visibleBars: 150, isIntraday: false },
-  '1y':  { label: '1Y',  endpoint: '/api/zl/price-1d?days=365', barLabel: '1D', visibleBars: 150, isIntraday: false },
-  '2y':  { label: '2Y',  endpoint: '/api/zl/price-1d?days=730', barLabel: '1D', visibleBars: 150, isIntraday: false },
-}
-
 // TradingView exact settings (from user screenshots)
 const THEME = {
   // Candle body colors
@@ -60,8 +39,8 @@ const THEME = {
   borderUpColor: 'transparent',
   borderDownColor: 'transparent',
   // Wicks: White/light gray (NOT body color - per TradingView)
-  wickUpColor: '#FFFFFF',
-  wickDownColor: 'rgba(178,181,190,0.83)',
+  wickUpColor: '#FFFFFF',           // 100% white
+  wickDownColor: 'rgba(178,181,190,0.83)', // ~83% gray
   // Grid: 4-7% opacity (TradingView default)
   gridColor: 'rgba(255,255,255,0.04)',
   // Crosshair
@@ -74,28 +53,6 @@ const THEME = {
   forecastCenterColor: 'rgba(236, 72, 153, 0.8)',
 }
 
-// Aggregate 15m bars into 1h bars
-function aggregate15mTo1h(bars: PriceData[]): PriceData[] {
-  const hourlyBars: PriceData[] = []
-
-  for (let i = 0; i < bars.length; i += 4) {
-    const chunk = bars.slice(i, i + 4)
-    if (chunk.length === 0) continue
-
-    const hourBar: PriceData = {
-      timestamp: chunk[0].timestamp,
-      open: chunk[0].open,
-      high: Math.max(...chunk.map(b => b.high)),
-      low: Math.min(...chunk.map(b => b.low)),
-      close: chunk[chunk.length - 1].close,
-      volume: chunk.reduce((sum, b) => sum + b.volume, 0),
-    }
-    hourlyBars.push(hourBar)
-  }
-
-  return hourlyBars
-}
-
 export function LightweightZlCandlestickChart({
   height = '70vh',
 }: {
@@ -106,7 +63,6 @@ export function LightweightZlCandlestickChart({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const fitContentCalledRef = useRef(false)
 
-  const [selectedInterval, setSelectedInterval] = useState<IntervalKey>('6m')
   const [priceData, setPriceData] = useState<PriceData[]>([])
   const [forecastData, setForecastData] = useState<ForecastPoint[]>([])
   const [lastPrice, setLastPrice] = useState<number | null>(null)
@@ -118,57 +74,37 @@ export function LightweightZlCandlestickChart({
   const [lastUpdate, setLastUpdate] = useState<string>('')
   const [hasForecast, setHasForecast] = useState<boolean>(false)
 
-  const intervalConfig = INTERVALS[selectedInterval]
-
-  // Fetch historical data based on selected interval
+  // Fetch historical data (daily bars)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(intervalConfig.endpoint)
-        if (!res.ok) {
-          console.warn(`Endpoint ${intervalConfig.endpoint} returned ${res.status}`)
-          return
-        }
+        const res = await fetch('/api/zl/price-1d?days=730') // ~2 years of daily data
+        if (!res.ok) throw new Error('Failed to fetch')
         const json = await res.json()
+        if (json.data && json.data.length > 0) {
+          const parsed = json.data.map((d: PriceData) => ({
+            ...d,
+            open: parseFloat(String(d.open)),
+            high: parseFloat(String(d.high)),
+            low: parseFloat(String(d.low)),
+            close: parseFloat(String(d.close)),
+            volume: parseFloat(String(d.volume)),
+          }))
+          setPriceData(parsed)
+          const latest = parsed[parsed.length - 1]
+          const prev = parsed[parsed.length - 2]
+          setLastPrice(latest.close)
 
-        // Handle different response shapes
-        const rawData = json.data || json.bars || []
-        if (rawData.length === 0) {
-          console.warn(`No data returned for ${selectedInterval}`)
-          return
-        }
+          const highs = parsed.map((d: PriceData) => d.high)
+          const lows = parsed.map((d: PriceData) => d.low)
+          setHighPrice(Math.max(...highs))
+          setLowPrice(Math.min(...lows))
 
-        let parsed = rawData.map((d: PriceData & { time?: number }) => ({
-          timestamp: d.timestamp || new Date((d.time || 0) * 1000).toISOString(),
-          open: parseFloat(String(d.open)),
-          high: parseFloat(String(d.high)),
-          low: parseFloat(String(d.low)),
-          close: parseFloat(String(d.close)),
-          volume: parseFloat(String(d.volume || 0)),
-        }))
+          if (prev) {
+            setPriceChange(((latest.close - prev.close) / prev.close) * 100)
+          }
 
-        // Aggregate to 1h if needed
-        if (selectedInterval === '1h') {
-          parsed = aggregate15mTo1h(parsed)
-        }
-
-        setPriceData(parsed)
-
-        const latest = parsed[parsed.length - 1]
-        const prev = parsed[parsed.length - 2]
-        setLastPrice(latest.close)
-
-        const highs = parsed.map((d: PriceData) => d.high)
-        const lows = parsed.map((d: PriceData) => d.low)
-        setHighPrice(Math.max(...highs))
-        setLowPrice(Math.min(...lows))
-
-        if (prev) {
-          setPriceChange(((latest.close - prev.close) / prev.close) * 100)
-        }
-
-        // Calculate volatility (only meaningful for daily data)
-        if (!intervalConfig.isIntraday) {
+          // Calculate 20-day volatility
           const last20 = parsed.slice(-20)
           if (last20.length >= 2) {
             const returns: number[] = []
@@ -181,29 +117,18 @@ export function LightweightZlCandlestickChart({
             const annualizedVol = dailyVol * Math.sqrt(252) * 100
             setVolatility(annualizedVol.toFixed(1) + '%')
           }
-        } else {
-          setVolatility('--')
         }
       } catch (err) {
         console.error('Fetch error:', err)
       }
     }
-
-    // Reset fit flag when interval changes
-    fitContentCalledRef.current = false
-
     fetchData()
-    const interval = setInterval(fetchData, intervalConfig.isIntraday ? 60000 : 900000)
+    const interval = setInterval(fetchData, 900000) // 15 minutes
     return () => clearInterval(interval)
-  }, [selectedInterval, intervalConfig])
+  }, [])
 
-  // Fetch forecast data (only for daily intervals)
+  // Fetch forecast data
   useEffect(() => {
-    if (intervalConfig.isIntraday) {
-      setHasForecast(false)
-      return
-    }
-
     const fetchForecast = async () => {
       try {
         const res = await fetch('/api/zl/forecast')
@@ -224,9 +149,9 @@ export function LightweightZlCandlestickChart({
       }
     }
     fetchForecast()
-    const interval = setInterval(fetchForecast, 300000)
+    const interval = setInterval(fetchForecast, 300000) // 5 minutes
     return () => clearInterval(interval)
-  }, [intervalConfig.isIntraday])
+  }, [])
 
   // Fetch live data (forming candle) - every 10 seconds
   useEffect(() => {
@@ -247,8 +172,8 @@ export function LightweightZlCandlestickChart({
             setPriceChange(json.change_pct)
           }
 
-          // Update forming bar in chart (only for daily)
-          if (!intervalConfig.isIntraday && json.forming_bars?.['1d'] && candleSeriesRef.current && priceData.length > 0) {
+          // Update forming bar in chart
+          if (json.forming_bars?.['1d'] && candleSeriesRef.current && priceData.length > 0) {
             const forming = json.forming_bars['1d']
             const lastBar = priceData[priceData.length - 1]
             const time = Math.floor(new Date(lastBar.timestamp).getTime() / 1000) as UTCTimestamp
@@ -273,24 +198,19 @@ export function LightweightZlCandlestickChart({
     fetchLive()
     const liveInterval = setInterval(fetchLive, 10000)
     return () => clearInterval(liveInterval)
-  }, [priceData, highPrice, lowPrice, intervalConfig.isIntraday])
+  }, [priceData, highPrice, lowPrice])
 
   // Initialize chart
   useEffect(() => {
     if (!chartContainerRef.current || priceData.length === 0) return
 
-    // Clean up previous chart safely
+    // Clean up previous chart
     if (chartRef.current) {
-      try {
-        chartRef.current.remove()
-      } catch {
-        // Chart already disposed, ignore
-      }
+      chartRef.current.remove()
       chartRef.current = null
       candleSeriesRef.current = null
+      fitContentCalledRef.current = false
     }
-    // Reset fit flag so new interval gets proper range
-    fitContentCalledRef.current = false
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -322,28 +242,29 @@ export function LightweightZlCandlestickChart({
         borderColor: 'transparent',
         autoScale: true,
         scaleMargins: {
-          top: 0.05,
-          bottom: 0.05,
+          top: 0.05,    // 5% padding at top (TradingView-tight)
+          bottom: 0.05, // 5% padding at bottom
         },
       },
       timeScale: {
         borderColor: 'transparent',
-        timeVisible: intervalConfig.isIntraday,
-        fixLeftEdge: false,
-        fixRightEdge: false,
-        rightOffset: 20,
+        timeVisible: false,
+        fixLeftEdge: false,  // Allow scroll back past data start
+        fixRightEdge: false, // Allow scroll forward past data end
+        rightOffset: 20,     // Space on right for forward scroll
       },
+      // Interactions: axis drag to scroll, double-click to reset
       handleScroll: {
-        mouseWheel: false,
-        pressedMouseMove: true,
-        horzTouchDrag: true,
-        vertTouchDrag: false,
+        mouseWheel: false,        // Page scroll not hijacked
+        pressedMouseMove: true,   // Allow drag to pan horizontally
+        horzTouchDrag: true,      // Touch horizontal pan
+        vertTouchDrag: false,     // Allow page scroll on vertical swipe
       },
       handleScale: {
-        mouseWheel: false,
-        pinch: true,
+        mouseWheel: false,        // No wheel zoom on plot area
+        pinch: true,              // Pinch to zoom on touch
         axisPressedMouseMove: { time: true, price: true },
-        axisDoubleClickReset: { time: true, price: true },
+        axisDoubleClickReset: { time: true, price: true }, // Double-click axis to reset
       },
     })
 
@@ -361,11 +282,12 @@ export function LightweightZlCandlestickChart({
     // Sort chronologically
     candleData.sort((a, b) => (a.time as number) - (b.time as number))
 
-    // Add forecast band if available (only for daily, rendered first behind candles)
-    if (hasForecast && forecastData.length > 0 && candleData.length > 0 && !intervalConfig.isIntraday) {
+    // Add forecast band if available (rendered first, behind candles)
+    if (hasForecast && forecastData.length > 0 && candleData.length > 0) {
       const lastCandleTime = candleData[candleData.length - 1].time as number
       const currentPrice = candleData[candleData.length - 1].close
 
+      // Build forecast points
       const forecastTimes: UTCTimestamp[] = [lastCandleTime as UTCTimestamp]
       const forecastP30: number[] = [currentPrice]
       const forecastP50: number[] = [currentPrice]
@@ -382,6 +304,7 @@ export function LightweightZlCandlestickChart({
       }
 
       if (forecastTimes.length > 1) {
+        // Upper band (p50 to p70)
         const upperBand = chart.addSeries(AreaSeries, {
           topColor: THEME.forecastBandColor,
           bottomColor: 'transparent',
@@ -390,10 +313,12 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
-        upperBand.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP70[i] })))
+        upperBand.setData(
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP70[i] }))
+        )
 
+        // Lower band (p30 to p50)
         const lowerBand = chart.addSeries(AreaSeries, {
           topColor: 'transparent',
           bottomColor: THEME.forecastBandColor,
@@ -402,10 +327,12 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
-        lowerBand.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP30[i] })))
+        lowerBand.setData(
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP30[i] }))
+        )
 
+        // Center line (p50 - dashed)
         const centerLine = chart.addSeries(LineSeries, {
           color: THEME.forecastCenterColor,
           lineWidth: 2,
@@ -413,13 +340,14 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-          autoscaleInfoProvider: () => null, // Exclude from autoscale
         })
-        centerLine.setData(forecastTimes.map((t, i) => ({ time: t, value: forecastP50[i] })))
+        centerLine.setData(
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP50[i] }))
+        )
       }
     }
 
-    // Add candlestick series
+    // Add candlestick series (TradingView exact: transparent borders, white/gray wicks)
     const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: THEME.upColor,
       downColor: THEME.downColor,
@@ -433,30 +361,13 @@ export function LightweightZlCandlestickChart({
     candleSeries.setData(candleData)
     candleSeriesRef.current = candleSeries
 
-    // Set initial visible range and fit price scale
+    // Set initial visible range to last 5 months (~150 bars) instead of all data
     if (!fitContentCalledRef.current && candleData.length > 0) {
       const totalBars = candleData.length
-      const targetVisible = intervalConfig.visibleBars
-
-      // For intervals with limited data (fewer bars than target), just fit all content
-      // For intervals with plenty of data, show the most recent targetVisible bars
-      if (totalBars <= targetVisible * 1.1) {
-        // Limited data - fit everything with small padding
-        chart.timeScale().fitContent()
-      } else {
-        // Plenty of data - show most recent bars
-        const from = Math.max(0, totalBars - targetVisible)
-        chart.timeScale().setVisibleLogicalRange({
-          from,
-          to: totalBars + 10,
-        })
-      }
-
-      // Force price scale to fit visible data
-      requestAnimationFrame(() => {
-        if (chartRef.current) {
-          chartRef.current.priceScale('right').applyOptions({ autoScale: true })
-        }
+      const visibleBars = Math.min(150, totalBars) // 5 months or all if less
+      chart.timeScale().setVisibleLogicalRange({
+        from: totalBars - visibleBars,
+        to: totalBars + 10, // Small offset for forward scroll space
       })
       fitContentCalledRef.current = true
     }
@@ -471,13 +382,9 @@ export function LightweightZlCandlestickChart({
 
     return () => {
       resizeObserver.disconnect()
-      try {
-        chart.remove()
-      } catch {
-        // Chart already disposed, ignore
-      }
+      chart.remove()
     }
-  }, [priceData, forecastData, hasForecast, intervalConfig])
+  }, [priceData, forecastData, hasForecast])
 
   return (
     <div
@@ -487,7 +394,7 @@ export function LightweightZlCandlestickChart({
         height: typeof height === 'number' ? `${height}px` : height,
       }}
     >
-      {/* Header */}
+      {/* Header - compact */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -505,7 +412,7 @@ export function LightweightZlCandlestickChart({
               </span>
             )}
           </div>
-          <span className="text-[11px] text-white/30 font-medium">Soybean Oil • {intervalConfig.barLabel}</span>
+          <span className="text-[11px] text-white/30 font-medium">Soybean Oil • 1D</span>
           {lastUpdate && (
             <span className="text-[9px] text-white/20 font-mono">{lastUpdate}</span>
           )}
@@ -517,28 +424,7 @@ export function LightweightZlCandlestickChart({
             </div>
           )}
         </div>
-
-        {/* Interval Tabs + Stats */}
         <div className="flex items-center gap-4">
-          {/* Interval Tabs */}
-          <div className="flex items-center bg-white/5 rounded-md p-0.5">
-            {(Object.keys(INTERVALS) as IntervalKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => setSelectedInterval(key)}
-                className={`px-2 py-1 text-[10px] font-medium rounded transition-all ${
-                  selectedInterval === key
-                    ? 'bg-violet-500/30 text-violet-300'
-                    : 'text-white/40 hover:text-white/60'
-                }`}
-              >
-                {INTERVALS[key].label}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-3 w-px bg-white/10" />
-
           {highPrice && lowPrice && (
             <div className="flex items-center gap-3 text-[11px]">
               <div className="flex items-center gap-1">
@@ -575,6 +461,7 @@ export function LightweightZlCandlestickChart({
 
       {/* Chart area */}
       <div className="relative w-full flex-1 min-h-0">
+        {/* Watermark (DOM overlay - 10% opacity per TradingView) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <img
             src="/chart_watermark.svg"
