@@ -290,7 +290,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 "wasde_soybean_oil_production",
                 "wasde_soybeans_crush",
                 "wasde_soybean_oil_exports",
-                "wasde_soybean_oil_domestic",
+                "wasde_soybean_oil_domestic_consumption",
                 # Extended complex
                 "zs_volume",  # Soybeans volume
                 "zm_volume",  # Meal volume
