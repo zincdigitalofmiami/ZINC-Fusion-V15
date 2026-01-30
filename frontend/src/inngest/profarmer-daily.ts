@@ -1,7 +1,10 @@
 /**
- * ProFarmer Premium News Scraper (Headless Browser + CAPTCHA Solving)
+ * ProFarmer Premium News Scraper (Stealth Headless Browser)
  *
- * Scrapes 4 key reports from ProFarmer ($500/month subscription):
+ * Client pays $500/month for ProFarmer subscription.
+ * Uses puppeteer-extra with stealth plugin to bypass bot detection.
+ *
+ * Scrapes 4 key reports:
  * - Daily Advice Monitor (trading signals)
  * - First Thing Today (morning outlook)
  * - Washington/Ag Policy (policy news)
@@ -10,21 +13,11 @@
  * Requires env vars:
  *   PROFARMER_USERNAME - ProFarmer login email
  *   PROFARMER_PASSWORD - ProFarmer password
- *   TWOCAPTCHA_API_KEY - 2captcha.com API key (for captcha solving)
- *
- * Schedule: Daily at 6 AM CT (after First Thing Today) and 5 PM CT (after After the Bell)
  */
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
 import { Pool, type PoolClient } from "pg";
-
-// Dynamically import puppeteer to avoid bundling issues
-async function getPuppeteer() {
-  const puppeteer = await import("puppeteer-core");
-  const chromium = await import("@sparticuz/chromium");
-  return { puppeteer: puppeteer.default, chromium: chromium.default };
-}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -34,35 +27,30 @@ const pool = new Pool({
 const PROFARMER_BASE = "https://www.profarmer.com";
 const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;
 
-// Reports to scrape with their specialist tags
 const REPORTS = [
   {
     slug: "daily-advice-monitor",
     name: "Daily Advice Monitor",
     url: `${PROFARMER_BASE}/daily-advice-monitor/`,
     specialists: ["crush", "china", "energy"],
-    priority: "critical",
   },
   {
     slug: "first-thing-today",
     name: "First Thing Today",
     url: `${PROFARMER_BASE}/first-thing-today/`,
     specialists: ["crush", "china"],
-    priority: "high",
   },
   {
     slug: "washington-ag-policy",
     name: "Washington/Ag Policy",
     url: `${PROFARMER_BASE}/washington-ag-policy/`,
     specialists: ["tariff", "biofuel", "trump_effect"],
-    priority: "critical",
   },
   {
     slug: "after-the-bell",
     name: "After the Bell",
     url: `${PROFARMER_BASE}/after-the-bell/`,
     specialists: ["crush", "volatility"],
-    priority: "high",
   },
 ];
 
@@ -105,124 +93,201 @@ interface ArticleData {
 }
 
 /**
- * Solve reCAPTCHA using 2captcha service
- */
-async function solveCaptcha(siteKey: string, pageUrl: string): Promise<string> {
-  const apiKey = process.env.TWOCAPTCHA_API_KEY;
-  if (!apiKey) {
-    throw new Error("TWOCAPTCHA_API_KEY not configured - cannot solve captcha");
-  }
-
-  // Submit captcha to 2captcha
-  const submitUrl = `https://2captcha.com/in.php?key=${apiKey}&method=userrecaptcha&googlekey=${siteKey}&pageurl=${encodeURIComponent(pageUrl)}&json=1`;
-  const submitRes = await fetch(submitUrl);
-  const submitJson = await submitRes.json() as { status: number; request: string };
-  
-  if (submitJson.status !== 1) {
-    throw new Error(`2captcha submit failed: ${submitJson.request}`);
-  }
-  
-  const captchaId = submitJson.request;
-  
-  // Poll for result (max 120 seconds)
-  for (let i = 0; i < 24; i++) {
-    await new Promise(r => setTimeout(r, 5000)); // Wait 5 seconds
-    
-    const resultUrl = `https://2captcha.com/res.php?key=${apiKey}&action=get&id=${captchaId}&json=1`;
-    const resultRes = await fetch(resultUrl);
-    const resultJson = await resultRes.json() as { status: number; request: string };
-    
-    if (resultJson.status === 1) {
-      return resultJson.request; // The solved captcha token
-    }
-    
-    if (resultJson.request !== "CAPCHA_NOT_READY") {
-      throw new Error(`2captcha solve failed: ${resultJson.request}`);
-    }
-  }
-  
-  throw new Error("2captcha timeout - captcha not solved in 120 seconds");
-}
-
-/**
- * Launch headless browser and login to ProFarmer
+ * Launch stealth browser and login to ProFarmer
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function loginWithBrowser(): Promise<{ browser: any; page: any }> {
+async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
   const user = process.env.PROFARMER_USERNAME;
   const pass = process.env.PROFARMER_PASSWORD;
 
   if (!user || !pass) {
-    throw new Error("PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required");
+    throw new Error("PROFARMER_USERNAME and PROFARMER_PASSWORD required");
   }
 
-  const { puppeteer, chromium } = await getPuppeteer();
+  // Dynamic imports for serverless
+  const puppeteerExtra = await import("puppeteer-extra");
+  const StealthPlugin = await import("puppeteer-extra-plugin-stealth");
+  const chromium = await import("@sparticuz/chromium");
 
-  // Launch browser with Vercel-compatible chromium
-  const browser = await puppeteer.launch({
-    args: chromium.args,
+  // Add stealth plugin to bypass bot detection
+  puppeteerExtra.default.use(StealthPlugin.default());
+
+  const browser = await puppeteerExtra.default.launch({
+    args: [
+      ...chromium.default.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--window-size=1920,1080',
+    ],
     defaultViewport: { width: 1920, height: 1080 },
-    executablePath: await chromium.executablePath(),
+    executablePath: await chromium.default.executablePath(),
     headless: true,
+    ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
-  
-  // Set realistic user agent
+
+  // Set realistic viewport and user agent
+  await page.setViewport({ width: 1920, height: 1080 });
   await page.setUserAgent(
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   );
 
-  // Navigate to login page
-  await page.goto(PROFARMER_LOGIN_URL, { waitUntil: "networkidle2", timeout: 30000 });
-  
-  // Check for reCAPTCHA
-  const recaptchaFrame = await page.$('iframe[src*="recaptcha"]');
-  const recaptchaSiteKey = await page.evaluate(() => {
-    const el = document.querySelector('[data-sitekey]');
-    return el?.getAttribute('data-sitekey') || null;
+  // Set extra headers to look more human
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
   });
 
-  if (recaptchaFrame && recaptchaSiteKey) {
-    console.log("reCAPTCHA detected, solving with 2captcha...");
-    const captchaToken = await solveCaptcha(recaptchaSiteKey, PROFARMER_LOGIN_URL);
-    
-    // Inject the captcha token
-    await page.evaluate((token: string) => {
-      const textarea = document.querySelector('#g-recaptcha-response') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.value = token;
-        textarea.style.display = 'block';
-      }
-    }, captchaToken);
-  }
+  // Navigate to login page
+  console.log('Navigating to ProFarmer login...');
+  await page.goto(PROFARMER_LOGIN_URL, { 
+    waitUntil: 'networkidle2', 
+    timeout: 60000 
+  });
 
-  // Fill in credentials
-  await page.waitForSelector('input[name="email"], input[type="email"]', { timeout: 10000 });
-  await page.type('input[name="email"], input[type="email"]', user, { delay: 50 });
-  await page.type('input[name="password"], input[type="password"]', pass, { delay: 50 });
+  // Random delay to appear human
+  await page.waitForTimeout(1000 + Math.random() * 2000);
+
+  // Find and fill email field
+  console.log('Filling credentials...');
+  const emailSelectors = [
+    'input[name="email"]',
+    'input[type="email"]',
+    'input[id*="email"]',
+    'input[placeholder*="email" i]',
+    'input[placeholder*="Email" i]',
+  ];
   
-  // Click login button
-  const loginButton = await page.$('button[type="submit"], input[type="submit"]');
-  if (loginButton) {
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }),
-      loginButton.click(),
-    ]);
+  let emailField = null;
+  for (const sel of emailSelectors) {
+    emailField = await page.$(sel);
+    if (emailField) break;
+  }
+  
+  if (!emailField) {
+    // Take screenshot for debugging
+    const html = await page.content();
+    console.log('Page HTML snippet:', html.substring(0, 2000));
+    throw new Error('Could not find email input field');
   }
 
-  // Verify login succeeded
+  // Type slowly like a human
+  await emailField.click();
+  await page.waitForTimeout(200);
+  for (const char of user) {
+    await page.keyboard.type(char, { delay: 50 + Math.random() * 100 });
+  }
+
+  // Find and fill password field
+  const passwordSelectors = [
+    'input[name="password"]',
+    'input[type="password"]',
+    'input[id*="password"]',
+  ];
+  
+  let passwordField = null;
+  for (const sel of passwordSelectors) {
+    passwordField = await page.$(sel);
+    if (passwordField) break;
+  }
+  
+  if (!passwordField) {
+    throw new Error('Could not find password input field');
+  }
+
+  await passwordField.click();
+  await page.waitForTimeout(200);
+  for (const char of pass) {
+    await page.keyboard.type(char, { delay: 50 + Math.random() * 100 });
+  }
+
+  // Find and click submit button
+  await page.waitForTimeout(500);
+  const submitSelectors = [
+    'button[type="submit"]',
+    'input[type="submit"]',
+    'button:contains("Sign In")',
+    'button:contains("Login")',
+    'button:contains("Log In")',
+    '.login-button',
+    '#login-button',
+  ];
+
+  let submitButton = null;
+  for (const sel of submitSelectors) {
+    try {
+      submitButton = await page.$(sel);
+      if (submitButton) break;
+    } catch {
+      continue;
+    }
+  }
+
+  if (!submitButton) {
+    // Try XPath for buttons containing text
+    const buttons = await page.$$('button');
+    for (const btn of buttons) {
+      const text = await page.evaluate((el: Element) => el.textContent, btn);
+      if (text && (text.toLowerCase().includes('sign in') || text.toLowerCase().includes('login'))) {
+        submitButton = btn;
+        break;
+      }
+    }
+  }
+
+  if (!submitButton) {
+    throw new Error('Could not find submit button');
+  }
+
+  console.log('Submitting login form...');
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {}),
+    submitButton.click(),
+  ]);
+
+  // Wait for redirect
+  await page.waitForTimeout(3000);
+
+  // Check if login succeeded
   const currentUrl = page.url();
-  if (currentUrl.includes("sign-in") || currentUrl.includes("login")) {
-    await browser.close();
-    throw new Error("ProFarmer login failed - still on login page after submit");
+  console.log('Current URL after login:', currentUrl);
+  
+  if (currentUrl.includes('sign-in') || currentUrl.includes('login')) {
+    // Check for error messages
+    const errorText = await page.evaluate(() => {
+      const errorEl = document.querySelector('.error, .alert-danger, [class*="error"]');
+      return errorEl?.textContent || null;
+    });
+    
+    if (errorText) {
+      throw new Error(`Login failed: ${errorText}`);
+    }
+    
+    // Maybe there's a captcha
+    const hasCaptcha = await page.evaluate(() => {
+      return !!document.querySelector('iframe[src*="recaptcha"], [class*="captcha"], #captcha');
+    });
+    
+    if (hasCaptcha) {
+      throw new Error('Login blocked by CAPTCHA - need TWOCAPTCHA_API_KEY');
+    }
+    
+    throw new Error('Login failed - still on login page');
   }
 
+  console.log('Login successful!');
   return { browser, page };
 }
 
 /**
- * Scrape articles from a report page using Puppeteer
+ * Scrape articles from a report page
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function scrapeReportArticles(
@@ -230,82 +295,137 @@ async function scrapeReportArticles(
   reportUrl: string,
   reportSlug: string,
   specialists: string[],
-  maxArticles: number = 10
+  maxArticles: number = 15
 ): Promise<ArticleData[]> {
-  await page.goto(reportUrl, { waitUntil: "networkidle2", timeout: 30000 });
-  
-  // Extract article data from the page
+  console.log(`Scraping ${reportUrl}...`);
+  await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+  await page.waitForTimeout(1000 + Math.random() * 1000);
+
+  // Extract articles
   const articles = await page.evaluate((slug: string, specs: string[], max: number) => {
-    const results: Array<{
-      url: string;
-      title: string;
-      content: string;
-      pubDate: string;
-      reportSlug: string;
-      specialists: string[];
-    }> = [];
+    const results: ArticleData[] = [];
     
-    // Find article elements (common WordPress patterns)
-    const articleEls = document.querySelectorAll('article, .post, .entry, [class*="article"]');
+    // Try multiple selectors for article containers
+    const selectors = [
+      'article',
+      '.post',
+      '.entry',
+      '[class*="article"]',
+      '.content-item',
+      '.news-item',
+      '.list-item',
+    ];
     
-    for (const el of Array.from(articleEls).slice(0, max)) {
-      const linkEl = el.querySelector('a[href*="profarmer.com"]') as HTMLAnchorElement | null;
-      const titleEl = el.querySelector('h1, h2, h3, h4, .title, .entry-title');
-      const dateEl = el.querySelector('time, .date, .published, [datetime]');
-      const contentEl = el.querySelector('.content, .excerpt, .entry-content, p');
-      
-      if (!linkEl?.href || !titleEl?.textContent) continue;
-      
-      // Extract date
-      let pubDate = '';
-      if (dateEl) {
-        pubDate = dateEl.getAttribute('datetime') || dateEl.textContent || '';
-        const dateMatch = pubDate.match(/(\d{4})-(\d{2})-(\d{2})/);
-        if (dateMatch) {
-          pubDate = dateMatch[0];
-        } else {
-          const parsed = new Date(pubDate);
-          if (!isNaN(parsed.getTime())) {
-            pubDate = parsed.toISOString().split('T')[0];
+    let articleEls: Element[] = [];
+    for (const sel of selectors) {
+      const els = document.querySelectorAll(sel);
+      if (els.length > 0) {
+        articleEls = Array.from(els);
+        break;
+      }
+    }
+    
+    // If no containers found, try finding links directly
+    if (articleEls.length === 0) {
+      const links = document.querySelectorAll('a[href*="profarmer.com"]');
+      articleEls = Array.from(links).map(l => l.parentElement!).filter(Boolean);
+    }
+
+    for (const el of articleEls.slice(0, max)) {
+      try {
+        // Find link
+        const linkEl = el.querySelector('a[href*="profarmer.com"]') as HTMLAnchorElement;
+        if (!linkEl?.href) continue;
+        
+        // Skip navigation/menu links
+        if (linkEl.href.includes('/r/') || linkEl.href.includes('sign-in')) continue;
+        
+        // Find title
+        const titleEl = el.querySelector('h1, h2, h3, h4, .title, .entry-title, a');
+        const title = titleEl?.textContent?.trim();
+        if (!title || title.length < 10) continue;
+        
+        // Find date
+        let pubDate = '';
+        const dateEl = el.querySelector('time, .date, .published, [datetime]');
+        if (dateEl) {
+          pubDate = dateEl.getAttribute('datetime') || dateEl.textContent || '';
+        }
+        
+        // Extract date from URL if not found
+        if (!pubDate) {
+          const urlMatch = linkEl.href.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
+          if (urlMatch) {
+            pubDate = `${urlMatch[1]}-${urlMatch[2]}-${urlMatch[3]}`;
           }
         }
-      }
-      
-      if (!pubDate) {
-        const urlDateMatch = linkEl.href.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
-        if (urlDateMatch) {
-          pubDate = `${urlDateMatch[1]}-${urlDateMatch[2]}-${urlDateMatch[3]}`;
-        } else {
+        
+        // Parse date
+        if (pubDate) {
+          const dateMatch = pubDate.match(/(\d{4})-(\d{2})-(\d{2})/);
+          if (dateMatch) {
+            pubDate = dateMatch[0];
+          } else {
+            const parsed = new Date(pubDate);
+            if (!isNaN(parsed.getTime())) {
+              pubDate = parsed.toISOString().split('T')[0];
+            }
+          }
+        }
+        
+        if (!pubDate) {
           pubDate = new Date().toISOString().split('T')[0];
         }
+        
+        // Get excerpt/content
+        const contentEl = el.querySelector('.excerpt, .content, .entry-content, p');
+        const content = contentEl?.textContent?.trim().slice(0, 2000) || '';
+        
+        results.push({
+          url: linkEl.href,
+          title,
+          content,
+          pubDate,
+          reportSlug: slug,
+          specialists: specs,
+        });
+      } catch {
+        continue;
       }
-      
-      results.push({
-        url: linkEl.href,
-        title: titleEl.textContent.trim(),
-        content: contentEl?.textContent?.trim().slice(0, 2000) || '',
-        pubDate,
-        reportSlug: slug,
-        specialists: specs,
-      });
     }
     
     return results;
   }, reportSlug, specialists, maxArticles);
 
-  // Fetch full content for each article
-  for (const article of articles) {
-    if (article.content.length < 500 && article.url) {
+  // Fetch full content for articles with short excerpts
+  for (const article of articles.slice(0, 10)) {
+    if (article.content.length < 500) {
       try {
-        await page.goto(article.url, { waitUntil: "networkidle2", timeout: 15000 });
+        await page.goto(article.url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.waitForTimeout(500);
+        
         const fullContent = await page.evaluate(() => {
-          const contentEl = document.querySelector('.entry-content, .article-content, .post-content, article');
-          return contentEl?.textContent?.trim().slice(0, 5000) || '';
+          const selectors = [
+            '.entry-content',
+            '.article-content', 
+            '.post-content',
+            '.content',
+            'article',
+            'main',
+          ];
+          
+          for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el?.textContent && el.textContent.length > 200) {
+              return el.textContent.trim().slice(0, 8000);
+            }
+          }
+          return '';
         });
+        
         if (fullContent.length > article.content.length) {
           article.content = fullContent;
         }
-        await new Promise(r => setTimeout(r, 500)); // Rate limit
       } catch {
         // Keep partial content
       }
@@ -316,13 +436,9 @@ async function scrapeReportArticles(
 }
 
 export const profarmerDaily = inngest.createFunction(
-  { id: "profarmer-daily", name: "ProFarmer Premium News Daily (Headless)", retries: 1 },
+  { id: "profarmer-daily", name: "ProFarmer Premium Scraper (Stealth)", retries: 2 },
   { cron: "0 12,23 * * 1-5" }, // 6 AM CT and 5 PM CT weekdays
   async ({ step, logger }) => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL not configured");
-    }
-
     const client = await pool.connect();
     let runId: string | null = null;
     let attempted = 0;
@@ -333,198 +449,45 @@ export const profarmerDaily = inngest.createFunction(
     let browser: any = null;
 
     try {
-      runId = await step.run("create-ingest-run", () =>
-        createIngestRun(client, "profarmer-daily")
-      );
-      logger.info(`Started ProFarmer ingest run: ${runId}`);
+      runId = await step.run("create-ingest-run", () => createIngestRun(client, "profarmer-daily"));
+      logger.info(`ProFarmer ingest run: ${runId}`);
 
-      if (!process.env.PROFARMER_USERNAME || !process.env.PROFARMER_PASSWORD) {
-        const msg = "PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required";
-        await updateIngestRun(client, runId!, "blocked_credentials", attempted, inserted, skipped, quarantined, msg);
-        return { status: "blocked_credentials", runId, error: msg };
-      }
-
-      // Step 1: Login with headless browser
+      // Launch stealth browser and login
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let page: any;
       try {
-        const result = await step.run("login-browser", async () => {
-          return await loginWithBrowser();
+        const result = await step.run("login", async () => {
+          return await launchStealthBrowser();
         });
         browser = result.browser;
         page = result.page;
+        logger.info("ProFarmer login successful");
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        await updateIngestRun(client, runId!, "login_failed", attempted, inserted, skipped, quarantined, msg);
-        return { status: "login_failed", runId, error: msg };
+        logger.error(`ProFarmer login failed: ${msg}`);
+        await updateIngestRun(client, runId!, "login_failed", 0, 0, 0, 0, msg);
+        return { status: "login_failed", error: msg };
       }
-      logger.info("Successfully logged into ProFarmer via headless browser");
 
-      // Step 2: Scrape articles from each report
+      // Scrape each report
       for (const report of REPORTS) {
-        const articles = await step.run(`scrape-${report.slug}`, async () => {
-          return await scrapeReportArticles(
-            page,
-            report.url,
-            report.slug,
-            report.specialists,
-            10
-          );
-        });
-
-        logger.info(`Scraped ${articles.length} articles from ${report.name}`);
-
-        // Step 3: Insert articles
-        for (const article of articles) {
-          attempted++;
-
-          const rowHash = computeRowHash(article.url, article.title, article.pubDate);
-
-          // Check if already exists
-          const existing = await client.query(
-            `SELECT 1 FROM alt.news_1d WHERE row_hash = $1 LIMIT 1`,
-            [rowHash]
-          );
-
-          if (existing.rows.length > 0) {
-            skipped++;
-            continue;
-          }
-
-          try {
-            await client.query(
-              `INSERT INTO alt.news_1d (
-                 event_date, source, headline, content, url,
-                 specialist_tags, raw_payload, row_hash, ingestion_batch_id
-               ) VALUES ($1::date, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
-              [
-                article.pubDate,
-                "profarmer",
-                article.title,
-                article.content,
-                article.url,
-                article.specialists,
-                JSON.stringify({
-                  report: report.name,
-                  reportSlug: report.slug,
-                  priority: report.priority,
-                  scrapeMethod: "puppeteer",
-                }),
-                rowHash,
-                runId,
-              ]
-            );
-            inserted++;
-          } catch (err) {
-            quarantined++;
-            logger.warn(`Failed to insert article: ${article.url} - ${err}`);
-          }
-        }
-      }
-
-      await step.run("complete", () =>
-        updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined)
-      );
-
-      return {
-        status: "success",
-        runId,
-        attempted,
-        inserted,
-        skipped,
-        quarantined,
-        reports: REPORTS.map((r) => r.name),
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
-      }
-      throw error;
-    } finally {
-      if (browser) {
-        await browser.close();
-      }
-      client.release();
-    }
-  }
-);
-
-/**
- * Manual backfill function - fetches last 6 months of articles
- */
-export const profarmerBackfill = inngest.createFunction(
-  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill (Headless)", retries: 1 },
-  { event: "profarmer/backfill" }, // Triggered manually
-  async ({ step, logger }) => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL not configured");
-    }
-
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let browser: any = null;
-
-    try {
-      runId = await step.run("create-ingest-run", () =>
-        createIngestRun(client, "profarmer-backfill")
-      );
-      logger.info(`Started ProFarmer backfill run: ${runId}`);
-
-      if (!process.env.PROFARMER_USERNAME || !process.env.PROFARMER_PASSWORD) {
-        const msg = "PROFARMER_USERNAME and PROFARMER_PASSWORD environment variables required";
-        await updateIngestRun(client, runId!, "blocked_credentials", attempted, inserted, skipped, quarantined, msg);
-        return { status: "blocked_credentials", runId, error: msg };
-      }
-
-      // Login with headless browser
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let page: any;
-      try {
-        const result = await step.run("login-browser", async () => {
-          return await loginWithBrowser();
-        });
-        browser = result.browser;
-        page = result.page;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        await updateIngestRun(client, runId!, "login_failed", attempted, inserted, skipped, quarantined, msg);
-        return { status: "login_failed", runId, error: msg };
-      }
-
-      // For backfill, paginate through archives
-      for (const report of REPORTS) {
-        for (let pageNum = 1; pageNum <= 30; pageNum++) {
-          const pageUrl = pageNum === 1 ? report.url : `${report.url}page/${pageNum}/`;
-          
-          const articles = await step.run(`backfill-${report.slug}-p${pageNum}`, async () => {
-            try {
-              return await scrapeReportArticles(page, pageUrl, report.slug, report.specialists, 20);
-            } catch {
-              return []; // End of pagination
-            }
+        try {
+          const articles = await step.run(`scrape-${report.slug}`, async () => {
+            return await scrapeReportArticles(page, report.url, report.slug, report.specialists, 15);
           });
 
-          if (articles.length === 0) break; // No more pages
-
-          logger.info(`Backfill: ${articles.length} articles from ${report.name} page ${pageNum}`);
+          logger.info(`${report.name}: ${articles.length} articles found`);
 
           for (const article of articles) {
             attempted++;
-
             const rowHash = computeRowHash(article.url, article.title, article.pubDate);
 
-            const existing = await client.query(
+            const exists = await client.query(
               `SELECT 1 FROM alt.news_1d WHERE row_hash = $1 LIMIT 1`,
               [rowHash]
             );
 
-            if (existing.rows.length > 0) {
+            if (exists.rows.length > 0) {
               skipped++;
               continue;
             }
@@ -542,32 +505,31 @@ export const profarmerBackfill = inngest.createFunction(
                   article.content,
                   article.url,
                   article.specialists,
-                  JSON.stringify({ report: report.slug, backfill: true, page: pageNum }),
+                  JSON.stringify({ report: report.name, slug: report.slug }),
                   rowHash,
                   runId,
                 ]
               );
               inserted++;
-            } catch {
+              logger.info(`Inserted: ${article.title.slice(0, 50)}...`);
+            } catch (err) {
               quarantined++;
+              logger.warn(`Insert failed: ${err}`);
             }
           }
-
-          // Rate limit between pages
-          await new Promise((r) => setTimeout(r, 2000));
+        } catch (err) {
+          logger.warn(`Report ${report.name} failed: ${err}`);
         }
       }
 
-      await step.run("complete", () =>
-        updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined)
-      );
-
-      return {
-        status: "success",
-        runId,
-        attempted,
-        inserted,
-        skipped,
+      await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
+      
+      return { 
+        status: "success", 
+        runId, 
+        attempted, 
+        inserted, 
+        skipped, 
         quarantined,
       };
     } catch (error) {
@@ -577,9 +539,99 @@ export const profarmerBackfill = inngest.createFunction(
       }
       throw error;
     } finally {
-      if (browser) {
-        await browser.close();
+      if (browser) await browser.close();
+      client.release();
+    }
+  }
+);
+
+export const profarmerBackfill = inngest.createFunction(
+  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1 },
+  { event: "profarmer/backfill" },
+  async ({ step, logger }) => {
+    const client = await pool.connect();
+    let runId: string | null = null;
+    let attempted = 0;
+    let inserted = 0;
+    let skipped = 0;
+    let quarantined = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let browser: any = null;
+
+    try {
+      runId = await step.run("create-run", () => createIngestRun(client, "profarmer-backfill"));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let page: any;
+      const result = await step.run("login", () => launchStealthBrowser());
+      browser = result.browser;
+      page = result.page;
+
+      for (const report of REPORTS) {
+        for (let pageNum = 1; pageNum <= 50; pageNum++) {
+          const pageUrl = pageNum === 1 ? report.url : `${report.url}page/${pageNum}/`;
+          
+          try {
+            const articles = await step.run(`${report.slug}-p${pageNum}`, async () => {
+              return await scrapeReportArticles(page, pageUrl, report.slug, report.specialists, 20);
+            });
+
+            if (articles.length === 0) break;
+            logger.info(`${report.name} p${pageNum}: ${articles.length} articles`);
+
+            for (const article of articles) {
+              attempted++;
+              const rowHash = computeRowHash(article.url, article.title, article.pubDate);
+
+              const exists = await client.query(
+                `SELECT 1 FROM alt.news_1d WHERE row_hash = $1 LIMIT 1`,
+                [rowHash]
+              );
+
+              if (exists.rows.length > 0) {
+                skipped++;
+                continue;
+              }
+
+              try {
+                await client.query(
+                  `INSERT INTO alt.news_1d (
+                     event_date, source, headline, content, url,
+                     specialist_tags, raw_payload, row_hash, ingestion_batch_id
+                   ) VALUES ($1::date, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+                  [
+                    article.pubDate,
+                    "profarmer",
+                    article.title,
+                    article.content,
+                    article.url,
+                    article.specialists,
+                    JSON.stringify({ report: report.slug, backfill: true, page: pageNum }),
+                    rowHash,
+                    runId,
+                  ]
+                );
+                inserted++;
+              } catch {
+                quarantined++;
+              }
+            }
+
+            await new Promise(r => setTimeout(r, 2000));
+          } catch {
+            break;
+          }
+        }
       }
+
+      await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
+      return { status: "success", attempted, inserted, skipped, quarantined };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (runId) await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+      throw error;
+    } finally {
+      if (browser) await browser.close();
       client.release();
     }
   }
