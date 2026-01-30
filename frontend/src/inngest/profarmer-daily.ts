@@ -153,107 +153,45 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
   });
 
   // Random delay to appear human
-  await page.waitForTimeout(1000 + Math.random() * 2000);
+  await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
 
-  // Find and fill email field
-  console.log('Filling credentials...');
-  const emailSelectors = [
-    'input[name="email"]',
-    'input[type="email"]',
-    'input[id*="email"]',
-    'input[placeholder*="email" i]',
-    'input[placeholder*="Email" i]',
-  ];
-  
-  let emailField = null;
-  for (const sel of emailSelectors) {
-    emailField = await page.$(sel);
-    if (emailField) break;
-  }
-  
-  if (!emailField) {
-    // Take screenshot for debugging
-    const html = await page.content();
-    console.log('Page HTML snippet:', html.substring(0, 2000));
-    throw new Error('Could not find email input field');
-  }
-
-  // Type slowly like a human
-  await emailField.click();
-  await page.waitForTimeout(200);
-  for (const char of user) {
-    await page.keyboard.type(char, { delay: 50 + Math.random() * 100 });
-  }
-
-  // Find and fill password field
-  const passwordSelectors = [
-    'input[name="password"]',
-    'input[type="password"]',
-    'input[id*="password"]',
-  ];
-  
-  let passwordField = null;
-  for (const sel of passwordSelectors) {
-    passwordField = await page.$(sel);
-    if (passwordField) break;
-  }
-  
-  if (!passwordField) {
-    throw new Error('Could not find password input field');
-  }
-
-  await passwordField.click();
-  await page.waitForTimeout(200);
-  for (const char of pass) {
-    await page.keyboard.type(char, { delay: 50 + Math.random() * 100 });
-  }
-
-  // Find and click submit button
-  await page.waitForTimeout(500);
-  const submitSelectors = [
-    'button[type="submit"]',
-    'input[type="submit"]',
-    'button:contains("Sign In")',
-    'button:contains("Login")',
-    'button:contains("Log In")',
-    '.login-button',
-    '#login-button',
-  ];
-
-  let submitButton = null;
-  for (const sel of submitSelectors) {
-    try {
-      submitButton = await page.$(sel);
-      if (submitButton) break;
-    } catch {
-      continue;
-    }
-  }
-
-  if (!submitButton) {
-    // Try XPath for buttons containing text
-    const buttons = await page.$$('button');
-    for (const btn of buttons) {
-      const text = await page.evaluate((el: Element) => el.textContent, btn);
-      if (text && (text.toLowerCase().includes('sign in') || text.toLowerCase().includes('login'))) {
-        submitButton = btn;
-        break;
+  // Click on the email field in the main form (not header search)
+  console.log('Finding and focusing email field...');
+  const clicked = await page.evaluate(() => {
+    const forms = document.querySelectorAll('form');
+    for (const form of forms) {
+      const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement;
+      const passInput = form.querySelector('input[type="password"]');
+      if (emailInput && passInput) {
+        emailInput.focus();
+        emailInput.click();
+        return true;
       }
     }
+    return false;
+  });
+  
+  if (!clicked) {
+    throw new Error('Could not find login form');
   }
 
-  if (!submitButton) {
-    throw new Error('Could not find submit button');
-  }
+  // Type credentials using keyboard (more reliable than setting .value)
+  console.log('Typing credentials...');
+  await page.keyboard.type(user, { delay: 80 });
+  await new Promise(r => setTimeout(r, 300));
+  
+  await page.keyboard.press('Tab');
+  await new Promise(r => setTimeout(r, 300));
+  
+  await page.keyboard.type(pass, { delay: 80 });
+  await new Promise(r => setTimeout(r, 500));
 
-  console.log('Submitting login form...');
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {}),
-    submitButton.click(),
-  ]);
-
-  // Wait for redirect
-  await page.waitForTimeout(3000);
+  // Submit with Enter key
+  console.log('Submitting login...');
+  await page.keyboard.press('Enter');
+  
+  // Wait for navigation
+  await new Promise(r => setTimeout(r, 8000));
 
   // Check if login succeeded
   const currentUrl = page.url();
@@ -299,7 +237,7 @@ async function scrapeReportArticles(
 ): Promise<ArticleData[]> {
   console.log(`Scraping ${reportUrl}...`);
   await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-  await page.waitForTimeout(1000 + Math.random() * 1000);
+  await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
 
   // Extract articles
   const articles = await page.evaluate((slug: string, specs: string[], max: number) => {
@@ -402,7 +340,7 @@ async function scrapeReportArticles(
     if (article.content.length < 500) {
       try {
         await page.goto(article.url, { waitUntil: 'networkidle2', timeout: 30000 });
-        await page.waitForTimeout(500);
+        await new Promise(r => setTimeout(r, 500));
         
         const fullContent = await page.evaluate(() => {
           const selectors = [
