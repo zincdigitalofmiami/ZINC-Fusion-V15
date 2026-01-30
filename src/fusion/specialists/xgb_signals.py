@@ -143,19 +143,36 @@ class MLModelMixin:
 
         Uses expanding window: all data up to current_date.
         Target: forward return at target_horizon.
+
+        FIX 2026-01-30: Use coverage-based feature filtering instead of requiring
+        ALL features to be non-NaN. With 80+ elite indicators (many needing warmup),
+        the old approach dropped all rows.
         """
         logger.info(f"   Training {self.bucket} model...")
 
         # Prepare features
         X, feature_names = self._prepare_features(data)
-        self.feature_names = feature_names
 
         # Compute target: forward return
         y = self._compute_forward_return(data["close"], self.target_horizon)
 
-        # Align X and y, drop NaN
-        valid_mask = X.notna().all(axis=1) & y.notna()
-        X_clean = X[valid_mask]
+        # FIX: Filter to features with sufficient coverage (>50% non-NaN)
+        # Then require only those features to be non-NaN per row
+        coverage = X.notna().mean()
+        usable_features = coverage[coverage > 0.5].index.tolist()
+
+        if len(usable_features) < 5:
+            logger.warning(f"   Too few usable features: {len(usable_features)}")
+            return False
+
+        logger.info(f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage")
+
+        X_filtered = X[usable_features]
+        self.feature_names = usable_features  # Only train on usable features
+
+        # Align X and y, drop rows where any USABLE feature is NaN
+        valid_mask = X_filtered.notna().all(axis=1) & y.notna()
+        X_clean = X_filtered[valid_mask]
         y_clean = y[valid_mask]
 
         if len(X_clean) < self.min_train_samples:
@@ -443,10 +460,13 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         X_full, feature_names = self._prepare_features(data)
 
         # Get the most recent date with valid data
-        last_valid_idx = X_full.dropna().index[-1] if len(X_full.dropna()) > 0 else None
+        # FIX 2026-01-30: Only require primary features to be non-NaN (not all elite indicators)
+        core_cols = [c for c in self.config.primary_features if c in X_full.columns]
+        X_valid = X_full.dropna(subset=core_cols) if core_cols else X_full.dropna()
+        last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
 
         if last_valid_idx is None:
-            logger.warning("CrushSignalGenerator: No valid data")
+            logger.warning("CrushSignalGenerator: No valid data after dropna(subset=primary_features)")
             return signals
 
         current_date = (
@@ -728,9 +748,12 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # Prepare features
         X_full, feature_names = self._prepare_features(data)
 
-        last_valid_idx = X_full.dropna().index[-1] if len(X_full.dropna()) > 0 else None
+        # FIX 2026-01-30: Only require primary features to be non-NaN (not all elite indicators)
+        core_cols = [c for c in self.config.primary_features if c in X_full.columns]
+        X_valid = X_full.dropna(subset=core_cols) if core_cols else X_full.dropna()
+        last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
         if last_valid_idx is None:
-            logger.warning("SubstitutesSignalGenerator: No valid data")
+            logger.warning("SubstitutesSignalGenerator: No valid data after dropna(subset=primary_features)")
             return signals
 
         current_date = (
@@ -897,23 +920,22 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 # CHINA DEMAND PROXIES - Full complex
                 "hg_close",  # Copper (industrial demand)
                 "usd_cny",  # CNY/USD (import capacity)
-                # SHIPPING/LOGISTICS
-                "bdry_close",  # Baltic Dry Index (shipping demand)
-                "sblk_close",  # Dry bulk shipping ETF
                 # BRAZIL COMPETITION
                 "fred_dexbzus",  # BRL/USD (Brazil export competitiveness)
             ],
             secondary_features=[
+                # SHIPPING/LOGISTICS (sparse ~13% coverage, moved from primary 2026-01-30)
+                "bdry_close",  # Baltic Dry Index (shipping demand)
+                "sblk_close",  # Dry bulk shipping ETF
                 # Extended China exposure
                 "fxi_close",  # China Large-Cap ETF
                 "kweb_close",  # China Internet ETF
                 "china_pmi",  # Manufacturing PMI
-                # Alternative BRL
-                "fx_usdbrl",  # BRL (alternative source)
                 # Additional demand proxies
                 "fred_chnprinto01ixpym",  # China industrial production
                 # Soybean complex for context
                 "zs_close",  # Soybeans (main China import)
+                # NOTE: fx_usdbrl removed 2026-01-30 (duplicate of fred_dexbzus)
             ],
             lookback_days=252,
             min_data_points=63,

@@ -43,6 +43,7 @@ import {
   databentoFuturesDaily,
   databentoStatisticsDaily,
   databentoFxDaily,
+  databentoOptionsDaily,
   boardCrushDaily,
   eiaBiodieselMonthly,
 } from "@/inngest/functions";
@@ -139,6 +140,7 @@ export const { GET, POST, PUT } = serve({
     databentoFuturesDaily,
     databentoStatisticsDaily,
     databentoFxDaily,
+    databentoOptionsDaily,
     // Analytics calculations
     boardCrushDaily,
     // EIA biofuel data

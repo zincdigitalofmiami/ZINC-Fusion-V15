@@ -256,6 +256,12 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "VXVCLS", name: "VIX3M (3-Month VIX)", tags: ["volatility", "fed", "energy"] },
   // OVX - crude oil specific volatility, energy sector stress
   { id: "OVXCLS", name: "Crude Oil Volatility", tags: ["volatility", "energy", "biofuel"] },
+  // GVZ - gold volatility, risk-off indicator
+  { id: "GVZCLS", name: "Gold Volatility Index", tags: ["volatility", "fed"] },
+  // EM/FX/Currency VIX - regional risk, China/FX sensitive
+  { id: "VXEEMCLS", name: "EM ETF Volatility Index", tags: ["volatility", "china", "trump_effect"] },
+  { id: "VXFXICLS", name: "China ETF (FXI) Volatility", tags: ["volatility", "china", "trump_effect"] },  // Discontinued but has history
+  { id: "EVZCLS", name: "EuroCurrency Volatility Index", tags: ["volatility", "fx", "trump_effect"] },  // Discontinued but has history
   // Financial stress (weekly) - credit conditions, demand destruction risk
   // NOTE: STLFSI discontinued 2020, TEDRATE discontinued 2022 - using replacements
   { id: "STLFSI4", name: "St. Louis Financial Stress Index", tags: ["volatility", "fed"] },
@@ -391,6 +397,9 @@ const FRED_TABLE_MAP: Record<string, string> = {
   BAMLH0A0HYM2: "econ.vol_indices_1d",
   BAMLC0A0CM: "econ.vol_indices_1d",
   GVZCLS: "econ.vol_indices_1d",
+  VXEEMCLS: "econ.vol_indices_1d",  // EM ETF Volatility
+  VXFXICLS: "econ.vol_indices_1d",  // China ETF Volatility (discontinued)
+  EVZCLS: "econ.vol_indices_1d",    // EuroCurrency Volatility (discontinued)
   SP500: "econ.vol_indices_1d",
   NASDAQCOM: "econ.vol_indices_1d",
   USEPUINDXD: "econ.vol_indices_1d",

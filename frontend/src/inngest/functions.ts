@@ -38,5 +38,6 @@ export { profarmerDaily, profarmerBackfill } from "./profarmer-daily";
 export { databentoFuturesDaily } from "./databento-futures-daily";
 export { databentoStatisticsDaily } from "./databento-statistics-daily";
 export { databentoFxDaily } from "./databento-fx-daily";
+export { databentoOptionsDaily } from "./databento-options-daily";
 export { boardCrushDaily } from "./board-crush-daily";
 export { eiaBiodieselMonthly } from "./eia-biodiesel-monthly";

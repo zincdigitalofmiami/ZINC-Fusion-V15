@@ -134,7 +134,7 @@ export const databentoFxDaily = inngest.createFunction(
     name: "Databento FX Futures Daily (OHLCV + OI)",
     retries: 3,
   },
-  { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // 7:00 AM CT weekdays (after CME open)
+  { cron: "TZ=America/Chicago 15 */8 * * *" }, // Every 8 hours at :15 (0:15, 8:15, 16:15 CT)
   async ({ step, logger }) => {
     const results: SymbolResult[] = [];
 

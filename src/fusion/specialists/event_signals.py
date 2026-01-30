@@ -294,7 +294,8 @@ class TariffSignalGenerator(BaseSignalGenerator):
 
         # Combine EPU-based risk with deadline risk
         # When deadline is approaching, amplify the tariff risk signal
-        combined_risk = tariff_risk + (deadline_risk * deadline_vol_mult - 1.0)
+        # FIX 2026-01-30: Corrected parentheses - additive term must be 0 when deadline_risk=0
+        combined_risk = tariff_risk + deadline_risk * (deadline_vol_mult - 1.0)
 
         for idx in data.index:
             if pd.isna(tariff_risk.loc[idx]):
@@ -647,54 +648,88 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
     """
 
     def __init__(self):
+        # =====================================================================
+        # STRICT 95%+ COVERAGE POLICY - NO EXCEPTIONS
+        # All primary features MUST have 95%+ coverage from 2017-present
+        # =====================================================================
         config = SignalConfig(
             bucket="trump_effect",
             model_type="event_study",
             primary_features=[
-                "close",
-                # EPU COMPLEX - Full policy uncertainty decomposition
-                "fred_eputrade",        # Trade Policy Uncertainty (CORE)
-                "fred_usepuindxm",      # US Economic Policy Uncertainty
-                # MARKET FEAR GAUGE
-                "fred_vixcls",          # VIX (fear index)
-                # CHINA EXPOSURE PROXIES
-                "hg_close",             # Copper (China demand proxy)
-                "fxi_close",            # China Large-Cap ETF (direct China exposure)
+                # === 100% COVERAGE ===
+                "fred_usepuindxd",      # US EPU Daily (100%)
+                "fred_vixcls",          # VIX (100%)
+                "fred_dff",             # Fed Funds Rate (100%)
+                "fred_dgs10",           # 10Y Treasury (100%)
+                "fred_t10y2y",          # Yield Curve 10Y-2Y (100%)
+                "fred_bamlc0a0cm",      # Investment Grade Credit Spread (100%)
+                "fred_bamlh0a0hym2",    # High Yield Credit Spread (100%)
+                # === 99%+ COVERAGE ===
+                "hg_close",             # Copper - China demand proxy (99.2%)
+                "6e_close",             # EUR/USD futures (99.6%)
+                "6j_close",             # USD/JPY futures (99.6%)
+                "6m_close",             # MXN/USD futures (98.2%)
+                "zn_close",             # 10Y Treasury futures (99.0%)
+                "es_close",             # S&P 500 futures (99.2%)
+                "trump_weighted_action_score",  # Trump action intensity (99.7%)
             ],
             secondary_features=[
-                # Extended EPU
-                "fred_usepuindxd",      # US EPU (daily)
-                "fred_chnmainlandtpu",  # China Trade Policy Uncertainty
-                "fred_emvtradepolemv",  # Equity Market Vol - Trade Policy
-                # Additional China proxies
-                "kweb_close",           # China Internet ETF
-                "usd_cny",              # CNY (currency pressure)
-                # Trump-linked proxies
-                "djt_close",            # Trump Media stock (sentiment proxy)
+                # 95-99% coverage - acceptable for secondary
+                "fred_ovxcls",          # Oil VIX (100%)
+                "fred_gvzcls",          # Gold VIX (99.7%)
+                "fred_vxvcls",          # VIX of VIX (100%)
+                "fred_dgs2",            # 2Y Treasury (100%)
+                "6a_close",             # AUD/USD futures (99.5%)
+                "6b_close",             # GBP/USD futures (99.5%)
+                "6c_close",             # CAD/USD futures (99.4%)
+                "6l_close",             # BRL/USD futures (95.1%)
+                "zb_close",             # 30Y Treasury futures (99.0%)
+                "zf_close",             # 5Y Treasury futures (98.5%)
+                "nq_close",             # Nasdaq futures (99.2%)
+                "trump_eo_count_7d",    # EO count 7d (99.7%)
+                "trump_action_velocity", # Action velocity (99.7%)
+                "tariff_deadline_count", # Tariff deadlines (100%)
+                "legis_eo_count",       # Executive orders (100%)
+                # <95% coverage - sparse but useful when available
+                "fxi_close",            # China ETF (62.6% - starts 2019)
+                "kweb_close",           # China Internet ETF (62.6%)
+                "fred_nfci",            # Financial Conditions (83.3%)
+                "fred_eputrade",        # Trade EPU monthly (19.5%)
+                "usd_cny",              # CNY rate (50%)
+                "usd_mxn",              # MXN rate (50%)
             ],
-            lookback_days=504,  # 2 years for regime detection
+            lookback_days=504,
             min_data_points=126,
         )
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Require FULL EPU + China exposure + market fear."""
+        """
+        Validate inputs - ONLY require 95%+ coverage features.
+
+        Required (all 95%+ coverage):
+        - fred_usepuindxd (100%)
+        - fred_vixcls (100%)
+        - fred_dff (100%)
+        - hg_close (99.2%)
+        - 6e_close (99.6%)
+        """
         missing = []
-        if "close" not in data.columns:
-            missing.append("close")
-        # REQUIRE EPU complex
-        if "fred_eputrade" not in data.columns:
-            missing.append("fred_eputrade")
-        if "fred_usepuindxm" not in data.columns:
-            missing.append("fred_usepuindxm")
-        # REQUIRE market fear
+        # Core uncertainty
+        if "fred_usepuindxd" not in data.columns:
+            missing.append("fred_usepuindxd")
+        # Market fear
         if "fred_vixcls" not in data.columns:
             missing.append("fred_vixcls")
-        # REQUIRE China exposure
+        # Fed policy
+        if "fred_dff" not in data.columns:
+            missing.append("fred_dff")
+        # China demand (via copper)
         if "hg_close" not in data.columns:
             missing.append("hg_close")
-        if "fxi_close" not in data.columns:
-            missing.append("fxi_close")
+        # FX exposure
+        if "6e_close" not in data.columns:
+            missing.append("6e_close")
         return missing
 
     def _compute_trade_tension_proxy(self, data: pd.DataFrame) -> pd.Series:

@@ -258,11 +258,16 @@ class BaseSignalGenerator(ABC):
         return missing
 
     def _required_features(self) -> List[str]:
-        """All configured features for strict mode enforcement."""
+        """Required features for strict mode enforcement.
+
+        FIX 2026-01-30: Only enforce primary + critical features in strict mode.
+        Secondary features are OPTIONAL by definition - they enhance the model
+        when available but should not fail validation when absent.
+        """
         ordered = (
             self.config.primary_features
-            + self.config.secondary_features
             + self.config.critical_features
+            # NOTE: secondary_features intentionally excluded - they are optional
         )
         return list(dict.fromkeys(ordered))
 

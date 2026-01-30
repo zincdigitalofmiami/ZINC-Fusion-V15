@@ -149,19 +149,33 @@ class PalmMLMixin:
 
         Uses expanding window: all data up to current_date.
         Target: forward return at target_horizon.
+
+        FIX 2026-01-30: Use coverage-based feature filtering (same as xgb_signals.py)
         """
         logger.info(f"   Training {self.bucket} model (Ridge)...")
 
         # Prepare features
         X, feature_names = self._prepare_features(data)
-        self.feature_names = feature_names
 
         # Compute target: forward return
         y = self._compute_forward_return(data["close"], self.target_horizon)
 
-        # Align X and y, drop NaN
-        valid_mask = X.notna().all(axis=1) & y.notna()
-        X_clean = X[valid_mask]
+        # FIX: Filter to features with sufficient coverage (>50% non-NaN)
+        coverage = X.notna().mean()
+        usable_features = coverage[coverage > 0.5].index.tolist()
+
+        if len(usable_features) < 5:
+            logger.warning(f"   Too few usable features: {len(usable_features)}")
+            return False
+
+        logger.info(f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage")
+
+        X_filtered = X[usable_features]
+        self.feature_names = usable_features  # Only train on usable features
+
+        # Align X and y, drop rows where any USABLE feature is NaN
+        valid_mask = X_filtered.notna().all(axis=1) & y.notna()
+        X_clean = X_filtered[valid_mask]
         y_clean = y[valid_mask]
 
         if len(X_clean) < self.min_train_samples:
@@ -652,10 +666,13 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         reversion_speed = self._compute_mean_reversion_speed(spread)
 
         # Get the most recent date with valid data
-        last_valid_idx = X_full.dropna().index[-1] if len(X_full.dropna()) > 0 else None
+        # FIX 2026-01-30: Only require primary features to be non-NaN
+        core_cols = [c for c in self.config.primary_features if c in X_full.columns]
+        X_valid = X_full.dropna(subset=core_cols) if core_cols else X_full.dropna()
+        last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
 
         if last_valid_idx is None:
-            logger.warning("PalmSignalGenerator: No valid data")
+            logger.warning("PalmSignalGenerator: No valid data after dropna(subset=primary_features)")
             return signals
 
         current_date = (
