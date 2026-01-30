@@ -145,15 +145,15 @@ def load_china_data(
     """
     Load ALL data for CHINA specialist.
 
-    ZL + HG (copper) + CNY + shipping ETFs + China ETFs.
+    ZL + HG (copper) + ZS (soybeans) + CNY + shipping ETFs + China ETFs.
     """
     conn = get_connection()
 
-    # Futures: ZL, HG
+    # Futures: ZL, HG, ZS (soybeans for China import context)
     query = """
     SELECT event_date as trade_date, symbol, open, high, low, close, volume
     FROM mkt.futures_1d
-    WHERE symbol IN ('ZL', 'HG')
+    WHERE symbol IN ('ZL', 'HG', 'ZS')
     ORDER BY event_date, symbol
     """
     df = pd.read_sql(query, conn)
@@ -217,6 +217,23 @@ def load_china_data(
         result["fred_dexbzus"] = (
             brl_df["fred_dexbzus"].reindex(result.index).ffill(limit=5)
         )  # Daily cadence + 2 day buffer
+
+    # China PMI and Industrial Production from FRED
+    china_macro_query = """
+    SELECT event_date as trade_date, series_id, value
+    FROM econ.activity_1d
+    WHERE series_id IN ('china_pmi', 'CHNPRINTO01IXPYM')
+    ORDER BY event_date, series_id
+    """
+    china_macro_df = pd.read_sql(china_macro_query, conn)
+    if not china_macro_df.empty:
+        china_macro_df["trade_date"] = pd.to_datetime(china_macro_df["trade_date"])
+        pivot = china_macro_df.pivot(index="trade_date", columns="series_id", values="value")
+        # Rename to expected column names
+        if "china_pmi" in pivot.columns:
+            result["china_pmi"] = pivot["china_pmi"].reindex(result.index).ffill(limit=35)  # Monthly cadence
+        if "CHNPRINTO01IXPYM" in pivot.columns:
+            result["fred_chnprinto01ixpym"] = pivot["CHNPRINTO01IXPYM"].reindex(result.index).ffill(limit=35)
 
     conn.close()
 
