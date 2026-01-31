@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { generateAIIntelligence, type MarketData } from '@/lib/ai-intelligence'
+import { generateDriverIntel, generateFallbackDriverIntel } from '@/lib/ai-driver-intel'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +11,7 @@ export const dynamic = 'force-dynamic'
 // =============================================================================
 
 const VIX = { COMPLACENT: 12, LOW: 15, NORMAL: 20, ELEVATED: 25, HIGH: 30, EXTREME: 40 }
+const OVX = { LOW: 25, NORMAL: 35, ELEVATED: 50, HIGH: 70 }  // Oil Volatility - biodiesel link
 const CRUSH = { DANGER: 0.75, SEVERE: 1.00, TIGHT: 1.25, NEUTRAL: 1.50, HEALTHY: 1.75, STRONG: 2.00, EXCEPTIONAL: 2.50 }
 const CNY = { STRONG: 7.00, NORMAL: 7.15, WEAK: 7.30, STRESS: 7.45, CRISIS: 7.60 }
 const TPU = { CALM: 40, NORMAL: 100, ELEVATED: 200, HIGH: 400, EXTREME: 700 }
@@ -17,9 +20,10 @@ const TPU = { CALM: 40, NORMAL: 100, ELEVATED: 200, HIGH: 400, EXTREME: 700 }
 // SCORING FUNCTIONS
 // =============================================================================
 
-function scoreVixStress(vix: number): { score: number; level: string; regime: string; headline: string } {
+function scoreVixStress(vix: number, ovx: number | null): { score: number; level: string; regime: string; headline: string } {
   let score: number, level: string, regime: string
 
+  // VIX Level scoring (primary - 70% weight)
   if (vix <= VIX.COMPLACENT) { score = 15; level = 'Complacent'; regime = 'complacent' }
   else if (vix <= VIX.LOW) { score = 25; level = 'Low Vol'; regime = 'low_vol' }
   else if (vix <= VIX.NORMAL) { score = 40; level = 'Normal'; regime = 'normal' }
@@ -28,12 +32,22 @@ function scoreVixStress(vix: number): { score: number; level: string; regime: st
   else if (vix <= VIX.EXTREME) { score = 85; level = 'Fear'; regime = 'fear' }
   else { score = 95; level = 'Extreme Fear'; regime = 'extreme_fear' }
 
-  // Soy-centric headlines - VIX transmission to ZL
-  const headline = score >= 80 ? 'ZL Gap Risk - VIX Panic Hitting Soy'
-    : score >= 65 ? 'ZL Under Pressure - Fund Liquidation Risk'
-    : score >= 50 ? 'Farmer Hedging Costs Rising'
-    : score >= 35 ? 'Normal ZL Trading Conditions'
-    : 'Cheap Soy Hedging - Low VIX'
+  // OVX adjustment (30% weight) - oil volatility → biodiesel margin uncertainty → ZL
+  if (ovx !== null) {
+    if (ovx >= OVX.HIGH) score += 12        // Energy panic → ZL follows
+    else if (ovx >= OVX.ELEVATED) score += 6 // Elevated oil vol
+    else if (ovx >= OVX.NORMAL) score += 0   // Normal
+    else if (ovx < OVX.LOW) score -= 5       // Calm energy = stable ZL
+  }
+  score = Math.max(0, Math.min(100, score))
+
+  // Soy-centric headlines - VIX/OVX transmission to ZL via risk-off flows
+  // NO "hedge" language - this is about FUND FLOWS and LIQUIDITY
+  const headline = score >= 80 ? 'ZL Gap Risk - Risk-Off Panic'
+    : score >= 65 ? 'Fund Liquidation Risk - ZL Selling Pressure'
+    : score >= 50 ? 'Elevated Vol - Watch ZL Spreads'
+    : score >= 35 ? 'Normal Vol - ZL on Fundamentals'
+    : 'Low Vol - Stable ZL Trading'
 
   return { score: Math.round(score * 10) / 10, level, regime, headline }
 }
@@ -202,9 +216,9 @@ function generateMarketIntelligence(
   const summaryParts: string[] = []
 
   if (vix.score >= 65) {
-    summaryParts.push(`Volatility stress is elevated with VIX at ${vixValue.toFixed(1)}, raising hedging costs for soy producers and increasing fund liquidation risk in ZL.`)
+    summaryParts.push(`VIX at ${vixValue.toFixed(1)} signals risk-off mode - fund liquidation pressure on ZL, wider spreads, potential gap risk.`)
   } else if (vix.score <= 30) {
-    summaryParts.push(`Low VIX at ${vixValue.toFixed(1)} means cheap hedging for farmers and stable ZL trading conditions.`)
+    summaryParts.push(`Low VIX at ${vixValue.toFixed(1)} - stable ZL trading, fundamentals driving price action.`)
   }
 
   if (crush.score >= 65) {
@@ -235,9 +249,9 @@ function generateMarketIntelligence(
       label: 'Volatility',
       outlook: vix.score >= 65 ? 'PRESSURE' : vix.score <= 35 ? 'SUPPORTIVE' : 'NEUTRAL',
       detail: vix.score >= 65
-        ? `VIX at ${vixValue.toFixed(1)} - risk-off flows may pressure ZL, farmer hedging expensive`
+        ? `VIX at ${vixValue.toFixed(1)} - risk-off flows pressuring ZL, watch for liquidation`
         : vix.score <= 35
-        ? `VIX at ${vixValue.toFixed(1)} - cheap puts for harvest hedges, stable basis`
+        ? `VIX at ${vixValue.toFixed(1)} - stable conditions, ZL trading on fundamentals`
         : `VIX at ${vixValue.toFixed(1)} - normal volatility, standard trading conditions`
     },
     {
@@ -284,11 +298,18 @@ function generateMarketIntelligence(
 
 export async function GET() {
   try {
-    const [vixRows, crushRows, cnyRows, fxiRows, bdryRows, tpuRows] = await Promise.all([
+    const [vixRows, ovxRows, crushRows, cnyRows, fxiRows, bdryRows, tpuRows] = await Promise.all([
       // VIX from econ.vol_indices_1d
       query<{ vix: number }>(`
         SELECT value::float8 as vix FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND value IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
+      `),
+
+      // OVX (Oil Volatility) - critical for biodiesel/ZL link
+      query<{ ovx: number }>(`
+        SELECT value::float8 as ovx FROM econ.vol_indices_1d
+        WHERE series_id = 'OVXCLS' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
 
@@ -346,6 +367,7 @@ export async function GET() {
 
     // Extract with defaults
     const vixValue = vixRows[0]?.vix ?? 20
+    const ovxValue = ovxRows[0]?.ovx ?? null  // Oil Volatility Index
     const crushValue = crushRows[0]?.crush ?? 1.50
     const oilShareValue = crushRows[0]?.oil_share ?? null
     const cnyRate = cnyRows[0]?.rate ?? 7.25
@@ -356,22 +378,123 @@ export async function GET() {
     const tpuValue = tpuRows[0]?.tpu ?? 100
     const emvValue = tpuRows[0]?.emv ?? null
 
+    // Dashboard date (for freshness tracking)
+    const asOfDate = new Date().toISOString().split('T')[0]
+
     // Calculate scores
-    const vixResult = scoreVixStress(vixValue)
+    const vixResult = scoreVixStress(vixValue, ovxValue)
     const crushResult = scoreCrushPressure(crushValue, oilShareValue)
     const chinaResult = scoreChinaTension(cnyRate, fxiChange20d, fxiChange5d, bdryChange20d)
     const tariffResult = scoreTariffThreat(tpuValue, emvValue)
 
-    // Generate market intelligence narrative
-    const intelligence = generateMarketIntelligence(
+    // Generate market intelligence narrative (rule-based fallback)
+    const ruleBasedIntelligence = generateMarketIntelligence(
       vixResult, vixValue,
       crushResult, crushValue, oilShareValue,
       chinaResult, cnyRate, fxiChange20d,
       tariffResult, tpuValue
     )
 
+    // Prepare data for AI intelligence
+    const marketData: MarketData = {
+      vix: vixValue,
+      ovx: ovxValue,
+      boardCrush: crushValue,
+      oilShare: oilShareValue,
+      cnyRate: cnyRate,
+      fxiChange20d: fxiChange20d,
+      fxiChange5d: fxiChange5d,
+      bdryChange20d: bdryChange20d,
+      tpu: tpuValue,
+      emv: emvValue,
+      scores: {
+        vix: vixResult.score,
+        crush: crushResult.score,
+        china: chinaResult.score,
+        tariff: tariffResult.score,
+      },
+      asOfDate,  // For freshness tracking
+    }
+
+    // Generate AI-powered intelligence (with fallback)
+    const aiIntelligence = await generateAIIntelligence(marketData)
+      .catch(() => null) // Silent fallback on error
+
+    // Use AI if available, otherwise use rule-based
+    const intelligence = aiIntelligence ? {
+      headline: aiIntelligence.headline,
+      summary: aiIntelligence.reasoning,
+      drivers: [
+        ...aiIntelligence.keyRisks.map(r => ({ label: 'Risk', outlook: 'PRESSURE' as const, detail: r })),
+        ...aiIntelligence.keySupports.map(s => ({ label: 'Support', outlook: 'SUPPORTIVE' as const, detail: s })),
+      ],
+      zlOutlook: aiIntelligence.zlOutlook,
+      zlColor: aiIntelligence.zlOutlook === 'BEARISH' ? '#EF4444' :
+               aiIntelligence.zlOutlook === 'CAUTIOUS' ? '#F97316' :
+               aiIntelligence.zlOutlook === 'NEUTRAL' ? '#EAB308' : '#22C55E',
+      tradingImplication: aiIntelligence.tradingImplication,
+      aiPowered: true,
+    } : {
+      ...ruleBasedIntelligence,
+      aiPowered: false,
+    }
+
+    // Generate per-driver "What's Happening?" intel (parallel)
+    const [vixIntel, crushIntel, chinaIntel, tariffIntel] = await Promise.all([
+      generateDriverIntel({
+        driverName: 'vix',
+        score: vixResult.score,
+        level: vixResult.level,
+        regime: vixResult.regime,
+        components: { vix_value: vixValue, ovx_value: ovxValue },
+        asOfDate,
+      }).catch(() => null),
+      generateDriverIntel({
+        driverName: 'crush',
+        score: crushResult.score,
+        level: crushResult.level,
+        regime: crushResult.regime,
+        components: { board_crush: crushValue, oil_share: oilShareValue },
+        asOfDate,
+      }).catch(() => null),
+      generateDriverIntel({
+        driverName: 'china',
+        score: chinaResult.score,
+        level: chinaResult.level,
+        regime: chinaResult.regime,
+        components: { cny_rate: cnyRate, fxi_change_20d: fxiChange20d, bdry_change_20d: bdryChange20d },
+        asOfDate,
+      }).catch(() => null),
+      generateDriverIntel({
+        driverName: 'tariff',
+        score: tariffResult.score,
+        level: tariffResult.level,
+        regime: tariffResult.regime,
+        components: { tpu: tpuValue, emv: emvValue },
+        asOfDate,
+      }).catch(() => null),
+    ])
+
+    // Use AI intel or fallback
+    const vixWhatsHappening = vixIntel ?? generateFallbackDriverIntel({
+      driverName: 'vix', score: vixResult.score, level: vixResult.level, regime: vixResult.regime,
+      components: { vix_value: vixValue }, asOfDate
+    })
+    const crushWhatsHappening = crushIntel ?? generateFallbackDriverIntel({
+      driverName: 'crush', score: crushResult.score, level: crushResult.level, regime: crushResult.regime,
+      components: { board_crush: crushValue }, asOfDate
+    })
+    const chinaWhatsHappening = chinaIntel ?? generateFallbackDriverIntel({
+      driverName: 'china', score: chinaResult.score, level: chinaResult.level, regime: chinaResult.regime,
+      components: { cny_rate: cnyRate }, asOfDate
+    })
+    const tariffWhatsHappening = tariffIntel ?? generateFallbackDriverIntel({
+      driverName: 'tariff', score: tariffResult.score, level: tariffResult.level, regime: tariffResult.regime,
+      components: { tpu: tpuValue }, asOfDate
+    })
+
     return NextResponse.json({
-      as_of_date: new Date().toISOString().split('T')[0],
+      as_of_date: asOfDate,  // Use consistent timestamp
       drivers: {
         vix_stress: {
           name: 'VIX Stress',
@@ -379,7 +502,12 @@ export async function GET() {
           level: vixResult.level,
           regime: vixResult.regime,
           headline: vixResult.headline,
-          components: { vix_value: Math.round(vixValue * 10) / 10 },
+          components: {
+            vix_value: Math.round(vixValue * 10) / 10,
+            ovx_value: ovxValue ? Math.round(ovxValue * 10) / 10 : null,
+          },
+          whatsHappening: vixWhatsHappening,
+          aiPowered: vixIntel !== null,
         },
         crush_pressure: {
           name: 'Crush Pressure',
@@ -391,6 +519,8 @@ export async function GET() {
             board_crush_value: Math.round(crushValue * 100) / 100,
             oil_share_value: oilShareValue ? Math.round(oilShareValue * 1000) / 1000 : null,
           },
+          whatsHappening: crushWhatsHappening,
+          aiPowered: crushIntel !== null,
         },
         china_tension: {
           name: 'China Tension',
@@ -403,6 +533,8 @@ export async function GET() {
             fxi_change_20d: Math.round(fxiChange20d * 1000) / 10,
             fxi_price: Math.round(fxiPrice * 100) / 100,
           },
+          whatsHappening: chinaWhatsHappening,
+          aiPowered: chinaIntel !== null,
         },
         tariff_threat: {
           name: 'Tariff Threat',
@@ -414,6 +546,8 @@ export async function GET() {
             tpu_value: Math.round(tpuValue),
             emv_value: emvValue ? Math.round(emvValue) : null,
           },
+          whatsHappening: tariffWhatsHappening,
+          aiPowered: tariffIntel !== null,
         },
       },
       summary: {

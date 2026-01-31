@@ -8,6 +8,16 @@ import React, { useEffect, useState, useCallback } from 'react'
 // Gauges turn RED as pressure increases
 // =============================================================================
 
+interface WhatsHappening {
+  whatsHappening: string
+  macroContext: string
+  supplyDemand: string
+  geopolitical: string
+  investorSentiment: string
+  nearTermOutlook: string
+  zlImplication: string
+}
+
 interface DriverData {
   name: string
   score: number
@@ -15,6 +25,8 @@ interface DriverData {
   regime: string
   headline: string
   components: Record<string, number | null>
+  whatsHappening?: WhatsHappening
+  aiPowered?: boolean
 }
 
 interface IntelligenceData {
@@ -23,6 +35,8 @@ interface IntelligenceData {
   drivers: { label: string; outlook: string; detail: string }[]
   zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
   zlColor: string
+  tradingImplication?: string
+  aiPowered?: boolean
 }
 
 interface MarketDriversResponse {
@@ -141,11 +155,13 @@ interface DriverCardProps {
 }
 
 function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading }: DriverCardProps) {
+  const [expanded, setExpanded] = useState(false)
   const score = data?.score ?? 0
   const level = data?.level ?? '--'
   const metricValue = data?.components?.[metricKey] ?? null
   const formattedMetric = metricFormat ? metricFormat(metricValue) : metricValue?.toString() ?? '--'
   const colors = getScoreColor(score)
+  const wh = data?.whatsHappening
 
   // Dynamic border based on score
   const borderStyle = score >= 65
@@ -158,8 +174,11 @@ function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading
       style={borderStyle}
     >
       {/* Label */}
-      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
         {label}
+        {data?.aiPowered && (
+          <span className="px-1 py-0.5 rounded text-[7px] bg-violet-500/20 text-violet-400">AI</span>
+        )}
       </div>
 
       {/* Arc Gauge */}
@@ -191,6 +210,51 @@ function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading
       <div className="mt-3 text-[11px] text-slate-300 text-center leading-snug min-h-[28px]">
         {loading ? '...' : (data?.headline ?? '--')}
       </div>
+
+      {/* What's Happening Button */}
+      {wh && !loading && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-3 w-full px-3 py-1.5 rounded-lg text-[10px] font-medium bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5 border border-slate-700/50"
+        >
+          <span>{expanded ? '▼' : '▶'}</span>
+          What's Happening?
+        </button>
+      )}
+
+      {/* Expanded Intel Panel */}
+      {expanded && wh && (
+        <div className="mt-3 w-full text-left space-y-2 animate-in slide-in-from-top-2 duration-200">
+          {/* Summary */}
+          <div className="text-[11px] text-slate-300 leading-relaxed border-l-2 pl-2" style={{ borderColor: colors.stroke }}>
+            {wh.whatsHappening}
+          </div>
+
+          {/* Sections */}
+          <div className="space-y-1.5 pt-1">
+            <IntelSection title="Macro Context" content={wh.macroContext} />
+            <IntelSection title="Supply & Demand" content={wh.supplyDemand} />
+            <IntelSection title="Geopolitical" content={wh.geopolitical} />
+            <IntelSection title="Investor Sentiment" content={wh.investorSentiment} />
+            <IntelSection title="Near-Term Outlook" content={wh.nearTermOutlook} />
+          </div>
+
+          {/* ZL Implication - highlighted */}
+          <div className="mt-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">ZL Implication</div>
+            <div className="text-[11px] text-slate-200">{wh.zlImplication}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function IntelSection({ title, content }: { title: string; content: string }) {
+  return (
+    <div>
+      <div className="text-[9px] text-slate-500 uppercase tracking-wider">{title}</div>
+      <div className="text-[10px] text-slate-400 leading-snug">{content}</div>
     </div>
   )
 }
@@ -323,6 +387,11 @@ export function ChrisTop4Drivers() {
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 rounded-full" style={{ backgroundColor: data.intelligence.zlColor }} />
               <h4 className="text-sm font-semibold text-white">{data.intelligence.headline}</h4>
+              {data.intelligence.aiPowered && (
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                  AI
+                </span>
+              )}
             </div>
             <span
               className="px-2 py-1 rounded text-[10px] font-bold tracking-wider"
@@ -337,14 +406,22 @@ export function ChrisTop4Drivers() {
           </div>
 
           {/* Summary Paragraph */}
-          <p className="text-[12px] text-slate-400 leading-relaxed mb-4">
+          <p className="text-[12px] text-slate-400 leading-relaxed mb-3">
             {data.intelligence.summary}
           </p>
 
+          {/* Trading Implication (AI-powered only) */}
+          {data.intelligence.tradingImplication && (
+            <div className="mb-3 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">Trading Implication</span>
+              <p className="text-[12px] text-slate-300 mt-0.5">{data.intelligence.tradingImplication}</p>
+            </div>
+          )}
+
           {/* Driver Bullets */}
           <div className="grid grid-cols-2 gap-2">
-            {data.intelligence.drivers.map((driver) => (
-              <div key={driver.label} className="flex items-start gap-2 text-[11px]">
+            {data.intelligence.drivers.map((driver, idx) => (
+              <div key={`${driver.label}-${idx}`} className="flex items-start gap-2 text-[11px]">
                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
                   driver.outlook === 'BEARISH' || driver.outlook === 'PRESSURE' ? 'bg-red-500/20 text-red-400' :
                   driver.outlook === 'BULLISH' || driver.outlook === 'SUPPORTIVE' || driver.outlook === 'CALM' ? 'bg-green-500/20 text-green-400' :
