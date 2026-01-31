@@ -28,11 +28,12 @@ function scoreVixStress(vix: number): { score: number; level: string; regime: st
   else if (vix <= VIX.EXTREME) { score = 85; level = 'Fear'; regime = 'fear' }
   else { score = 95; level = 'Extreme Fear'; regime = 'extreme_fear' }
 
-  const headline = score >= 80 ? 'Extreme Volatility Alert'
-    : score >= 65 ? 'Elevated Market Stress'
-    : score >= 50 ? 'Above-Normal Volatility'
-    : score >= 35 ? 'Normal Volatility Conditions'
-    : 'Low Volatility Environment'
+  // Soy-centric headlines - VIX transmission to ZL
+  const headline = score >= 80 ? 'ZL Gap Risk - VIX Panic Hitting Soy'
+    : score >= 65 ? 'ZL Under Pressure - Fund Liquidation Risk'
+    : score >= 50 ? 'Farmer Hedging Costs Rising'
+    : score >= 35 ? 'Normal ZL Trading Conditions'
+    : 'Cheap Soy Hedging - Low VIX'
 
   return { score: Math.round(score * 10) / 10, level, regime, headline }
 }
@@ -58,11 +59,12 @@ function scoreCrushPressure(crush: number, oilShare: number | null): { score: nu
   }
   score = Math.max(0, Math.min(100, score))
 
-  const headline = score >= 75 ? 'Crush Economics Under Severe Stress'
-    : score >= 55 ? 'Processor Margins Tightening'
-    : score >= 40 ? 'Neutral Crush Economics'
-    : score >= 25 ? 'Healthy Processor Margins'
-    : 'Strong Crush Economics'
+  // Soy-centric headlines - Crush margin impact on ZL
+  const headline = score >= 75 ? 'ZL Mixed - Crush Plants Idling'
+    : score >= 55 ? 'ZL Cautious - Processor Margins Squeezed'
+    : score >= 40 ? 'ZL Neutral - Balanced Crush Economics'
+    : score >= 25 ? 'ZL Supportive - Healthy Crush Margins'
+    : 'ZL Watch Demand - Max Crush Running'
 
   return { score: Math.round(score * 10) / 10, level, regime, headline }
 }
@@ -110,11 +112,12 @@ function scoreChinaTension(cny: number, fxiChange20d: number, fxiChange5d: numbe
   else if (score >= 30) { level = 'Constructive'; regime = 'constructive' }
   else { level = 'Optimistic'; regime = 'optimistic' }
 
-  const headline = score >= 75 ? 'China Trade Relations Strained'
-    : score >= 60 ? 'Elevated China Risk'
-    : score >= 45 ? 'Monitoring China Developments'
-    : score >= 30 ? 'Constructive China Outlook'
-    : 'China Trade Relations Stable'
+  // Soy-centric headlines - China export demand for US soy
+  const headline = score >= 75 ? 'ZL Bearish - Soy Export Demand Cliff'
+    : score >= 60 ? 'ZL Cautious - Trade War Risk Elevated'
+    : score >= 45 ? 'Watch USDA Export Sales Closely'
+    : score >= 30 ? 'China Buying - Soy Exports Healthy'
+    : 'Strong China Demand for US Soy'
 
   return { score: Math.round(score * 10) / 10, level, regime, headline }
 }
@@ -136,11 +139,12 @@ function scoreTariffThreat(tpu: number, emv: number | null): { score: number; le
   }
   score = Math.max(0, Math.min(100, score))
 
-  const headline = score >= 80 ? 'Trade War Escalating'
-    : score >= 65 ? 'Tariff Threats Active'
-    : score >= 50 ? 'Tariff Uncertainty Elevated'
-    : score >= 35 ? 'Moderate Trade Policy Noise'
-    : 'Trade Policy Calm'
+  // Soy-centric headlines - Tariff impact on soy exports
+  const headline = score >= 80 ? 'ZL Bearish - Soy Tariffs Active'
+    : score >= 65 ? 'ZL Cautious - Retaliatory Tariff Risk'
+    : score >= 50 ? 'Soy Export Sales Pace Uncertain'
+    : score >= 35 ? 'Normal Soy Trade Policy Noise'
+    : 'Soy Trade Policy Calm - Bullish Backdrop'
 
   return { score: Math.round(score * 10) / 10, level, regime, headline }
 }
