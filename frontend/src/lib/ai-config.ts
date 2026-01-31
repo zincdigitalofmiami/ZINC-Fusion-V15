@@ -16,7 +16,7 @@
  * Sonnet 4.5 for individual driver "What's Happening?" intel
  * Fast, cost-effective, domain-focused
  */
-export const MODEL_DRIVER_INTEL = 'claude-sonnet-4-5-20241022'
+export const MODEL_DRIVER_INTEL = 'claude-sonnet-4-5-20250929'
 
 /**
  * Opus 4.5 for combined "Balanced Conditions" market narrative

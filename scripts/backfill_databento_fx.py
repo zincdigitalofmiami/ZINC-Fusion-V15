@@ -56,6 +56,14 @@ FX_SYMBOLS = [
     {"continuous": "6L.c.0", "canonical": "6L", "name": "BRL/USD", "dataset": "GLBX.MDP3"},
     # Chinese Renminbi
     {"continuous": "6R.c.0", "canonical": "6R", "name": "CNH/USD", "dataset": "GLBX.MDP3"},
+    # South African Rand
+    {"continuous": "6Z.c.0", "canonical": "6Z", "name": "ZAR/USD", "dataset": "GLBX.MDP3"},
+    # Micro FX futures
+    {"continuous": "M6A.c.0", "canonical": "M6A", "name": "Micro AUD/USD", "dataset": "GLBX.MDP3"},
+    {"continuous": "M6B.c.0", "canonical": "M6B", "name": "Micro GBP/USD", "dataset": "GLBX.MDP3"},
+    {"continuous": "M6E.c.0", "canonical": "M6E", "name": "Micro EUR/USD", "dataset": "GLBX.MDP3"},
+    # Fed Funds Rate (STIR - Short Term Interest Rate)
+    {"continuous": "ZQ.c.0", "canonical": "ZQ", "name": "Fed Funds Rate", "dataset": "GLBX.MDP3"},
 ]
 
 # Default dataset
