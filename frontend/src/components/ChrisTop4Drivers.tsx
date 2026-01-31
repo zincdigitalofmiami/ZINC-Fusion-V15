@@ -1,43 +1,56 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 
-// Chris's TOP 4 Key Drivers - Real domain-specific market pressure indicators
-// VIX Stress, Crush Pressure, China Tension, Tariff Threat
+// =============================================================================
+// CHRIS'S TOP 4 KEY MARKET DRIVERS
+// Real domain-specific pressure indicators for soybean oil markets
+// =============================================================================
 
-interface DriverGaugeProps {
-  label: string
+interface DriverData {
+  name: string
   score: number
   level: string
-  metric: string
-  metricLabel: string
-  variant?: 'stress' | 'crush' | 'tension' | 'threat'
-  loading?: boolean
+  regime: string
+  headline: string
+  components: Record<string, number | null>
+}
+
+interface MarketDriversResponse {
+  as_of_date: string
+  drivers: {
+    vix_stress: DriverData
+    crush_pressure: DriverData
+    china_tension: DriverData
+    tariff_threat: DriverData
+  }
+  summary: {
+    average_pressure: number
+    highest_pressure: { name: string; score: number }
+    alert_count: number
+  }
 }
 
 // Arc gauge colors by variant
 const VARIANTS = {
-  stress: { stroke: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)' },   // Red - VIX
-  crush: { stroke: '#22C55E', bg: 'rgba(34, 197, 94, 0.1)' },    // Green - Crush
-  tension: { stroke: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)' }, // Amber - China
-  threat: { stroke: '#00D4FF', bg: 'rgba(0, 212, 255, 0.1)' },   // Cyan - Tariff
+  stress: { stroke: '#EF4444', glow: 'rgba(239, 68, 68, 0.4)' },    // Red - VIX
+  crush: { stroke: '#22C55E', glow: 'rgba(34, 197, 94, 0.4)' },     // Green - Crush
+  tension: { stroke: '#F59E0B', glow: 'rgba(245, 158, 11, 0.4)' },  // Amber - China
+  threat: { stroke: '#00D4FF', glow: 'rgba(0, 212, 255, 0.4)' },    // Cyan - Tariff
 }
 
-function ArcGauge({ score, variant = 'stress' }: { score: number; variant: DriverGaugeProps['variant'] }) {
-  // Score 0-100
-  const percentage = Math.min(Math.max(score, 0), 100)
+type VariantKey = keyof typeof VARIANTS
 
+function ArcGauge({ score, variant }: { score: number; variant: VariantKey }) {
+  const percentage = Math.min(Math.max(score, 0), 100)
   const radius = 40
   const strokeWidth = 3
   const circumference = Math.PI * radius
-  const strokeDasharray = circumference
   const strokeDashoffset = circumference - (circumference * percentage / 100)
-
-  const colors = VARIANTS[variant || 'stress']
+  const colors = VARIANTS[variant]
 
   return (
     <svg viewBox="0 0 100 55" className="w-full h-auto">
-      {/* Background arc */}
       <path
         d="M 10 50 A 40 40 0 0 1 90 50"
         fill="none"
@@ -45,27 +58,58 @@ function ArcGauge({ score, variant = 'stress' }: { score: number; variant: Drive
         strokeWidth={strokeWidth}
         strokeLinecap="round"
       />
-      {/* Value arc */}
       <path
         d="M 10 50 A 40 40 0 0 1 90 50"
         fill="none"
         stroke={colors.stroke}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeDasharray={strokeDasharray}
+        strokeDasharray={circumference}
         strokeDashoffset={strokeDashoffset}
         style={{
           transition: 'stroke-dashoffset 0.8s ease-out',
-          filter: `drop-shadow(0 0 6px ${colors.stroke}40)`
+          filter: `drop-shadow(0 0 6px ${colors.glow})`
         }}
       />
     </svg>
   )
 }
 
-function DriverGaugeCard({ label, score, level, metric, metricLabel, variant = 'stress', loading }: DriverGaugeProps) {
+interface DriverCardProps {
+  label: string
+  data: DriverData | null
+  metricKey: string
+  metricLabel: string
+  metricFormat?: (val: number | null) => string
+  variant: VariantKey
+  loading: boolean
+}
+
+function DriverCard({
+  label,
+  data,
+  metricKey,
+  metricLabel,
+  metricFormat,
+  variant,
+  loading
+}: DriverCardProps) {
+  const score = data?.score ?? 0
+  const level = data?.level ?? '--'
+  const metricValue = data?.components?.[metricKey] ?? null
+  const formattedMetric = metricFormat
+    ? metricFormat(metricValue)
+    : metricValue?.toString() ?? '--'
+
+  // Score-based border glow
+  const borderColor = score >= 65
+    ? 'border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+    : score >= 50
+      ? 'border-amber-500/20'
+      : 'border-white/5'
+
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-5 flex flex-col items-center hover:border-white/10 transition-colors">
+    <div className={`bg-[#0a0a0a] border rounded-xl p-5 flex flex-col items-center hover:border-white/10 transition-all ${borderColor}`}>
       {/* Label */}
       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
         {label}
@@ -76,144 +120,150 @@ function DriverGaugeCard({ label, score, level, metric, metricLabel, variant = '
         <ArcGauge score={score} variant={variant} />
       </div>
 
-      {/* Main Score */}
-      <div className={`text-3xl font-bold tabular-nums -mt-1 ${loading ? 'text-slate-600 animate-pulse' : 'text-white'}`}>
-        {loading ? '--' : score}
+      {/* Score */}
+      <div className={`text-3xl font-bold tabular-nums -mt-1 transition-all ${
+        loading ? 'text-slate-600 animate-pulse' : 'text-white'
+      }`}>
+        {loading ? '--' : Math.round(score)}
       </div>
 
       {/* Level */}
-      <div className="text-xs text-slate-400 mt-1">
+      <div className={`text-xs mt-1 ${
+        score >= 65 ? 'text-red-400' : score >= 50 ? 'text-amber-400' : 'text-slate-400'
+      }`}>
         {loading ? '...' : level}
       </div>
 
       {/* Metric */}
       <div className="text-[10px] text-slate-500 mt-2 text-center">
-        {metricLabel}: <span className="text-slate-300">{loading ? '--' : metric}</span>
+        {metricLabel}: <span className="text-slate-300 font-mono">{loading ? '--' : formattedMetric}</span>
       </div>
     </div>
   )
 }
 
-interface MarketDriversData {
-  drivers: {
-    vix_stress: {
-      score: number
-      level: string
-      components: { vix_value?: number }
-    }
-    crush_pressure: {
-      score: number
-      level: string
-      components: { board_crush_value?: number }
-    }
-    china_tension: {
-      score: number
-      level: string
-      components: { cny_rate?: number; fxi_change_20d?: number }
-    }
-    tariff_threat: {
-      score: number
-      level: string
-      components: { tpu_value?: number }
-    }
-  }
-  summary: {
-    average_pressure: number
-    alert_count: number
-  }
-}
-
 export function ChrisTop4Drivers() {
-  const [data, setData] = useState<MarketDriversData | null>(null)
+  const [data, setData] = useState<MarketDriversResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null)
+
+  const fetchDrivers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/market-drivers')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      setData(json)
+      setError(null)
+      setLastUpdate(new Date().toLocaleTimeString())
+    } catch (e) {
+      console.error('Failed to fetch market drivers:', e)
+      setError(e instanceof Error ? e.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    async function fetchDrivers() {
-      try {
-        const res = await fetch('/api/market-drivers')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const json = await res.json()
-        setData(json)
-        setError(null)
-      } catch (e) {
-        console.error('Failed to fetch market drivers:', e)
-        setError('Failed to load')
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchDrivers()
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchDrivers, 5 * 60 * 1000)
+    const interval = setInterval(fetchDrivers, 5 * 60 * 1000) // Refresh every 5 min
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchDrivers])
 
   const d = data?.drivers
 
   return (
     <div className="w-full">
       {/* Section Header */}
-      <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-cyan-500">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-          Key Market Drivers
-        </h3>
-        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-          CHRIS'S TOP 4
-        </span>
-        {error && (
-          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-            ERROR
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 pl-1 border-l-4 border-cyan-500">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Key Market Drivers
+          </h3>
+          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            CHRIS'S TOP 4
+          </span>
+          {error && (
+            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+              ERROR
+            </span>
+          )}
+          {data?.summary?.alert_count && data.summary.alert_count > 0 && (
+            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
+              {data.summary.alert_count} ALERT{data.summary.alert_count > 1 ? 'S' : ''}
+            </span>
+          )}
+        </div>
+        {lastUpdate && (
+          <span className="text-[9px] text-slate-600">
+            Updated {lastUpdate}
           </span>
         )}
       </div>
 
-      {/* 4 Gauge Grid */}
+      {/* 4 Driver Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <DriverGaugeCard
+        <DriverCard
           label="VIX Stress"
-          score={d?.vix_stress?.score ?? 0}
-          level={d?.vix_stress?.level ?? '--'}
-          metric={d?.vix_stress?.components?.vix_value?.toFixed(1) ?? '--'}
+          data={d?.vix_stress ?? null}
+          metricKey="vix_value"
           metricLabel="VIX"
+          metricFormat={(v) => v?.toFixed(1) ?? '--'}
           variant="stress"
           loading={loading}
         />
-        <DriverGaugeCard
+        <DriverCard
           label="Crush Pressure"
-          score={d?.crush_pressure?.score ?? 0}
-          level={d?.crush_pressure?.level ?? '--'}
-          metric={d?.crush_pressure?.components?.board_crush_value ? `$${d.crush_pressure.components.board_crush_value.toFixed(2)}` : '--'}
+          data={d?.crush_pressure ?? null}
+          metricKey="board_crush_value"
           metricLabel="Board Crush"
+          metricFormat={(v) => v ? `$${v.toFixed(2)}` : '--'}
           variant="crush"
           loading={loading}
         />
-        <DriverGaugeCard
+        <DriverCard
           label="China Tension"
-          score={d?.china_tension?.score ?? 0}
-          level={d?.china_tension?.level ?? '--'}
-          metric={d?.china_tension?.components?.cny_rate?.toFixed(2) ?? '--'}
+          data={d?.china_tension ?? null}
+          metricKey="cny_rate"
           metricLabel="CNY/USD"
+          metricFormat={(v) => v?.toFixed(2) ?? '--'}
           variant="tension"
           loading={loading}
         />
-        <DriverGaugeCard
+        <DriverCard
           label="Tariff Threat"
-          score={d?.tariff_threat?.score ?? 0}
-          level={d?.tariff_threat?.level ?? '--'}
-          metric={d?.tariff_threat?.components?.tpu_value?.toFixed(0) ?? '--'}
+          data={d?.tariff_threat ?? null}
+          metricKey="tpu_value"
           metricLabel="TPU Index"
+          metricFormat={(v) => v?.toFixed(0) ?? '--'}
           variant="threat"
           loading={loading}
         />
       </div>
+
+      {/* Summary Bar */}
+      {data?.summary && (
+        <div className="mt-4 flex items-center justify-between text-[10px] text-slate-500 px-2">
+          <div>
+            Avg Pressure: <span className="text-slate-300 font-mono">{data.summary.average_pressure}</span>
+          </div>
+          <div>
+            Highest: <span className="text-slate-300">{data.summary.highest_pressure?.name}</span>
+            {' '}(<span className="font-mono">{data.summary.highest_pressure?.score}</span>)
+          </div>
+          <div>
+            As of: <span className="text-slate-400">{data.as_of_date}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// Compact version for sidebar/secondary placement
+// Compact version for header/sidebar
 export function ChrisTop4Compact() {
-  const [data, setData] = useState<MarketDriversData | null>(null)
+  const [data, setData] = useState<MarketDriversResponse | null>(null)
 
   useEffect(() => {
     fetch('/api/market-drivers')
@@ -223,10 +273,10 @@ export function ChrisTop4Compact() {
   }, [])
 
   const drivers = [
-    { label: 'VIX', score: data?.drivers?.vix_stress?.score ?? 0, color: '#EF4444' },
-    { label: 'Crush', score: data?.drivers?.crush_pressure?.score ?? 0, color: '#22C55E' },
-    { label: 'China', score: data?.drivers?.china_tension?.score ?? 0, color: '#F59E0B' },
-    { label: 'Tariff', score: data?.drivers?.tariff_threat?.score ?? 0, color: '#00D4FF' },
+    { label: 'VIX', score: data?.drivers?.vix_stress?.score ?? 0, color: VARIANTS.stress.stroke },
+    { label: 'Crush', score: data?.drivers?.crush_pressure?.score ?? 0, color: VARIANTS.crush.stroke },
+    { label: 'China', score: data?.drivers?.china_tension?.score ?? 0, color: VARIANTS.tension.stroke },
+    { label: 'Tariff', score: data?.drivers?.tariff_threat?.score ?? 0, color: VARIANTS.threat.stroke },
   ]
 
   return (
@@ -238,7 +288,9 @@ export function ChrisTop4Compact() {
             style={{ backgroundColor: d.color }}
           />
           <span className="text-[10px] text-slate-500 uppercase">{d.label}</span>
-          <span className="text-xs font-mono text-white">{d.score}</span>
+          <span className={`text-xs font-mono ${d.score >= 65 ? 'text-red-400' : 'text-white'}`}>
+            {Math.round(d.score)}
+          </span>
         </div>
       ))}
     </div>
