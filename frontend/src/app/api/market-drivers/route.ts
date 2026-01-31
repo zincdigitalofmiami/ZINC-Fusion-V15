@@ -150,6 +150,135 @@ function scoreTariffThreat(tpu: number, emv: number | null): { score: number; le
 }
 
 // =============================================================================
+// NARRATIVE GENERATOR - AI-style market intelligence
+// =============================================================================
+
+interface DriverResult {
+  score: number
+  level: string
+  regime: string
+  headline: string
+}
+
+function generateMarketIntelligence(
+  vix: DriverResult, vixValue: number,
+  crush: DriverResult, crushValue: number, oilShare: number | null,
+  china: DriverResult, cnyRate: number, fxiChange20d: number,
+  tariff: DriverResult, tpuValue: number
+): {
+  headline: string
+  summary: string
+  drivers: { label: string; outlook: string; detail: string }[]
+  zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
+  zlColor: string
+} {
+  const avgScore = (vix.score + crush.score + china.score + tariff.score) / 4
+  const highPressureCount = [vix.score, crush.score, china.score, tariff.score].filter(s => s >= 65).length
+
+  // Determine overall ZL outlook
+  let zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
+  let zlColor: string
+  let headline: string
+
+  if (avgScore >= 70 || highPressureCount >= 3) {
+    zlOutlook = 'BEARISH'
+    zlColor = '#EF4444'
+    headline = 'Multiple Headwinds for Soybean Oil'
+  } else if (avgScore >= 55 || highPressureCount >= 2) {
+    zlOutlook = 'CAUTIOUS'
+    zlColor = '#F97316'
+    headline = 'Mixed Signals for ZL - Proceed Carefully'
+  } else if (avgScore >= 40) {
+    zlOutlook = 'NEUTRAL'
+    zlColor = '#EAB308'
+    headline = 'Balanced Conditions for Soybean Oil'
+  } else {
+    zlOutlook = 'BULLISH'
+    zlColor = '#22C55E'
+    headline = 'Supportive Environment for ZL'
+  }
+
+  // Generate summary paragraph
+  const summaryParts: string[] = []
+
+  if (vix.score >= 65) {
+    summaryParts.push(`Volatility stress is elevated with VIX at ${vixValue.toFixed(1)}, raising hedging costs for soy producers and increasing fund liquidation risk in ZL.`)
+  } else if (vix.score <= 30) {
+    summaryParts.push(`Low VIX at ${vixValue.toFixed(1)} means cheap hedging for farmers and stable ZL trading conditions.`)
+  }
+
+  if (crush.score >= 65) {
+    summaryParts.push(`Crush margins at $${crushValue.toFixed(2)}/bu are under severe pressure, which may force processor capacity cuts.`)
+  } else if (crush.score <= 30) {
+    summaryParts.push(`Strong crush economics at $${crushValue.toFixed(2)}/bu are driving high utilization rates.`)
+  }
+
+  if (china.score >= 65) {
+    summaryParts.push(`China trade tensions are elevated with CNY at ${cnyRate.toFixed(2)} and FXI ${fxiChange20d >= 0 ? 'up' : 'down'} ${Math.abs(fxiChange20d * 100).toFixed(1)}% over 20 days, threatening soy export demand.`)
+  } else if (china.score <= 30) {
+    summaryParts.push(`China demand outlook is constructive with stable trade flows.`)
+  }
+
+  if (tariff.score >= 65) {
+    summaryParts.push(`Trade Policy Uncertainty at ${tpuValue.toFixed(0)} signals active tariff risk to soy exports.`)
+  } else if (tariff.score <= 30) {
+    summaryParts.push(`Trade policy is calm, supporting normal soy export flows.`)
+  }
+
+  if (summaryParts.length === 0) {
+    summaryParts.push(`Market conditions are balanced across all four key drivers. ZL is trading primarily on fundamentals.`)
+  }
+
+  // Generate driver-specific bullets
+  const drivers = [
+    {
+      label: 'Volatility',
+      outlook: vix.score >= 65 ? 'PRESSURE' : vix.score <= 35 ? 'SUPPORTIVE' : 'NEUTRAL',
+      detail: vix.score >= 65
+        ? `VIX at ${vixValue.toFixed(1)} - risk-off flows may pressure ZL, farmer hedging expensive`
+        : vix.score <= 35
+        ? `VIX at ${vixValue.toFixed(1)} - cheap puts for harvest hedges, stable basis`
+        : `VIX at ${vixValue.toFixed(1)} - normal volatility, standard trading conditions`
+    },
+    {
+      label: 'Crush',
+      outlook: crush.score >= 65 ? 'MIXED' : crush.score <= 35 ? 'WATCH SUPPLY' : 'NEUTRAL',
+      detail: crush.score >= 65
+        ? `Board crush $${crushValue.toFixed(2)} - margins squeezed, processor slowdowns possible`
+        : crush.score <= 35
+        ? `Board crush $${crushValue.toFixed(2)} - max crush running, heavy oil supply`
+        : `Board crush $${crushValue.toFixed(2)} - balanced processor economics`
+    },
+    {
+      label: 'China',
+      outlook: china.score >= 65 ? 'BEARISH' : china.score <= 35 ? 'BULLISH' : 'MONITOR',
+      detail: china.score >= 65
+        ? `CNY ${cnyRate.toFixed(2)}, FXI ${fxiChange20d >= 0 ? '+' : ''}${(fxiChange20d * 100).toFixed(1)}% - export demand at risk`
+        : china.score <= 35
+        ? `CNY ${cnyRate.toFixed(2)} - China buying actively, strong export pace`
+        : `CNY ${cnyRate.toFixed(2)} - watching trade headlines, normal export flow`
+    },
+    {
+      label: 'Tariff',
+      outlook: tariff.score >= 65 ? 'BEARISH' : tariff.score <= 35 ? 'CALM' : 'NOISE',
+      detail: tariff.score >= 65
+        ? `TPU ${tpuValue.toFixed(0)} - tariff war risk, Gulf basis vulnerable`
+        : tariff.score <= 35
+        ? `TPU ${tpuValue.toFixed(0)} - trade policy calm, bullish backdrop`
+        : `TPU ${tpuValue.toFixed(0)} - normal policy noise, no immediate threat`
+    }
+  ]
+
+  return {
+    headline,
+    summary: summaryParts.join(' '),
+    drivers,
+    zlOutlook,
+    zlColor
+  }
+}
+
+// =============================================================================
 // MAIN API HANDLER - Uses correct table names
 // =============================================================================
 
@@ -233,6 +362,14 @@ export async function GET() {
     const chinaResult = scoreChinaTension(cnyRate, fxiChange20d, fxiChange5d, bdryChange20d)
     const tariffResult = scoreTariffThreat(tpuValue, emvValue)
 
+    // Generate market intelligence narrative
+    const intelligence = generateMarketIntelligence(
+      vixResult, vixValue,
+      crushResult, crushValue, oilShareValue,
+      chinaResult, cnyRate, fxiChange20d,
+      tariffResult, tpuValue
+    )
+
     return NextResponse.json({
       as_of_date: new Date().toISOString().split('T')[0],
       drivers: {
@@ -289,6 +426,7 @@ export async function GET() {
         ].sort((a, b) => b.score - a.score)[0],
         alert_count: [vixResult.score, crushResult.score, chinaResult.score, tariffResult.score].filter(s => s >= 65).length,
       },
+      intelligence,
     })
   } catch (error) {
     console.error('Market drivers query failed:', error)

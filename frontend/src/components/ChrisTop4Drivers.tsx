@@ -17,6 +17,14 @@ interface DriverData {
   components: Record<string, number | null>
 }
 
+interface IntelligenceData {
+  headline: string
+  summary: string
+  drivers: { label: string; outlook: string; detail: string }[]
+  zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
+  zlColor: string
+}
+
 interface MarketDriversResponse {
   as_of_date: string
   drivers: {
@@ -30,6 +38,7 @@ interface MarketDriversResponse {
     highest_pressure: { name: string; score: number }
     alert_count: number
   }
+  intelligence: IntelligenceData
 }
 
 // =============================================================================
@@ -177,6 +186,11 @@ function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading
       <div className="text-[10px] text-slate-500 mt-2 text-center">
         {metricLabel}: <span className="text-slate-300 font-mono">{loading ? '--' : formattedMetric}</span>
       </div>
+
+      {/* Headline */}
+      <div className="mt-3 text-[11px] text-slate-300 text-center leading-snug min-h-[28px]">
+        {loading ? '...' : (data?.headline ?? '--')}
+      </div>
     </div>
   )
 }
@@ -297,6 +311,51 @@ export function ChrisTop4Drivers() {
           </div>
           <div>
             As of: <span className="text-slate-400">{data.as_of_date}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Market Intelligence Card */}
+      {data?.intelligence && (
+        <div className="mt-4 bg-[#0a0a0a] border border-white/5 rounded-xl p-4">
+          {/* Header with ZL Outlook Badge */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-6 rounded-full" style={{ backgroundColor: data.intelligence.zlColor }} />
+              <h4 className="text-sm font-semibold text-white">{data.intelligence.headline}</h4>
+            </div>
+            <span
+              className="px-2 py-1 rounded text-[10px] font-bold tracking-wider"
+              style={{
+                backgroundColor: `${data.intelligence.zlColor}20`,
+                color: data.intelligence.zlColor,
+                border: `1px solid ${data.intelligence.zlColor}40`
+              }}
+            >
+              ZL {data.intelligence.zlOutlook}
+            </span>
+          </div>
+
+          {/* Summary Paragraph */}
+          <p className="text-[12px] text-slate-400 leading-relaxed mb-4">
+            {data.intelligence.summary}
+          </p>
+
+          {/* Driver Bullets */}
+          <div className="grid grid-cols-2 gap-2">
+            {data.intelligence.drivers.map((driver) => (
+              <div key={driver.label} className="flex items-start gap-2 text-[11px]">
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
+                  driver.outlook === 'BEARISH' || driver.outlook === 'PRESSURE' ? 'bg-red-500/20 text-red-400' :
+                  driver.outlook === 'BULLISH' || driver.outlook === 'SUPPORTIVE' || driver.outlook === 'CALM' ? 'bg-green-500/20 text-green-400' :
+                  driver.outlook === 'MIXED' || driver.outlook === 'WATCH SUPPLY' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-slate-500/20 text-slate-400'
+                }`}>
+                  {driver.label}
+                </span>
+                <span className="text-slate-500">{driver.detail}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
