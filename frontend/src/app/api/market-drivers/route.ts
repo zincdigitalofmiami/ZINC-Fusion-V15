@@ -733,8 +733,8 @@ export async function GET() {
       volSignalRows, crushSignalRows, chinaSignalRows, tariffSignalRows
     ] = await Promise.all([
       // === VIX STRESS DATA ===
-      query<{ vix: number }>(`
-        SELECT value::float8 as vix FROM econ.vol_indices_1d
+      query<{ vix: number; event_date: string }>(`
+        SELECT value::float8 as vix, event_date::text FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
@@ -783,8 +783,8 @@ export async function GET() {
       `),
 
       // === CRUSH PRESSURE DATA ===
-      query<{ crush: number; oil_share: number | null }>(`
-        SELECT board_crush::float8 as crush, oil_share::float8 as oil_share
+      query<{ crush: number; oil_share: number | null; trade_date: string }>(`
+        SELECT board_crush::float8 as crush, oil_share::float8 as oil_share, trade_date::text
         FROM analytics.board_crush_1d WHERE board_crush IS NOT NULL
         ORDER BY trade_date DESC LIMIT 1
       `),
@@ -795,8 +795,8 @@ export async function GET() {
       `),
 
       // === CHINA TENSION DATA ===
-      query<{ rate: number }>(`
-        SELECT rate::float8 as rate FROM mkt.fx_1d
+      query<{ rate: number; event_date: string }>(`
+        SELECT rate::float8 as rate, event_date::text FROM mkt.fx_1d
         WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
@@ -846,9 +846,11 @@ export async function GET() {
       `),
 
       // === TARIFF THREAT DATA ===
-      query<{ tpu: number; emv: number | null }>(`
+      // NOTE: Using USEPUINDXM (main EPU) instead of EPUTRADE - EPUTRADE is stale (Dec 2025)
+      query<{ tpu: number; tpu_date: string; emv: number | null }>(`
         SELECT
-          (SELECT value FROM econ.vol_indices_1d WHERE series_id = 'EPUTRADE' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1)::float8 as tpu,
+          (SELECT value FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1)::float8 as tpu,
+          (SELECT event_date::text FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1) as tpu_date,
           (SELECT value FROM econ.vol_indices_1d WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1)::float8 as emv
       `),
       // Legislation Velocity (14 days)
@@ -868,26 +870,18 @@ export async function GET() {
       `),
 
       // === SPECIALIST SIGNALS ===
-      query<{ signal: number }>(`
-        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
-        WHERE bucket = 'volatility' ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => []),
-      query<{ signal: number }>(`
-        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
-        WHERE bucket = 'crush' ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => []),
-      query<{ signal: number }>(`
-        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
-        WHERE bucket = 'china' ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => []),
-      query<{ signal: number }>(`
-        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
-        WHERE bucket = 'tariff' ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => []),
+      // DISABLED: Current specialist signals are placeholder/fake data:
+      // - volatility always = 1.0, tariff always = -1.0
+      // These are not real ML model outputs. Set to null until real models are trained.
+      Promise.resolve([] as { signal: number }[]),  // volSignal - DISABLED (fake)
+      Promise.resolve([] as { signal: number }[]),  // crushSignal - DISABLED (fake)
+      Promise.resolve([] as { signal: number }[]),  // chinaSignal - DISABLED (fake)
+      Promise.resolve([] as { signal: number }[]),  // tariffSignal - DISABLED (fake)
     ])
 
     // Extract values with defaults
     const vixValue = vixRows[0]?.vix ?? 20
+    const vixDate = vixRows[0]?.event_date ?? null
     const vix3mValue = vix3mRows[0]?.vix3m ?? null
     const ovxValue = ovxRows[0]?.ovx ?? null
     const realizedVol = realizedVolRows[0]?.realized_vol ?? null
@@ -896,28 +890,46 @@ export async function GET() {
     const volSignal = volSignalRows[0]?.signal ?? null
 
     const crushValue = crushRows[0]?.crush ?? 1.50
+    const crushDate = crushRows[0]?.trade_date ?? null
     const oilShareValue = crushRows[0]?.oil_share ?? null
     const oilShare5dAgo = oilShare5dRows[0]?.oil_share_5d ?? null
     const crushSignal = crushSignalRows[0]?.signal ?? null
 
     const cnyRate = cnyRows[0]?.rate ?? 7.25
+    const cnyDate = cnyRows[0]?.event_date ?? null
     const cnyRate20d = cnyChangeRows[0]?.rate_20d ?? null
     const cnyChange20d = (cnyRate20d && cnyRate20d > 0) ? (cnyRate - cnyRate20d) / cnyRate20d : null
     const fxiChange20d = fxiRows[0]?.change_20d ?? 0
     const fxiChange5d = fxiRows[0]?.change_5d ?? 0
-    const fxiPrice = fxiRows[0]?.price ?? 0
     const bdryChange20d = bdryRows[0]?.change_20d ?? null
     const soyChinaNews = soyChinaNewsRows[0]?.count ?? 0
     const totalNews = totalNewsRows[0]?.count ?? 1
     const chinaSignal = chinaSignalRows[0]?.signal ?? null
 
     const tpuValue = tpuRows[0]?.tpu ?? 100
+    const tpuDate = tpuRows[0]?.tpu_date ?? null
     const emvValue = tpuRows[0]?.emv ?? null
     const legislationCount = legislationRows[0]?.count ?? 0
     const soyTariffNews = soyTariffNewsRows[0]?.count ?? 0
     const tariffSignal = tariffSignalRows[0]?.signal ?? null
 
     const asOfDate = new Date().toISOString().split('T')[0]
+
+    // Data quality tracking
+    const today = new Date()
+    const daysSince = (dateStr: string | null) => {
+      if (!dateStr) return null
+      const d = new Date(dateStr)
+      return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+    }
+    const dataFreshness = {
+      vix: { date: vixDate, days_old: daysSince(vixDate), status: daysSince(vixDate) !== null && daysSince(vixDate)! <= 2 ? 'fresh' : 'stale' },
+      crush: { date: crushDate, days_old: daysSince(crushDate), status: daysSince(crushDate) !== null && daysSince(crushDate)! <= 2 ? 'fresh' : 'stale' },
+      cny: { date: cnyDate, days_old: daysSince(cnyDate), status: daysSince(cnyDate) !== null && daysSince(cnyDate)! <= 5 ? 'fresh' : 'stale' },
+      tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },  // Monthly data
+      vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VIX3M series not in database' : null },
+      specialist_signals: { available: false, note: 'Disabled - placeholder data detected (volatility=1.0, tariff=-1.0)' },
+    }
 
     // Calculate scores with full sophistication
     const vixResult = calculateVixStress(vixValue, vix3mValue, ovxValue, realizedVol, vixZlCorr, hedgeCount, volSignal)
@@ -1050,6 +1062,7 @@ export async function GET() {
         alert_count: [vixResult.score, crushResult.score, chinaResult.score, tariffResult.score].filter(s => s >= 65).length,
       },
       intelligence,
+      data_quality: dataFreshness,
     })
   } catch (error) {
     console.error('Market drivers query failed:', error)
