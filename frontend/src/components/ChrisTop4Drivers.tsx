@@ -5,6 +5,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 // =============================================================================
 // CHRIS'S TOP 4 KEY MARKET DRIVERS
 // Real domain-specific pressure indicators for soybean oil markets
+// Gauges turn RED as pressure increases
 // =============================================================================
 
 interface DriverData {
@@ -31,33 +32,75 @@ interface MarketDriversResponse {
   }
 }
 
-// Arc gauge colors by variant
-const VARIANTS = {
-  stress: { stroke: '#EF4444', glow: 'rgba(239, 68, 68, 0.4)' },    // Red - VIX
-  crush: { stroke: '#22C55E', glow: 'rgba(34, 197, 94, 0.4)' },     // Green - Crush
-  tension: { stroke: '#F59E0B', glow: 'rgba(245, 158, 11, 0.4)' },  // Amber - China
-  threat: { stroke: '#00D4FF', glow: 'rgba(0, 212, 255, 0.4)' },    // Cyan - Tariff
+// =============================================================================
+// DYNAMIC COLOR BASED ON SCORE
+// Green (safe) → Yellow → Orange → Red (danger)
+// =============================================================================
+
+function getScoreColor(score: number): { stroke: string; glow: string } {
+  // Clamp score to 0-100
+  const s = Math.max(0, Math.min(100, score))
+
+  if (s <= 25) {
+    // Green zone: 0-25
+    return { stroke: '#22C55E', glow: 'rgba(34, 197, 94, 0.5)' }
+  } else if (s <= 40) {
+    // Green to Yellow transition: 25-40
+    const t = (s - 25) / 15
+    return {
+      stroke: `rgb(${Math.round(34 + (234 - 34) * t)}, ${Math.round(197 - (197 - 179) * t)}, ${Math.round(94 - (94 - 8) * t)})`,
+      glow: `rgba(${Math.round(34 + (234 - 34) * t)}, ${Math.round(197 - (197 - 179) * t)}, ${Math.round(94 - (94 - 8) * t)}, 0.5)`
+    }
+  } else if (s <= 55) {
+    // Yellow/Amber zone: 40-55
+    return { stroke: '#EAB308', glow: 'rgba(234, 179, 8, 0.5)' }
+  } else if (s <= 70) {
+    // Orange zone: 55-70
+    const t = (s - 55) / 15
+    return {
+      stroke: `rgb(${Math.round(234 + (239 - 234) * t)}, ${Math.round(179 - (179 - 115) * t)}, ${Math.round(8 + (0 - 8) * t)})`,
+      glow: `rgba(${Math.round(234 + (239 - 234) * t)}, ${Math.round(179 - (179 - 115) * t)}, ${Math.round(8 + (0 - 8) * t)}, 0.5)`
+    }
+  } else if (s <= 85) {
+    // Orange-Red zone: 70-85
+    return { stroke: '#EF7300', glow: 'rgba(239, 115, 0, 0.5)' }
+  } else {
+    // Red danger zone: 85-100
+    return { stroke: '#EF4444', glow: 'rgba(239, 68, 68, 0.6)' }
+  }
 }
 
-type VariantKey = keyof typeof VARIANTS
+// Get text color based on score
+function getScoreTextColor(score: number): string {
+  if (score >= 70) return 'text-red-400'
+  if (score >= 55) return 'text-orange-400'
+  if (score >= 40) return 'text-amber-400'
+  return 'text-green-400'
+}
 
-function ArcGauge({ score, variant }: { score: number; variant: VariantKey }) {
+// =============================================================================
+// ARC GAUGE COMPONENT
+// =============================================================================
+
+function ArcGauge({ score }: { score: number }) {
   const percentage = Math.min(Math.max(score, 0), 100)
   const radius = 40
-  const strokeWidth = 3
+  const strokeWidth = 4
   const circumference = Math.PI * radius
   const strokeDashoffset = circumference - (circumference * percentage / 100)
-  const colors = VARIANTS[variant]
+  const colors = getScoreColor(score)
 
   return (
     <svg viewBox="0 0 100 55" className="w-full h-auto">
+      {/* Background arc */}
       <path
         d="M 10 50 A 40 40 0 0 1 90 50"
         fill="none"
-        stroke="rgba(255, 255, 255, 0.05)"
+        stroke="rgba(255, 255, 255, 0.08)"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
       />
+      {/* Colored arc based on score */}
       <path
         d="M 10 50 A 40 40 0 0 1 90 50"
         fill="none"
@@ -67,13 +110,17 @@ function ArcGauge({ score, variant }: { score: number; variant: VariantKey }) {
         strokeDasharray={circumference}
         strokeDashoffset={strokeDashoffset}
         style={{
-          transition: 'stroke-dashoffset 0.8s ease-out',
-          filter: `drop-shadow(0 0 6px ${colors.glow})`
+          transition: 'stroke-dashoffset 0.8s ease-out, stroke 0.5s ease',
+          filter: `drop-shadow(0 0 8px ${colors.glow})`
         }}
       />
     </svg>
   )
 }
+
+// =============================================================================
+// DRIVER CARD COMPONENT
+// =============================================================================
 
 interface DriverCardProps {
   label: string
@@ -81,35 +128,26 @@ interface DriverCardProps {
   metricKey: string
   metricLabel: string
   metricFormat?: (val: number | null) => string
-  variant: VariantKey
   loading: boolean
 }
 
-function DriverCard({
-  label,
-  data,
-  metricKey,
-  metricLabel,
-  metricFormat,
-  variant,
-  loading
-}: DriverCardProps) {
+function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading }: DriverCardProps) {
   const score = data?.score ?? 0
   const level = data?.level ?? '--'
   const metricValue = data?.components?.[metricKey] ?? null
-  const formattedMetric = metricFormat
-    ? metricFormat(metricValue)
-    : metricValue?.toString() ?? '--'
+  const formattedMetric = metricFormat ? metricFormat(metricValue) : metricValue?.toString() ?? '--'
+  const colors = getScoreColor(score)
 
-  // Score-based border glow
-  const borderColor = score >= 65
-    ? 'border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
-    : score >= 50
-      ? 'border-amber-500/20'
-      : 'border-white/5'
+  // Dynamic border based on score
+  const borderStyle = score >= 65
+    ? { borderColor: colors.stroke, boxShadow: `0 0 20px ${colors.glow}` }
+    : { borderColor: 'rgba(255,255,255,0.05)' }
 
   return (
-    <div className={`bg-[#0a0a0a] border rounded-xl p-5 flex flex-col items-center hover:border-white/10 transition-all ${borderColor}`}>
+    <div
+      className="bg-[#0a0a0a] border rounded-xl p-5 flex flex-col items-center hover:border-white/20 transition-all duration-300"
+      style={borderStyle}
+    >
       {/* Label */}
       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
         {label}
@@ -117,20 +155,21 @@ function DriverCard({
 
       {/* Arc Gauge */}
       <div className="w-28 -mb-3">
-        <ArcGauge score={score} variant={variant} />
+        <ArcGauge score={score} />
       </div>
 
-      {/* Score */}
-      <div className={`text-3xl font-bold tabular-nums -mt-1 transition-all ${
-        loading ? 'text-slate-600 animate-pulse' : 'text-white'
-      }`}>
+      {/* Score - colored by severity */}
+      <div
+        className={`text-3xl font-bold tabular-nums -mt-1 transition-all duration-300 ${
+          loading ? 'text-slate-600 animate-pulse' : ''
+        }`}
+        style={{ color: loading ? undefined : colors.stroke }}
+      >
         {loading ? '--' : Math.round(score)}
       </div>
 
-      {/* Level */}
-      <div className={`text-xs mt-1 ${
-        score >= 65 ? 'text-red-400' : score >= 50 ? 'text-amber-400' : 'text-slate-400'
-      }`}>
+      {/* Level - colored by severity */}
+      <div className={`text-xs mt-1 ${loading ? 'text-slate-600' : getScoreTextColor(score)}`}>
         {loading ? '...' : level}
       </div>
 
@@ -141,6 +180,10 @@ function DriverCard({
     </div>
   )
 }
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export function ChrisTop4Drivers() {
   const [data, setData] = useState<MarketDriversResponse | null>(null)
@@ -167,7 +210,7 @@ export function ChrisTop4Drivers() {
 
   useEffect(() => {
     fetchDrivers()
-    const interval = setInterval(fetchDrivers, 5 * 60 * 1000) // Refresh every 5 min
+    const interval = setInterval(fetchDrivers, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetchDrivers])
 
@@ -210,7 +253,6 @@ export function ChrisTop4Drivers() {
           metricKey="vix_value"
           metricLabel="VIX"
           metricFormat={(v) => v?.toFixed(1) ?? '--'}
-          variant="stress"
           loading={loading}
         />
         <DriverCard
@@ -219,7 +261,6 @@ export function ChrisTop4Drivers() {
           metricKey="board_crush_value"
           metricLabel="Board Crush"
           metricFormat={(v) => v ? `$${v.toFixed(2)}` : '--'}
-          variant="crush"
           loading={loading}
         />
         <DriverCard
@@ -228,7 +269,6 @@ export function ChrisTop4Drivers() {
           metricKey="cny_rate"
           metricLabel="CNY/USD"
           metricFormat={(v) => v?.toFixed(2) ?? '--'}
-          variant="tension"
           loading={loading}
         />
         <DriverCard
@@ -237,7 +277,6 @@ export function ChrisTop4Drivers() {
           metricKey="tpu_value"
           metricLabel="TPU Index"
           metricFormat={(v) => v?.toFixed(0) ?? '--'}
-          variant="threat"
           loading={loading}
         />
       </div>
@@ -246,11 +285,15 @@ export function ChrisTop4Drivers() {
       {data?.summary && (
         <div className="mt-4 flex items-center justify-between text-[10px] text-slate-500 px-2">
           <div>
-            Avg Pressure: <span className="text-slate-300 font-mono">{data.summary.average_pressure}</span>
+            Avg Pressure: <span className="font-mono" style={{ color: getScoreColor(data.summary.average_pressure).stroke }}>
+              {data.summary.average_pressure}
+            </span>
           </div>
           <div>
             Highest: <span className="text-slate-300">{data.summary.highest_pressure?.name}</span>
-            {' '}(<span className="font-mono">{data.summary.highest_pressure?.score}</span>)
+            {' '}(<span className="font-mono" style={{ color: getScoreColor(data.summary.highest_pressure?.score ?? 0).stroke }}>
+              {data.summary.highest_pressure?.score}
+            </span>)
           </div>
           <div>
             As of: <span className="text-slate-400">{data.as_of_date}</span>
@@ -261,7 +304,10 @@ export function ChrisTop4Drivers() {
   )
 }
 
-// Compact version for header/sidebar
+// =============================================================================
+// COMPACT VERSION
+// =============================================================================
+
 export function ChrisTop4Compact() {
   const [data, setData] = useState<MarketDriversResponse | null>(null)
 
@@ -273,10 +319,10 @@ export function ChrisTop4Compact() {
   }, [])
 
   const drivers = [
-    { label: 'VIX', score: data?.drivers?.vix_stress?.score ?? 0, color: VARIANTS.stress.stroke },
-    { label: 'Crush', score: data?.drivers?.crush_pressure?.score ?? 0, color: VARIANTS.crush.stroke },
-    { label: 'China', score: data?.drivers?.china_tension?.score ?? 0, color: VARIANTS.tension.stroke },
-    { label: 'Tariff', score: data?.drivers?.tariff_threat?.score ?? 0, color: VARIANTS.threat.stroke },
+    { label: 'VIX', score: data?.drivers?.vix_stress?.score ?? 0 },
+    { label: 'Crush', score: data?.drivers?.crush_pressure?.score ?? 0 },
+    { label: 'China', score: data?.drivers?.china_tension?.score ?? 0 },
+    { label: 'Tariff', score: data?.drivers?.tariff_threat?.score ?? 0 },
   ]
 
   return (
@@ -284,11 +330,14 @@ export function ChrisTop4Compact() {
       {drivers.map((d) => (
         <div key={d.label} className="flex items-center gap-1.5">
           <div
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: d.color }}
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: getScoreColor(d.score).stroke }}
           />
           <span className="text-[10px] text-slate-500 uppercase">{d.label}</span>
-          <span className={`text-xs font-mono ${d.score >= 65 ? 'text-red-400' : 'text-white'}`}>
+          <span
+            className="text-xs font-mono font-bold"
+            style={{ color: getScoreColor(d.score).stroke }}
+          >
             {Math.round(d.score)}
           </span>
         </div>
