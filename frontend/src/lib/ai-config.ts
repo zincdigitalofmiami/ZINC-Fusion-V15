@@ -29,7 +29,7 @@ export const MODEL_BALANCED_CONDITIONS = 'claude-opus-4-5-20251101'
 // =============================================================================
 
 export const TOKENS_DRIVER_INTEL = 800      // Per-card analysis
-export const TOKENS_BALANCED_CONDITIONS = 1000  // Full synthesis
+export const TOKENS_BALANCED_CONDITIONS = 4000  // Full synthesis - comprehensive report
 
 // =============================================================================
 // FRESHNESS CONFIG

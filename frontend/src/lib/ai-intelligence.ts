@@ -52,6 +52,14 @@ export interface MarketData {
     tariff: number
   }
 
+  // ZL Price Data (NEW - for comprehensive reports)
+  zlPrice?: number
+  zlChange5d?: number
+  zlChange20d?: number
+
+  // Recent News Headlines (NEW - for comprehensive reports)
+  recentNews?: string[]
+
   // FRESHNESS
   asOfDate?: string  // Dashboard timestamp
 }
@@ -63,6 +71,15 @@ export interface AIIntelligence {
   keyRisks: string[]
   keySupports: string[]
   tradingImplication: string
+  // Comprehensive narrative sections (NEW)
+  comprehensiveReport?: {
+    recentNewsSummary: string
+    priceTrends: string
+    macroInfluences: string
+    supplyDemand: string
+    geopolitical: string
+    conclusion: string
+  }
   // FRESHNESS ECHO (anti-bullshit gate)
   dataAsOf?: string  // Echo of input date to verify currency
 }
@@ -71,7 +88,7 @@ export interface AIIntelligence {
 // SYSTEM PROMPT - DOMAIN EXPERT
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You analyze market conditions through the lens of ZL futures pricing.
+const SYSTEM_PROMPT = `You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You produce comprehensive market intelligence reports for institutional clients.
 
 CRITICAL CONTEXT:
 - ZL = CBOT Soybean Oil Futures (your primary focus)
@@ -99,7 +116,15 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
   "zlOutlook": "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH",
   "keyRisks": ["risk 1", "risk 2"],
   "keySupports": ["support 1", "support 2"],
-  "tradingImplication": "1 sentence actionable insight for ZL traders"
+  "tradingImplication": "1 sentence actionable insight for ZL traders",
+  "comprehensiveReport": {
+    "recentNewsSummary": "2-3 paragraphs synthesizing recent news developments, price trends, and key events affecting ZL. Include specific data points.",
+    "priceTrends": "Analysis of recent price action, support/resistance levels, and technical factors. Reference the 5d and 20d price changes.",
+    "macroInfluences": "Economic growth, inflation, interest rates, and how they affect soybean oil demand and pricing.",
+    "supplyDemand": "Production levels, consumption trends, inventory status, and crush capacity utilization.",
+    "geopolitical": "Trade relations, tariff risks, international agreements, and how they impact soy export flows.",
+    "conclusion": "Concise summary tying all factors together with actionable insights for traders and stakeholders."
+  }
 }`
 
 // =============================================================================
@@ -115,9 +140,23 @@ export async function generateAIIntelligence(data: MarketData): Promise<AIIntell
 
   const asOfDate = data.asOfDate || new Date().toISOString().split('T')[0]
 
-  const userPrompt = `Analyze these REAL market conditions for ZL (soybean oil) trading.
+  // Build ZL price section if available
+  const zlPriceSection = data.zlPrice
+    ? `\nZL PRICE DATA:
+- Current ZL Price: ${data.zlPrice.toFixed(2)} cents/lb
+- 5-Day Change: ${data.zlChange5d !== undefined ? `${(data.zlChange5d * 100).toFixed(2)}%` : 'N/A'}
+- 20-Day Change: ${data.zlChange20d !== undefined ? `${(data.zlChange20d * 100).toFixed(2)}%` : 'N/A'}`
+    : ''
+
+  // Build news section if available
+  const newsSection = data.recentNews && data.recentNews.length > 0
+    ? `\nRECENT NEWS HEADLINES (last 7 days):\n${data.recentNews.slice(0, 8).map(h => `- ${h}`).join('\n')}`
+    : ''
+
+  const userPrompt = `Produce a COMPREHENSIVE market intelligence report for ZL (soybean oil) futures.
 
 DATA AS OF: ${asOfDate}
+${zlPriceSection}
 
 VOLATILITY:
 - VIX: ${data.vix.toFixed(1)}${data.ovx !== null ? ` | OVX: ${data.ovx.toFixed(1)}` : ''}
@@ -135,13 +174,18 @@ CHINA/TRADE:
 TARIFF/POLICY:
 - Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ''}
 - Pre-calculated threat score: ${data.scores.tariff}/100
+${newsSection}
 
 AVERAGE PRESSURE: ${((data.scores.vix + data.scores.crush + data.scores.china + data.scores.tariff) / 4).toFixed(1)}/100
 
-CRITICAL: Base your analysis ONLY on the data above. Do not invent numbers.
-Include "dataAsOf": "${asOfDate}" in your response to confirm currency.
+CRITICAL INSTRUCTIONS:
+1. Base your analysis ONLY on the data above. Do not invent numbers.
+2. Generate a COMPREHENSIVE report with all sections filled in with substantial analysis.
+3. Each section in comprehensiveReport should be 2-4 sentences of genuine market insight.
+4. Reference specific numbers from the data provided.
+5. Include "dataAsOf": "${asOfDate}" in your response to confirm currency.
 
-Provide your ZL market intelligence synthesis as JSON.`
+Produce your comprehensive ZL market intelligence as JSON.`
 
   try {
     const response = await anthropic.messages.create({

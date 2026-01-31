@@ -730,7 +730,8 @@ export async function GET() {
       cnyRows, cnyChangeRows, fxiRows, bdryRows,
       soyChinaNewsRows, totalNewsRows,
       tpuRows, legislationRows, soyTariffNewsRows,
-      volSignalRows, crushSignalRows, chinaSignalRows, tariffSignalRows
+      volSignalRows, crushSignalRows, chinaSignalRows, tariffSignalRows,
+      zlPriceRows, recentNewsRows
     ] = await Promise.all([
       // === VIX STRESS DATA ===
       query<{ vix: number; event_date: string }>(`
@@ -877,6 +878,31 @@ export async function GET() {
       Promise.resolve([] as { signal: number }[]),  // crushSignal - DISABLED (fake)
       Promise.resolve([] as { signal: number }[]),  // chinaSignal - DISABLED (fake)
       Promise.resolve([] as { signal: number }[]),  // tariffSignal - DISABLED (fake)
+
+      // === ZL PRICE DATA (for comprehensive reports) ===
+      query<{ close: number; change_5d: number; change_20d: number }>(`
+        WITH zl AS (
+          SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+          FROM analytics.zl_price_1d WHERE close IS NOT NULL LIMIT 21
+        )
+        SELECT
+          (SELECT close FROM zl WHERE rn = 1)::float8 as close,
+          CASE WHEN (SELECT close FROM zl WHERE rn = 6) > 0
+               THEN ((SELECT close FROM zl WHERE rn = 1) - (SELECT close FROM zl WHERE rn = 6)) / (SELECT close FROM zl WHERE rn = 6)
+               ELSE 0 END::float8 as change_5d,
+          CASE WHEN (SELECT close FROM zl WHERE rn = 21) > 0
+               THEN ((SELECT close FROM zl WHERE rn = 1) - (SELECT close FROM zl WHERE rn = 21)) / (SELECT close FROM zl WHERE rn = 21)
+               ELSE 0 END::float8 as change_20d
+      `),
+
+      // === RECENT NEWS HEADLINES (for comprehensive reports) ===
+      query<{ headline: string }>(`
+        SELECT headline FROM alt.profarmer_news
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+        AND headline IS NOT NULL
+        ORDER BY event_date DESC
+        LIMIT 10
+      `).catch(() => [] as { headline: string }[]),
     ])
 
     // Extract values with defaults
@@ -913,6 +939,14 @@ export async function GET() {
     const soyTariffNews = soyTariffNewsRows[0]?.count ?? 0
     const tariffSignal = tariffSignalRows[0]?.signal ?? null
 
+    // ZL Price Data for comprehensive reports
+    const zlPrice = zlPriceRows[0]?.close ?? null
+    const zlChange5d = zlPriceRows[0]?.change_5d ?? null
+    const zlChange20d = zlPriceRows[0]?.change_20d ?? null
+
+    // Recent news headlines for comprehensive reports
+    const recentNews = recentNewsRows?.map(r => r.headline) ?? []
+
     const asOfDate = new Date().toISOString().split('T')[0]
 
     // Data quality tracking
@@ -948,6 +982,12 @@ export async function GET() {
       vix: vixValue, ovx: ovxValue, boardCrush: crushValue, oilShare: oilShareValue,
       cnyRate, fxiChange20d, fxiChange5d, bdryChange20d, tpu: tpuValue, emv: emvValue,
       scores: { vix: vixResult.score, crush: crushResult.score, china: chinaResult.score, tariff: tariffResult.score },
+      // ZL Price Data for comprehensive reports
+      zlPrice: zlPrice ?? undefined,
+      zlChange5d: zlChange5d ?? undefined,
+      zlChange20d: zlChange20d ?? undefined,
+      // Recent news for comprehensive reports
+      recentNews: recentNews.length > 0 ? recentNews : undefined,
       asOfDate,
     }
 
