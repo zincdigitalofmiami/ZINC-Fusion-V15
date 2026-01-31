@@ -86,38 +86,38 @@ class CrushRegime:
 CRUSH_REGIMES = {
     "margin_collapse": CrushRegime(
         name="Margin Collapse",
-        description="Processors operating at or below breakeven. Crush cuts imminent.",
-        implications_oil="Supply cuts likely, but reflects severe demand weakness. Watch for basis volatility.",
-        implications_meal="Meal supplies may tighten if crush cuts materialize."
+        description="Processors at/below breakeven. Crush cuts imminent. Plants idling.",
+        implications_oil="ZL MIXED-BEARISH. Supply cuts coming but reflects weak oil demand. Basis chaotic. Watch for capacity shutdowns.",
+        implications_meal="Meal basis firming sharply as supply dries up."
     ),
     "severe_stress": CrushRegime(
         name="Severe Stress",
-        description="Marginal processor economics. Weaker plants idling.",
-        implications_oil="Mixed: Supply headwinds but demand concerns persist.",
-        implications_meal="Meal basis firming as crush slows."
+        description="Marginal economics. Weaker plants idling. Industry operating defensively.",
+        implications_oil="ZL CAUTIOUS. Supply headwinds but demand soft. Oil share critical - if falling, meal driving. Processor discipline key.",
+        implications_meal="Meal basis bid as crush rates slow."
     ),
     "tight_margins": CrushRegime(
         name="Tight Margins",
-        description="Processors profitable but squeezed. Operating cautiously.",
-        implications_oil="Watch oil share - if falling, meal is driving; if stable, balanced market.",
-        implications_meal="Adequate supplies but no excess."
+        description="Profitable but squeezed. Processors running cautiously. No expansion.",
+        implications_oil="ZL NEUTRAL. Watch oil share closely - falling = meal driving, stable = balanced. Biofuel demand key.",
+        implications_meal="Adequate supplies. Basis stable."
     ),
     "healthy_margins": CrushRegime(
         name="Healthy Margins",
-        description="Normal operating economics. Steady crush pace.",
-        implications_oil="Balanced fundamentals. Oil share trend is key directional signal.",
-        implications_meal="Ample supplies meeting feed demand."
+        description="Normal economics. Steady crush. Industry operating smoothly.",
+        implications_oil="ZL NEUTRAL-BULLISH. Balanced fundamentals. Oil share trend is direction. Strong renewable diesel = oil premium.",
+        implications_meal="Ample supplies. Feed demand met."
     ),
     "strong_margins": CrushRegime(
         name="Strong Margins",
-        description="Excellent processor economics. High utilization encouraged.",
-        implications_oil="Rising supply. Bullish only if demand absorbs increased production.",
-        implications_meal="Plentiful supplies may pressure meal basis."
+        description="Excellent economics. High utilization. Plants running hard.",
+        implications_oil="ZL CAUTIOUS-BULLISH. Heavy supply but if demand absorbs (biofuel mandates, exports) = bullish. Watch stocks.",
+        implications_meal="Plentiful supplies pressuring meal basis."
     ),
     "exceptional_margins": CrushRegime(
         name="Exceptional Margins",
-        description="Unusually high margins, typically unsustainable.",
-        implications_oil="Maximum crush likely. Watch for demand saturation.",
+        description="Unusually high margins. Maximum crush. Usually unsustainable.",
+        implications_oil="ZL WATCH DEMAND. Max supply hitting market. Need robust biofuel/export demand or prices will correct.",
         implications_meal="Heavy supplies. Meal under pressure."
     )
 }

@@ -1,33 +1,41 @@
 """
-ZINC-FUSION-V15: Volatility Pressure Calculator
+ZINC-FUSION-V15: ZL Volatility Transmission Pressure
 
-Domain-specific pressure gauge for market volatility stress.
-Uses VIX term structure, realized vs implied dynamics, and cross-asset vol.
+Soy-Centric pressure gauge measuring how market volatility affects ZL
+(soybean oil futures) and soybean prices.
+
+KEY PRINCIPLE: Everything centers on ZL and soybean/soybean oil prices.
+This gauge measures how VIX stress TRANSMITS to soy markets.
+
+Research basis (CFTC Convective Risk Flows):
+"When VIX increases, financial traders reduced commodity futures positions
+instead of facilitating hedging needs of hedgers... leading risk to flow
+towards the ultimate producers of these commodities (farmers)."
+
+VIX-ZL Transmission Dynamics:
+- VIX spike → Risk-off → Funds sell ZL → Price pressure
+- VIX spike → Farmer hedging costs rise → Less protection
+- VIX backwardation → Near-term panic → Liquidity withdrawal from ags
 
 VIX Level Thresholds (absolute, not percentile):
-- < 12: COMPLACENT - Historically precedes spikes. False calm.
-- 12-15: LOW VOL - Benign environment, risk-on
-- 15-20: NORMAL - Typical market conditions
-- 20-25: ELEVATED - Markets concerned but not panicking
-- 25-30: HIGH - Significant fear, hedging demand
-- 30-40: FEAR - Panic building, large swings expected
-- > 40: EXTREME FEAR - Crisis mode (2008, 2020 COVID)
+- < 12: COMPLACENT - Low hedging costs but false calm
+- 12-15: LOW VOL - Cheap farmer protection, stable ZL
+- 15-20: NORMAL - Typical conditions, fair option pricing
+- 20-25: ELEVATED - Rising hedging costs, some ZL volatility
+- 25-30: HIGH - Expensive protection, funds reducing ag exposure
+- 30-40: FEAR - Liquidity withdrawal from ags, wide ZL spreads
+- > 40: EXTREME - Crisis mode, ZL gaps and dislocations
 
-VIX Term Structure (VIX vs VIX3M):
-- Contango (VIX < VIX3M): Normal, orderly markets
-- Flat (VIX ≈ VIX3M): Transitioning, watch closely
-- Backwardation (VIX > VIX3M): Panic, near-term fear exceeds long-term
+VIX-ZL Correlation:
+- High positive: VIX stress transmits directly to ZL (risk-off regime)
+- Low/negative: ZL trading on fundamentals, decoupled from equity stress
+- Sudden spike in correlation: Regime change, risk-off building
 
 OVX (Oil Volatility):
-- < 25: Calm energy markets
-- 25-35: Normal
-- 35-50: Elevated (supply concerns, geopolitical)
-- > 50: Crisis (war, embargo, major disruption)
-
-Realized vs Implied Gap:
-- VIX >> Realized: Markets pricing in future shock
-- VIX << Realized: Complacency, often precedes vol spike
-- Gap > 5pts: Significant divergence worth noting
+- Critical for soy oil (biodiesel/renewable diesel link)
+- OVX stress → energy complex volatility → ZL follows
+- < 25: Calm energy, stable ZL energy premium
+- 35+: Elevated, ZL basis volatile
 
 @author Claude (ZINC-FUSION-V15)
 @date 2026-01-31
@@ -78,6 +86,19 @@ ZL_VOL_ELEVATED = 0.38     # 38% - active
 ZL_VOL_HIGH = 0.50         # 50% - volatile
 ZL_VOL_EXTREME = 0.70      # 70% - extreme
 
+# VIX-ZL correlation thresholds (how much VIX stress transmits to ZL)
+VIX_ZL_CORR_HIGH = 0.50    # Strong transmission - risk-off regime
+VIX_ZL_CORR_MODERATE = 0.30  # Moderate transmission
+VIX_ZL_CORR_LOW = 0.10     # Weak transmission - fundamentals driving
+VIX_ZL_CORR_NEGATIVE = -0.10  # Inverse - ZL decoupled or flight to real assets
+
+# ProFarmer hedge-related keywords for soy market sentiment
+HEDGE_KEYWORDS = [
+    'hedge', 'hedging', 'volatility', 'options', 'puts', 'calls',
+    'protection', 'risk management', 'price risk', 'basis risk',
+    'lock in', 'floor price', 'ceiling', 'collar'
+]
+
 
 @dataclass
 class VolRegime:
@@ -91,44 +112,44 @@ class VolRegime:
 VOL_REGIMES = {
     "complacent": VolRegime(
         name="Complacent",
-        description="VIX below 12 signals extreme complacency. Historically precedes volatility spikes.",
-        trading_implication="Low option premiums but elevated spike risk. Consider tail hedges.",
+        description="VIX below 12 signals extreme complacency. Cheap hedging for soy producers but spike risk elevated.",
+        trading_implication="ZL options cheap - good time for farmer puts. But beware sudden VIX spike crushing soy longs.",
         typical_duration="Days to weeks before mean reversion"
     ),
     "low_vol": VolRegime(
         name="Low Volatility",
-        description="Benign market environment with orderly trading.",
-        trading_implication="Risk-on positioning works. Option selling strategies attractive.",
+        description="Benign environment. ZL trading on fundamentals with minimal equity spillover.",
+        trading_implication="Soy hedging costs low. Basis stable. Good execution environment for physical trades.",
         typical_duration="Can persist for months"
     ),
     "normal": VolRegime(
         name="Normal",
-        description="Typical market volatility. Neither complacent nor stressed.",
-        trading_implication="Standard trading conditions. Volatility fairly priced.",
+        description="Typical volatility. ZL showing normal correlation to broad markets.",
+        trading_implication="Standard soy trading conditions. Options fairly priced for harvest hedges.",
         typical_duration="Baseline regime"
     ),
     "elevated": VolRegime(
         name="Elevated",
-        description="Markets showing concern but not panicking. Hedging demand rising.",
-        trading_implication="Tighten stops. Consider reducing position sizes.",
+        description="Markets concerned. VIX stress starting to transmit to ZL. Hedging costs rising.",
+        trading_implication="Farmer hedging getting expensive. Consider locking in protection before premiums spike further.",
         typical_duration="Weeks - transitional regime"
     ),
     "high_vol": VolRegime(
         name="High Volatility",
-        description="Significant market fear. Large daily swings expected.",
-        trading_implication="Reduce leverage. Widen stops or step aside.",
+        description="Significant fear. Funds reducing commodity exposure. ZL facing selling pressure from risk-off flows.",
+        trading_implication="ZL liquidity may thin. Wide bid-ask spreads. Physical basis volatile. Reduce unhedged exposure.",
         typical_duration="Days to weeks of elevated activity"
     ),
     "fear": VolRegime(
         name="Fear",
-        description="Panic levels. VIX 30-40 indicates crisis mentality.",
-        trading_implication="Expect gap moves. Liquidity can evaporate. Cash is a position.",
+        description="Panic levels. Financial traders exiting commodities. Risk flowing to farmers as hedging breaks down.",
+        trading_implication="ZL gap risk high. Farmer hedges may not execute at expected levels. Cash is a position.",
         typical_duration="Days - acute stress"
     ),
     "extreme_fear": VolRegime(
         name="Extreme Fear",
-        description="Crisis mode (VIX > 40). 2008, 2020 COVID-style panic.",
-        trading_implication="Survival mode. These levels historically mark bottoms but timing is treacherous.",
+        description="Crisis mode. 2008/2020-style. Massive fund liquidation across all commodities including soy.",
+        trading_implication="ZL can gap multiple limits. Liquidity evaporates. Physical soy trade may freeze. Survival mode.",
         typical_duration="Hours to days at peak"
     )
 }
@@ -271,6 +292,66 @@ def score_realized_vol(realized: float, implied_vix: float) -> Tuple[float, str]
         gap_desc = level_desc
 
     return level_adj + gap_adj, gap_desc
+
+
+def score_vix_zl_correlation(correlation: float) -> Tuple[float, str]:
+    """
+    Score VIX-ZL correlation (how much VIX stress transmits to soy oil).
+
+    High positive correlation = VIX stress directly impacts ZL prices.
+    This is the KEY soy-centric metric for volatility transmission.
+
+    Returns (adjustment, description).
+    """
+    if correlation >= VIX_ZL_CORR_HIGH:
+        # Strong transmission - VIX moves hitting ZL hard
+        adj = 15 + min(10, (correlation - VIX_ZL_CORR_HIGH) * 40)
+        return adj, f"High VIX-ZL transmission ({correlation:.2f}) - risk-off hitting soy"
+    elif correlation >= VIX_ZL_CORR_MODERATE:
+        # Moderate transmission
+        pct = (correlation - VIX_ZL_CORR_MODERATE) / (VIX_ZL_CORR_HIGH - VIX_ZL_CORR_MODERATE)
+        adj = 5 + (pct * 10)
+        return adj, f"Moderate VIX-ZL correlation ({correlation:.2f})"
+    elif correlation >= VIX_ZL_CORR_LOW:
+        # Weak transmission - ZL mostly on fundamentals
+        return 0, f"Low VIX-ZL correlation ({correlation:.2f}) - fundamentals driving"
+    elif correlation >= VIX_ZL_CORR_NEGATIVE:
+        # Very weak - decoupled
+        return -5, f"Minimal VIX-ZL link ({correlation:.2f}) - ZL independent"
+    else:
+        # Negative correlation - ZL as real asset hedge
+        return -10, f"Negative VIX-ZL ({correlation:.2f}) - ZL acting as hedge"
+
+
+def score_profarmer_hedge_sentiment(hedge_article_count: int, total_articles: int) -> Tuple[float, str]:
+    """
+    Score ProFarmer hedge-related article concentration.
+
+    High hedge talk = farmers/traders concerned about volatility.
+    This indicates real-world soy market stress from volatility.
+
+    Returns (adjustment, description).
+    """
+    if total_articles == 0:
+        return 0, "No ProFarmer data"
+
+    # Both raw count and concentration matter
+    concentration = hedge_article_count / total_articles
+
+    if hedge_article_count >= 15:
+        # Very high absolute count - major hedging focus
+        return 18, f"Heavy hedge focus ({hedge_article_count} articles) - farmer stress elevated"
+    elif hedge_article_count >= 8:
+        return 12, f"Elevated hedge discussion ({hedge_article_count} articles)"
+    elif hedge_article_count >= 4:
+        return 5, f"Normal hedge coverage ({hedge_article_count} articles)"
+    elif hedge_article_count >= 1:
+        return 0, f"Light hedge mentions ({hedge_article_count} articles)"
+    else:
+        # No hedge talk - either calm or complacent
+        if concentration < 0.01:
+            return -3, "No hedge discussion - calm or complacent"
+        return 0, "Minimal hedge focus"
 
 
 def generate_vol_narrative(
@@ -421,6 +502,48 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
     """, (as_of_date,))
     vol_signal = cur.fetchone()
 
+    # ==== VIX-ZL CORRELATION (SOY-CENTRIC) ====
+    # Calculate rolling 20-day correlation between VIX changes and ZL changes
+    cur.execute("""
+        WITH vix_changes AS (
+            SELECT event_date,
+                   value - LAG(value) OVER (ORDER BY event_date) as vix_change
+            FROM econ.vol_indices_1d
+            WHERE series_id = 'VIXCLS' AND event_date <= %s
+            ORDER BY event_date DESC LIMIT 25
+        ),
+        zl_changes AS (
+            SELECT event_date,
+                   (close - LAG(close) OVER (ORDER BY event_date)) /
+                   NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as zl_ret
+            FROM analytics.zl_price_1d
+            WHERE event_date <= %s
+            ORDER BY event_date DESC LIMIT 25
+        )
+        SELECT CORR(v.vix_change, z.zl_ret) as vix_zl_corr
+        FROM vix_changes v
+        JOIN zl_changes z ON v.event_date = z.event_date
+        WHERE v.vix_change IS NOT NULL AND z.zl_ret IS NOT NULL
+    """, (as_of_date, as_of_date))
+    corr_result = cur.fetchone()
+    vix_zl_corr = float(corr_result[0]) if corr_result and corr_result[0] else 0.0
+
+    # ==== PROFARMER HEDGE SENTIMENT (SOY-CENTRIC) ====
+    # Count articles mentioning hedging/volatility in last 7 days
+    hedge_keywords_sql = " OR ".join([f"content ILIKE '%{kw}%'" for kw in HEDGE_KEYWORDS[:6]])
+    cur.execute(f"""
+        SELECT COUNT(*) FROM alt.profarmer_news
+        WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
+        AND ({hedge_keywords_sql})
+    """, (as_of_date, as_of_date))
+    hedge_count = cur.fetchone()[0] or 0
+
+    cur.execute("""
+        SELECT COUNT(*) FROM alt.profarmer_news
+        WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
+    """, (as_of_date, as_of_date))
+    total_pf_articles = cur.fetchone()[0] or 1
+
     # ==== SCORING ====
 
     # Component 1: VIX Level (45%)
@@ -443,14 +566,26 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
         components["ovx_adjustment"] = round(ovx_adj, 1)
         components["ovx_value"] = round(current_ovx, 1)
 
-    # Component 4: Realized Vol (15%)
+    # Component 4: Realized Vol (10%)
     rv_adj, rv_desc = (0, "No data")
     if realized_vol:
         rv_adj, rv_desc = score_realized_vol(realized_vol, current_vix)
         components["realized_vol"] = round(rv_adj, 1)
         components["realized_vol_value"] = round(realized_vol * 100, 1)
 
-    # Component 5: Specialist overlay
+    # Component 5: VIX-ZL Correlation (15%) - SOY-CENTRIC
+    vix_zl_adj, vix_zl_desc = score_vix_zl_correlation(vix_zl_corr)
+    components["vix_zl_correlation"] = round(vix_zl_corr, 3)
+    components["vix_zl_adjustment"] = round(vix_zl_adj, 1)
+    components["vix_zl_assessment"] = vix_zl_desc
+
+    # Component 6: ProFarmer Hedge Sentiment (10%) - SOY-CENTRIC
+    hedge_adj, hedge_desc = score_profarmer_hedge_sentiment(hedge_count, total_pf_articles)
+    components["hedge_article_count"] = hedge_count
+    components["hedge_adjustment"] = round(hedge_adj, 1)
+    components["hedge_assessment"] = hedge_desc
+
+    # Component 7: Specialist overlay (5%)
     signal_adj = 0
     if vol_signal and vol_signal[0] is not None:
         signal_val = float(vol_signal[0])
@@ -460,12 +595,17 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
         components["specialist_signal"] = round(signal_adj, 1)
 
     # ==== COMPOSITE SCORE ====
-    # Weights: VIX 45%, Term 25%, OVX 15%, Realized 15%
-    score = vix_score
-    score += term_adj * (25/45)
-    score += ovx_adj * (15/45)
-    score += rv_adj * (15/45)
-    score += signal_adj * (10/45)
+    # SOY-CENTRIC WEIGHTS:
+    # VIX Level 30%, Term Structure 15%, OVX 10%, Realized ZL Vol 10%,
+    # VIX-ZL Correlation 15%, ProFarmer Hedge 10%, Specialist 10%
+    score = vix_score * 0.30 / 0.30  # Normalize from base vix_score
+    score = vix_score  # Base from VIX level
+    score += term_adj * (15/30)
+    score += ovx_adj * (10/30)
+    score += rv_adj * (10/30)
+    score += vix_zl_adj * (15/30)  # KEY SOY METRIC
+    score += hedge_adj * (10/30)   # PROFARMER SENTIMENT
+    score += signal_adj * (10/30)
 
     score = float(np.clip(score, 0, 100))
 
@@ -546,5 +686,11 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
             "term_structure_assessment": term_desc if current_vix3m else "No VIX3M data",
             "ovx_assessment": ovx_desc if current_ovx else "No OVX data",
             "realized_assessment": rv_desc if realized_vol else "No realized vol data",
+            "vix_zl_transmission": vix_zl_desc,
+            "farmer_hedge_sentiment": hedge_desc,
+            "soy_impact_summary": f"VIX at {current_vix:.1f} with {vix_zl_corr:.2f} correlation to ZL. " +
+                                  ("High transmission risk to soy prices." if vix_zl_corr > 0.3 else
+                                   "ZL trading more on fundamentals." if vix_zl_corr < 0.15 else
+                                   "Moderate VIX-ZL linkage."),
         }
     }

@@ -112,36 +112,44 @@ TRUMP_EFFECT_REGIMES = {
 
 TARIFF_REGIMES = {
     "trade_calm": PolicyRegime(
-        name="Trade Calm",
-        description="No active tariff threats. Trade policy predictable.",
-        market_impact="Global trade flows normal. Supply chains stable.",
-        typical_triggers="Existing trade agreements stable, no new disputes."
+        name="Soy Trade Calm",
+        description="No active tariff threats to soy. Trade policy stable.",
+        market_impact="ZL BULLISH BACKDROP. Normal export flows. China buying at normal pace. Gulf basis stable.",
+        typical_triggers="Trade agreements stable. No new soy-specific tariff proposals."
     ),
     "normal_uncertainty": PolicyRegime(
-        name="Normal Trade Uncertainty",
-        description="Some trade policy noise but no imminent threats.",
-        market_impact="Manageable trade risk. Pricing stable.",
-        typical_triggers="Ongoing negotiations, routine trade reviews."
+        name="Normal Soy Trade Noise",
+        description="Some trade policy chatter but no imminent soy tariff threats.",
+        market_impact="ZL NEUTRAL. Soy exports flowing. Minor basis volatility. Watch headlines.",
+        typical_triggers="Routine trade reviews. Background negotiation noise."
     ),
     "tariff_threats": PolicyRegime(
-        name="Active Tariff Threats",
-        description="Tariff threats being made. Markets pricing potential action.",
-        market_impact="Ag commodities volatile. Supply chain concerns rising.",
-        typical_triggers="Trade war rhetoric, specific tariff proposals."
+        name="Soy Tariff Threats Active",
+        description="Tariff threats targeting ag/soy sector. Markets pricing potential duties.",
+        market_impact="ZL CAUTIOUS. Export sales pace questioned. Basis widening. China may front-run or hold off.",
+        typical_triggers="Specific soy tariff proposals. Retaliatory tariff threats from China."
     ),
     "tariff_war": PolicyRegime(
-        name="Tariff War Mode",
-        description="Active tariff implementation. Retaliatory measures in place.",
-        market_impact="Major trade disruption. Export demand at risk.",
-        typical_triggers="Implemented tariffs, retaliatory duties, trade barriers."
+        name="Soy Tariff War",
+        description="Tariffs on soybeans implemented. China retaliating. Trade war active.",
+        market_impact="ZL BEARISH. Export demand collapsed. Brazil taking US market share. Basis imploding.",
+        typical_triggers="25%+ soy tariffs. China buying Brazil exclusively. Gulf elevators empty."
     ),
     "extreme_disruption": PolicyRegime(
-        name="Extreme Trade Disruption",
-        description="Maximum tariff uncertainty. Trade flows severely impacted.",
-        market_impact="Critical supply chain issues. Ag exports collapsed.",
-        typical_triggers="Full-scale trade war, embargo-level actions."
+        name="Soy Export Crisis",
+        description="Maximum tariff damage. US soy locked out of China. Trade war at peak.",
+        market_impact="ZL CRISIS. Export program frozen. Farmer selling into vacuum. Emergency gov programs likely.",
+        typical_triggers="Full embargo-level tariffs. China 100% Brazil sourcing. 2018-2019 peak redux."
     )
 }
+
+# Soy-specific tariff keywords for ProFarmer monitoring
+SOY_TARIFF_KEYWORDS = [
+    'soy tariff', 'soybean tariff', 'bean tariff', 'ag tariff',
+    'agricultural tariff', 'retaliatory', 'china tariff', 'trade war soy',
+    'soy duty', 'import duty', '25 percent', '25%', 'tariff threat',
+    'soybean export', 'export sales', 'trade retaliation'
+]
 
 
 def score_epu(epu_value: float) -> Tuple[float, str]:
@@ -311,25 +319,26 @@ def generate_trump_effect_narrative(
 
 def generate_tariff_narrative(
     tpu_value: float,
+    soy_tariff_news: int,
     score: float,
     regime: str
 ) -> Tuple[str, str, List[str]]:
-    """Generate narrative for Tariff Pressure."""
+    """Generate soy-centric narrative for Tariff Pressure."""
     regime_info = TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"])
 
     if score >= 80:
-        headline = "Trade War Escalating"
+        headline = "Soy Export Crisis - Tariffs Active"
     elif score >= 65:
-        headline = "Tariff Threats Active"
+        headline = "Soy Tariff War Risk High"
     elif score >= 50:
-        headline = "Tariff Uncertainty Elevated"
+        headline = "Soy Trade Policy Uncertain"
     elif score >= 35:
-        headline = "Moderate Trade Policy Noise"
+        headline = "Normal Soy Trade Noise"
     else:
-        headline = "Trade Policy Calm"
+        headline = "Soy Trade Policy Calm"
 
     parts = [
-        f"Trade Policy Uncertainty Index at {tpu_value:.0f}.",
+        f"Trade Policy Uncertainty at {tpu_value:.0f}.",
         regime_info.description,
         regime_info.market_impact
     ]
@@ -337,9 +346,13 @@ def generate_tariff_narrative(
 
     drivers = []
     if tpu_value >= TPU_ELEVATED:
-        drivers.append(f"TPU at {tpu_value:.0f} (elevated)")
+        drivers.append(f"TPU elevated at {tpu_value:.0f}")
+    if soy_tariff_news >= 5:
+        drivers.append(f"Heavy soy tariff coverage ({soy_tariff_news} articles)")
+    elif soy_tariff_news >= 2:
+        drivers.append(f"Soy tariff news active ({soy_tariff_news} articles)")
     if not drivers:
-        drivers.append("Tariff environment calm")
+        drivers.append("Soy trade policy calm")
 
     return headline, narrative, drivers
 
@@ -610,8 +623,44 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         signal_adj = -signal_val * 20 * confidence
         components["specialist_signal"] = round(signal_adj, 1)
 
+    # ==== 5. SOY-SPECIFIC TARIFF NEWS (ProFarmer) ====
+    cur.execute("""
+        SELECT COUNT(*) FROM alt.profarmer_news
+        WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
+        AND (
+            headline ILIKE '%%tariff%%'
+            OR headline ILIKE '%%trade war%%'
+            OR headline ILIKE '%%retaliatory%%'
+            OR (headline ILIKE '%%soy%%' AND headline ILIKE '%%duty%%')
+            OR (headline ILIKE '%%china%%' AND headline ILIKE '%%tariff%%')
+            OR content ILIKE '%%soy tariff%%'
+            OR content ILIKE '%%soybean tariff%%'
+            OR content ILIKE '%%25 percent%%'
+        )
+    """, (as_of_date, as_of_date))
+    soy_tariff_news = cur.fetchone()[0] or 0
+
+    # Score soy tariff news
+    if soy_tariff_news >= 10:
+        news_adj = 25  # Crisis-level coverage
+    elif soy_tariff_news >= 5:
+        news_adj = 15  # Heavy coverage
+    elif soy_tariff_news >= 2:
+        news_adj = 8   # Moderate coverage
+    elif soy_tariff_news >= 1:
+        news_adj = 3   # Light coverage
+    else:
+        news_adj = -5  # No tariff news = calm
+
+    components["soy_tariff_news_count"] = soy_tariff_news
+    components["soy_tariff_news_adjustment"] = round(news_adj, 1)
+
     # ==== COMPOSITE ====
-    score = (tpu_score * 0.45) + (emv_score * 0.25) + (50 + legis_adj) * 0.15 + (50 + signal_adj) * 0.15
+    # SOY-CENTRIC WEIGHTS:
+    # TPU 35%, EMV 20%, Legislation 10%, Specialist 15%, Soy Tariff News 20%
+    score = (tpu_score * 0.35) + (emv_score * 0.20) + \
+            (50 + legis_adj) * 0.10 + (50 + signal_adj) * 0.15 + \
+            (50 + news_adj) * 0.20  # Soy tariff news weighted heavily
     score = float(np.clip(score, 0, 100))
 
     # ==== SPARKLINE ====
@@ -660,7 +709,7 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         color = "#0891B2"
 
     # ==== NARRATIVE ====
-    headline, narrative, drivers = generate_tariff_narrative(current_tpu, score, regime)
+    headline, narrative, drivers = generate_tariff_narrative(current_tpu, soy_tariff_news, score, regime)
 
     return {
         "name": "Tariff Pressure",
@@ -683,5 +732,10 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             "regime_name": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).name,
             "regime_description": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).description,
             "market_impact": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).market_impact,
+            "soy_tariff_news_summary": f"{soy_tariff_news} soy tariff articles in last 7 days" if soy_tariff_news > 0 else "No soy tariff news - trade policy calm",
+            "zl_outlook": "BEARISH - tariff damage active" if score >= 70 else
+                         "CAUTIOUS - tariff risk elevated" if score >= 50 else
+                         "NEUTRAL - normal trade noise" if score >= 35 else
+                         "SUPPORTIVE - trade policy calm",
         }
     }

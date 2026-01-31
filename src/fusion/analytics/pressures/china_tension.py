@@ -1,41 +1,43 @@
 """
-ZINC-FUSION-V15: China Tension Calculator
+ZINC-FUSION-V15: China Soy Export Demand Pressure
 
-Domain-specific pressure gauge for China-related market stress.
-Combines equity, currency, trade flow, and news signals.
+SOY-CENTRIC pressure gauge for China trade war and import demand risk.
+Everything centers on ZL and soybean/soybean oil prices.
 
-For Soybean/Soyoil Markets:
-- China is the world's largest soybean importer (~60% of global trade)
-- US-China relations directly impact export demand
-- CNY weakness makes US soybeans less competitive vs Brazil
-- Political tension can lead to sudden demand shifts
+KEY PRINCIPLE: China is THE demand driver for US soybeans.
+- China imports ~60% of globally traded soybeans
+- US competes with Brazil for China market share
+- Trade war = immediate soy export demand cliff risk
+- CNY weakness = Brazil more competitive vs US
 
-Key Indicators:
+This is primarily a TRADE WAR indicator mixed with China import/export dynamics.
 
-1. FXI (China Large-Cap ETF):
-   - Direct proxy for China economic sentiment
-   - Weakness signals risk-off or domestic concerns
-   - Sharp drops often precede policy announcements
+Priority Components (Soy-Centric Weighting):
 
-2. KWEB (China Internet ETF):
-   - Sensitive to regulatory/political risk
-   - Tech crackdowns hit KWEB first
-   - Divergence from FXI signals sector-specific risk
+1. SHIPPING (BDRY) - 30% weight [INCREASED]
+   - Baltic Dry Index = direct soy trade flow proxy
+   - Falling rates = weak China commodity demand
+   - Soy ships from US Gulf/PNW to China ports
+   - Most direct indicator of physical trade activity
 
-3. CNY/USD (DEXCHUS):
-   - Yuan weakness = tension (capital flight, trade war)
-   - Breaking 7.0 historically significant
-   - Rapid moves signal intervention or stress
+2. CNY/USD - 25% weight
+   - Yuan weakness makes US soy expensive vs Brazil
+   - 7.0 = psychological level
+   - 7.2 = PBOC defense line
+   - 7.3+ = competitive disadvantage for US soy
 
-4. Shipping (BDRY):
-   - Baltic Dry Index proxy
-   - Falling rates = weak China demand
-   - Critical for soy export logistics
+3. FXI (China Large-Cap ETF) - 20% weight [DECREASED]
+   - Secondary indicator - equity sentiment
+   - Useful for gauging China economic stress
+   - But less direct than shipping for soy demand
 
-5. China News Velocity:
-   - Headlines mentioning China
-   - High velocity during trade disputes
-   - Content analysis for tension keywords
+4. Soy Export News (ProFarmer) - 15% weight [INCREASED]
+   - "China soy", "export sales", "import demand", "trade war"
+   - Real-time sentiment from soy-focused news
+   - Captures cancellations, buying pace, policy shifts
+
+5. China Specialist Signal - 10% weight
+   - ML model signal for China demand
 
 @author Claude (ZINC-FUSION-V15)
 @date 2026-01-31
@@ -81,10 +83,18 @@ CNY_STRENGTHENING = -0.01   # 1% stronger
 CNY_STRENGTHENING_FAST = -0.02  # 2% stronger
 
 # Shipping (BDRY) thresholds - 20 day change
-SHIP_COLLAPSE = -0.25     # 25% drop
-SHIP_WEAK = -0.10         # 10% drop
-SHIP_STABLE = 0.10        # +/- 10% = stable
-SHIP_STRONG = 0.20        # 20% gain
+SHIP_COLLAPSE = -0.25     # 25% drop - soy trade frozen
+SHIP_WEAK = -0.10         # 10% drop - demand concerns
+SHIP_STABLE = 0.10        # +/- 10% = normal trade flow
+SHIP_STRONG = 0.20        # 20% gain - robust demand
+
+# Soy-specific news keywords for China trade war monitoring
+SOY_CHINA_KEYWORDS = [
+    'china soy', 'chinese soy', 'soybean export', 'soy export',
+    'export sales', 'import demand', 'trade war', 'tariff',
+    'retaliatory', 'brazil soy', 'us soy', 'soybean import',
+    'china buying', 'china purchase', 'cancellation', 'cancelled'
+]
 
 
 @dataclass
@@ -98,34 +108,34 @@ class ChinaRegime:
 
 CHINA_REGIMES = {
     "crisis": ChinaRegime(
-        name="China Crisis",
-        description="Severe tension. Equities crashing, yuan plunging, trade at risk.",
-        soy_impact="Export demand cliff risk. Watch for order cancellations. Basis volatile.",
-        trading_action="Defensive. Reduce China exposure. Monitor daily."
+        name="Soy Export Crisis",
+        description="Trade war escalation. Tariffs active, retaliatory duties on US soy.",
+        soy_impact="ZL BEARISH. Export demand cliff. China buying Brazil instead. Cancellations likely. Gulf basis collapsing.",
+        trading_action="Sell rallies. Watch USDA export sales for cancellations. Brazil FOB premiums."
     ),
     "high_tension": ChinaRegime(
-        name="High Tension",
-        description="Significant stress. Policy uncertainty, weak demand signals.",
-        soy_impact="Export pace likely to slow. Competition from Brazil intensifying.",
-        trading_action="Cautious. Hedge China exposure."
+        name="High Trade War Risk",
+        description="Active tariff threats. China demand uncertain. Shipping weak.",
+        soy_impact="ZL CAUTIOUS. Export pace slowing. Brazil gaining market share. Basis under pressure.",
+        trading_action="Reduce long exposure. Hedge new crop sales. Watch weekly export inspections."
     ),
     "elevated": ChinaRegime(
-        name="Elevated Tension",
-        description="Above-normal tension. Headlines active, markets nervous.",
-        soy_impact="Monitor export sales closely. Some demand uncertainty.",
-        trading_action="Watch for escalation/de-escalation signals."
+        name="Elevated Trade Tension",
+        description="Headlines active. Trade negotiations uncertain. Some demand concerns.",
+        soy_impact="ZL NEUTRAL-CAUTIOUS. Export sales pace needs monitoring. Some basis volatility.",
+        trading_action="Watch export sales reports closely. Position for volatility."
     ),
     "normal": ChinaRegime(
-        name="Normal Relations",
-        description="Standard US-China dynamics. No acute stress.",
-        soy_impact="Normal export flows. Fundamentals driving.",
-        trading_action="Trade fundamentals."
+        name="Normal Trade Flow",
+        description="Standard US-China soy trade dynamics. No acute tension.",
+        soy_impact="ZL trading on fundamentals. Normal export pace. Basis stable.",
+        trading_action="Trade fundamentals - weather, crush margins, WASDE."
     ),
     "constructive": ChinaRegime(
-        name="Constructive",
-        description="Positive momentum. Trade relations improving.",
-        soy_impact="Export demand supportive. China buying actively.",
-        trading_action="Positive demand backdrop."
+        name="Constructive Demand",
+        description="Trade relations stable/improving. China actively buying US soy.",
+        soy_impact="ZL SUPPORTIVE. Strong export sales. Good shipping pace. Basis firm.",
+        trading_action="Bullish demand backdrop. Look for buying opportunities on dips."
     )
 }
 
@@ -442,30 +452,44 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         components["specialist_score"] = round(specialist_score, 1)
         components["specialist_signal"] = round(specialist_signal, 3)
 
-    # ==== 5. CHINA NEWS CONCENTRATION ====
+    # ==== 5. SOY-SPECIFIC CHINA NEWS (Trade War Focus) ====
     cur.execute("""
         SELECT COUNT(*) FROM alt.profarmer_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """, (as_of_date, as_of_date))
     total_news = cur.fetchone()[0] or 1
 
+    # Soy-specific China/trade war keywords
     cur.execute("""
         SELECT COUNT(*) FROM alt.profarmer_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-        AND (headline ILIKE '%%china%%' OR headline ILIKE '%%chinese%%'
-             OR content ILIKE '%%china%%')
+        AND (
+            (headline ILIKE '%%china%%' AND (headline ILIKE '%%soy%%' OR headline ILIKE '%%bean%%' OR headline ILIKE '%%export%%'))
+            OR headline ILIKE '%%trade war%%'
+            OR headline ILIKE '%%tariff%%'
+            OR headline ILIKE '%%export sales%%'
+            OR content ILIKE '%%china soy%%'
+            OR content ILIKE '%%soybean export%%'
+            OR content ILIKE '%%chinese import%%'
+        )
     """, (as_of_date, as_of_date))
-    china_news = cur.fetchone()[0] or 0
+    soy_china_news = cur.fetchone()[0] or 0
 
-    news_score, news_desc = score_china_news(china_news, total_news)
+    news_score, news_desc = score_china_news(soy_china_news, total_news)
     components["news_score"] = round(news_score, 1)
-    components["china_news_count"] = china_news
+    components["soy_china_news_count"] = soy_china_news
     components["total_news_count"] = total_news
+    components["news_assessment"] = news_desc
 
     # ==== COMPOSITE SCORE ====
-    # Weights: FXI 30%, CNY 25%, Shipping 20%, Specialist 15%, News 10%
-    score = (fxi_score * 0.30) + (cny_score * 0.25) + (ship_score * 0.20) + \
-            (specialist_score * 0.15) + (news_score * 0.10)
+    # SOY-CENTRIC WEIGHTS:
+    # Shipping (BDRY) 30% - direct trade flow proxy
+    # CNY 25% - currency competitiveness
+    # FXI 20% - secondary sentiment
+    # Soy News 15% - ProFarmer trade war coverage
+    # Specialist 10% - ML signal
+    score = (ship_score * 0.30) + (cny_score * 0.25) + (fxi_score * 0.20) + \
+            (news_score * 0.15) + (specialist_score * 0.10)
     score = float(np.clip(score, 0, 100))
 
     # ==== REGIME ====
