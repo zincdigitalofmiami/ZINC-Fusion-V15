@@ -1032,22 +1032,22 @@ export async function GET() {
       }).catch(() => null),
     ])
 
-    // Fallbacks
+    // Fallbacks - PASS FULL COMPONENTS for data-rich templates
     const vixWhatsHappening = vixIntel ?? generateFallbackDriverIntel({
       driverName: 'vix', score: vixResult.score, level: vixResult.level, regime: vixResult.regime,
-      components: { vix_value: vixValue }, asOfDate
+      components: vixResult.components as unknown as Record<string, number | null>, asOfDate
     })
     const crushWhatsHappening = crushIntel ?? generateFallbackDriverIntel({
       driverName: 'crush', score: crushResult.score, level: crushResult.level, regime: crushResult.regime,
-      components: { board_crush: crushValue }, asOfDate
+      components: crushResult.components as unknown as Record<string, number | null>, asOfDate
     })
     const chinaWhatsHappening = chinaIntel ?? generateFallbackDriverIntel({
       driverName: 'china', score: chinaResult.score, level: chinaResult.level, regime: chinaResult.regime,
-      components: { cny_rate: cnyRate }, asOfDate
+      components: chinaResult.components as unknown as Record<string, number | null>, asOfDate
     })
     const tariffWhatsHappening = tariffIntel ?? generateFallbackDriverIntel({
       driverName: 'tariff', score: tariffResult.score, level: tariffResult.level, regime: tariffResult.regime,
-      components: { tpu: tpuValue }, asOfDate
+      components: tariffResult.components as unknown as Record<string, number | null>, asOfDate
     })
 
     return NextResponse.json({

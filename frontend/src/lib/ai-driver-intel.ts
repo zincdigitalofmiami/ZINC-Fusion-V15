@@ -207,81 +207,84 @@ Provide your expert analysis as JSON.`
 // =============================================================================
 
 export function generateFallbackDriverIntel(data: DriverIntelData): DriverIntel {
-  // Extract actual values from components
+  // Extract actual values from components (FULL data now passed from route.ts)
   const vixValue = data.components.vix_value ?? data.components.vix_level_score
   const vix3mValue = data.components.vix3m_value
   const ovxValue = data.components.ovx_value
   const vixRatio = data.components.vix_ratio
+  const realizedVol = data.components.realized_zl_vol
+  const vixZlCorr = data.components.vix_zl_correlation
+  const hedgeCount = data.components.hedge_article_count
   const crushValue = data.components.board_crush_value ?? data.components.board_crush
   const oilShare = data.components.oil_share_value
+  const oilShare5dChange = data.components.oil_share_5d_change
   const cnyRate = data.components.cny_rate
-  const fxiChange = data.components.fxi_change_20d
+  const fxiChange20d = data.components.fxi_change_20d
+  const fxiChange5d = data.components.fxi_change_5d
+  const bdryChange = data.components.bdry_change_20d
   const tpuValue = data.components.tpu_value ?? data.components.tpu
+  const emvValue = data.components.emv_value
+  const soyTariffNews = data.components.soy_tariff_news_count
+
+  // Helper for sign formatting
+  const fmtDelta = (v: number | null | undefined) => v !== null && v !== undefined ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : 'N/A'
+  const vixDesc = vixValue && vixValue < 15 ? 'low' : vixValue && vixValue > 25 ? 'elevated' : 'normal range'
+  const termDesc = vixRatio && vixRatio < 0.92 ? 'contango' : vixRatio && vixRatio > 1.05 ? 'backwardation' : 'flat'
 
   const templates = {
     vix: {
-      whatsHappening: data.score >= 65
-        ? `VIX at ${vixValue?.toFixed(1) ?? 'elevated'} indicates risk-off across markets. ${ovxValue ? `OVX at ${ovxValue.toFixed(1)} (${ovxValue > 50 ? 'high' : 'normal'}) signals energy vol spilling into biodiesel margins.` : ''} Fund liquidation pressure hitting commodities.`
-        : data.score <= 35
-        ? `VIX at ${vixValue?.toFixed(1) ?? 'low levels'} - calm conditions. ${vix3mValue ? `Term structure at ${vixRatio?.toFixed(2) ?? 'normal'} (VIX/VIX3M) shows orderly contango.` : ''} ZL trading on fundamentals.`
-        : `VIX at ${vixValue?.toFixed(1) ?? 'normal'} - typical range. ${vix3mValue ? `VIX/VIX3M ratio at ${vixRatio?.toFixed(2) ?? '~0.86'} indicates normal contango.` : ''} No vol-driven fund flows expected.`,
-      macroContext: `VIX-ZL correlation typically 0.3-0.5 historically. ${vixValue && vixValue > 25 ? 'Current elevated VIX = potential fund liquidation of commodity longs.' : vixValue && vixValue < 15 ? 'Low VIX = stable risk appetite, supportive for commodity positioning.' : 'Fed policy uncertainty and equity earnings driving vol expectations.'}`,
-      supplyDemand: `${ovxValue ? `OVX at ${ovxValue.toFixed(1)} - ` : ''}${ovxValue && ovxValue > 50 ? 'high oil volatility creates biodiesel margin uncertainty, affecting renewable diesel demand.' : 'stable energy vol supports consistent biofuel demand planning.'}`,
+      whatsHappening: `VIX ${vixValue?.toFixed(1) ?? '--'} (${vixDesc}), VIX/VIX3M ${vixRatio?.toFixed(2) ?? '--'} (${termDesc}). ${ovxValue ? `OVX ${ovxValue.toFixed(1)} (oil vol ${ovxValue > 50 ? 'elevated' : 'stable'}).` : ''} ${vixZlCorr !== null && vixZlCorr !== undefined ? `VIX-ZL correlation ${vixZlCorr.toFixed(2)} - ${vixZlCorr > 0.4 ? 'risk-off pressure on soy' : vixZlCorr > 0.2 ? 'moderate transmission' : 'ZL trading on fundamentals'}.` : 'VIX-ZL correlation typical 0.3-0.5 historically.'} ${data.score >= 65 ? 'Fund liquidation pressure hitting commodities.' : data.score <= 35 ? 'No vol-driven fund flows expected.' : 'Normal vol environment.'}`,
+      macroContext: `VIX-ZL correlation typically 0.3-0.5 historically. ${vixValue && vixValue > 25 ? `Current elevated VIX (${vixValue.toFixed(1)}) = potential fund liquidation of commodity longs.` : vixValue && vixValue < 15 ? `Low VIX (${vixValue.toFixed(1)}) = stable risk appetite, supportive for commodity positioning.` : 'Fed policy uncertainty and equity earnings driving vol expectations.'} ${realizedVol ? `Realized ZL vol at ${realizedVol.toFixed(1)}% annualized.` : ''}`,
+      supplyDemand: `${ovxValue ? `OVX at ${ovxValue.toFixed(1)} - ` : ''}${ovxValue && ovxValue > 50 ? 'high oil volatility creates biodiesel margin uncertainty, affecting renewable diesel demand.' : 'stable energy vol supports consistent biofuel demand planning.'} ${hedgeCount ? `ProFarmer tracking ${hedgeCount} hedge-related articles (7d) - ${hedgeCount > 8 ? 'elevated farmer hedging focus' : 'normal coverage'}.` : ''}`,
       geopolitical: 'Geopolitical risk premium embedded in vol. Middle East tensions, trade policy, and Fed uncertainty key drivers.',
       investorSentiment: data.score >= 50
-        ? `CTAs and macro funds reducing commodity exposure when VIX > 20. Managed money likely trimming ZL longs.`
+        ? `CTAs and macro funds reducing commodity exposure when VIX > 20. Managed money likely trimming ZL longs. ${vixRatio && vixRatio > 1 ? 'Term structure backwardation signals near-term stress.' : ''}`
         : `Risk-on positioning with VIX subdued. Managed money comfortable holding commodity longs.`,
       nearTermOutlook: `${vix3mValue ? `Term structure (VIX ${vixValue?.toFixed(1)} vs VIX3M ${vix3mValue.toFixed(1)}) suggests ${vixRatio && vixRatio < 0.9 ? 'near-term calm' : vixRatio && vixRatio > 1.05 ? 'near-term stress' : 'normal conditions'}.` : 'Watch for vol catalysts.'} FOMC, earnings, and geopolitics as triggers.`,
       zlImplication: data.score >= 65
-        ? `High vol = wider ZL bid/ask spreads, potential gap risk on opens. Reduce position size.`
-        : `Stable vol = tight spreads, normal liquidity. ZL trading on fundamentals (crush, biofuel demand).`,
+        ? `PROCUREMENT: High vol = wider ZL bid/ask spreads, potential gap risk on opens. Reduce position size, delay marginal coverage until VIX < 25.`
+        : data.score >= 50
+        ? `PROCUREMENT: Elevated vol = watch for spread blowouts. Maintain existing hedges but avoid new commitments until vol stabilizes.`
+        : `PROCUREMENT: Stable vol supports consistent hedging. ZL trading on fundamentals (crush, biofuel demand). Normal procurement timing appropriate.`,
     },
     crush: {
-      whatsHappening: data.score >= 65
-        ? `Board crush at $${crushValue?.toFixed(2) ?? '<1.25'}/bu - margins stressed. ${oilShare ? `Oil share at ${oilShare.toFixed(1)}% (${oilShare < 45 ? 'meal driving crush' : 'balanced'}).` : ''} Processors may idle capacity.`
-        : data.score <= 35
-        ? `Board crush at $${crushValue?.toFixed(2) ?? '>1.75'}/bu - strong margins. ${oilShare ? `Oil share at ${oilShare.toFixed(1)}% supporting oil value.` : ''} Max crush running, heavy ZL supply.`
-        : `Board crush at $${crushValue?.toFixed(2) ?? '~1.50'}/bu - neutral margins. ${oilShare ? `Oil share at ${oilShare.toFixed(1)}%.` : ''} Normal processor run rates.`,
-      macroContext: `Crush = (11 × ZM) + (ZL/100) - ZS. ${crushValue ? `At $${crushValue.toFixed(2)}/bu, ` : ''}${crushValue && crushValue < 1.25 ? 'margins severely squeezed - bean costs too high vs products.' : crushValue && crushValue > 1.75 ? 'healthy margins incentivize max capacity utilization.' : 'margins support normal operations.'}`,
-      supplyDemand: `${oilShare ? `Oil share at ${oilShare.toFixed(1)}% (normal 42-48%). ` : ''}${oilShare && oilShare < 44 ? 'Meal driving crush decisions - oil is byproduct. Watch for basis weakness.' : oilShare && oilShare > 50 ? 'Oil commanding premium - biofuel/export demand strong. Supportive for ZL.' : 'Balanced oil/meal value split.'}`,
-      geopolitical: `45Z clean fuel tax credit supporting renewable diesel demand for soyoil. RVO mandates (15B gal biodiesel) provide demand floor. LCFS credits in CA/OR add $0.10-0.20/lb premium.`,
+      whatsHappening: `Board crush $${crushValue?.toFixed(2) ?? '--'}/bu${oilShare ? `, oil share ${oilShare.toFixed(1)}%` : ''}${oilShare5dChange !== null && oilShare5dChange !== undefined ? ` (5d Δ ${fmtDelta(oilShare5dChange)})` : ''}. ${crushValue && crushValue < 1.25 ? 'Margins severely stressed - processors may idle capacity.' : crushValue && crushValue > 1.75 ? 'Strong margins running, heavy ZL supply expected from max crush.' : 'Neutral margins supporting normal run rates.'}`,
+      macroContext: `Crush = (11 × ZM) + (ZL/100) - ZS. ${crushValue ? `At $${crushValue.toFixed(2)}/bu: ` : ''}${crushValue && crushValue < 1.00 ? 'CRISIS - plants idling, ZL supply tightening.' : crushValue && crushValue < 1.25 ? 'margins severely squeezed - bean costs too high vs products.' : crushValue && crushValue > 2.00 ? 'exceptional margins = max capacity utilization, watch for ZL basis weakness on heavy supply.' : crushValue && crushValue > 1.75 ? 'healthy margins incentivize max capacity utilization.' : 'margins support normal operations.'}`,
+      supplyDemand: `${oilShare ? `Oil share at ${oilShare.toFixed(1)}% (normal 42-48%). ` : ''}${oilShare && oilShare < 44 ? 'Meal driving crush decisions - oil is byproduct. Watch for ZL basis weakness.' : oilShare && oilShare > 50 ? 'Oil commanding premium - biofuel/export demand strong. Supportive for ZL.' : 'Balanced oil/meal value split.'} ${oilShare5dChange !== null && oilShare5dChange !== undefined && oilShare5dChange > 1 ? 'Oil share rising = biofuel pull strengthening.' : oilShare5dChange !== null && oilShare5dChange !== undefined && oilShare5dChange < -1 ? 'Oil share falling = meal driving crush.' : ''}`,
+      geopolitical: `45Z clean fuel tax credit supporting renewable diesel demand for soyoil. RVO mandates (potential 6B+ gal biomass diesel 2026) provide demand floor. LCFS credits in CA/OR add $0.10-0.20/lb premium.`,
       investorSentiment: `Crushers ${crushValue && crushValue > 1.50 ? 'extending forward sales to lock margins' : 'reducing forward commitments on weak margins'}. Commercial hedging activity reflects margin expectations.`,
-      nearTermOutlook: `Watching WASDE crush forecasts and weekly NOPA data. ${crushValue && crushValue < 1.25 ? 'Weak margins may slow Q1 crush pace.' : crushValue && crushValue > 1.75 ? 'Strong margins = elevated crush through Q1.' : 'Normal seasonal crush patterns expected.'}`,
+      nearTermOutlook: `Watching WASDE crush forecasts and weekly NOPA data. ${crushValue && crushValue < 1.25 ? 'Weak margins may slow Q1 crush pace - potential ZL supply tightening.' : crushValue && crushValue > 1.75 ? 'Strong margins = elevated crush through Q1 - heavy ZL supply.' : 'Normal seasonal crush patterns expected.'}`,
       zlImplication: data.score >= 65
-        ? `Tight crush = lower ZL supply. Watch for basis strength if demand holds. Potential upside.`
+        ? `PROCUREMENT: Tight crush = lower ZL supply. Watch for basis strength if demand holds. Consider accelerating coverage on potential supply squeeze.`
         : data.score <= 35
-        ? `Max crush = heavy ZL supply pressure. Watch for basis weakness. Commercial selling into rallies.`
-        : `Balanced crush = neutral ZL supply. Trade technicals and demand factors.`,
+        ? `PROCUREMENT: Max crush = heavy ZL supply pressure. Delay marginal coverage - commercials selling into rallies. Basis likely to weaken.`
+        : `PROCUREMENT: Balanced crush = neutral ZL supply. Trade technicals and demand factors. Normal procurement timing appropriate.`,
     },
     china: {
-      whatsHappening: data.score >= 65
-        ? `China trade tension elevated. CNY at ${cnyRate?.toFixed(2) ?? '>7.3'} hurts US competitiveness. ${fxiChange ? `FXI ${fxiChange > 0 ? '+' : ''}${fxiChange.toFixed(1)}% (20d) signals weak demand outlook.` : ''}`
-        : data.score <= 35
-        ? `Constructive China environment. CNY at ${cnyRate?.toFixed(2) ?? '<7.0'} supports US exports. ${fxiChange ? `FXI ${fxiChange > 0 ? '+' : ''}${fxiChange.toFixed(1)}% shows healthy demand.` : ''}`
-        : `Normal China dynamics. CNY at ${cnyRate?.toFixed(2) ?? '~7.15'}. ${fxiChange ? `FXI ${fxiChange > 0 ? '+' : ''}${fxiChange.toFixed(1)}% (20d).` : ''} Export sales flowing at typical pace.`,
-      macroContext: `China buys ~60% of globally traded soybeans. ${cnyRate ? `CNY at ${cnyRate.toFixed(2)} ` : ''}${cnyRate && cnyRate > 7.3 ? '- weak yuan makes Brazil more competitive vs US Gulf. Price disadvantage ~$15-20/MT.' : cnyRate && cnyRate < 7.0 ? '- strong yuan favors US origins. Chinese buyers actively covering.' : '- neutral FX impact on trade flows.'}`,
-      supplyDemand: `US faces 13% tariff vs 3% for Brazil/Argentina on China soy imports. At current FX, ${cnyRate && cnyRate > 7.2 ? 'Brazil holds $25-30/MT advantage - expect limited US sales.' : 'competitive pricing - normal US export program achievable.'}`,
-      geopolitical: `US-China soy trade: 25 MMT/year committed but uncertain execution. ${data.score >= 50 ? 'Trade tensions = demand cliff risk (see 2018-2019 playbook).' : 'Relations stable enough for normal trade flows.'}`,
-      investorSentiment: `${data.score >= 50 ? 'Market pricing trade war risk premium. Funds reducing US soy/oil exposure.' : 'Normal export expectations priced in. No trade war premium.'}`,
-      nearTermOutlook: `Watching weekly export sales (Thursdays) and shipping inspections. ${cnyRate && cnyRate > 7.3 ? 'Brazil harvest (Feb-Apr) will dominate China buying.' : 'US still competitive through Q1.'}`,
+      whatsHappening: `CNY ${cnyRate?.toFixed(2) ?? '--'} (${cnyRate && cnyRate < 7.0 ? 'strong' : cnyRate && cnyRate > 7.3 ? 'weak' : 'stable'}), FXI ${fmtDelta(fxiChange20d)} (20d)${fxiChange5d !== null && fxiChange5d !== undefined ? `, ${fmtDelta(fxiChange5d)} (5d)` : ''}. ${bdryChange !== null && bdryChange !== undefined ? `BDRY (shipping) ${fmtDelta(bdryChange)} (20d) - ${bdryChange > 10 ? 'freight rates surging' : bdryChange < -10 ? 'freight rates collapsing' : 'stable shipping'}.` : ''} Brazil structurally favored (3% tariff vs US 13%). ${data.score >= 65 ? 'US sales pace at risk.' : data.score <= 35 ? 'China demand stable but Brazil still dominates.' : 'Export sales flowing at typical pace.'}`,
+      macroContext: `China buys ~60% of globally traded soybeans. ${cnyRate ? `CNY at ${cnyRate.toFixed(2)} ` : ''}${cnyRate && cnyRate > 7.3 ? '- weak yuan makes Brazil more competitive vs US Gulf. Price disadvantage ~$15-20/MT.' : cnyRate && cnyRate < 7.0 ? '- strong yuan favors US origins. Chinese buyers actively covering.' : '- neutral FX impact on trade flows.'} ${fxiChange20d !== null && fxiChange20d !== undefined && fxiChange20d < -5 ? 'FXI weakness signals China economic headwinds.' : ''}`,
+      supplyDemand: `US faces 13% tariff vs 3% for Brazil/Argentina on China soy imports - structural disadvantage. At current FX, ${cnyRate && cnyRate > 7.2 ? 'Brazil holds $25-30/MT advantage - expect limited US sales.' : 'competitive pricing possible but Brazil still preferred.'} ${bdryChange !== null && bdryChange !== undefined && bdryChange > 20 ? 'Rising freight rates add to US cost disadvantage.' : ''}`,
+      geopolitical: `US-China soy trade: 25 MMT/year committed but uncertain execution. ${data.score >= 50 ? 'Trade tensions = demand cliff risk (see 2018-2019 playbook).' : 'Relations stable enough for normal trade flows.'} 13% US tariff vs 3% Brazil/Argentina = permanent headwind.`,
+      investorSentiment: `${data.score >= 50 ? 'Market pricing trade war risk premium. Funds reducing US soy/oil exposure.' : 'Normal export expectations priced in. No trade war premium.'} ${fxiChange20d !== null && fxiChange20d !== undefined && fxiChange20d < -10 ? 'Sharp FXI decline = China demand concerns spreading to commodities.' : ''}`,
+      nearTermOutlook: `Watching weekly export sales (Thursdays) and shipping inspections. ${cnyRate && cnyRate > 7.3 ? 'Brazil harvest (Feb-Apr) will dominate China buying.' : 'US still competitive through Q1.'} ${bdryChange !== null && bdryChange !== undefined && bdryChange < -15 ? 'Collapsing freight = weak physical trade flows.' : ''}`,
       zlImplication: data.score >= 65
-        ? `Weak China demand = bearish ZL. Export basis at Gulf likely to weaken. Watch crush demand as offset.`
-        : `Supportive China demand backdrop. Export basis firm. ZL finding support from export pull.`,
+        ? `PROCUREMENT: Weak China demand = bearish ZL. Export basis at Gulf likely to weaken. Delay coverage - watch for crush demand as offset.`
+        : data.score >= 45
+        ? `PROCUREMENT: Monitor USDA export pace - 13% tariff drag persists. Brazil preferred buyer. Maintain existing hedges but delay new commitments.`
+        : `PROCUREMENT: China stable but Brazil dominates at 13% tariff gap. Normal procurement timing - don't expect US export surprises.`,
     },
     tariff: {
-      whatsHappening: data.score >= 65
-        ? `Trade Policy Uncertainty at ${tpuValue?.toFixed(0) ?? '>300'}. ${tpuValue && tpuValue > 400 ? 'Extreme uncertainty - tariff escalation risk high.' : 'Elevated policy noise - watch for retaliatory threats.'}`
-        : data.score <= 35
-        ? `Trade policy calm. TPU at ${tpuValue?.toFixed(0) ?? '<100'} - no active tariff threats. Normal trade flows expected.`
-        : `Moderate policy uncertainty. TPU at ${tpuValue?.toFixed(0) ?? '~200'}. Headlines without immediate action.`,
-      macroContext: `TPU (Baker-Bloom-Davis) at ${tpuValue?.toFixed(0) ?? 'current'}: <100 calm, 100-200 normal, 200-400 elevated, >400 high/crisis. ${tpuValue && tpuValue > 300 ? 'Current level historically associated with trade war escalation periods.' : 'Within normal policy uncertainty range.'}`,
-      supplyDemand: `${tpuValue && tpuValue > 300 ? 'Exporters delaying forward sales on uncertainty. Buyers seeking non-US origins. ' : ''}Export sales pace ${data.score >= 50 ? 'below seasonal due to policy uncertainty' : 'tracking normally - no tariff-related disruption'}.`,
+      whatsHappening: `TPU ${tpuValue?.toFixed(0) ?? '--'} (${tpuValue && tpuValue < 100 ? 'calm' : tpuValue && tpuValue > 300 ? 'elevated' : 'normal range'})${emvValue ? `, EMV Trade ${emvValue.toFixed(0)}` : ''}${soyTariffNews !== null && soyTariffNews !== undefined ? `, soy tariff news ${soyTariffNews} articles` : ''}. ${tpuValue && tpuValue > 400 ? 'Extreme uncertainty - tariff escalation risk high.' : tpuValue && tpuValue > 200 ? 'Elevated policy noise - watch for retaliatory threats.' : 'Moderate policy noise without immediate action.'} 13% US tariff disadvantage persists.`,
+      macroContext: `TPU (Baker-Bloom-Davis): <100 calm, 100-200 normal, 200-400 elevated, >400 crisis. ${tpuValue ? `Current ${tpuValue.toFixed(0)} = ${tpuValue > 300 ? 'historically associated with trade war escalation periods.' : 'within normal policy uncertainty range.'}` : ''} ${emvValue && emvValue > 200 ? `EMV Trade at ${emvValue.toFixed(0)} signals elevated newspaper coverage of trade policy.` : ''}`,
+      supplyDemand: `${tpuValue && tpuValue > 300 ? 'Exporters delaying forward sales on uncertainty. Buyers seeking non-US origins. ' : ''}Export sales pace ${data.score >= 50 ? 'below seasonal due to policy uncertainty' : 'tracking normally - no tariff-related disruption'}. ${soyTariffNews && soyTariffNews > 5 ? `Heavy soy tariff coverage (${soyTariffNews} articles) in ProFarmer.` : ''}`,
       geopolitical: `2018-2019 trade war precedent: 25% tariffs shifted 20+ MMT of China soy demand to Brazil. ${data.score >= 65 ? 'Similar risk elevated today.' : 'No imminent repeat expected.'} Watch for Section 301 actions or retaliation threats.`,
       investorSentiment: `${data.score >= 50 ? 'Traders hedging tariff event risk via options. Elevated put/call skew on soy complex.' : 'No significant tariff premium in options markets. Normal positioning.'}`,
       nearTermOutlook: `Monitoring trade negotiation headlines, USTR announcements, and retaliatory threats. ${tpuValue && tpuValue > 300 ? 'Elevated risk of policy shock.' : 'Calm near-term policy environment.'}`,
       zlImplication: data.score >= 65
-        ? `Tariff risk = bearish ZL via export demand destruction. Gulf basis vulnerable. Defensive positioning warranted.`
-        : `Supportive trade policy backdrop. No tariff-related headwinds for ZL exports.`,
+        ? `PROCUREMENT: Tariff risk = bearish ZL via export demand destruction. Gulf basis vulnerable. Delay coverage and maintain defensive positioning.`
+        : data.score >= 50
+        ? `PROCUREMENT: Elevated noise backdrop but no immediate tariff action. Watch Section 301 / retaliation headlines. Normal timing with hedges in place.`
+        : `PROCUREMENT: Trade policy calm - supportive for soy exports. No tariff-related headwinds for ZL. Normal procurement timing appropriate.`,
     },
   }
 
