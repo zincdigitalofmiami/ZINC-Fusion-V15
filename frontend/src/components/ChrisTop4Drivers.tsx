@@ -29,6 +29,16 @@ interface DriverData {
   aiPowered?: boolean
 }
 
+// Comprehensive report sections (Opus 4.5 institutional-grade output)
+interface ComprehensiveReport {
+  tldr: string                // Quick summary with price targets and timeframes
+  currentSnapshot: string     // Current market snapshot with prices
+  keyDrivers: string          // Detailed breakdown of all key drivers
+  forecasts: string           // Time-horizon forecasts (1 week, 1 month, 1 quarter, 6 months)
+  correlations: string        // Correlation summary with specific coefficients
+  technicalOutlook: string    // Support/resistance, trends, key levels
+}
+
 interface IntelligenceData {
   headline: string
   summary: string
@@ -36,6 +46,7 @@ interface IntelligenceData {
   zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
   zlColor: string
   tradingImplication?: string
+  comprehensiveReport?: ComprehensiveReport  // Institutional-grade full report
   aiPowered?: boolean
 }
 
@@ -260,6 +271,113 @@ function IntelSection({ title, content }: { title: string; content: string }) {
 }
 
 // =============================================================================
+// COMPREHENSIVE REPORT SECTION (Institutional Grade)
+// Renders full Opus 4.5 analysis with expandable sections
+// =============================================================================
+
+function ComprehensiveReportSection({ report }: { report: ComprehensiveReport }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="mt-4 border-t border-slate-800 pt-4">
+      {/* TL;DR - Always visible */}
+      <div className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1 h-4 bg-cyan-500 rounded-full" />
+          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">TL;DR</span>
+        </div>
+        <p className="text-[12px] text-slate-300 leading-relaxed">{report.tldr}</p>
+      </div>
+
+      {/* Expand/Collapse Button */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 transition-all text-[10px] font-medium text-slate-400 hover:text-slate-200"
+      >
+        <span>{expanded ? '▼' : '▶'}</span>
+        <span>{expanded ? 'Hide Full Analysis' : 'Show Full Institutional Analysis'}</span>
+        <span className="px-1.5 py-0.5 rounded text-[8px] bg-violet-500/20 text-violet-400 ml-1">OPUS 4.5</span>
+      </button>
+
+      {/* Expanded Sections */}
+      {expanded && (
+        <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+          {/* Current Snapshot */}
+          <ReportSection
+            title="Current Market Snapshot"
+            content={report.currentSnapshot}
+            icon="📊"
+            color="slate"
+          />
+
+          {/* Key Drivers */}
+          <ReportSection
+            title="Key Drivers Analysis"
+            content={report.keyDrivers}
+            icon="⚡"
+            color="amber"
+          />
+
+          {/* Forecasts */}
+          <ReportSection
+            title="Time-Horizon Forecasts"
+            content={report.forecasts}
+            icon="📈"
+            color="green"
+          />
+
+          {/* Correlations */}
+          <ReportSection
+            title="Correlation Summary"
+            content={report.correlations}
+            icon="🔗"
+            color="blue"
+          />
+
+          {/* Technical Outlook */}
+          <ReportSection
+            title="Technical Outlook"
+            content={report.technicalOutlook}
+            icon="📉"
+            color="purple"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReportSection({
+  title,
+  content,
+  icon,
+  color
+}: {
+  title: string
+  content: string
+  icon: string
+  color: 'slate' | 'amber' | 'green' | 'blue' | 'purple'
+}) {
+  const colorClasses = {
+    slate: 'border-slate-600 text-slate-400',
+    amber: 'border-amber-600 text-amber-400',
+    green: 'border-green-600 text-green-400',
+    blue: 'border-cyan-600 text-cyan-400',
+    purple: 'border-violet-600 text-violet-400',
+  }
+
+  return (
+    <div className={`border-l-2 pl-3 ${colorClasses[color]}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-sm">{icon}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider">{title}</span>
+      </div>
+      <p className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line">{content}</p>
+    </div>
+  )
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -434,6 +552,11 @@ export function ChrisTop4Drivers() {
               </div>
             ))}
           </div>
+
+          {/* Comprehensive Report (Institutional Grade) */}
+          {data.intelligence.comprehensiveReport && (
+            <ComprehensiveReportSection report={data.intelligence.comprehensiveReport} />
+          )}
         </div>
       )}
     </div>

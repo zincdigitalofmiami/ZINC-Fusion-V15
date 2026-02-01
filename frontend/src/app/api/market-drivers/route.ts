@@ -741,7 +741,7 @@ export async function GET() {
       `),
       query<{ vix3m: number }>(`
         SELECT value::float8 as vix3m FROM econ.vol_indices_1d
-        WHERE series_id = 'VIX3M' AND value IS NOT NULL
+        WHERE series_id = 'VXVCLS' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
       query<{ ovx: number }>(`
@@ -961,7 +961,7 @@ export async function GET() {
       crush: { date: crushDate, days_old: daysSince(crushDate), status: daysSince(crushDate) !== null && daysSince(crushDate)! <= 2 ? 'fresh' : 'stale' },
       cny: { date: cnyDate, days_old: daysSince(cnyDate), status: daysSince(cnyDate) !== null && daysSince(cnyDate)! <= 5 ? 'fresh' : 'stale' },
       tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },  // Monthly data
-      vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VIX3M series not in database' : null },
+      vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VXVCLS (VIX 3-month) series not found' : 'Term structure calc enabled' },
       specialist_signals: { available: false, note: 'Disabled - placeholder data detected (volatility=1.0, tariff=-1.0)' },
     }
 
@@ -1006,6 +1006,7 @@ export async function GET() {
                aiIntelligence.zlOutlook === 'CAUTIOUS' ? '#F97316' :
                aiIntelligence.zlOutlook === 'NEUTRAL' ? '#EAB308' : '#22C55E',
       tradingImplication: aiIntelligence.tradingImplication,
+      comprehensiveReport: aiIntelligence.comprehensiveReport,  // Institutional-grade full report
       aiPowered: true,
     } : { ...ruleBasedIntelligence, aiPowered: false }
 

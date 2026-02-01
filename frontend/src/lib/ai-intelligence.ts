@@ -71,14 +71,14 @@ export interface AIIntelligence {
   keyRisks: string[]
   keySupports: string[]
   tradingImplication: string
-  // Comprehensive narrative sections (NEW)
+  // Comprehensive narrative sections (Institutional Grade)
   comprehensiveReport?: {
-    recentNewsSummary: string
-    priceTrends: string
-    macroInfluences: string
-    supplyDemand: string
-    geopolitical: string
-    conclusion: string
+    tldr: string                // Quick summary with price targets and timeframes
+    currentSnapshot: string     // Current market snapshot with prices
+    keyDrivers: string          // Detailed breakdown of all key drivers
+    forecasts: string           // Time-horizon forecasts (1 week, 1 month, 1 quarter, 6 months)
+    correlations: string        // Correlation summary with specific coefficients
+    technicalOutlook: string    // Support/resistance, trends, key levels
   }
   // FRESHNESS ECHO (anti-bullshit gate)
   dataAsOf?: string  // Echo of input date to verify currency
@@ -88,18 +88,20 @@ export interface AIIntelligence {
 // SYSTEM PROMPT - DOMAIN EXPERT
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You produce comprehensive market intelligence reports for institutional clients.
+const SYSTEM_PROMPT = `You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You produce institutional-grade market intelligence reports for professional traders and investors.
 
 CRITICAL CONTEXT:
 - ZL = CBOT Soybean Oil Futures (your primary focus)
 - All analysis centers on ZL price direction and trading conditions
-- You think in terms of: crush margins, biofuel demand, export flows, fund positioning
+- You think in terms of: crush margins, biofuel demand, export flows, fund positioning, correlations
 
 KEY RELATIONSHIPS YOU UNDERSTAND:
-1. VIX/OVX → ZL: High VIX = risk-off = fund liquidation = ZL selling pressure. OVX matters because soybean oil is biodiesel feedstock.
+1. VIX/OVX → ZL: High VIX = risk-off = fund liquidation = ZL selling pressure. OVX matters because soybean oil is biodiesel feedstock. Correlation typically 0.3-0.5.
 2. Crush Margins → ZL: Tight margins = processor slowdowns = less oil supply. Strong margins = max crush = heavy oil supply.
-3. China/CNY → ZL: China is #1 soy importer. Weak CNY = Brazil more competitive vs US. Trade war = export demand cliff.
+3. China/CNY → ZL: China is #1 soy importer. Weak CNY = Brazil more competitive vs US. Trade war = export demand cliff. Negative correlation with USD strength.
 4. Tariff/TPU → ZL: Trade Policy Uncertainty from Baker-Bloom-Davis. High TPU = soy export risk.
+5. Biofuels: 45Z tax credit, RVO volumes, biodiesel/renewable diesel demand drives 50%+ of domestic soyoil consumption.
+6. Substitutes: Palm oil (~0.7-0.8 correlation), canola (~0.6-0.8 correlation) compete as biofuel feedstocks.
 
 THRESHOLDS YOU KNOW:
 - VIX: <15 calm, 15-20 normal, 20-25 elevated, 25-30 high, 30-40 fear, >40 panic
@@ -118,12 +120,12 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
   "keySupports": ["support 1", "support 2"],
   "tradingImplication": "1 sentence actionable insight for ZL traders",
   "comprehensiveReport": {
-    "recentNewsSummary": "2-3 paragraphs synthesizing recent news developments, price trends, and key events affecting ZL. Include specific data points.",
-    "priceTrends": "Analysis of recent price action, support/resistance levels, and technical factors. Reference the 5d and 20d price changes.",
-    "macroInfluences": "Economic growth, inflation, interest rates, and how they affect soybean oil demand and pricing.",
-    "supplyDemand": "Production levels, consumption trends, inventory status, and crush capacity utilization.",
-    "geopolitical": "Trade relations, tariff risks, international agreements, and how they impact soy export flows.",
-    "conclusion": "Concise summary tying all factors together with actionable insights for traders and stakeholders."
+    "tldr": "Quick summary paragraph covering: current price level, short-term outlook (1 week to 1 quarter) with direction and reasoning, longer-term view (6 months+) with key risks/supports, and forecasted percentage moves by timeframe. Be specific with numbers.",
+    "currentSnapshot": "Current ZL price level, recent session action, and where it sits in recent range. Include specific price references.",
+    "keyDrivers": "Detailed breakdown of: (1) Biofuel Use & Legislation (45Z, RVOs, biodiesel demand), (2) Weather & Supply (US and South America), (3) Macro & Correlations (VIX relationship, Fed rates, FX impacts, China relations), (4) Trade Policy & Tariffs (current tariff levels, impact on competitiveness).",
+    "forecasts": "Time-horizon forecasts: 1 Week (+X-Y% move to ~XX cents/lb - reasoning), 1 Month (+X-Y% to ~XX cents/lb), 1 Quarter (+X-Y% to ~XX cents/lb if conditions hold), 6 Months (direction and range with reasoning).",
+    "correlations": "Summary of key correlations: Palm oil substitution (~0.7-0.8), Canola (~0.6-0.8), China/Brazil/Argentina (negative for US), VIX (positive), Fed rates/USD (negative). Include specific correlation estimates where relevant.",
+    "technicalOutlook": "Support and resistance levels, trend direction, potential breakout/breakdown scenarios, and key levels to watch."
   }
 }`
 
