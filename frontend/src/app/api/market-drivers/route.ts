@@ -674,6 +674,7 @@ function generateMarketIntelligence(
 } {
   const avgScore = (vix.score + crush.score + china.score + tariff.score) / 4
   const highPressureCount = [vix.score, crush.score, china.score, tariff.score].filter(s => s >= 65).length
+  const lowPressureCount = [vix.score, crush.score, china.score, tariff.score].filter(s => s <= 35).length
 
   let zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
   let zlColor: string
@@ -689,30 +690,65 @@ function generateMarketIntelligence(
     zlOutlook = 'BULLISH'; zlColor = '#22C55E'; headline = 'Supportive Environment for ZL'
   }
 
+  // ALWAYS build a complete summary - not just for extreme scores
   const summaryParts: string[] = []
-  if (vix.score >= 65) summaryParts.push(`VIX at ${vixValue.toFixed(1)} signals risk-off mode - fund liquidation pressure on ZL.`)
-  else if (vix.score <= 30) summaryParts.push(`Low VIX at ${vixValue.toFixed(1)} - stable ZL trading on fundamentals.`)
 
-  if (crush.score >= 65) summaryParts.push(`Crush margins at $${crushValue.toFixed(2)}/bu under severe pressure.`)
-  else if (crush.score <= 30) summaryParts.push(`Strong crush economics at $${crushValue.toFixed(2)}/bu driving high utilization.`)
+  // VIX summary - always include with context
+  if (vix.score >= 65) {
+    summaryParts.push(`VIX at ${vixValue.toFixed(1)} signals risk-off mode - fund liquidation pressure on ZL.`)
+  } else if (vix.score >= 50) {
+    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (elevated) - watch for spread widening.`)
+  } else if (vix.score >= 35) {
+    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (normal) - ZL trading on fundamentals.`)
+  } else {
+    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (calm) - stable conditions, fundamentals-driven.`)
+  }
 
-  if (china.score >= 65) summaryParts.push(`China trade tensions elevated with CNY at ${cnyRate.toFixed(2)}.`)
-  else if (china.score <= 30) summaryParts.push(`Constructive China demand with stable trade flows.`)
+  // Crush summary - always include
+  if (crush.score >= 65) {
+    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (stressed) - potential plant idling.`)
+  } else if (crush.score >= 45) {
+    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (neutral) - balanced processor economics.`)
+  } else {
+    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (healthy) - max utilization, ZL supply ample.`)
+  }
 
-  if (tariff.score >= 65) summaryParts.push(`TPU at ${tpuValue.toFixed(0)} signals active tariff risk.`)
-  else if (tariff.score <= 30) summaryParts.push(`Trade policy calm - supportive for soy exports.`)
+  // China summary - always include with tariff context
+  const fxiPct = (fxiChange20d * 100).toFixed(1)
+  if (china.score >= 65) {
+    summaryParts.push(`China tension high (CNY ${cnyRate.toFixed(2)}, FXI ${fxiPct}%) - US exports at risk.`)
+  } else if (china.score >= 45) {
+    summaryParts.push(`China stable (CNY ${cnyRate.toFixed(2)}) but Brazil favored at 13% vs 3% tariff gap.`)
+  } else {
+    summaryParts.push(`China demand healthy (FXI ${fxiPct}%) - Brazil still dominates on tariff structure.`)
+  }
 
-  if (summaryParts.length === 0) summaryParts.push(`Market conditions balanced across key drivers.`)
+  // Tariff summary - always include
+  if (tariff.score >= 65) {
+    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (elevated) - active tariff risk.`)
+  } else if (tariff.score >= 50) {
+    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (noise) - background uncertainty.`)
+  } else {
+    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (calm) - supportive for exports.`)
+  }
+
+  // Add net assessment
+  const netAssessment = highPressureCount > lowPressureCount
+    ? `Net assessment: ${highPressureCount} pressure driver(s) vs ${lowPressureCount} supportive - cautious positioning warranted.`
+    : lowPressureCount > highPressureCount
+    ? `Net assessment: ${lowPressureCount} supportive driver(s) vs ${highPressureCount} pressure - constructive for ZL.`
+    : `Net assessment: Balanced drivers (avg ${avgScore.toFixed(0)}) - trade technicals.`
+  summaryParts.push(netAssessment)
 
   const drivers = [
-    { label: 'Volatility', outlook: vix.score >= 65 ? 'PRESSURE' : vix.score <= 35 ? 'SUPPORTIVE' : 'NEUTRAL',
-      detail: `VIX ${vixValue.toFixed(1)} - ${vix.headline.toLowerCase()}` },
-    { label: 'Crush', outlook: crush.score >= 65 ? 'MIXED' : crush.score <= 35 ? 'WATCH SUPPLY' : 'NEUTRAL',
-      detail: `$${crushValue.toFixed(2)}/bu - ${crush.level.toLowerCase()}` },
-    { label: 'China', outlook: china.score >= 65 ? 'BEARISH' : china.score <= 35 ? 'BULLISH' : 'MONITOR',
-      detail: `CNY ${cnyRate.toFixed(2)}, FXI ${fxiChange20d >= 0 ? '+' : ''}${(fxiChange20d * 100).toFixed(1)}%` },
-    { label: 'Tariff', outlook: tariff.score >= 65 ? 'BEARISH' : tariff.score <= 35 ? 'CALM' : 'NOISE',
-      detail: `TPU ${tpuValue.toFixed(0)} - ${tariff.level.toLowerCase()}` }
+    { label: 'Volatility', outlook: vix.score >= 65 ? 'PRESSURE' : vix.score >= 50 ? 'ELEVATED' : vix.score <= 35 ? 'SUPPORTIVE' : 'NEUTRAL',
+      detail: `VIX ${vixValue.toFixed(1)} - ${vix.level}` },
+    { label: 'Crush', outlook: crush.score >= 65 ? 'PRESSURE' : crush.score <= 35 ? 'SUPPLY RISK' : 'NEUTRAL',
+      detail: `$${crushValue.toFixed(2)}/bu${oilShare ? `, oil share ${oilShare.toFixed(1)}%` : ''} - ${crush.level}` },
+    { label: 'China', outlook: china.score >= 65 ? 'BEARISH' : china.score >= 45 ? 'MONITOR' : 'STABLE',
+      detail: `CNY ${cnyRate.toFixed(2)}, FXI ${fxiChange20d >= 0 ? '+' : ''}${fxiPct}% - ${china.level}` },
+    { label: 'Tariff', outlook: tariff.score >= 65 ? 'BEARISH' : tariff.score >= 50 ? 'NOISE' : 'CALM',
+      detail: `TPU ${tpuValue.toFixed(0)} - ${tariff.level}` }
   ]
 
   return { headline, summary: summaryParts.join(' '), drivers, zlOutlook, zlColor }
