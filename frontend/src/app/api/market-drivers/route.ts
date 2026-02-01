@@ -189,21 +189,21 @@ function calculateVixStress(
   score += specialistAdj * (10/30)
   score = Math.max(0, Math.min(100, score))
 
-  // Level classification
+  // Level classification - ACTIONABLE LABELS
   let level: string
-  if (score >= 80) level = 'Extreme Fear'
-  else if (score >= 65) level = 'Fear'
-  else if (score >= 50) level = 'Elevated'
+  if (score >= 80) level = 'Gap Risk'
+  else if (score >= 65) level = 'Fund Exit'
+  else if (score >= 50) level = 'Spread Widening'
   else if (score >= 35) level = 'Normal'
-  else if (score >= 20) level = 'Low Vol'
-  else level = 'Complacent'
+  else if (score >= 20) level = 'Calm'
+  else level = 'Compressing'
 
-  // Soy-centric headlines
-  const headline = score >= 80 ? 'ZL Gap Risk - Risk-Off Panic'
-    : score >= 65 ? 'Fund Liquidation Risk - ZL Selling Pressure'
-    : score >= 50 ? 'Elevated Vol - Watch ZL Spreads'
-    : score >= 35 ? 'Normal Vol - ZL on Fundamentals'
-    : 'Low Vol - Stable ZL Trading'
+  // Soy-centric headlines with VIX-ZL correlation context (r = 0.4-0.6 typical)
+  const headline = score >= 80 ? 'ZL Gap Risk - VIX Panic Mode (0.5+ correlation)'
+    : score >= 65 ? 'Fund Liquidation - VIX Selling ZL (0.4+ correlation)'
+    : score >= 50 ? 'VIX Elevated - Watch ZL Spread Blowouts'
+    : score >= 35 ? 'Normal VIX - ZL Trading on Fundamentals'
+    : 'Low VIX - Stable ZL, Fundamentals-Driven'
 
   return {
     score: Math.round(score * 10) / 10,
@@ -327,21 +327,21 @@ function calculateCrushPressure(
   score += (specialistAdj * 0.15 / 0.45)
   score = Math.max(0, Math.min(100, score))
 
-  // Level classification
+  // Level classification - ACTIONABLE LABELS
   let level: string
-  if (score >= 80) level = 'Collapse'
-  else if (score >= 65) level = 'Severe'
+  if (score >= 80) level = 'Plant Idling'
+  else if (score >= 65) level = 'Margin Squeeze'
   else if (score >= 55) level = 'Tight'
   else if (score >= 45) level = 'Neutral'
   else if (score >= 30) level = 'Healthy'
-  else level = 'Strong'
+  else level = 'Max Utilization'
 
-  // Headlines
-  const headline = score >= 75 ? 'ZL Mixed - Crush Plants Idling'
-    : score >= 55 ? 'ZL Cautious - Processor Margins Squeezed'
-    : score >= 40 ? 'ZL Neutral - Balanced Crush Economics'
-    : score >= 25 ? 'ZL Supportive - Healthy Crush Margins'
-    : 'ZL Watch Demand - Max Crush Running'
+  // Headlines with board crush context (<$1 crisis, $1.50 neutral, >$2 strong)
+  const headline = score >= 75 ? 'ZL Mixed - Crush Plants Idling (<$1.00/bu margins)'
+    : score >= 55 ? 'ZL Cautious - Processor Margins Tight ($1.00-1.50/bu)'
+    : score >= 40 ? 'ZL Neutral - Crush Economics Balanced (~$1.50/bu)'
+    : score >= 25 ? 'ZL Supportive - Healthy Crush ($1.75+/bu)'
+    : 'ZL Watch Supply - Max Crush at $2+/bu'
 
   return {
     score: Math.round(score * 10) / 10,
@@ -475,28 +475,30 @@ function calculateChinaTension(
     (newsScore * 0.15) + (specialistScore * 0.10)
   ))
 
-  // Regime
+  // Regime (internal state machine)
   let regime: string
   if (score >= 75) regime = 'crisis'
   else if (score >= 60) regime = 'high_tension'
   else if (score >= 45) regime = 'elevated'
   else if (score >= 30) regime = 'normal'
-  else regime = 'constructive'
+  else regime = 'low_tension'
 
-  // Level
+  // Level - MEANINGFUL LABELS (not vague terms like "Constructive")
+  // Note: US faces 13% tariff vs 3% for Brazil/Argentina - structural disadvantage
   let level: string
-  if (score >= 75) level = 'High Tension'
-  else if (score >= 60) level = 'Elevated'
-  else if (score >= 45) level = 'Watchful'
-  else if (score >= 30) level = 'Constructive'
-  else level = 'Optimistic'
+  if (score >= 75) level = 'Trade Freeze'
+  else if (score >= 60) level = 'Export Risk'
+  else if (score >= 45) level = 'Monitor Flows'
+  else if (score >= 30) level = 'Brazil Favored'  // Structural disadvantage always present
+  else level = 'Brazil Dominates'  // Low tension doesn't mean US competitive
 
-  // Headlines
-  const headline = score >= 75 ? 'ZL Bearish - Soy Export Demand Cliff'
-    : score >= 60 ? 'ZL Cautious - Trade War Risk Elevated'
-    : score >= 45 ? 'Watch USDA Export Sales Closely'
-    : score >= 30 ? 'China Buying - Soy Exports Healthy'
-    : 'Strong China Demand for US Soy'
+  // Headlines - ACCURATE REALITY (US has 13% tariff disadvantage vs Brazil's 3%)
+  // Even "low tension" means Brazil outcompetes US due to tariff structure
+  const headline = score >= 75 ? 'ZL Bearish - China Export Freeze'
+    : score >= 60 ? 'ZL Cautious - Trade War Escalation'
+    : score >= 45 ? 'Monitor USDA Export Pace - 13% Tariff Drag'
+    : score >= 30 ? 'Brazil Preferred - US Tariff Disadvantage (13% vs 3%)'
+    : 'China Stable but Brazil Dominates US at 13% Tariff Gap'
 
   return {
     score: Math.round(score * 10) / 10,
@@ -612,20 +614,20 @@ function calculateTariffThreat(
     (50 + newsAdj) * 0.20
   ))
 
-  // Level
+  // Level - ACTIONABLE LABELS
   let level: string
-  if (score >= 80) level = 'Trade War'
-  else if (score >= 65) level = 'High'
-  else if (score >= 50) level = 'Elevated'
-  else if (score >= 35) level = 'Normal'
-  else level = 'Trade Calm'
+  if (score >= 80) level = 'Active War'
+  else if (score >= 65) level = 'Retaliation Risk'
+  else if (score >= 50) level = 'Elevated Noise'
+  else if (score >= 35) level = 'Background Noise'
+  else level = 'Minimal Threat'
 
-  // Headlines
-  const headline = score >= 80 ? 'ZL Bearish - Soy Tariffs Active'
-    : score >= 65 ? 'ZL Cautious - Retaliatory Tariff Risk'
-    : score >= 50 ? 'Soy Export Sales Pace Uncertain'
-    : score >= 35 ? 'Normal Soy Trade Policy Noise'
-    : 'Soy Trade Policy Calm - Bullish Backdrop'
+  // Headlines with TPU context (normal ~100, elevated ~200, crisis 400+)
+  const headline = score >= 80 ? 'ZL Bearish - Active Tariffs on Soy (TPU 400+)'
+    : score >= 65 ? 'ZL Cautious - Retaliatory Tariff Risk (TPU 200+)'
+    : score >= 50 ? 'TPU Elevated - Export Sales Pace Uncertain'
+    : score >= 35 ? 'TPU Normal Range - Background Trade Noise'
+    : 'Trade Policy Calm - Supportive for Soy Exports'
 
   return {
     score: Math.round(score * 10) / 10,
@@ -1060,6 +1062,7 @@ export async function GET() {
           components: vixResult.components,
           whatsHappening: vixWhatsHappening,
           aiPowered: vixIntel !== null,
+          dataDate: vixDate,  // Source data freshness
         },
         crush_pressure: {
           name: 'Crush Pressure',
@@ -1070,6 +1073,7 @@ export async function GET() {
           components: crushResult.components,
           whatsHappening: crushWhatsHappening,
           aiPowered: crushIntel !== null,
+          dataDate: crushDate,  // Source data freshness
         },
         china_tension: {
           name: 'China Tension',
@@ -1080,6 +1084,7 @@ export async function GET() {
           components: chinaResult.components,
           whatsHappening: chinaWhatsHappening,
           aiPowered: chinaIntel !== null,
+          dataDate: cnyDate,  // Source data freshness
         },
         tariff_threat: {
           name: 'Tariff Threat',
@@ -1090,6 +1095,7 @@ export async function GET() {
           components: tariffResult.components,
           whatsHappening: tariffWhatsHappening,
           aiPowered: tariffIntel !== null,
+          dataDate: tpuDate,  // Source data freshness (monthly series)
         },
       },
       summary: {

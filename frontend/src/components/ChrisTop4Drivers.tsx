@@ -27,6 +27,7 @@ interface DriverData {
   components: Record<string, number | null>
   whatsHappening?: WhatsHappening
   aiPowered?: boolean
+  dataDate?: string  // Source data freshness (e.g., "2026-01-30")
 }
 
 // Comprehensive report sections (Opus 4.5 institutional-grade output)
@@ -156,21 +157,23 @@ function ArcGauge({ score }: { score: number }) {
 // DRIVER CARD COMPONENT
 // =============================================================================
 
+interface MetricDisplay {
+  key: string
+  label: string
+  format: (val: number | null) => string
+}
+
 interface DriverCardProps {
   label: string
   data: DriverData | null
-  metricKey: string
-  metricLabel: string
-  metricFormat?: (val: number | null) => string
+  metrics: MetricDisplay[]  // Show multiple metrics per card
   loading: boolean
 }
 
-function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading }: DriverCardProps) {
+function DriverCard({ label, data, metrics, loading }: DriverCardProps) {
   const [expanded, setExpanded] = useState(false)
   const score = data?.score ?? 0
   const level = data?.level ?? '--'
-  const metricValue = data?.components?.[metricKey] ?? null
-  const formattedMetric = metricFormat ? metricFormat(metricValue) : metricValue?.toString() ?? '--'
   const colors = getScoreColor(score)
   const wh = data?.whatsHappening
 
@@ -212,15 +215,32 @@ function DriverCard({ label, data, metricKey, metricLabel, metricFormat, loading
         {loading ? '...' : level}
       </div>
 
-      {/* Metric */}
-      <div className="text-[10px] text-slate-500 mt-2 text-center">
-        {metricLabel}: <span className="text-slate-300 font-mono">{loading ? '--' : formattedMetric}</span>
+      {/* Metrics List - Multiple metrics per card */}
+      <div className="mt-2 w-full space-y-0.5">
+        {metrics.map((metric) => {
+          const value = data?.components?.[metric.key] ?? null
+          return (
+            <div key={metric.key} className="flex justify-between items-center text-[10px] px-1">
+              <span className="text-slate-500">{metric.label}</span>
+              <span className="text-slate-300 font-mono">
+                {loading ? '--' : metric.format(value)}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
       {/* Headline */}
       <div className="mt-3 text-[11px] text-slate-300 text-center leading-snug min-h-[28px]">
         {loading ? '...' : (data?.headline ?? '--')}
       </div>
+
+      {/* Data Freshness Indicator */}
+      {!loading && data?.dataDate && (
+        <div className="mt-1 text-[8px] text-slate-600 font-mono">
+          Data as of: {data.dataDate}
+        </div>
+      )}
 
       {/* What's Happening Button */}
       {wh && !loading && (
@@ -386,6 +406,8 @@ export function ChrisTop4Drivers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null)
 
   const fetchDrivers = useCallback(async () => {
     try {
@@ -403,6 +425,25 @@ export function ChrisTop4Drivers() {
       setLoading(false)
     }
   }, [])
+
+  const triggerRefresh = useCallback(async () => {
+    setRefreshing(true)
+    setRefreshMessage(null)
+    try {
+      const res = await fetch('/api/refresh-drivers', { method: 'POST' })
+      const json = await res.json()
+      setRefreshMessage(json.message || 'Refresh triggered')
+      // Refetch data after a short delay to show updated values
+      setTimeout(() => {
+        fetchDrivers()
+        setRefreshMessage(null)
+      }, 3000)
+    } catch (e) {
+      setRefreshMessage('Refresh failed')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [fetchDrivers])
 
   useEffect(() => {
     fetchDrivers()
@@ -434,45 +475,74 @@ export function ChrisTop4Drivers() {
             </span>
           )}
         </div>
-        {lastUpdate && (
-          <span className="text-[9px] text-slate-600">
-            Updated {lastUpdate}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {refreshMessage && (
+            <span className="text-[9px] text-cyan-400 animate-pulse">
+              {refreshMessage}
+            </span>
+          )}
+          {lastUpdate && (
+            <span className="text-[9px] text-slate-600">
+              Updated {lastUpdate}
+            </span>
+          )}
+          <button
+            onClick={triggerRefresh}
+            disabled={refreshing}
+            className={`px-2 py-1 rounded text-[9px] font-medium border transition-all ${
+              refreshing
+                ? 'bg-slate-800/50 text-slate-500 border-slate-700/50 cursor-wait'
+                : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 border-slate-700/50'
+            }`}
+            title="Trigger manual data refresh via Inngest"
+          >
+            {refreshing ? '⟳ Refreshing...' : '⟳ Refresh Data'}
+          </button>
+        </div>
       </div>
 
-      {/* 4 Driver Cards */}
+      {/* 4 Driver Cards - Multiple metrics per card for institutional-grade display */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <DriverCard
           label="VIX Stress"
           data={d?.vix_stress ?? null}
-          metricKey="vix_value"
-          metricLabel="VIX"
-          metricFormat={(v) => v?.toFixed(1) ?? '--'}
+          metrics={[
+            { key: 'vix_value', label: 'VIX', format: (v) => v?.toFixed(1) ?? '--' },
+            { key: 'vix3m_value', label: 'VIX3M', format: (v) => v?.toFixed(1) ?? '--' },
+            { key: 'vix_ratio', label: 'VIX/VIX3M', format: (v) => v ? (v > 1 ? `${v.toFixed(2)} (Backwd)` : `${v.toFixed(2)} (Contango)`) : '--' },
+            { key: 'ovx_value', label: 'OVX (Oil Vol)', format: (v) => v?.toFixed(1) ?? '--' },
+          ]}
           loading={loading}
         />
         <DriverCard
           label="Crush Pressure"
           data={d?.crush_pressure ?? null}
-          metricKey="board_crush_value"
-          metricLabel="Board Crush"
-          metricFormat={(v) => v ? `$${v.toFixed(2)}` : '--'}
+          metrics={[
+            { key: 'board_crush_value', label: 'Board Crush', format: (v) => v ? `$${v.toFixed(2)}/bu` : '--' },
+            { key: 'oil_share_value', label: 'Oil Share', format: (v) => v !== null ? `${v.toFixed(1)}%` : '--' },
+            { key: 'oil_share_5d_change', label: 'Oil Share 5d Δ', format: (v) => v !== null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '--' },
+          ]}
           loading={loading}
         />
         <DriverCard
           label="China Tension"
           data={d?.china_tension ?? null}
-          metricKey="cny_rate"
-          metricLabel="CNY/USD"
-          metricFormat={(v) => v?.toFixed(2) ?? '--'}
+          metrics={[
+            { key: 'cny_rate', label: 'CNY/USD', format: (v) => v?.toFixed(2) ?? '--' },
+            { key: 'fxi_change_20d', label: 'FXI 20d', format: (v) => v !== null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '--' },
+            { key: 'fxi_change_5d', label: 'FXI 5d', format: (v) => v !== null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '--' },
+            { key: 'bdry_change_20d', label: 'BDRY (Shipping)', format: (v) => v !== null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '--' },
+          ]}
           loading={loading}
         />
         <DriverCard
           label="Tariff Threat"
           data={d?.tariff_threat ?? null}
-          metricKey="tpu_value"
-          metricLabel="TPU Index"
-          metricFormat={(v) => v?.toFixed(0) ?? '--'}
+          metrics={[
+            { key: 'tpu_value', label: 'TPU Index', format: (v) => v?.toFixed(0) ?? '--' },
+            { key: 'emv_value', label: 'EMV Trade', format: (v) => v?.toFixed(0) ?? '--' },
+            { key: 'soy_tariff_news_count', label: 'Soy Tariff News', format: (v) => v !== null ? `${v} articles` : '--' },
+          ]}
           loading={loading}
         />
       </div>
