@@ -19,12 +19,13 @@ interface PriceSummary {
 interface ForecastHorizon {
   label: string;
   days: number;
-  targetLow: number;
-  targetMid: number;
-  targetHigh: number;
+  targetLow: number | null;
+  targetMid: number | null;
+  targetHigh: number | null;
   expectedChange: string;
   expectedChangePct: string;
-  direction: 'UP' | 'DOWN' | 'FLAT';
+  direction: 'UP' | 'DOWN' | 'FLAT' | 'NO DATA';
+  source: 'model' | 'unavailable';
 }
 
 interface DriverSummary {
@@ -32,13 +33,19 @@ interface DriverSummary {
   score: number;
   status: string;
   impact: string;
+  rawValue: number | null;
+  unit: string;
+  asOfDate: string | null;
+  source: 'live' | 'stale' | 'unavailable';
 }
 
 interface CorrelationSummary {
   asset: string;
-  correlation: number;
+  correlation: number | null;
   direction: string;
   implication: string;
+  lookbackDays: number;
+  source: 'calculated' | 'unavailable';
 }
 
 interface VegasBriefData {
@@ -49,12 +56,15 @@ interface VegasBriefData {
   recommendationColor: string;
   price: PriceSummary;
   forecasts: ForecastHorizon[];
+  forecastsAvailable: boolean;
   drivers: DriverSummary[];
   driversSummary: string;
   correlations: CorrelationSummary[];
   policyContext: string;
   keyRisks: string[];
   keyPositives: string[];
+  dataIssues: string[];
+  dataQuality: 'good' | 'partial' | 'poor';
 }
 
 // =============================================================================
@@ -150,32 +160,47 @@ export function VegasBrief() {
           <span className="text-slate-500 text-sm">today</span>
         </div>
 
-        <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-          Forecasts
+        <div className="flex items-center gap-2 mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Forecasts
+          </div>
+          {!brief.forecastsAvailable && (
+            <span className="text-[9px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">
+              MODEL NOT RUN
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {brief.forecasts.map((f) => (
             <div
               key={f.days}
-              className="bg-slate-800/80 rounded-lg p-3 border border-slate-700"
+              className={`bg-slate-800/80 rounded-lg p-3 border ${
+                f.source === 'unavailable' ? 'border-slate-600 opacity-60' : 'border-slate-700'
+              }`}
             >
               <div className="text-xs text-slate-400 mb-1">{f.label}</div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg font-bold text-white">
-                  {f.targetMid.toFixed(1)}¢
-                </span>
-                <span
-                  className={`text-sm font-semibold ${
-                    f.direction === 'UP' ? 'text-green-400' :
-                    f.direction === 'DOWN' ? 'text-red-400' : 'text-slate-400'
-                  }`}
-                >
-                  {f.expectedChangePct}
-                </span>
-              </div>
-              <div className="text-[10px] text-slate-500 mt-1">
-                Range: {f.targetLow.toFixed(1)} - {f.targetHigh.toFixed(1)}
-              </div>
+              {f.targetMid !== null ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold text-white">
+                      {f.targetMid.toFixed(1)}¢
+                    </span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        f.direction === 'UP' ? 'text-green-400' :
+                        f.direction === 'DOWN' ? 'text-red-400' : 'text-slate-400'
+                      }`}
+                    >
+                      {f.expectedChangePct}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Range: {f.targetLow?.toFixed(1) ?? '--'} - {f.targetHigh?.toFixed(1) ?? '--'}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-slate-500 italic">No model data</div>
+              )}
             </div>
           ))}
         </div>
@@ -183,16 +208,28 @@ export function VegasBrief() {
 
       {/* Drivers Quick View */}
       <div className="p-4 border-b border-slate-700">
-        <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-          Key Drivers
+        <div className="flex items-center gap-2 mb-2">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Key Drivers
+          </div>
+          {brief.dataQuality !== 'good' && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded ${
+              brief.dataQuality === 'poor' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+            }`}>
+              {brief.dataQuality === 'poor' ? 'DATA ISSUES' : 'PARTIAL DATA'}
+            </span>
+          )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {brief.drivers.map((d) => (
-            <div key={d.name} className="flex items-center gap-2 bg-slate-800/50 rounded-lg p-2">
+            <div key={d.name} className={`flex items-center gap-2 bg-slate-800/50 rounded-lg p-2 ${
+              d.source === 'unavailable' ? 'opacity-50' : d.source === 'stale' ? 'opacity-75' : ''
+            }`}>
               <div
                 className="w-2 h-2 rounded-full"
                 style={{
-                  backgroundColor: d.score >= 65 ? '#EF4444' :
+                  backgroundColor: d.source === 'unavailable' ? '#6B7280' :
+                                   d.score >= 65 ? '#EF4444' :
                                    d.score >= 50 ? '#F97316' :
                                    d.score <= 35 ? '#22C55E' : '#EAB308'
                 }}
@@ -200,11 +237,19 @@ export function VegasBrief() {
               <div>
                 <div className="text-xs font-semibold text-white">{d.name}</div>
                 <div className="text-[10px] text-slate-400">{d.status}</div>
+                {d.rawValue !== null && (
+                  <div className="text-[9px] text-slate-500">{d.rawValue.toFixed(2)} {d.unit}</div>
+                )}
               </div>
             </div>
           ))}
         </div>
         <p className="text-sm text-slate-400 mt-2 italic">{brief.driversSummary}</p>
+        {brief.dataIssues.length > 0 && (
+          <div className="text-[10px] text-yellow-500/70 mt-1">
+            {brief.dataIssues.slice(0, 2).join(' • ')}
+          </div>
+        )}
       </div>
 
       {/* Expand/Collapse for more details */}
@@ -228,22 +273,35 @@ export function VegasBrief() {
         <div className="border-t border-slate-700">
           {/* Correlations */}
           <div className="p-4 border-b border-slate-700">
-            <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-              Key Correlations
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Key Correlations
+              </div>
+              <span className="text-[9px] text-slate-500">
+                {brief.correlations[0]?.lookbackDays || 63}-day rolling
+              </span>
             </div>
             <div className="space-y-2">
               {brief.correlations.map((c) => (
-                <div key={c.asset} className="flex items-center justify-between bg-slate-800/30 rounded-lg p-2">
+                <div key={c.asset} className={`flex items-center justify-between bg-slate-800/30 rounded-lg p-2 ${
+                  c.source === 'unavailable' ? 'opacity-50' : ''
+                }`}>
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{
-                        backgroundColor: c.correlation > 0 ? '#22C55E20' : '#EF444420',
-                        color: c.correlation > 0 ? '#22C55E' : '#EF4444'
-                      }}
-                    >
-                      {c.correlation > 0 ? '+' : ''}{(c.correlation * 100).toFixed(0)}%
-                    </div>
+                    {c.correlation !== null ? (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{
+                          backgroundColor: c.correlation > 0 ? '#22C55E20' : '#EF444420',
+                          color: c.correlation > 0 ? '#22C55E' : '#EF4444'
+                        }}
+                      >
+                        {c.correlation > 0 ? '+' : ''}{(c.correlation * 100).toFixed(0)}%
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-slate-700 text-slate-500">
+                        --
+                      </div>
+                    )}
                     <div>
                       <div className="text-sm font-semibold text-white">{c.asset}</div>
                       <div className="text-xs text-slate-400">{c.direction}</div>
