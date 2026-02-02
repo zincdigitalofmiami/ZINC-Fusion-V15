@@ -680,75 +680,83 @@ function generateMarketIntelligence(
   let zlColor: string
   let headline: string
 
+  // VEGAS BUYER LANGUAGE - DIRECT AND ACTIONABLE
   if (avgScore >= 70 || highPressureCount >= 3) {
-    zlOutlook = 'BEARISH'; zlColor = '#EF4444'; headline = 'Multiple Headwinds for Soybean Oil'
+    zlOutlook = 'BEARISH'
+    zlColor = '#EF4444'
+    headline = 'WAIT TO BUY - Multiple Red Flags'
   } else if (avgScore >= 55 || highPressureCount >= 2) {
-    zlOutlook = 'CAUTIOUS'; zlColor = '#F97316'; headline = 'Mixed Signals for ZL - Proceed Carefully'
+    zlOutlook = 'CAUTIOUS'
+    zlColor = '#F97316'
+    headline = 'CAUTION - Mixed Signals, Keep Powder Dry'
   } else if (avgScore >= 40) {
-    zlOutlook = 'NEUTRAL'; zlColor = '#EAB308'; headline = 'Balanced Conditions for Soybean Oil'
+    zlOutlook = 'NEUTRAL'
+    zlColor = '#EAB308'
+    headline = 'NORMAL MARKET - Buy On Schedule'
   } else {
-    zlOutlook = 'BULLISH'; zlColor = '#22C55E'; headline = 'Supportive Environment for ZL'
+    zlOutlook = 'BULLISH'
+    zlColor = '#22C55E'
+    headline = 'GOOD WINDOW - Lock In Coverage'
   }
 
-  // ALWAYS build a complete summary - not just for extreme scores
+  // BUILD PLAIN ENGLISH SUMMARY FOR VEGAS BUYERS
   const summaryParts: string[] = []
 
-  // VIX summary - always include with context
+  // Lead with the action
+  if (avgScore >= 65) {
+    summaryParts.push(`Bottom line: HOLD OFF on new purchases.`)
+  } else if (avgScore <= 35) {
+    summaryParts.push(`Bottom line: Good time to cover your needs.`)
+  } else {
+    summaryParts.push(`Bottom line: Normal market conditions.`)
+  }
+
+  // Volatility - simple
   if (vix.score >= 65) {
-    summaryParts.push(`VIX at ${vixValue.toFixed(1)} signals risk-off mode - fund liquidation pressure on ZL.`)
-  } else if (vix.score >= 50) {
-    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (elevated) - watch for spread widening.`)
-  } else if (vix.score >= 35) {
-    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (normal) - ZL trading on fundamentals.`)
-  } else {
-    summaryParts.push(`VIX at ${vixValue.toFixed(1)} (calm) - stable conditions, fundamentals-driven.`)
+    summaryParts.push(`Wall Street is panicking - prices could swing wildly.`)
+  } else if (vix.score <= 35) {
+    summaryParts.push(`Markets are calm - stable pricing environment.`)
   }
 
-  // Crush summary - always include
+  // Crush - what it means for supply
   if (crush.score >= 65) {
-    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (stressed) - potential plant idling.`)
-  } else if (crush.score >= 45) {
-    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (neutral) - balanced processor economics.`)
-  } else {
-    summaryParts.push(`Crush at $${crushValue.toFixed(2)}/bu (healthy) - max utilization, ZL supply ample.`)
+    summaryParts.push(`Crushers struggling at $${crushValue.toFixed(2)}/bu margins - supply may tighten.`)
+  } else if (crush.score <= 35) {
+    summaryParts.push(`Crushers making money at $${crushValue.toFixed(2)}/bu - plenty of oil supply.`)
   }
 
-  // China summary - always include with tariff context
-  const fxiPct = (fxiChange20d * 100).toFixed(1)
+  // China - keep it real
   if (china.score >= 65) {
-    summaryParts.push(`China tension high (CNY ${cnyRate.toFixed(2)}, FXI ${fxiPct}%) - US exports at risk.`)
-  } else if (china.score >= 45) {
-    summaryParts.push(`China stable (CNY ${cnyRate.toFixed(2)}) but Brazil favored at 13% vs 3% tariff gap.`)
+    summaryParts.push(`China trade is frozen - that's hurting overall soybean demand.`)
   } else {
-    summaryParts.push(`China demand healthy (FXI ${fxiPct}%) - Brazil still dominates on tariff structure.`)
+    summaryParts.push(`China is buying from Brazil (13% tariff gap vs US) - that's just reality.`)
   }
 
-  // Tariff summary - always include
+  // Tariff - cut the noise
   if (tariff.score >= 65) {
-    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (elevated) - active tariff risk.`)
-  } else if (tariff.score >= 50) {
-    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (noise) - background uncertainty.`)
-  } else {
-    summaryParts.push(`TPU at ${tpuValue.toFixed(0)} (calm) - supportive for exports.`)
+    summaryParts.push(`Trade war risk is elevated - stay defensive.`)
+  } else if (tariff.score <= 35) {
+    summaryParts.push(`Trade policy is quiet - no new threats.`)
   }
 
-  // Add net assessment
-  const netAssessment = highPressureCount > lowPressureCount
-    ? `Net assessment: ${highPressureCount} pressure driver(s) vs ${lowPressureCount} supportive - cautious positioning warranted.`
-    : lowPressureCount > highPressureCount
-    ? `Net assessment: ${lowPressureCount} supportive driver(s) vs ${highPressureCount} pressure - constructive for ZL.`
-    : `Net assessment: Balanced drivers (avg ${avgScore.toFixed(0)}) - trade technicals.`
-  summaryParts.push(netAssessment)
+  // Final recommendation
+  if (highPressureCount >= 2) {
+    summaryParts.push(`RECOMMENDATION: Wait for better entry. Too many headwinds right now.`)
+  } else if (lowPressureCount >= 3) {
+    summaryParts.push(`RECOMMENDATION: Lock in coverage. Conditions favor buyers.`)
+  } else {
+    summaryParts.push(`RECOMMENDATION: Normal buying on your schedule. Nothing dramatic either way.`)
+  }
 
   const drivers = [
-    { label: 'Volatility', outlook: vix.score >= 65 ? 'PRESSURE' : vix.score >= 50 ? 'ELEVATED' : vix.score <= 35 ? 'SUPPORTIVE' : 'NEUTRAL',
-      detail: `VIX ${vixValue.toFixed(1)} - ${vix.level}` },
-    { label: 'Crush', outlook: crush.score >= 65 ? 'PRESSURE' : crush.score <= 35 ? 'SUPPLY RISK' : 'NEUTRAL',
-      detail: `$${crushValue.toFixed(2)}/bu${oilShare ? `, oil share ${oilShare.toFixed(1)}%` : ''} - ${crush.level}` },
-    { label: 'China', outlook: china.score >= 65 ? 'BEARISH' : china.score >= 45 ? 'MONITOR' : 'STABLE',
-      detail: `CNY ${cnyRate.toFixed(2)}, FXI ${fxiChange20d >= 0 ? '+' : ''}${fxiPct}% - ${china.level}` },
-    { label: 'Tariff', outlook: tariff.score >= 65 ? 'BEARISH' : tariff.score >= 50 ? 'NOISE' : 'CALM',
-      detail: `TPU ${tpuValue.toFixed(0)} - ${tariff.level}` }
+    { label: 'Markets', outlook: vix.score >= 65 ? 'PANIC' : vix.score >= 50 ? 'NERVOUS' : vix.score <= 35 ? 'CALM' : 'OK',
+      detail: vix.score >= 65 ? 'Funds selling everything' : vix.score <= 35 ? 'Stable, fundamentals-driven' : 'Normal volatility' },
+    { label: 'Crush', outlook: crush.score >= 65 ? 'TIGHT' : crush.score <= 35 ? 'FLUSH' : 'NORMAL',
+      detail: `$${crushValue.toFixed(2)}/bu margins - ${crush.score >= 65 ? 'plants slowing' : crush.score <= 35 ? 'running full out' : 'normal pace'}` },
+    { label: 'China', outlook: china.score >= 65 ? 'FROZEN' : 'BRAZIL WINS',
+      detail: china.score >= 65 ? 'Trade disrupted' : `Brazil preferred at 13% tariff gap` },
+    { label: 'Trade', outlook: tariff.score >= 65 ? 'RISK' : tariff.score <= 35 ? 'QUIET' : 'NOISE',
+      detail: tariff.score >= 65 ? 'War risk elevated' : tariff.score <= 35 ? 'Policy stable' : 'Headlines, no action' }
   ]
 
   return { headline, summary: summaryParts.join(' '), drivers, zlOutlook, zlColor }
