@@ -232,34 +232,35 @@ function generateFallbackForecasts(currentPrice: number): ForecastHorizon[] {
 
 async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: number, summary: string}> {
   try {
-    // VIX data
+    // VIX data - from econ.vol_indices_1d
     const vixData = await query<{value: number}>(`
-      SELECT value FROM econ.volatility_1d WHERE series_id = 'VIXCLS'
-      ORDER BY as_of_date DESC LIMIT 1
+      SELECT value::float8 FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS'
+      AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1
     `)
 
-    // Crush margin
+    // Crush margin - from analytics.board_crush_1d
     const crushData = await query<{board_crush: number, oil_share: number}>(`
-      SELECT board_crush, oil_share FROM analytics.crush_margin_1d
-      ORDER BY event_date DESC LIMIT 1
+      SELECT board_crush::float8 as board_crush, oil_share::float8 as oil_share
+      FROM analytics.board_crush_1d WHERE board_crush IS NOT NULL
+      ORDER BY trade_date DESC LIMIT 1
     `)
 
-    // CNY rate
-    const cnyData = await query<{value: number}>(`
-      SELECT value FROM econ.fx_1d WHERE series_id = 'DEXCHUS'
-      ORDER BY as_of_date DESC LIMIT 1
+    // CNY rate - from mkt.fx_1d (pair column, not series_id)
+    const cnyData = await query<{rate: number}>(`
+      SELECT rate::float8 FROM mkt.fx_1d WHERE pair IN ('USD/CNY', 'USDCNY')
+      AND rate IS NOT NULL ORDER BY event_date DESC LIMIT 1
     `)
 
-    // Trade policy uncertainty
+    // Trade policy uncertainty - from econ.vol_indices_1d (same table as VIX)
     const tpuData = await query<{value: number}>(`
-      SELECT value FROM econ.sentiment_1d WHERE series_id = 'USEPUINDXM'
-      ORDER BY as_of_date DESC LIMIT 1
+      SELECT value::float8 FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM'
+      AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1
     `)
 
     // Calculate scores
     const vix = vixData[0]?.value ?? 20
     const crush = crushData[0]?.board_crush ?? 1.5
-    const cny = cnyData[0]?.value ?? 7.2
+    const cny = cnyData[0]?.rate ?? 7.2
     const tpu = tpuData[0]?.value ?? 100
 
     // Score calculations (matching market-drivers logic)
