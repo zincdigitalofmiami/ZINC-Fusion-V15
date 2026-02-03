@@ -2204,12 +2204,12 @@ model MktFutures1h {
   low           Float?
   close         Float?
   volume        BigInt?
-  openInterest  BigInt?   @map("open_interest")
   source        String?   @db.VarChar(50)
   ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
   knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
   rowHash       String?   @map("row_hash") @db.VarChar(64)
 
+  @@unique([symbol, eventTime])
   @@index([symbol, eventTime], map: "idx_mkt_futures_1h_symbol_time")
   @@map("futures_1h")
   @@schema("mkt")
