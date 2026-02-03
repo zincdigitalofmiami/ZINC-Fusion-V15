@@ -975,6 +975,10 @@ class FxSignalGenerator(BaseSignalGenerator):
             logger.warning("FxSignalGenerator: No FX data available")
             return signals
 
+        # FIX 2026-02-03: Removed erroneous FX price lagging
+        # Z-scores computed below are already backward-looking (5-year window)
+        # Lagging raw prices before z-score computation creates double-staleness
+
         # Step 2: Compute FX z-scores with dynamic weights
         # Use deep 5-year z-score window for robust normalization
         fx_zscores = {}
@@ -1044,9 +1048,17 @@ class FxSignalGenerator(BaseSignalGenerator):
         if "fred_dxy" in fx_zscores:
             zl_fx_corr = zl.rolling(63).corr(data["fred_dxy"])
 
+        # PATCHED 2026-01-31: Track warmup period for ARDL model
+        # ARDL needs 500 days + zscore needs 252 min_periods
+        MIN_HISTORY_FOR_ARDL = 500
+
         for idx in data.index:
             if pd.isna(final_signal.loc[idx]):
                 continue
+
+            # Determine if in warmup period
+            history_days = len(data[data.index <= idx])
+            is_warmup = history_days < MIN_HISTORY_FOR_ARDL
 
             # Count available FX pairs for confidence
             available_count = sum(
@@ -1054,6 +1066,10 @@ class FxSignalGenerator(BaseSignalGenerator):
                 if not pd.isna(zs.loc[idx])
             )
             base_confidence = min(available_count / 5, 1.0) * 0.6 + 0.2
+
+            # Reduce confidence during warmup (ARDL not yet reliable)
+            if is_warmup:
+                base_confidence = min(base_confidence, 0.50)
 
             # Boost for ARDL model
             if ardl_model is not None:
@@ -1075,6 +1091,10 @@ class FxSignalGenerator(BaseSignalGenerator):
                 "run_hash": run_hash,
                 "ardl_fitted": ardl_model is not None,
                 "carry_computed": has_carry,
+                # Warmup metadata (PATCHED 2026-01-31)
+                "warmup": is_warmup,
+                "warmup_reason": "insufficient_history_for_ardl" if is_warmup else None,
+                "history_days_used": history_days,
             }
 
             # Add dynamic weights snapshot
@@ -1096,13 +1116,22 @@ class FxSignalGenerator(BaseSignalGenerator):
                     if not pd.isna(carry.loc[idx]):
                         meta[f"carry_{country}"] = float(carry.loc[idx])
 
+            as_of = idx.date() if hasattr(idx, 'date') else idx
+            # P0-3: Skip dates before EARLIEST_VALID_DATE
+            if as_of < date(1990, 1, 1):
+                continue
+
+            # P0-1: Compute max staleness for this date
+            max_staleness = self.compute_max_staleness(data, as_of, available_fx)
+
             signals.append(SignalOutput(
-                as_of_date=idx.date() if hasattr(idx, 'date') else idx,
+                as_of_date=as_of,
                 bucket="fx",
                 signal_1=float(final_signal.loc[idx]),
                 signal_2=float(carry_val),
                 confidence=float(confidence),
                 model_type="ardl",
+                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                 metadata=meta,
             ))
 
@@ -1143,24 +1172,25 @@ class FedSignalGenerator(BaseSignalGenerator):
             primary_features=[
                 "close",
                 # YIELD CURVE COMPLEX - Full term structure
-                "fred_fedfunds",    # Fed Funds rate (policy rate)
+                "fred_dff",         # Daily Fed Funds rate (replaces monthly FEDFUNDS)
                 "fred_dgs3mo",      # 3-month Treasury (near-term)
                 "fred_dgs2",        # 2Y Treasury (policy expectations)
                 "fred_dgs10",       # 10Y Treasury (long-term)
-                # FINANCIAL CONDITIONS
-                "fred_nfci",        # Chicago NFCI (financial stress)
+                # FINANCIAL CONDITIONS - NFCI is weekly, will have NaN on non-release days
+                "fred_nfci",        # Chicago NFCI (financial stress) - WEEKLY
             ],
             secondary_features=[
                 # Extended yield curve
                 "fred_dgs1",        # 1Y Treasury
                 "fred_dgs5",        # 5Y Treasury
                 "fred_dgs30",       # 30Y Treasury
-                # Inflation expectations
+                # Inflation expectations (from econ.inflation_1d)
                 "fred_t10yie",      # 10Y breakeven inflation
                 "fred_t5yie",       # 5Y breakeven inflation
-                # Credit spreads
-                "fred_bamlh0a0hym2",  # High yield spread
-                "fred_tedrate",     # TED spread (stress)
+                # Real yields (TIPS)
+                "fred_dfii10",      # 10Y TIPS real yield
+                # Credit spreads (replaces discontinued TEDRATE)
+                "fred_bamlh0a0hym2",  # High yield spread (daily)
             ],
             lookback_days=252,
             min_data_points=63,
@@ -1168,20 +1198,25 @@ class FedSignalGenerator(BaseSignalGenerator):
         super().__init__(config)
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Require FULL yield curve + financial conditions."""
+        """Require FULL yield curve + financial conditions.
+
+        NOTE: NFCI is weekly - presence in columns is required, but NaN values
+        on non-release days are expected and acceptable.
+        """
         missing = []
         if "close" not in data.columns:
             missing.append("close")
-        # REQUIRE full yield curve
-        if "fred_fedfunds" not in data.columns:
-            missing.append("fred_fedfunds")
+        # REQUIRE daily fed funds (DFF, not FEDFUNDS which is monthly)
+        if "fred_dff" not in data.columns:
+            missing.append("fred_dff")
+        # REQUIRE core yield curve
         if "fred_dgs3mo" not in data.columns:
             missing.append("fred_dgs3mo")
         if "fred_dgs2" not in data.columns:
             missing.append("fred_dgs2")
         if "fred_dgs10" not in data.columns:
             missing.append("fred_dgs10")
-        # REQUIRE financial conditions
+        # REQUIRE financial conditions column (NaN on non-release days is OK)
         if "fred_nfci" not in data.columns:
             missing.append("fred_nfci")
         return missing
@@ -1278,7 +1313,8 @@ class FedSignalGenerator(BaseSignalGenerator):
         data = self.add_all_elite_indicators(data, "close", "zl")
 
         # Add elite indicators for key rate series
-        for rate_col in ["fred_fedfunds", "fred_dgs2", "fred_dgs10", "fred_dgs30",
+        # NOTE: Using fred_dff (daily) instead of fred_fedfunds (monthly, stale)
+        for rate_col in ["fred_dff", "fred_dgs2", "fred_dgs10", "fred_dgs30",
                          "fred_dgs3mo", "fred_nfci", "fred_t10yie"]:
             if rate_col in data.columns and data[rate_col].notna().sum() > 30:
                 rate_data = data.copy()
@@ -1289,16 +1325,20 @@ class FedSignalGenerator(BaseSignalGenerator):
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = rate_data[c]
 
+        # FIX 2026-02-03: Removed erroneous rate price lagging
+        # Z-scores computed below use 252-day windows - already backward-looking
+        # Lagging raw prices before z-score computation creates double-staleness
+
         # Compute component z-scores
         components = {}
         weights = {}
 
-        # Fed funds
-        if "fred_fedfunds" in data.columns:
-            components["fedfunds"] = self.compute_zscore(
-                data["fred_fedfunds"], window=252, min_periods=126
+        # Fed funds (daily DFF, not monthly FEDFUNDS)
+        if "fred_dff" in data.columns:
+            components["dff"] = self.compute_zscore(
+                data["fred_dff"], window=252, min_periods=126
             )
-            weights["fedfunds"] = 0.25
+            weights["dff"] = 0.25
 
         # 10Y yield
         if "fred_dgs10" in data.columns:
@@ -1340,17 +1380,35 @@ class FedSignalGenerator(BaseSignalGenerator):
         total_weight = sum(weights.values())
         normalized = {k: v / total_weight for k, v in weights.items()}
 
-        # Weighted composite
-        regime_score = pd.Series(0.0, index=data.index)
-        for name, zscore in components.items():
-            regime_score += normalized[name] * zscore.fillna(0)
+        # Weighted composite - NO FILLNA
+        # For each date, compute weighted average of available components only
+        # This handles weekly NFCI gracefully without fake data
+        regime_score = pd.Series(np.nan, index=data.index)
+
+        for idx in data.index:
+            available_sum = 0.0
+            available_weight = 0.0
+            for name, zscore in components.items():
+                if not pd.isna(zscore.loc[idx]):
+                    available_sum += normalized[name] * zscore.loc[idx]
+                    available_weight += normalized[name]
+
+            # Only compute score if we have at least 50% of weighted components
+            if available_weight >= 0.5:
+                # Renormalize by available weight
+                regime_score.loc[idx] = available_sum / available_weight
 
         # Regime change: combine score momentum + curve momentum
         score_momentum = regime_score.diff(21)
         if has_curve:
             # Flattening curve (negative momentum) = tightening signal
             curve_zscore_mom = self.compute_zscore(curve_momentum, window=63, min_periods=21)
-            combined_momentum = score_momentum - 0.3 * curve_zscore_mom.fillna(0)
+            # Only add curve momentum where both are available (no fillna)
+            combined_momentum = score_momentum.copy()
+            valid_both = score_momentum.notna() & curve_zscore_mom.notna()
+            combined_momentum.loc[valid_both] = (
+                score_momentum.loc[valid_both] - 0.3 * curve_zscore_mom.loc[valid_both]
+            )
         else:
             combined_momentum = score_momentum
 
@@ -1390,13 +1448,22 @@ class FedSignalGenerator(BaseSignalGenerator):
             if has_real_rate:
                 meta["real_rate"] = float(real_rate.loc[idx]) if not pd.isna(real_rate.loc[idx]) else None
 
+            as_of = idx.date() if hasattr(idx, 'date') else idx
+            # P0-3: Skip dates before EARLIEST_VALID_DATE
+            if as_of < date(1990, 1, 1):
+                continue
+
+            # P0-1: Compute max staleness for this date
+            max_staleness = self.compute_max_staleness(data, as_of, rate_cols)
+
             signals.append(SignalOutput(
-                as_of_date=idx.date() if hasattr(idx, 'date') else idx,
+                as_of_date=as_of,
                 bucket="fed",
                 signal_1=float(regime_score.loc[idx]),
                 signal_2=float(change),
                 confidence=float(confidence),
                 model_type="ridge",
+                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                 metadata=meta,
             ))
 

@@ -191,8 +191,9 @@ class MLModelMixin:
         self.last_train_date = current_date
 
         # Log feature importances
+        # FIX 2026-02-03: Use self.feature_names (trained features) not feature_names (all features)
         if hasattr(self.model, "feature_importances_"):
-            importances = dict(zip(feature_names, self.model.feature_importances_))
+            importances = dict(zip(self.feature_names, self.model.feature_importances_))
             top_features = sorted(
                 importances.items(), key=lambda x: x[1], reverse=True
             )[:5]
@@ -536,8 +537,10 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         oil_value = zl * 0.11
         meal_value = zm * 0.022
         board_crush = (oil_value + meal_value) - (zs / 100)
-        # Lag by 1 day to prevent leakage: signal at t uses data up to t-1
-        crush_momentum = board_crush.pct_change(periods=21).shift(1) * 100
+        # FIX 2026-02-03: Removed erroneous .shift(1) that created timing mismatch
+        # pct_change(21) already uses backward-looking data [T-21, T]
+        # signal_2 should use same timing as signal_1 (features at T for signal at T)
+        crush_momentum = board_crush.pct_change(periods=21) * 100
         oil_share = oil_value / (oil_value + meal_value)
         oil_share_zscore = self.compute_zscore(oil_share, window=126, min_periods=63)
 
@@ -773,9 +776,10 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                     spread, window=126, min_periods=42
                 )
                 if is_daily:  # Only compute momentum for daily data
+                    # FIX 2026-02-03: Removed .shift(1) - pct_change is already backward-looking
                     features[f"spread_{name}_mom_21d"] = spread.pct_change(
                         21, fill_method=None
-                    ).shift(1)
+                    )
 
                 # Ratio (works for both)
                 ratio = zl / sub_price.replace(0, np.nan)
@@ -812,9 +816,10 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # Prepare features
         X_full, feature_names = self._prepare_features(data)
 
-        # P0-4 FIX: Lag all features by 1 day to prevent leakage
-        # Signal at T should use T-1 features
-        X_full = X_full.shift(1)
+        # FIX 2026-02-03: Removed erroneous X_full.shift(1)
+        # Rolling features (z-scores, momentum, correlations) are already backward-looking
+        # For EOD signal generation, using T's data for signal at T is correct
+        # The previous "P0-4 FIX" was overly conservative and reduced signal freshness
 
         # FIX 2026-01-30: Only require primary features to be non-NaN (not all elite indicators)
         core_cols = [c for c in self.config.primary_features if c in X_full.columns]

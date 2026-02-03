@@ -462,6 +462,10 @@ class EnergySignalGenerator(BaseSignalGenerator):
         for col_name, series in elite_energy.items():
             data[col_name] = series
 
+        # FIX 2026-02-03: Removed erroneous price lagging
+        # Z-scores and rolling features computed below are already backward-looking
+        # Lagging raw prices before z-score computation creates double-staleness
+
         # Core energy indicator: crude oil z-score
         cl = data["cl_close"]
         cl_zscore = self.compute_zscore(cl, window=126, min_periods=63)
@@ -541,8 +545,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
         if total_weight > 0:
             spillover_score = spillover_score / total_weight
 
-        # Spillover momentum (lagged by 1 day to prevent leakage)
-        spillover_momentum = spillover_score.diff(21).shift(1)
+        # FIX 2026-02-03: Removed erroneous .shift(1)
+        # diff(21) is already backward-looking (change over past 21 days)
+        spillover_momentum = spillover_score.diff(21)
 
         # Save VAR model if fitted
         if var_result is not None:
@@ -550,13 +555,27 @@ class EnergySignalGenerator(BaseSignalGenerator):
             model_dir.mkdir(parents=True, exist_ok=True)
             joblib.dump(var_result, model_dir / "var_model.joblib")
 
+        # PATCHED 2026-01-31: Track warmup period for VAR model
+        # VAR needs 252 days of history to fit properly
+        MIN_HISTORY_FOR_VAR = 252
+        first_valid_idx = data.index[0] if len(data) > 0 else None
+        warmup_end_date = data.index[MIN_HISTORY_FOR_VAR - 1] if len(data) >= MIN_HISTORY_FOR_VAR else data.index[-1]
+
         for idx in data.index:
             if pd.isna(spillover_score.loc[idx]):
                 continue
 
+            # Determine if in warmup period
+            history_days = len(data[data.index <= idx])
+            is_warmup = history_days < MIN_HISTORY_FOR_VAR
+
             # Confidence based on components and VAR availability
             available_count = sum(1 for name, _ in component_weights)
             base_confidence = min(available_count / 4, 1.0) * 0.6 + 0.2
+
+            # Reduce confidence during warmup (VAR not yet reliable)
+            if is_warmup:
+                base_confidence = min(base_confidence, 0.50)
 
             # Boost confidence if VAR fitted and IRF computed
             if var_result is not None and irf_analysis is not None:
@@ -578,6 +597,10 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 "irf_computed": irf_analysis is not None,
                 "fevd_computed": fevd_analysis is not None,
                 "run_hash": run_hash,
+                # Warmup metadata (PATCHED 2026-01-31)
+                "warmup": is_warmup,
+                "warmup_reason": "insufficient_history_for_var" if is_warmup else None,
+                "history_days_used": history_days,
             }
 
             # Add real IRF signal
@@ -600,13 +623,22 @@ class EnergySignalGenerator(BaseSignalGenerator):
             if not crack_zscore.isna().all() and not pd.isna(crack_spread.loc[idx]):
                 meta["crack_321_spread"] = float(crack_spread.loc[idx])
 
+            as_of = idx.date() if hasattr(idx, 'date') else idx
+            # P0-3: Skip dates before EARLIEST_VALID_DATE
+            if as_of < date(1990, 1, 1):
+                continue
+
+            # P0-1: Compute max staleness for this date
+            max_staleness = self.compute_max_staleness(data, as_of, energy_price_cols)
+
             signals.append(SignalOutput(
-                as_of_date=idx.date() if hasattr(idx, 'date') else idx,
+                as_of_date=as_of,
                 bucket="energy",
                 signal_1=float(spillover_score.loc[idx]),
                 signal_2=float(momentum),
                 confidence=float(confidence),
                 model_type="var",
+                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                 metadata=meta,
             ))
 
