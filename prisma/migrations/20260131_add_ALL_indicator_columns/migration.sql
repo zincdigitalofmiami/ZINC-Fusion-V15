@@ -1,0 +1,64 @@
+-- Add ALL missing elite indicator columns to mkt.futures_1d
+-- This ensures we have space for every indicator
+
+ALTER TABLE mkt.futures_1d
+  -- Bollinger Bands (missing upper, middle, lower)
+  ADD COLUMN IF NOT EXISTS bb_upper DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS bb_middle DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS bb_lower DOUBLE PRECISION,
+  
+  -- ATR (missing atr_14)
+  ADD COLUMN IF NOT EXISTS atr_14 DOUBLE PRECISION,
+  
+  -- ADX
+  ADD COLUMN IF NOT EXISTS adx DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS adx_pos DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS adx_neg DOUBLE PRECISION,
+  
+  -- Stochastic
+  ADD COLUMN IF NOT EXISTS stoch_k DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS stoch_d DOUBLE PRECISION,
+  
+  -- CCI
+  ADD COLUMN IF NOT EXISTS cci_14 DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS cci_50 DOUBLE PRECISION,
+  
+  -- Moving Averages
+  ADD COLUMN IF NOT EXISTS kama_10 DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS hma_20 DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS alma_50 DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS mcginley_dynamic DOUBLE PRECISION,
+  
+  -- Volume
+  ADD COLUMN IF NOT EXISTS obv DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS cmf_21 DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS volume_zscore DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS unusual_volume BOOLEAN,
+  ADD COLUMN IF NOT EXISTS elder_force_index DOUBLE PRECISION,
+  
+  -- Returns
+  ADD COLUMN IF NOT EXISTS returns_1d DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS log_returns_1d DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS range_pct DOUBLE PRECISION,
+  
+  -- Volatility
+  ADD COLUMN IF NOT EXISTS garman_klass_vol DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS yang_zhang_vol DOUBLE PRECISION,
+  
+  -- Schaff & TTM (exotic but critical)
+  ADD COLUMN IF NOT EXISTS schaff_trend_cycle DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS ttm_squeeze_on BOOLEAN,
+  ADD COLUMN IF NOT EXISTS ttm_squeeze_momentum DOUBLE PRECISION,
+  
+  -- Fisher Transform
+  ADD COLUMN IF NOT EXISTS fisher_transform DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS fisher_signal DOUBLE PRECISION,
+  
+  -- RVI
+  ADD COLUMN IF NOT EXISTS rvi DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS rvi_signal DOUBLE PRECISION;
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_futures_rsi_14 ON mkt.futures_1d(symbol, rsi_14) WHERE rsi_14 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_futures_macd ON mkt.futures_1d(symbol, macd) WHERE macd IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_futures_adx ON mkt.futures_1d(symbol, adx) WHERE adx IS NOT NULL;

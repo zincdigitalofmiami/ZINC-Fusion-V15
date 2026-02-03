@@ -10,303 +10,905 @@ datasource db {
 }
 
 model TrainingMatrix1d {
-  tradeDate                    DateTime @map("trade_date") @db.Date
-  symbol                       String   @db.VarChar(20)
-  open                         Float?
-  high                         Float?
-  low                          Float?
-  close                        Float?
-  volume                       Float?
-  connors_rsi                  Float?
-  fisher_transform             Float?
-  fisher_signal                Float?
-  mcginley_dynamic             Float?
-  ttm_squeeze_on               Boolean?
-  ttm_squeeze_momentum         Float?
-  schaff_trend_cycle           Float?
-  rvi                          Float?
-  rvi_signal                   Float?
-  elder_force_index            Float?
-  kama_10                      Float?
-  hma_20                       Float?
-  alma_50                      Float?
-  rsi_2                        Float?
-  rsi_14                       Float?
-  cumulative_rsi               Float?
-  macd                         Float?
-  macd_signal                  Float?
-  macd_histogram               Float?
-  cci_14                       Float?
-  cci_50                       Float?
-  atr_10                       Float?
-  atr_50                       Float?
-  atr_ratio                    Float?
-  bb_percent_b                 Float?
-  cmf_21                       Float?
-  volume_zscore                Float?
-  unusual_volume               Boolean?
-  createdAt                    String?  @map("created_at")
-  returns_1d                   Float?
-  log_returns_1d               Float?
-  range_pct                    Float?
-  fred_anfci                   Float?
-  fred_apu000074714            Float?
-  fred_b235rc1q027sbea         Float?
-  fred_bamlc0a0cm              Float?
-  fred_bamlh0a0hym2            Float?
-  fred_bogmbase                Float?
-  fred_bopgstb                 Float?
-  fred_busloans                Float?
-  fred_chncpiallminmei         Float?
-  fred_chngdpnqdsmei           Float?
-  fred_chnmainlandtpu          Float?
-  fred_chnprinto01ixpym        Float?
-  fred_clvmnacscab1gqea19      Float?
-  fred_cpiaucsl                Float?
-  fred_cpilfesl                Float?
-  fred_dcoilbrenteu            Float?
-  fred_dcoilwtico              Float?
-  fred_ddfuelusgulf            Float?
-  fred_dexars                  Float?
-  fred_dexbzus                 Float?
-  fred_dexcaus                 Float?
-  fred_dexchus                 Float?
-  fred_dexhkus                 Float?
-  fred_dexinus                 Float?
-  fred_dexjpus                 Float?
-  fred_dexkous                 Float?
-  fred_dexmaus                 Float?
-  fred_dexmxus                 Float?
-  fred_dexnous                 Float?
-  fred_dexsfus                 Float?
-  fred_dexsius                 Float?
-  fred_dexszus                 Float?
-  fred_dextaus                 Float?
-  fred_dexthus                 Float?
-  fred_dexusal                 Float?
-  fred_dexuseu                 Float?
-  fred_dexusuk                 Float?
-  fred_dfedtarl                Float?
-  fred_dfedtaru                Float?
-  fred_dff                     Float?
-  fred_dfii10                  Float?
-  fred_dfii20                  Float?
-  fred_dfii30                  Float?
-  fred_dfii5                   Float?
-  fred_dfii7                   Float?
-  fred_dgasusgulf              Float?
-  fred_dgs1                    Float?
-  fred_dgs10                   Float?
-  fred_dgs1mo                  Float?
-  fred_dgs2                    Float?
-  fred_dgs20                   Float?
-  fred_dgs30                   Float?
-  fred_dgs3mo                  Float?
-  fred_dgs5                    Float?
-  fred_dgs6mo                  Float?
-  fred_dgs7                    Float?
-  fred_dhhngsp                 Float?
-  fred_dhoilnyh                Float?
-  fred_djfuelusgulf            Float?
-  fred_dprime                  Float?
-  fred_dpropanembtx            Float?
-  fred_drcclacbs               Float?
-  fred_dtwexafegs              Float?
-  fred_dtwexbgs                Float?
-  fred_dtwexemegs              Float?
-  fred_dxy                     Float?
-  fred_emvtradepolemv          Float?
-  fred_eputrade                Float?
-  fred_expch                   Float?
-  fred_expgs                   Float?
-  fred_fedfunds                Float?
-  fred_frgshpusm649ncis        Float?
-  fred_gasdesw                 Float?
-  fred_gasregw                 Float?
-  fred_gdp                     Float?
-  fred_gdpc1                   Float?
-  fred_gvzcls                  Float?
-  fred_houst                   Float?
-  fred_impch                   Float?
-  fred_impgs                   Float?
-  fred_indpro                  Float?
-  fred_ir3tib01cnm156n         Float?
-  fred_lvxrnsa                 Float?
-  fred_m2sl                    Float?
-  fred_manemp                  Float?
-  fred_mortgage30us            Float?
-  fred_myagm2cnm189n           Float?
-  fred_nasdaqcom               Float?
-  fred_nfci                    Float?
-  fred_nyfed_bgcr              Float?
-  fred_nyfed_effr              Float?
-  fred_nyfed_obfr              Float?
-  fred_nyfed_sofr              Float?
-  fred_nyfed_tgcr              Float?
-  fred_ovxcls                  Float?
-  fred_payems                  Float?
-  fred_pbarlusdm               Float?
-  fred_pce                     Float?
-  fred_pcepi                   Float?
-  fred_pcepilfe                Float?
-  fred_pcoppusdm               Float?
-  fred_pcu311224311224         Float?
-  fred_pcu32411032411012       Float?
-  fred_permit                  Float?
-  fred_pmaizmtusdm             Float?
-  fred_pngaseuusdm             Float?
-  fred_polvoilusdm             Float?
-  fred_ppiaco                  Float?
-  fred_ppifgs                  Float?
-  fred_ppifis                  Float?
-  fred_ppoilusdm               Float?
-  fred_pricenpqusdm            Float?
-  fred_proilusdm               Float?
-  fred_psoilusdm               Float?
-  fred_psoybusdm               Float?
-  fred_psugaisausdm            Float?
-  fred_psunousdm               Float?
-  fred_pwheamtusdm             Float?
-  fred_rrpontsyd               Float?
-  fred_rsxfs                   Float?
-  fred_sofr                    Float?
-  fred_sp500                   Float?
-  fred_stlfsi                  Float?
-  fred_stlfsi4                 Float?
-  fred_t10y2y                  Float?
-  fred_t10y3m                  Float?
-  fred_t10yie                  Float?
-  fred_t20yiem                 Float?
-  fred_t30yiem                 Float?
-  fred_t5yie                   Float?
-  fred_t5yifr                  Float?
-  fred_tedrate                 Float?
-  fred_totresns                Float?
-  fred_umcsent                 Float?
-  fred_unrate                  Float?
-  fred_usepuindxd              Float?
-  fred_usepuindxm              Float?
-  fred_vixcls                  Float?
-  fred_vxgscls                 Float?
-  fred_vxvcls                  Float?
-  fred_walcl                   Float?
-  fred_wpu01830161             Float?
-  fred_wpu01830171             Float?
-  fred_wpu057303               Float?
-  fred_wpu06140341             Float?
-  fred_wresbal                 Float?
-  fred_xtexva01cnm667s         Float?
-  fred_xtimva01cnm667s         Float?
-  rapeseed_close               Float?
-  sunflower_close              Float?
-  fx_usdbrl                    Float?
-  fx_usdcny                    Float?
-  fx_usdjpy                    Float?
-  wx_ar_tavg_c                 Float?
-  wx_br_tavg_c                 Float?
-  wx_us_tavg_c                 Float?
-  wx_ar_tmin_c                 Float?
-  wx_br_tmin_c                 Float?
-  wx_us_tmin_c                 Float?
-  wx_ar_tmax_c                 Float?
-  wx_br_tmax_c                 Float?
-  wx_us_tmax_c                 Float?
-  wx_ar_prcp_mm                Float?
-  wx_br_prcp_mm                Float?
-  wx_us_prcp_mm                Float?
-  wx_ar_prcp_mm_total          Float?
-  wx_br_prcp_mm_total          Float?
-  wx_us_prcp_mm_total          Float?
-  wx_ar_snow_mm                Float?
-  wx_br_snow_mm                Float?
-  wx_us_snow_mm                Float?
-  cot_managed_money_net        Float?
-  cot_prod_merc_net            Float?
-  cot_open_interest            Float?
-  cot_mm_pct_oi                Float?
-  cot_comm_pct_oi              Float?
-  cot_mm_net_chg               Float?
-  cot_comm_net_chg             Float?
-  rin_d3                       Float?
-  rin_d4                       Float?
-  rin_d5                       Float?
-  rin_d6                       Float?
-  usda_zl_exports              Float?
-  usda_zl_net_sales            Float?
-  usda_zl_outstanding          Float?
-  usda_zs_exports              Float?
-  usda_zs_net_sales            Float?
-  usda_zs_outstanding          Float?
-  usda_zm_exports              Float?
-  usda_zm_net_sales            Float?
-  usda_zm_outstanding          Float?
-  wasde_us_zl_consumption      Float?
-  wasde_us_zl_crush            Float?
-  wasde_us_zl_ending_stocks    Float?
-  wasde_us_zl_exports          Float?
-  wasde_us_zl_production       Float?
-  wasde_us_zm_consumption      Float?
-  wasde_us_zm_crush            Float?
-  wasde_us_zm_ending_stocks    Float?
-  wasde_us_zm_exports          Float?
-  wasde_us_zm_production       Float?
-  wasde_us_zs_consumption      Float?
-  wasde_us_zs_crush            Float?
-  wasde_us_zs_ending_stocks    Float?
-  wasde_us_zs_exports          Float?
-  wasde_us_zs_production       Float?
-  wasde_world_zl_consumption   Float?
-  wasde_world_zl_ending_stocks Float?
-  wasde_world_zl_exports       Float?
-  wasde_world_zl_production    Float?
-  wasde_world_zm_consumption   Float?
-  wasde_world_zm_ending_stocks Float?
-  wasde_world_zm_exports       Float?
-  wasde_world_zm_production    Float?
-  wasde_world_zs_consumption   Float?
-  wasde_world_zs_ending_stocks Float?
-  wasde_world_zs_exports       Float?
-  wasde_world_zs_production    Float?
-  news_sentiment               Float?
-  news_zl_sentiment            Float?
-  news_count                   Float?
-  news_trump_pct               Float?
-  sig_biofuel_1                Float?
-  sig_china_1                  Float?
-  sig_crush_1                  Float?
-  sig_energy_1                 Float?
-  sig_fed_1                    Float?
-  sig_fx_1                     Float?
-  sig_palm_1                   Float?
-  sig_substitutes_1            Float?
-  sig_tariff_1                 Float?
-  sig_trump_effect_1           Float?
-  sig_volatility_1             Float?
-  sig_biofuel_2                Float?
-  sig_china_2                  Float?
-  sig_crush_2                  Float?
-  sig_energy_2                 Float?
-  sig_fed_2                    Float?
-  sig_substitutes_2            Float?
-  sig_tariff_2                 Float?
-  sig_trump_effect_2           Float?
-  sig_volatility_2             Float?
-  sig_biofuel_conf             Float?
-  sig_china_conf               Float?
-  sig_crush_conf               Float?
-  sig_energy_conf              Float?
-  sig_fed_conf                 Float?
-  sig_fx_conf                  Float?
-  sig_palm_conf                Float?
-  sig_substitutes_conf         Float?
-  sig_tariff_conf              Float?
-  sig_trump_effect_conf        Float?
-  sig_volatility_conf          Float?
-  target_ret_5d                Float?
-  target_ret_21d               Float?
-  target_ret_63d               Float?
-  target_ret_126d              Float?
-  matrixVersion                String?  @map("matrix_version")
+  tradeDate                                       DateTime @map("trade_date") @db.Date
+  symbol                                          String   @db.VarChar(20)
+  open                                            Float?
+  high                                            Float?
+  low                                             Float?
+  close                                           Float?
+  volume                                          Float?
+  open_interest                                   Float?
+  hurst_exponent                                  Float?
+  connors_rsi                                     Float?
+  fisher_transform                                Float?
+  fisher_signal                                   Float?
+  mcginley_dynamic                                Float?
+  ttm_squeeze_on                                  BigInt?
+  ttm_squeeze_momentum                            Float?
+  schaff_trend_cycle                              Float?
+  rvi                                             Float?
+  rvi_signal                                      Float?
+  elder_force_index                               Float?
+  kama_10                                         Float?
+  hma_20                                          Float?
+  alma_50                                         Float?
+  rsi_2                                           Float?
+  rsi_14                                          Float?
+  cumulative_rsi                                  Float?
+  macd                                            Float?
+  macd_signal                                     Float?
+  macd_histogram                                  Float?
+  cci_14                                          Float?
+  cci_50                                          Float?
+  atr_10                                          Float?
+  atr_50                                          Float?
+  atr_ratio                                       Float?
+  garman_klass_vol                                Float?
+  yang_zhang_vol                                  Float?
+  bb_percent_b                                    Float?
+  cmf_21                                          Float?
+  volume_zscore                                   Float?
+  unusual_volume                                  BigInt?
+  createdAt                                       String?  @map("created_at")
+  returns_1d                                      Float?
+  log_returns_1d                                  Float?
+  range_pct                                       Float?
+  hurst_regime_raw                                String?  @map("_hurst_regime_raw")
+  hurst_regime                                    BigInt?
+  hurst_regime_is_missing                         BigInt?
+  ttm_squeeze_on_is_missing                       BigInt?
+  fred_anfci                                      Float?
+  fred_apu000074714                               Float?
+  fred_b235rc1q027sbea                            Float?
+  fred_bamlc0a0cm                                 Float?
+  fred_bamlh0a0hym2                               Float?
+  fred_bogmbase                                   Float?
+  fred_bopgstb                                    Float?
+  fred_busloans                                   Float?
+  fred_ccsa                                       Float?
+  fred_chncpiallminmei                            Float?
+  fred_chngdpnqdsmei                              Float?
+  fred_chnmainlandtpu                             Float?
+  fred_clvmnacscab1gqea19                         Float?
+  fred_cpiaucsl                                   Float?
+  fred_cpilfesl                                   Float?
+  fred_dcoilbrenteu                               Float?
+  fred_dcoilwtico                                 Float?
+  fred_ddfuelusgulf                               Float?
+  fred_dexars                                     Float?
+  fred_dexbzus                                    Float?
+  fred_dexcaus                                    Float?
+  fred_dexchus                                    Float?
+  fred_dexhkus                                    Float?
+  fred_dexinus                                    Float?
+  fred_dexjpus                                    Float?
+  fred_dexkous                                    Float?
+  fred_dexmaus                                    Float?
+  fred_dexmxus                                    Float?
+  fred_dexnous                                    Float?
+  fred_dexsfus                                    Float?
+  fred_dexsius                                    Float?
+  fred_dexszus                                    Float?
+  fred_dextaus                                    Float?
+  fred_dexthus                                    Float?
+  fred_dexusal                                    Float?
+  fred_dexuseu                                    Float?
+  fred_dexusuk                                    Float?
+  fred_dfedtarl                                   Float?
+  fred_dfedtaru                                   Float?
+  fred_dff                                        Float?
+  fred_dfii10                                     Float?
+  fred_dfii20                                     Float?
+  fred_dfii30                                     Float?
+  fred_dfii5                                      Float?
+  fred_dfii7                                      Float?
+  fred_dgasusgulf                                 Float?
+  fred_dgs1                                       Float?
+  fred_dgs10                                      Float?
+  fred_dgs1mo                                     Float?
+  fred_dgs2                                       Float?
+  fred_dgs20                                      Float?
+  fred_dgs30                                      Float?
+  fred_dgs3mo                                     Float?
+  fred_dgs5                                       Float?
+  fred_dgs6mo                                     Float?
+  fred_dgs7                                       Float?
+  fred_dhhngsp                                    Float?
+  fred_dhoilnyh                                   Float?
+  fred_djfuelusgulf                               Float?
+  fred_dprime                                     Float?
+  fred_dpropanembtx                               Float?
+  fred_drcclacbs                                  Float?
+  fred_dtwexafegs                                 Float?
+  fred_dtwexbgs                                   Float?
+  fred_dtwexemegs                                 Float?
+  fred_dxy                                        Float?
+  fred_emvtradepolemv                             Float?
+  fred_eputrade                                   Float?
+  fred_expch                                      Float?
+  fred_expgs                                      Float?
+  fred_fedfunds                                   Float?
+  fred_frgshpusm649ncis                           Float?
+  fred_gasdesw                                    Float?
+  fred_gasregw                                    Float?
+  fred_gdp                                        Float?
+  fred_gdpc1                                      Float?
+  fred_gvzcls                                     Float?
+  fred_houst                                      Float?
+  fred_icsa                                       Float?
+  fred_impch                                      Float?
+  fred_impgs                                      Float?
+  fred_indpro                                     Float?
+  fred_ir3tib01cnm156n                            Float?
+  fred_lvxrnsa                                    Float?
+  fred_m2sl                                       Float?
+  fred_manemp                                     Float?
+  fred_mortgage30us                               Float?
+  fred_myagm2cnm189n                              Float?
+  fred_nasdaqcom                                  Float?
+  fred_nfci                                       Float?
+  fred_nyfed_bgcr                                 Float?
+  fred_nyfed_effr                                 Float?
+  fred_nyfed_obfr                                 Float?
+  fred_nyfed_sofr                                 Float?
+  fred_nyfed_tgcr                                 Float?
+  fred_ovxcls                                     Float?
+  fred_payems                                     Float?
+  fred_pbarlusdm                                  Float?
+  fred_pce                                        Float?
+  fred_pcepi                                      Float?
+  fred_pcepilfe                                   Float?
+  fred_pcoppusdm                                  Float?
+  fred_pcu311224311224                            Float?
+  fred_pcu32411032411012                          Float?
+  fred_permit                                     Float?
+  fred_pmaizmtusdm                                Float?
+  fred_pngaseuusdm                                Float?
+  fred_polvoilusdm                                Float?
+  fred_ppiaco                                     Float?
+  fred_ppifgs                                     Float?
+  fred_ppifis                                     Float?
+  fred_ppoilusdm                                  Float?
+  fred_pricenpqusdm                               Float?
+  fred_proilusdm                                  Float?
+  fred_psoilusdm                                  Float?
+  fred_psoybusdm                                  Float?
+  fred_psugaisausdm                               Float?
+  fred_psunousdm                                  Float?
+  fred_pwheamtusdm                                Float?
+  fred_rrpontsyd                                  Float?
+  fred_rsxfs                                      Float?
+  fred_sofr                                       Float?
+  fred_sp500                                      Float?
+  fred_stlfsi                                     Float?
+  fred_stlfsi4                                    Float?
+  fred_t10y2y                                     Float?
+  fred_t10y3m                                     Float?
+  fred_t10yie                                     Float?
+  fred_t20yiem                                    Float?
+  fred_t30yiem                                    Float?
+  fred_t5yie                                      Float?
+  fred_t5yifr                                     Float?
+  fred_tedrate                                    Float?
+  fred_totresns                                   Float?
+  fred_umcsent                                    Float?
+  fred_unrate                                     Float?
+  fred_usepuindxd                                 Float?
+  fred_usepuindxm                                 Float?
+  fred_vixcls                                     Float?
+  fred_vxgscls                                    Float?
+  fred_vxvcls                                     Float?
+  fred_walcl                                      Float?
+  fred_wpu01830161                                Float?
+  fred_wpu01830171                                Float?
+  fred_wpu057303                                  Float?
+  fred_wpu06140341                                Float?
+  fred_wresbal                                    Float?
+  fred_xtexva01cnm667s                            Float?
+  fred_xtimva01cnm667s                            Float?
+  rapeseed_close                                  Float?
+  sunflower_close                                 Float?
+  usd_cny                                         Float?
+  fx_aud_usd                                      Float?
+  fx_audusd                                       Float?
+  fx_brl_usd                                      Float?
+  fx_cad_usd                                      Float?
+  fx_cny_usd                                      Float?
+  fx_dxy_afe                                      Float?
+  fx_dxy_broad                                    Float?
+  fx_dxy_eme                                      Float?
+  fx_eur_usd                                      Float?
+  fx_eurusd                                       Float?
+  fx_gbp_usd                                      Float?
+  fx_gbpusd                                       Float?
+  fx_inr_usd                                      Float?
+  fx_krw_usd                                      Float?
+  fx_mxn_usd                                      Float?
+  fx_twd_usd                                      Float?
+  fx_usd_cad                                      Float?
+  fx_usd_cny                                      Float?
+  fx_usd_jpy                                      Float?
+  fx_usdbrl                                       Float?
+  fx_usdcad                                       Float?
+  fx_usdcny                                       Float?
+  fx_usdjpy                                       Float?
+  fx_usdkrw                                       Float?
+  fx_usdmxn                                       Float?
+  fx_usdsgd                                       Float?
+  wx_ar_tavg_c                                    Float?
+  wx_br_tavg_c                                    Float?
+  wx_us_tavg_c                                    Float?
+  wx_ar_tmin_c                                    Float?
+  wx_br_tmin_c                                    Float?
+  wx_us_tmin_c                                    Float?
+  wx_ar_tmax_c                                    Float?
+  wx_br_tmax_c                                    Float?
+  wx_us_tmax_c                                    Float?
+  wx_ar_prcp_mm                                   Float?
+  wx_br_prcp_mm                                   Float?
+  wx_us_prcp_mm                                   Float?
+  wx_ar_snow_mm                                   Float?
+  wx_br_snow_mm                                   Float?
+  wx_us_snow_mm                                   Float?
+  wx_ar_gdd_10c                                   Float?
+  wx_br_gdd_10c                                   Float?
+  wx_us_gdd_10c                                   Float?
+  wx_ar_gdd_30d_sum                               Float?
+  wx_br_gdd_30d_sum                               Float?
+  wx_us_gdd_30d_sum                               Float?
+  wx_ar_prcp_7d_sum                               Float?
+  wx_br_prcp_7d_sum                               Float?
+  wx_us_prcp_7d_sum                               Float?
+  wx_ar_prcp_14d_sum                              Float?
+  wx_br_prcp_14d_sum                              Float?
+  wx_us_prcp_14d_sum                              Float?
+  wx_ar_temp_anom_30d                             Float?
+  wx_br_temp_anom_30d                             Float?
+  wx_us_temp_anom_30d                             Float?
+  wx_ar_prcp_anom_30d                             Float?
+  wx_br_prcp_anom_30d                             Float?
+  wx_us_prcp_anom_30d                             Float?
+  wx_ar_temp_vol_7d                               Float?
+  wx_br_temp_vol_7d                               Float?
+  wx_us_temp_vol_7d                               Float?
+  cftc_zl_cot_managed_money_net_event_value       Float?
+  cftc_zl_cot_managed_money_net_event_delta       Float?
+  cftc_zl_cot_managed_money_net_is_release_day    Int?
+  cftc_zl_cot_managed_money_net_age_days          Int?
+  cftc_zl_cot_managed_money_net_is_available      Int?
+  cftc_zl_cot_mm_pct_oi_event_value               Float?
+  cftc_zl_cot_mm_pct_oi_event_delta               Float?
+  cftc_zl_cot_mm_pct_oi_is_release_day            Int?
+  cftc_zl_cot_mm_pct_oi_age_days                  Int?
+  cftc_zl_cot_mm_pct_oi_is_available              Int?
+  cftc_zl_cot_prod_merc_net_event_value           Float?
+  cftc_zl_cot_prod_merc_net_event_delta           Float?
+  cftc_zl_cot_prod_merc_net_is_release_day        Int?
+  cftc_zl_cot_prod_merc_net_age_days              Int?
+  cftc_zl_cot_prod_merc_net_is_available          Int?
+  cftc_zl_cot_open_interest_event_value           Float?
+  cftc_zl_cot_open_interest_event_delta           Float?
+  cftc_zl_cot_open_interest_is_release_day        Int?
+  cftc_zl_cot_open_interest_age_days              Int?
+  cftc_zl_cot_open_interest_is_available          Int?
+  cot_managed_money_net                           Float?
+  cot_prod_merc_net                               Float?
+  cot_open_interest                               Float?
+  cot_mm_pct_oi                                   Float?
+  cot_comm_pct_oi                                 Float?
+  cot_mm_net_chg                                  Float?
+  cot_comm_net_chg                                Float?
+  rin_d3                                          Float?
+  rin_d4                                          Float?
+  rin_d5                                          Float?
+  rin_d6                                          Float?
+  lcfs_ca_lcfs_credit_event_value                 Float?
+  lcfs_ca_lcfs_credit_event_delta                 Float?
+  lcfs_ca_lcfs_credit_is_release_day              Int?
+  lcfs_ca_lcfs_credit_age_days                    Int?
+  lcfs_ca_lcfs_credit_is_available                Int?
+  lcfs_credit                                     Float?
+  usda_exports_usda_zl_exports_event_value        Float?
+  usda_exports_usda_zl_exports_event_delta        Float?
+  usda_exports_usda_zl_exports_is_release_day     Int?
+  usda_exports_usda_zl_exports_age_days           Int?
+  usda_exports_usda_zl_exports_is_available       Int?
+  usda_exports_usda_zl_net_sales_event_value      Float?
+  usda_exports_usda_zl_net_sales_event_delta      Float?
+  usda_exports_usda_zl_net_sales_is_release_day   Int?
+  usda_exports_usda_zl_net_sales_age_days         Int?
+  usda_exports_usda_zl_net_sales_is_available     Int?
+  usda_exports_usda_zl_outstanding_event_value    Float?
+  usda_exports_usda_zl_outstanding_event_delta    Float?
+  usda_exports_usda_zl_outstanding_is_release_day Int?
+  usda_exports_usda_zl_outstanding_age_days       Int?
+  usda_exports_usda_zl_outstanding_is_available   Int?
+  usda_exports_usda_zs_exports_event_value        Float?
+  usda_exports_usda_zs_exports_event_delta        Float?
+  usda_exports_usda_zs_exports_is_release_day     Int?
+  usda_exports_usda_zs_exports_age_days           Int?
+  usda_exports_usda_zs_exports_is_available       Int?
+  usda_exports_usda_zs_net_sales_event_value      Float?
+  usda_exports_usda_zs_net_sales_event_delta      Float?
+  usda_exports_usda_zs_net_sales_is_release_day   Int?
+  usda_exports_usda_zs_net_sales_age_days         Int?
+  usda_exports_usda_zs_net_sales_is_available     Int?
+  usda_exports_usda_zs_outstanding_event_value    Float?
+  usda_exports_usda_zs_outstanding_event_delta    Float?
+  usda_exports_usda_zs_outstanding_is_release_day Int?
+  usda_exports_usda_zs_outstanding_age_days       Int?
+  usda_exports_usda_zs_outstanding_is_available   Int?
+  usda_exports_usda_zm_exports_event_value        Float?
+  usda_exports_usda_zm_exports_event_delta        Float?
+  usda_exports_usda_zm_exports_is_release_day     Int?
+  usda_exports_usda_zm_exports_age_days           Int?
+  usda_exports_usda_zm_exports_is_available       Int?
+  usda_exports_usda_zm_net_sales_event_value      Float?
+  usda_exports_usda_zm_net_sales_event_delta      Float?
+  usda_exports_usda_zm_net_sales_is_release_day   Int?
+  usda_exports_usda_zm_net_sales_age_days         Int?
+  usda_exports_usda_zm_net_sales_is_available     Int?
+  usda_exports_usda_zm_outstanding_event_value    Float?
+  usda_exports_usda_zm_outstanding_event_delta    Float?
+  usda_exports_usda_zm_outstanding_is_release_day Int?
+  usda_exports_usda_zm_outstanding_age_days       Int?
+  usda_exports_usda_zm_outstanding_is_available   Int?
+  usda_zl_exports                                 Float?
+  usda_zl_net_sales                               Float?
+  usda_zl_outstanding                             Float?
+  usda_zs_exports                                 Float?
+  usda_zs_net_sales                               Float?
+  usda_zs_outstanding                             Float?
+  usda_zm_exports                                 Float?
+  usda_zm_net_sales                               Float?
+  usda_zm_outstanding                             Float?
+  wasde_us_zl_consumption_event_value             Float?
+  wasde_us_zl_consumption_event_delta             Float?
+  wasde_us_zl_consumption_is_release_day          Int?
+  wasde_us_zl_consumption_age_days                Int?
+  wasde_us_zl_consumption_is_available            Int?
+  wasde_us_zl_crush_event_value                   Float?
+  wasde_us_zl_crush_event_delta                   Float?
+  wasde_us_zl_crush_is_release_day                BigInt?
+  wasde_us_zl_crush_age_days                      Int?
+  wasde_us_zl_crush_is_available                  Int?
+  wasde_us_zl_ending_stocks_event_value           Float?
+  wasde_us_zl_ending_stocks_event_delta           Float?
+  wasde_us_zl_ending_stocks_is_release_day        Int?
+  wasde_us_zl_ending_stocks_age_days              Int?
+  wasde_us_zl_ending_stocks_is_available          Int?
+  wasde_us_zl_exports_event_value                 Float?
+  wasde_us_zl_exports_event_delta                 Float?
+  wasde_us_zl_exports_is_release_day              Int?
+  wasde_us_zl_exports_age_days                    Int?
+  wasde_us_zl_exports_is_available                Int?
+  wasde_us_zl_production_event_value              Float?
+  wasde_us_zl_production_event_delta              Float?
+  wasde_us_zl_production_is_release_day           Int?
+  wasde_us_zl_production_age_days                 Int?
+  wasde_us_zl_production_is_available             Int?
+  wasde_us_zm_consumption_event_value             Float?
+  wasde_us_zm_consumption_event_delta             Float?
+  wasde_us_zm_consumption_is_release_day          Int?
+  wasde_us_zm_consumption_age_days                Int?
+  wasde_us_zm_consumption_is_available            Int?
+  wasde_us_zm_crush_event_value                   Float?
+  wasde_us_zm_crush_event_delta                   Float?
+  wasde_us_zm_crush_is_release_day                BigInt?
+  wasde_us_zm_crush_age_days                      Int?
+  wasde_us_zm_crush_is_available                  Int?
+  wasde_us_zm_ending_stocks_event_value           Float?
+  wasde_us_zm_ending_stocks_event_delta           Float?
+  wasde_us_zm_ending_stocks_is_release_day        Int?
+  wasde_us_zm_ending_stocks_age_days              Int?
+  wasde_us_zm_ending_stocks_is_available          Int?
+  wasde_us_zm_exports_event_value                 Float?
+  wasde_us_zm_exports_event_delta                 Float?
+  wasde_us_zm_exports_is_release_day              Int?
+  wasde_us_zm_exports_age_days                    Int?
+  wasde_us_zm_exports_is_available                Int?
+  wasde_us_zm_production_event_value              Float?
+  wasde_us_zm_production_event_delta              Float?
+  wasde_us_zm_production_is_release_day           Int?
+  wasde_us_zm_production_age_days                 Int?
+  wasde_us_zm_production_is_available             Int?
+  wasde_us_zs_consumption_event_value             Float?
+  wasde_us_zs_consumption_event_delta             Float?
+  wasde_us_zs_consumption_is_release_day          Int?
+  wasde_us_zs_consumption_age_days                Int?
+  wasde_us_zs_consumption_is_available            Int?
+  wasde_us_zs_crush_event_value                   Float?
+  wasde_us_zs_crush_event_delta                   Float?
+  wasde_us_zs_crush_is_release_day                BigInt?
+  wasde_us_zs_crush_age_days                      Int?
+  wasde_us_zs_crush_is_available                  Int?
+  wasde_us_zs_ending_stocks_event_value           Float?
+  wasde_us_zs_ending_stocks_event_delta           Float?
+  wasde_us_zs_ending_stocks_is_release_day        Int?
+  wasde_us_zs_ending_stocks_age_days              Int?
+  wasde_us_zs_ending_stocks_is_available          Int?
+  wasde_us_zs_exports_event_value                 Float?
+  wasde_us_zs_exports_event_delta                 Float?
+  wasde_us_zs_exports_is_release_day              Int?
+  wasde_us_zs_exports_age_days                    Int?
+  wasde_us_zs_exports_is_available                Int?
+  wasde_us_zs_production_event_value              Float?
+  wasde_us_zs_production_event_delta              Float?
+  wasde_us_zs_production_is_release_day           Int?
+  wasde_us_zs_production_age_days                 Int?
+  wasde_us_zs_production_is_available             Int?
+  wasde_world_zl_consumption_event_value          Float?
+  wasde_world_zl_consumption_event_delta          Float?
+  wasde_world_zl_consumption_is_release_day       Int?
+  wasde_world_zl_consumption_age_days             Int?
+  wasde_world_zl_consumption_is_available         Int?
+  wasde_world_zl_ending_stocks_event_value        Float?
+  wasde_world_zl_ending_stocks_event_delta        Float?
+  wasde_world_zl_ending_stocks_is_release_day     Int?
+  wasde_world_zl_ending_stocks_age_days           Int?
+  wasde_world_zl_ending_stocks_is_available       Int?
+  wasde_world_zl_exports_event_value              Float?
+  wasde_world_zl_exports_event_delta              Float?
+  wasde_world_zl_exports_is_release_day           Int?
+  wasde_world_zl_exports_age_days                 Int?
+  wasde_world_zl_exports_is_available             Int?
+  wasde_world_zl_production_event_value           Float?
+  wasde_world_zl_production_event_delta           Float?
+  wasde_world_zl_production_is_release_day        Int?
+  wasde_world_zl_production_age_days              Int?
+  wasde_world_zl_production_is_available          Int?
+  wasde_world_zm_consumption_event_value          Float?
+  wasde_world_zm_consumption_event_delta          Float?
+  wasde_world_zm_consumption_is_release_day       Int?
+  wasde_world_zm_consumption_age_days             Int?
+  wasde_world_zm_consumption_is_available         Int?
+  wasde_world_zm_ending_stocks_event_value        Float?
+  wasde_world_zm_ending_stocks_event_delta        Float?
+  wasde_world_zm_ending_stocks_is_release_day     Int?
+  wasde_world_zm_ending_stocks_age_days           Int?
+  wasde_world_zm_ending_stocks_is_available       Int?
+  wasde_world_zm_exports_event_value              Float?
+  wasde_world_zm_exports_event_delta              Float?
+  wasde_world_zm_exports_is_release_day           Int?
+  wasde_world_zm_exports_age_days                 Int?
+  wasde_world_zm_exports_is_available             Int?
+  wasde_world_zm_production_event_value           Float?
+  wasde_world_zm_production_event_delta           Float?
+  wasde_world_zm_production_is_release_day        Int?
+  wasde_world_zm_production_age_days              Int?
+  wasde_world_zm_production_is_available          Int?
+  wasde_world_zs_consumption_event_value          Float?
+  wasde_world_zs_consumption_event_delta          Float?
+  wasde_world_zs_consumption_is_release_day       Int?
+  wasde_world_zs_consumption_age_days             Int?
+  wasde_world_zs_consumption_is_available         Int?
+  wasde_world_zs_ending_stocks_event_value        Float?
+  wasde_world_zs_ending_stocks_event_delta        Float?
+  wasde_world_zs_ending_stocks_is_release_day     Int?
+  wasde_world_zs_ending_stocks_age_days           Int?
+  wasde_world_zs_ending_stocks_is_available       Int?
+  wasde_world_zs_exports_event_value              Float?
+  wasde_world_zs_exports_event_delta              Float?
+  wasde_world_zs_exports_is_release_day           Int?
+  wasde_world_zs_exports_age_days                 Int?
+  wasde_world_zs_exports_is_available             Int?
+  wasde_world_zs_production_event_value           Float?
+  wasde_world_zs_production_event_delta           Float?
+  wasde_world_zs_production_is_release_day        Int?
+  wasde_world_zs_production_age_days              Int?
+  wasde_world_zs_production_is_available          Int?
+  wasde_us_zl_consumption                         Float?
+  wasde_us_zl_crush                               Float?
+  wasde_us_zl_ending_stocks                       Float?
+  wasde_us_zl_exports                             Float?
+  wasde_us_zl_production                          Float?
+  wasde_us_zm_consumption                         Float?
+  wasde_us_zm_crush                               Float?
+  wasde_us_zm_ending_stocks                       Float?
+  wasde_us_zm_exports                             Float?
+  wasde_us_zm_production                          Float?
+  wasde_us_zs_consumption                         Float?
+  wasde_us_zs_crush                               Float?
+  wasde_us_zs_ending_stocks                       Float?
+  wasde_us_zs_exports                             Float?
+  wasde_us_zs_production                          Float?
+  wasde_world_zl_consumption                      Float?
+  wasde_world_zl_ending_stocks                    Float?
+  wasde_world_zl_exports                          Float?
+  wasde_world_zl_production                       Float?
+  wasde_world_zm_consumption                      Float?
+  wasde_world_zm_ending_stocks                    Float?
+  wasde_world_zm_exports                          Float?
+  wasde_world_zm_production                       Float?
+  wasde_world_zs_consumption                      Float?
+  wasde_world_zs_ending_stocks                    Float?
+  wasde_world_zs_exports                          Float?
+  wasde_world_zs_production                       Float?
+  wasde_soybeans_crush                            Float?
+  wasde_soybean_oil_production                    Float?
+  wasde_soybean_oil_ending_stocks                 Float?
+  pmi_cn_nbs_china_pmi_event_value                Float?
+  pmi_cn_nbs_china_pmi_event_delta                Float?
+  pmi_cn_nbs_china_pmi_is_release_day             Int?
+  pmi_cn_nbs_china_pmi_age_days                   Int?
+  pmi_cn_nbs_china_pmi_is_available               Int?
+  china_pmi                                       Float?
+  sig_biofuel_1                                   Float?
+  sig_china_1                                     Float?
+  sig_crush_1                                     Float?
+  sig_energy_1                                    Float?
+  sig_fed_1                                       Float?
+  sig_fx_1                                        Float?
+  sig_palm_1                                      Float?
+  sig_substitutes_1                               Float?
+  sig_tariff_1                                    Float?
+  sig_trump_effect_1                              Float?
+  sig_volatility_1                                Float?
+  sig_biofuel_2                                   Float?
+  sig_china_2                                     Float?
+  sig_crush_2                                     Float?
+  sig_energy_2                                    Float?
+  sig_fed_2                                       Float?
+  sig_fx_2                                        Float?
+  sig_palm_2                                      Float?
+  sig_substitutes_2                               Float?
+  sig_tariff_2                                    Float?
+  sig_trump_effect_2                              Float?
+  sig_volatility_2                                Float?
+  sig_biofuel_conf                                Float?
+  sig_china_conf                                  Float?
+  sig_crush_conf                                  Float?
+  sig_energy_conf                                 Float?
+  sig_fed_conf                                    Float?
+  sig_fx_conf                                     Float?
+  sig_palm_conf                                   Float?
+  sig_substitutes_conf                            Float?
+  sig_tariff_conf                                 Float?
+  sig_trump_effect_conf                           Float?
+  sig_volatility_conf                             Float?
+  open_is_missing                                 BigInt?
+  high_is_missing                                 BigInt?
+  low_is_missing                                  BigInt?
+  close_is_missing                                BigInt?
+  volume_is_missing                               BigInt?
+  open_interest_is_missing                        BigInt?
+  hurst_exponent_is_missing                       BigInt?
+  connors_rsi_is_missing                          BigInt?
+  fisher_transform_is_missing                     BigInt?
+  fisher_signal_is_missing                        BigInt?
+  mcginley_dynamic_is_missing                     BigInt?
+  ttm_squeeze_momentum_is_missing                 BigInt?
+  schaff_trend_cycle_is_missing                   BigInt?
+  rvi_is_missing                                  BigInt?
+  rvi_signal_is_missing                           BigInt?
+  elder_force_index_is_missing                    BigInt?
+  kama_10_is_missing                              BigInt?
+  hma_20_is_missing                               BigInt?
+  alma_50_is_missing                              BigInt?
+  rsi_2_is_missing                                BigInt?
+  rsi_14_is_missing                               BigInt?
+  cumulative_rsi_is_missing                       BigInt?
+  macd_is_missing                                 BigInt?
+  macd_signal_is_missing                          BigInt?
+  macd_histogram_is_missing                       BigInt?
+  cci_14_is_missing                               BigInt?
+  cci_50_is_missing                               BigInt?
+  atr_10_is_missing                               BigInt?
+  atr_50_is_missing                               BigInt?
+  atr_ratio_is_missing                            BigInt?
+  garman_klass_vol_is_missing                     BigInt?
+  yang_zhang_vol_is_missing                       BigInt?
+  bb_percent_b_is_missing                         BigInt?
+  cmf_21_is_missing                               BigInt?
+  volume_zscore_is_missing                        BigInt?
+  unusual_volume_is_missing                       BigInt?
+  returns_1d_is_missing                           BigInt?
+  log_returns_1d_is_missing                       BigInt?
+  range_pct_is_missing                            BigInt?
+  fred_anfci_is_missing                           BigInt?
+  fred_apu000074714_is_missing                    BigInt?
+  fred_b235rc1q027sbea_is_missing                 BigInt?
+  fred_bamlc0a0cm_is_missing                      BigInt?
+  fred_bamlh0a0hym2_is_missing                    BigInt?
+  fred_bogmbase_is_missing                        BigInt?
+  fred_bopgstb_is_missing                         BigInt?
+  fred_busloans_is_missing                        BigInt?
+  fred_ccsa_is_missing                            BigInt?
+  fred_chncpiallminmei_is_missing                 BigInt?
+  fred_chngdpnqdsmei_is_missing                   BigInt?
+  fred_chnmainlandtpu_is_missing                  BigInt?
+  fred_clvmnacscab1gqea19_is_missing              BigInt?
+  fred_cpiaucsl_is_missing                        BigInt?
+  fred_cpilfesl_is_missing                        BigInt?
+  fred_dcoilbrenteu_is_missing                    BigInt?
+  fred_dcoilwtico_is_missing                      BigInt?
+  fred_ddfuelusgulf_is_missing                    BigInt?
+  fred_dexars_is_missing                          BigInt?
+  fred_dexbzus_is_missing                         BigInt?
+  fred_dexcaus_is_missing                         BigInt?
+  fred_dexchus_is_missing                         BigInt?
+  fred_dexhkus_is_missing                         BigInt?
+  fred_dexinus_is_missing                         BigInt?
+  fred_dexjpus_is_missing                         BigInt?
+  fred_dexkous_is_missing                         BigInt?
+  fred_dexmaus_is_missing                         BigInt?
+  fred_dexmxus_is_missing                         BigInt?
+  fred_dexnous_is_missing                         BigInt?
+  fred_dexsfus_is_missing                         BigInt?
+  fred_dexsius_is_missing                         BigInt?
+  fred_dexszus_is_missing                         BigInt?
+  fred_dextaus_is_missing                         BigInt?
+  fred_dexthus_is_missing                         BigInt?
+  fred_dexusal_is_missing                         BigInt?
+  fred_dexuseu_is_missing                         BigInt?
+  fred_dexusuk_is_missing                         BigInt?
+  fred_dfedtarl_is_missing                        BigInt?
+  fred_dfedtaru_is_missing                        BigInt?
+  fred_dff_is_missing                             BigInt?
+  fred_dfii10_is_missing                          BigInt?
+  fred_dfii20_is_missing                          BigInt?
+  fred_dfii30_is_missing                          BigInt?
+  fred_dfii5_is_missing                           BigInt?
+  fred_dfii7_is_missing                           BigInt?
+  fred_dgasusgulf_is_missing                      BigInt?
+  fred_dgs1_is_missing                            BigInt?
+  fred_dgs10_is_missing                           BigInt?
+  fred_dgs1mo_is_missing                          BigInt?
+  fred_dgs2_is_missing                            BigInt?
+  fred_dgs20_is_missing                           BigInt?
+  fred_dgs30_is_missing                           BigInt?
+  fred_dgs3mo_is_missing                          BigInt?
+  fred_dgs5_is_missing                            BigInt?
+  fred_dgs6mo_is_missing                          BigInt?
+  fred_dgs7_is_missing                            BigInt?
+  fred_dhhngsp_is_missing                         BigInt?
+  fred_dhoilnyh_is_missing                        BigInt?
+  fred_djfuelusgulf_is_missing                    BigInt?
+  fred_dprime_is_missing                          BigInt?
+  fred_dpropanembtx_is_missing                    BigInt?
+  fred_drcclacbs_is_missing                       BigInt?
+  fred_dtwexafegs_is_missing                      BigInt?
+  fred_dtwexbgs_is_missing                        BigInt?
+  fred_dtwexemegs_is_missing                      BigInt?
+  fred_dxy_is_missing                             BigInt?
+  fred_emvtradepolemv_is_missing                  BigInt?
+  fred_eputrade_is_missing                        BigInt?
+  fred_expch_is_missing                           BigInt?
+  fred_expgs_is_missing                           BigInt?
+  fred_fedfunds_is_missing                        BigInt?
+  fred_frgshpusm649ncis_is_missing                BigInt?
+  fred_gasdesw_is_missing                         BigInt?
+  fred_gasregw_is_missing                         BigInt?
+  fred_gdp_is_missing                             BigInt?
+  fred_gdpc1_is_missing                           BigInt?
+  fred_gvzcls_is_missing                          BigInt?
+  fred_houst_is_missing                           BigInt?
+  fred_icsa_is_missing                            BigInt?
+  fred_impch_is_missing                           BigInt?
+  fred_impgs_is_missing                           BigInt?
+  fred_indpro_is_missing                          BigInt?
+  fred_ir3tib01cnm156n_is_missing                 BigInt?
+  fred_lvxrnsa_is_missing                         BigInt?
+  fred_m2sl_is_missing                            BigInt?
+  fred_manemp_is_missing                          BigInt?
+  fred_mortgage30us_is_missing                    BigInt?
+  fred_myagm2cnm189n_is_missing                   BigInt?
+  fred_nasdaqcom_is_missing                       BigInt?
+  fred_nfci_is_missing                            BigInt?
+  fred_nyfed_bgcr_is_missing                      BigInt?
+  fred_nyfed_effr_is_missing                      BigInt?
+  fred_nyfed_obfr_is_missing                      BigInt?
+  fred_nyfed_sofr_is_missing                      BigInt?
+  fred_nyfed_tgcr_is_missing                      BigInt?
+  fred_ovxcls_is_missing                          BigInt?
+  fred_payems_is_missing                          BigInt?
+  fred_pbarlusdm_is_missing                       BigInt?
+  fred_pce_is_missing                             BigInt?
+  fred_pcepi_is_missing                           BigInt?
+  fred_pcepilfe_is_missing                        BigInt?
+  fred_pcoppusdm_is_missing                       BigInt?
+  fred_pcu311224311224_is_missing                 BigInt?
+  fred_pcu32411032411012_is_missing               BigInt?
+  fred_permit_is_missing                          BigInt?
+  fred_pmaizmtusdm_is_missing                     BigInt?
+  fred_pngaseuusdm_is_missing                     BigInt?
+  fred_polvoilusdm_is_missing                     BigInt?
+  fred_ppiaco_is_missing                          BigInt?
+  fred_ppifgs_is_missing                          BigInt?
+  fred_ppifis_is_missing                          BigInt?
+  fred_ppoilusdm_is_missing                       BigInt?
+  fred_pricenpqusdm_is_missing                    BigInt?
+  fred_proilusdm_is_missing                       BigInt?
+  fred_psoilusdm_is_missing                       BigInt?
+  fred_psoybusdm_is_missing                       BigInt?
+  fred_psugaisausdm_is_missing                    BigInt?
+  fred_psunousdm_is_missing                       BigInt?
+  fred_pwheamtusdm_is_missing                     BigInt?
+  fred_rrpontsyd_is_missing                       BigInt?
+  fred_rsxfs_is_missing                           BigInt?
+  fred_sofr_is_missing                            BigInt?
+  fred_sp500_is_missing                           BigInt?
+  fred_stlfsi_is_missing                          BigInt?
+  fred_stlfsi4_is_missing                         BigInt?
+  fred_t10y2y_is_missing                          BigInt?
+  fred_t10y3m_is_missing                          BigInt?
+  fred_t10yie_is_missing                          BigInt?
+  fred_t20yiem_is_missing                         BigInt?
+  fred_t30yiem_is_missing                         BigInt?
+  fred_t5yie_is_missing                           BigInt?
+  fred_t5yifr_is_missing                          BigInt?
+  fred_tedrate_is_missing                         BigInt?
+  fred_totresns_is_missing                        BigInt?
+  fred_umcsent_is_missing                         BigInt?
+  fred_unrate_is_missing                          BigInt?
+  fred_usepuindxd_is_missing                      BigInt?
+  fred_usepuindxm_is_missing                      BigInt?
+  fred_vixcls_is_missing                          BigInt?
+  fred_vxgscls_is_missing                         BigInt?
+  fred_vxvcls_is_missing                          BigInt?
+  fred_walcl_is_missing                           BigInt?
+  fred_wpu01830161_is_missing                     BigInt?
+  fred_wpu01830171_is_missing                     BigInt?
+  fred_wpu057303_is_missing                       BigInt?
+  fred_wpu06140341_is_missing                     BigInt?
+  fred_wresbal_is_missing                         BigInt?
+  fred_xtexva01cnm667s_is_missing                 BigInt?
+  fred_xtimva01cnm667s_is_missing                 BigInt?
+  rapeseed_close_is_missing                       BigInt?
+  sunflower_close_is_missing                      BigInt?
+  usd_cny_is_missing                              BigInt?
+  fx_aud_usd_is_missing                           BigInt?
+  fx_audusd_is_missing                            BigInt?
+  fx_brl_usd_is_missing                           BigInt?
+  fx_cad_usd_is_missing                           BigInt?
+  fx_cny_usd_is_missing                           BigInt?
+  fx_dxy_afe_is_missing                           BigInt?
+  fx_dxy_broad_is_missing                         BigInt?
+  fx_dxy_eme_is_missing                           BigInt?
+  fx_eur_usd_is_missing                           BigInt?
+  fx_eurusd_is_missing                            BigInt?
+  fx_gbp_usd_is_missing                           BigInt?
+  fx_gbpusd_is_missing                            BigInt?
+  fx_inr_usd_is_missing                           BigInt?
+  fx_krw_usd_is_missing                           BigInt?
+  fx_mxn_usd_is_missing                           BigInt?
+  fx_twd_usd_is_missing                           BigInt?
+  fx_usd_cad_is_missing                           BigInt?
+  fx_usd_cny_is_missing                           BigInt?
+  fx_usd_jpy_is_missing                           BigInt?
+  fx_usdbrl_is_missing                            BigInt?
+  fx_usdcad_is_missing                            BigInt?
+  fx_usdcny_is_missing                            BigInt?
+  fx_usdjpy_is_missing                            BigInt?
+  fx_usdkrw_is_missing                            BigInt?
+  fx_usdmxn_is_missing                            BigInt?
+  fx_usdsgd_is_missing                            BigInt?
+  wx_ar_tavg_c_is_missing                         BigInt?
+  wx_br_tavg_c_is_missing                         BigInt?
+  wx_us_tavg_c_is_missing                         BigInt?
+  wx_ar_tmin_c_is_missing                         BigInt?
+  wx_br_tmin_c_is_missing                         BigInt?
+  wx_us_tmin_c_is_missing                         BigInt?
+  wx_ar_tmax_c_is_missing                         BigInt?
+  wx_br_tmax_c_is_missing                         BigInt?
+  wx_us_tmax_c_is_missing                         BigInt?
+  wx_ar_prcp_mm_is_missing                        BigInt?
+  wx_br_prcp_mm_is_missing                        BigInt?
+  wx_us_prcp_mm_is_missing                        BigInt?
+  wx_ar_snow_mm_is_missing                        BigInt?
+  wx_br_snow_mm_is_missing                        BigInt?
+  wx_us_snow_mm_is_missing                        BigInt?
+  wx_ar_gdd_10c_is_missing                        BigInt?
+  wx_br_gdd_10c_is_missing                        BigInt?
+  wx_us_gdd_10c_is_missing                        BigInt?
+  wx_ar_gdd_30d_sum_is_missing                    BigInt?
+  wx_br_gdd_30d_sum_is_missing                    BigInt?
+  wx_us_gdd_30d_sum_is_missing                    BigInt?
+  wx_ar_prcp_7d_sum_is_missing                    BigInt?
+  wx_br_prcp_7d_sum_is_missing                    BigInt?
+  wx_us_prcp_7d_sum_is_missing                    BigInt?
+  wx_ar_prcp_14d_sum_is_missing                   BigInt?
+  wx_br_prcp_14d_sum_is_missing                   BigInt?
+  wx_us_prcp_14d_sum_is_missing                   BigInt?
+  wx_ar_temp_anom_30d_is_missing                  BigInt?
+  wx_br_temp_anom_30d_is_missing                  BigInt?
+  wx_us_temp_anom_30d_is_missing                  BigInt?
+  wx_ar_prcp_anom_30d_is_missing                  BigInt?
+  wx_br_prcp_anom_30d_is_missing                  BigInt?
+  wx_us_prcp_anom_30d_is_missing                  BigInt?
+  wx_ar_temp_vol_7d_is_missing                    BigInt?
+  wx_br_temp_vol_7d_is_missing                    BigInt?
+  wx_us_temp_vol_7d_is_missing                    BigInt?
+  cot_managed_money_net_is_missing                BigInt?
+  cot_prod_merc_net_is_missing                    BigInt?
+  cot_open_interest_is_missing                    BigInt?
+  cot_mm_pct_oi_is_missing                        BigInt?
+  cot_comm_pct_oi_is_missing                      BigInt?
+  cot_mm_net_chg_is_missing                       BigInt?
+  cot_comm_net_chg_is_missing                     BigInt?
+  rin_d3_is_missing                               BigInt?
+  rin_d4_is_missing                               BigInt?
+  rin_d5_is_missing                               BigInt?
+  rin_d6_is_missing                               BigInt?
+  lcfs_credit_is_missing                          BigInt?
+  usda_zl_exports_is_missing                      BigInt?
+  usda_zl_net_sales_is_missing                    BigInt?
+  usda_zl_outstanding_is_missing                  BigInt?
+  usda_zs_exports_is_missing                      BigInt?
+  usda_zs_net_sales_is_missing                    BigInt?
+  usda_zs_outstanding_is_missing                  BigInt?
+  usda_zm_exports_is_missing                      BigInt?
+  usda_zm_net_sales_is_missing                    BigInt?
+  usda_zm_outstanding_is_missing                  BigInt?
+  wasde_us_zl_consumption_is_missing              BigInt?
+  wasde_us_zl_crush_is_missing                    BigInt?
+  wasde_us_zl_ending_stocks_is_missing            BigInt?
+  wasde_us_zl_exports_is_missing                  BigInt?
+  wasde_us_zl_production_is_missing               BigInt?
+  wasde_us_zm_consumption_is_missing              BigInt?
+  wasde_us_zm_crush_is_missing                    BigInt?
+  wasde_us_zm_ending_stocks_is_missing            BigInt?
+  wasde_us_zm_exports_is_missing                  BigInt?
+  wasde_us_zm_production_is_missing               BigInt?
+  wasde_us_zs_consumption_is_missing              BigInt?
+  wasde_us_zs_crush_is_missing                    BigInt?
+  wasde_us_zs_ending_stocks_is_missing            BigInt?
+  wasde_us_zs_exports_is_missing                  BigInt?
+  wasde_us_zs_production_is_missing               BigInt?
+  wasde_world_zl_consumption_is_missing           BigInt?
+  wasde_world_zl_ending_stocks_is_missing         BigInt?
+  wasde_world_zl_exports_is_missing               BigInt?
+  wasde_world_zl_production_is_missing            BigInt?
+  wasde_world_zm_consumption_is_missing           BigInt?
+  wasde_world_zm_ending_stocks_is_missing         BigInt?
+  wasde_world_zm_exports_is_missing               BigInt?
+  wasde_world_zm_production_is_missing            BigInt?
+  wasde_world_zs_consumption_is_missing           BigInt?
+  wasde_world_zs_ending_stocks_is_missing         BigInt?
+  wasde_world_zs_exports_is_missing               BigInt?
+  wasde_world_zs_production_is_missing            BigInt?
+  wasde_soybeans_crush_is_missing                 BigInt?
+  wasde_soybean_oil_production_is_missing         BigInt?
+  wasde_soybean_oil_ending_stocks_is_missing      BigInt?
+  china_pmi_is_missing                            BigInt?
+  sig_biofuel_1_is_missing                        BigInt?
+  sig_china_1_is_missing                          BigInt?
+  sig_crush_1_is_missing                          BigInt?
+  sig_energy_1_is_missing                         BigInt?
+  sig_fed_1_is_missing                            BigInt?
+  sig_fx_1_is_missing                             BigInt?
+  sig_palm_1_is_missing                           BigInt?
+  sig_substitutes_1_is_missing                    BigInt?
+  sig_tariff_1_is_missing                         BigInt?
+  sig_trump_effect_1_is_missing                   BigInt?
+  sig_volatility_1_is_missing                     BigInt?
+  sig_biofuel_2_is_missing                        BigInt?
+  sig_china_2_is_missing                          BigInt?
+  sig_crush_2_is_missing                          BigInt?
+  sig_energy_2_is_missing                         BigInt?
+  sig_fed_2_is_missing                            BigInt?
+  sig_fx_2_is_missing                             BigInt?
+  sig_palm_2_is_missing                           BigInt?
+  sig_substitutes_2_is_missing                    BigInt?
+  sig_tariff_2_is_missing                         BigInt?
+  sig_trump_effect_2_is_missing                   BigInt?
+  sig_volatility_2_is_missing                     BigInt?
+  sig_biofuel_conf_is_missing                     BigInt?
+  sig_china_conf_is_missing                       BigInt?
+  sig_crush_conf_is_missing                       BigInt?
+  sig_energy_conf_is_missing                      BigInt?
+  sig_fed_conf_is_missing                         BigInt?
+  sig_fx_conf_is_missing                          BigInt?
+  sig_palm_conf_is_missing                        BigInt?
+  sig_substitutes_conf_is_missing                 BigInt?
+  sig_tariff_conf_is_missing                      BigInt?
+  sig_trump_effect_conf_is_missing                BigInt?
+  sig_volatility_conf_is_missing                  BigInt?
+  target_ret_5d                                   Float?
+  target_ret_21d                                  Float?
+  target_ret_63d                                  Float?
+  target_ret_126d                                 Float?
+  matrixVersion                                   String?  @map("matrix_version")
 
   @@id([tradeDate, symbol])
   @@map("matrix_1d")
@@ -337,6 +939,7 @@ model OofCore1d {
   trainedAt     DateTime @default(now()) @map("trained_at") @db.Timestamp(6)
   runHash       String   @map("run_hash") @db.VarChar(64)
   matrixVersion String?  @map("matrix_version") @db.VarChar(64)
+  run_id        String   @db.Uuid
 
   @@unique([tradeDate, symbol, horizonDays, windowId])
   @@index([tradeDate], map: "idx_oof_core_date")
@@ -873,25 +1476,6 @@ model elite_indicators_1d {
   range_pct            Float?
 
   @@map("elite_1d")
-  @@schema("features")
-}
-
-model FeaturesNewsSentiment1d {
-  id              Int       @id @default(autoincrement())
-  rawId           Int       @unique(map: "news_sentiment_raw_id_unique") @map("raw_id")
-  tradeDate       DateTime  @map("trade_date") @db.Date
-  sentimentScore  Float?    @map("sentiment_score")
-  zlSentiment     Float?    @map("zl_sentiment")
-  canonicalBucket String?   @map("canonical_bucket") @db.VarChar(50)
-  isTrumpRelated  Boolean?  @default(false) @map("is_trump_related")
-  relevanceScore  Float?    @map("relevance_score")
-  specialistTags  String[]  @map("specialist_tags")
-  ingestedAt      DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  modelVersion    String?   @map("model_version") @db.VarChar(50)
-
-  @@index([tradeDate], map: "idx_news_sentiment_date")
-  @@index([canonicalBucket], map: "idx_news_sentiment_bucket")
-  @@map("news_sentiment_1d")
   @@schema("features")
 }
 
@@ -1545,18 +2129,66 @@ model VegasDailySpend {
 }
 
 model MktFutures1d {
-  eventDate     DateTime  @map("event_date") @db.Date
-  symbol        String    @db.VarChar(20)
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  volume        BigInt?
-  openInterest  BigInt?   @map("open_interest")
-  source        String?   @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
-  rowHash       String?   @map("row_hash") @db.VarChar(64)
+  eventDate            DateTime  @map("event_date") @db.Date
+  symbol               String    @db.VarChar(20)
+  open                 Float?
+  high                 Float?
+  low                  Float?
+  close                Float?
+  volume               BigInt?
+  openInterest         BigInt?   @map("open_interest")
+  source               String?   @db.VarChar(50)
+  ingestedAt           DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime        DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash              String?   @map("row_hash") @db.VarChar(64)
+  zl_corr_30d          Decimal?  @db.Decimal(6, 4)
+  zl_corr_60d          Decimal?  @db.Decimal(6, 4)
+  zl_corr_90d          Decimal?  @db.Decimal(6, 4)
+  hurst_exponent       Float?
+  hurst_regime         String?   @db.VarChar(20)
+  connors_rsi          Float?
+  fisher_transform     Float?
+  fisher_signal        Float?
+  mcginley_dynamic     Float?
+  ttm_squeeze_on       Boolean?
+  ttm_squeeze_momentum Float?
+  schaff_trend_cycle   Float?
+  rvi                  Float?
+  rvi_signal           Float?
+  elder_force_index    Float?
+  kama_10              Float?
+  hma_20               Float?
+  alma_50              Float?
+  rsi_2                Float?
+  rsi_14               Float?
+  cumulative_rsi       Float?
+  macd                 Float?
+  macd_signal          Float?
+  macd_histogram       Float?
+  cci_14               Float?
+  cci_50               Float?
+  atr_10               Float?
+  atr_50               Float?
+  atr_ratio            Float?
+  garman_klass_vol     Float?
+  yang_zhang_vol       Float?
+  bb_percent_b         Float?
+  cmf_21               Float?
+  volume_zscore        Float?
+  unusual_volume       Boolean?
+  returns_1d           Float?
+  log_returns_1d       Float?
+  range_pct            Float?
+  bb_upper             Float?
+  bb_middle            Float?
+  bb_lower             Float?
+  atr_14               Float?
+  adx                  Float?
+  adx_pos              Float?
+  adx_neg              Float?
+  stoch_k              Float?
+  stoch_d              Float?
+  obv                  Float?
 
   @@id([eventDate, symbol])
   @@map("futures_1d")
@@ -1592,6 +2224,9 @@ model MktFx1d {
   ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
   knowledgeTime DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
   rowHash       String?   @map("row_hash") @db.VarChar(64)
+  zlCorr30d     Float?    @map("zl_corr_30d")
+  zlCorr60d     Float?    @map("zl_corr_60d")
+  zlCorr90d     Float?    @map("zl_corr_90d")
 
   @@unique([pair, eventDate])
   @@index([pair, eventDate], map: "idx_mkt_fx_1d_pair_date")
@@ -1621,26 +2256,40 @@ model MktEtf1d {
 }
 
 model MktOptions1d {
-  id            Int       @id @default(autoincrement())
-  underlying    String    @db.VarChar(20)
-  eventDate     DateTime  @map("event_date") @db.Date
-  expiration    DateTime  @db.Date
-  strike        Float
-  optionType    String    @map("option_type") @db.VarChar(4)
-  open          Float?
-  high          Float?
-  low           Float?
-  close         Float?
-  change        Float?
-  bid           Float?
-  ask           Float?
-  volume        BigInt?
-  openInterest  BigInt?   @map("open_interest")
-  premium       Float?
-  lastTradeTime String?   @map("last_trade_time") @db.VarChar(20)
-  source        String?   @default("barchart") @db.VarChar(50)
-  ingestedAt    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  rowHash       String    @map("row_hash") @db.VarChar(64)
+  id                Int       @id @default(autoincrement())
+  underlying        String    @db.VarChar(20)
+  eventDate         DateTime  @map("event_date") @db.Date
+  expiration        DateTime  @db.Date
+  strike            Float
+  optionType        String    @map("option_type") @db.VarChar(4)
+  open              Float?
+  high              Float?
+  low               Float?
+  close             Float?
+  change            Float?
+  bid               Float?
+  ask               Float?
+  volume            BigInt?
+  openInterest      BigInt?   @map("open_interest")
+  premium           Float?
+  // Databento statistics schema - all 15 stat types (stat_type 1-15)
+  openingPriceStat  Float?    @map("opening_price_stat") // 1
+  indicativeOpening Float?    @map("indicative_opening") // 2
+  sessionLowStat    Float?    @map("session_low_stat") // 4
+  sessionHighStat   Float?    @map("session_high_stat") // 5
+  clearedVolume     BigInt?   @map("cleared_volume") // 6
+  fixingPrice       Float?    @map("fixing_price") // 10
+  closeStat         Float?    @map("close_stat") // 11
+  vwap              Float?    @map("vwap") // 13
+  impliedVolatility Float?    @map("implied_volatility") // 14
+  delta             Float?    @map("delta") // 15
+  // Calculated VWAP approximations (since Databento doesn't provide true VWAP)
+  closeVwap         Float?    @map("close_vwap") // Close × Volume approximation
+  ohlcAvgVwap       Float?    @map("ohlc_avg_vwap") // OHLC average × Volume approximation
+  lastTradeTime     String?   @map("last_trade_time") @db.VarChar(20)
+  source            String?   @default("barchart") @db.VarChar(50)
+  ingestedAt        DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash           String    @map("row_hash") @db.VarChar(64)
 
   @@unique([underlying, eventDate, expiration, strike, optionType])
   @@index([underlying, eventDate], map: "idx_mkt_options_1d_underlying_date")
@@ -1786,6 +2435,33 @@ model EconMoney1d {
   @@schema("econ")
 }
 
+model AltEconNews {
+  id              Int       @id @default(autoincrement())
+  articleId       String?   @map("article_id") @db.VarChar(100)
+  eventDate       DateTime  @map("event_date") @db.Date
+  publishedAt     DateTime? @map("published_at") @db.Timestamptz(6)
+  headline        String
+  summary         String?
+  content         String?
+  source          String?   @db.VarChar(50)
+  url             String?
+  author          String?   @db.VarChar(200)
+  specialistTags  String[]  @map("specialist_tags")
+  topics          String[]  @map("topics")
+  subjects        String[]  @map("subjects")
+  metaDescription String?   @map("meta_description")
+  rawPayload      Json?     @map("raw_payload")
+  ingestedAt      DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([eventDate], map: "idx_alt_econ_news_date")
+  @@index([publishedAt], map: "idx_alt_econ_news_published_at")
+  @@index([specialistTags], map: "idx_alt_econ_news_tags", type: Gin)
+  @@map("econ_news")
+  @@schema("alt")
+}
+
 model PosCftc1w {
   id                   Int       @id @default(autoincrement())
   eventDate            DateTime  @map("event_date") @db.Date
@@ -1869,55 +2545,105 @@ model SupplyEpaRin1d {
 }
 
 model SupplyLcfs1d {
-  eventDate        DateTime @map("event_date") @db.Date
+  eventDate        DateTime @id @map("event_date") @db.Date
   priceUsdPerMt    Decimal  @map("price_usd_per_mt") @db.Decimal(12, 4)
-  source           String   @db.VarChar(100)
-  ingestionBatchId String?  @map("ingestion_batch_id") @db.VarChar(100)
+  source           String
+  ingestionBatchId String?  @map("ingestion_batch_id")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@id([eventDate])
   @@index([createdAt], map: "idx_supply_lcfs_created_at")
   @@map("lcfs_1d")
-  @@schema("supply")
-}
-
-model SupplyWorldbankImports1y {
-  id                 Int       @id @default(autoincrement())
-  eventDate          DateTime  @map("event_date") @db.Date
-  countryCode        String    @map("country_code") @db.VarChar(10)
-  countryName        String    @map("country_name") @db.VarChar(100)
-  region             String?   @db.VarChar(100)
-  subRegion          String?   @map("sub_region") @db.VarChar(100)
-  intermediateRegion String?   @map("intermediate_region") @db.VarChar(100)
-  indicatorCode      String    @map("indicator_code") @db.VarChar(50)
-  indicatorName      String    @map("indicator_name") @db.VarChar(200)
-  year               Int
-  importsPctGdp      Float?    @map("imports_pct_gdp")
-  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
-
-  @@unique([countryCode, year])
-  @@index([countryCode, year], map: "idx_supply_worldbank_imports_country_year")
-  @@map("worldbank_imports_1y")
   @@schema("supply")
 }
 
 /// EIA Biodiesel & Renewable Diesel Production (Monthly)
 /// Source: https://api.eia.gov/v2/biofuels/biodiesel/production/
 model SupplyEiaBiodiesel1m {
-  reportMonth                     DateTime  @id @map("report_month") @db.Date
-  biodieselProductionMgal         Decimal?  @map("biodiesel_production_mgal") @db.Decimal(12, 2)
-  renewableDieselProductionMgal   Decimal?  @map("renewable_diesel_production_mgal") @db.Decimal(12, 2)
-  feedstockSoybeanOilPct          Decimal?  @map("feedstock_soybean_oil_pct") @db.Decimal(5, 2)
-  capacityUtilizationPct          Decimal?  @map("capacity_utilization_pct") @db.Decimal(5, 2)
-  ingestedAt                      DateTime  @default(now()) @map("ingested_at") @db.Timestamptz(6)
-  rowHash                         String?   @map("row_hash") @db.VarChar(64)
+  reportMonth                   DateTime  @id @map("report_month") @db.Date
+  biodieselProductionMgal       Decimal?  @map("biodiesel_production_mgal") @db.Decimal(12, 2)
+  renewableDieselProductionMgal Decimal?  @map("renewable_diesel_production_mgal") @db.Decimal(12, 2)
+  feedstockSoybeanOilPct        Decimal?  @map("feedstock_soybean_oil_pct") @db.Decimal(5, 2)
+  capacityUtilizationPct        Decimal?  @map("capacity_utilization_pct") @db.Decimal(5, 2)
+  ingestedAt                    DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash                       String?   @map("row_hash") @db.VarChar(64)
 
   @@index([reportMonth], map: "idx_supply_eia_biodiesel_month")
   @@map("eia_biodiesel_1m")
   @@schema("supply")
 }
 
-model AltNews1d {
+/// MPOB Palm Oil Production (Malaysia Palm Oil Board)
+/// Monthly palm oil production, exports, stocks from Malaysia/Indonesia
+model SupplyMpobPalm1m {
+  id                 Int       @id @default(autoincrement())
+  reportMonth        DateTime  @map("report_month") @db.Date
+  productionMt       Decimal?  @map("production_mt") @db.Decimal(12, 2)
+  exportsMt          Decimal?  @map("exports_mt") @db.Decimal(12, 2)
+  stocksMt           Decimal?  @map("stocks_mt") @db.Decimal(12, 2)
+  localConsumptionMt Decimal?  @map("local_consumption_mt") @db.Decimal(12, 2)
+  country            String?   @default("Malaysia") @db.VarChar(50)
+  source             String?   @default("MPOB") @db.VarChar(100)
+  ingestedAt         DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash            String?   @unique @map("row_hash") @db.VarChar(64)
+  rawPayload         Json?     @map("raw_payload")
+
+  @@unique([reportMonth, country])
+  @@index([reportMonth], map: "idx_mpob_palm_month")
+  @@index([country], map: "idx_mpob_palm_country")
+  @@map("mpob_palm_1m")
+  @@schema("supply")
+}
+
+/// Argentina Soybean Crush (Ciara-CEC / Ministry of Agriculture)
+/// Monthly soybean crush volumes, capacity, oil/meal production
+model SupplyArgentinaCrush1m {
+  id                  Int       @id @default(autoincrement())
+  reportMonth         DateTime  @unique @map("report_month") @db.Date
+  crushVolumeMt       Decimal?  @map("crush_volume_mt") @db.Decimal(12, 2)
+  capacityUtilization Decimal?  @map("capacity_utilization") @db.Decimal(5, 2)
+  oilProductionMt     Decimal?  @map("oil_production_mt") @db.Decimal(12, 2)
+  mealProductionMt    Decimal?  @map("meal_production_mt") @db.Decimal(12, 2)
+  exportsOilMt        Decimal?  @map("exports_oil_mt") @db.Decimal(12, 2)
+  exportsMealMt       Decimal?  @map("exports_meal_mt") @db.Decimal(12, 2)
+  source              String?   @default("CIARA-CEC") @db.VarChar(100)
+  ingestedAt          DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash             String?   @unique @map("row_hash") @db.VarChar(64)
+  rawPayload          Json?     @map("raw_payload")
+
+  @@index([reportMonth], map: "idx_argentina_crush_month")
+  @@map("argentina_crush_1m")
+  @@schema("supply")
+}
+
+/// CONAB Brazil Production Forecasts
+/// Official Brazilian crop production forecasts (monthly reports)
+model SupplyConabProduction1m {
+  id                    Int       @id @default(autoincrement())
+  reportMonth           DateTime  @map("report_month") @db.Date
+  cropYear              String?   @map("crop_year") @db.VarChar(20)
+  commodity             String?   @db.VarChar(50)
+  productionMt          Decimal?  @map("production_mt") @db.Decimal(12, 2)
+  areaHarvestedHa       Decimal?  @map("area_harvested_ha") @db.Decimal(12, 2)
+  yieldMtPerHa          Decimal?  @map("yield_mt_per_ha") @db.Decimal(6, 2)
+  exportsMt             Decimal?  @map("exports_mt") @db.Decimal(12, 2)
+  domesticConsumptionMt Decimal?  @map("domestic_consumption_mt") @db.Decimal(12, 2)
+  endingStocksMt        Decimal?  @map("ending_stocks_mt") @db.Decimal(12, 2)
+  source                String?   @default("CONAB") @db.VarChar(100)
+  ingestedAt            DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash               String?   @unique @map("row_hash") @db.VarChar(64)
+  rawPayload            Json?     @map("raw_payload")
+
+  @@unique([reportMonth, cropYear, commodity])
+  @@index([reportMonth], map: "idx_conab_production_month")
+  @@index([commodity], map: "idx_conab_production_commodity")
+  @@index([cropYear], map: "idx_conab_production_crop_year")
+  @@map("conab_production_1m")
+  @@schema("supply")
+}
+
+/// Executive Actions (WhiteHouse Presidential Documents)
+/// Executive Orders, Proclamations, Memoranda, etc.
+model AltExecutiveActions {
   id               Int       @id @default(autoincrement())
   articleId        String?   @map("article_id") @db.VarChar(100)
   eventDate        DateTime  @map("event_date") @db.Date
@@ -1927,19 +2653,46 @@ model AltNews1d {
   url              String?
   author           String?   @db.VarChar(200)
   source           String?   @db.VarChar(100)
-  sentimentScore   Float?    @map("sentiment_score")
+  documentType     String?   @map("document_type") @db.VarChar(100)
   zlSentiment      String?   @map("zl_sentiment") @db.VarChar(50)
-  isTrumpRelated   Boolean?  @map("is_trump_related")
-  specialistTags   String[]  @map("specialist_tags")
+  specialistTags   String[]  @default([]) @map("specialist_tags")
   ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
   knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
   rowHash          String?   @map("row_hash") @db.VarChar(64)
   rawPayload       Json?     @map("raw_payload")
   ingestionBatchId String?   @map("ingestion_batch_id") @db.Uuid
 
-  @@index([eventDate], map: "idx_alt_news_date")
-  @@index([specialistTags], map: "idx_alt_news_tags", type: Gin)
-  @@map("news_1d")
+  @@index([eventDate], map: "idx_executive_actions_date")
+  @@index([documentType], map: "idx_executive_actions_type")
+  @@index([specialistTags], map: "idx_executive_actions_tags", type: Gin)
+  @@map("executive_actions")
+  @@schema("alt")
+}
+
+/// Policy News from Other Sources
+/// ICE, CBP, AEI, FarmDoc, etc.
+model AltPolicyNews {
+  id               Int       @id @default(autoincrement())
+  articleId        String?   @map("article_id") @db.VarChar(100)
+  eventDate        DateTime  @map("event_date") @db.Date
+  publishedAt      DateTime? @map("published_at") @db.Timestamptz(6)
+  headline         String
+  content          String?
+  url              String?
+  author           String?   @db.VarChar(200)
+  source           String?   @db.VarChar(100)
+  zlSentiment      String?   @map("zl_sentiment") @db.VarChar(50)
+  specialistTags   String[]  @default([]) @map("specialist_tags")
+  ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  knowledgeTime    DateTime? @default(now()) @map("knowledge_time") @db.Timestamptz(6)
+  rowHash          String?   @map("row_hash") @db.VarChar(64)
+  rawPayload       Json?     @map("raw_payload")
+  ingestionBatchId String?   @map("ingestion_batch_id") @db.Uuid
+
+  @@index([eventDate], map: "idx_policy_news_date")
+  @@index([source], map: "idx_policy_news_source")
+  @@index([specialistTags], map: "idx_policy_news_tags", type: Gin)
+  @@map("policy_news")
   @@schema("alt")
 }
 
@@ -1990,20 +2743,55 @@ model AltLegislation1d {
 /// Tariff Policy Deadline Tracking
 /// Tracks key policy expiration dates for tariff specialist
 model AltTariffDeadlines {
-  id                  Int       @id @default(autoincrement())
-  deadlineName        String    @map("deadline_name") @db.VarChar(100)
-  deadlineDate        DateTime  @map("deadline_date") @db.Date
-  daysToExpiry        Int       @map("days_to_expiry")
-  renewalProbability  Decimal?  @map("renewal_probability") @db.Decimal(5, 4)
-  policyType          String?   @map("policy_type") @db.VarChar(50)
-  description         String?   @db.Text
-  isActive            Boolean   @default(true) @map("is_active")
-  lastUpdated         DateTime  @default(now()) @map("last_updated") @db.Timestamptz(6)
+  id                 Int       @id @default(autoincrement())
+  deadlineName       String    @map("deadline_name") @db.VarChar(100)
+  deadlineDate       DateTime  @map("deadline_date") @db.Date
+  daysToExpiry       Int       @map("days_to_expiry")
+  renewalProbability Decimal?  @map("renewal_probability") @db.Decimal(5, 4)
+  policyType         String?   @map("policy_type") @db.VarChar(50)
+  description        String?
+  isActive           Boolean?  @default(true) @map("is_active")
+  lastUpdated        DateTime? @default(now()) @map("last_updated") @db.Timestamptz(6)
 
   @@unique([deadlineName, deadlineDate])
   @@index([deadlineDate], map: "idx_alt_tariff_deadline_date")
   @@index([isActive], map: "idx_alt_tariff_deadline_active")
   @@map("tariff_deadlines")
+  @@schema("alt")
+}
+
+/// ProFarmer Premium News ($500/month subscription)
+/// Dedicated table for ProFarmer articles with proper dates
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model AltProfarmerNews {
+  id               Int       @id @default(autoincrement())
+  eventDate        DateTime  @map("event_date") @db.Date
+  section          String    @db.VarChar(100)
+  headline         String
+  content          String?
+  url              String    @unique @db.VarChar(500)
+  author           String?   @db.VarChar(200)
+  specialistTags   String[]  @map("specialist_tags")
+  ingestedAt       DateTime? @default(now()) @map("ingested_at") @db.Timestamptz(6)
+  rowHash          String    @unique @map("row_hash") @db.VarChar(64)
+  rawPayload       Json?     @map("raw_payload")
+  summary          String?
+  topics           String[]
+  subjects         String[]
+  meta_description String?
+  subject          String?   @db.VarChar(500)
+  tags             String[]
+  keywords         String[]
+  categories       String[]
+
+  @@index([eventDate], map: "idx_alt_profarmer_date")
+  @@index([section], map: "idx_alt_profarmer_section")
+  @@index([specialistTags], map: "idx_alt_profarmer_tags", type: Gin)
+  @@index([tags], map: "idx_profarmer_tags", type: Gin)
+  @@index([topics], map: "idx_profarmer_topics", type: Gin)
+  @@index([keywords], map: "idx_profarmer_keywords", type: Gin)
+  @@index([categories], map: "idx_profarmer_categories", type: Gin)
+  @@map("profarmer_news")
   @@schema("alt")
 }
 
@@ -2393,20 +3181,80 @@ model model_runs {
 }
 
 model specialist_signals_1d {
-  id         Int       @id @default(autoincrement())
-  as_of_date DateTime  @db.Date
-  bucket     String    @db.VarChar(30)
-  signal_1   Float
-  signal_2   Float?
-  confidence Float?
-  model_type String    @db.VarChar(50)
-  run_hash   String    @db.VarChar(64)
-  created_at DateTime? @default(now()) @db.Timestamp(6)
+  id                 Int       @id @default(autoincrement())
+  as_of_date         DateTime  @db.Date
+  bucket             String    @db.VarChar(30)
+  signal_1           Float
+  signal_2           Float
+  confidence         Float
+  model_type         String    @db.VarChar(50)
+  run_hash           String    @db.VarChar(64)
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  max_input_age_days Int       @map("max_input_age_days")
+  source_tag         String?   @db.VarChar(50)
+  degraded_level     Int?      @map("degraded_level")
+  conf               Float?
+  data_quality       Json?
+  run_id             String    @db.Uuid
+  abstained          Boolean   @default(false)
+  warmup             Boolean   @default(false)
+  signal_type        String    @default("continuous") @db.VarChar(30)
 
   @@unique([as_of_date, bucket])
   @@index([as_of_date], map: "idx_specialist_signals_date")
   @@index([bucket], map: "idx_specialist_signals_bucket")
   @@index([run_hash], map: "idx_specialist_signals_run")
+  @@index([max_input_age_days], map: "idx_specialist_signals_staleness")
+  @@schema("training")
+}
+
+/// Matrix Manifest - tracks schema, lineage, and validation status for each matrix build
+model MatrixManifest1d {
+  runId            String                 @id @map("run_id") @db.Uuid
+  matrixVersion    String?                @map("matrix_version") @db.VarChar(64)
+  commitHash       String                 @map("commit_hash") @db.VarChar(64)
+  dataCutoffDate   DateTime               @map("data_cutoff_date") @db.Date
+  schemaHash       String                 @map("schema_hash") @db.VarChar(64)
+  columnList       Json                   @map("column_list")
+  columnMetadata   Json                   @map("column_metadata")
+  requiredColumns  String[]               @map("required_columns")
+  featureCount     Int                    @map("feature_count")
+  rowCount         Int                    @map("row_count")
+  minDate          DateTime               @map("min_date") @db.Date
+  maxDate          DateTime               @map("max_date") @db.Date
+  validationPassed Boolean                @map("validation_passed")
+  createdAt        DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+  stats            MatrixFeatureStats1d[]
+
+  @@index([schemaHash], map: "idx_manifest_schema_hash")
+  @@map("matrix_manifest_1d")
+  @@schema("training")
+}
+
+/// Matrix Feature Stats - column-level statistics for each matrix build
+model MatrixFeatureStats1d {
+  id              Int              @id @default(autoincrement())
+  runId           String           @map("run_id") @db.Uuid
+  columnName      String           @map("column_name") @db.VarChar(100)
+  dtype           String           @db.VarChar(20)
+  p01             Float?
+  p05             Float?
+  p50             Float?
+  p95             Float?
+  p99             Float?
+  mean            Float?
+  std             Float?
+  minVal          Float?           @map("min_val")
+  maxVal          Float?           @map("max_val")
+  zeroRate        Float?           @map("zero_rate")
+  missingFlagRate Float?           @map("missing_flag_rate")
+  ageDaysP95      Int?             @map("age_days_p95")
+  releaseDayRate  Float?           @map("release_day_rate")
+  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  manifest        MatrixManifest1d @relation(fields: [runId], references: [runId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([runId, columnName])
+  @@map("matrix_feature_stats_1d")
   @@schema("training")
 }
 
@@ -2436,15 +3284,130 @@ model AblationResults {
 /// Formula: board_crush = ZS - (ZL * 0.11) - (ZM * 0.022)
 /// Formula: oil_share = (ZL * 0.11) / ((ZL * 0.11) + (ZM * 0.022))
 model AnalyticsBoardCrush1d {
-  tradeDate   DateTime  @id @map("trade_date") @db.Date
-  zsClose     Decimal   @map("zs_close") @db.Decimal(10, 4)
-  zlClose     Decimal   @map("zl_close") @db.Decimal(10, 4)
-  zmClose     Decimal   @map("zm_close") @db.Decimal(10, 4)
-  boardCrush  Decimal   @map("board_crush") @db.Decimal(10, 4)
-  oilShare    Decimal   @map("oil_share") @db.Decimal(10, 6)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  tradeDate  DateTime  @id @map("trade_date") @db.Date
+  zsClose    Decimal   @map("zs_close") @db.Decimal(10, 4)
+  zlClose    Decimal   @map("zl_close") @db.Decimal(10, 4)
+  zmClose    Decimal   @map("zm_close") @db.Decimal(10, 4)
+  boardCrush Decimal   @map("board_crush") @db.Decimal(10, 4)
+  oilShare   Decimal   @map("oil_share") @db.Decimal(10, 6)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([tradeDate], map: "idx_analytics_board_crush_date")
   @@map("board_crush_1d")
   @@schema("analytics")
+}
+
+model inngest_receipts {
+  id          Int       @id @default(autoincrement())
+  function_id String
+  event_name  String
+  event_id    String?
+  received_at DateTime? @default(now()) @db.Timestamptz(6)
+  payload     Json?
+
+  @@schema("analytics")
+}
+
+model zl_forming_bar {
+  timeframe  String    @id @db.VarChar(10)
+  bar_start  DateTime  @db.Timestamptz(6)
+  open       Float
+  high       Float
+  low        Float
+  close      Float
+  volume     Int?      @default(0)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("analytics")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model zl_latest {
+  id         Int       @id @default(1)
+  price      Float
+  timestamp  DateTime  @db.Timestamptz(6)
+  volume     Int?
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("analytics")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model zl_price_1d_yahoo_backup {
+  event_date DateTime? @db.Date
+  open       Decimal?  @db.Decimal(10, 4)
+  high       Decimal?  @db.Decimal(10, 4)
+  low        Decimal?  @db.Decimal(10, 4)
+  close      Decimal?  @db.Decimal(10, 4)
+  volume     BigInt?
+  source     String?   @db.VarChar(50)
+  created_at DateTime? @db.Timestamptz(6)
+
+  @@ignore
+  @@schema("analytics")
+}
+
+model zl_price_1m {
+  id             Int       @id @default(autoincrement())
+  timestamp      DateTime  @unique @db.Timestamptz(6)
+  open           Float
+  high           Float
+  low            Float
+  close          Float
+  volume         Int?
+  previous_close Float?
+  change         Float?
+  change_percent Float?
+  day_high       Float?
+  day_low        Float?
+  source         String?   @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("analytics")
+}
+
+model zl_price_5m {
+  id             Int       @id @default(autoincrement())
+  timestamp      DateTime  @unique @db.Timestamptz(6)
+  open           Float
+  high           Float
+  low            Float
+  close          Float
+  volume         Int?
+  previous_close Float?
+  change         Float?
+  change_percent Float?
+  day_high       Float?
+  day_low        Float?
+  source         String?   @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("analytics")
+}
+
+model news_event {
+  id                 Int       @id @default(autoincrement())
+  article_id         String?   @db.VarChar(100)
+  event_date         DateTime  @db.Date
+  published_at       DateTime? @db.Timestamptz(6)
+  headline           String
+  content            String?
+  url                String?
+  author             String?   @db.VarChar(200)
+  source             String?   @db.VarChar(100)
+  zl_sentiment       String?   @db.VarChar(50)
+  specialist_tags    String[]
+  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)
+  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)
+  row_hash           String?   @db.VarChar(64)
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  topics             String[]  @default([])
+  subjects           String[]  @default([])
+  meta_description   String?
+
+  @@index([event_date], map: "idx_econ_news_event_date")
+  @@index([published_at], map: "idx_econ_news_published_at")
+  @@index([specialist_tags], map: "idx_econ_news_tags", type: Gin)
+  @@schema("econ")
 }
