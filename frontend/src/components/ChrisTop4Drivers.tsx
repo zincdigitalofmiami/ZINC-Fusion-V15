@@ -438,7 +438,7 @@ export function ChrisTop4Drivers() {
         fetchDrivers()
         setRefreshMessage(null)
       }, 3000)
-    } catch (e) {
+    } catch {
       setRefreshMessage('Refresh failed')
     } finally {
       setRefreshing(false)

@@ -18,18 +18,19 @@ interface WaterfallProps {
   factors?: AttributionFactor[];
 }
 
-export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallProps) {
-  // Data aligned with "Big 11" Specialist Taxonomy
-  const data: AttributionFactor[] = factors || [
-    { id: '1', label: 'Crush (USDA)', value: 0.35, type: 'positive', category: 'cell' },
-    { id: '2', label: 'China (Imports)', value: 0.22, type: 'positive', category: 'cell' },
-    { id: '3', label: 'Energy (RVO)', value: -0.15, type: 'negative', category: 'cell' },
-    { id: '4', label: 'Trump (Tariff)', value: 0.08, type: 'positive', category: 'macro' },
-    { id: '5', label: 'Macro (Rates)', value: -0.05, type: 'negative', category: 'macro' },
-  ];
+// Default factors aligned with "Big 11" Specialist Taxonomy
+const DEFAULT_FACTORS: AttributionFactor[] = [
+  { id: '1', label: 'Crush (USDA)', value: 0.35, type: 'positive', category: 'cell' },
+  { id: '2', label: 'China (Imports)', value: 0.22, type: 'positive', category: 'cell' },
+  { id: '3', label: 'Energy (RVO)', value: -0.15, type: 'negative', category: 'cell' },
+  { id: '4', label: 'Trump (Tariff)', value: 0.08, type: 'positive', category: 'macro' },
+  { id: '5', label: 'Macro (Rates)', value: -0.05, type: 'negative', category: 'macro' },
+];
 
+export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallProps) {
   // Calculate cumulative steps for the waterfall bridge
   const steps = useMemo(() => {
+    const data = factors || DEFAULT_FACTORS;
     let runningTotal = prevPrice;
     return data.map(factor => {
       const start = runningTotal;
@@ -37,7 +38,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
       runningTotal = end;
       return { ...factor, start, end };
     });
-  }, [data, prevPrice]);
+  }, [factors, prevPrice]);
 
   const maxVal = Math.max(prevPrice, currentPrice, ...steps.map(s => Math.max(s.start, s.end)));
   const minVal = Math.min(prevPrice, currentPrice, ...steps.map(s => Math.min(s.start, s.end)));

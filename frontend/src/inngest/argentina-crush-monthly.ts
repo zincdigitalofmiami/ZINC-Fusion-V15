@@ -27,26 +27,32 @@ const pool = new Pool({
 
 import { createHash } from "crypto";
 
+interface USDAPSDRecord {
+  marketYear: string;
+  attributeDescription: string;
+  value: string;
+}
+
 /**
  * Fetch Argentina crush data from USDA PSD database
  * PROXY for CIARA-CEC using USDA FAS official estimates
  */
-async function fetchArgentinaCrush(): Promise<any[]> {
+async function fetchArgentinaCrush(): Promise<USDAPSDRecord[]> {
   const USDA_API_KEY = process.env.USDA_API_KEY;
   const BASE_URL = "https://apps.fas.usda.gov/OpenData/api/psd";
-  
+
   // Argentina soybean crush (country: AR, commodity: 2222)
   const params = new URLSearchParams({
     api_key: USDA_API_KEY || "",
-    countryCode: "AR", 
+    countryCode: "AR",
     commodityCode: "2222", // Soybeans
   });
-  
+
   const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
   if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
-  
+
   const data = await response.json();
-  return data.filter((d: any) => d.marketYear >= "2020/2021");
+  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
 }
 
 export const argentinaCrushMonthly = inngest.createFunction(

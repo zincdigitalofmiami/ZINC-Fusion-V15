@@ -28,7 +28,13 @@ const pool = new Pool({
  * Fetch Malaysia palm oil data from USDA PSD database
  * PROXY for MPOB using USDA FAS official estimates
  */
-async function fetchMalaysiaPalmProduction(): Promise<any[]> {
+interface USDAPSDRecord {
+  marketYear: string;
+  attributeDescription: string;
+  value: string;
+}
+
+async function fetchMalaysiaPalmProduction(): Promise<USDAPSDRecord[]> {
   const USDA_API_KEY = process.env.USDA_API_KEY;
   const BASE_URL = "https://apps.fas.usda.gov/OpenData/api/psd";
   
@@ -43,7 +49,7 @@ async function fetchMalaysiaPalmProduction(): Promise<any[]> {
   if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
   
   const data = await response.json();
-  return data.filter((d: any) => d.marketYear >= "2020/2021");
+  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
 }
 
 export const mpobPalmMonthly = inngest.createFunction(

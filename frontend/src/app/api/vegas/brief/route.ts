@@ -481,7 +481,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
   }
 }
 
-function getPolicyContext(avgScore: number): string {
+function getPolicyContext(_avgScore: number): string {
   // Current policy landscape
   return `BIOFUELS DRIVING DEMAND: EPA's 2026 RFS proposals boost biomass-based diesel targets to ~5.6B gallons. ` +
     `45Z tax credit (clean fuel) supports renewable diesel economics. Soy oil now ~40%+ of U.S. production goes to biofuels. ` +

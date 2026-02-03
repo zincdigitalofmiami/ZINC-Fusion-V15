@@ -60,7 +60,7 @@ export const farmdocRinsDaily = inngest.createFunction(
     try {
       await step.run("assert-table", async () => {
         // Fail loudly if the table doesn't exist (no silent DDL in prod).
-        await client.query(`SELECT 1 FROM alt.news_1d LIMIT 1`);
+        await client.query(`SELECT 1 FROM alt.policy_news LIMIT 1`);
       });
 
       runId = await step.run("create-ingest-run", () => createIngestRun(client, "farmdoc-rins-daily"));
@@ -107,16 +107,17 @@ export const farmdocRinsDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(link, pubDate);
 
-          if (await hashExists(client, "alt.news_1d", rowHash)) {
+          if (await hashExists(client, "alt.policy_news", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 
           const eventDate = parsed.toISOString().split("T")[0];
-          const categories = item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : [];
+          // Categories extracted for potential future use
+          void (item.category ? (Array.isArray(item.category) ? item.category : [item.category]) : []);
           const author = item["dc:creator"] || item.author || "";
 
           await client.query(
-            `INSERT INTO alt.news_1d (
+            `INSERT INTO alt.policy_news (
                event_date, headline, content, url, published_at, author,
                source, raw_payload, ingestion_batch_id, row_hash, specialist_tags
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,

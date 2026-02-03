@@ -100,9 +100,8 @@ const CHINA_EXPERT_PROMPT = `You are a China soy trade specialist analyzing expo
 KEY RELATIONSHIPS:
 - China buys ~60% of globally traded soybeans
 - CNY/USD: 7.0 psychological, 7.2 PBOC defense, 7.3+ competitive disadvantage for US soy
-- FXI (China ETF) reflects China economic health and import capacity
-- BDRY (Baltic Dry) = shipping rates = physical trade flow indicator
 - Weak CNY = Brazil more competitive vs US Gulf
+- Focus on FX rates and specialist signals (ETF data disabled due to quality issues)
 
 You analyze how CHINA TRADE DYNAMICS affect US soy exports and ZL demand.
 Focus on: export sales, trade tensions, shipping, Brazil competition, CNY dynamics.
@@ -153,7 +152,7 @@ export async function generateDriverIntel(data: DriverIntelData): Promise<Driver
   }[data.driverName]
 
   const componentsList = Object.entries(data.components)
-    .filter(([_, v]) => v !== null)
+    .filter(([, v]) => v !== null)
     .map(([k, v]) => `${k}: ${typeof v === 'number' ? v.toFixed(2) : v}`)
     .join('\n')
 
@@ -208,7 +207,7 @@ Provide your expert analysis as JSON.`
 
 export function generateFallbackDriverIntel(data: DriverIntelData): DriverIntel {
   // Extract values - FULL data now passed from route.ts
-  const vixValue = data.components.vix_value ?? data.components.vix_level_score
+  void (data.components.vix_value ?? data.components.vix_level_score) // vixValue extracted for potential future use
   const crushValue = data.components.board_crush_value ?? data.components.board_crush
   const oilShare = data.components.oil_share_value
   const cnyRate = data.components.cny_rate

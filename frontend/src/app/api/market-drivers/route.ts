@@ -31,7 +31,7 @@ const OIL_SHARE = { VERY_LOW: 0.42, LOW: 0.45, NEUTRAL_LOW: 0.47, NEUTRAL_HIGH: 
 // CNY/USD Rate
 const CNY = { STRONG: 7.00, NORMAL: 7.15, WEAK: 7.30, STRESS: 7.45, CRISIS: 7.60 }
 
-// Shipping (BDRY) 20d change thresholds
+// Shipping (BDRY) 20d change thresholds - DISABLED: ETF data quality issues
 const SHIP = { COLLAPSE: -0.25, WEAK: -0.10, STABLE: 0.10, STRONG: 0.20 }
 
 // Trade Policy Uncertainty
@@ -152,7 +152,7 @@ function calculateVixStress(
   const { score: vixScore, regime } = scoreVixLevel(vix)
 
   // Component 2: Term Structure (15%)
-  const { adj: termAdj, desc: termDesc } = scoreTermStructure(vix, vix3m)
+  const { adj: termAdj } = scoreTermStructure(vix, vix3m)
 
   // Component 3: OVX (10%)
   const { adj: ovxAdj } = scoreOvx(ovx)
@@ -168,7 +168,7 @@ function calculateVixStress(
   }
 
   // Component 5: VIX-ZL Correlation (15%) - KEY SOY METRIC
-  const { adj: vixZlAdj, desc: vixZlDesc } = scoreVixZlCorrelation(vixZlCorr)
+  const { adj: vixZlAdj } = scoreVixZlCorrelation(vixZlCorr)
 
   // Component 6: ProFarmer Hedge Sentiment (10%)
   const { adj: hedgeAdj } = scoreHedgeSentiment(hedgeCount)
@@ -588,7 +588,7 @@ function calculateTariffThreat(
   const { score: tpuScore, regime } = scoreTpu(tpu)
 
   // Component 2: EMV (20%)
-  const { score: emvScore, adj: emvAdj } = scoreEmv(emv)
+  const { score: emvScore } = scoreEmv(emv)
 
   // Component 3: Legislation Velocity (10%)
   let legisAdj = 0
@@ -661,10 +661,10 @@ interface DriverResult {
 }
 
 function generateMarketIntelligence(
-  vix: DriverResult, vixValue: number,
+  vix: DriverResult, _vixValue: number,
   crush: DriverResult, crushValue: number, oilShare: number | null,
   china: DriverResult, cnyRate: number, fxiChange20d: number,
-  tariff: DriverResult, tpuValue: number
+  tariff: DriverResult, _tpuValue: number
 ): {
   headline: string
   summary: string
@@ -853,31 +853,12 @@ export async function GET() {
         WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
         ORDER BY event_date DESC OFFSET 20 LIMIT 1
       `),
-      // FXI with 20d and 5d changes
-      query<{ price: number; change_20d: number; change_5d: number }>(`
-        WITH fxi AS (
-          SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
-          FROM mkt.etf_1d WHERE symbol = 'FXI' AND close IS NOT NULL LIMIT 21
-        )
-        SELECT
-          (SELECT close FROM fxi WHERE rn = 1)::float8 as price,
-          CASE WHEN (SELECT close FROM fxi WHERE rn = 21) > 0
-               THEN ((SELECT close FROM fxi WHERE rn = 1) - (SELECT close FROM fxi WHERE rn = 21)) / (SELECT close FROM fxi WHERE rn = 21)
-               ELSE 0 END::float8 as change_20d,
-          CASE WHEN (SELECT close FROM fxi WHERE rn = 6) > 0
-               THEN ((SELECT close FROM fxi WHERE rn = 1) - (SELECT close FROM fxi WHERE rn = 6)) / (SELECT close FROM fxi WHERE rn = 6)
-               ELSE 0 END::float8 as change_5d
-      `),
-      // BDRY 20d change
-      query<{ change_20d: number }>(`
-        WITH bdry AS (
-          SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
-          FROM mkt.etf_1d WHERE symbol = 'BDRY' AND close IS NOT NULL LIMIT 21
-        )
-        SELECT CASE WHEN (SELECT close FROM bdry WHERE rn = 21) > 0
-               THEN ((SELECT close FROM bdry WHERE rn = 1) - (SELECT close FROM bdry WHERE rn = 21)) / (SELECT close FROM bdry WHERE rn = 21)
-               ELSE 0 END::float8 as change_20d
-      `),
+      // FXI - DISABLED: ETF data has reverse-split artifacts
+      // Returns neutral defaults (0% change)
+      Promise.resolve([{ price: 0, change_20d: 0, change_5d: 0 }]),
+      // BDRY - DISABLED: ETF data has quality issues
+      // Returns neutral default (0% change)
+      Promise.resolve([{ change_20d: 0 }]),
       // Soy China News (ProFarmer)
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.profarmer_news
@@ -917,13 +898,15 @@ export async function GET() {
       `),
 
       // === SPECIALIST SIGNALS ===
-      // DISABLED: Current specialist signals are placeholder/fake data:
-      // - volatility always = 1.0, tariff always = -1.0
-      // These are not real ML model outputs. Set to null until real models are trained.
-      Promise.resolve([] as { signal: number }[]),  // volSignal - DISABLED (fake)
-      Promise.resolve([] as { signal: number }[]),  // crushSignal - DISABLED (fake)
-      Promise.resolve([] as { signal: number }[]),  // chinaSignal - DISABLED (fake)
-      Promise.resolve([] as { signal: number }[]),  // tariffSignal - DISABLED (fake)
+      // DISABLED: Data in training.specialist_signals_1d is FAKE/PLACEHOLDER:
+      // - volatility: outputs only 0/1/2/3 discrete values (not real GARCH), all recent = 1.0
+      // - Real specialist models (GARCH, XGB, ARDL, etc.) have NOT been trained
+      // - 82K rows exist but are rule-based script output, not ML model predictions
+      // Enable when REAL trained specialist models exist in models/specialists/
+      Promise.resolve([] as { signal: number }[]),  // volSignal - FAKE (regime labels only)
+      Promise.resolve([] as { signal: number }[]),  // crushSignal - FAKE (not trained XGB)
+      Promise.resolve([] as { signal: number }[]),  // chinaSignal - FAKE (not trained GBM)
+      Promise.resolve([] as { signal: number }[]),  // tariffSignal - FAKE (not trained tree)
 
       // === ZL PRICE DATA (for comprehensive reports) ===
       query<{ close: number; change_5d: number; change_20d: number }>(`
@@ -1008,7 +991,7 @@ export async function GET() {
       cny: { date: cnyDate, days_old: daysSince(cnyDate), status: daysSince(cnyDate) !== null && daysSince(cnyDate)! <= 5 ? 'fresh' : 'stale' },
       tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },  // Monthly data
       vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VXVCLS (VIX 3-month) series not found' : 'Term structure calc enabled' },
-      specialist_signals: { available: false, note: 'Disabled - placeholder data detected (volatility=1.0, tariff=-1.0)' },
+      specialist_signals: { available: false, note: 'Specialist models not trained yet. No signal data.' },
     }
 
     // Calculate scores with full sophistication

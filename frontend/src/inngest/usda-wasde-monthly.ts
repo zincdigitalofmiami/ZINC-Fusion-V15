@@ -217,7 +217,7 @@ function extractCommodityRows(
           value: parseFloatStrict(cellValue),
           unit: "MMT",
         });
-      } catch (e) {
+      } catch {
         logger?.warn(`Failed to parse value for ${commodity}/${country}/${metric}: ${cellValue}`);
       }
     }

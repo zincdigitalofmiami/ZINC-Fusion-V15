@@ -92,13 +92,16 @@ interface ScrapedArticle {
   specialists: string[];
 }
 
-interface ArticleData extends ScrapedArticle {
+// ArticleData interface used for type documentation only
+type _ArticleData = ScrapedArticle & {
   summary: string;
   topics: string[];
   subjects: string[];
   isTrumpRelated: boolean;
   metaDescription: string;
 }
+// Suppress unused warning - kept for documentation
+void (0 as unknown as _ArticleData);
 
 /**
  * Extract topics from ProFarmer content
@@ -289,9 +292,8 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
 /**
  * Scrape articles from a report page
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function scrapeReportArticles(
-  page: any,
+  page: import('puppeteer-core').Page,
   reportUrl: string,
   reportSlug: string,
   specialists: string[],

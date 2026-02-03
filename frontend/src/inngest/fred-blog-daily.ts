@@ -18,7 +18,8 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-const FRED_BLOG_URL = "https://fredblog.stlouisfed.org/";
+// Base URL kept for documentation - feed URL used for scraping
+void "https://fredblog.stlouisfed.org/";
 const FRED_BLOG_FEED = "https://fredblog.stlouisfed.org/feed/";
 
 interface FredBlogArticle {

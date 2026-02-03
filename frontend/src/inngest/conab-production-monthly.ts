@@ -24,26 +24,32 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+interface USDAPSDRecord {
+  marketYear: string;
+  attributeDescription: string;
+  value: string;
+}
+
 /**
  * Fetch Brazil production data from USDA PSD database
  * This is a PROXY for CONAB data using USDA FAS official estimates
  */
-async function fetchBrazilProduction(): Promise<any[]> {
+async function fetchBrazilProduction(): Promise<USDAPSDRecord[]> {
   const USDA_API_KEY = process.env.USDA_API_KEY;
   const BASE_URL = "https://apps.fas.usda.gov/OpenData/api/psd";
-  
+
   // Fetch Brazil soybean data (country code: BR, commodity code: 2222 for soybeans)
   const params = new URLSearchParams({
     api_key: USDA_API_KEY || "",
     countryCode: "BR",
     commodityCode: "2222", // Soybeans
   });
-  
+
   const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
   if (!response.ok) throw new Error(`USDA PSD API error: ${response.status}`);
-  
+
   const data = await response.json();
-  return data.filter((d: any) => d.marketYear >= "2020/2021"); // Last 5 years
+  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021"); // Last 5 years
 }
 
 export const conabProductionMonthly = inngest.createFunction(

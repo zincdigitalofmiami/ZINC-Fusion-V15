@@ -42,6 +42,7 @@ export function OrganicTopicCloud() {
     return () => {
       simulation.stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- D3 simulation runs once on mount, nodes state is managed internally
   }, []);
 
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import {
   createChart,
   CandlestickSeries,
@@ -463,11 +464,14 @@ export function LightweightZlCandlestickChart({
       <div className="relative w-full flex-1 min-h-0">
         {/* Watermark (DOM overlay - 10% opacity per TradingView) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <img
+          <Image
             src="/chart_watermark.svg"
             alt=""
-            className="w-[280px] h-auto opacity-[0.10]"
+            width={280}
+            height={140}
+            className="opacity-[0.10]"
             style={{ filter: 'grayscale(100%)' }}
+            priority
           />
         </div>
         <div

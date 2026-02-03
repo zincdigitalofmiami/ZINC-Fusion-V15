@@ -21,7 +21,7 @@ interface ForecastPoint {
  * Fetch the latest Core Model forecasts for ZL across all horizons (5d, 21d, 63d, 126d)
  * Returns price quantiles (p30/p50/p70) for building forecast fan/cone
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     // Query latest forecast from each horizon table
     const result = await pool.query(`

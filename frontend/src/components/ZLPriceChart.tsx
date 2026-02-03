@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { createChart, AreaSeries, LineSeries, ColorType, IChartApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 
 interface PriceData {
@@ -170,7 +171,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       <div ref={chartContainerRef} className="w-full relative" style={{ height }}>
         {/* Watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <img src="/chart_watermark.svg" alt="" className="opacity-[0.03] h-1/2" style={{ aspectRatio: 'auto' }} />
+          <Image src="/chart_watermark.svg" alt="" width={200} height={100} className="opacity-[0.03]" priority />
         </div>
       </div>
     </div>
