@@ -2248,6 +2248,27 @@ model MktEtf1d {
   specialistTags String[]  @map("specialist_tags")
   createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
 
+  // Databento Statistics (ETF auction/session data)
+  openingPrice    Float?    @map("opening_price")
+  closingPrice    Float?    @map("closing_price")
+  sessionHigh     Float?    @map("session_high")
+  sessionLow      Float?    @map("session_low")
+  indicativeOpen  Float?    @map("indicative_open")
+  indicativeClose Float?    @map("indicative_close")
+  vwap            Float?
+
+  // ZL Correlations (computed for specialist integration)
+  zlCorr21d       Float?    @map("zl_corr_21d")
+  zlCorr63d       Float?    @map("zl_corr_63d")
+  zlCorr126d      Float?    @map("zl_corr_126d")
+
+  // Derived metrics (computed post-ingestion)
+  returns1d       Float?    @map("returns_1d")
+  returns5d       Float?    @map("returns_5d")
+  returns21d      Float?    @map("returns_21d")
+  momentum21d     Float?    @map("momentum_21d")
+  volatility21d   Float?    @map("volatility_21d")
+
   @@unique([symbol, eventDate])
   @@index([symbol, eventDate], map: "idx_mkt_etf_1d_symbol_date")
   @@index([specialistTags], map: "idx_mkt_etf_1d_tags", type: Gin)

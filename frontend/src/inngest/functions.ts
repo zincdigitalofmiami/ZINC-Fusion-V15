@@ -45,3 +45,4 @@ export { boardCrushDaily } from "./board-crush-daily";
 export { eiaBiodieselMonthly } from "./eia-biodiesel-monthly";
 export { mpobPalmMonthly } from "./mpob-palm-monthly";
 export { conabProductionMonthly } from "./conab-production-monthly";
+export { databentoEtfDaily, databentoEtfBackfill } from "./databento-etf-daily";
