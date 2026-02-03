@@ -29,6 +29,7 @@ export { nassWeekly } from "./nass-weekly";
 export { noaaWeatherDaily } from "./noaa-weather-daily";
 export { openmeteoWeatherDaily } from "./openmeteo-weather-daily";
 export { fxSpotDaily } from "./fx-spot-daily";
+export { fxDatabentoSpotDaily } from "./fx-databento-spot-daily";
 export { epaRinPricesDaily } from "./epa-rin-prices-daily";
 export { usdaWasdeMonthly } from "./usda-wasde-monthly";
 export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";

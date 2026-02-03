@@ -83,13 +83,75 @@ async function updateIngestRun(
   );
 }
 
-interface ArticleData {
+interface ScrapedArticle {
   url: string;
   title: string;
   content: string;
   pubDate: string;
   reportSlug: string;
   specialists: string[];
+}
+
+interface ArticleData extends ScrapedArticle {
+  summary: string;
+  topics: string[];
+  subjects: string[];
+  isTrumpRelated: boolean;
+  metaDescription: string;
+}
+
+/**
+ * Extract topics from ProFarmer content
+ */
+function extractTopics(title: string, content: string, reportSlug: string): string[] {
+  const topicKeywords = [
+    "corn", "soybeans", "wheat", "cattle", "hogs", "cotton",
+    "exports", "imports", "trade", "tariff", "china", "brazil",
+    "weather", "drought", "flooding", "planting", "harvest",
+    "usda", "wasde", "crop report", "acreage", "yield",
+    "biofuel", "ethanol", "biodiesel", "rin", "epa",
+    "prices", "futures", "basis", "spreads", "crush"
+  ];
+  const topics = new Set<string>();
+  const searchText = `${title} ${content}`.toLowerCase();
+
+  for (const topic of topicKeywords) {
+    if (searchText.includes(topic)) {
+      topics.add(topic);
+    }
+  }
+  topics.add(reportSlug.replace(/-/g, ' '));
+  return Array.from(topics).slice(0, 10);
+}
+
+/**
+ * Extract subjects (entities mentioned)
+ */
+function extractSubjects(title: string, content: string): string[] {
+  const subjectPatterns = [
+    "china", "brazil", "argentina", "mexico", "canada",
+    "usda", "epa", "congress", "white house", "trump",
+    "cargill", "adm", "bunge", "dreyfus",
+    "cme", "cbot", "kcbt"
+  ];
+  const subjects = new Set<string>();
+  const searchText = `${title} ${content}`.toLowerCase();
+
+  for (const subject of subjectPatterns) {
+    if (searchText.includes(subject)) {
+      subjects.add(subject);
+    }
+  }
+  return Array.from(subjects).slice(0, 10);
+}
+
+/**
+ * Check if content is Trump-related
+ */
+function checkTrumpRelated(title: string, content: string): boolean {
+  const trumpKeywords = ["trump", "tariff", "trade war", "maga", "executive order"];
+  const searchText = `${title} ${content}`.toLowerCase();
+  return trumpKeywords.some(kw => searchText.includes(kw));
 }
 
 /**
@@ -234,14 +296,14 @@ async function scrapeReportArticles(
   reportSlug: string,
   specialists: string[],
   maxArticles: number = 15
-): Promise<ArticleData[]> {
+): Promise<ScrapedArticle[]> {
   console.log(`Scraping ${reportUrl}...`);
   await page.goto(reportUrl, { waitUntil: 'networkidle2', timeout: 60000 });
   await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
 
   // Extract articles
   const articles = await page.evaluate((slug: string, specs: string[], max: number) => {
-    const results: ArticleData[] = [];
+    const results: ScrapedArticle[] = [];
     
     // Try multiple selectors for article containers
     const selectors = [
@@ -297,7 +359,20 @@ async function scrapeReportArticles(
             pubDate = `${urlMatch[1]}-${urlMatch[2]}-${urlMatch[3]}`;
           }
         }
-        
+
+        // Extract date from title if still not found
+        if (!pubDate) {
+          const titleDateMatch = title.match(
+            /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},\s+\d{4}/i
+          );
+          if (titleDateMatch) {
+            const parsed = new Date(titleDateMatch[0]);
+            if (!isNaN(parsed.getTime())) {
+              pubDate = parsed.toISOString().split('T')[0];
+            }
+          }
+        }
+
         // Parse date
         if (pubDate) {
           const dateMatch = pubDate.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -311,9 +386,7 @@ async function scrapeReportArticles(
           }
         }
         
-        if (!pubDate) {
-          pubDate = new Date().toISOString().split('T')[0];
-        }
+        if (!pubDate) continue;
         
         // Get excerpt/content
         const contentEl = el.querySelector('.excerpt, .content, .entry-content, p');
@@ -375,7 +448,7 @@ async function scrapeReportArticles(
 
 export const profarmerDaily = inngest.createFunction(
   { id: "profarmer-daily", name: "ProFarmer Premium Scraper (Stealth)", retries: 2 },
-  { cron: "0 12,23 * * 1-5" }, // 6 AM CT and 5 PM CT weekdays
+  { cron: "0 */4 * * *" }, // Every 4 hours
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -421,7 +494,7 @@ export const profarmerDaily = inngest.createFunction(
             const rowHash = computeRowHash(article.url, article.title, article.pubDate);
 
             const exists = await client.query(
-              `SELECT 1 FROM alt.news_1d WHERE row_hash = $1 LIMIT 1`,
+              `SELECT 1 FROM alt.profarmer_news WHERE row_hash = $1 LIMIT 1`,
               [rowHash]
             );
 
@@ -430,22 +503,34 @@ export const profarmerDaily = inngest.createFunction(
               continue;
             }
 
+            // Compute metadata
+            const topics = extractTopics(article.title, article.content, report.slug);
+            const subjects = extractSubjects(article.title, article.content);
+            const isTrumpRelated = checkTrumpRelated(article.title, article.content);
+            const summary = article.content.slice(0, 500);
+            const metaDescription = article.content.slice(0, 300);
+
             try {
               await client.query(
-                `INSERT INTO alt.news_1d (
-                   event_date, source, headline, content, url,
-                   specialist_tags, raw_payload, row_hash, ingestion_batch_id
-                 ) VALUES ($1::date, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+                `INSERT INTO alt.profarmer_news (
+                   event_date, section, headline, content, url,
+                   specialist_tags, summary, topics, subjects,
+                   is_trump_related, meta_description, raw_payload, row_hash
+                 ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                 [
                   article.pubDate,
-                  "profarmer",
+                  report.slug,
                   article.title,
                   article.content,
                   article.url,
                   article.specialists,
+                  summary,
+                  topics,
+                  subjects,
+                  isTrumpRelated,
+                  metaDescription,
                   JSON.stringify({ report: report.name, slug: report.slug }),
                   rowHash,
-                  runId,
                 ]
               );
               inserted++;
@@ -522,7 +607,7 @@ export const profarmerBackfill = inngest.createFunction(
               const rowHash = computeRowHash(article.url, article.title, article.pubDate);
 
               const exists = await client.query(
-                `SELECT 1 FROM alt.news_1d WHERE row_hash = $1 LIMIT 1`,
+                `SELECT 1 FROM alt.profarmer_news WHERE row_hash = $1 LIMIT 1`,
                 [rowHash]
               );
 
@@ -531,22 +616,34 @@ export const profarmerBackfill = inngest.createFunction(
                 continue;
               }
 
+              // Compute metadata
+              const topics = extractTopics(article.title, article.content, report.slug);
+              const subjects = extractSubjects(article.title, article.content);
+              const isTrumpRelated = checkTrumpRelated(article.title, article.content);
+              const summary = article.content.slice(0, 500);
+              const metaDescription = article.content.slice(0, 300);
+
               try {
                 await client.query(
-                  `INSERT INTO alt.news_1d (
-                     event_date, source, headline, content, url,
-                     specialist_tags, raw_payload, row_hash, ingestion_batch_id
-                   ) VALUES ($1::date, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+                  `INSERT INTO alt.profarmer_news (
+                     event_date, section, headline, content, url,
+                     specialist_tags, summary, topics, subjects,
+                     is_trump_related, meta_description, raw_payload, row_hash
+                   ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                   [
                     article.pubDate,
-                    "profarmer",
+                    report.slug,
                     article.title,
                     article.content,
                     article.url,
                     article.specialists,
+                    summary,
+                    topics,
+                    subjects,
+                    isTrumpRelated,
+                    metaDescription,
                     JSON.stringify({ report: report.slug, backfill: true, page: pageNum }),
                     rowHash,
-                    runId,
                   ]
                 );
                 inserted++;
