@@ -680,20 +680,30 @@ def update_database(metrics: List[CorrelationMetrics]) -> int:
     conn = get_db_connection()
     cur = conn.cursor()
 
+    def to_py_float(val):
+        """Convert numpy types to Python native types for psycopg2."""
+        if val is None:
+            return None
+        if isinstance(val, (np.floating, np.integer)):
+            return float(val)
+        if isinstance(val, np.ndarray):
+            return float(val.item()) if val.size == 1 else None
+        return val
+
     try:
         values = []
         for m in metrics:
             values.append((
                 # Correlations
-                m.corr_21d,
-                m.corr_63d,
-                m.corr_126d,
+                to_py_float(m.corr_21d),
+                to_py_float(m.corr_63d),
+                to_py_float(m.corr_126d),
                 # Derived
-                m.returns_1d,
-                m.returns_5d,
-                m.returns_21d,
-                m.momentum_21d,
-                m.volatility_21d,
+                to_py_float(m.returns_1d),
+                to_py_float(m.returns_5d),
+                to_py_float(m.returns_21d),
+                to_py_float(m.momentum_21d),
+                to_py_float(m.volatility_21d),
                 # Keys
                 m.symbol,
                 m.event_date.date(),
