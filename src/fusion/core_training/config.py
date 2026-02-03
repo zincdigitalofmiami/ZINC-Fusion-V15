@@ -103,7 +103,7 @@ class FeatureMatrixConfig:
         default_factory=lambda: [
             "ANFCI", "APU000074714", "B235RC1Q027SBEA", "BAMLC0A0CM", "BAMLH0A0HYM2",
             "BOGMBASE", "BOPGSTB", "BUSLOANS", "CCSA", "CHNCPIALLMINMEI",
-            "CHNGDPNQDSMEI", "CHNMAINLANDTPU", "CHNPRINTO01IXPYM", "CLVMNACSCAB1GQEA19",
+            "CHNGDPNQDSMEI", "CHNMAINLANDTPU", "CLVMNACSCAB1GQEA19",  # CHNPRINTO01IXPYM removed 2026-01-31 (discontinued)
             "CPIAUCSL", "CPILFESL", "DCOILBRENTEU", "DCOILWTICO", "DDFUELUSGULF",
             "DEXARS", "DEXBZUS", "DEXCAUS", "DEXCHUS", "DEXHKUS", "DEXINUS",
             "DEXJPUS", "DEXKOUS", "DEXMAUS", "DEXMXUS", "DEXNOUS", "DEXSFUS",
@@ -129,6 +129,10 @@ class FeatureMatrixConfig:
             "USEPUINDXM", "VIXCLS", "VXGSCLS", "VXVCLS", "WALCL", "WPU01830161",
             "WPU01830171", "WPU057303", "WPU06140341", "WRESBAL", "XTEXVA01CNM667S",
             "XTIMVA01CNM667S",
+            # NEW (2026-02-03): Shipping, livestock, VIX term structure
+            "BDIY",  # Baltic Dry Index (shipping costs)
+            "CATTLENFNCM",  # Cattle on Feed (ZM demand proxy)
+            "HOGSANDPIGSNONCM",  # Hogs and Pigs Inventory (ZM demand proxy)
         ]
     )
 
