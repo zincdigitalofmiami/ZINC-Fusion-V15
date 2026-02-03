@@ -99,7 +99,7 @@ class VisualCue:
 
     # Alert styling
     alert_level: str  # "none", "watch", "warning", "critical"
-    badge_text: Optional[str]  # Optional badge overlay
+    badge_text: Optional[str]  # Badge overlay text
 
 
 @dataclass
@@ -768,48 +768,15 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         components["vix_fear"] = vix_score
         component_scores.append(vix_score)
 
-    # 2. Market Momentum (SPY)
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'SPY' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 126
-    """, (as_of_date,))
-    spy_data = cur.fetchall()
+    # 2. Market Momentum (SPY) - DISABLED: ETF data quality issues
+    # Default neutral score
+    components["market_momentum"] = 50.0
+    component_scores.append(50.0)
 
-    if len(spy_data) > 20:
-        spy_values = [float(r[1]) for r in spy_data if r[1] is not None]
-        spy_ma20 = np.mean(spy_values[:20])
-        spy_ma125 = np.mean(spy_values[:min(125, len(spy_values))])
-        current_spy = spy_values[0]
-
-        # Above MAs = greed, below = fear
-        ma_score = 50
-        if current_spy > spy_ma20:
-            ma_score += 15
-        if current_spy > spy_ma125:
-            ma_score += 15
-        if spy_values[0] > spy_values[5] if len(spy_values) > 5 else True:
-            ma_score += 10
-        ma_score = min(100, max(0, ma_score))
-        components["market_momentum"] = ma_score
-        component_scores.append(ma_score)
-
-    # 3. Safe Haven Demand (GLD - inverted)
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'GLD' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 63
-    """, (as_of_date,))
-    gld_data = cur.fetchall()
-
-    if len(gld_data) > 20:
-        gld_values = [float(r[1]) for r in gld_data if r[1] is not None]
-        gld_change = (gld_values[0] - gld_values[20]) / gld_values[20] if gld_values[20] > 0 else 0
-        # Rising gold = fear (flight to safety)
-        gld_score = 50 - (gld_change * 500)  # 10% gold rally = -50 points
-        gld_score = float(np.clip(gld_score, 0, 100))
-        components["safe_haven"] = gld_score
-        component_scores.append(gld_score)
+    # 3. Safe Haven Demand (GLD) - DISABLED: ETF data quality issues
+    # Default neutral score
+    components["safe_haven"] = 50.0
+    component_scores.append(50.0)
 
     # 4. Credit Spreads (HY spreads - inverted)
     cur.execute("""
@@ -1135,7 +1102,7 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     - Economic Policy Uncertainty Index
     - Trade Policy Uncertainty Index
     - Executive action news velocity
-    - China ETF stress (FXI, KWEB)
+    - China stress (specialist signal fallback - ETFs disabled)
     - Trump effect specialist signal
     """
     if as_of_date is None:
@@ -1186,22 +1153,48 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     exec_score = min(100, 30 + (exec_count * 10))
     components["executive_velocity"] = exec_score
 
-    # China ETF stress (FXI)
+    # China ETF stress (FXI) - RE-ENABLED with Databento data
+    # Uses 20-day return + ZL correlation for stress detection
     cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'FXI' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 63
+        SELECT
+            close,
+            returns_21d,
+            zl_corr_63d,
+            momentum_21d
+        FROM mkt.etf_1d
+        WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
     """, (as_of_date,))
-    fxi_data = cur.fetchall()
+    fxi_row = cur.fetchone()
 
-    china_score = 50
-    if len(fxi_data) > 20:
-        fxi_values = [float(r[1]) for r in fxi_data if r[1] is not None]
-        fxi_change_20d = (fxi_values[0] - fxi_values[20]) / fxi_values[20] if fxi_values[20] > 0 else 0
-        # China selling off = high trump effect pressure
-        china_score = 50 - (fxi_change_20d * 300)  # -10% = +30 points
-        china_score = float(np.clip(china_score, 0, 100))
-        components["china_stress"] = china_score
+    if fxi_row and fxi_row[1] is not None:
+        fxi_ret_21d = float(fxi_row[1])  # 21-day log return
+        fxi_corr = float(fxi_row[2]) if fxi_row[2] else 0.0
+        fxi_momentum = float(fxi_row[3]) if fxi_row[3] else 0.0
+
+        # Score based on returns: big drop = high stress
+        if fxi_ret_21d < -0.15:
+            china_score = 90  # Crisis
+        elif fxi_ret_21d < -0.10:
+            china_score = 75  # Severe stress
+        elif fxi_ret_21d < -0.05:
+            china_score = 60  # Elevated stress
+        elif fxi_ret_21d < 0:
+            china_score = 45  # Mild pressure
+        elif fxi_ret_21d < 0.05:
+            china_score = 35  # Stable
+        else:
+            china_score = 20  # Risk-on
+
+        # Amplify if correlation is high (contagion risk)
+        if abs(fxi_corr) > 0.5:
+            china_score = min(100, china_score + 10)
+
+        components["china_stress"] = float(china_score)
+        components["fxi_ret_21d"] = fxi_ret_21d
+        components["fxi_zl_corr"] = fxi_corr
+    else:
+        components["china_stress"] = 50.0
 
     # Trump effect specialist signal
     cur.execute("""
@@ -1302,7 +1295,7 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     High pressure = trade disruptions = supply chain stress.
 
     Components:
-    - Shipping ETFs (BDRY, SBLK) as Baltic Dry proxy
+    - Shipping stress (neutral default - ETFs disabled)
     - China specialist signal
     - Brazil FX stress (BRL weakness)
     - Trade news velocity
@@ -1313,24 +1306,9 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     cur = conn.cursor()
     components = {}
 
-    # Shipping ETFs (BDRY = Baltic Dry proxy)
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'BDRY' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 63
-    """, (as_of_date,))
-    bdry_data = cur.fetchall()
-
-    shipping_score = 50
-    if len(bdry_data) > 20:
-        bdry_values = [float(r[1]) for r in bdry_data if r[1] is not None]
-        bdry_ma = np.mean(bdry_values[:20])
-        bdry_current = bdry_values[0]
-        # Below average = weak shipping = trade stress
-        shipping_deviation = (bdry_current - bdry_ma) / bdry_ma if bdry_ma > 0 else 0
-        shipping_score = 50 - (shipping_deviation * 200)  # 25% below = +50 points
-        shipping_score = float(np.clip(shipping_score, 0, 100))
-        components["shipping_stress"] = shipping_score
+    # Shipping ETFs (BDRY) - DISABLED: ETF data quality issues
+    # Default neutral score
+    components["shipping_stress"] = 50.0
 
     # China specialist signal
     cur.execute("""
@@ -1599,78 +1577,15 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
     cur = conn.cursor()
     components = {}
 
-    # Get SPY and TLT for correlation
-    cur.execute("""
-        SELECT e1.event_date, e1.close as spy, e2.close as tlt
-        FROM mkt.etf_1d e1
-        JOIN mkt.etf_1d e2 ON e1.event_date = e2.event_date AND e2.symbol = 'TLT'
-        WHERE e1.symbol = 'SPY' AND e1.event_date <= %s
-        ORDER BY e1.event_date DESC
-        LIMIT 63
-    """, (as_of_date,))
-    spy_tlt = cur.fetchall()
+    # SPY-TLT correlation - DISABLED: ETF data quality issues
+    components["spy_tlt_corr"] = 50.0
 
-    corr_score = 50
-    if len(spy_tlt) > 20:
-        spy_rets = []
-        tlt_rets = []
-        for i in range(len(spy_tlt) - 1):
-            spy_ret = (spy_tlt[i][1] - spy_tlt[i+1][1]) / spy_tlt[i+1][1]
-            tlt_ret = (spy_tlt[i][2] - spy_tlt[i+1][2]) / spy_tlt[i+1][2]
-            spy_rets.append(spy_ret)
-            tlt_rets.append(tlt_ret)
+    # SPY-GLD correlation - DISABLED: ETF data quality issues
+    components["spy_gld_corr"] = 50.0
 
-        if len(spy_rets) > 10:
-            correlation = np.corrcoef(spy_rets[:20], tlt_rets[:20])[0, 1]
-            # Typically negative (-0.3 to -0.5). Positive = stress
-            corr_score = 50 + (correlation * 50)  # +1 corr = 100, -1 corr = 0
-            corr_score = float(np.clip(corr_score, 0, 100))
-            components["spy_tlt_corr"] = corr_score
-
-    # Get GLD for safe haven flows
-    cur.execute("""
-        SELECT e1.event_date, e1.close as spy, e2.close as gld
-        FROM mkt.etf_1d e1
-        JOIN mkt.etf_1d e2 ON e1.event_date = e2.event_date AND e2.symbol = 'GLD'
-        WHERE e1.symbol = 'SPY' AND e1.event_date <= %s
-        ORDER BY e1.event_date DESC
-        LIMIT 63
-    """, (as_of_date,))
-    spy_gld = cur.fetchall()
-
-    gold_corr_score = 50
-    if len(spy_gld) > 20:
-        spy_rets = []
-        gld_rets = []
-        for i in range(len(spy_gld) - 1):
-            spy_ret = (spy_gld[i][1] - spy_gld[i+1][1]) / spy_gld[i+1][1]
-            gld_ret = (spy_gld[i][2] - spy_gld[i+1][2]) / spy_gld[i+1][2]
-            spy_rets.append(spy_ret)
-            gld_rets.append(gld_ret)
-
-        if len(spy_rets) > 10:
-            gold_corr = np.corrcoef(spy_rets[:20], gld_rets[:20])[0, 1]
-            # Negative SPY-GLD = flight to safety = stress
-            gold_corr_score = 50 - (gold_corr * 40)
-            gold_corr_score = float(np.clip(gold_corr_score, 0, 100))
-            components["spy_gld_corr"] = gold_corr_score
-
-    # FX stress (UUP strength)
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'UUP' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
-    uup_data = cur.fetchall()
-
-    uup_score = 50
-    if len(uup_data) > 10:
-        uup_values = [float(r[1]) for r in uup_data if r[1] is not None]
-        uup_change = (uup_values[0] - uup_values[-1]) / uup_values[-1] if uup_values[-1] > 0 else 0
-        # DXY strength = risk-off
-        uup_score = 50 + (uup_change * 500)
-        uup_score = float(np.clip(uup_score, 0, 100))
-        components["dxy_strength"] = uup_score
+    # FX stress (UUP/DXY) - DISABLED: ETF data quality issues
+    # TODO: Replace with DXY from futures or FRED data
+    components["dxy_strength"] = 50.0
 
     # Composite
     weights = {"spy_tlt_corr": 0.40, "spy_gld_corr": 0.35, "dxy_strength": 0.25}
@@ -1931,22 +1846,9 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         em_score = float(np.clip(em_score, 0, 100))
         components["em_fx_stress"] = em_score
 
-    # Gold as fear proxy
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'GLD' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
-    gld_data = cur.fetchall()
-
-    gold_score = 50
-    if len(gld_data) > 10:
-        gld_values = [float(r[1]) for r in gld_data if r[1] is not None]
-        gld_change = (gld_values[0] - gld_values[-1]) / gld_values[-1] if gld_values[-1] > 0 else 0
-        # Gold surge = fear/geopolitical risk
-        gold_score = 50 + (gld_change * 300)
-        gold_score = float(np.clip(gold_score, 0, 100))
-        components["gold_fear"] = gold_score
+    # Gold as fear proxy - DISABLED: ETF data quality issues
+    # TODO: Replace with GC (gold futures) from mkt.futures_1d
+    components["gold_fear"] = 50.0
 
     # Composite
     weights = {"epu_spike": 0.30, "oil_volatility": 0.25, "em_fx_stress": 0.25, "gold_fear": 0.20}

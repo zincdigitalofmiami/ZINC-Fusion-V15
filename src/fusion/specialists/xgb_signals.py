@@ -230,6 +230,9 @@ class MLModelMixin:
         nan_pct_latest = float(latest.isna().mean())
         missing_features = latest[latest.isna()].index.tolist()
 
+        # PATCHED 2026-01-31: Relaxed missingness policy for cross-market data
+        # Only abstain if >30% of features are missing (threshold check)
+        # For <30% missing, impute with training means and proceed with degraded confidence
         if nan_pct_latest > self.missingness_threshold:
             return None, {
                 "degraded_level": 2,
@@ -241,22 +244,31 @@ class MLModelMixin:
                 "reason": "nan_pct_threshold",
             }
 
-        if nan_pct_latest > 0:
-            return None, {
-                "degraded_level": 2,
-                "source_tag": "insufficient_features",
-                "conf": self.degraded_confidence,
-                "nan_pct_latest": nan_pct_latest,
-                "missing_features": missing_features,
-                "abstained": True,
-                "reason": "missing_features",
-            }
+        # REMOVED: Strict "any NaN = abstain" policy
+        # Cross-market data (CPO/RS vs ZL) has calendar misalignment
+        # Rolling features have startup NaN - this is normal, not an error
+        # Instead: impute missing with training means and adjust confidence
 
-        X_scaled = self.scaler.transform(X)
+        # Impute missing values with training feature means (stored in scaler)
+        X_imputed = X.copy()
+        if nan_pct_latest > 0:
+            # Use scaler's mean for imputation (fitted during training)
+            for i, col in enumerate(X.columns):
+                if X_imputed[col].isna().any():
+                    X_imputed[col] = X_imputed[col].fillna(self.scaler.mean_[i])
+
+        X_scaled = self.scaler.transform(X_imputed)
+
+        # Adjust confidence based on missingness
+        # Full confidence at 0% missing, degraded at threshold
+        conf_adjustment = 1.0 - (nan_pct_latest / self.missingness_threshold) * 0.3
+
         return self.model.predict(X_scaled), {
             "nan_pct_latest": nan_pct_latest,
             "missing_features": missing_features,
             "abstained": False,
+            "imputed": nan_pct_latest > 0,
+            "conf_adjustment": conf_adjustment,
         }
 
 
@@ -443,6 +455,39 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if col not in features:
                     features[col] = data[col]
 
+        # OPTIONS FEATURES (if available) - NO GREEKS, just raw volume/ratios
+        # Put/call ratio and volume z-scores for ZL, ZS, ZM
+        for ul in ['zl', 'zs', 'zm']:
+            pc_col = f'{ul}_put_call_ratio'
+            if pc_col in data.columns:
+                features[f'{ul}_pc_ratio_zscore'] = self.compute_zscore(data[pc_col], window=63)
+
+            call_vol_col = f'{ul}_call_volume'
+            if call_vol_col in data.columns:
+                features[f'{ul}_call_vol_zscore'] = self.compute_zscore(data[call_vol_col], window=63)
+
+            put_vol_col = f'{ul}_put_volume'
+            if put_vol_col in data.columns:
+                features[f'{ul}_put_vol_zscore'] = self.compute_zscore(data[put_vol_col], window=63)
+
+            # Premium z-scores (average option premium)
+            call_prem_col = f'{ul}_call_premium'
+            if call_prem_col in data.columns:
+                features[f'{ul}_call_prem_zscore'] = self.compute_zscore(data[call_prem_col], window=63)
+
+            put_prem_col = f'{ul}_put_premium'
+            if put_prem_col in data.columns:
+                features[f'{ul}_put_prem_zscore'] = self.compute_zscore(data[put_prem_col], window=63)
+
+            # Open interest z-scores
+            call_oi_col = f'{ul}_call_oi'
+            if call_oi_col in data.columns:
+                features[f'{ul}_call_oi_zscore'] = self.compute_zscore(data[call_oi_col], window=63)
+
+            put_oi_col = f'{ul}_put_oi'
+            if put_oi_col in data.columns:
+                features[f'{ul}_put_oi_zscore'] = self.compute_zscore(data[put_oi_col], window=63)
+
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
 
@@ -512,15 +557,19 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                     logger.warning(
                         f"   Crush abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
                     )
+                    as_of = idx.date() if hasattr(idx, "date") else idx
+                    # P0-3: Skip dates before EARLIEST_VALID_DATE
+                    if as_of < date(1990, 1, 1):
+                        continue
                     signals.append(
                         SignalOutput(
-                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            as_of_date=as_of,
                             bucket="crush",
                             signal_1=0.0,
-                            signal_2=None,
-                            confidence=degraded_conf,
+                            signal_2=0.0,  # CONTRACT: Never None on abstain
+                            confidence=0.0,  # CONTRACT: Zero confidence on abstain
                             model_type="xgb",
-                            max_input_age_days=None,
+                            max_input_age_days=999,  # P0-1: Max staleness for abstain
                             source_tag=pred_meta.get(
                                 "source_tag", "insufficient_features"
                             ),
@@ -559,18 +608,33 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
                 confidence = min(base_confidence, 0.95)
 
+                as_of = idx.date() if hasattr(idx, "date") else idx
+                # P0-3: Skip dates before EARLIEST_VALID_DATE
+                if as_of < date(1990, 1, 1):
+                    continue
+
+                # P0-1: Compute max staleness for this date
+                max_staleness = self.compute_max_staleness(data, as_of)
+
+                # CONTRACT: signal_2 must never be None
+                secondary_val = crush_momentum.loc[idx]
+                if pd.isna(secondary_val):
+                    signal_2_val = 0.0
+                    confidence = confidence * 0.7  # Penalty for missing secondary
+                    secondary_missing = True
+                else:
+                    signal_2_val = float(secondary_val)
+                    secondary_missing = False
+
                 signals.append(
                     SignalOutput(
-                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        as_of_date=as_of,
                         bucket="crush",
                         signal_1=float(prediction),  # MODEL PREDICTION
-                        signal_2=(
-                            float(crush_momentum.loc[idx])
-                            if not pd.isna(crush_momentum.loc[idx])
-                            else None
-                        ),
+                        signal_2=signal_2_val,  # CONTRACT: Never None
                         confidence=float(confidence),
                         model_type="xgb",
+                        max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                         metadata={
                             "board_crush": float(board_crush.loc[idx]),
                             "oil_share": float(oil_share.loc[idx]),
@@ -657,7 +721,7 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Require core substitute oils (CPO, RS daily). Sunflower/rapeseed are monthly, optional."""
+        """Require core substitute oils (CPO, RS daily). Sunflower/rapeseed are monthly."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
@@ -748,6 +812,10 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # Prepare features
         X_full, feature_names = self._prepare_features(data)
 
+        # P0-4 FIX: Lag all features by 1 day to prevent leakage
+        # Signal at T should use T-1 features
+        X_full = X_full.shift(1)
+
         # FIX 2026-01-30: Only require primary features to be non-NaN (not all elite indicators)
         core_cols = [c for c in self.config.primary_features if c in X_full.columns]
         X_valid = X_full.dropna(subset=core_cols) if core_cols else X_full.dropna()
@@ -797,15 +865,19 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                     logger.warning(
                         f"   Substitutes abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
                     )
+                    as_of = idx.date() if hasattr(idx, "date") else idx
+                    # P0-3: Skip dates before EARLIEST_VALID_DATE
+                    if as_of < date(1990, 1, 1):
+                        continue
                     signals.append(
                         SignalOutput(
-                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            as_of_date=as_of,
                             bucket="substitutes",
                             signal_1=0.0,
-                            signal_2=None,
-                            confidence=degraded_conf,
+                            signal_2=0.0,  # CONTRACT: Never None on abstain
+                            confidence=0.0,  # CONTRACT: Zero confidence on abstain
                             model_type="rf",
-                            max_input_age_days=None,
+                            max_input_age_days=999,  # P0-1: Max staleness for abstain
                             source_tag=pred_meta.get(
                                 "source_tag", "insufficient_features"
                             ),
@@ -836,18 +908,34 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 )
                 base_confidence = min(n_subs / 4, 1.0) * 0.6 + 0.3
 
+                as_of = idx.date() if hasattr(idx, "date") else idx
+                # P0-3: Skip dates before EARLIEST_VALID_DATE
+                if as_of < date(1990, 1, 1):
+                    continue
+
+                # P0-1: Compute max staleness for this date
+                max_staleness = self.compute_max_staleness(data, as_of)
+
+                # CONTRACT: signal_2 must never be None
+                richness_val = richness.loc[idx]
+                if pd.isna(richness_val):
+                    signal_2_val = 0.0
+                    # Penalty for missing secondary
+                    base_confidence = base_confidence * 0.7
+                    secondary_missing = True
+                else:
+                    signal_2_val = float(richness_val)
+                    secondary_missing = False
+
                 signals.append(
                     SignalOutput(
-                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        as_of_date=as_of,
                         bucket="substitutes",
                         signal_1=float(prediction),  # MODEL PREDICTION
-                        signal_2=(
-                            float(richness.loc[idx])
-                            if not pd.isna(richness.loc[idx])
-                            else None
-                        ),
+                        signal_2=signal_2_val,  # CONTRACT: Never None
                         confidence=float(min(base_confidence, 0.95)),
                         model_type="rf",
+                        max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                         metadata={
                             "n_substitutes": n_subs,
                             "model_trained": str(self.last_train_date),
@@ -955,7 +1043,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Require China demand features. Shipping (BDRY/SBLK) is optional due to sparse coverage."""
+        """Require China demand features. Shipping (BDRY/SBLK) disabled - ETF data quality issues."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
@@ -1155,15 +1243,19 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                     logger.warning(
                         f"   China abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
                     )
+                    as_of = idx.date() if hasattr(idx, "date") else idx
+                    # P0-3: Skip dates before EARLIEST_VALID_DATE
+                    if as_of < date(1990, 1, 1):
+                        continue
                     signals.append(
                         SignalOutput(
-                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            as_of_date=as_of,
                             bucket="china",
                             signal_1=0.0,
-                            signal_2=None,
-                            confidence=degraded_conf,
+                            signal_2=0.0,  # CONTRACT: Never None on abstain
+                            confidence=0.0,  # CONTRACT: Zero confidence on abstain
                             model_type="gbm",
-                            max_input_age_days=None,
+                            max_input_age_days=999,  # P0-1: Max staleness for abstain
                             source_tag=pred_meta.get(
                                 "source_tag", "insufficient_features"
                             ),
@@ -1198,18 +1290,33 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if has_shipping:
                     base_confidence += 0.1
 
+                as_of = idx.date() if hasattr(idx, "date") else idx
+                # P0-3: Skip dates before EARLIEST_VALID_DATE
+                if as_of < date(1990, 1, 1):
+                    continue
+
+                # P0-1: Compute max staleness for this date
+                max_staleness = self.compute_max_staleness(data, as_of)
+
+                # CONTRACT: signal_2 must never be None
+                if has_brazil and not pd.isna(brazil_zscore.loc[idx]):
+                    signal_2_val = float(brazil_zscore.loc[idx])
+                    secondary_missing = False
+                else:
+                    signal_2_val = 0.0
+                    # Penalty for missing secondary
+                    base_confidence = base_confidence * 0.7
+                    secondary_missing = True
+
                 signals.append(
                     SignalOutput(
-                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        as_of_date=as_of,
                         bucket="china",
                         signal_1=float(prediction),  # MODEL PREDICTION
-                        signal_2=(
-                            float(brazil_zscore.loc[idx])
-                            if has_brazil and not pd.isna(brazil_zscore.loc[idx])
-                            else None
-                        ),
+                        signal_2=signal_2_val,  # CONTRACT: Never None
                         confidence=float(min(base_confidence, 0.95)),
                         model_type="gbm",
+                        max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                         metadata={
                             "has_brazil": has_brazil,
                             "has_cny": has_cny,

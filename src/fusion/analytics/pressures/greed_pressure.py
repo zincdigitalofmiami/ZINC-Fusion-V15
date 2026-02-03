@@ -386,24 +386,9 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["vix_value"] = round(current_vix, 1)
         all_scores.append(vix_score)
 
-    # ==== 2. MARKET MOMENTUM (SPY) ====
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'SPY' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 126
-    """, (as_of_date,))
-    spy_data = cur.fetchall()
-
-    if len(spy_data) > 20:
-        spy_values = [float(r[1]) for r in spy_data if r[1] is not None]
-        current_spy = spy_values[0]
-        ma_20 = np.mean(spy_values[:20])
-        ma_125 = np.mean(spy_values[:min(125, len(spy_values))])
-
-        momentum_score, momentum_desc = score_momentum(current_spy, ma_20, ma_125)
-        components["market_momentum"] = round(momentum_score, 1)
-        components["spy_vs_ma125"] = round((current_spy / ma_125 - 1) * 100, 2)
-        all_scores.append(momentum_score)
+    # ==== 2. MARKET MOMENTUM (SPY) - DISABLED: ETF data quality issues ====
+    components["market_momentum"] = 50.0
+    all_scores.append(50.0)
 
     # ==== 3. CREDIT SPREADS ====
     cur.execute("""
@@ -420,22 +405,34 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["hy_spread_bps"] = round(current_spread, 0)
         all_scores.append(spread_score)
 
-    # ==== 4. SAFE HAVEN DEMAND (Gold) ====
+    # ==== 4. SAFE HAVEN DEMAND (Gold) - RE-ENABLED with Databento GLD data ====
+    # Rising gold = fear (flight to safety), falling gold = greed (risk-on)
     cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'GLD' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
+        SELECT
+            close,
+            returns_21d,
+            momentum_21d,
+            zl_corr_63d
+        FROM mkt.etf_1d
+        WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
     """, (as_of_date,))
-    gld_data = cur.fetchall()
+    gld_row = cur.fetchone()
 
-    if len(gld_data) >= 20:
-        gld_values = [float(r[1]) for r in gld_data if r[1] is not None]
-        gold_change = (gld_values[0] - gld_values[-1]) / gld_values[-1] if gld_values[-1] > 0 else 0
+    if gld_row and gld_row[1] is not None:
+        gld_ret_21d = float(gld_row[1])  # 21-day log return
+        gld_momentum = float(gld_row[2]) if gld_row[2] else 0.0
+        gld_zl_corr = float(gld_row[3]) if gld_row[3] else 0.0
 
-        gold_score, gold_desc = score_safe_haven(gold_change)
-        components["safe_haven"] = round(gold_score, 1)
-        components["gold_change_20d"] = round(gold_change * 100, 2)
+        # Score using the existing score_safe_haven logic (inverted: gold up = fear)
+        gold_score, gold_desc = score_safe_haven(gld_ret_21d)
+        components["safe_haven"] = float(gold_score)
+        components["gld_ret_21d"] = gld_ret_21d
+        components["gld_zl_corr"] = gld_zl_corr
         all_scores.append(gold_score)
+    else:
+        components["safe_haven"] = 50.0
+        all_scores.append(50.0)
 
     # ==== 5. SPECIALIST CONSENSUS ====
     cur.execute("""
@@ -482,23 +479,43 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["zl_vs_ma50"] = round((current_zl / zl_ma50 - 1) * 100, 2)
         all_scores.append(zl_score)
 
-    # ==== 7. COMMODITY MOMENTUM (DBA) ====
+    # ==== 7. COMMODITY MOMENTUM (DBA) - RE-ENABLED with Databento data ====
+    # DBA = Invesco DB Agriculture Fund - broad ag commodity momentum
     cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'DBA' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 63
+        SELECT
+            close,
+            returns_21d,
+            momentum_21d,
+            zl_corr_63d
+        FROM mkt.etf_1d
+        WHERE symbol = 'DBA' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
     """, (as_of_date,))
-    dba_data = cur.fetchall()
+    dba_row = cur.fetchone()
 
-    if len(dba_data) > 20:
-        dba_values = [float(r[1]) for r in dba_data if r[1] is not None]
-        current_dba = dba_values[0]
-        dba_ma20 = np.mean(dba_values[:20])
-        dba_ma50 = np.mean(dba_values[:min(50, len(dba_values))])
+    if dba_row and dba_row[2] is not None:
+        dba_momentum = float(dba_row[2])  # Price vs 21d SMA in %
 
-        dba_score, dba_desc = score_momentum(current_dba, dba_ma20, dba_ma50)
-        components["commodity_momentum"] = round(dba_score, 1)
+        # Score: positive momentum = greed, negative = fear
+        if dba_momentum > 5:
+            dba_score = 80  # Strong greed
+        elif dba_momentum > 2:
+            dba_score = 65  # Moderate greed
+        elif dba_momentum > 0:
+            dba_score = 55  # Slight greed
+        elif dba_momentum > -2:
+            dba_score = 45  # Slight fear
+        elif dba_momentum > -5:
+            dba_score = 35  # Moderate fear
+        else:
+            dba_score = 20  # Extreme fear
+
+        components["commodity_momentum"] = float(dba_score)
+        components["dba_momentum_pct"] = dba_momentum
         all_scores.append(dba_score)
+    else:
+        components["commodity_momentum"] = 50.0
+        all_scores.append(50.0)
 
     # ==== COMPOSITE SCORE (EQUALLY WEIGHTED) ====
     if all_scores:
