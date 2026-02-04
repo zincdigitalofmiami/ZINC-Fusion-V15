@@ -23,6 +23,7 @@ import os
 import sys
 import logging
 import argparse
+import uuid
 from datetime import datetime, date
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -175,14 +176,30 @@ def write_signals_to_db(
 
     Returns number of signals written.
     """
+    import psycopg2
     from psycopg2.extras import execute_values, Json
 
     total_written = 0
+    page_size = int(os.getenv("SPECIALIST_DB_PAGE_SIZE", "1000"))
+    max_retries = int(os.getenv("SPECIALIST_DB_RETRIES", "2"))
+
+    def ensure_connection(current_conn):
+        if current_conn is None or getattr(current_conn, "closed", 1) != 0:
+            return get_connection()
+        return current_conn
+
+    def safe_rollback(current_conn):
+        try:
+            if current_conn is not None and getattr(current_conn, "closed", 1) == 0:
+                current_conn.rollback()
+        except Exception:
+            pass
 
     upsert_query = """
     INSERT INTO training.specialist_signals_1d
         (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash,
-         max_input_age_days, source_tag, degraded_level, conf, data_quality)
+         max_input_age_days, source_tag, degraded_level, conf, data_quality,
+         run_id, abstained, warmup, signal_type)
     VALUES %s
     ON CONFLICT (as_of_date, bucket)
     DO UPDATE SET
@@ -196,6 +213,10 @@ def write_signals_to_db(
         degraded_level = EXCLUDED.degraded_level,
         conf = EXCLUDED.conf,
         data_quality = EXCLUDED.data_quality,
+        run_id = EXCLUDED.run_id,
+        abstained = EXCLUDED.abstained,
+        warmup = EXCLUDED.warmup,
+        signal_type = EXCLUDED.signal_type,
         created_at = NOW()
     """
 
@@ -222,22 +243,60 @@ def write_signals_to_db(
                     if sig.get("data_quality") is not None
                     else None
                 ),
+                str(uuid.uuid4()),  # run_id - unique UUID per signal
+                sig.get("abstained", False),  # abstained
+                False,  # warmup
+                "continuous",  # signal_type
             )
             for sig in bucket_signals
         ]
 
+        # P0-3: Deduplicate by (as_of_date, bucket) - keep last occurrence
+        # This prevents duplicate key violations and wasted DB operations
+        seen = set()
+        deduped = []
+        for v in reversed(values):  # Reversed to keep last occurrence
+            key = (v[0], v[1])  # (as_of_date, bucket)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(v)
+        values = list(reversed(deduped))  # Restore chronological order
+
+        if len(deduped) < len(bucket_signals):
+            logger.warning(
+                f"  {bucket}: Deduplicated {len(bucket_signals)} → {len(values)} signals"
+            )
+
         if dry_run:
             logger.info(f"  [DRY RUN] Would write {len(values)} {bucket} signals")
         else:
-            try:
-                with conn.cursor() as cur:
-                    execute_values(cur, upsert_query, values)
-                conn.commit()
-                logger.info(f"  Wrote {len(values)} {bucket} signals")
-                total_written += len(values)
-            except Exception as e:
-                conn.rollback()
-                logger.error(f"  Failed to write {bucket} signals: {e}")
+            attempt = 0
+            while attempt < max_retries:
+                conn = ensure_connection(conn)
+                try:
+                    with conn.cursor() as cur:
+                        execute_values(cur, upsert_query, values, page_size=page_size)
+                    conn.commit()
+                    logger.info(f"  Wrote {len(values)} {bucket} signals")
+                    total_written += len(values)
+                    break
+                except psycopg2.OperationalError as e:
+                    safe_rollback(conn)
+                    logger.warning(
+                        f"  {bucket}: DB connection issue (attempt {attempt + 1}/{max_retries}): {e}"
+                    )
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                    conn = None
+                    attempt += 1
+                    if attempt >= max_retries:
+                        logger.error(f"  Failed to write {bucket} signals: {e}")
+                except Exception as e:
+                    safe_rollback(conn)
+                    logger.error(f"  Failed to write {bucket} signals: {e}")
+                    break
 
     return total_written
 
@@ -330,9 +389,7 @@ def main():
     logger.info(f"Dry run: {args.dry_run}")
     logger.info(f"Strict mode: {strict_mode}")
 
-    # Connect to database
-    conn = get_connection()
-
+    conn = None
     try:
         # Generate signals - EACH specialist loads its own data
         signals = generate_all_signals(
@@ -343,12 +400,16 @@ def main():
         total = sum(len(sigs) for sigs in signals.values())
         logger.info(f"Total signals generated: {total}")
 
-        if total > 0:
+        if total > 0 and not args.dry_run:
+            conn = get_connection()
             written = write_signals_to_db(conn, signals, run_hash, args.dry_run)
             logger.info(f"Total signals written: {written}")
+        elif total > 0 and args.dry_run:
+            _ = write_signals_to_db(conn, signals, run_hash, args.dry_run)
 
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
     logger.info("Signal generation complete.")
 

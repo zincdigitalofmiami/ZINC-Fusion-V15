@@ -10,7 +10,7 @@ Architecture Shift:
 - v3: 11 signal generators producing compact signals fed to Core
 
 Signal Contract:
-- Each specialist outputs signal_1 (required) and signal_2 (optional)
+- Each specialist outputs signal_1 (primary) and signal_2 (secondary)
 - Signals are horizon-agnostic; Core owns all horizon forecasting
 - No decision semantics (no buy/sell outputs)
 - Signals stored in training.specialist_signals_1d

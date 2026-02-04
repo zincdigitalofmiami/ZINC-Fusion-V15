@@ -638,7 +638,7 @@ def calculate_trump_effect_risk_metrics(
     Args:
         returns: Daily return series
         epu_regime: Current EPU regime
-        event_intensity: Recent event intensity (optional)
+        event_intensity: Recent event intensity
         risk_free_rate: Annual risk-free rate
 
     Returns:

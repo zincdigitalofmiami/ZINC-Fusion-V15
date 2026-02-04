@@ -503,8 +503,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                     aligned_idx = recent_returns.dropna().index[-len(cond_vol):]
                     garch_cond_vol.loc[aligned_idx] = cond_vol.values
 
-                    # Forward-fill for recent dates after training window
-                    garch_cond_vol = garch_cond_vol.ffill(limit=21)
+                    # No forward-fill (policy) - leave gaps outside training window
 
                     # Z-score the conditional volatility (rolling 252-day window)
                     garch_cond_vol_zscore = self.compute_zscore(

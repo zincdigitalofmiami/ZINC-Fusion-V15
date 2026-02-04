@@ -1454,6 +1454,10 @@ class FedSignalGenerator(BaseSignalGenerator):
                 continue
 
             # P0-1: Compute max staleness for this date
+            rate_cols = [
+                c for c in (self.config.primary_features + self.config.secondary_features)
+                if c in data.columns
+            ]
             max_staleness = self.compute_max_staleness(data, as_of, rate_cols)
 
             signals.append(SignalOutput(

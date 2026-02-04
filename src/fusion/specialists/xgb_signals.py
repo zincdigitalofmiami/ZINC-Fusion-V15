@@ -12,6 +12,7 @@ PATCHED 2026-01-23: Implemented actual ML models
 """
 
 from datetime import date
+import os
 from typing import List, Optional, Tuple, Dict, Any
 from pathlib import Path
 import pandas as pd
@@ -118,6 +119,9 @@ class MLModelMixin:
 
     def _should_retrain(self, current_date: date) -> bool:
         """Check if model needs retraining."""
+        force = os.getenv("FORCE_SPECIALIST_RETRAIN", "").strip().lower()
+        if force in {"1", "true", "yes", "y"}:
+            return True
         if self.model is None:
             return True
         if self.last_train_date is None:
@@ -1048,7 +1052,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> List[str]:
-        """Require China demand features. Shipping (BDRY/SBLK) disabled - ETF data quality issues."""
+        """Require China demand features. Shipping (BDRY/SBLK) optional due to coverage variability."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")

@@ -27,8 +27,9 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
-# Add parent to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add src to path for imports
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(repo_root, "src"))
 
 from fusion.db.connection import get_read_engine
 
@@ -44,9 +45,11 @@ logger = logging.getLogger(__name__)
 # TTL THRESHOLDS (From Forward Fill Policy)
 # =============================================================================
 
+
 @dataclass
 class DataSourceCheck:
     """Configuration for a data source freshness check."""
+
     source: str
     table: str
     date_column: str
@@ -58,11 +61,17 @@ class DataSourceCheck:
 # Data sources to check per specialist (TTL thresholds LOCKED)
 SPECIALIST_DATA_GATES: Dict[str, List[DataSourceCheck]] = {
     "crush": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "ZL/ZS/ZM futures"),
-        DataSourceCheck("cftc", "pos.cftc_1w", "report_date", 10, True, "CFTC COT positioning"),
+        DataSourceCheck(
+            "futures", "mkt.futures_1d", "event_date", 3, True, "ZL/ZS/ZM futures"
+        ),
+        DataSourceCheck(
+            "cftc", "pos.cftc_1w", "event_date", 10, True, "CFTC COT positioning"
+        ),
     ],
     "china": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "Copper futures (HG)"),
+        DataSourceCheck(
+            "futures", "mkt.futures_1d", "event_date", 3, True, "Copper futures (HG)"
+        ),
         DataSourceCheck("fx", "mkt.fx_1d", "event_date", 3, True, "CNY/USD rate"),
     ],
     "fx": [
@@ -70,26 +79,46 @@ SPECIALIST_DATA_GATES: Dict[str, List[DataSourceCheck]] = {
         DataSourceCheck("rates", "econ.rates_1d", "event_date", 3, True, "DGS2/DGS10"),
     ],
     "fed": [
-        DataSourceCheck("rates", "econ.rates_1d", "event_date", 3, True, "Fed Funds, Treasury rates"),
+        DataSourceCheck(
+            "rates", "econ.rates_1d", "event_date", 3, True, "Fed Funds, Treasury rates"
+        ),
     ],
     "volatility": [
-        DataSourceCheck("vol", "econ.vol_indices_1d", "event_date", 3, True, "VIX, OVX"),
+        DataSourceCheck(
+            "vol", "econ.vol_indices_1d", "event_date", 3, True, "VIX, OVX"
+        ),
     ],
     "energy": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "CL/HO/RB futures"),
+        DataSourceCheck(
+            "futures", "mkt.futures_1d", "event_date", 3, True, "CL/HO/RB futures"
+        ),
     ],
     "palm": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "FCPO futures"),
+        DataSourceCheck(
+            "futures", "mkt.futures_1d", "event_date", 3, True, "FCPO futures"
+        ),
     ],
     "tariff": [
         DataSourceCheck("epu", "econ.rates_1d", "event_date", 45, False, "EPU indices"),
     ],
     "biofuel": [
-        DataSourceCheck("rin", "supply.epa_rin_1d", "event_date", 10, True, "RIN prices"),
-        DataSourceCheck("lcfs", "supply.lcfs_1d", "event_date", 10, True, "LCFS credits"),
+        # EPA RIN = weekly volume-weighted avg, updated monthly; TTL 45d (one EPA cycle)
+        DataSourceCheck(
+            "rin",
+            "supply.epa_rin_1d",
+            "event_date",
+            45,
+            True,
+            "EPA RIN (weekly, updated monthly)",
+        ),
+        DataSourceCheck(
+            "lcfs", "supply.lcfs_1d", "event_date", 10, True, "LCFS credits"
+        ),
     ],
     "substitutes": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "Substitute oil futures"),
+        DataSourceCheck(
+            "futures", "mkt.futures_1d", "event_date", 3, True, "Substitute oil futures"
+        ),
     ],
     "trump_effect": [
         DataSourceCheck("epu", "econ.rates_1d", "event_date", 10, False, "EPU indices"),
@@ -101,6 +130,7 @@ SPECIALIST_DATA_GATES: Dict[str, List[DataSourceCheck]] = {
 # =============================================================================
 # VALIDATION FUNCTIONS
 # =============================================================================
+
 
 def get_latest_date(engine, table: str, date_column: str) -> Optional[date]:
     """Get the latest date in a table."""
@@ -137,10 +167,18 @@ def check_data_source(
     staleness = (as_of_date - latest).days
 
     if staleness <= check.ttl_days:
-        return True, staleness, f"{check.source}: OK ({staleness}d old, TTL={check.ttl_days}d)"
+        return (
+            True,
+            staleness,
+            f"{check.source}: OK ({staleness}d old, TTL={check.ttl_days}d)",
+        )
     else:
         status = "CRITICAL" if check.is_critical else "WARNING"
-        return False, staleness, f"{check.source}: {status} - stale ({staleness}d > TTL={check.ttl_days}d)"
+        return (
+            False,
+            staleness,
+            f"{check.source}: {status} - stale ({staleness}d > TTL={check.ttl_days}d)",
+        )
 
 
 def validate_specialist(
@@ -199,7 +237,9 @@ def run_data_gate(
     all_passed = True
     results = {}
 
-    logger.info(f"Running data gate validation for {len(buckets)} specialists (as_of={as_of_date})")
+    logger.info(
+        f"Running data gate validation for {len(buckets)} specialists (as_of={as_of_date})"
+    )
     logger.info("=" * 60)
 
     for bucket in buckets:
@@ -225,6 +265,7 @@ def run_data_gate(
 # =============================================================================
 # CLI
 # =============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(

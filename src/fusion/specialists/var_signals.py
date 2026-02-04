@@ -629,6 +629,10 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 continue
 
             # P0-1: Compute max staleness for this date
+            energy_price_cols = [
+                c for c in ["close", "cl_close", "ho_close", "rb_close", "ng_close", "bz_close"]
+                if c in data.columns
+            ]
             max_staleness = self.compute_max_staleness(data, as_of, energy_price_cols)
 
             signals.append(SignalOutput(

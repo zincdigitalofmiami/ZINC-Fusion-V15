@@ -10,8 +10,9 @@ TTL Guidelines by Cadence (LOCKED):
 - Monthly: 45 days
 - Quarterly: 120 days
 
-Weekend/holiday carve-out: Standard market closures don't count toward TTL
-for market-aligned series (prices, volumes).
+Weekend/holiday carve-out: Standard weekend closures don't count toward TTL
+for weekend-exempt series. Holidays are NOT excluded unless a true exchange
+calendar is used.
 """
 
 from dataclasses import dataclass
@@ -34,8 +35,8 @@ class SourceConfig:
     # Whether to use event encoding instead of level forward-fill
     use_event_encoding: bool = False
 
-    # Whether weekend/holiday gaps are exempt from TTL
-    market_aligned: bool = False
+    # Whether weekend gaps are exempt from TTL (holidays are still counted)
+    weekend_exempt: bool = False
 
     # Critical for specialist signals (fail-hard if stale)
     is_critical: bool = False
@@ -51,31 +52,31 @@ class SourceConfig:
 # FRED Economic Data (econ.* tables)
 FRED_CONFIG: Dict[str, SourceConfig] = {
     # Daily rates - tight TTL
-    "DGS2": SourceConfig("DGS2", "daily", 3, market_aligned=True, is_critical=True,
+    "DGS2": SourceConfig("DGS2", "daily", 3, weekend_exempt=True, is_critical=True,
                          description="2-Year Treasury Constant Maturity Rate"),
-    "DGS10": SourceConfig("DGS10", "daily", 3, market_aligned=True, is_critical=True,
+    "DGS10": SourceConfig("DGS10", "daily", 3, weekend_exempt=True, is_critical=True,
                           description="10-Year Treasury Constant Maturity Rate"),
-    "DFF": SourceConfig("DFF", "daily", 3, market_aligned=True, is_critical=True,
+    "DFF": SourceConfig("DFF", "daily", 3, weekend_exempt=True, is_critical=True,
                         description="Federal Funds Effective Rate"),
-    "SOFR": SourceConfig("SOFR", "daily", 3, market_aligned=True, is_critical=True,
+    "SOFR": SourceConfig("SOFR", "daily", 3, weekend_exempt=True, is_critical=True,
                          description="Secured Overnight Financing Rate"),
-    "T10Y2Y": SourceConfig("T10Y2Y", "daily", 3, market_aligned=True, is_critical=True,
+    "T10Y2Y": SourceConfig("T10Y2Y", "daily", 3, weekend_exempt=True, is_critical=True,
                            description="10Y-2Y Treasury Spread"),
 
     # Daily volatility indices - tight TTL
-    "VIXCLS": SourceConfig("VIXCLS", "daily", 3, market_aligned=True, is_critical=True,
+    "VIXCLS": SourceConfig("VIXCLS", "daily", 3, weekend_exempt=True, is_critical=True,
                            description="CBOE VIX Close"),
-    "OVXCLS": SourceConfig("OVXCLS", "daily", 3, market_aligned=True, is_critical=True,
+    "OVXCLS": SourceConfig("OVXCLS", "daily", 3, weekend_exempt=True, is_critical=True,
                            description="CBOE Crude Oil VIX"),
 
     # Daily FX - tight TTL
-    "DEXBZUS": SourceConfig("DEXBZUS", "daily", 3, market_aligned=True, is_critical=True,
+    "DEXBZUS": SourceConfig("DEXBZUS", "daily", 3, weekend_exempt=True, is_critical=True,
                             description="Brazil/US FX Rate"),
-    "DEXCHUS": SourceConfig("DEXCHUS", "daily", 3, market_aligned=True, is_critical=True,
+    "DEXCHUS": SourceConfig("DEXCHUS", "daily", 3, weekend_exempt=True, is_critical=True,
                             description="China/US FX Rate"),
-    "DEXMXUS": SourceConfig("DEXMXUS", "daily", 3, market_aligned=True, is_critical=True,
+    "DEXMXUS": SourceConfig("DEXMXUS", "daily", 3, weekend_exempt=True, is_critical=True,
                             description="Mexico/US FX Rate"),
-    "DTWEXBGS": SourceConfig("DTWEXBGS", "daily", 3, market_aligned=True, is_critical=True,
+    "DTWEXBGS": SourceConfig("DTWEXBGS", "daily", 3, weekend_exempt=True, is_critical=True,
                              description="Trade Weighted US Dollar Index"),
 
     # Weekly series - moderate TTL
@@ -133,13 +134,13 @@ BIOFUEL_CONFIG: Dict[str, SourceConfig] = {
 
 # Market Data (mkt.* tables) - NO forward fill for prices
 MARKET_CONFIG: Dict[str, SourceConfig] = {
-    "futures_1d": SourceConfig("mkt.futures_1d", "daily", None, market_aligned=True,
+    "futures_1d": SourceConfig("mkt.futures_1d", "daily", None, weekend_exempt=True,
                                is_critical=True, description="Daily Futures - NO FFILL"),
-    "etf_1d": SourceConfig("mkt.etf_1d", "daily", None, market_aligned=True,
+    "etf_1d": SourceConfig("mkt.etf_1d", "daily", None, weekend_exempt=True,
                            is_critical=True, description="Daily ETFs - NO FFILL"),
-    "options_1d": SourceConfig("mkt.options_1d", "daily", None, market_aligned=True,
+    "options_1d": SourceConfig("mkt.options_1d", "daily", None, weekend_exempt=True,
                                description="Daily Options - NO FFILL"),
-    "fx_1d": SourceConfig("mkt.fx_1d", "daily", None, market_aligned=True,
+    "fx_1d": SourceConfig("mkt.fx_1d", "daily", None, weekend_exempt=True,
                           is_critical=True, description="Daily FX - NO FFILL"),
 }
 
@@ -304,8 +305,11 @@ Forward Fill TTL Summary (LOCKED)
 | Monthly   | 45 days     | Yes (required)    |
 | Quarterly | 120 days    | Yes (required)    |
 
+Weekend exemption: weekends are excluded from TTL when weekend_exempt=True.
+Holidays are NOT excluded unless a true exchange calendar is used.
+
 Market Data: NO forward fill allowed (prices, spreads, vol)
-FRED Daily: 3 day TTL with market-aligned carve-out
+FRED Daily: 3 day TTL with weekend_exempt (weekends only)
 CFTC Weekly: 10 day TTL with event encoding
 WASDE Monthly: Event encoding only, 45 day max
 """

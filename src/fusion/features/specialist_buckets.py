@@ -318,20 +318,34 @@ class CrushBucketIndicators:
     @staticmethod
     def compute_board_crush(zl: pd.Series, zs: pd.Series, zm: pd.Series) -> pd.Series:
         """
-        Board crush = ZS × 11 - ZL × 11 - ZM
-        Standard industry calculation for crush margin per bushel.
+        Board Crush per CME formula ($/bushel):
+        = (meal × 0.022) + (oil × 11) − soybeans
+
+        Where:
+        - ZL is in ¢/lb, multiply by 0.11 (11 lbs oil per bushel / 100 ¢ per $)
+        - ZM is in $/short ton, multiply by 0.022 (44 lbs meal / 2000 lbs per ton)
+        - ZS is in ¢/bu, divide by 100 to get $/bu
+
+        Reference: CME Soybean Crush Reference Guide
+        Hedge ratio: 10 Soybeans : 11 Meal : 9 Oil
         """
-        return (zs * 11) - (zl * 11) - zm
+        oil_value = zl * 0.11       # 11 lbs oil per bushel, ZL in ¢/lb
+        meal_value = zm * 0.022     # 44 lbs meal / 2000 lbs per ton
+        return (oil_value + meal_value) - (zs / 100)
 
     @staticmethod
     def compute_oil_share(zl: pd.Series, zm: pd.Series) -> pd.Series:
         """
-        Oil share = ZL value / (ZL value + ZM value)
+        Oil share = oil_value / (oil_value + meal_value)
         Shows relative value of oil vs meal in crush.
+
+        Uses CME conversion factors for consistency with board_crush:
+        - oil_value = ZL × 0.11 (11 lbs oil per bushel, ZL in ¢/lb)
+        - meal_value = ZM × 0.022 (44 lbs meal / 2000 lbs per ton)
         """
-        zl_value = zl * 11  # 11 lbs oil per bushel
-        zm_value = zm  # ~48 lbs meal per bushel (value per unit)
-        return zl_value / (zl_value + zm_value)
+        oil_value = zl * 0.11       # 11 lbs oil per bushel, ZL in ¢/lb
+        meal_value = zm * 0.022     # 44 lbs meal / 2000 lbs per ton
+        return oil_value / (oil_value + meal_value)
 
     @staticmethod
     def compute_crush_indicators(

@@ -12,6 +12,7 @@ PATCHED 2026-01-23: Implemented real Ridge regression model
 """
 
 from datetime import date
+import os
 from typing import List, Optional, Tuple, Dict, Any
 from pathlib import Path
 import pandas as pd
@@ -120,6 +121,9 @@ class PalmMLMixin:
 
     def _should_retrain(self, current_date: date) -> bool:
         """Check if model needs retraining."""
+        force = os.getenv("FORCE_SPECIALIST_RETRAIN", "").strip().lower()
+        if force in {"1", "true", "yes", "y"}:
+            return True
         if self.model is None:
             return True
         if self.last_train_date is None:
@@ -231,6 +235,9 @@ class PalmMLMixin:
         nan_pct_latest = float(latest.isna().mean())
         missing_features = latest[latest.isna()].index.tolist()
 
+        # PATCHED 2026-01-31: Relaxed missingness policy for cross-market data
+        # Only abstain if >30% of features are missing (threshold check)
+        # For <30% missing, impute with training means and proceed with degraded confidence
         if nan_pct_latest > self.missingness_threshold:
             return None, {
                 "degraded_level": 2,
@@ -242,22 +249,31 @@ class PalmMLMixin:
                 "reason": "nan_pct_threshold",
             }
 
-        if nan_pct_latest > 0:
-            return None, {
-                "degraded_level": 2,
-                "source_tag": "insufficient_features",
-                "conf": self.degraded_confidence,
-                "nan_pct_latest": nan_pct_latest,
-                "missing_features": missing_features,
-                "abstained": True,
-                "reason": "missing_features",
-            }
+        # REMOVED: Strict "any NaN = abstain" policy
+        # Cross-market data (CPO vs ZL) has calendar misalignment
+        # Rolling features have startup NaN - this is normal, not an error
+        # Instead: impute missing with training means and adjust confidence
 
-        X_scaled = self.scaler.transform(X)
+        # Impute missing values with training feature means (stored in scaler)
+        X_imputed = X.copy()
+        if nan_pct_latest > 0:
+            # Use scaler's mean for imputation (fitted during training)
+            for i, col in enumerate(X.columns):
+                if X_imputed[col].isna().any():
+                    X_imputed[col] = X_imputed[col].fillna(self.scaler.mean_[i])
+
+        X_scaled = self.scaler.transform(X_imputed)
+
+        # Adjust confidence based on missingness
+        # Full confidence at 0% missing, degraded at threshold
+        conf_adjustment = 1.0 - (nan_pct_latest / self.missingness_threshold) * 0.3
+
         return self.model.predict(X_scaled), {
             "nan_pct_latest": nan_pct_latest,
             "missing_features": missing_features,
             "abstained": False,
+            "imputed": nan_pct_latest > 0,
+            "conf_adjustment": conf_adjustment,
         }
 
 
@@ -704,15 +720,20 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
                     logger.warning(
                         f"   Palm abstain on {idx}: nan_pct_latest={pred_meta.get('nan_pct_latest')}"
                     )
+                    # P0-3: Skip pre-1990 dates
+                    as_of = idx.date() if hasattr(idx, "date") else idx
+                    if as_of < date(1990, 1, 1):
+                        continue
+
                     signals.append(
                         SignalOutput(
-                            as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                            as_of_date=as_of,
                             bucket="palm",
                             signal_1=0.0,
-                            signal_2=None,
-                            confidence=degraded_conf,
+                            signal_2=0.0,  # CONTRACT: Never None on abstain
+                            confidence=0.0,  # CONTRACT: Zero confidence on abstain
                             model_type="ridge",
-                            max_input_age_days=None,
+                            max_input_age_days=999,  # P0-1: Abstain = max staleness
                             source_tag=pred_meta.get(
                                 "source_tag", "insufficient_features"
                             ),
@@ -754,16 +775,33 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
 
                 confidence = min(base_confidence, 0.95)
 
+                # P0-3: Skip pre-1990 dates
+                as_of = idx.date() if hasattr(idx, "date") else idx
+                if as_of < date(1990, 1, 1):
+                    continue
+
+                # P0-1: Compute staleness for this row
+                staleness = self.compute_max_staleness(data, as_of, self.config.primary_features)
+
+                # CONTRACT: signal_2 must never be None
+                if not pd.isna(speed):
+                    signal_2_val = float(speed)
+                    secondary_missing = False
+                else:
+                    signal_2_val = 0.0
+                    # Penalty for missing secondary
+                    confidence = confidence * 0.7
+                    secondary_missing = True
+
                 signals.append(
                     SignalOutput(
-                        as_of_date=idx.date() if hasattr(idx, "date") else idx,
+                        as_of_date=as_of,
                         bucket="palm",
                         signal_1=float(prediction),  # MODEL PREDICTION
-                        signal_2=(
-                            float(speed) if not pd.isna(speed) else None
-                        ),  # Reversion speed
+                        signal_2=signal_2_val,  # CONTRACT: Never None (reversion speed)
                         confidence=float(confidence),
                         model_type="ridge",
+                        max_input_age_days=staleness,  # P0-1: Staleness tracking
                         metadata={
                             "spread_zscore": (
                                 float(spread_zscore.loc[idx])

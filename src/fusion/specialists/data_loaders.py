@@ -25,17 +25,17 @@ def load_news_for_specialist(
 ) -> pd.DataFrame:
     """
     Load ALL news articles tagged for this specialist from ALL tables.
-    
+
     Scans all tables with specialist_tags column and returns articles
     where this specialist is in the tags array.
-    
+
     New table structure (2026-01-31):
     - alt.econ_news: FRED blog (Federal Reserve economic research)
     - alt.executive_actions: WhiteHouse presidential documents
     - alt.policy_news: Other policy sources (ICE, CBP, AEI, FarmDoc)
     - alt.profarmer_news: ProFarmer premium ag news
     - alt.legislation_1d: Federal Register legislation
-    
+
     Returns:
         DataFrame indexed by trade_date with:
         - news_article_count: count of articles for this specialist on this date
@@ -43,7 +43,7 @@ def load_news_for_specialist(
         - news_headline_text: concatenated headlines for NLP features
     """
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    
+
     # Dynamically find all tables with specialist_tags
     tables_query = """
     SELECT DISTINCT table_schema || '.' || table_name as full_name
@@ -53,13 +53,13 @@ def load_news_for_specialist(
       AND table_name NOT IN ('news_1d')  -- Skip deprecated table
     """
     tables_df = pd.read_sql(tables_query, conn)
-    
+
     all_news = []
-    
-    for full_name in tables_df['full_name']:
+
+    for full_name in tables_df["full_name"]:
         try:
             # Check available columns
-            schema, table = full_name.split('.')
+            schema, table = full_name.split(".")
             cols_query = f"""
             SELECT column_name 
             FROM information_schema.columns 
@@ -68,83 +68,92 @@ def load_news_for_specialist(
                                   'content', 'sentiment_score', 'summary')
             """
             cols_df = pd.read_sql(cols_query, conn)
-            available = set(cols_df['column_name'])
-            
+            available = set(cols_df["column_name"])
+
             # Determine date column
-            date_col = 'event_date' if 'event_date' in available else 'published_at'
+            date_col = "event_date" if "event_date" in available else "published_at"
             if date_col not in available:
                 continue
-            
+
             # Build query
             select_parts = [f"{date_col} as trade_date"]
-            if 'headline' in available:
-                select_parts.append('headline')
-            if 'summary' in available:
-                select_parts.append('summary')
-            if 'sentiment_score' in available:
-                select_parts.append('sentiment_score')
-            
+            if "headline" in available:
+                select_parts.append("headline")
+            if "summary" in available:
+                select_parts.append("summary")
+            if "sentiment_score" in available:
+                select_parts.append("sentiment_score")
+
             query = f"""
             SELECT {', '.join(select_parts)}
             FROM {full_name}
             WHERE '{specialist_bucket}' = ANY(specialist_tags)
             """
-            
+
             df = pd.read_sql(query, conn)
             if not df.empty:
-                df['trade_date'] = pd.to_datetime(df['trade_date'])
-                df['source_table'] = full_name
+                df["trade_date"] = pd.to_datetime(df["trade_date"])
+                df["source_table"] = full_name
                 all_news.append(df)
-                
+
         except Exception as e:
             logger.warning(f"Could not load from {full_name}: {e}")
             continue
-    
+
     conn.close()
-    
+
     if not all_news:
         # Return empty structure
         return pd.DataFrame(
-            columns=['trade_date', 'news_article_count', 'news_avg_sentiment', 'news_headline_text']
-        ).set_index('trade_date')
-    
+            columns=[
+                "trade_date",
+                "news_article_count",
+                "news_avg_sentiment",
+                "news_headline_text",
+            ]
+        ).set_index("trade_date")
+
     # Combine all sources
     combined = pd.concat(all_news, ignore_index=True)
-    
+
     # Apply date filters
     if start_date:
-        combined = combined[combined['trade_date'] >= pd.Timestamp(start_date)]
+        combined = combined[combined["trade_date"] >= pd.Timestamp(start_date)]
     if end_date:
-        combined = combined[combined['trade_date'] <= pd.Timestamp(end_date)]
-    
+        combined = combined[combined["trade_date"] <= pd.Timestamp(end_date)]
+
     # Aggregate by date
     agg_dict = {}
-    if 'headline' in combined.columns:
-        agg_dict['headline'] = lambda x: ' | '.join([str(h) for h in x if pd.notna(h)][:10])
-    if 'summary' in combined.columns:
-        agg_dict['summary'] = lambda x: ' | '.join([str(s) for s in x if pd.notna(s)][:5])
-    if 'sentiment_score' in combined.columns:
-        agg_dict['sentiment_score'] = 'mean'
-    
-    result = combined.groupby('trade_date').agg(agg_dict)
-    result['news_article_count'] = combined.groupby('trade_date').size()
-    
+    if "headline" in combined.columns:
+        agg_dict["headline"] = lambda x: " | ".join(
+            [str(h) for h in x if pd.notna(h)][:10]
+        )
+    if "summary" in combined.columns:
+        agg_dict["summary"] = lambda x: " | ".join(
+            [str(s) for s in x if pd.notna(s)][:5]
+        )
+    if "sentiment_score" in combined.columns:
+        agg_dict["sentiment_score"] = "mean"
+
+    result = combined.groupby("trade_date").agg(agg_dict)
+    result["news_article_count"] = combined.groupby("trade_date").size()
+
     # Rename
     rename_map = {}
-    if 'headline' in result.columns:
-        rename_map['headline'] = 'news_headline_text'
-    if 'sentiment_score' in result.columns:
-        rename_map['sentiment_score'] = 'news_avg_sentiment'
-    if 'summary' in result.columns:
-        rename_map['summary'] = 'news_summary_text'
-    
+    if "headline" in result.columns:
+        rename_map["headline"] = "news_headline_text"
+    if "sentiment_score" in result.columns:
+        rename_map["sentiment_score"] = "news_avg_sentiment"
+    if "summary" in result.columns:
+        rename_map["summary"] = "news_summary_text"
+
     result = result.rename(columns=rename_map)
-    
+
     logger.info(
         f"  News for {specialist_bucket}: {len(result)} days, "
         f"{result['news_article_count'].sum():.0f} articles"
     )
-    
+
     return result
 
 
@@ -242,7 +251,7 @@ def load_crush_data(
             + wasde_df["metric"]
         )
         wasde_pivot = wasde_df.pivot(index="trade_date", columns="col", values="value")
-        wasde_pivot = wasde_pivot.ffill(limit=35)  # Monthly cadence + 5 day buffer
+        # No forward-fill (policy)
         for c in wasde_pivot.columns:
             result[c] = wasde_pivot.reindex(result.index)[c]
 
@@ -257,9 +266,61 @@ def load_crush_data(
     if not cftc_df.empty:
         cftc_df["trade_date"] = pd.to_datetime(cftc_df["trade_date"])
         cftc_df.set_index("trade_date", inplace=True)
-        cftc_df = cftc_df.ffill(limit=10)  # Weekly cadence + 3 day buffer
+        # No forward-fill (policy)
         for c in cftc_df.columns:
             result[c] = cftc_df.reindex(result.index)[c]
+
+    # Options data for crush complex (ZL, ZS, ZM) - NO GREEKS, raw OHLCV only
+    options_query = """
+    SELECT
+        event_date as trade_date,
+        underlying,
+        option_type,
+        SUM(volume) as total_volume,
+        SUM(open_interest) as total_oi,
+        AVG(close) as avg_premium,
+        COUNT(*) as num_strikes
+    FROM mkt.options_1d
+    WHERE underlying IN ('ZL', 'ZS', 'ZM')
+      AND source = 'databento'
+    GROUP BY event_date, underlying, option_type
+    ORDER BY event_date, underlying, option_type
+    """
+    options_df = pd.read_sql(options_query, conn)
+    if not options_df.empty:
+        options_df["trade_date"] = pd.to_datetime(options_df["trade_date"])
+        for ul in ["ZL", "ZS", "ZM"]:
+            ul_lower = ul.lower()
+            ul_data = options_df[options_df["underlying"] == ul]
+            if ul_data.empty:
+                continue
+
+            calls = ul_data[ul_data["option_type"] == "C"].set_index("trade_date")
+            puts = ul_data[ul_data["option_type"] == "P"].set_index("trade_date")
+
+            if not calls.empty:
+                result[f"{ul_lower}_call_volume"] = calls["total_volume"].reindex(
+                    result.index
+                )
+                result[f"{ul_lower}_call_oi"] = calls["total_oi"].reindex(result.index)
+                result[f"{ul_lower}_call_premium"] = calls["avg_premium"].reindex(
+                    result.index
+                )
+            if not puts.empty:
+                result[f"{ul_lower}_put_volume"] = puts["total_volume"].reindex(
+                    result.index
+                )
+                result[f"{ul_lower}_put_oi"] = puts["total_oi"].reindex(result.index)
+                result[f"{ul_lower}_put_premium"] = puts["avg_premium"].reindex(
+                    result.index
+                )
+
+            # Put/Call ratio (only if both have data)
+            if not calls.empty and not puts.empty:
+                call_vol = calls["total_volume"].reindex(result.index)
+                put_vol = puts["total_volume"].reindex(result.index)
+                pc_ratio = put_vol / call_vol.replace(0, np.nan)
+                result[f"{ul_lower}_put_call_ratio"] = pc_ratio
 
     conn.close()
 
@@ -311,21 +372,20 @@ def load_china_data(
         for c in pivot.columns:
             result[c] = pivot[c].values
 
-    # ETFs: FXI, KWEB, BDRY, SBLK
+    # ETFs: Databento (FXI, KWEB, MCHI, BDRY, SBLK)
     etf_query = """
-    SELECT event_date as trade_date, symbol, open, high, low, close, volume
+    SELECT event_date as trade_date, symbol, close
     FROM mkt.etf_1d
-    WHERE symbol IN ('FXI', 'KWEB', 'BDRY', 'SBLK', 'MCHI')
+    WHERE symbol IN ('FXI', 'KWEB', 'MCHI', 'BDRY', 'SBLK')
     ORDER BY event_date, symbol
     """
     etf_df = pd.read_sql(etf_query, conn)
     if not etf_df.empty:
         etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
-        for col_type in ["close", "open", "high", "low", "volume"]:
-            pivot = etf_df.pivot(index="trade_date", columns="symbol", values=col_type)
-            pivot.columns = [f"{c.lower()}_{col_type}" for c in pivot.columns]
-            for c in pivot.columns:
-                result[c] = pivot.reindex(result.index)[c]
+        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
+        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
+        for c in etf_pivot.columns:
+            result[c] = etf_pivot.reindex(result.index)[c]
 
     # CNY from FRED
     fx_query = """
@@ -338,8 +398,8 @@ def load_china_data(
     if not fx_df.empty:
         fx_df["trade_date"] = pd.to_datetime(fx_df["trade_date"])
         fx_df.set_index("trade_date", inplace=True)
-        result["usd_cny"] = (
-            fx_df["usd_cny"].reindex(result.index).ffill(limit=5)
+        result["usd_cny"] = fx_df["usd_cny"].reindex(
+            result.index
         )  # Daily cadence + 2 day buffer
 
     # BRL from FRED
@@ -353,48 +413,29 @@ def load_china_data(
     if not brl_df.empty:
         brl_df["trade_date"] = pd.to_datetime(brl_df["trade_date"])
         brl_df.set_index("trade_date", inplace=True)
-        result["fred_dexbzus"] = (
-            brl_df["fred_dexbzus"].reindex(result.index).ffill(limit=5)
+        result["fred_dexbzus"] = brl_df["fred_dexbzus"].reindex(
+            result.index
         )  # Daily cadence + 2 day buffer
 
-    # China PMI and Industrial Production from FRED
+    # China PMI from activity table
+    # NOTE: CHNPRINTO01IXPYM removed 2026-01-31 - discontinued series (822 days stale)
     china_macro_query = """
     SELECT event_date as trade_date, series_id, value
     FROM econ.activity_1d
-    WHERE series_id IN ('china_pmi', 'CHNPRINTO01IXPYM')
-    ORDER BY event_date, series_id
+    WHERE series_id = 'china_pmi'
+    ORDER BY event_date
     """
     china_macro_df = pd.read_sql(china_macro_query, conn)
     if not china_macro_df.empty:
         china_macro_df["trade_date"] = pd.to_datetime(china_macro_df["trade_date"])
-        pivot = china_macro_df.pivot(index="trade_date", columns="series_id", values="value")
-        # Rename to expected column names
-        if "china_pmi" in pivot.columns:
-            result["china_pmi"] = pivot["china_pmi"].reindex(result.index).ffill(limit=35)  # Monthly cadence
-        if "CHNPRINTO01IXPYM" in pivot.columns:
-            result["fred_chnprinto01ixpym"] = pivot["CHNPRINTO01IXPYM"].reindex(result.index).ffill(limit=35)
+        china_macro_df.set_index("trade_date", inplace=True)
+        result["china_pmi"] = china_macro_df["value"].reindex(
+            result.index
+        )  # Monthly cadence
 
     conn.close()
 
-    # DATA QUALITY: Drop sparse ETFs (coverage < 50%)
-    MIN_COVERAGE = 0.50
-    sparse_symbols = []
-    for symbol_prefix in ["bdry", "sblk"]:
-        close_col = f"{symbol_prefix}_close"
-        if close_col in result.columns:
-            coverage = result[close_col].notna().mean()
-            if coverage < MIN_COVERAGE:
-                # Drop all columns for this symbol
-                cols_to_drop = [
-                    c for c in result.columns if c.startswith(f"{symbol_prefix}_")
-                ]
-                result = result.drop(columns=cols_to_drop)
-                sparse_symbols.append(symbol_prefix.upper())
-
-    if sparse_symbols:
-        logger.info(
-            f"  Dropped sparse symbols: {', '.join(sparse_symbols)} (coverage < {MIN_COVERAGE*100:.0f}%)"
-        )
+    # ETF data quality check removed - ETFs active via Databento
 
     if start_date:
         result = result[result.index >= pd.Timestamp(start_date)]
@@ -499,7 +540,7 @@ def load_fx_data(
     ) t
     WHERE series_id IN (
         -- FX Spot Rates (major pairs)
-        'DEXBZUS', 'DEXCHUS', 'DEXMXUS', 'DEXCAUS', 'DEXUSAL', 'DEXJPUS', 'DEXKOUS',
+        'DEXBZUS', 'ARGCCUSMA02STM', 'DEXCHUS', 'DEXMXUS', 'DEXCAUS', 'DEXUSAL', 'DEXJPUS', 'DEXKOUS',
         'DEXINUS', 'DEXMAUS', 'DEXTAUS', 'DEXTHUS', 'DEXSIUS', 'DEXHKUS',
         'DEXUSEU', 'DEXUSUK', 'DEXSFUS', 'DEXNOUS', 'DEXSZUS',
         -- Dollar Indices
@@ -522,7 +563,7 @@ def load_fx_data(
         fred_df["trade_date"] = pd.to_datetime(fred_df["trade_date"])
         pivot = fred_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)  # Daily cadence + 2 day buffer
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
@@ -576,7 +617,9 @@ def load_fx_data(
                     index="trade_date", columns="symbol", values=col_type
                 )
                 # Name columns: fx_6e_close, fx_6e_volume, etc.
-                pivot.columns = [f"fx_{sym.lower()}_{col_type}" for sym in pivot.columns]
+                pivot.columns = [
+                    f"fx_{sym.lower()}_{col_type}" for sym in pivot.columns
+                ]
                 # NO FFILL - raw data only
                 for c in pivot.columns:
                     result[c] = pivot.reindex(result.index)[c]
@@ -674,7 +717,9 @@ def load_fed_data(
     inflation_df = pd.read_sql(inflation_query, conn)
     if not inflation_df.empty:
         inflation_df["trade_date"] = pd.to_datetime(inflation_df["trade_date"])
-        pivot = inflation_df.pivot(index="trade_date", columns="series_id", values="value")
+        pivot = inflation_df.pivot(
+            index="trade_date", columns="series_id", values="value"
+        )
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
         # NO FFILL - raw data only
         for c in pivot.columns:
@@ -708,7 +753,9 @@ def load_fed_data(
         # Log weekly series coverage (expected to be ~20% for weekly data)
         if "fred_nfci" in result.columns:
             nfci_coverage = result["fred_nfci"].notna().sum() / len(result) * 100
-            logger.info(f"  NFCI coverage: {nfci_coverage:.1f}% (weekly release - expected ~20%)")
+            logger.info(
+                f"  NFCI coverage: {nfci_coverage:.1f}% (weekly release - expected ~20%)"
+            )
 
     conn.close()
 
@@ -724,9 +771,15 @@ def load_fed_data(
             result[col] = news_df.reindex(result.index)[col]
 
     # Log final data quality summary
-    rate_cols = [c for c in result.columns if c.startswith("fred_dgs") or c == "fred_dff"]
-    inflation_cols = [c for c in result.columns if "yie" in c or "dfii" in c or "yifr" in c]
-    vol_cols = [c for c in result.columns if "nfci" in c or "baml" in c or "stlfsi" in c]
+    rate_cols = [
+        c for c in result.columns if c.startswith("fred_dgs") or c == "fred_dff"
+    ]
+    inflation_cols = [
+        c for c in result.columns if "yie" in c or "dfii" in c or "yifr" in c
+    ]
+    vol_cols = [
+        c for c in result.columns if "nfci" in c or "baml" in c or "stlfsi" in c
+    ]
 
     logger.info(f"FED data: {len(result)} rows, {len(result.columns)} columns")
     logger.info(f"  Rates: {len(rate_cols)} series")
@@ -807,7 +860,26 @@ def load_volatility_data(
             if series in result.columns:
                 coverage = result[series].notna().sum() / len(result) * 100
                 last_valid = result[series].last_valid_index()
-                logger.debug(f"  {series}: {coverage:.1f}% coverage, last: {last_valid}")
+                logger.debug(
+                    f"  {series}: {coverage:.1f}% coverage, last: {last_valid}"
+                )
+
+    # ==========================================================================
+    # ETFs (Databento): GLD, SLV for precious metals regime
+    # ==========================================================================
+    etf_query = """
+    SELECT event_date as trade_date, symbol, close
+    FROM mkt.etf_1d
+    WHERE symbol IN ('GLD', 'SLV')
+    ORDER BY event_date, symbol
+    """
+    etf_df = pd.read_sql(etf_query, conn)
+    if not etf_df.empty:
+        etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
+        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
+        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
+        for c in etf_pivot.columns:
+            result[c] = etf_pivot.reindex(result.index)[c]
 
     conn.close()
 
@@ -874,12 +946,12 @@ def load_substitutes_data(
         comm_df["trade_date"] = pd.to_datetime(comm_df["trade_date"])
         pivot = comm_df.pivot(index="trade_date", columns="series_id", values="value")
         if "PSUNOUSDM" in pivot.columns:
-            result["sunflower_close"] = (
-                pivot["PSUNOUSDM"].reindex(result.index).ffill(limit=35)
+            result["sunflower_close"] = pivot["PSUNOUSDM"].reindex(
+                result.index
             )  # Monthly cadence + 5 day buffer
         if "PROILUSDM" in pivot.columns:
-            result["rapeseed_close"] = (
-                pivot["PROILUSDM"].reindex(result.index).ffill(limit=35)
+            result["rapeseed_close"] = pivot["PROILUSDM"].reindex(
+                result.index
             )  # Monthly cadence + 5 day buffer
 
     conn.close()
@@ -943,7 +1015,7 @@ def load_palm_data(
         fx_df["trade_date"] = pd.to_datetime(fx_df["trade_date"])
         pivot = fx_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)  # Daily cadence + 2 day buffer
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
@@ -974,11 +1046,11 @@ def load_biofuel_data(
     """
     conn = get_connection()
 
-    # Futures: ZL, HO
+    # Futures: ZL, HO, CL, RB, ZC, ETH, ZM (CME energy/ag for RIN pressure index)
     query = """
     SELECT event_date as trade_date, symbol, open, high, low, close, volume
     FROM mkt.futures_1d
-    WHERE symbol IN ('ZL', 'HO', 'CL', 'ZM')
+    WHERE symbol IN ('ZL', 'HO', 'CL', 'RB', 'ZC', 'ETH', 'ZM')
     ORDER BY event_date, symbol
     """
     df = pd.read_sql(query, conn)
@@ -1003,13 +1075,68 @@ def load_biofuel_data(
     ORDER BY event_date, rin_type
     """
     rin_df = pd.read_sql(rin_query, conn)
+    rin_max_date = None
     if not rin_df.empty:
         rin_df["trade_date"] = pd.to_datetime(rin_df["trade_date"])
+        rin_max_date = rin_df["trade_date"].max()
         pivot = rin_df.pivot(index="trade_date", columns="rin_type", values="price")
         pivot.columns = [f"rin_{c.lower()}_price" for c in pivot.columns]
-        pivot = pivot.ffill(limit=14)  # Weekly cadence + 7 day buffer
+        # No forward-fill (policy). Track last observation dates for staleness.
         for c in pivot.columns:
-            result[c] = pivot.reindex(result.index)[c]
+            series = pivot.reindex(result.index)[c]
+            result[c] = series
+            last_obs = pd.Series(pd.NaT, index=result.index)
+            last_obs.loc[series.notna()] = series.index[series.notna()]
+            result[f"{c}_last_obs"] = last_obs.ffill()
+
+    # Daily RIN pressure index (CME energy/ag complex) - no new cost, Databento inputs
+    # Always computed. When EPA fresh: specialist blends EPA + index (stronger signal). When EPA stale: index only.
+    today = pd.Timestamp.now().normalize()
+    rin_staleness = (today - rin_max_date).days if rin_max_date else 999
+    win = 63
+    min_periods = 30
+
+    def _zscore(series: pd.Series) -> pd.Series:
+        m = series.rolling(win, min_periods=min_periods).mean()
+        s = series.rolling(win, min_periods=min_periods).std()
+        return (series - m) / s
+
+    components = []
+    # 1) Biodiesel pressure: ZL (feedstock) vs HO (diesel proxy)
+    if "zl_close" in result.columns and "ho_close" in result.columns:
+        bd_margin = result["zl_close"] - result["ho_close"]
+        result["biodiesel_margin_proxy"] = bd_margin
+        components.append(("biodiesel", _zscore(bd_margin)))
+    # 2) Ethanol pressure: ETH vs ZC (corn) - D6 RIN
+    if "eth_close" in result.columns and "zc_close" in result.columns:
+        eth_z = _zscore(result["eth_close"])
+        zc_z = _zscore(result["zc_close"])
+        components.append(("ethanol", eth_z - zc_z))  # high ethanol vs corn = margin up
+    # 3) Crack/energy: 3-2-1 style (2*HO + RB - 3*CL) - refining margin
+    if (
+        "ho_close" in result.columns
+        and "rb_close" in result.columns
+        and "cl_close" in result.columns
+    ):
+        crack = 2 * result["ho_close"] + result["rb_close"] - 3 * result["cl_close"]
+        components.append(("crack", _zscore(crack)))
+
+    if components:
+        # Equal-weight composite (NaN-safe: only average available)
+        rin_index = pd.DataFrame({n: c for n, c in components}).mean(axis=1)
+        result["rin_pressure_index"] = rin_index
+        result["rin_pressure_index_zscore"] = _zscore(rin_index)
+        logger.info(
+            f"  RIN pressure index: {len(components)} components ({', '.join(n for n, _ in components)}), "
+            f"{rin_index.notna().sum()} days"
+        )
+
+    # When EPA RIN is beyond one monthly cycle (45d), specialist uses daily RIN pressure index
+    # EPA = weekly series updated monthly; TTL 45d (see RIN_DATA_CONTRACT.md)
+    if rin_staleness > 45 and "rin_pressure_index_zscore" in result.columns:
+        logger.warning(
+            f"RIN data beyond EPA cycle ({rin_staleness}d); using daily RIN pressure index (EPA remains anchor when fresh)"
+        )
 
     # LCFS
     lcfs_query = """
@@ -1022,9 +1149,14 @@ def load_biofuel_data(
         if not lcfs_df.empty:
             lcfs_df["trade_date"] = pd.to_datetime(lcfs_df["trade_date"])
             lcfs_df.set_index("trade_date", inplace=True)
-            result["lcfs_credit"] = (
-                lcfs_df["lcfs_credit"].reindex(result.index).ffill(limit=14)
-            )  # Weekly cadence + 7 day buffer
+            # No forward-fill (policy). Track last observation dates for staleness.
+            lcfs_series = lcfs_df["lcfs_credit"].reindex(result.index)
+            result["lcfs_credit"] = lcfs_series
+            lcfs_last_obs = pd.Series(pd.NaT, index=result.index)
+            lcfs_last_obs.loc[lcfs_series.notna()] = lcfs_series.index[
+                lcfs_series.notna()
+            ]
+            result["lcfs_credit_last_obs"] = lcfs_last_obs.ffill()
     except Exception as e:
         logger.warning(f"LCFS data unavailable: {e}")
         result["lcfs_credit"] = np.nan  # Explicit NaN, not silent skip
@@ -1079,7 +1211,7 @@ def load_tariff_data(
         epu_df["trade_date"] = pd.to_datetime(epu_df["trade_date"])
         pivot = epu_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)  # Daily cadence + 2 day buffer
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
@@ -1094,8 +1226,8 @@ def load_tariff_data(
     if not china_df.empty:
         china_df["trade_date"] = pd.to_datetime(china_df["trade_date"])
         china_df.set_index("trade_date", inplace=True)
-        result["fred_chnmainlandtpu"] = (
-            china_df["value"].reindex(result.index).ffill(limit=5)
+        result["fred_chnmainlandtpu"] = china_df["value"].reindex(
+            result.index
         )  # Daily cadence + 2 day buffer
 
     conn.close()
@@ -1171,25 +1303,21 @@ def load_trump_effect_data(
             pass  # Skip if column doesn't exist
 
     # ==========================================================================
-    # 2. ETFs: FXI, KWEB, VXX, UUP, MCHI
+    # 2. ETFs (Databento): FXI, KWEB, MCHI, UUP, SPY, QQQ
     # ==========================================================================
     etf_query = """
-    SELECT event_date as trade_date, symbol, open, high, low, close, volume
+    SELECT event_date as trade_date, symbol, close
     FROM mkt.etf_1d
-    WHERE symbol IN ('FXI', 'KWEB', 'VXX', 'UVXY', 'UUP', 'MCHI', 'SPY', 'QQQ')
+    WHERE symbol IN ('FXI', 'KWEB', 'MCHI', 'UUP', 'SPY', 'QQQ')
     ORDER BY event_date, symbol
     """
     etf_df = pd.read_sql(etf_query, conn)
     if not etf_df.empty:
         etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
-        for col_type in ["close", "open", "high", "low", "volume"]:
-            try:
-                pivot = etf_df.pivot(index="trade_date", columns="symbol", values=col_type)
-                pivot.columns = [f"{c.lower()}_{col_type}" for c in pivot.columns]
-                for c in pivot.columns:
-                    result[c] = pivot.reindex(result.index)[c]
-            except Exception:
-                pass
+        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
+        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
+        for c in etf_pivot.columns:
+            result[c] = etf_pivot.reindex(result.index)[c]
 
     # ==========================================================================
     # 3. Volatility + Uncertainty + Financial Conditions (ALL INDICES)
@@ -1210,7 +1338,7 @@ def load_trump_effect_data(
         vol_df["trade_date"] = pd.to_datetime(vol_df["trade_date"])
         pivot = vol_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
@@ -1231,18 +1359,18 @@ def load_trump_effect_data(
         rates_df["trade_date"] = pd.to_datetime(rates_df["trade_date"])
         pivot = rates_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 5. FX Rates + Dollar Indices: All major USD pairs + DXY variants
+    # 5. FX Rates + Dollar Indices: All major USD pairs + trade-weighted USD indices
     # ==========================================================================
     fx_query = """
     SELECT event_date as trade_date, series_id, value
     FROM econ.rates_1d
     WHERE series_id IN (
-        'DEXBZUS', 'DEXMXUS', 'DEXCHUS', 'DEXJPUS', 'DEXUSEU',
+        'DEXBZUS', 'ARGCCUSMA02STM', 'DEXMXUS', 'DEXCHUS', 'DEXJPUS', 'DEXUSEU',
         'DEXCAUS', 'DEXKOUS', 'DEXTAUS', 'DEXINUS',
         'DTWEXAFEGS', 'DTWEXBGS', 'DTWEXEMEGS'
     )
@@ -1254,23 +1382,32 @@ def load_trump_effect_data(
         pivot = fx_df.pivot(index="trade_date", columns="series_id", values="value")
         # Map to friendly names
         rename_map = {
-            "DEXBZUS": "usd_brl", "DEXMXUS": "usd_mxn", "DEXCHUS": "usd_cny",
-            "DEXJPUS": "usd_jpy", "DEXUSEU": "eur_usd", "DEXCAUS": "usd_cad",
-            "DEXKOUS": "usd_krw", "DEXTAUS": "usd_twd", "DEXINUS": "usd_inr",
-            "DTWEXAFEGS": "dxy_afe", "DTWEXBGS": "dxy_broad", "DTWEXEMEGS": "dxy_eme"
+            "DEXBZUS": "usd_brl",
+            "ARGCCUSMA02STM": "usd_ars",
+            "DEXMXUS": "usd_mxn",
+            "DEXCHUS": "usd_cny",
+            "DEXJPUS": "usd_jpy",
+            "DEXUSEU": "eur_usd",
+            "DEXCAUS": "usd_cad",
+            "DEXKOUS": "usd_krw",
+            "DEXTAUS": "usd_twd",
+            "DEXINUS": "usd_inr",
+            "DTWEXAFEGS": "dxy_afe",
+            "DTWEXBGS": "dxy_broad",
+            "DTWEXEMEGS": "dxy_eme",
         }
         pivot.columns = [rename_map.get(c, f"fred_{c.lower()}") for c in pivot.columns]
-        pivot = pivot.ffill(limit=5)
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 6. China Activity/Trade Policy + DXY (ICE)
+    # 6. China Activity/Trade Policy
     # ==========================================================================
     china_query = """
     SELECT event_date as trade_date, series_id, value
     FROM econ.activity_1d
-    WHERE series_id IN ('CHNMAINLANDTPU', 'EXPCH', 'IMPCH', 'china_pmi', 'DXY')
+    WHERE series_id IN ('CHNMAINLANDTPU', 'EXPCH', 'IMPCH', 'china_pmi')
     ORDER BY event_date, series_id
     """
     china_df = pd.read_sql(china_query, conn)
@@ -1278,7 +1415,7 @@ def load_trump_effect_data(
         china_df["trade_date"] = pd.to_datetime(china_df["trade_date"])
         pivot = china_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
-        pivot = pivot.ffill(limit=30)  # Monthly data needs longer ffill
+        # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
 
@@ -1321,8 +1458,13 @@ def load_trump_effect_data(
         greeks_df["trade_date"] = pd.to_datetime(greeks_df["trade_date"])
         for metric in ["avg_iv", "avg_delta", "avg_skew"]:
             try:
-                pivot = greeks_df.pivot(index="trade_date", columns="underlying", values=metric)
-                pivot.columns = [f"{c.lower()}_opt_{metric.replace('avg_', '')}" for c in pivot.columns]
+                pivot = greeks_df.pivot(
+                    index="trade_date", columns="underlying", values=metric
+                )
+                pivot.columns = [
+                    f"{c.lower()}_opt_{metric.replace('avg_', '')}"
+                    for c in pivot.columns
+                ]
                 for c in pivot.columns:
                     result[c] = pivot.reindex(result.index)[c]
             except Exception:
@@ -1365,14 +1507,15 @@ def load_trump_effect_data(
         for _, row in tariff_df.iterrows():
             deadline = pd.to_datetime(row["deadline_date"])
             # Mark days leading up to deadline
-            mask = (result.index <= deadline) & (result.index >= deadline - pd.Timedelta(days=90))
+            mask = (result.index <= deadline) & (
+                result.index >= deadline - pd.Timedelta(days=90)
+            )
             result.loc[mask, "tariff_deadline_count"] += 1
             renewal_prob = row.get("renewal_probability")
             if renewal_prob is None:
                 renewal_prob = 0.5
             result.loc[mask, "tariff_renewal_risk"] = max(
-                result.loc[mask, "tariff_renewal_risk"].max(),
-                float(renewal_prob)
+                result.loc[mask, "tariff_renewal_risk"].max(), float(renewal_prob)
             )
 
     conn.close()
@@ -1388,7 +1531,9 @@ def load_trump_effect_data(
         for col in news_df.columns:
             result[col] = news_df.reindex(result.index)[col]
 
-    logger.info(f"TRUMP_EFFECT data (THICK): {len(result)} rows, {len(result.columns)} columns")
+    logger.info(
+        f"TRUMP_EFFECT data (THICK): {len(result)} rows, {len(result.columns)} columns"
+    )
     return result
 
 
