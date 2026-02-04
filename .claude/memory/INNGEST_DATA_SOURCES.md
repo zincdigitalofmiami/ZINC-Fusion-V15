@@ -1,5 +1,7 @@
 NOTE: Production is the dashboard/frontend, not the repo root.
 # INNGEST DATA SOURCES MIGRATION
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 **Last Updated:** 2026-01-18 (Institutional Schema Migration)
 

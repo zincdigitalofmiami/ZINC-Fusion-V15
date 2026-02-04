@@ -25,7 +25,7 @@ Specialists are **unaffected** by the Core CPU-only policy.
 | **substitutes** | `SubstitutesSignalGenerator` | `xgb_signals.py` | `rf` | RandomForestRegressor |
 | **fx** | `FxSignalGenerator` | `ardl_signals.py` | `ardl` | statsmodels ARDL |
 | **fed** | `FedSignalGenerator` | `ardl_signals.py` | `ridge` | Weighted z-score composite (ridge-style) |
-| **volatility** | `VolatilitySignalGenerator` | `garch_signals.py` | `garch` | GJR-GARCH(1,1) Student-t |
+| **volatility** | `VolatilitySignalGenerator` | `garch_signals.py` | `regime_classifier` | Discrete regime state (0-3) via GARCH |
 | **energy** | `EnergySignalGenerator` | `var_signals.py` | `var` | statsmodels VAR + IRF |
 | **palm** | `PalmSignalGenerator` | `ecm_signals.py` | `ecm` | ECM cointegration + Ridge |
 | **tariff** | `TariffSignalGenerator` | `event_signals.py` | `tree` | Rules-based (EPU thresholds) |
@@ -125,12 +125,17 @@ Specialists are **unaffected** by the Core CPU-only policy.
 - Model: Error Correction Model for cointegration + Ridge for prediction
 - Persistence: `models/specialists/palm/model.joblib`
 
-### Group C: Volatility Models
+### Group C: Regime Classifiers
 
-**VOLATILITY** - GJR-GARCH (garch_signals.py)
-- Purpose: Regime risk and variance shifts
-- Signal 1: Volatility regime level (0-3: low/normal/high/crisis)
-- Signal 2: Regime shift probability
+**VOLATILITY** - Regime State Classifier (garch_signals.py)
+- Purpose: Discrete volatility regime identification
+- **Signal Type**: `discrete_regime` (NOT continuous forecast)
+- Signal 1: Regime state (INTEGER 0, 1, 2, or 3)
+  - 0: Low volatility (zscore < -1)
+  - 1: Normal volatility (-1 <= zscore < 1)
+  - 2: High volatility (1 <= zscore < 2)
+  - 3: Crisis volatility (zscore >= 2)
+- Signal 2: Regime transition probability (0.0-1.0)
 - Features:
   - ZL realized volatility (21-day rolling, annualized)
   - VIX spot (30-day implied)
@@ -139,8 +144,10 @@ Specialists are **unaffected** by the Core CPU-only policy.
   - OVX (oil volatility), GVZ (gold volatility)
   - VVIX (vol of vol)
 - Backwardation Detection: VIX > VIX3M triggers crisis regime boost
-- Model: GJR-GARCH(1,1) with Student-t errors (asymmetric volatility)
+- Model: GJR-GARCH(1,1) internally for z-score → regime classification
 - Lookback: 504 days (2 years) for GARCH stability
+- **Health Metrics**: Use transition_rate, state_entropy (NOT max_run)
+- *(PATCHED 2026-01-31: Reclassified as discrete_regime)*
 
 ### Group D: Event-Based Models (event_signals.py)
 
@@ -244,5 +251,6 @@ models/specialists/
 
 ---
 
-*Last updated: 2026-01-24*
+*Last updated: 2026-01-31*
 *Verified from actual implementation code*
+*VOLATILITY reclassified as discrete_regime (not continuous GARCH forecast)*

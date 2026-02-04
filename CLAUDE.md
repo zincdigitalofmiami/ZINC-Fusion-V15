@@ -5,6 +5,8 @@ alwaysApply: true
 ---
 
 # ZINC-FUSION-V15 — Claude Instructions (Repo Rules)
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 This repository has strict governance. Treat `AGENTS.md` as the primary source of truth for operating rules.
 
@@ -15,6 +17,10 @@ This repository has strict governance. Treat `AGENTS.md` as the primary source o
 - You always prioritize accuracy over speed.
 - Speed and pleasing the user is not your objective.
 - **NEVER write code in chat responses unless explicitly asked.** No code snippets, no examples, no "here's what you could do" blocks. Discuss, plan, and get approval first. Only write code to files when approved.
+
+## Ray Cluster (22 cores available)
+
+**Your AI agents can use `ray.init(address='auto')` and get 22 cores without melting your machine.**
 
 ## Database Architecture (CRITICAL)
 

@@ -76,6 +76,12 @@ These are absolute prohibitions. No exceptions.
 6. THEN edit
 ```
 
+### Directive Scope (Global by Default)
+
+- When the user issues a directive like “turn on X,” interpret it as system‑wide by default.
+- Apply it across all relevant layers (data loaders, matrix build, validation, jobs) unless the user explicitly carves out exceptions.
+- Do not silently scope it to a subset; partial compliance is a violation.
+
 ### Never Edit Without Approval
 - `prisma/schema.prisma`
 - Any config file
@@ -184,160 +190,165 @@ These are NOT generic AutoGluon fits. Each was meticulously crafted for its doma
 
 ## 7. Forward Fill Policy (LOCKED)
 
-Forward fill is **OFF by default**. Any use requires explicit approval and strict adherence to these guardrails.
+What “forward fills” are (a precise definition)
 
-### What Forward Fill Is
+Forward fill (a.k.a. “carry-forward,” “last observation carried forward,” LOCF) is a time-series imputation rule:
 
-Forward fill (carry-forward, LOCF) is a time-series imputation rule:
-If a value is missing at time t, replace it with the most recent observed value from t′ < t.
+If a value is missing at time t, replace it with the most recent observed value from some earlier time t′ < t.
 
-Formally:
-```
-x̃_t = x_t       if x_t observed
-x̃_t = x̃_{t-1}   if x_t missing
-```
+Formally, for a series x_t with missing entries,
+\tilde{x}_t =
+\begin{cases}
+ x_t & \text{if } x_t \text{ observed}\\
+ \tilde{x}_{t-1} & \text{if } x_t \text{ missing}
+\end{cases}
+(optionally bounded by a max “age” / TTL, e.g., only carry forward up to 30 days).
 
-Optionally bounded by a max "age" / TTL (e.g., carry forward up to 30 days only).
+Typical examples:
+	•	Monthly CPI “filled” across all business days until the next CPI print.
+	•	Fundamentals reported quarterly carried forward daily.
+	•	A sensor that drops out for 3 hours.
 
-### How Forward Fill HELPS Modeling
+⸻
 
-1. **Makes mixed-frequency data usable**
-   Most ML pipelines want a rectangular daily matrix. Macro series are often weekly/monthly/quarterly. Forward fill lets you join them to daily targets without losing rows.
+How forward fills help modeling
 
-2. **Reduces spurious missingness from data plumbing**
-   Missingness is often a pipeline artifact (API gaps, late ingestion, holiday alignment). Forward fill prevents the model from learning "missingness = signal" when it's just ETL noise.
+1) Makes mixed-frequency data usable
 
-3. **Works well for state variables**
-   If the variable is plausibly "sticky" (policy rate between meetings, regulatory regime, contract specs), carry-forward is a reasonable approximation of the latent state.
+Most ML pipelines want a rectangular daily matrix. Macro/fundamental series are often weekly/monthly/quarterly. Forward fill lets you join them to daily targets without losing most rows.
 
-4. **Stabilizes downstream transforms**
-   Many features (ratios, z-scores, rolling windows) break or become noisy with gaps. Forward fill keeps computations well-defined.
+Benefit: you keep sample size and can incorporate slow-moving drivers.
 
-### How Forward Fill HURTS Modeling (Failure Modes)
+2) Reduces spurious missingness from data plumbing
 
-1. **Creates fake high-frequency signal**
-   Forward filling a monthly series to daily creates step functions: constant for ~20 trading days, then a jump.
-   - Artificially inflates correlation with daily targets
-   - Rolling vol/momentum becomes a calendar artifact, not economics
+Missingness is often a pipeline artifact (API gaps, late ingestion, holiday/weekend alignment). Forward fill can prevent the model from learning “missingness = something” when it’s just ETL noise.
 
-2. **Information leakage if you fill from revised/late data**
-   If you forward fill the latest revised value across days where it wasn't known yet, you leak future information.
-   - Leakage is the fastest way to get a model that backtests great and fails live.
+3) Works well for state variables
 
-3. **Masks staleness (models silently run on old info)**
-   Forward fill makes the matrix look "complete," but the feature may be 45 days old.
-   - Validation gates checking "≥95% non-null" are fooled
-   - The model treats stale values as current
+If the variable is plausibly “sticky” (policy rate target between meetings, regulatory regime, contract specs), carry-forward is a reasonable approximation of the latent state.
 
-4. **Induces regime-dependent bias**
-   When volatility changes, stale carried values become actively misleading.
-   Example: a risk index updated weekly carried through a crisis week — your "risk" feature doesn't move while the market does.
+4) Stabilizes downstream transforms
 
-5. **Interacts badly with regularization / tree splits**
-   - Linear models: repeated constants make coefficients appear stable when they're picking up mean shifts at release dates
-   - Trees/GBMs: learn splits that detect "pre/post release window" rather than the underlying effect
+Many features (ratios, z-scores, rolling windows) break or become noisy with gaps. Forward fill can keep computations well-defined and reduce variance from sparse updates.
 
-### The Right Mental Model
+⸻
 
-Forward fill says: "Between prints, the true state stays constant."
-Sometimes acceptable (policy target), often wrong (prices, fast-moving demand).
+How forward fills hurt modeling (the failure modes that actually matter)
 
-The question is not "Is forward fill good?" It's:
-- Is the variable conceptually a state that persists?
-- Do you control "as-of" and staleness?
-- Are you extracting features invariant to the step-function artifact?
+1) Creates fake high-frequency signal
 
-### Guardrails (MANDATORY If Forward Filling)
+Forward filling a monthly series to daily creates step functions: constant for ~20 trading days, then a jump. That can:
+	•	Artificially inflate correlation with daily targets (especially if target also has autocorrelation).
+	•	Produce misleading “momentum” or “volatility” features that collapse to zero within the month.
 
-#### A) TTL on Fills (Max Age)
+Classic pathology:
+Monthly value forward-filled daily → daily returns of that series are 0 for 19 days, then one big move → rolling vol / momentum becomes a calendar artifact, not economics.
 
-Only carry forward up to a maximum horizon tied to the variable's cadence:
+2) Information leakage if you fill from revised/late data
 
-| Cadence | TTL |
-|---------|-----|
-| Daily series | 3–5 days |
-| Weekly | 10–14 days |
-| Monthly | 45–60 days |
-| Quarterly | 120–150 days |
+If you forward fill the latest revised value backward across days where it wasn’t known yet, you leak future information.
 
-After TTL, set missing again (or abstain). Don't pretend it's current.
+This happens when:
+	•	You use a series without as-of timestamps / vintage control.
+	•	You “align by date” but ignore the actual release time and later revisions.
 
-**Weekend/holiday carve-out:** Standard market closures don't count toward TTL for market-aligned series (prices, volumes). TTL measures *unexpected* gaps beyond normal cadence.
+Leakage is one of the fastest ways to get a model that backtests great and fails live.
 
-#### B) Never Use Backward Fill
+3) Masks staleness (models silently run on old info)
 
-Backward fill (bfill) is **PROHIBITED**. It leaks future information by definition.
+Forward fill makes the matrix look “complete,” but the feature may be 45 days old. That produces two problems:
+	•	The model treats stale values as current.
+	•	Validation gates that check “non-null coverage” are fooled.
 
-#### C) Add "Age Since Last Observation" as Feature or Gate
+This is why “≥95% non-null” can be meaningless: forward fill can turn a dead series into a perfectly filled one.
+
+4) Induces regime-dependent bias
+
+When volatility changes, stale carried values become actively misleading. Example: a risk index updated weekly carried through a crisis week—your “risk” feature does not move while the market does.
+
+5) Interacts badly with regularization / tree splits
+	•	Linear models: repeated constants can make coefficients appear stable/strong when they’re just picking up mean shifts at release dates.
+	•	Trees/GBMs: can learn splits that effectively detect “pre/post release window” rather than the underlying economic effect.
+
+⸻
+
+The right mental model: forward fill is a piecewise-constant latent state assumption
+
+Forward fill says: “Between prints, the true state stays constant.”
+Sometimes that’s acceptable (policy target), often it’s wrong (prices, fast-moving latent demand).
+
+So the question is not “Is forward fill good?” It’s:
+	•	Is the variable conceptually a state that persists?
+	•	Do you control “as-of” and staleness?
+	•	Are you extracting features that are invariant to the step-function artifact?
+
+⸻
+
+Practical guardrails (what to do if you must forward fill)
+
+A) Put a TTL on fills (max age)
+
+Only carry forward up to a maximum horizon tied to the variable’s cadence.
+	•	Daily series: TTL maybe 3–5 days (ETL tolerance)
+	•	Weekly: TTL maybe 10–14 days
+	•	Monthly: TTL maybe 45–60 days
+	•	Quarterly: TTL maybe 120–150 days
+
+After TTL, set missing again (or abstain), don’t pretend it’s current.
+
+B) Add “age since last observation” as a feature (or gate)
 
 Create:
-- `age_days = t - last_observed_date`
-- `is_stale = age_days > threshold`
+	•	age_days = t - last_observed_date
+	•	is_stale = age_days > threshold
 
 Then either:
-- Gate it (abstain / drop row / drop feature contribution), or
-- Let the model learn that stale values are less informative
+	•	Gate it (abstain / drop row / drop feature contribution), or
+	•	Let the model learn that stale values are less informative.
 
-#### D) Use Event Encoding for Low-Frequency Fundamentals
+C) Use event encoding for truly low-frequency fundamentals
 
 Instead of forward-filling the level daily, encode release events:
-- `release_today` (0/1)
-- `surprise = actual - expected`
-- `delta = actual - prior`
-- `days_since_release`
-- `direction` / bucketed surprise
+	•	release_today (0/1)
+	•	surprise = actual - expected
+	•	delta = actual - prior
+	•	days_since_release
+	•	direction / bucketed surprise
 
-This avoids fake daily dynamics while injecting information when it arrives.
+This avoids fake daily dynamics while still injecting information when it arrives.
 
-#### E) Enforce As-Of Correctness
+D) Enforce “as-of” correctness
 
-If you don't have vintage/as-of timestamps, forward fill is dangerous.
-- Join by knowledge time (what was known when), not by event date
-- If you can't, treat the feature as suspect and cap its influence
+If you don’t have vintage/as-of timestamps, forward fill is dangerous. The correct approach is:
+	•	Join by knowledge time (what was known when), not by event date.
+	•	If you can’t, treat the feature as suspect and cap its influence.
 
-### When Forward Fill Is Usually OK vs Usually Wrong
+⸻
 
-**Usually OK:**
-- Policy targets between meetings
-- Contract specs, static metadata
-- Slowly changing fundamentals if you model them as states and track staleness
+When forward fill is usually OK vs usually wrong
 
-**Usually Wrong:**
-- Anything that should move daily (prices, spreads, vol)
-- Macro series used to compute daily "momentum/volatility"
-- Any series with revisions, if you lack as-of/vintage control
+Usually OK
+	•	Policy targets between meetings
+	•	Contract specs, static metadata
+	•	Slowly changing fundamentals if you model them as states and track staleness
 
-### Operationalizable Rule
+Usually wrong
+	•	Anything that should move daily (prices, spreads, vol)
+	•	Macro series used to compute daily “momentum/volatility”
+	•	Any series with revisions, if you lack as-of/vintage control
 
-If a feature is forward-filled, compliance is mandatory:
+⸻
 
-**REQUIRED:**
-- TTL + staleness gate exists
-- As-of alignment (no leakage)
+Rule you can operationalize
 
-**CHOOSE ONE:**
-- Do not compute high-frequency transforms on the filled series, OR
-- Use event encoding instead of level-as-daily truth
+If a feature is forward-filled, one of these must be true, or you’re building a trap:
+	1.	TTL + staleness gate exists, AND
+	2.	You don’t compute high-frequency transforms that assume real daily movement, AND/OR
+	3.	You use event encoding rather than level-as-daily truth, AND
+	4.	You prevent leakage with as-of alignment.
 
-### Before Adding Forward Fill to a New Series, Answer:
-- Is it a state variable (policy, regime) or a flow variable (prices, flows)?
-- What's the appropriate TTL given its native cadence?
-- Will you compute high-freq transforms on it?
-- Do you have as-of/vintage control?
+If you tell me the kinds of series you’re forward-filling (macro prints, fundamentals, news sentiment, etc.) and the target cadence (1d/1h), I’ll classify which ones should be event-encoded vs TTL-forward-filled and what the gating thresholds should be.
 
-### Codebase Enforcement
-
-Primary enforcement points:
-- `src/fusion/specialists/data_loaders.py` (forward-fill handling, `_last_obs` tracking)
-- `src/fusion/specialists/*_signals.py` (staleness gates, `max_input_age_days`, abstain logic)
-- `scripts/validate_specialist_readiness.py` (coverage/staleness health checks)
-
-### Monitoring & Alerting
-
-- When a critical series exceeds 1.5× TTL: emit warning to ops/monitoring
-- At 2× TTL: consider abstaining from inference rather than using stale values
-
----
 
 ## 8. Change Authority Matrix
 

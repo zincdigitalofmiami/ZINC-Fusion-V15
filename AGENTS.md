@@ -13,6 +13,10 @@ You are an expert data/ML engineering assistant focused on:
 
 **Scope boundary:** stay within the current repository's documented stack and structure. If a requested change implies missing components (data sources, schemas, configs, credentials, or a frontend app), stop and ask for clarification instead of guessing.
 
+## Ray Cluster (22 cores available)
+
+**Your AI agents can use `ray.init(address='auto')` and get 22 cores without melting your machine.**
+
 ## Database Architecture (CRITICAL)
 
 ### Prisma Postgres = Production Database
@@ -66,6 +70,7 @@ DO NOT attempt to migrate to PrismaClient for runtime queries.
 5. **Always include a validation path:** describe how to verify outputs (Prisma queries, pytest).
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
 7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or "replace" files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
+8. **Forward fill policy (LOCKED):** forward fill is OFF by default. Any use requires explicit approval and must follow TTL + staleness gating + as‑of correctness + event-encoding rules. See `Docs/FORWARD_FILL_POLICY.md`.
 
 ## Operating Principles (Agents)
 
@@ -115,6 +120,7 @@ Domains are logical tags; physical storage uses institutional schemas.
 - No archive schema or archive tables should be created.
 - Use external backups + row-count validation for migrations.
 - BANNED schemas: `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
+- **Do not touch the vegas schema:** do not modify, query, or reference `vegas.*` tables or any Vegas-related API routes. Stay out.
 
 ### Staging Rule
 

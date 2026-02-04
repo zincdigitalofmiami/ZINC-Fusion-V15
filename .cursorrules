@@ -1,5 +1,8 @@
 # ZINC-FUSION-V15 Cursor Rules (Augment-Optimized)
 
+## Ray Cluster (22 cores)
+**Your AI agents can use `ray.init(address='auto')` and get 22 cores without melting your machine.**
+
 ## MANDATORY: Planning Phase (Before ANY Implementation)
 
 ### Planning Gate (Non-Negotiable)

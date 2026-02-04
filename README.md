@@ -1,5 +1,7 @@
 NOTE: Production is the dashboard/frontend, not the repo root.
 # ZINC Fusion V15 - Soybean Oil Procurement Forecasting
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 **Institutional-grade quantitative forecasting system for US Oil Solutions**
 

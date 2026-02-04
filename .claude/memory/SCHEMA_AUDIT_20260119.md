@@ -1,5 +1,7 @@
 NOTE: Production is the dashboard/frontend, not the repo root.
 # Schema Audit Report - 2026-01-19
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 ## Executive Summary
 
