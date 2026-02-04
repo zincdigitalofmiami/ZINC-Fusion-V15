@@ -57,7 +57,106 @@ from .config import DATABASE_URL, TARGET_SYMBOL, HORIZONS, FeatureMatrixConfig a
 from .matrix_manifest import write_manifest, check_schema_drift
 from .matrix_validation import validate_matrix, ValidationResult
 
+# Forward fill configuration
+try:
+    from fusion.config.forward_fill_config import get_ttl_days, FRED_CONFIG
+except ImportError:
+    # Fallback defaults if config not available
+    get_ttl_days = lambda x: 5  # noqa: E731
+    FRED_CONFIG = {}
+
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# TTL-BOUNDED FORWARD FILL (Policy Compliance)
+# =============================================================================
+
+
+def ffill_with_ttl(
+    series: pd.Series,
+    ttl_days: int = 5,
+    date_index: Optional[pd.Index] = None,
+) -> pd.Series:
+    """
+    Forward-fill a series with a TTL (time-to-live) limit.
+
+    After TTL days of forward-filling, values revert to NaN.
+    This prevents stale data from being treated as current.
+
+    Policy: Docs/FORWARD_FILL_POLICY.md
+
+    Args:
+        series: Series to forward-fill
+        ttl_days: Maximum days to carry forward (default: 5 for daily)
+        date_index: DatetimeIndex or date index for gap calculation
+                   (if None, uses positional gaps - 1 row = 1 day)
+
+    Returns:
+        Series with TTL-bounded forward fill
+    """
+    if ttl_days is None or ttl_days <= 0:
+        # No forward fill allowed
+        return series
+
+    result = series.copy()
+
+    # Track days since last real observation
+    is_real = series.notna()
+
+    # Forward fill
+    filled = series.ffill()
+
+    # Calculate gap since last real value
+    # Use cumsum trick: for each NaN, count how many consecutive NaNs
+    cumsum_real = is_real.cumsum()
+    gap_start = cumsum_real.where(is_real).ffill()
+
+    # gap_days = rows since last real value
+    # For simplicity, assume 1 row = 1 calendar day (valid for daily data)
+    gap_days = cumsum_real - gap_start
+
+    # Apply TTL: only keep filled values within TTL window
+    within_ttl = gap_days <= ttl_days
+
+    # Where within TTL and was NaN, use filled value
+    # Where outside TTL, keep as NaN
+    result = filled.where(within_ttl, np.nan)
+
+    return result
+
+
+def ffill_dataframe_with_ttl(
+    df: pd.DataFrame,
+    ttl_days: int = 5,
+    columns: Optional[List[str]] = None,
+) -> pd.DataFrame:
+    """
+    Forward-fill multiple columns with TTL limit.
+
+    Args:
+        df: DataFrame to forward-fill
+        ttl_days: Maximum days to carry forward
+        columns: Columns to fill (default: all numeric except special suffixes)
+
+    Returns:
+        DataFrame with TTL-bounded forward fill
+    """
+    result = df.copy()
+
+    if columns is None:
+        # Fill all numeric columns except metadata columns
+        columns = [
+            c for c in df.columns
+            if np.issubdtype(df[c].dtype, np.number)
+            and not c.endswith(("_is_release_day", "_age_days", "_is_available", "_is_missing"))
+        ]
+
+    for col in columns:
+        if col in result.columns:
+            result[col] = ffill_with_ttl(result[col], ttl_days=ttl_days)
+
+    return result
 
 
 # =============================================================================
@@ -302,11 +401,13 @@ def forward_fill_low_coverage_series(
         coverage = df[col].notna().mean()
         if coverage < threshold and coverage > 0.01:  # Has some data but sparse
             original_nulls = df[col].isna().sum()
-            df[col] = df[col].ffill()  # Forward fill
+            # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
+            # Default 5-day TTL for daily data; sparse coverage implies mixed-freq
+            df[col] = ffill_with_ttl(df[col], ttl_days=5)
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
-                logger.debug(f"   Forward-filled {col}: {original_nulls} → {new_nulls} NULLs")
+                logger.debug(f"   Forward-filled {col} (TTL=5d): {original_nulls} → {new_nulls} NULLs")
 
     if filled_count > 0:
         logger.info(f"   Forward-filled {filled_count} low-coverage series (<{threshold*100:.0f}% coverage)")
@@ -990,7 +1091,12 @@ def load_fred_macro(conn) -> pd.DataFrame:
         # When merge_asof looks backward, it finds a row but with NaN for other series.
         # Forward-fill ensures each date has last known value for ALL series.
         # This is NOT data leakage - it's reproducing what was known at each date.
-        df_wide = df_wide.ffill()
+        #
+        # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
+        # Daily FRED series: 5-day TTL (standard market carve-out)
+        # Weekly FRED series: 14-day TTL
+        # Monthly FRED series: should use event encoding, not level ffill
+        df_wide = ffill_dataframe_with_ttl(df_wide, ttl_days=5)
 
         df_wide = df_wide.reset_index()
         # Prefix column names

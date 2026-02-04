@@ -19,6 +19,9 @@ import numpy as np
 # CONSTANTS
 # =============================================================================
 
+# Earliest valid date for specialist signals (no meaningful market data before this)
+EARLIEST_VALID_DATE = date(1990, 1, 1)
+
 SPECIALIST_BUCKETS = [
     "crush",
     "china",
@@ -62,14 +65,14 @@ class SignalOutput:
         as_of_date: Date for which signal is computed
         bucket: Specialist bucket name
         signal_1: Primary signal value (required)
-        signal_2: Secondary signal value (optional)
-        confidence: Model confidence 0-1 (optional)
+        signal_2: Secondary signal value
+        confidence: Model confidence 0-1
         model_type: Model class used (xgb, garch, ecm, etc.)
-        max_input_age_days: Max input staleness in days (optional)
-        source_tag: Source identifier (optional)
-        degraded_level: Degradation level (optional)
-        conf: Confidence for DB persistence (optional)
-        data_quality: Persistable quality metadata (optional)
+        max_input_age_days: Max input staleness in days
+        source_tag: Source identifier
+        degraded_level: Degradation level
+        conf: Confidence for DB persistence
+        data_quality: Persistable quality metadata
         metadata: Additional diagnostic info (not stored)
     """
 
@@ -79,7 +82,7 @@ class SignalOutput:
     signal_2: Optional[float] = None
     confidence: Optional[float] = None
     model_type: str = "unknown"
-    max_input_age_days: Optional[int] = None
+    max_input_age_days: int = 0  # REQUIRED: staleness tracking (P0-1 fix)
     source_tag: Optional[str] = None
     degraded_level: Optional[int] = None
     conf: Optional[float] = None
@@ -87,6 +90,12 @@ class SignalOutput:
     metadata: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
+        # P0-3: Date validation - reject epoch dates and pre-1990
+        if self.as_of_date < EARLIEST_VALID_DATE:
+            raise ValueError(
+                f"as_of_date {self.as_of_date} is before {EARLIEST_VALID_DATE}. "
+                f"Specialist signals are not valid before this date."
+            )
         if self.bucket not in SPECIALIST_BUCKETS:
             raise ValueError(
                 f"Invalid bucket: {self.bucket}. Must be one of {SPECIALIST_BUCKETS}"
@@ -101,6 +110,11 @@ class SignalOutput:
             raise ValueError(f"confidence must be in [0, 1], got {self.confidence}")
         if self.conf is not None and not (0 <= self.conf <= 1):
             raise ValueError(f"conf must be in [0, 1], got {self.conf}")
+        # P0-1: Staleness validation - must be non-negative
+        if self.max_input_age_days < 0:
+            raise ValueError(
+                f"max_input_age_days must be >= 0, got {self.max_input_age_days}"
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for database insertion."""
@@ -129,11 +143,12 @@ class SignalConfig:
         bucket: Specialist bucket name
         model_type: Model class to use
         primary_features: Required input features (baseline)
-        secondary_features: Optional input features
+        secondary_features: Additional input features (lower priority)
         critical_features: Required inputs under strict mode
         strict_mode: Enforce all configured features when True
         lookback_days: Historical window for computation
         min_data_points: Minimum observations required
+        max_input_age_days: Maximum staleness threshold (per Forward Fill Policy)
     """
 
     bucket: str
@@ -144,6 +159,7 @@ class SignalConfig:
     strict_mode: bool = True
     lookback_days: int = 252  # 1 year default
     min_data_points: int = 60  # ~3 months minimum
+    max_input_age_days: int = 14  # Default TTL threshold per Forward Fill Policy
 
 
 # =============================================================================
@@ -231,6 +247,22 @@ class BaseSignalGenerator(ABC):
                 f"{self.name}: Insufficient data. Got {len(data)}, need {self.config.min_data_points}"
             )
 
+        # STALENESS GATE (2026-02-04): Check critical features for freshness
+        # Per Forward Fill Policy (Docs/FORWARD_FILL_POLICY.md)
+        max_staleness = self._check_critical_staleness(data, end_date or data.index.max().date())
+        if max_staleness > self.config.max_input_age_days:
+            if self.strict_mode:
+                raise ValueError(
+                    f"{self.name}: STALE DATA REJECTED (strict mode). "
+                    f"Max staleness: {max_staleness}d > threshold: {self.config.max_input_age_days}d"
+                )
+            else:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"{self.name}: Running with stale data. "
+                    f"Max staleness: {max_staleness}d > threshold: {self.config.max_input_age_days}d"
+                )
+
         # Compute signals
         run_hash = self.get_run_hash(data)
         signals = self.compute(data, run_hash)
@@ -260,19 +292,53 @@ class BaseSignalGenerator(ABC):
     def _required_features(self) -> List[str]:
         """Required features for strict mode enforcement.
 
-        FIX 2026-01-30: Only enforce primary + critical features in strict mode.
-        Secondary features are OPTIONAL by definition - they enhance the model
-        when available but should not fail validation when absent.
+        FIX 2026-01-30: Enforce primary + critical features in strict mode.
+        Secondary features are lower priority and may have sparse coverage.
         """
         ordered = (
             self.config.primary_features
             + self.config.critical_features
-            # NOTE: secondary_features intentionally excluded - they are optional
+            # secondary_features have lower priority, not strictly required
         )
         return list(dict.fromkeys(ordered))
 
     def _missing_required_features(self, data: pd.DataFrame) -> List[str]:
         return [feat for feat in self._required_features() if feat not in data.columns]
+
+    def _check_critical_staleness(self, data: pd.DataFrame, as_of_date: date) -> int:
+        """
+        Check staleness of critical features.
+
+        Per Forward Fill Policy (Docs/FORWARD_FILL_POLICY.md):
+        - If any critical feature exceeds max_input_age_days, signal is stale
+        - Returns max staleness across all critical features
+
+        Args:
+            data: Input DataFrame
+            as_of_date: Date for staleness calculation
+
+        Returns:
+            Maximum staleness in days across critical features
+        """
+        max_staleness = 0
+
+        # Check critical features (not secondary - those can be sparse)
+        critical_features = self.config.critical_features or self.config.primary_features
+
+        for feat in critical_features:
+            if feat not in data.columns:
+                continue
+
+            series = data[feat]
+
+            # Look for corresponding is_real mask (if data loader provided it)
+            is_real_col = f"{feat}_is_real"
+            is_real = data.get(is_real_col)
+
+            staleness = self.compute_staleness_days(series, as_of_date, is_real)
+            max_staleness = max(max_staleness, staleness)
+
+        return max_staleness
 
     @abstractmethod
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
@@ -408,6 +474,62 @@ class BaseSignalGenerator(ABC):
         # Calculate days since last observation
         days_since = (pd.Timestamp(as_of_date) - pd.Timestamp(last_valid_idx)).days
         return max(0, days_since)
+
+    def lag_features(
+        self,
+        data: pd.DataFrame,
+        columns: List[str],
+        lag: int = 1,
+    ) -> pd.DataFrame:
+        """
+        Shift feature columns by lag days to prevent leakage.
+
+        P0-4 FIX: For signal at date T, features should use T-lag data.
+        This ensures no look-ahead bias in signal computation.
+
+        Args:
+            data: DataFrame with features indexed by date
+            columns: List of column names to shift
+            lag: Number of days to shift (default 1)
+
+        Returns:
+            DataFrame with shifted columns (original columns replaced)
+        """
+        lagged = data.copy()
+        for col in columns:
+            if col in lagged.columns:
+                lagged[col] = lagged[col].shift(lag)
+        return lagged
+
+    def compute_max_staleness(
+        self,
+        data: pd.DataFrame,
+        as_of_date: date,
+        columns: Optional[List[str]] = None,
+    ) -> int:
+        """
+        Compute maximum staleness across all specified columns.
+
+        P0-1 FIX: Every signal must track max input staleness.
+
+        Args:
+            data: DataFrame with features indexed by date
+            as_of_date: Date for staleness calculation
+            columns: Columns to check (defaults to config.primary_features)
+
+        Returns:
+            Maximum staleness in days across all columns (999 if no data)
+        """
+        if columns is None:
+            columns = self.config.primary_features
+
+        staleness_days = []
+        for col in columns:
+            if col in data.columns:
+                stale = self.compute_staleness_days(data[col], as_of_date)
+                staleness_days.append(stale)
+
+        return max(staleness_days) if staleness_days else 999
 
     def compute_data_quality_metadata(
         self,
