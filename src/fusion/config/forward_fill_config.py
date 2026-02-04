@@ -4,11 +4,11 @@ Forward Fill Configuration - ZINC-FUSION-V15
 This module defines TTL (time-to-live) thresholds for forward-filled data
 according to the Forward Fill Policy (Docs/FORWARD_FILL_POLICY.md).
 
-TTL Guidelines by Cadence:
-- Daily series: 3-5 days (ETL tolerance)
-- Weekly: 10-14 days
-- Monthly: 45-60 days
-- Quarterly: 120-150 days
+TTL Guidelines by Cadence (LOCKED):
+- Daily series: 3 days (ETL tolerance)
+- Weekly: 10 days
+- Monthly: 45 days
+- Quarterly: 120 days
 
 Weekend/holiday carve-out: Standard market closures don't count toward TTL
 for market-aligned series (prices, volumes).
@@ -51,35 +51,35 @@ class SourceConfig:
 # FRED Economic Data (econ.* tables)
 FRED_CONFIG: Dict[str, SourceConfig] = {
     # Daily rates - tight TTL
-    "DGS2": SourceConfig("DGS2", "daily", 5, market_aligned=True, is_critical=True,
+    "DGS2": SourceConfig("DGS2", "daily", 3, market_aligned=True, is_critical=True,
                          description="2-Year Treasury Constant Maturity Rate"),
-    "DGS10": SourceConfig("DGS10", "daily", 5, market_aligned=True, is_critical=True,
+    "DGS10": SourceConfig("DGS10", "daily", 3, market_aligned=True, is_critical=True,
                           description="10-Year Treasury Constant Maturity Rate"),
-    "DFF": SourceConfig("DFF", "daily", 5, market_aligned=True, is_critical=True,
+    "DFF": SourceConfig("DFF", "daily", 3, market_aligned=True, is_critical=True,
                         description="Federal Funds Effective Rate"),
-    "SOFR": SourceConfig("SOFR", "daily", 5, market_aligned=True, is_critical=True,
+    "SOFR": SourceConfig("SOFR", "daily", 3, market_aligned=True, is_critical=True,
                          description="Secured Overnight Financing Rate"),
-    "T10Y2Y": SourceConfig("T10Y2Y", "daily", 5, market_aligned=True, is_critical=True,
+    "T10Y2Y": SourceConfig("T10Y2Y", "daily", 3, market_aligned=True, is_critical=True,
                            description="10Y-2Y Treasury Spread"),
 
     # Daily volatility indices - tight TTL
-    "VIXCLS": SourceConfig("VIXCLS", "daily", 5, market_aligned=True, is_critical=True,
+    "VIXCLS": SourceConfig("VIXCLS", "daily", 3, market_aligned=True, is_critical=True,
                            description="CBOE VIX Close"),
-    "OVXCLS": SourceConfig("OVXCLS", "daily", 5, market_aligned=True, is_critical=True,
+    "OVXCLS": SourceConfig("OVXCLS", "daily", 3, market_aligned=True, is_critical=True,
                            description="CBOE Crude Oil VIX"),
 
     # Daily FX - tight TTL
-    "DEXBZUS": SourceConfig("DEXBZUS", "daily", 5, market_aligned=True, is_critical=True,
+    "DEXBZUS": SourceConfig("DEXBZUS", "daily", 3, market_aligned=True, is_critical=True,
                             description="Brazil/US FX Rate"),
-    "DEXCHUS": SourceConfig("DEXCHUS", "daily", 5, market_aligned=True, is_critical=True,
+    "DEXCHUS": SourceConfig("DEXCHUS", "daily", 3, market_aligned=True, is_critical=True,
                             description="China/US FX Rate"),
-    "DEXMXUS": SourceConfig("DEXMXUS", "daily", 5, market_aligned=True, is_critical=True,
+    "DEXMXUS": SourceConfig("DEXMXUS", "daily", 3, market_aligned=True, is_critical=True,
                             description="Mexico/US FX Rate"),
-    "DTWEXBGS": SourceConfig("DTWEXBGS", "daily", 5, market_aligned=True, is_critical=True,
+    "DTWEXBGS": SourceConfig("DTWEXBGS", "daily", 3, market_aligned=True, is_critical=True,
                              description="Trade Weighted US Dollar Index"),
 
     # Weekly series - moderate TTL
-    "ICSA": SourceConfig("ICSA", "weekly", 14, use_event_encoding=True,
+    "ICSA": SourceConfig("ICSA", "weekly", 10, use_event_encoding=True,
                          description="Initial Claims"),
 
     # Monthly series - use event encoding, not level ffill
@@ -95,7 +95,7 @@ FRED_CONFIG: Dict[str, SourceConfig] = {
                          description="M2 Money Stock"),
 
     # Monthly EPU indices - event encoding
-    "USEPUINDXD": SourceConfig("USEPUINDXD", "daily", 5, is_critical=True,
+    "USEPUINDXD": SourceConfig("USEPUINDXD", "daily", 3, is_critical=True,
                                description="US Economic Policy Uncertainty Daily"),
     "USEPUINDXM": SourceConfig("USEPUINDXM", "monthly", None, use_event_encoding=True,
                                description="US Economic Policy Uncertainty Monthly"),
@@ -106,7 +106,7 @@ FRED_CONFIG: Dict[str, SourceConfig] = {
 
 # CFTC Positioning (pos.* tables)
 CFTC_CONFIG: Dict[str, SourceConfig] = {
-    "cftc_1w": SourceConfig("pos.cftc_1w", "weekly", 14, use_event_encoding=True,
+    "cftc_1w": SourceConfig("pos.cftc_1w", "weekly", 10, use_event_encoding=True,
                             is_critical=True, description="CFTC Commitment of Traders"),
 }
 
@@ -294,18 +294,18 @@ def validate_staleness(source: str, age_days: int) -> bool:
 # =============================================================================
 
 TTL_SUMMARY = """
-Forward Fill TTL Summary
-========================
+Forward Fill TTL Summary (LOCKED)
+=================================
 
 | Cadence   | Default TTL | Use Event Encoding |
 |-----------|-------------|-------------------|
-| Daily     | 3-5 days    | No                |
-| Weekly    | 10-14 days  | Yes (recommended) |
-| Monthly   | None (event)| Yes (required)    |
-| Quarterly | None (event)| Yes (required)    |
+| Daily     | 3 days      | No                |
+| Weekly    | 10 days     | Yes (recommended) |
+| Monthly   | 45 days     | Yes (required)    |
+| Quarterly | 120 days    | Yes (required)    |
 
 Market Data: NO forward fill allowed (prices, spreads, vol)
-FRED Daily: 5 day TTL with market-aligned carve-out
-CFTC Weekly: 14 day TTL with event encoding
-WASDE Monthly: Event encoding only, no level ffill
+FRED Daily: 3 day TTL with market-aligned carve-out
+CFTC Weekly: 10 day TTL with event encoding
+WASDE Monthly: Event encoding only, 45 day max
 """

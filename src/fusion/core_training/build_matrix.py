@@ -402,12 +402,12 @@ def forward_fill_low_coverage_series(
         if coverage < threshold and coverage > 0.01:  # Has some data but sparse
             original_nulls = df[col].isna().sum()
             # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
-            # Default 5-day TTL for daily data; sparse coverage implies mixed-freq
-            df[col] = ffill_with_ttl(df[col], ttl_days=5)
+            # Default 3-day TTL for daily data (LOCKED threshold)
+            df[col] = ffill_with_ttl(df[col], ttl_days=3)
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
-                logger.debug(f"   Forward-filled {col} (TTL=5d): {original_nulls} → {new_nulls} NULLs")
+                logger.debug(f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs")
 
     if filled_count > 0:
         logger.info(f"   Forward-filled {filled_count} low-coverage series (<{threshold*100:.0f}% coverage)")
@@ -1093,10 +1093,10 @@ def load_fred_macro(conn) -> pd.DataFrame:
         # This is NOT data leakage - it's reproducing what was known at each date.
         #
         # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
-        # Daily FRED series: 5-day TTL (standard market carve-out)
-        # Weekly FRED series: 14-day TTL
+        # Daily FRED series: 3-day TTL (LOCKED threshold)
+        # Weekly FRED series: 10-day TTL
         # Monthly FRED series: should use event encoding, not level ffill
-        df_wide = ffill_dataframe_with_ttl(df_wide, ttl_days=5)
+        df_wide = ffill_dataframe_with_ttl(df_wide, ttl_days=3)
 
         df_wide = df_wide.reset_index()
         # Prefix column names

@@ -55,45 +55,45 @@ class DataSourceCheck:
     description: str
 
 
-# Data sources to check per specialist
+# Data sources to check per specialist (TTL thresholds LOCKED)
 SPECIALIST_DATA_GATES: Dict[str, List[DataSourceCheck]] = {
     "crush": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 5, True, "ZL/ZS/ZM futures"),
-        DataSourceCheck("cftc", "pos.cftc_1w", "report_date", 14, True, "CFTC COT positioning"),
+        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "ZL/ZS/ZM futures"),
+        DataSourceCheck("cftc", "pos.cftc_1w", "report_date", 10, True, "CFTC COT positioning"),
     ],
     "china": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 5, True, "Copper futures (HG)"),
-        DataSourceCheck("fx", "mkt.fx_1d", "event_date", 5, True, "CNY/USD rate"),
+        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "Copper futures (HG)"),
+        DataSourceCheck("fx", "mkt.fx_1d", "event_date", 3, True, "CNY/USD rate"),
     ],
     "fx": [
-        DataSourceCheck("fx", "mkt.fx_1d", "event_date", 5, True, "FX rates"),
-        DataSourceCheck("rates", "econ.rates_1d", "event_date", 5, True, "DGS2/DGS10"),
+        DataSourceCheck("fx", "mkt.fx_1d", "event_date", 3, True, "FX rates"),
+        DataSourceCheck("rates", "econ.rates_1d", "event_date", 3, True, "DGS2/DGS10"),
     ],
     "fed": [
-        DataSourceCheck("rates", "econ.rates_1d", "event_date", 5, True, "Fed Funds, Treasury rates"),
+        DataSourceCheck("rates", "econ.rates_1d", "event_date", 3, True, "Fed Funds, Treasury rates"),
     ],
     "volatility": [
-        DataSourceCheck("vol", "econ.vol_indices_1d", "event_date", 5, True, "VIX, OVX"),
+        DataSourceCheck("vol", "econ.vol_indices_1d", "event_date", 3, True, "VIX, OVX"),
     ],
     "energy": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 5, True, "CL/HO/RB futures"),
+        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "CL/HO/RB futures"),
     ],
     "palm": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 7, True, "FCPO futures"),
+        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "FCPO futures"),
     ],
     "tariff": [
-        DataSourceCheck("epu", "econ.rates_1d", "event_date", 60, False, "EPU indices"),
+        DataSourceCheck("epu", "econ.rates_1d", "event_date", 45, False, "EPU indices"),
     ],
     "biofuel": [
-        DataSourceCheck("rin", "supply.epa_rin_1d", "event_date", 14, True, "RIN prices"),
-        DataSourceCheck("lcfs", "supply.lcfs_1d", "event_date", 21, True, "LCFS credits"),
+        DataSourceCheck("rin", "supply.epa_rin_1d", "event_date", 10, True, "RIN prices"),
+        DataSourceCheck("lcfs", "supply.lcfs_1d", "event_date", 10, True, "LCFS credits"),
     ],
     "substitutes": [
-        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 7, True, "Substitute oil futures"),
+        DataSourceCheck("futures", "mkt.futures_1d", "trade_date", 3, True, "Substitute oil futures"),
     ],
     "trump_effect": [
-        DataSourceCheck("epu", "econ.rates_1d", "event_date", 14, False, "EPU indices"),
-        DataSourceCheck("vol", "econ.vol_indices_1d", "event_date", 5, True, "VIX"),
+        DataSourceCheck("epu", "econ.rates_1d", "event_date", 10, False, "EPU indices"),
+        DataSourceCheck("vol", "econ.vol_indices_1d", "event_date", 3, True, "VIX"),
     ],
 }
 
