@@ -1,5 +1,7 @@
 NOTE: Production is the dashboard/frontend, not the repo root.
 ## SoT v2 Training (Code Location)
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 This folder is the **designated home** for the **SoT v2 (P30/P50/P70 + CQR P10_cal/P90_cal)** training stack.
 
@@ -7,6 +9,9 @@ Goals:
 - Keep **SoT v2 model code** isolated from legacy v15 scripts for clarity and safe iteration.
 - Use **Prisma Postgres** tables as the system of record (no local-only training outputs).
 - Enforce **no synthetic / no fallback** behavior: empty outputs are preferred over invented values.
+
+### Ray Cluster (22 cores)
+**Your AI agents can use `ray.init(address='auto')` and get 22 cores without melting your machine.**
 
 ### Data Sources (LOCKED)
 | Source | Role | Status |

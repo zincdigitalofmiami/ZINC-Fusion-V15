@@ -13,7 +13,10 @@ Write to separate test tables:
 Run for 7 days minimum and compare results.
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

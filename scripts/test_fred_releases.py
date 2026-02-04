@@ -105,3 +105,5 @@ print("  1. Track ~15 major releases (CPI, NFP, GDP, etc.)")
 print("  2. Create event flags for training (days until/since release)")
 print("  3. Map each release to specialist bucket")
 print("  4. Use as regime-aware features (pre/post-release volatility)")
+
+__test__ = False  # Pytest should not collect integration scripts.

@@ -221,8 +221,8 @@ async def get_latest_intel_drops(
 
     Args:
         conn: Database connection
-        domain: Filter by domain (optional)
-        horizon: Filter by horizon (optional)
+        domain: Filter by domain (can be None for all)
+        horizon: Filter by horizon (can be None for all)
         limit: Maximum number of rows
 
     Returns:

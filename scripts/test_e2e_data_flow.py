@@ -16,7 +16,10 @@ Checks at each step:
 - Chart renders correctly
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

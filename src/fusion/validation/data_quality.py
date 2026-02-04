@@ -446,7 +446,7 @@ class DataQualityGatekeeper:
                     check_name=f"all_null_{col}",
                     passed=False,
                     message=f"Column '{col}' is 100% null",
-                    severity="WARNING",  # Warning, not error - might be optional column
+                    severity="WARNING",  # Warning, not error - column may be sparsely populated
                     details={"column": col},
                 )
             )

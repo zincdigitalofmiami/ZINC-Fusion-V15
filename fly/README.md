@@ -1,4 +1,6 @@
 # Fly.io Databento Live Connector
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 Real-time ZL intraday data for dashboard charts.
 

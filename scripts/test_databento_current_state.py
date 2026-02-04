@@ -10,7 +10,10 @@ Audits current database state for Databento live integration:
 - Roll date analysis (detect price jumps >5% on same day)
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

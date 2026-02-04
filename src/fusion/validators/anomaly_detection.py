@@ -50,6 +50,16 @@ TABLE_CONFIG = {
         "group_by": "symbol",
         "date_col": "event_date",
     },
+    "mkt.etf_1d": {
+        "query": """
+            SELECT event_date, symbol, open, high, low, close, volume
+            FROM mkt.etf_1d
+            ORDER BY symbol, event_date
+        """,
+        "detector": "market_futures",
+        "group_by": "symbol",
+        "date_col": "event_date",
+    },
     "mkt.fx_1d": {
         "query": """
             SELECT id, pair, event_date, rate
@@ -58,16 +68,6 @@ TABLE_CONFIG = {
         """,
         "detector": "fx",
         "group_by": "pair",
-        "date_col": "event_date",
-    },
-    "mkt.etf_1d": {
-        "query": """
-            SELECT id, symbol, event_date, open, high, low, close, volume
-            FROM mkt.etf_1d
-            ORDER BY symbol, event_date
-        """,
-        "detector": "market_futures",
-        "group_by": "symbol",
         "date_col": "event_date",
     },
     # Alternative data

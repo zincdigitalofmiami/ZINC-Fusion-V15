@@ -847,13 +847,15 @@ class ZincFusionIndicators:
                 how="left",
             )
 
-            # Board crush calculation (ZS * 11 - ZL * 11 - ZM)
-            df["board_crush"] = (
-                (df["zs_close"] * 11) - (df["close"] * 11) - df["zm_close"]
-            )
+            # Board crush calculation per CME formula ($/bushel):
+            # = (meal × 0.022) + (oil × 0.11) − soybeans/100
+            # ZL in ¢/lb × 0.11 (11 lbs oil/bu), ZM in $/ton × 0.022, ZS in ¢/bu ÷ 100
+            oil_value = df["close"] * 0.11       # ZL × 0.11
+            meal_value = df["zm_close"] * 0.022  # ZM × 0.022
+            df["board_crush"] = (oil_value + meal_value) - (df["zs_close"] / 100)
 
-            # Oil share (ZL value / total crush value)
-            df["oil_share"] = (df["close"] * 11) / ((df["close"] * 11) + df["zm_close"])
+            # Oil share = oil_value / (oil_value + meal_value)
+            df["oil_share"] = oil_value / (oil_value + meal_value)
 
             # ZL/ZS ratio
             df["zl_zs_ratio"] = df["close"] / df["zs_close"]

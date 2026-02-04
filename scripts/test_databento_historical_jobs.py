@@ -10,7 +10,10 @@ Test scenarios:
 5. Backfill: Verify can backfill 30 days correctly
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

@@ -1,5 +1,7 @@
 NOTE: Production is the dashboard/frontend, not the repo root.
 # Docker Configuration
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
 
 ## Services
 

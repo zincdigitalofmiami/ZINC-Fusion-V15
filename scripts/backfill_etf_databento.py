@@ -138,6 +138,7 @@ class EtfBar:
     session_low: Optional[float] = None
     indicative_open: Optional[float] = None
     indicative_close: Optional[float] = None
+    vwap: Optional[float] = None
     specialist_tags: List[str] = None
 
     def row_hash(self) -> str:
@@ -249,6 +250,7 @@ def parse_statistics_csv(csv_text: str) -> Dict[str, Dict[str, float]]:
         4: "session_low",
         5: "session_high",
         11: "indicative_close",
+        13: "vwap",
     }
 
     result = {}
@@ -355,6 +357,7 @@ def upsert_etf_bars(bars: List[EtfBar], dry_run: bool = False) -> int:
                 bar.session_low,
                 bar.indicative_open,
                 bar.indicative_close,
+                bar.vwap,
             ))
 
         # Batch upsert
@@ -365,7 +368,7 @@ def upsert_etf_bars(bars: List[EtfBar], dry_run: bool = False) -> int:
                 symbol, event_date, open, high, low, close, volume,
                 source, row_hash, specialist_tags,
                 opening_price, closing_price, session_high, session_low,
-                indicative_open, indicative_close
+                indicative_open, indicative_close, vwap
             ) VALUES %s
             ON CONFLICT (symbol, event_date) DO UPDATE SET
                 open = EXCLUDED.open,
@@ -381,7 +384,8 @@ def upsert_etf_bars(bars: List[EtfBar], dry_run: bool = False) -> int:
                 session_high = COALESCE(EXCLUDED.session_high, mkt.etf_1d.session_high),
                 session_low = COALESCE(EXCLUDED.session_low, mkt.etf_1d.session_low),
                 indicative_open = COALESCE(EXCLUDED.indicative_open, mkt.etf_1d.indicative_open),
-                indicative_close = COALESCE(EXCLUDED.indicative_close, mkt.etf_1d.indicative_close)
+                indicative_close = COALESCE(EXCLUDED.indicative_close, mkt.etf_1d.indicative_close),
+                vwap = COALESCE(EXCLUDED.vwap, mkt.etf_1d.vwap)
             """,
             values,
             page_size=500,
@@ -443,6 +447,7 @@ def backfill_symbol(
                 session_low=day_stats.get("session_low"),
                 indicative_open=day_stats.get("indicative_open"),
                 indicative_close=day_stats.get("indicative_close"),
+                vwap=day_stats.get("vwap"),
                 specialist_tags=tags,
             )
             bars.append(bar)

@@ -11,7 +11,10 @@ Test scenarios:
 6. Clock skew: Simulate system clock changes
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

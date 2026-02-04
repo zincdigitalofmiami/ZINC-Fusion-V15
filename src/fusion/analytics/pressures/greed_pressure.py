@@ -386,9 +386,25 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["vix_value"] = round(current_vix, 1)
         all_scores.append(vix_score)
 
-    # ==== 2. MARKET MOMENTUM (SPY) - DISABLED: ETF data quality issues ====
-    components["market_momentum"] = 50.0
-    all_scores.append(50.0)
+    # ==== 2. MARKET MOMENTUM (SPY) - Databento ETF ====
+    cur.execute("""
+        SELECT event_date, close FROM mkt.etf_1d
+        WHERE symbol = 'SPY' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 150
+    """, (as_of_date,))
+    spy_data = cur.fetchall()
+    if len(spy_data) < 125:
+        raise ValueError("Insufficient SPY data for market momentum")
+
+    spy_values = [float(r[1]) for r in spy_data if r[1] is not None]
+    current_spy = spy_values[0]
+    spy_ma20 = np.mean(spy_values[:20])
+    spy_ma125 = np.mean(spy_values[:125])
+
+    spy_score, spy_desc = score_momentum(current_spy, spy_ma20, spy_ma125)
+    components["market_momentum"] = round(spy_score, 1)
+    components["spy_vs_ma125"] = round((current_spy / spy_ma125 - 1) * 100, 2)
+    all_scores.append(spy_score)
 
     # ==== 3. CREDIT SPREADS ====
     cur.execute("""

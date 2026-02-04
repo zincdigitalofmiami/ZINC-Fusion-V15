@@ -363,30 +363,27 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. FXI PERFORMANCE ====
+    # ==== 1. FXI PERFORMANCE (Databento ETF) ====
     cur.execute("""
         SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'FXI' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 25
+        WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 30
     """, (as_of_date,))
     fxi_data = cur.fetchall()
+    if len(fxi_data) < 21:
+        raise ValueError("Insufficient FXI data to compute China tension")
 
-    fxi_score = 50
-    fxi_desc = "No FXI data"
-    if len(fxi_data) >= 20:
-        fxi_values = [float(r[1]) for r in fxi_data if r[1] is not None]
-        current = fxi_values[0]
-        d20_ago = fxi_values[min(20, len(fxi_values)-1)]
-        d5_ago = fxi_values[min(5, len(fxi_values)-1)]
+    current_fxi = float(fxi_data[0][1])
+    fxi_5d = float(fxi_data[5][1]) if len(fxi_data) > 5 else None
+    fxi_20d = float(fxi_data[20][1])
 
-        change_20d = (current - d20_ago) / d20_ago if d20_ago > 0 else 0
-        change_5d = (current - d5_ago) / d5_ago if d5_ago > 0 else 0
+    change_20d = (current_fxi - fxi_20d) / fxi_20d if fxi_20d > 0 else 0
+    change_5d = (current_fxi - fxi_5d) / fxi_5d if fxi_5d and fxi_5d > 0 else 0
 
-        fxi_score, fxi_desc = score_fxi_performance(change_20d, change_5d)
-        components["fxi_score"] = round(fxi_score, 1)
-        components["fxi_change_20d"] = round(change_20d * 100, 2)
-        components["fxi_change_5d"] = round(change_5d * 100, 2)
-        components["fxi_price"] = round(current, 2)
+    fxi_score, fxi_desc = score_fxi_performance(change_20d, change_5d)
+    components["fxi_score"] = round(fxi_score, 1)
+    components["fxi_change_20d"] = round(change_20d * 100, 2)
+    components["fxi_change_5d"] = round(change_5d * 100, 2)
 
     # ==== 2. CNY LEVEL/TREND ====
     cur.execute("""
@@ -410,26 +407,23 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         components["cny_rate"] = round(current_rate, 4)
         components["cny_change_20d"] = round(change_20d * 100, 2)
 
-    # ==== 3. SHIPPING (BDRY) ====
+    # ==== 3. SHIPPING (BDRY) - Databento ETF ====
     cur.execute("""
         SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'BDRY' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 25
+        WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 30
     """, (as_of_date,))
     ship_data = cur.fetchall()
+    if len(ship_data) < 21:
+        raise ValueError("Insufficient BDRY data to compute shipping stress")
 
-    ship_score = 50
-    ship_desc = "No shipping data"
-    if len(ship_data) >= 20:
-        ship_values = [float(r[1]) for r in ship_data if r[1] is not None]
-        current = ship_values[0]
-        d20_ago = ship_values[min(20, len(ship_values)-1)]
+    current_bdry = float(ship_data[0][1])
+    bdry_20d = float(ship_data[20][1])
+    bdry_change_20d = (current_bdry - bdry_20d) / bdry_20d if bdry_20d > 0 else 0
 
-        change_20d = (current - d20_ago) / d20_ago if d20_ago > 0 else 0
-
-        ship_score, ship_desc = score_shipping(change_20d)
-        components["ship_score"] = round(ship_score, 1)
-        components["bdry_change_20d"] = round(change_20d * 100, 2)
+    ship_score, ship_desc = score_shipping(bdry_change_20d)
+    components["ship_score"] = round(ship_score, 1)
+    components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # ==== 4. CHINA SPECIALIST ====
     cur.execute("""

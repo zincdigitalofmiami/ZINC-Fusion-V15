@@ -10,7 +10,10 @@ Test scenarios:
 5. Data corruption: Inject bad records, verify error handling
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

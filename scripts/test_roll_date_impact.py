@@ -11,7 +11,10 @@ Analyze when/why symbols diverge:
   - Chart appearance
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 from datetime import datetime, timedelta

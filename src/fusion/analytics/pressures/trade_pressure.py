@@ -221,6 +221,43 @@ def score_spy_tlt_corr(correlation: float) -> Tuple[float, str]:
         return 20, "Strong diversification - risk-on"
 
 
+def score_spy_gld_corr(correlation: float) -> Tuple[float, str]:
+    """
+    Score SPY-GLD correlation.
+
+    Negative correlation = flight to safety (risk-off).
+    Positive correlation = risk-on.
+    """
+    if correlation <= -0.30:
+        return 80, "Gold acting as strong safe haven"
+    elif correlation <= -0.15:
+        return 65, "Gold hedging equity risk"
+    elif correlation <= 0.05:
+        return 50, "Gold neutral vs equities"
+    elif correlation <= 0.20:
+        return 35, "Gold moving with equities"
+    else:
+        return 25, "Risk-on correlation (gold not hedging)"
+
+
+def score_dxy_strength(change_20d: float) -> Tuple[float, str]:
+    """
+    Score DXY strength.
+
+    USD rally = risk-off (higher score).
+    USD selloff = risk-on (lower score).
+    """
+    if change_20d >= DXY_RALLY:
+        return 80, "USD rallying (risk-off)"
+    elif change_20d >= 0.01:
+        return 65, "USD firming"
+    elif change_20d > -0.01:
+        return 50, "USD stable"
+    elif change_20d > DXY_SELLOFF:
+        return 35, "USD softening"
+    else:
+        return 20, "USD weakening (risk-on)"
+
 def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     """
     Calculate Trade Pressure.
@@ -239,21 +276,23 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. SHIPPING (BDRY) ====
+    # ==== 1. SHIPPING (BDRY) - Databento ETF ====
     cur.execute("""
         SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'BDRY' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
+        WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 25
     """, (as_of_date,))
     bdry_data = cur.fetchall()
+    if len(bdry_data) < 21:
+        raise ValueError("Insufficient BDRY data to compute shipping stress")
 
-    shipping_score = 50
-    if len(bdry_data) >= 20:
-        bdry_values = [float(r[1]) for r in bdry_data if r[1] is not None]
-        bdry_change = (bdry_values[0] - bdry_values[-1]) / bdry_values[-1] if bdry_values[-1] > 0 else 0
-        shipping_score, shipping_desc = score_shipping(bdry_change)
-        components["shipping_score"] = round(shipping_score, 1)
-        components["bdry_change_20d"] = round(bdry_change * 100, 2)
+    current_bdry = float(bdry_data[0][1])
+    bdry_20d = float(bdry_data[20][1])
+    bdry_change_20d = (current_bdry - bdry_20d) / bdry_20d if bdry_20d > 0 else 0
+
+    shipping_score, shipping_desc = score_shipping(bdry_change_20d)
+    components["shipping_score"] = round(shipping_score, 1)
+    components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # ==== 2. BRAZIL FX ====
     cur.execute("""
@@ -399,89 +438,66 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. SPY-TLT CORRELATION ====
+    # ==== 1. SPY-TLT + SPY-GLD CORRELATIONS (Databento ETFs) ====
     cur.execute("""
-        SELECT e1.event_date, e1.close as spy, e2.close as tlt
-        FROM mkt.etf_1d e1
-        JOIN mkt.etf_1d e2 ON e1.event_date = e2.event_date AND e2.symbol = 'TLT'
-        WHERE e1.symbol = 'SPY' AND e1.event_date <= %s
-        ORDER BY e1.event_date DESC LIMIT 21
+        SELECT event_date,
+               MAX(CASE WHEN symbol = 'SPY' THEN close END) AS spy_close,
+               MAX(CASE WHEN symbol = 'TLT' THEN close END) AS tlt_close,
+               MAX(CASE WHEN symbol = 'GLD' THEN close END) AS gld_close
+        FROM mkt.etf_1d
+        WHERE symbol IN ('SPY', 'TLT', 'GLD') AND event_date <= %s AND close IS NOT NULL
+        GROUP BY event_date
+        ORDER BY event_date DESC LIMIT 100
     """, (as_of_date,))
-    spy_tlt = cur.fetchall()
+    corr_rows = cur.fetchall()
+    if len(corr_rows) < 30:
+        raise ValueError("Insufficient ETF data for correlation pressure")
 
-    spy_tlt_score = 50
-    spy_tlt_corr = 0
-    if len(spy_tlt) > 15:
-        spy_rets = []
-        tlt_rets = []
-        for i in range(len(spy_tlt) - 1):
-            if spy_tlt[i+1][1] > 0 and spy_tlt[i+1][2] > 0:
-                spy_ret = (spy_tlt[i][1] - spy_tlt[i+1][1]) / spy_tlt[i+1][1]
-                tlt_ret = (spy_tlt[i][2] - spy_tlt[i+1][2]) / spy_tlt[i+1][2]
-                spy_rets.append(spy_ret)
-                tlt_rets.append(tlt_ret)
+    corr_rows = list(reversed(corr_rows))
+    aligned = [(r[1], r[2], r[3]) for r in corr_rows if r[1] is not None and r[2] is not None and r[3] is not None]
+    if len(aligned) < 30:
+        raise ValueError("Insufficient aligned ETF data for correlation pressure")
 
-        if len(spy_rets) > 10:
-            spy_tlt_corr = float(np.corrcoef(spy_rets, tlt_rets)[0, 1])
-            spy_tlt_score, corr_desc = score_spy_tlt_corr(spy_tlt_corr)
-            components["spy_tlt_score"] = round(spy_tlt_score, 1)
-            components["spy_tlt_correlation"] = round(spy_tlt_corr, 3)
+    spy = np.array([r[0] for r in aligned], dtype=float)
+    tlt = np.array([r[1] for r in aligned], dtype=float)
+    gld = np.array([r[2] for r in aligned], dtype=float)
 
-    # ==== 2. SPY-GLD CORRELATION ====
+    # Returns
+    spy_ret = np.diff(spy) / spy[:-1]
+    tlt_ret = np.diff(tlt) / tlt[:-1]
+    gld_ret = np.diff(gld) / gld[:-1]
+
+    window = min(63, len(spy_ret), len(tlt_ret), len(gld_ret))
+    if window < 30:
+        raise ValueError("Insufficient ETF return history for correlation pressure")
+
+    spy_tlt_corr = float(np.corrcoef(spy_ret[-window:], tlt_ret[-window:])[0, 1])
+    spy_gld_corr = float(np.corrcoef(spy_ret[-window:], gld_ret[-window:])[0, 1])
+
+    spy_tlt_score, spy_tlt_desc = score_spy_tlt_corr(spy_tlt_corr)
+    spy_gld_score, spy_gld_desc = score_spy_gld_corr(spy_gld_corr)
+
+    components["spy_tlt_score"] = round(spy_tlt_score, 1)
+    components["spy_tlt_corr"] = round(spy_tlt_corr, 3)
+    components["spy_gld_score"] = round(spy_gld_score, 1)
+    components["spy_gld_corr"] = round(spy_gld_corr, 3)
+
+    # ==== 3. DXY STRENGTH (FRED DXY index) ====
     cur.execute("""
-        SELECT e1.event_date, e1.close as spy, e2.close as gld
-        FROM mkt.etf_1d e1
-        JOIN mkt.etf_1d e2 ON e1.event_date = e2.event_date AND e2.symbol = 'GLD'
-        WHERE e1.symbol = 'SPY' AND e1.event_date <= %s
-        ORDER BY e1.event_date DESC LIMIT 21
+        SELECT event_date, value FROM econ.activity_1d
+        WHERE series_id = 'DXY' AND event_date <= %s
+        ORDER BY event_date DESC LIMIT 25
     """, (as_of_date,))
-    spy_gld = cur.fetchall()
+    dxy_data = cur.fetchall()
+    if len(dxy_data) < 21:
+        raise ValueError("Insufficient DXY data for correlation pressure")
 
-    spy_gld_score = 50
-    if len(spy_gld) > 15:
-        spy_rets = []
-        gld_rets = []
-        for i in range(len(spy_gld) - 1):
-            if spy_gld[i+1][1] > 0 and spy_gld[i+1][2] > 0:
-                spy_ret = (spy_gld[i][1] - spy_gld[i+1][1]) / spy_gld[i+1][1]
-                gld_ret = (spy_gld[i][2] - spy_gld[i+1][2]) / spy_gld[i+1][2]
-                spy_rets.append(spy_ret)
-                gld_rets.append(gld_ret)
-
-        if len(spy_rets) > 10:
-            spy_gld_corr = float(np.corrcoef(spy_rets, gld_rets)[0, 1])
-            # Negative SPY-GLD = flight to safety = stress
-            spy_gld_score = 50 - (spy_gld_corr * 40)
-            spy_gld_score = float(np.clip(spy_gld_score, 0, 100))
-            components["spy_gld_score"] = round(spy_gld_score, 1)
-            components["spy_gld_correlation"] = round(spy_gld_corr, 3)
-
-    # ==== 3. DXY STRENGTH ====
-    cur.execute("""
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'UUP' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
-    uup_data = cur.fetchall()
-
-    dxy_score = 50
-    if len(uup_data) >= 20:
-        uup_values = [float(r[1]) for r in uup_data if r[1] is not None]
-        uup_change = (uup_values[0] - uup_values[-1]) / uup_values[-1] if uup_values[-1] > 0 else 0
-
-        # USD strength = risk-off = higher pressure
-        if uup_change >= DXY_RALLY:
-            dxy_score = 75 + min(20, (uup_change - DXY_RALLY) * 500)
-        elif uup_change >= 0:
-            dxy_score = 55 + (uup_change / DXY_RALLY) * 20
-        elif uup_change >= DXY_SELLOFF:
-            dxy_score = 35 + ((uup_change - DXY_SELLOFF) / (-DXY_SELLOFF)) * 20
-        else:
-            dxy_score = 20
-
-        dxy_score = float(np.clip(dxy_score, 0, 100))
-        components["dxy_score"] = round(dxy_score, 1)
-        components["uup_change_20d"] = round(uup_change * 100, 2)
+    current_dxy = float(dxy_data[0][1])
+    dxy_20d = float(dxy_data[20][1])
+    dxy_change_20d = (current_dxy - dxy_20d) / dxy_20d if dxy_20d > 0 else 0
+    dxy_score, dxy_desc = score_dxy_strength(dxy_change_20d)
+    components["dxy_score"] = round(dxy_score, 1)
+    components["dxy_change_20d"] = round(dxy_change_20d * 100, 2)
 
     # ==== COMPOSITE ====
     score = (spy_tlt_score * 0.45) + (spy_gld_score * 0.30) + (dxy_score * 0.25)

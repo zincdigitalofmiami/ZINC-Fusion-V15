@@ -296,10 +296,22 @@ def fetch_observations(
         if source_url:
             url = source_url
         else:
-            list_html = _fetch(NBS_LIST_URL, timeout_s=60)
-            urls = _parse_list(list_html)
+            # Try multiple list pages (index.html, index_1.html, etc.)
+            base = NBS_LIST_URL.rstrip("/") + "/"
+            candidate_pages = [base, base + "index.html"] + [
+                base + f"index_{i}.html" for i in range(1, 8)
+            ]
+            urls: List[str] = []
+            for list_url in candidate_pages:
+                try:
+                    list_html = _fetch(list_url, timeout_s=60)
+                except Exception:
+                    continue
+                urls = _parse_list(list_html)
+                if urls:
+                    break
             if not urls:
-                raise ValueError("No PMI release links found on NBS Latest Releases page")
+                raise ValueError("No PMI release links found on NBS Latest Releases pages")
             url = urls[0]
         page = _fetch(url, timeout_s=60)
 
@@ -390,4 +402,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

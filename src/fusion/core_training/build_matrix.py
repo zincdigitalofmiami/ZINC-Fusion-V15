@@ -52,6 +52,7 @@ import pandas as pd
 import numpy as np
 import psycopg2
 from psycopg2.extras import execute_values
+from pandas.api.types import is_numeric_dtype
 
 from .config import DATABASE_URL, TARGET_SYMBOL, HORIZONS, FeatureMatrixConfig as FMC
 from .matrix_manifest import write_manifest, check_schema_drift
@@ -71,92 +72,377 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # TTL-BOUNDED FORWARD FILL (Policy Compliance)
 # =============================================================================
+#
+# CRITICAL CONTRACT (Docs/FORWARD_FILL_POLICY.md):
+# - TTL is calculated using CALENDAR DAYS (not row gaps)
+# - weekend_exempt series skip weekends in TTL (for FRED business-day series)
+# - Forward fill creates STATE variables only - no high-frequency transforms
+# - Always track age_days for model visibility into staleness
+# - NEVER forward fill market prices (NO FFILL for mkt.* data)
+#
+# TTL Thresholds (LOCKED):
+#   Daily:     3 days (business day tolerance)
+#   Weekly:   10 days (~1.5x cadence)
+#   Monthly:  45 days (~1.5x cadence)
+#   Quarterly: 120 days (~1.33x cadence)
+#
+# FORBIDDEN COLUMN SUFFIXES (never forward fill these):
+#   *_delta, *_chg, *_pct*, *_ret*, *_mom*, *_vol*, *_z*, *_zscore*,
+#   *_surprise*, *_return*, *_spread*, *_ratio*
+# =============================================================================
+
+# Columns that must NEVER be forward filled (computed, not state)
+FFILL_FORBIDDEN_SUFFIXES = (
+    "_delta", "_chg", "_pct", "_ret", "_mom", "_vol", "_z", "_zscore",
+    "_surprise", "_return", "_spread", "_ratio", "_is_release_day",
+    "_age_days", "_is_available", "_is_missing", "_is_imputed", "_is_observed"
+)
 
 
 def ffill_with_ttl(
     series: pd.Series,
     ttl_days: int = 5,
-    date_index: Optional[pd.Index] = None,
+    weekend_exempt: bool = False,
 ) -> pd.Series:
     """
     Forward-fill a series with a TTL (time-to-live) limit.
 
+    CRITICAL: TTL is computed using CALENDAR DAYS from the index, not row counts.
+    This ensures correct staleness measurement across weekends, holidays, and gaps.
+
     After TTL days of forward-filling, values revert to NaN.
     This prevents stale data from being treated as current.
+
+    IMPORTANT: This function is for ECONOMIC/REPORT data (FRED, CFTC, WASDE).
+    NEVER use this for market prices (futures, FX, options) - those must not be forward filled.
 
     Policy: Docs/FORWARD_FILL_POLICY.md
 
     Args:
-        series: Series to forward-fill
-        ttl_days: Maximum days to carry forward (default: 5 for daily)
-        date_index: DatetimeIndex or date index for gap calculation
-                   (if None, uses positional gaps - 1 row = 1 day)
+        series: Series to forward-fill (MUST have DatetimeIndex or date index)
+        ttl_days: Maximum calendar days to carry forward (default: 5)
+        weekend_exempt: If True, Saturdays and Sundays don't count toward TTL.
+            Use this for series that don't report on weekends (e.g., FRED daily).
+            NOTE: This only exempts weekends, NOT holidays. For true trading-calendar
+            alignment, you'd need an exchange calendar (not implemented here).
+            NOT for market data - market data should never be forward filled.
 
     Returns:
         Series with TTL-bounded forward fill
+
+    Contract:
+        - Forward-filled values are STATE only (no high-freq transforms allowed)
+        - Use ffill_with_age() to also get staleness tracking
     """
     if ttl_days is None or ttl_days <= 0:
         # No forward fill allowed
         return series
 
-    result = series.copy()
+    if len(series) == 0:
+        return series
 
-    # Track days since last real observation
-    is_real = series.notna()
-
-    # Forward fill
+    # Forward fill first
     filled = series.ffill()
 
-    # Calculate gap since last real value
-    # Use cumsum trick: for each NaN, count how many consecutive NaNs
-    cumsum_real = is_real.cumsum()
-    gap_start = cumsum_real.where(is_real).ffill()
+    # Track which positions have real (non-NaN) observations
+    is_real = series.notna()
 
-    # gap_days = rows since last real value
-    # For simplicity, assume 1 row = 1 calendar day (valid for daily data)
-    gap_days = cumsum_real - gap_start
+    # Get dates from index (critical for calendar-day calculation)
+    idx = series.index
+    if isinstance(idx, pd.DatetimeIndex):
+        dates = idx.date
+    elif hasattr(idx[0], 'date') if len(idx) > 0 else False:
+        # Dates already
+        dates = idx
+    else:
+        # Fallback: treat as consecutive days if no date info
+        # This is less accurate but prevents crashes
+        dates = pd.date_range(start='2020-01-01', periods=len(series), freq='D').date
+
+    dates_series = pd.Series(dates, index=series.index)
+
+    # For each position, get the date of the last real observation
+    last_real_date = dates_series.where(is_real).ffill()
+
+    # Calculate gap in calendar days
+    def date_diff_days(current, last_real):
+        """Calculate calendar day difference, handling None/NaT."""
+        if pd.isna(current) or pd.isna(last_real):
+            return np.nan
+        try:
+            if isinstance(current, pd.Timestamp):
+                current = current.date()
+            if isinstance(last_real, pd.Timestamp):
+                last_real = last_real.date()
+            return (current - last_real).days
+        except Exception:
+            return np.nan
+
+    gap_days = pd.Series(
+        [date_diff_days(d, lr) for d, lr in zip(dates_series, last_real_date)],
+        index=series.index
+    )
+
+    # Weekend-exempt carve-out: weekends don't count toward TTL (holidays still count)
+    if weekend_exempt:
+        # Adjust gap_days by subtracting weekend days
+        # For each gap, count weekends spanned
+        def adjust_for_weekends(current, last_real, raw_gap):
+            """Subtract weekend days from gap (holidays are still counted)."""
+            if pd.isna(raw_gap) or raw_gap <= 0:
+                return raw_gap
+            try:
+                if isinstance(current, pd.Timestamp):
+                    current = current.date()
+                if isinstance(last_real, pd.Timestamp):
+                    last_real = last_real.date()
+                # Count weekend days in range
+                weekend_days = sum(
+                    1 for i in range(int(raw_gap))
+                    if (last_real + timedelta(days=i+1)).weekday() >= 5
+                )
+                return raw_gap - weekend_days
+            except Exception:
+                return raw_gap
+
+        gap_days = pd.Series(
+            [adjust_for_weekends(d, lr, g) for d, lr, g in
+             zip(dates_series, last_real_date, gap_days)],
+            index=series.index
+        )
 
     # Apply TTL: only keep filled values within TTL window
     within_ttl = gap_days <= ttl_days
 
-    # Where within TTL and was NaN, use filled value
-    # Where outside TTL, keep as NaN
+    # Apply the mask: use filled where within TTL, else NaN
     result = filled.where(within_ttl, np.nan)
 
     return result
+
+
+def ffill_with_age(
+    series: pd.Series,
+    ttl_days: int = 5,
+    weekend_exempt: bool = False,
+) -> Tuple[pd.Series, pd.Series]:
+    """
+    Forward-fill with TTL AND return age_days for model visibility.
+
+    This is the RECOMMENDED function for pipeline use as it provides
+    both the filled values and staleness tracking.
+
+    Args:
+        series: Series to forward-fill (MUST have DatetimeIndex or date index)
+        ttl_days: Maximum calendar days to carry forward
+        weekend_exempt: If True, weekends don't count toward TTL
+
+    Returns:
+        Tuple of (filled_series, age_days_series)
+        - filled_series: Values with TTL-bounded forward fill
+        - age_days: Calendar days since last real observation (for each row)
+
+    Usage:
+        filled, age = ffill_with_age(df['VIXCLS'], ttl_days=3, weekend_exempt=True)
+        df['VIXCLS'] = filled
+        df['VIXCLS_age_days'] = age
+    """
+    if len(series) == 0:
+        return series, pd.Series(dtype=float, index=series.index)
+
+    is_real = series.notna()
+    filled = series.ffill()
+
+    # Get dates from index
+    idx = series.index
+    if isinstance(idx, pd.DatetimeIndex):
+        dates = idx.date
+    elif len(idx) > 0 and hasattr(idx[0], 'date'):
+        dates = idx
+    else:
+        dates = pd.date_range(start='2020-01-01', periods=len(series), freq='D').date
+
+    dates_series = pd.Series(dates, index=series.index)
+    last_real_date = dates_series.where(is_real).ffill()
+
+    # Calculate age in calendar days
+    def calc_age(current, last_real):
+        if pd.isna(current) or pd.isna(last_real):
+            return np.nan
+        try:
+            if isinstance(current, pd.Timestamp):
+                current = current.date()
+            if isinstance(last_real, pd.Timestamp):
+                last_real = last_real.date()
+            return (current - last_real).days
+        except Exception:
+            return np.nan
+
+    age_days = pd.Series(
+        [calc_age(d, lr) for d, lr in zip(dates_series, last_real_date)],
+        index=series.index
+    )
+
+    # Market-aligned: adjust age by subtracting weekends
+    if weekend_exempt:
+        def adjust_for_weekends(current, last_real, raw_age):
+            if pd.isna(raw_age) or raw_age <= 0:
+                return raw_age
+            try:
+                if isinstance(current, pd.Timestamp):
+                    current = current.date()
+                if isinstance(last_real, pd.Timestamp):
+                    last_real = last_real.date()
+                weekend_days = sum(
+                    1 for i in range(int(raw_age))
+                    if (last_real + timedelta(days=i+1)).weekday() >= 5
+                )
+                return raw_age - weekend_days
+            except Exception:
+                return raw_age
+
+        adjusted_age = pd.Series(
+            [adjust_for_weekends(d, lr, a) for d, lr, a in
+             zip(dates_series, last_real_date, age_days)],
+            index=series.index
+        )
+    else:
+        adjusted_age = age_days
+
+    # Apply TTL
+    within_ttl = adjusted_age <= ttl_days
+    result = filled.where(within_ttl, np.nan)
+
+    # Return raw age_days (calendar) for model visibility, not adjusted
+    return result, age_days
 
 
 def ffill_dataframe_with_ttl(
     df: pd.DataFrame,
     ttl_days: int = 5,
     columns: Optional[List[str]] = None,
+    weekend_exempt: bool = False,
+    track_age: bool = True,
 ) -> pd.DataFrame:
     """
-    Forward-fill multiple columns with TTL limit.
+    Forward-fill multiple columns with TTL limit (date-aware).
+
+    CRITICAL: TTL is computed using CALENDAR DAYS from the DataFrame index.
+    Ensure the DataFrame has a DatetimeIndex or date index.
+
+    IMPORTANT: This function is for ECONOMIC/REPORT data (FRED, CFTC, WASDE).
+    NEVER use this for market prices - those must not be forward filled.
+
+    Age tracking is MANDATORY for state-level features per Forward Fill Policy.
+    Every forward-filled column gets a corresponding {col}_age_days column.
 
     Args:
-        df: DataFrame to forward-fill
-        ttl_days: Maximum days to carry forward
-        columns: Columns to fill (default: all numeric except special suffixes)
+        df: DataFrame to forward-fill (MUST have DatetimeIndex or date column)
+        ttl_days: Maximum calendar days to carry forward
+        columns: Explicit list of columns to fill. If None, uses heuristic selection
+            which EXCLUDES derived/computed columns (see FFILL_FORBIDDEN_SUFFIXES).
+        weekend_exempt: If True, weekends don't count toward TTL.
+            Use for FRED business-day series. NOT for market data.
+        track_age: If True (DEFAULT), adds {col}_age_days columns for staleness visibility.
+            MANDATORY for weekly+ cadence data per Forward Fill Policy.
 
     Returns:
-        DataFrame with TTL-bounded forward fill
+        DataFrame with TTL-bounded forward fill (and age columns if track_age=True)
+
+    Contract:
+        - Forward-filled values are STATE only (no high-freq transforms allowed)
+        - Age tracking is ON by default - models need staleness visibility
+        - NEVER pass market price columns (close, open, high, low, settle, etc.)
     """
     result = df.copy()
 
     if columns is None:
-        # Fill all numeric columns except metadata columns
+        # Heuristic selection: numeric columns that are NOT derived/computed
+        # Uses is_numeric_dtype for robust nullable dtype handling
         columns = [
             c for c in df.columns
-            if np.issubdtype(df[c].dtype, np.number)
-            and not c.endswith(("_is_release_day", "_age_days", "_is_available", "_is_missing"))
+            if is_numeric_dtype(df[c])
+            and not any(c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES)
+            and not any(x in c.lower() for x in ['price', 'close', 'open', 'high', 'low', 'settle', 'bid', 'ask'])
         ]
 
     for col in columns:
         if col in result.columns:
-            result[col] = ffill_with_ttl(result[col], ttl_days=ttl_days)
+            if track_age:
+                filled, age = ffill_with_age(
+                    result[col], ttl_days=ttl_days, weekend_exempt=weekend_exempt
+                )
+                result[col] = filled
+                result[f"{col}_age_days"] = age
+            else:
+                result[col] = ffill_with_ttl(
+                    result[col], ttl_days=ttl_days, weekend_exempt=weekend_exempt
+                )
 
     return result
+
+
+def validate_age_tracking(
+    df: pd.DataFrame,
+    state_columns: Optional[List[str]] = None,
+    raise_on_missing: bool = True,
+) -> List[str]:
+    """
+    Validate that all forward-filled state columns have corresponding age tracking.
+
+    Per Forward Fill Policy: Every forward-filled state feature MUST have a
+    corresponding {col}_age_days column for model staleness visibility.
+
+    Args:
+        df: DataFrame to validate
+        state_columns: Explicit list of state columns to check. If None, uses heuristic
+            to identify likely forward-filled columns (non-price numeric columns).
+        raise_on_missing: If True (default), raises ValueError on missing age columns.
+            If False, returns list of missing columns without raising.
+
+    Returns:
+        List of state columns missing their _age_days counterparts
+
+    Raises:
+        ValueError: If raise_on_missing=True and any state columns lack age tracking
+    """
+    if state_columns is None:
+        # Heuristic: identify likely forward-filled state columns
+        # Exclude price columns, derived columns, and already-age columns
+        price_terms = ['price', 'close', 'open', 'high', 'low', 'settle', 'bid', 'ask', 'volume']
+        state_columns = [
+            c for c in df.columns
+            if np.issubdtype(df[c].dtype, np.number)
+            and not any(term in c.lower() for term in price_terms)
+            and not c.endswith(('_age_days', '_is_missing', '_is_release_day', '_is_available'))
+            and not any(c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES)
+        ]
+
+    # Check which state columns are missing age tracking
+    missing_age = []
+    for col in state_columns:
+        age_col = f"{col}_age_days"
+        if age_col not in df.columns:
+            # Only flag if the column has been forward-filled (has consecutive identical values)
+            # This avoids flagging columns that were never forward-filled
+            if col in df.columns and len(df) > 1:
+                # Simple heuristic: check if there are any forward-filled sequences
+                vals = df[col].dropna()
+                if len(vals) > 1:
+                    # If values repeat consecutively, likely forward-filled
+                    has_repeats = (vals.diff() == 0).any()
+                    if has_repeats:
+                        missing_age.append(col)
+
+    if missing_age and raise_on_missing:
+        raise ValueError(
+            f"Forward Fill Policy Violation: {len(missing_age)} state columns "
+            f"lack required _age_days tracking: {missing_age[:10]}..."
+            if len(missing_age) > 10 else
+            f"Forward Fill Policy Violation: {len(missing_age)} state columns "
+            f"lack required _age_days tracking: {missing_age}"
+        )
+
+    return missing_age
 
 
 # =============================================================================
@@ -381,12 +667,15 @@ def forward_fill_low_coverage_series(
     - WASDE fundamentals (carried forward in legacy columns)
     - Other sporadic series
 
+    Age tracking is MANDATORY per Forward Fill Policy. Every forward-filled
+    column gets a corresponding {col}_age_days column for staleness visibility.
+
     Args:
         df: DataFrame with potential gaps
         threshold: Coverage threshold below which to forward-fill (default 50%)
 
     Returns:
-        DataFrame with low-coverage series forward-filled
+        DataFrame with low-coverage series forward-filled AND age columns added
     """
     df = df.copy()
 
@@ -401,16 +690,19 @@ def forward_fill_low_coverage_series(
         coverage = df[col].notna().mean()
         if coverage < threshold and coverage > 0.01:  # Has some data but sparse
             original_nulls = df[col].isna().sum()
-            # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
+            # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill WITH age tracking per policy
             # Default 3-day TTL for daily data (LOCKED threshold)
-            df[col] = ffill_with_ttl(df[col], ttl_days=3)
+            # Age tracking is MANDATORY for state-level features
+            filled, age = ffill_with_age(df[col], ttl_days=3)
+            df[col] = filled
+            df[f"{col}_age_days"] = age
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
-                logger.debug(f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs")
+                logger.debug(f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs + age column")
 
     if filled_count > 0:
-        logger.info(f"   Forward-filled {filled_count} low-coverage series (<{threshold*100:.0f}% coverage)")
+        logger.info(f"   Forward-filled {filled_count} low-coverage series (<{threshold*100:.0f}% coverage) with age tracking")
 
     return df
 

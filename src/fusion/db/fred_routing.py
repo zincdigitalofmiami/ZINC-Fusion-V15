@@ -53,6 +53,7 @@ FRED_SERIES_ROUTING = {
     "T10Y3M": "econ.rates_1d",
     # FX rates
     "DEXBZUS": "econ.rates_1d",
+    "ARGCCUSMA02STM": "econ.rates_1d",
     "DEXCAUS": "econ.rates_1d",
     "DEXCHUS": "econ.rates_1d",
     "DEXINUS": "econ.rates_1d",
@@ -131,7 +132,7 @@ FRED_SERIES_ROUTING = {
     "BUSLOANS": "econ.activity_1d",
     # China economic data
     "CHNCPIALLMINMEI": "econ.activity_1d",
-    "CHNPRINTO01IXPYM": "econ.activity_1d",
+    # NOTE: CHNPRINTO01IXPYM removed 2026-01-31 - discontinued series (822 days stale)
     "CHNGDPNQDSMEI": "econ.activity_1d",
     "CHNMAINLANDTPU": "econ.activity_1d",
     "XTEXVA01CNM667S": "econ.activity_1d",

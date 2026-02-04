@@ -16,7 +16,10 @@ Checks:
 - Performance (<500ms response time)
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

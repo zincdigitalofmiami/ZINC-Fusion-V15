@@ -10,7 +10,10 @@ Run connector for 24 hours continuously and monitor:
 - Event emission rate
 """
 
+
 from __future__ import annotations
+
+__test__ = False  # Pytest should not collect integration scripts.
 
 import json
 import os

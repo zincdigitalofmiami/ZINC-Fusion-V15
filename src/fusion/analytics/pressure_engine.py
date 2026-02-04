@@ -58,6 +58,10 @@ from .pressures.policy_pressure import calculate_trump_effect_pressure as _calc_
 from .pressures.policy_pressure import calculate_tariff_pressure as _calc_tariff
 from .pressures.trade_pressure import calculate_trade_pressure as _calc_trade
 from .pressures.trade_pressure import calculate_correlation_pressure as _calc_corr
+from .pressures.trade_pressure import score_shipping as _score_shipping
+from .pressures.trade_pressure import score_spy_tlt_corr as _score_spy_tlt_corr
+from .pressures.trade_pressure import score_spy_gld_corr as _score_spy_gld_corr
+from .pressures.trade_pressure import score_dxy_strength as _score_dxy_strength
 from .pressures.news_pressure import calculate_news_pressure as _calc_news
 from .pressures.news_pressure import calculate_geopolitical_pressure as _calc_geo
 
@@ -768,15 +772,81 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         components["vix_fear"] = vix_score
         component_scores.append(vix_score)
 
-    # 2. Market Momentum (SPY) - DISABLED: ETF data quality issues
-    # Default neutral score
-    components["market_momentum"] = 50.0
-    component_scores.append(50.0)
+    # 2. Market Momentum (SPY) - Databento ETF
+    cur.execute("""
+        SELECT event_date, close FROM mkt.etf_1d
+        WHERE symbol = 'SPY' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 150
+    """, (as_of_date,))
+    spy_data = cur.fetchall()
+    if len(spy_data) < 125:
+        raise ValueError("Insufficient SPY data for market momentum")
 
-    # 3. Safe Haven Demand (GLD) - DISABLED: ETF data quality issues
-    # Default neutral score
-    components["safe_haven"] = 50.0
-    component_scores.append(50.0)
+    spy_values = [float(r[1]) for r in spy_data if r[1] is not None]
+    current_spy = spy_values[0]
+    spy_ma20 = np.mean(spy_values[:20])
+    spy_ma125 = np.mean(spy_values[:125])
+    if spy_ma20 == 0 or spy_ma125 == 0:
+        raise ValueError("Invalid SPY moving averages")
+
+    short_dev = (current_spy - spy_ma20) / spy_ma20 * 100
+    long_dev = (current_spy - spy_ma125) / spy_ma125 * 100
+
+    if long_dev > 10:
+        base = 80
+    elif long_dev > 5:
+        base = 70
+    elif long_dev > 0:
+        base = 55
+    elif long_dev > -5:
+        base = 45
+    elif long_dev > -10:
+        base = 30
+    else:
+        base = 15
+
+    if short_dev > 3:
+        adj = 10
+    elif short_dev > 0:
+        adj = 5
+    elif short_dev > -3:
+        adj = -5
+    else:
+        adj = -10
+
+    spy_score = float(np.clip(base + adj, 0, 100))
+    components["market_momentum"] = spy_score
+    component_scores.append(spy_score)
+
+    # 3. Safe Haven Demand (GLD) - Databento ETF
+    cur.execute("""
+        SELECT event_date, close FROM mkt.etf_1d
+        WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 25
+    """, (as_of_date,))
+    gld_data = cur.fetchall()
+    if len(gld_data) < 21:
+        raise ValueError("Insufficient GLD data for safe haven score")
+
+    current_gld = float(gld_data[0][1])
+    gld_20d = float(gld_data[20][1])
+    gld_change_20d = (current_gld - gld_20d) / gld_20d if gld_20d > 0 else 0
+
+    if gld_change_20d > 0.08:
+        gold_score = 15
+    elif gld_change_20d > 0.04:
+        gold_score = 30
+    elif gld_change_20d > 0.01:
+        gold_score = 45
+    elif gld_change_20d > -0.02:
+        gold_score = 55
+    elif gld_change_20d > -0.05:
+        gold_score = 70
+    else:
+        gold_score = 85
+
+    components["safe_haven"] = gold_score
+    component_scores.append(gold_score)
 
     # 4. Credit Spreads (HY spreads - inverted)
     cur.execute("""
@@ -1306,9 +1376,22 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     cur = conn.cursor()
     components = {}
 
-    # Shipping ETFs (BDRY) - DISABLED: ETF data quality issues
-    # Default neutral score
-    components["shipping_stress"] = 50.0
+    # Shipping ETFs (BDRY) - Databento ETF
+    cur.execute("""
+        SELECT event_date, close FROM mkt.etf_1d
+        WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 25
+    """, (as_of_date,))
+    bdry_data = cur.fetchall()
+    if len(bdry_data) < 21:
+        raise ValueError("Insufficient BDRY data for trade pressure")
+
+    current_bdry = float(bdry_data[0][1])
+    bdry_20d = float(bdry_data[20][1])
+    bdry_change_20d = (current_bdry - bdry_20d) / bdry_20d if bdry_20d > 0 else 0
+    shipping_score, shipping_desc = _score_shipping(bdry_change_20d)
+    components["shipping_stress"] = round(shipping_score, 1)
+    components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # China specialist signal
     cur.execute("""
@@ -1577,15 +1660,64 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
     cur = conn.cursor()
     components = {}
 
-    # SPY-TLT correlation - DISABLED: ETF data quality issues
-    components["spy_tlt_corr"] = 50.0
+    # SPY-TLT + SPY-GLD correlations (Databento ETFs)
+    cur.execute("""
+        SELECT event_date,
+               MAX(CASE WHEN symbol = 'SPY' THEN close END) AS spy_close,
+               MAX(CASE WHEN symbol = 'TLT' THEN close END) AS tlt_close,
+               MAX(CASE WHEN symbol = 'GLD' THEN close END) AS gld_close
+        FROM mkt.etf_1d
+        WHERE symbol IN ('SPY', 'TLT', 'GLD') AND event_date <= %s AND close IS NOT NULL
+        GROUP BY event_date
+        ORDER BY event_date DESC LIMIT 100
+    """, (as_of_date,))
+    corr_rows = cur.fetchall()
+    if len(corr_rows) < 30:
+        raise ValueError("Insufficient ETF data for correlation pressure")
 
-    # SPY-GLD correlation - DISABLED: ETF data quality issues
-    components["spy_gld_corr"] = 50.0
+    corr_rows = list(reversed(corr_rows))
+    aligned = [(r[1], r[2], r[3]) for r in corr_rows if r[1] is not None and r[2] is not None and r[3] is not None]
+    if len(aligned) < 30:
+        raise ValueError("Insufficient aligned ETF data for correlation pressure")
 
-    # FX stress (UUP/DXY) - DISABLED: ETF data quality issues
-    # TODO: Replace with DXY from futures or FRED data
-    components["dxy_strength"] = 50.0
+    spy = np.array([r[0] for r in aligned], dtype=float)
+    tlt = np.array([r[1] for r in aligned], dtype=float)
+    gld = np.array([r[2] for r in aligned], dtype=float)
+
+    spy_ret = np.diff(spy) / spy[:-1]
+    tlt_ret = np.diff(tlt) / tlt[:-1]
+    gld_ret = np.diff(gld) / gld[:-1]
+
+    window = min(63, len(spy_ret), len(tlt_ret), len(gld_ret))
+    if window < 30:
+        raise ValueError("Insufficient ETF return history for correlation pressure")
+
+    spy_tlt_corr = float(np.corrcoef(spy_ret[-window:], tlt_ret[-window:])[0, 1])
+    spy_gld_corr = float(np.corrcoef(spy_ret[-window:], gld_ret[-window:])[0, 1])
+
+    spy_tlt_score, _ = _score_spy_tlt_corr(spy_tlt_corr)
+    spy_gld_score, _ = _score_spy_gld_corr(spy_gld_corr)
+    components["spy_tlt_corr"] = round(spy_tlt_score, 1)
+    components["spy_tlt_raw"] = round(spy_tlt_corr, 3)
+    components["spy_gld_corr"] = round(spy_gld_score, 1)
+    components["spy_gld_raw"] = round(spy_gld_corr, 3)
+
+    # FX stress (DXY from FRED)
+    cur.execute("""
+        SELECT event_date, value FROM econ.activity_1d
+        WHERE series_id = 'DXY' AND event_date <= %s
+        ORDER BY event_date DESC LIMIT 25
+    """, (as_of_date,))
+    dxy_data = cur.fetchall()
+    if len(dxy_data) < 21:
+        raise ValueError("Insufficient DXY data for correlation pressure")
+
+    current_dxy = float(dxy_data[0][1])
+    dxy_20d = float(dxy_data[20][1])
+    dxy_change_20d = (current_dxy - dxy_20d) / dxy_20d if dxy_20d > 0 else 0
+    dxy_score, _ = _score_dxy_strength(dxy_change_20d)
+    components["dxy_strength"] = round(dxy_score, 1)
+    components["dxy_change_20d"] = round(dxy_change_20d * 100, 2)
 
     # Composite
     weights = {"spy_tlt_corr": 0.40, "spy_gld_corr": 0.35, "dxy_strength": 0.25}
@@ -1846,9 +1978,35 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         em_score = float(np.clip(em_score, 0, 100))
         components["em_fx_stress"] = em_score
 
-    # Gold as fear proxy - DISABLED: ETF data quality issues
-    # TODO: Replace with GC (gold futures) from mkt.futures_1d
-    components["gold_fear"] = 50.0
+    # Gold as fear proxy (GLD ETF)
+    cur.execute("""
+        SELECT event_date, close FROM mkt.etf_1d
+        WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 25
+    """, (as_of_date,))
+    gld_data = cur.fetchall()
+    if len(gld_data) < 21:
+        raise ValueError("Insufficient GLD data for gold fear score")
+
+    current_gld = float(gld_data[0][1])
+    gld_20d = float(gld_data[20][1])
+    gld_change_20d = (current_gld - gld_20d) / gld_20d if gld_20d > 0 else 0
+
+    if gld_change_20d > 0.08:
+        gold_fear = 85
+    elif gld_change_20d > 0.04:
+        gold_fear = 70
+    elif gld_change_20d > 0.01:
+        gold_fear = 60
+    elif gld_change_20d > -0.02:
+        gold_fear = 50
+    elif gld_change_20d > -0.05:
+        gold_fear = 40
+    else:
+        gold_fear = 30
+
+    components["gold_fear"] = round(gold_fear, 1)
+    components["gld_change_20d"] = round(gld_change_20d * 100, 2)
 
     # Composite
     weights = {"epu_spike": 0.30, "oil_volatility": 0.25, "em_fx_stress": 0.25, "gold_fear": 0.20}

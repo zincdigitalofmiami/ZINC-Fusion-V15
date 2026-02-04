@@ -420,21 +420,24 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["executive_velocity"] = round(exec_adj, 1)
     components["executive_count_7d"] = exec_count
 
-    # ==== 4. CHINA STRESS (FXI) ====
+    # ==== 4. CHINA STRESS (FXI) - Databento ETF ====
     cur.execute("""
         SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'FXI' AND event_date <= %s
-        ORDER BY event_date DESC LIMIT 21
+        WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 25
     """, (as_of_date,))
     fxi_data = cur.fetchall()
+    if len(fxi_data) < 21:
+        raise ValueError("Insufficient FXI data to compute China stress")
 
-    china_adj = 0
-    if len(fxi_data) >= 20:
-        fxi_values = [float(r[1]) for r in fxi_data if r[1] is not None]
-        fxi_change = (fxi_values[0] - fxi_values[-1]) / fxi_values[-1] if fxi_values[-1] > 0 else 0
-        china_adj, china_desc = score_china_stress(fxi_change)
-        components["china_stress"] = round(china_adj, 1)
-        components["fxi_change_20d"] = round(fxi_change * 100, 2)
+    current_fxi = float(fxi_data[0][1])
+    fxi_20d = float(fxi_data[20][1])
+    fxi_change_20d = (current_fxi - fxi_20d) / fxi_20d if fxi_20d > 0 else 0
+    china_adj, china_desc = score_china_stress(fxi_change_20d)
+    components["china_stress_adj"] = round(china_adj, 1)
+    components["china_stress_score"] = round(50 + china_adj, 1)
+    components["fxi_change_20d"] = round(fxi_change_20d * 100, 2)
+    components["china_stress_desc"] = china_desc
 
     # ==== 5. SPECIALIST SIGNAL ====
     cur.execute("""

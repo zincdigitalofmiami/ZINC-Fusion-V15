@@ -29,7 +29,7 @@ from psycopg2.extras import execute_values
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from fusion.features.elite_indicators import EliteIndicators
+from fusion.features.elite_indicators_v2_INSTITUTIONAL import EliteIndicatorsV2
 
 # Database URL from environment (load from .env if available)
 from dotenv import load_dotenv
@@ -81,28 +81,16 @@ def load_ohlcv_data(conn, symbol: str) -> pd.DataFrame:
     logger.info(f"   Loaded {len(df):,} rows")
     logger.info(f"   Date range: {df['trade_date'].min()} to {df['trade_date'].max()}")
     
-    # Rename columns to match EliteIndicators expected format
-    df = df.rename(columns={
-        'open': f'{symbol}_open',
-        'high': f'{symbol}_high',
-        'low': f'{symbol}_low',
-        'close': f'{symbol}_close',
-        'volume': f'{symbol}_volume',
-    })
-    
     return df
 
 
 def compute_additional_features(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
     """Add returns and other base features."""
-    close_col = f'{symbol}_close'
-    
-    df['close'] = df[close_col]
-    df['open'] = df[f'{symbol}_open']
-    df['high'] = df[f'{symbol}_high']
-    df['low'] = df[f'{symbol}_low']
-    df['volume'] = df[f'{symbol}_volume']
-    
+    # Ensure standard OHLCV columns exist
+    for col in ['open', 'high', 'low', 'close', 'volume']:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column '{col}' for {symbol}")
+
     # Returns
     df['returns_1d'] = df['close'].pct_change(1)
     df['log_returns_1d'] = np.log(df['close'] / df['close'].shift(1))
@@ -310,16 +298,22 @@ def process_symbol(conn, symbol: str, dry_run: bool = False) -> dict:
         logger.warning(f"   Insufficient data ({len(df)} rows < 50 min), skipping")
         return {"symbol": symbol, "status": "insufficient_data", "rows": len(df)}
 
+    df["trade_date"] = pd.to_datetime(df["trade_date"])
+    df = df.set_index("trade_date")
+
     # Compute elite indicators
     try:
-        elite = EliteIndicators(df, symbol=symbol)
-        df = elite.compute_all()
+        calc = EliteIndicatorsV2(df)
+        df = calc.calculate_all()
     except Exception as e:
         logger.error(f"   Failed to compute indicators for {symbol}: {e}")
         return {"symbol": symbol, "status": "compute_error", "error": str(e)}
 
     # Add returns and base features
     df = compute_additional_features(df, symbol)
+    df = df.reset_index()
+    if "symbol" not in df.columns:
+        df["symbol"] = symbol
 
     if dry_run:
         # Show null rates for verification
