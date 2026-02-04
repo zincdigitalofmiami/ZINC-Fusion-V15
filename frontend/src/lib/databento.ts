@@ -206,3 +206,127 @@ export function parseDatabentoStatisticsCsv(csv: string): DatabentoStatisticsBar
   bars.sort((a, b) => a.tsEvent.getTime() - b.tsEvent.getTime());
   return bars;
 }
+
+// Databento statistics schema - all 15 stat types (1=opening_price, 2=indicative, 3=settlement, 4=session_low, 5=session_high, 6=cleared_volume, 7=ask, 8=bid, 9=open_interest, 10=fixing, 11=close_stat, 12=change, 13=vwap, 14=iv, 15=delta)
+const INT32_MAX_QTY = 2147483647;
+
+export type OptionsStatisticsRecord = {
+  openInterest: number | null;
+  bid: number | null;
+  ask: number | null;
+  change: number | null;
+  settlement: number | null;
+  openingPriceStat: number | null;
+  indicativeOpening: number | null;
+  sessionLowStat: number | null;
+  sessionHighStat: number | null;
+  clearedVolume: number | null;
+  fixingPrice: number | null;
+  closeStat: number | null;
+  vwap: number | null;
+  impliedVolatility: number | null;
+  delta: number | null;
+};
+
+const EMPTY_STATS: OptionsStatisticsRecord = {
+  openInterest: null,
+  bid: null,
+  ask: null,
+  change: null,
+  settlement: null,
+  openingPriceStat: null,
+  indicativeOpening: null,
+  sessionLowStat: null,
+  sessionHighStat: null,
+  clearedVolume: null,
+  fixingPrice: null,
+  closeStat: null,
+  vwap: null,
+  impliedVolatility: null,
+  delta: null,
+};
+
+/** stat_type -> [key of OptionsStatisticsRecord, "price" | "quantity"] */
+const STAT_MAP: Record<number, [keyof OptionsStatisticsRecord, "price" | "quantity"]> = {
+  1: ["openingPriceStat", "price"],
+  2: ["indicativeOpening", "price"],
+  3: ["settlement", "price"],
+  4: ["sessionLowStat", "price"],
+  5: ["sessionHighStat", "price"],
+  6: ["clearedVolume", "quantity"],
+  7: ["ask", "price"],
+  8: ["bid", "price"],
+  9: ["openInterest", "quantity"],
+  10: ["fixingPrice", "price"],
+  11: ["closeStat", "price"],
+  12: ["change", "price"],
+  13: ["vwap", "price"],
+  14: ["impliedVolatility", "price"],
+  15: ["delta", "price"],
+};
+
+/**
+ * Parse Databento statistics schema CSV and return a lookup by (symbol, event_date).
+ * All 15 stat types (1-15) are parsed and stored.
+ * Key = `${symbol}_${dateStr}` (YYYY-MM-DD).
+ */
+export function parseDatabentoStatisticsCsvOptions(
+  csv: string
+): Map<string, OptionsStatisticsRecord> {
+  const map = new Map<string, OptionsStatisticsRecord>();
+
+  const lines = csv
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#"));
+
+  if (lines.length < 2) return map;
+
+  const header = lines[0].split(",");
+  const idx = {
+    ts_event: header.indexOf("ts_event"),
+    symbol: header.indexOf("symbol"),
+    stat_type: header.indexOf("stat_type"),
+    quantity: header.indexOf("quantity"),
+    price: header.indexOf("price"),
+  };
+
+  if (idx.ts_event === -1 || idx.stat_type === -1) return map;
+  if (idx.symbol === -1) return map;
+
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(",");
+    if (parts.length < header.length) continue;
+
+    const ts = parseTimestamp(parts[idx.ts_event]);
+    if (!ts || ts.getFullYear() < 2010) continue;
+
+    const symbol = parts[idx.symbol]?.trim();
+    if (!symbol) continue;
+
+    const dateStr = ts.toISOString().split("T")[0];
+    const key = `${symbol}_${dateStr}`;
+
+    if (!map.has(key)) map.set(key, { ...EMPTY_STATS });
+    const rec = map.get(key)!;
+    const statType = Number(parts[idx.stat_type]);
+    if (!Number.isFinite(statType) || !STAT_MAP[statType]) continue;
+
+    const [field, valueCol] = STAT_MAP[statType];
+    if (valueCol === "quantity" && idx.quantity >= 0) {
+      const qtyStr = parts[idx.quantity]?.trim();
+      if (qtyStr) {
+        const q = parseInt(qtyStr, 10);
+        if (Number.isFinite(q) && q >= 0 && q < INT32_MAX_QTY) (rec as Record<string, number | null>)[field] = q;
+      }
+    } else if (idx.price >= 0) {
+      const priceStr = parts[idx.price]?.trim();
+      if (priceStr) {
+        const p = Number(priceStr) * 1e-9;
+        if (Number.isFinite(p)) (rec as Record<string, number | null>)[field] = p;
+      }
+    }
+  }
+
+  return map;
+}

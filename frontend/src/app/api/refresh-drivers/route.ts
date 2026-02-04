@@ -4,7 +4,7 @@
  * Triggers Inngest functions to refresh the data feeding the 4 driver cards:
  * - VIX: fredDailyVolatility (VIXCLS, VXVCLS, OVXCLS)
  * - Crush: boardCrushDaily
- * - China: fredDailyFx (DEXCHUS), yahooEtfDaily (FXI, BDRY)
+ * - China: fredDailyFx (DEXCHUS)
  * - Tariff: fredDailyTrumpEffect (USEPUINDXM, EMVTRADEPOLEMV)
  */
 
@@ -33,11 +33,6 @@ export async function POST() {
         name: 'fred-daily-fx',
         data: { trigger: 'manual', timestamp: new Date().toISOString() },
       }),
-      // ETF data (FXI, BDRY for China driver)
-      inngest.send({
-        name: 'yahoo-etf-daily',
-        data: { trigger: 'manual', timestamp: new Date().toISOString() },
-      }),
       // Trade policy uncertainty data
       inngest.send({
         name: 'fred-daily-trump-effect',
@@ -46,7 +41,7 @@ export async function POST() {
     ])
 
     const summary = results.map((r, i) => {
-      const names = ['volatility', 'crush', 'fx', 'etf', 'trump-effect']
+      const names = ['volatility', 'crush', 'fx', 'trump-effect']
       return {
         function: names[i],
         status: r.status,
@@ -86,8 +81,8 @@ export async function GET() {
       'fred-daily-volatility (VIX, VIX3M, OVX)',
       'board-crush-daily (Board Crush, Oil Share)',
       'fred-daily-fx (CNY/USD)',
-      'yahoo-etf-daily (FXI, BDRY)',
       'fred-daily-trump-effect (TPU, EMV)',
     ],
+    disabled: [],
   })
 }

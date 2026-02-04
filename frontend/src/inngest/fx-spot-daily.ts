@@ -16,14 +16,33 @@ const pool = new Pool({
 
 const FRED_API_KEY = process.env.FRED_API_KEY;
 
+// Authoritative 21 FRED FX pairs for mkt.fx_1d
+// Note: NZDUSD comes from Databento (no FRED series)
 const PAIRS: Array<{ pair: string; seriesId: string }> = [
+  // Major pairs
   { pair: "AUDUSD", seriesId: "DEXUSAL" },
   { pair: "EURUSD", seriesId: "DEXUSEU" },
   { pair: "GBPUSD", seriesId: "DEXUSUK" },
   { pair: "USDBRL", seriesId: "DEXBZUS" },
   { pair: "USDCAD", seriesId: "DEXCAUS" },
+  { pair: "USDCHF", seriesId: "DEXSZUS" },
   { pair: "USDCNY", seriesId: "DEXCHUS" },
   { pair: "USDJPY", seriesId: "DEXJPUS" },
+  { pair: "USDKRW", seriesId: "DEXKOUS" },
+  { pair: "USDMXN", seriesId: "DEXMXUS" },
+  { pair: "USDSGD", seriesId: "DEXSIUS" },
+  // Extended pairs
+  { pair: "USDHKD", seriesId: "DEXHKUS" },
+  { pair: "USDINR", seriesId: "DEXINUS" },
+  { pair: "USDMYR", seriesId: "DEXMAUS" },
+  { pair: "USDNOK", seriesId: "DEXNOUS" },
+  { pair: "USDSEK", seriesId: "DEXSDUS" },
+  { pair: "USDTHB", seriesId: "DEXTHUS" },
+  { pair: "USDTWD", seriesId: "DEXTAUS" },
+  // DXY indices (Fed trade-weighted dollar)
+  { pair: "DXY_BROAD", seriesId: "DTWEXBGS" },
+  { pair: "DXY_AFE", seriesId: "DTWEXAFEGS" },
+  { pair: "DXY_EME", seriesId: "DTWEXEMEGS" },
 ];
 
 function computeRowHash(pair: string, eventDate: string, rate: number, seriesId: string): string {

@@ -155,6 +155,9 @@ const FRED_FED_SERIES: FredSeriesConfig[] = [
 const FRED_FX_SERIES: FredSeriesConfig[] = [
   // Brazil - #1 soybean exporter, competes with US crush
   { id: "DEXBZUS", name: "USD/BRL (Brazil)", tags: ["fx", "crush", "china"] },
+  // Argentina - major soybean exporter, FX pressure on crush economics
+  // FRED does not provide DEXARS; use ARGCCUSMA02STM (USD/ARS avg daily rates, monthly)
+  { id: "ARGCCUSMA02STM", name: "USD/ARS (Argentina, avg daily rates)", tags: ["fx", "crush"] },
   // China - #1 soybean importer, ZL demand driver
   { id: "DEXCHUS", name: "USD/CNY (China)", tags: ["fx", "china", "crush", "tariff"] },
   // EUR - biofuel policy, rapeseed competition

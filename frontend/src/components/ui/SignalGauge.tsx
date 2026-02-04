@@ -120,12 +120,12 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
          </div>
       </div>
 
-      {/* Prominent P10/P90 Visualization */}
-      {(p10 && p90) && (
+      {/* P30/P70 Visualization (40% coverage band) */}
+      {(p10 && p90) ? (
         <div className="w-full bg-zinc-900/50 rounded-lg p-3 border border-white/5 relative overflow-hidden group">
             {/* Label */}
             <div className="flex justify-between items-end mb-2 text-[10px] font-mono text-slate-500 uppercase">
-                <span>Confidence Band (90%)</span>
+                <span>40% Band (P30-P70)</span>
                 <span>Spread: <span className="text-white">${(p90 - p10).toFixed(2)}</span></span>
             </div>
 
@@ -146,13 +146,22 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
             {/* Ticks */}
             <div className="flex justify-between text-xs font-bold font-mono mt-1.5 px-0 text-slate-300">
                 <div className="text-left">
-                    <span className="text-[9px] text-slate-600 block leading-none mb-0.5">P10</span>
+                    <span className="text-[9px] text-slate-600 block leading-none mb-0.5">P30</span>
                     ${p10.toFixed(2)}
                 </div>
                 <div className="text-right">
-                    <span className="text-[9px] text-slate-600 block leading-none mb-0.5">P90</span>
+                    <span className="text-[9px] text-slate-600 block leading-none mb-0.5">P70</span>
                     ${p90.toFixed(2)}
                 </div>
+            </div>
+        </div>
+      ) : (
+        <div className="w-full bg-zinc-900/50 rounded-lg p-3 border border-yellow-500/20 relative">
+            <div className="text-center text-[10px] text-yellow-500/70 uppercase tracking-wider">
+                Model forecast not available
+            </div>
+            <div className="text-center text-[9px] text-slate-600 mt-1">
+                Core training required
             </div>
         </div>
       )}

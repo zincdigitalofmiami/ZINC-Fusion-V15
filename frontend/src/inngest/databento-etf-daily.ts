@@ -3,8 +3,7 @@
  *
  * Fetches ALL available data from Databento US Equities datasets:
  * - ohlcv-1d: Daily OHLCV bars
- * - statistics: Auction data, indicative prices, session stats
- * - trades (aggregated): For VWAP calculation
+ * - statistics: Auction data, indicative prices, session stats (includes VWAP)
  *
  * Datasets:
  * - ARCX.PILLAR (NYSE Arca) - Most ETFs
@@ -103,6 +102,7 @@ interface EtfStatistics {
   sessionLow: number | null;
   indicativeOpen: number | null;
   indicativeClose: number | null;
+  vwap: number | null;
   auctionImbalance: number | null;
 }
 
@@ -128,7 +128,7 @@ function parseEtfStatisticsCsv(csv: string): Map<string, EtfStatistics> {
 
   // Stat type mapping for equities (different from futures)
   // 1=opening_price, 3=settlement/close, 4=session_low, 5=session_high
-  // 2=indicative_open, 11=close_stat
+  // 2=indicative_open, 11=close_stat, 13=vwap
   const STAT_TYPES: Record<number, keyof EtfStatistics> = {
     1: "openingPrice",
     2: "indicativeOpen",
@@ -136,6 +136,7 @@ function parseEtfStatisticsCsv(csv: string): Map<string, EtfStatistics> {
     4: "sessionLow",
     5: "sessionHigh",
     11: "indicativeClose",
+    13: "vwap",
   };
 
   for (let i = 1; i < lines.length; i++) {
@@ -169,6 +170,7 @@ function parseEtfStatisticsCsv(csv: string): Map<string, EtfStatistics> {
         sessionLow: null,
         indicativeOpen: null,
         indicativeClose: null,
+        vwap: null,
         auctionImbalance: null,
       });
     }
@@ -190,6 +192,7 @@ function parseEtfStatisticsCsv(csv: string): Map<string, EtfStatistics> {
             case "sessionLow": rec.sessionLow = p; break;
             case "indicativeOpen": rec.indicativeOpen = p; break;
             case "indicativeClose": rec.indicativeClose = p; break;
+            case "vwap": rec.vwap = p; break;
           }
         }
       }
@@ -256,9 +259,9 @@ async function upsertEtfRow(
     await client.query(
       `INSERT INTO mkt.etf_1d
         (symbol, event_date, open, high, low, close, volume, source, row_hash, specialist_tags, created_at,
-         opening_price, closing_price, session_high, session_low, indicative_open, indicative_close)
+         opening_price, closing_price, session_high, session_low, indicative_open, indicative_close, vwap)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'databento', $8, $9, NOW(),
-               $10, $11, $12, $13, $14, $15)
+               $10, $11, $12, $13, $14, $15, $16)
        ON CONFLICT (symbol, event_date) DO UPDATE SET
          open = EXCLUDED.open,
          high = EXCLUDED.high,
@@ -273,7 +276,8 @@ async function upsertEtfRow(
          session_high = COALESCE(EXCLUDED.session_high, mkt.etf_1d.session_high),
          session_low = COALESCE(EXCLUDED.session_low, mkt.etf_1d.session_low),
          indicative_open = COALESCE(EXCLUDED.indicative_open, mkt.etf_1d.indicative_open),
-         indicative_close = COALESCE(EXCLUDED.indicative_close, mkt.etf_1d.indicative_close)`,
+         indicative_close = COALESCE(EXCLUDED.indicative_close, mkt.etf_1d.indicative_close),
+         vwap = COALESCE(EXCLUDED.vwap, mkt.etf_1d.vwap)`,
       [
         symbol, eventDate, open, high, low, close, volume, rowHash, specialistTags,
         stats?.openingPrice ?? null,
@@ -282,6 +286,7 @@ async function upsertEtfRow(
         stats?.sessionLow ?? null,
         stats?.indicativeOpen ?? null,
         stats?.indicativeClose ?? null,
+        stats?.vwap ?? null,
       ]
     );
   } finally {

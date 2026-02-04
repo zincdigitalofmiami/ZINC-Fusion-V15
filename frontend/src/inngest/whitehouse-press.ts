@@ -28,7 +28,7 @@
  * - /briefing-room/statements-releases/feed/
  * 
  * Routes to: tariff, trump_effect, energy, china specialists
- * Table: alt.news_1d
+ * Table: alt.executive_actions (presidential documents)
  */
 
 import { inngest } from "./client";
@@ -342,7 +342,7 @@ export const whitehouseDaily = inngest.createFunction(
 
           // Check if exists
           const checkResult = await pool.query(
-            `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
+            `SELECT 1 FROM alt.executive_actions WHERE row_hash = $1`,
             [rowHash]
           );
 
@@ -351,11 +351,20 @@ export const whitehouseDaily = inngest.createFunction(
             continue;
           }
 
-          // Insert
+          // Extract document type from source
+          let documentType = 'Other';
+          if (item.sourceCategory.includes('executiveOrder')) documentType = 'Executive Order';
+          else if (item.sourceCategory.includes('memorand')) documentType = 'Presidential Memorandum';
+          else if (item.sourceCategory.includes('proclamation')) documentType = 'Proclamation';
+          else if (item.sourceCategory.includes('briefing')) documentType = 'Press Briefing';
+          else if (item.sourceCategory.includes('factSheet')) documentType = 'Fact Sheet';
+          else if (item.sourceCategory.includes('remark')) documentType = 'Remarks';
+
+          // Insert into executive_actions
           await pool.query(
-            `INSERT INTO alt.news_1d
-             (event_date, headline, url, published_at, content, source, specialist_tags, row_hash, raw_payload)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            `INSERT INTO alt.executive_actions
+             (event_date, headline, url, published_at, content, source, document_type, specialist_tags, row_hash, raw_payload)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             [
               publishedAt.toISOString().split('T')[0],
               item.title,
@@ -363,6 +372,7 @@ export const whitehouseDaily = inngest.createFunction(
               publishedAt,
               item.description || null,
               `whitehouse_${item.sourceCategory}`,
+              documentType,
               specialists,
               rowHash,
               JSON.stringify(item),

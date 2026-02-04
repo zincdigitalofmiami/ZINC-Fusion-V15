@@ -167,7 +167,7 @@ export const iceReleasesDaily = inngest.createFunction(
 
           // Check if exists in EXISTING table
           const checkResult = await pool.query(
-            `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
+            `SELECT 1 FROM alt.policy_news WHERE row_hash = $1`,
             [rowHash]
           );
 
@@ -176,9 +176,9 @@ export const iceReleasesDaily = inngest.createFunction(
             continue;
           }
 
-          // Insert into EXISTING alt.news_1d table
+          // Insert into alt.policy_news table
           await pool.query(
-            `INSERT INTO alt.news_1d
+            `INSERT INTO alt.policy_news
              (event_date, headline, url, source, row_hash, specialist_tags, raw_payload)
              VALUES (CURRENT_DATE, $1, $2, $3, $4, $5, $6)`,
             [
