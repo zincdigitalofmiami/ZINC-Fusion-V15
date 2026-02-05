@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-02-03T15:07:47.420817+00:00",
+  "days_back": 180,
+  "symbols": [
+    "ZL",
+    "ZS",
+    "ZM",
+    "ZC",
+    "ZW",
+    "6B",
+    "6J",
+    "6L",
+    "6M",
+    "MES",
+    "ES"
+  ],
+  "thresholds": {
+    "avg_missing": 2.0,
+    "max_missing": 10,
+    "flat_rate": 0.05,
+    "stale_rate": 0.2
+  },
+  "missing_hours": {
+    "ZL": {
+      "expected_hours": 19,
+      "days": 124,
+      "days_with_missing": 63,
+      "avg_missing": 0.88,
+      "max_missing": 14
+    },
+    "ZS": {
+      "expected_hours": 19,
+      "days": 124,
+      "days_with_missing": 63,
+      "avg_missing": 0.88,
+      "max_missing": 14
+    },
+    "ZM": {
+      "expected_hours": 19,
+      "days": 124,
+      "days_with_missing": 63,
+      "avg_missing": 0.87,
+      "max_missing": 14
+    },
+    "ZC": {
+      "expected_hours": 19,
+      "days": 124,
+      "days_with_missing": 72,
+      "avg_missing": 2.37,
+      "max_missing": 16
+    },
+    "ZW": {
+      "expected_hours": 19,
+      "days": 121,
+      "days_with_missing": 70,
+      "avg_missing": 3.05,
+      "max_missing": 18
+    },
+    "6B": {
+      "expected_hours": 21,
+      "days": 143,
+      "days_with_missing": 105,
+      "avg_missing": 7.87,
+      "max_missing": 21
+    },
+    "6J": {
+      "expected_hours": 22,
+      "days": 152,
+      "days_with_missing": 121,
+      "avg_missing": 6.67,
+      "max_missing": 22
+    },
+    "6L": {
+      "expected_hours": 12,
+      "days": 154,
+      "days_with_missing": 42,
+      "avg_missing": 2.5,
+      "max_missing": 12
+    },
+    "6M": {
+      "expected_hours": 21,
+      "days": 84,
+      "days_with_missing": 54,
+      "avg_missing": 10.85,
+      "max_missing": 20
+    },
+    "MES": {
+      "expected_hours": 23,
+      "days": 155,
+      "days_with_missing": 107,
+      "avg_missing": 4.88,
+      "max_missing": 22
+    },
+    "ES": {
+      "expected_hours": 23,
+      "days": 155,
+      "days_with_missing": 107,
+      "avg_missing": 4.88,
+      "max_missing": 22
+    }
+  },
+  "quality": {
+    "ZL": {
+      "total": 2291,
+      "flat_rate": 0.0,
+      "stale_rate": 0.0349
+    },
+    "ZS": {
+      "total": 2291,
+      "flat_rate": 0.0,
+      "stale_rate": 0.0759
+    },
+    "ZM": {
+      "total": 2292,
+      "flat_rate": 0.0004,
+      "stale_rate": 0.0881
+    },
+    "ZC": {
+      "total": 2104,
+      "flat_rate": 0.0295,
+      "stale_rate": 0.1625
+    },
+    "ZW": {
+      "total": 1967,
+      "flat_rate": 0.0158,
+      "stale_rate": 0.1052
+    },
+    "6B": {
+      "total": 2010,
+      "flat_rate": 0.2025,
+      "stale_rate": 0.0502
+    },
+    "6J": {
+      "total": 2407,
+      "flat_rate": 0.1683,
+      "stale_rate": 0.0395
+    },
+    "6L": {
+      "total": 2674,
+      "flat_rate": 0.098,
+      "stale_rate": 0.1466
+    },
+    "6M": {
+      "total": 927,
+      "flat_rate": 0.0712,
+      "stale_rate": 0.1381
+    },
+    "MES": {
+      "total": 2852,
+      "flat_rate": 0.0,
+      "stale_rate": 0.0186
+    },
+    "ES": {
+      "total": 2852,
+      "flat_rate": 0.0,
+      "stale_rate": 0.0165
+    }
+  },
+  "flags": {
+    "ZL": [
+      "max_missing>10"
+    ],
+    "ZS": [
+      "max_missing>10"
+    ],
+    "ZM": [
+      "max_missing>10"
+    ],
+    "ZC": [
+      "avg_missing>2.0",
+      "max_missing>10"
+    ],
+    "ZW": [
+      "avg_missing>2.0",
+      "max_missing>10"
+    ],
+    "6B": [
+      "avg_missing>2.0",
+      "max_missing>10",
+      "flat_rate>0.05"
+    ],
+    "6J": [
+      "avg_missing>2.0",
+      "max_missing>10",
+      "flat_rate>0.05"
+    ],
+    "6L": [
+      "avg_missing>2.0",
+      "max_missing>10",
+      "flat_rate>0.05"
+    ],
+    "6M": [
+      "avg_missing>2.0",
+      "max_missing>10",
+      "flat_rate>0.05"
+    ],
+    "MES": [
+      "avg_missing>2.0",
+      "max_missing>10"
+    ],
+    "ES": [
+      "avg_missing>2.0",
+      "max_missing>10"
+    ]
+  }
+}

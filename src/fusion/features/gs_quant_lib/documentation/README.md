@@ -1,0 +1,332 @@
+# Documentation Overview
+Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
+
+
+gs_quant documentation is organized by core functionality outlined below.
+Within each group, you will find tutorials introducing core ideas and functions (this is a great place to start) and
+examples providing a searchable library of short specific snippets.
+
+- 📁 **00_data**
+  - 📁 00_datasets
+    - 📁 examples
+      - 📄 [0000_query_dataset.ipynb](00_data/00_datasets/examples/0000_query_dataset.ipynb)
+      - 📄 [0001_get_dataset_coverage.ipynb](00_data/00_datasets/examples/0001_get_dataset_coverage.ipynb)
+      - 📄 [0002_using_data_contexts.ipynb](00_data/00_datasets/examples/0002_using_data_contexts.ipynb)
+      - 📄 [0003_get_data_using_coordinate.ipynb](00_data/00_datasets/examples/0003_get_data_using_coordinate.ipynb)
+      - 📄 [0004_get_all_assets_from_region.ipynb](00_data/00_datasets/examples/0004_get_all_assets_from_region.ipynb)
+      - 📄 [0005_get_vol_surface.ipynb](00_data/00_datasets/examples/0005_get_vol_surface.ipynb)
+      - 📄 [0006_ptp_dataset.ipynb](00_data/00_datasets/examples/0006_ptp_dataset.ipynb)
+      - 📄 [0007_query_fxvol.script.ipynb](00_data/00_datasets/examples/0007_query_fxvol.script.ipynb)
+      - 📄 [0008_s3_partners_short_interest.ipynb](00_data/00_datasets/examples/0008_s3_partners_short_interest.ipynb)
+  - 📁 01_analytics
+    - 📁 examples
+      - 📄 [0000_charting_data.ipynb](00_data/01_analytics/examples/0000_charting_data.ipynb)
+      - 📄 [0001_exporting_data.ipynb](00_data/01_analytics/examples/0001_exporting_data.ipynb)
+  - 📁 02_workspaces
+    - 📁 examples
+      - 📄 [0001_creating_a_workspace.ipynb](00_data/02_workspaces/examples/0001_creating_a_workspace.ipynb)
+  - 📁 03_visualizations
+    - 📁 examples
+      - 📄 [0001_creating_a_visualization.ipynb](00_data/03_visualizations/examples/0001_creating_a_visualization.ipynb)
+  - 📁 04_screens
+    - 📁 examples
+      - 📄 [00_base_screener_api_tutorial.ipynb](00_data/04_screens/examples/00_base_screener_api_tutorial.ipynb)
+      - 📄 [01_screen_api_tutorial.ipynb](00_data/04_screens/examples/01_screen_api_tutorial.ipynb)
+  - 📁 covid
+    - 📄 [Comparing, Reconciling, and Combining COVID-19 Data Sources.ipynb](00_data/covid/Comparing,%20Reconciling,%20and%20Combining%20COVID-19%20Data%20Sources.ipynb)
+- 📁 **01_markets**
+  - 📁 00_securities
+    - 📁 examples
+      - 📄 [0000_get_an_asset_from_identifier.ipynb](01_markets/00_securities/examples/0000_get_an_asset_from_identifier.ipynb)
+  - 📁 02_rdates
+    - 📁 examples
+      - 📄 [0000_get_a_date_relative_from_today.ipynb](01_markets/02_rdates/examples/0000_get_a_date_relative_from_today.ipynb)
+      - 📄 [0001_get_a_date_relative_from_a_base_date.ipynb](01_markets/02_rdates/examples/0001_get_a_date_relative_from_a_base_date.ipynb)
+      - 📄 [0002_get_a_date_relative_using_pricing_context.ipynb](01_markets/02_rdates/examples/0002_get_a_date_relative_using_pricing_context.ipynb)
+      - 📄 [0003_get_a_date_using_a_business_day_calendar.ipynb](01_markets/02_rdates/examples/0003_get_a_date_using_a_business_day_calendar.ipynb)
+      - 📄 [0004_chaining_relativedate_rules.ipynb](01_markets/02_rdates/examples/0004_chaining_relativedate_rules.ipynb)
+      - 📄 [0005_passing_your_own_holiday_calendar.ipynb](01_markets/02_rdates/examples/0005_passing_your_own_holiday_calendar.ipynb)
+- 📁 **02_pricing_and_risk**
+  - 📁 00_instruments_and_measures
+    - 📁 examples
+      - 📁 00_instrument_basics
+        - 📄 [01_view-trade-properties.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/01_view-trade-properties.ipynb)
+        - 📄 [02_get-a-property.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/02_get-a-property.ipynb)
+        - 📄 [03_set-a-property.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/03_set-a-property.ipynb)
+        - 📄 [04_enum-property.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/04_enum-property.ipynb)
+        - 📄 [05_resolve-a-trade.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/05_resolve-a-trade.ipynb)
+        - 📄 [06_market-data.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/06_market-data.ipynb)
+        - 📄 [07_float-with-info.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/00_instrument_basics/07_float-with-info.ipynb)
+      - 📁 01_rates
+        - 📄 [01_view_swap_definition.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/01_view_swap_definition.ipynb)
+        - 📄 [02_swap_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/02_swap_trade_construction.ipynb)
+        - 📄 [03_calc_swap_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/03_calc_swap_price.ipynb)
+        - 📄 [04_calc_swap_risk_measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/04_calc_swap_risk_measures.ipynb)
+        - 📄 [05_calc_swap_price_in_pricing_context.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/05_calc_swap_price_in_pricing_context.ipynb)
+        - 📄 [06_calc_swap_price_historically.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/06_calc_swap_price_historically.ipynb)
+        - 📄 [07_calc_swap_risks_in_pricing_context.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/07_calc_swap_risks_in_pricing_context.ipynb)
+        - 📄 [08_calc_swap_risk_historically.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/08_calc_swap_risk_historically.ipynb)
+        - 📄 [09_swaption_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/09_swaption_trade_construction.ipynb)
+        - 📄 [10_straddle_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/10_straddle_price.ipynb)
+        - 📄 [11_midcurve_swaption_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/11_midcurve_swaption_price.ipynb)
+        - 📄 [12_swap_future_cashflows.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/12_swap_future_cashflows.ipynb)
+        - 📄 [13_calc_xccy_swap_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/13_calc_xccy_swap_price.ipynb)
+        - 📄 [14_calc_xccy_swap_risk_measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/14_calc_xccy_swap_risk_measures.ipynb)
+        - 📄 [15_spread_option_grid_pricing.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/15_spread_option_grid_pricing.ipynb)
+        - 📄 [16_change_discount_curve.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/16_change_discount_curve.ipynb)
+        - 📄 [17_calc_xccy_swap_cashflows.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/17_calc_xccy_swap_cashflows.ipynb)
+        - 📄 [18_solve_present_value.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/18_solve_present_value.ipynb)
+        - 📄 [19_solve_delta.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/19_solve_delta.ipynb)
+        - 📄 [20_fix_float_legs_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/20_fix_float_legs_price.ipynb)
+        - 📄 [21_asset_swap_definition.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/21_asset_swap_definition.ipynb)
+        - 📄 [22_cap_floor.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/22_cap_floor.ipynb)
+        - 📄 [23_solve_vanna_&_volga.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/01_rates/23_solve_vanna_&_volga.ipynb)
+      - 📁 02_fx
+        - 📄 [01_fx_fwd_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/01_fx_fwd_trade_construction.ipynb)
+        - 📄 [02_fx_option_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/02_fx_option_trade_construction.ipynb)
+        - 📄 [03_fx_vol_swap_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/03_fx_vol_swap_trade_construction.ipynb)
+        - 📄 [04_fx_binary_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/04_fx_binary_trade_construction.ipynb)
+        - 📄 [05_calc_option_measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/05_calc_option_measures.ipynb)
+        - 📄 [06_fx_var_swap_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/06_fx_var_swap_trade_construction.ipynb)
+        - 📄 [07_fx_knockout_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/07_fx_knockout_trade_construction.ipynb)
+        - 📄 [08_fx_double_touch_trade_construction.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/08_fx_double_touch_trade_construction.ipynb)
+        - 📄 [09_fx_delta_measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/02_fx/09_fx_delta_measures.ipynb)
+      - 📁 03_eq
+        - 📄 [01_calc_eq_option_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/03_eq/01_calc_eq_option_price.ipynb)
+        - 📄 [02_calc_eq_option_risk_measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/03_eq/02_calc_eq_option_risk_measures.ipynb)
+        - 📄 [03_calc_eq_option_price_and_risk_in_pricing_context.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/03_eq/03_calc_eq_option_price_and_risk_in_pricing_context.ipynb)
+        - 📄 [04_calc_eq_option_price_and_risk_historically.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/03_eq/04_calc_eq_option_price_and_risk_historically.ipynb)
+        - 📄 [05_calc_eq_option_portfolio_greeks.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/03_eq/05_calc_eq_option_portfolio_greeks.ipynb)
+      - 📁 04_credit
+        - 📄 [01_cdindex_option_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/04_credit/01_cdindex_option_price.ipynb)
+        - 📄 [02_cdindex_option_xover_payer_spread.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/04_credit/02_cdindex_option_xover_payer_spread.ipynb)
+        - 📄 [03_cdindex_option_risks.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/04_credit/03_cdindex_option_risks.ipynb)
+        - 📄 [04_cdindex_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/04_credit/04_cdindex_price.ipynb)
+        - 📄 [05_cdindex_roll_price.ipynb](02_pricing_and_risk/00_instruments_and_measures/examples/04_credit/05_cdindex_roll_price.ipynb)
+    - 📁 tutorials
+      - 📄 [Instruments.ipynb](02_pricing_and_risk/00_instruments_and_measures/tutorials/Instruments.ipynb)
+      - 📄 [Measures.ipynb](02_pricing_and_risk/00_instruments_and_measures/tutorials/Measures.ipynb)
+  - 📁 01_scenarios_and_contexts
+    - 📁 examples
+      - 📁 00_market_objects
+        - 📄 [010000_market_data_in_gs_quant.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010000_market_data_in_gs_quant.ipynb)
+        - 📄 [010001_market_objects.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010001_market_objects.ipynb)
+        - 📄 [010002_marketdatapattern_basics.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010002_marketdatapattern_basics.ipynb)
+        - 📄 [010003_marketdatapattern_construction_ir.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010003_marketdatapattern_construction_ir.ipynb)
+        - 📄 [010004_marketdatapattern_construction_ir_vol.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010004_marketdatapattern_construction_ir_vol.ipynb)
+        - 📄 [010005_marketdatapattern_construction_ir_basis.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010005_marketdatapattern_construction_ir_basis.ipynb)
+        - 📄 [010006_marketdatapattern_construction_ir_xc.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010006_marketdatapattern_construction_ir_xc.ipynb)
+        - 📄 [010007_marketdatapattern_construction_fx.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010007_marketdatapattern_construction_fx.ipynb)
+        - 📄 [010008_marketdatapattern_construction_fx_fwd.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010008_marketdatapattern_construction_fx_fwd.ipynb)
+        - 📄 [010009_marketdatapattern_construction_fx_vol.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010009_marketdatapattern_construction_fx_vol.ipynb)
+        - 📄 [010010_marketdatapattern_construction_cd.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/00_market_objects/010010_marketdatapattern_construction_cd.ipynb)
+      - 📁 01_rollfwd_shock
+        - 📄 [01_rollfwd_for_trade.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/01_rollfwd_shock/01_rollfwd_for_trade.ipynb)
+        - 📄 [02_basic_use_of_rollfwd_scenario.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/01_rollfwd_shock/02_basic_use_of_rollfwd_scenario.ipynb)
+        - 📄 [03_rollfwd-showing-lifecycling-effects-on-swaps-and-swaptions.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/01_rollfwd_shock/03_rollfwd-showing-lifecycling-effects-on-swaps-and-swaptions.ipynb)
+        - 📄 [04_yield_curves_with_rollfwd.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/01_rollfwd_shock/04_yield_curves_with_rollfwd.ipynb)
+        - 📄 [05_rollfwd_swap_fwd_rates.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/01_rollfwd_shock/05_rollfwd_swap_fwd_rates.ipynb)
+      - 📁 02_market_shock
+        - 📄 [010200_marketdatashockbasedscenario_basics.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010200_marketdatashockbasedscenario_basics.ipynb)
+        - 📄 [010201_rate_spot_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010201_rate_spot_shock.ipynb)
+        - 📄 [010203_rate_vol_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010203_rate_vol_shock.ipynb)
+        - 📄 [010204_delta_shock_equivalent.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010204_delta_shock_equivalent.ipynb)
+        - 📄 [010205_vega_shock_equivalent.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010205_vega_shock_equivalent.ipynb)
+        - 📄 [010206_eq_spot_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010206_eq_spot_shock.ipynb)
+        - 📄 [010207_fx_shock_examples.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/02_market_shock/010207_fx_shock_examples.ipynb)
+      - 📁 03_composite_shocks
+        - 📄 [010300_rate_composite_shocks.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/03_composite_shocks/010300_rate_composite_shocks.ipynb)
+        - 📄 [010301_multiple_shocks.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/03_composite_shocks/010301_multiple_shocks.ipynb)
+      - 📁 04_curve_shock
+        - 📄 [010400_parallel_curve_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010400_parallel_curve_shock.ipynb)
+        - 📄 [010401_curve_shock_midpoint.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010401_curve_shock_midpoint.ipynb)
+        - 📄 [010402_bear_steepener_curve_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010402_bear_steepener_curve_shock.ipynb)
+        - 📄 [010403_bull_steepener_curve_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010403_bull_steepener_curve_shock.ipynb)
+        - 📄 [010404_bear_flattener_curve_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010404_bear_flattener_curve_shock.ipynb)
+        - 📄 [010405_bull_flattener_curve_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/04_curve_shock/010405_bull_flattener_curve_shock.ipynb)
+      - 📁 05_market_override
+        - 📄 [010501_eq_spot_override.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/05_market_override/010501_eq_spot_override.ipynb)
+        - 📄 [010502_eq_future_override.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/05_market_override/010502_eq_future_override.ipynb)
+      - 📁 06_vol_market_override
+        - 📄 [010601_eq_vol_override_eod.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/06_vol_market_override/010601_eq_vol_override_eod.ipynb)
+        - 📄 [010601_eq_vol_override_intraday.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/06_vol_market_override/010601_eq_vol_override_intraday.ipynb)
+      - 📁 07_curve_overlay
+        - 📄 [010700_discount_curve_overlay.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/07_curve_overlay/010700_discount_curve_overlay.ipynb)
+      - 📁 08_multi_scenario
+        - 📄 [010801_multi_scenario_shock.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/08_multi_scenario/010801_multi_scenario_shock.ipynb)
+      - 📁 09_measure_scenario
+        - 📄 [010901_fx_override_example.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/09_measure_scenario/010901_fx_override_example.ipynb)
+        - 📄 [010902_rates_override_example.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/09_measure_scenario/010902_rates_override_example.ipynb)
+        - 📄 [010903_eq_override_example.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/examples/09_measure_scenario/010903_eq_override_example.ipynb)
+    - 📁 tutorials
+      - 📄 [Pricing_Context.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/tutorials/Pricing_Context.ipynb)
+      - 📄 [Scenarios.ipynb](02_pricing_and_risk/01_scenarios_and_contexts/tutorials/Scenarios.ipynb)
+  - 📄 [External Demo v1.ipynb](02_pricing_and_risk/External%20Demo%20v1.ipynb)
+- 📁 **03_portfolios**
+  - 📁 examples
+    - 📄 [030000_create_portfolio.ipynb](03_portfolios/examples/030000_create_portfolio.ipynb)
+    - 📄 [030001_modify_instruments.ipynb](03_portfolios/examples/030001_modify_instruments.ipynb)
+    - 📄 [030002_extracting_instruments_and_results.ipynb](03_portfolios/examples/030002_extracting_instruments_and_results.ipynb)
+    - 📄 [030003_resolve_portfolio.ipynb](03_portfolios/examples/030003_resolve_portfolio.ipynb)
+    - 📄 [030004_price_portfolio.ipynb](03_portfolios/examples/030004_price_portfolio.ipynb)
+    - 📄 [030005_calculate_portfolio_risk.ipynb](03_portfolios/examples/030005_calculate_portfolio_risk.ipynb)
+    - 📄 [030006_portfolio_grid_calc.ipynb](03_portfolios/examples/030006_portfolio_grid_calc.ipynb)
+    - 📄 [030007_pnl_explain.ipynb](03_portfolios/examples/030007_pnl_explain.ipynb)
+    - 📄 [030008_portflio_from_frame.ipynb](03_portfolios/examples/030008_portflio_from_frame.ipynb)
+    - 📄 [030009_portfolio_risk_result_to_frame.ipynb](03_portfolios/examples/030009_portfolio_risk_result_to_frame.ipynb)
+    - 📄 [030010_portfolio_intra_leg_dependencies.ipynb](03_portfolios/examples/030010_portfolio_intra_leg_dependencies.ipynb)
+    - 📄 [030011_portfolio_from_csv.ipynb](03_portfolios/examples/030011_portfolio_from_csv.ipynb)
+  - 📁 tutorials
+    - 📄 [Create New Portfolio.ipynb](03_portfolios/tutorials/Create%20New%20Portfolio.ipynb)
+    - 📄 [Portfolios.ipynb](03_portfolios/tutorials/Portfolios.ipynb)
+    - 📄 [Update Historical Portfolio.ipynb](03_portfolios/tutorials/Update%20Historical%20Portfolio.ipynb)
+- 📁 **04_backtesting**
+  - 📁 examples
+    - 📁 01_PredefinedAssetEngine
+      - 📄 [040100_simple_example.ipynb](04_backtesting/examples/01_PredefinedAssetEngine/040100_simple_example.ipynb)
+    - 📁 02_EquityVolEngine
+      - 📄 [040200_strategy_simple.ipynb](04_backtesting/examples/02_EquityVolEngine/040200_strategy_simple.ipynb)
+      - 📄 [040201_strategy_delta_hedged.ipynb](04_backtesting/examples/02_EquityVolEngine/040201_strategy_delta_hedged.ipynb)
+      - 📄 [040202_strategy_pnl_decomposition.ipynb](04_backtesting/examples/02_EquityVolEngine/040202_strategy_pnl_decomposition.ipynb)
+      - 📄 [040203_strategy_with_signals.ipynb](04_backtesting/examples/02_EquityVolEngine/040203_strategy_with_signals.ipynb)
+      - 📄 [040204_strategy_market_model.ipynb](04_backtesting/examples/02_EquityVolEngine/040204_strategy_market_model.ipynb)
+      - 📄 [040205_strategy_scaled_add_action.ipynb](04_backtesting/examples/02_EquityVolEngine/040205_strategy_scaled_add_action.ipynb)
+    - 📁 03_GenericEngine
+      - 📄 [040300_strategy_periodic_trigger.ipynb](04_backtesting/examples/03_GenericEngine/040300_strategy_periodic_trigger.ipynb)
+      - 📄 [040301_strategy_risk_trigger.ipynb](04_backtesting/examples/03_GenericEngine/040301_strategy_risk_trigger.ipynb)
+      - 📄 [040302_strategy_delta_hedge_FX.ipynb](04_backtesting/examples/03_GenericEngine/040302_strategy_delta_hedge_FX.ipynb)
+      - 📄 [040303_strategy_delta_hedge_Rates.ipynb](04_backtesting/examples/03_GenericEngine/040303_strategy_delta_hedge_Rates.ipynb)
+      - 📄 [040304_strategy_mean_reversion.ipynb](04_backtesting/examples/03_GenericEngine/040304_strategy_mean_reversion.ipynb)
+      - 📄 [040305_strategy_exit_trade_action.ipynb](04_backtesting/examples/03_GenericEngine/040305_strategy_exit_trade_action.ipynb)
+      - 📄 [040306_strategy_mkt_trigger.ipynb](04_backtesting/examples/03_GenericEngine/040306_strategy_mkt_trigger.ipynb)
+      - 📄 [040307_strategy_seagull_bullish.ipynb](04_backtesting/examples/03_GenericEngine/040307_strategy_seagull_bullish.ipynb)
+      - 📄 [040308_rebalance_action.ipynb](04_backtesting/examples/03_GenericEngine/040308_rebalance_action.ipynb)
+      - 📄 [040309_inflation_hedging_strategy.ipynb](04_backtesting/examples/03_GenericEngine/040309_inflation_hedging_strategy.ipynb)
+      - 📄 [040310_initial_swap_hedging_strategy_varying_CSA.ipynb](04_backtesting/examples/03_GenericEngine/040310_initial_swap_hedging_strategy_varying_CSA.ipynb)
+      - 📄 [040311_handling_holidays.ipynb](04_backtesting/examples/03_GenericEngine/040311_handling_holidays.ipynb)
+      - 📄 [040312_strategy_scaled_add_action.ipynb](04_backtesting/examples/03_GenericEngine/040312_strategy_scaled_add_action.ipynb)
+      - 📄 [040313_chained_actions.ipynb](04_backtesting/examples/03_GenericEngine/040313_chained_actions.ipynb)
+  - 📁 tutorials
+    - 📄 [Backtesting.ipynb](04_backtesting/tutorials/Backtesting.ipynb)
+    - 📄 [Basic backtest walkthrough.ipynb](04_backtesting/tutorials/Basic%20backtest%20walkthrough.ipynb)
+- 📁 **05_factor_models**
+  - 📄 [01_Factor_Models.ipynb](05_factor_models/01_Factor_Models.ipynb)
+  - 📄 [02_Upload_Factor_Models.ipynb](05_factor_models/02_Upload_Factor_Models.ipynb)
+- 📁 **06_baskets**
+  - 📁 examples
+    - 📁 01_basket_composition_data
+      - 📄 [0000_get_latest_basket_composition.ipynb](06_baskets/examples/01_basket_composition_data/0000_get_latest_basket_composition.ipynb)
+      - 📄 [0001_get_basket_composition_for_date.ipynb](06_baskets/examples/01_basket_composition_data/0001_get_basket_composition_for_date.ipynb)
+      - 📄 [0002_get_basket_composition_for_date_range.ipynb](06_baskets/examples/01_basket_composition_data/0002_get_basket_composition_for_date_range.ipynb)
+      - 📄 [0003_get_full_basket_composition_history.ipynb](06_baskets/examples/01_basket_composition_data/0003_get_full_basket_composition_history.ipynb)
+      - 📄 [0004_get_basket_composition_dates.ipynb](06_baskets/examples/01_basket_composition_data/0004_get_basket_composition_dates.ipynb)
+      - 📄 [0005_get_basket_composition_dataset_coverage.ipynb](06_baskets/examples/01_basket_composition_data/0005_get_basket_composition_dataset_coverage.ipynb)
+    - 📁 02_basket_pricing_data
+      - 📄 [0000_get_latest_basket_close_price.ipynb](06_baskets/examples/02_basket_pricing_data/0000_get_latest_basket_close_price.ipynb)
+      - 📄 [0001_get_basket_close_price_for_date.ipynb](06_baskets/examples/02_basket_pricing_data/0001_get_basket_close_price_for_date.ipynb)
+      - 📄 [0002_get_basket_close_price_for_dates.ipynb](06_baskets/examples/02_basket_pricing_data/0002_get_basket_close_price_for_dates.ipynb)
+      - 📄 [0003_get_full_basket_close_price_history.ipynb](06_baskets/examples/02_basket_pricing_data/0003_get_full_basket_close_price_history.ipynb)
+    - 📁 03_basket_creation
+      - 📄 [0000_clone_basket_position_set.ipynb](06_baskets/examples/03_basket_creation/0000_clone_basket_position_set.ipynb)
+      - 📁 position_set
+        - 📄 [0000_create_position_set_using_position_weights.ipynb](06_baskets/examples/03_basket_creation/position_set/0000_create_position_set_using_position_weights.ipynb)
+        - 📄 [0001_create_position_set_using_position_quantities.ipynb](06_baskets/examples/03_basket_creation/position_set/0001_create_position_set_using_position_quantities.ipynb)
+        - 📄 [0002_create_position_set_of_equal_weight_from_list_of_identifiers.ipynb](06_baskets/examples/03_basket_creation/position_set/0002_create_position_set_of_equal_weight_from_list_of_identifiers.ipynb)
+        - 📄 [0003_equalize_position_set_weights.ipynb](06_baskets/examples/03_basket_creation/position_set/0003_equalize_position_set_weights.ipynb)
+        - 📄 [0004_add_position_to_existing_position_set.ipynb](06_baskets/examples/03_basket_creation/position_set/0004_add_position_to_existing_position_set.ipynb)
+        - 📄 [0005_create_position_set_from_list_of_dictionaries.ipynb](06_baskets/examples/03_basket_creation/position_set/0005_create_position_set_from_list_of_dictionaries.ipynb)
+        - 📄 [0006_create_position_set_from_dataframe.ipynb](06_baskets/examples/03_basket_creation/position_set/0006_create_position_set_from_dataframe.ipynb)
+        - 📄 [0007_create_position_set_from_csv.ipynb](06_baskets/examples/03_basket_creation/position_set/0007_create_position_set_from_csv.ipynb)
+        - 📄 [0008_create_position_set_from_excel.ipynb](06_baskets/examples/03_basket_creation/position_set/0008_create_position_set_from_excel.ipynb)
+        - 📄 [0009_fetch_position_quantities_from_weights.ipynb](06_baskets/examples/03_basket_creation/position_set/0009_fetch_position_quantities_from_weights.ipynb)
+        - 📄 [0010_fetch_position_weights_from_quantities.ipynb](06_baskets/examples/03_basket_creation/position_set/0010_fetch_position_weights_from_quantities.ipynb)
+        - 📄 [0011_redistribute_position_weights.ipynb](06_baskets/examples/03_basket_creation/position_set/0011_redistribute_position_weights.ipynb)
+        - 📄 [0012_create_historical_position_sets_from_excel.ipynb](06_baskets/examples/03_basket_creation/position_set/0012_create_historical_position_sets_from_excel.ipynb)
+    - 📁 04_basket_corporate_actions_data
+      - 📄 [0000_get_full_basket_corporate_actions_history.ipynb](06_baskets/examples/04_basket_corporate_actions_data/0000_get_full_basket_corporate_actions_history.ipynb)
+      - 📄 [0001_get_basket_corporate_actions_for_dates.ipynb](06_baskets/examples/04_basket_corporate_actions_data/0001_get_basket_corporate_actions_for_dates.ipynb)
+      - 📄 [0002_get_basket_upcoming_corporate_actions.ipynb](06_baskets/examples/04_basket_corporate_actions_data/0002_get_basket_upcoming_corporate_actions.ipynb)
+      - 📄 [0003_get_specific_corporate_actions_types.ipynb](06_baskets/examples/04_basket_corporate_actions_data/0003_get_specific_corporate_actions_types.ipynb)
+    - 📁 05_basket_fundamentals_data
+      - 📄 [0000_get_basket_fundamentals_history.ipynb](06_baskets/examples/05_basket_fundamentals_data/0000_get_basket_fundamentals_history.ipynb)
+      - 📄 [0001_get_basket_fundamentals_for_dates.ipynb](06_baskets/examples/05_basket_fundamentals_data/0001_get_basket_fundamentals_for_dates.ipynb)
+      - 📄 [0002_get_basket_fundamentals_specific_period_and_direction.ipynb](06_baskets/examples/05_basket_fundamentals_data/0002_get_basket_fundamentals_specific_period_and_direction.ipynb)
+      - 📄 [0003_get_specific_basket_fundamentals_metrics.ipynb](06_baskets/examples/05_basket_fundamentals_data/0003_get_specific_basket_fundamentals_metrics.ipynb)
+    - 📁 06_basket_reports
+      - 📄 [0000_create_new_factor_risk_report.ipynb](06_baskets/examples/06_basket_reports/0000_create_new_factor_risk_report.ipynb)
+      - 📄 [0001_delete_existing_factor_risk_report.ipynb](06_baskets/examples/06_basket_reports/0001_delete_existing_factor_risk_report.ipynb)
+      - 📄 [0002_get_existing_factor_risk_report.ipynb](06_baskets/examples/06_basket_reports/0002_get_existing_factor_risk_report.ipynb)
+      - 📄 [0003_get_all_existing_basket_reports.ipynb](06_baskets/examples/06_basket_reports/0003_get_all_existing_basket_reports.ipynb)
+      - 📄 [0004_get_status_of_all_existing_basket_reports.ipynb](06_baskets/examples/06_basket_reports/0004_get_status_of_all_existing_basket_reports.ipynb)
+      - 📄 [0005_poll_status_of_most_recent_basket_create_report.ipynb](06_baskets/examples/06_basket_reports/0005_poll_status_of_most_recent_basket_create_report.ipynb)
+      - 📄 [0006_poll_report_status_using_report_id.ipynb](06_baskets/examples/06_basket_reports/0006_poll_report_status_using_report_id.ipynb)
+    - 📁 07_basket_permissions
+      - 📄 [0000_get_basket_permissions.ipynb](06_baskets/examples/07_basket_permissions/0000_get_basket_permissions.ipynb)
+      - 📄 [0001_permission_application_to_basket.ipynb](06_baskets/examples/07_basket_permissions/0001_permission_application_to_basket.ipynb)
+      - 📄 [0002_permission_user_to_basket_by_email.ipynb](06_baskets/examples/07_basket_permissions/0002_permission_user_to_basket_by_email.ipynb)
+      - 📄 [0003_permission_group_to_basket.ipynb](06_baskets/examples/07_basket_permissions/0003_permission_group_to_basket.ipynb)
+      - 📄 [0004_remove_basket_permissions.ipynb](06_baskets/examples/07_basket_permissions/0004_remove_basket_permissions.ipynb)
+      - 📄 [0005_get_your_permissioned_baskets.ipynb](06_baskets/examples/07_basket_permissions/0005_get_your_permissioned_baskets.ipynb)
+    - 📁 08_flagship_baskets
+      - 📄 [0000_get_flagship_baskets.ipynb](06_baskets/examples/08_flagship_baskets/0000_get_flagship_baskets.ipynb)
+      - 📄 [0001_get_flagship_baskets_on_date.ipynb](06_baskets/examples/08_flagship_baskets/0001_get_flagship_baskets_on_date.ipynb)
+      - 📄 [0002_get_flagship_baskets_containing_assets.ipynb](06_baskets/examples/08_flagship_baskets/0002_get_flagship_baskets_containing_assets.ipynb)
+      - 📄 [0003_get_flagship_baskets_containing_assets_on_date.ipynb](06_baskets/examples/08_flagship_baskets/0003_get_flagship_baskets_containing_assets_on_date.ipynb)
+      - 📄 [0004_get_flagship_baskets_prices.ipynb](06_baskets/examples/08_flagship_baskets/0004_get_flagship_baskets_prices.ipynb)
+      - 📄 [0005_get_flagship_baskets_prices_for_date_range.ipynb](06_baskets/examples/08_flagship_baskets/0005_get_flagship_baskets_prices_for_date_range.ipynb)
+      - 📄 [0006_get_flagship_baskets_compositions.ipynb](06_baskets/examples/08_flagship_baskets/0006_get_flagship_baskets_compositions.ipynb)
+      - 📄 [0007_get_flagship_baskets_compositions_for_date_range.ipynb](06_baskets/examples/08_flagship_baskets/0007_get_flagship_baskets_compositions_for_date_range.ipynb)
+      - 📄 [0008_filter_flagship_baskets_by_basket_type.ipynb](06_baskets/examples/08_flagship_baskets/0008_filter_flagship_baskets_by_basket_type.ipynb)
+      - 📄 [0009_filter_flagship_baskets_by_region.ipynb](06_baskets/examples/08_flagship_baskets/0009_filter_flagship_baskets_by_region.ipynb)
+      - 📄 [0010_filter_flagship_baskets_by_styles.ipynb](06_baskets/examples/08_flagship_baskets/0010_filter_flagship_baskets_by_styles.ipynb)
+      - 📄 [0011_filter_flagship_baskets_by_ticker.ipynb](06_baskets/examples/08_flagship_baskets/0011_filter_flagship_baskets_by_ticker.ipynb)
+  - 📁 tutorials
+    - 📄 [Basket Backcast.ipynb](06_baskets/tutorials/Basket%20Backcast.ipynb)
+    - 📄 [Basket Create.ipynb](06_baskets/tutorials/Basket%20Create.ipynb)
+    - 📄 [Basket Edit.ipynb](06_baskets/tutorials/Basket%20Edit.ipynb)
+    - 📄 [Basket Rebalance.ipynb](06_baskets/tutorials/Basket%20Rebalance.ipynb)
+- 📁 **07_index**
+  - 📄 [README.md](07_index/README.md)
+  - 📁 examples
+    - 📄 [0000_get_index_Marquee_url.ipynb](07_index/examples/0000_get_index_Marquee_url.ipynb)
+    - 📄 [0001_get_index_close_prices.ipynb](07_index/examples/0001_get_index_close_prices.ipynb)
+    - 📄 [0002_get_index_fundamentals_data.ipynb](07_index/examples/0002_get_index_fundamentals_data.ipynb)
+    - 📄 [0003_get_index_constituents.ipynb](07_index/examples/0003_get_index_constituents.ipynb)
+    - 📄 [0004_get_index_weights_and_attribution.ipynb](07_index/examples/0004_get_index_weights_and_attribution.ipynb)
+    - 📄 [0005_get_index_as_a_tree.ipynb](07_index/examples/0005_get_index_as_a_tree.ipynb)
+  - 📁 tutorials
+    - 📄 [GS Quant STS Index Tutorial.ipynb](07_index/tutorials/GS%20Quant%20STS%20Index%20Tutorial.ipynb)
+- 📁 **08_tree_entity**
+  - 📄 [tree_entity.ipynb](08_tree_entity/tree_entity.ipynb)
+- 📁 **09_security_master**
+  - 📄 [Security Master SDK.ipynb](09_security_master/Security%20Master%20SDK.ipynb)
+  - 📄 [Security Master.ipynb](09_security_master/Security%20Master.ipynb)
+- 📁 **10_one_delta**
+  - 📁 Hedger
+    - 📄 [01_Performance_Hedger.ipynb](10_one_delta/Hedger/01_Performance_Hedger.ipynb)
+    - 📄 [02_Factor_Hedger_(Axioma_Portfolio_Optimizer).ipynb](10_one_delta/Hedger/02_Factor_Hedger_(Axioma_Portfolio_Optimizer).ipynb)
+    - 📄 [03_Continuous_Optimization.ipynb](10_one_delta/Hedger/03_Continuous_Optimization.ipynb)
+  - 📁 Portfolios
+    - 📄 [01_Create_Backcasted_Portfolio.ipynb](10_one_delta/Portfolios/01_Create_Backcasted_Portfolio.ipynb)
+    - 📄 [02_Create_New_Historical_Portfolio.ipynb](10_one_delta/Portfolios/02_Create_New_Historical_Portfolio.ipynb)
+    - 📄 [03_Update_Historical_Portfolio.ipynb](10_one_delta/Portfolios/03_Update_Historical_Portfolio.ipynb)
+    - 📄 [04_Get_Factor_Attribution_Data.ipynb](10_one_delta/Portfolios/04_Get_Factor_Attribution_Data.ipynb)
+    - 📄 [05_Manage_a_Fund_of_Funds.ipynb](10_one_delta/Portfolios/05_Manage_a_Fund_of_Funds.ipynb)
+    - 📄 [06_Get_Factor_Risk_Data.ipynb](10_one_delta/Portfolios/06_Get_Factor_Risk_Data.ipynb)
+    - 📄 [07_Get_Portfolio_Performance_Analytics.ipynb](10_one_delta/Portfolios/07_Get_Portfolio_Performance_Analytics.ipynb)
+    - 📄 [08_Get_ESG_Analytics.ipynb](10_one_delta/Portfolios/08_Get_ESG_Analytics.ipynb)
+    - 📄 [09_Get_Carbon_Analytics.ipynb](10_one_delta/Portfolios/09_Get_Carbon_Analytics.ipynb)
+    - 📄 [10_Get_Thematic_Analytics.ipynb](10_one_delta/Portfolios/10_Get_Thematic_Analytics.ipynb)
+  - 📁 Reports
+    - 📄 [01_Factor_Risk_Report.ipynb](10_one_delta/Reports/01_Factor_Risk_Report.ipynb)
+    - 📄 [02_Performance_Report.ipynb](10_one_delta/Reports/02_Performance_Report.ipynb)
+    - 📄 [03_Thematic_Report.ipynb](10_one_delta/Reports/03_Thematic_Report.ipynb)
+- 📁 **11_macro_models**
+  - 📄 [01_Query_Macro_Models.ipynb](11_macro_models/01_Query_Macro_Models.ipynb)
+  - 📄 [02_Upload_Macro_Models.ipynb](11_macro_models/02_Upload_Macro_Models.ipynb)
+- 📁 **12_scenarios**
+  - 📄 [01_Custom_Factor_Shocks.ipynb](12_scenarios/01_Custom_Factor_Shocks.ipynb)
+  - 📄 [02_Historical_Scenarios.ipynb](12_scenarios/02_Historical_Scenarios.ipynb)
+- 📄 [Contents.ipynb](Contents.ipynb)
+- 📄 [Index.ipynb](Index.ipynb)
+- 📄 [README.md](README.md)

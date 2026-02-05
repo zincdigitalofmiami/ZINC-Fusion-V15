@@ -92,8 +92,1457 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
-  tradeDate: 'tradeDate',
+exports.Prisma.Econ_newsScalarFieldEnum = {
+  id: 'id',
+  article_id: 'article_id',
+  event_date: 'event_date',
+  published_at: 'published_at',
+  headline: 'headline',
+  summary: 'summary',
+  content: 'content',
+  source: 'source',
+  url: 'url',
+  author: 'author',
+  specialist_tags: 'specialist_tags',
+  topics: 'topics',
+  subjects: 'subjects',
+  meta_description: 'meta_description',
+  raw_payload: 'raw_payload',
+  ingested_at: 'ingested_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Executive_actionsScalarFieldEnum = {
+  id: 'id',
+  article_id: 'article_id',
+  event_date: 'event_date',
+  published_at: 'published_at',
+  headline: 'headline',
+  content: 'content',
+  url: 'url',
+  author: 'author',
+  source: 'source',
+  document_type: 'document_type',
+  zl_sentiment: 'zl_sentiment',
+  specialist_tags: 'specialist_tags',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload',
+  ingestion_batch_id: 'ingestion_batch_id'
+};
+
+exports.Prisma.Legislation_1dScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  document_number: 'document_number',
+  title: 'title',
+  agency: 'agency',
+  document_type: 'document_type',
+  action: 'action',
+  specialist_tags: 'specialist_tags',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  url: 'url',
+  raw_payload: 'raw_payload',
+  ingestion_batch_id: 'ingestion_batch_id'
+};
+
+exports.Prisma.Policy_newsScalarFieldEnum = {
+  id: 'id',
+  article_id: 'article_id',
+  event_date: 'event_date',
+  published_at: 'published_at',
+  headline: 'headline',
+  content: 'content',
+  url: 'url',
+  author: 'author',
+  source: 'source',
+  zl_sentiment: 'zl_sentiment',
+  specialist_tags: 'specialist_tags',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload',
+  ingestion_batch_id: 'ingestion_batch_id'
+};
+
+exports.Prisma.Profarmer_newsScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  section: 'section',
+  headline: 'headline',
+  content: 'content',
+  url: 'url',
+  author: 'author',
+  specialist_tags: 'specialist_tags',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload',
+  summary: 'summary',
+  topics: 'topics',
+  subjects: 'subjects',
+  meta_description: 'meta_description',
+  subject: 'subject',
+  tags: 'tags',
+  keywords: 'keywords',
+  categories: 'categories'
+};
+
+exports.Prisma.Tariff_deadlinesScalarFieldEnum = {
+  id: 'id',
+  deadline_name: 'deadline_name',
+  deadline_date: 'deadline_date',
+  days_to_expiry: 'days_to_expiry',
+  renewal_probability: 'renewal_probability',
+  policy_type: 'policy_type',
+  description: 'description',
+  is_active: 'is_active',
+  last_updated: 'last_updated'
+};
+
+exports.Prisma.Weather_1dScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  station_id: 'station_id',
+  region: 'region',
+  country: 'country',
+  tmax_c: 'tmax_c',
+  tmin_c: 'tmin_c',
+  tavg_c: 'tavg_c',
+  prcp_mm: 'prcp_mm',
+  snow_mm: 'snow_mm',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload',
+  ingestion_batch_id: 'ingestion_batch_id'
+};
+
+exports.Prisma.Ablation_resultsScalarFieldEnum = {
+  id: 'id',
+  run_id: 'run_id',
+  bucket: 'bucket',
+  horizon_days: 'horizon_days',
+  baseline_mae: 'baseline_mae',
+  with_signal_mae: 'with_signal_mae',
+  delta_mae: 'delta_mae',
+  baseline_coverage_40: 'baseline_coverage_40',
+  with_signal_coverage_40: 'with_signal_coverage_40',
+  regime_stability_score: 'regime_stability_score',
+  recommendation: 'recommendation',
+  tested_at: 'tested_at'
+};
+
+exports.Prisma.Board_crush_1dScalarFieldEnum = {
+  trade_date: 'trade_date',
+  zs_close: 'zs_close',
+  zl_close: 'zl_close',
+  zm_close: 'zm_close',
+  board_crush: 'board_crush',
+  oil_share: 'oil_share',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Chart_overlaysScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  overlay_type: 'overlay_type',
+  start_date: 'start_date',
+  end_date: 'end_date',
+  label: 'label',
+  color: 'color',
+  metadata: 'metadata',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Dashboard_metricsScalarFieldEnum = {
+  id: 'id',
+  metric_name: 'metric_name',
+  metric_value: 'metric_value',
+  as_of_date: 'as_of_date',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Driver_attribution_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  horizon_days: 'horizon_days',
+  driver_name: 'driver_name',
+  shap_value: 'shap_value',
+  direction: 'direction',
+  rank: 'rank',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Driver_scoresScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  specialist: 'specialist',
+  signal: 'signal',
+  direction: 'direction',
+  confidence: 'confidence',
+  shap_contribution: 'shap_contribution',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Event_probabilities_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  event_type: 'event_type',
+  window_start: 'window_start',
+  window_end: 'window_end',
+  p_event: 'p_event',
+  severity_score: 'severity_score',
+  confidence: 'confidence',
+  drivers_topk: 'drivers_topk',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Inngest_receiptsScalarFieldEnum = {
+  id: 'id',
+  function_id: 'function_id',
+  event_name: 'event_name',
+  event_id: 'event_id',
+  received_at: 'received_at',
+  payload: 'payload'
+};
+
+exports.Prisma.Market_postureScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  posture: 'posture',
+  confidence: 'confidence',
+  regime: 'regime',
+  tail_risk_prob: 'tail_risk_prob',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Price_scenarios_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  axis: 'axis',
+  scenario_name: 'scenario_name',
+  p_scenario: 'p_scenario',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  drivers_topk: 'drivers_topk',
+  display_order: 'display_order',
+  color_code: 'color_code',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Procurement_actionsScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  action: 'action',
+  confidence: 'confidence',
+  rationale: 'rationale',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Regime_state_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  regime: 'regime',
+  vix_contribution: 'vix_contribution',
+  policy_contribution: 'policy_contribution',
+  news_contribution: 'news_contribution',
+  confidence: 'confidence',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Risk_metricsScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  var_01: 'var_01',
+  var_05: 'var_05',
+  var_10: 'var_10',
+  cvar_05: 'cvar_05',
+  prob_up: 'prob_up',
+  prob_up_5pct: 'prob_up_5pct',
+  prob_down_5pct: 'prob_down_5pct',
+  regime: 'regime',
+  tail_risk_flag: 'tail_risk_flag',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Scenario_analysisScalarFieldEnum = {
+  id: 'id',
+  scenario_id: 'scenario_id',
+  scenario_name: 'scenario_name',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  assumptions: 'assumptions',
+  base_forecast: 'base_forecast',
+  scenario_forecast: 'scenario_forecast',
+  impact_pct: 'impact_pct',
+  probability: 'probability',
+  confidence: 'confidence',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Specialist_trump_effect_1hScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  symbol: 'symbol',
+  signal: 'signal',
+  confidence: 'confidence',
+  features: 'features',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Value_timing_windowsScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  horizon_days: 'horizon_days',
+  tail_proximity: 'tail_proximity',
+  probability_lift: 'probability_lift',
+  confidence_adjusted_lift: 'confidence_adjusted_lift',
+  regime_dampening: 'regime_dampening',
+  window_start_week: 'window_start_week',
+  window_end_week: 'window_end_week',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Vol_regimesScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  regime: 'regime',
+  regime_prob: 'regime_prob',
+  transition_probs: 'transition_probs',
+  smoothed_prob: 'smoothed_prob',
+  model_type: 'model_type',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_forming_barScalarFieldEnum = {
+  timeframe: 'timeframe',
+  bar_start: 'bar_start',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Zl_latestScalarFieldEnum = {
+  id: 'id',
+  price: 'price',
+  timestamp: 'timestamp',
+  volume: 'volume',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Zl_price_15mScalarFieldEnum = {
+  id: 'id',
+  timestamp: 'timestamp',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  previous_close: 'previous_close',
+  change: 'change',
+  change_percent: 'change_percent',
+  day_high: 'day_high',
+  day_low: 'day_low',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_price_1dScalarFieldEnum = {
+  event_date: 'event_date',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_price_1hScalarFieldEnum = {
+  timestamp: 'timestamp',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_price_1mScalarFieldEnum = {
+  id: 'id',
+  timestamp: 'timestamp',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  previous_close: 'previous_close',
+  change: 'change',
+  change_percent: 'change_percent',
+  day_high: 'day_high',
+  day_low: 'day_low',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Zl_price_5mScalarFieldEnum = {
+  id: 'id',
+  timestamp: 'timestamp',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  previous_close: 'previous_close',
+  change: 'change',
+  change_percent: 'change_percent',
+  day_high: 'day_high',
+  day_low: 'day_low',
+  source: 'source',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Activity_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Commodities_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Inflation_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Labor_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Money_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.News_eventScalarFieldEnum = {
+  id: 'id',
+  article_id: 'article_id',
+  event_date: 'event_date',
+  published_at: 'published_at',
+  headline: 'headline',
+  content: 'content',
+  url: 'url',
+  author: 'author',
+  source: 'source',
+  zl_sentiment: 'zl_sentiment',
+  specialist_tags: 'specialist_tags',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload',
+  ingestion_batch_id: 'ingestion_batch_id',
+  topics: 'topics',
+  subjects: 'subjects',
+  meta_description: 'meta_description'
+};
+
+exports.Prisma.Rates_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Vol_indices_1dScalarFieldEnum = {
+  id: 'id',
+  series_id: 'series_id',
+  event_date: 'event_date',
+  value: 'value',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Elite_1dScalarFieldEnum = {
+  id: 'id',
+  trade_date: 'trade_date',
+  symbol: 'symbol',
+  hurst_exponent: 'hurst_exponent',
+  hurst_regime: 'hurst_regime',
+  connors_rsi: 'connors_rsi',
+  fisher_transform: 'fisher_transform',
+  fisher_signal: 'fisher_signal',
+  mcginley_dynamic: 'mcginley_dynamic',
+  ttm_squeeze_on: 'ttm_squeeze_on',
+  ttm_squeeze_momentum: 'ttm_squeeze_momentum',
+  schaff_trend_cycle: 'schaff_trend_cycle',
+  rvi: 'rvi',
+  rvi_signal: 'rvi_signal',
+  elder_force_index: 'elder_force_index',
+  kama_10: 'kama_10',
+  hma_20: 'hma_20',
+  alma_50: 'alma_50',
+  rsi_2: 'rsi_2',
+  rsi_14: 'rsi_14',
+  cumulative_rsi: 'cumulative_rsi',
+  macd: 'macd',
+  macd_signal: 'macd_signal',
+  macd_histogram: 'macd_histogram',
+  cci_14: 'cci_14',
+  cci_50: 'cci_50',
+  atr_10: 'atr_10',
+  atr_50: 'atr_50',
+  atr_ratio: 'atr_ratio',
+  garman_klass_vol: 'garman_klass_vol',
+  yang_zhang_vol: 'yang_zhang_vol',
+  bb_percent_b: 'bb_percent_b',
+  cmf_21: 'cmf_21',
+  volume_zscore: 'volume_zscore',
+  unusual_volume: 'unusual_volume',
+  created_at: 'created_at',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  returns_1d: 'returns_1d',
+  log_returns_1d: 'log_returns_1d',
+  range_pct: 'range_pct'
+};
+
+exports.Prisma.Intel_dropsScalarFieldEnum = {
+  id: 'id',
+  as_of_ts: 'as_of_ts',
+  domain: 'domain',
+  horizon: 'horizon',
+  direction: 'direction',
+  pressure_cents: 'pressure_cents',
+  edge: 'edge',
+  driver_weights: 'driver_weights',
+  top_drivers: 'top_drivers',
+  regime_tags: 'regime_tags',
+  quality_flags: 'quality_flags',
+  data_gaps: 'data_gaps',
+  receipts: 'receipts',
+  narrative: 'narrative',
+  quant_payload: 'quant_payload',
+  source_model: 'source_model',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Trump_effect_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  eo_count_7d: 'eo_count_7d',
+  eo_count_30d: 'eo_count_30d',
+  proclamation_count_7d: 'proclamation_count_7d',
+  proclamation_count_30d: 'proclamation_count_30d',
+  nomination_count_7d: 'nomination_count_7d',
+  nomination_count_30d: 'nomination_count_30d',
+  memorandum_count_7d: 'memorandum_count_7d',
+  memorandum_count_30d: 'memorandum_count_30d',
+  total_actions_7d: 'total_actions_7d',
+  total_actions_30d: 'total_actions_30d',
+  avg_sentiment_7d: 'avg_sentiment_7d',
+  avg_sentiment_30d: 'avg_sentiment_30d',
+  action_velocity: 'action_velocity',
+  action_acceleration: 'action_acceleration',
+  weighted_action_score: 'weighted_action_score',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Core_cone_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  horizon_days: 'horizon_days',
+  target_date: 'target_date',
+  p10: 'p10',
+  p50: 'p50',
+  p90: 'p90',
+  model_version: 'model_version',
+  config_hash: 'config_hash',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Core_mc_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  horizon_days: 'horizon_days',
+  s0: 's0',
+  q10: 'q10',
+  q50: 'q50',
+  q90: 'q90',
+  mu_annual: 'mu_annual',
+  sigma_annual: 'sigma_annual',
+  mc_p10_final: 'mc_p10_final',
+  mc_p50_final: 'mc_p50_final',
+  mc_p90_final: 'mc_p90_final',
+  mc_min_p10: 'mc_min_p10',
+  mc_max_p90: 'mc_max_p90',
+  opp: 'opp',
+  ruin: 'ruin',
+  var_95: 'var_95',
+  cvar_95: 'cvar_95',
+  runs: 'runs',
+  seed: 'seed',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Forecast_quantilesScalarFieldEnum = {
+  id: 'id',
+  model_name: 'model_name',
+  horizon: 'horizon',
+  forecast_date: 'forecast_date',
+  target_date: 'target_date',
+  symbol: 'symbol',
+  p10: 'p10',
+  p50: 'p50',
+  p90: 'p90',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Forecast_summary_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  horizon_days: 'horizon_days',
+  opp: 'opp',
+  ruin: 'ruin',
+  calibrated_p10: 'calibrated_p10',
+  calibrated_p90: 'calibrated_p90',
+  coverage_error: 'coverage_error',
+  regime: 'regime',
+  regime_multiplier: 'regime_multiplier',
+  narrative: 'narrative',
+  top_driver_1: 'top_driver_1',
+  top_driver_2: 'top_driver_2',
+  top_driver_3: 'top_driver_3',
+  model_version: 'model_version',
+  ai_model: 'ai_model',
+  generated_at: 'generated_at',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal'
+};
+
+exports.Prisma.Garch_forecastsScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  conditional_vol: 'conditional_vol',
+  annualized_vol: 'annualized_vol',
+  var_01: 'var_01',
+  var_05: 'var_05',
+  cvar_05: 'cvar_05',
+  vol_lower: 'vol_lower',
+  vol_upper: 'vol_upper',
+  model_type: 'model_type',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Horizon_reconciliation_1dScalarFieldEnum = {
+  id: 'id',
+  forecast_date: 'forecast_date',
+  tactical_posture: 'tactical_posture',
+  short_posture: 'short_posture',
+  medium_posture: 'medium_posture',
+  strategic_posture: 'strategic_posture',
+  conflict_flag: 'conflict_flag',
+  reconciled_guidance: 'reconciled_guidance',
+  priority_horizon: 'priority_horizon',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Monte_carlo_runsScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  num_sims: 'num_sims',
+  percentiles: 'percentiles',
+  correlations: 'correlations',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Probability_distributionsScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  as_of_date: 'as_of_date',
+  horizon: 'horizon',
+  percentile: 'percentile',
+  value: 'value',
+  model_version: 'model_version',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_126d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_21d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_5d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Production_63d_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  forecast_date: 'forecast_date',
+  p30: 'p30',
+  p50: 'p50',
+  p70: 'p70',
+  p10_cal: 'p10_cal',
+  p90_cal: 'p90_cal',
+  price_p30: 'price_p30',
+  price_p50: 'price_p50',
+  price_p70: 'price_p70',
+  price_p10_cal: 'price_p10_cal',
+  price_p90_cal: 'price_p90_cal',
+  current_price: 'current_price',
+  model_version: 'model_version',
+  run_id: 'run_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Etf_1dScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  event_date: 'event_date',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  row_hash: 'row_hash',
+  specialist_tags: 'specialist_tags',
+  created_at: 'created_at',
+  opening_price: 'opening_price',
+  closing_price: 'closing_price',
+  session_high: 'session_high',
+  session_low: 'session_low',
+  indicative_open: 'indicative_open',
+  indicative_close: 'indicative_close',
+  vwap: 'vwap',
+  zl_corr_21d: 'zl_corr_21d',
+  zl_corr_63d: 'zl_corr_63d',
+  zl_corr_126d: 'zl_corr_126d',
+  returns_1d: 'returns_1d',
+  returns_5d: 'returns_5d',
+  returns_21d: 'returns_21d',
+  momentum_21d: 'momentum_21d',
+  volatility_21d: 'volatility_21d'
+};
+
+exports.Prisma.Futures_1dScalarFieldEnum = {
+  event_date: 'event_date',
+  symbol: 'symbol',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  open_interest: 'open_interest',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  zl_corr_30d: 'zl_corr_30d',
+  zl_corr_60d: 'zl_corr_60d',
+  zl_corr_90d: 'zl_corr_90d',
+  hurst_exponent: 'hurst_exponent',
+  hurst_regime: 'hurst_regime',
+  connors_rsi: 'connors_rsi',
+  fisher_transform: 'fisher_transform',
+  fisher_signal: 'fisher_signal',
+  mcginley_dynamic: 'mcginley_dynamic',
+  ttm_squeeze_on: 'ttm_squeeze_on',
+  ttm_squeeze_momentum: 'ttm_squeeze_momentum',
+  schaff_trend_cycle: 'schaff_trend_cycle',
+  rvi: 'rvi',
+  rvi_signal: 'rvi_signal',
+  elder_force_index: 'elder_force_index',
+  kama_10: 'kama_10',
+  hma_20: 'hma_20',
+  alma_50: 'alma_50',
+  rsi_2: 'rsi_2',
+  rsi_14: 'rsi_14',
+  cumulative_rsi: 'cumulative_rsi',
+  macd: 'macd',
+  macd_signal: 'macd_signal',
+  macd_histogram: 'macd_histogram',
+  cci_14: 'cci_14',
+  cci_50: 'cci_50',
+  atr_10: 'atr_10',
+  atr_50: 'atr_50',
+  atr_ratio: 'atr_ratio',
+  garman_klass_vol: 'garman_klass_vol',
+  yang_zhang_vol: 'yang_zhang_vol',
+  bb_percent_b: 'bb_percent_b',
+  cmf_21: 'cmf_21',
+  volume_zscore: 'volume_zscore',
+  unusual_volume: 'unusual_volume',
+  returns_1d: 'returns_1d',
+  log_returns_1d: 'log_returns_1d',
+  range_pct: 'range_pct',
+  bb_upper: 'bb_upper',
+  bb_middle: 'bb_middle',
+  bb_lower: 'bb_lower',
+  atr_14: 'atr_14',
+  adx: 'adx',
+  adx_pos: 'adx_pos',
+  adx_neg: 'adx_neg',
+  stoch_k: 'stoch_k',
+  stoch_d: 'stoch_d',
+  obv: 'obv'
+};
+
+exports.Prisma.Futures_1hScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  event_time: 'event_time',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Fx_1dScalarFieldEnum = {
+  id: 'id',
+  pair: 'pair',
+  event_date: 'event_date',
+  rate: 'rate',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash',
+  zl_corr_30d: 'zl_corr_30d',
+  zl_corr_60d: 'zl_corr_60d',
+  zl_corr_90d: 'zl_corr_90d'
+};
+
+exports.Prisma.Options_1dScalarFieldEnum = {
+  id: 'id',
+  underlying: 'underlying',
+  event_date: 'event_date',
+  expiration: 'expiration',
+  strike: 'strike',
+  option_type: 'option_type',
+  open: 'open',
+  high: 'high',
+  low: 'low',
+  close: 'close',
+  volume: 'volume',
+  open_interest: 'open_interest',
+  bid: 'bid',
+  ask: 'ask',
+  change: 'change',
+  premium: 'premium',
+  vwap: 'vwap',
+  settlement: 'settlement',
+  implied_volatility: 'implied_volatility',
+  delta: 'delta',
+  gamma: 'gamma',
+  theta: 'theta',
+  vega: 'vega',
+  rho: 'rho',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Model_registryScalarFieldEnum = {
+  id: 'id',
+  model_id: 'model_id',
+  model_name: 'model_name',
+  model_type: 'model_type',
+  horizon: 'horizon',
+  version: 'version',
+  trained_at: 'trained_at',
+  training_mode: 'training_mode',
+  training_time_seconds: 'training_time_seconds',
+  dataset_rows: 'dataset_rows',
+  dataset_features: 'dataset_features',
+  dataset_start_date: 'dataset_start_date',
+  dataset_end_date: 'dataset_end_date',
+  mase: 'mase',
+  rmse: 'rmse',
+  mae: 'mae',
+  mape: 'mape',
+  pinball_loss_p10: 'pinball_loss_p10',
+  pinball_loss_p50: 'pinball_loss_p50',
+  pinball_loss_p90: 'pinball_loss_p90',
+  coverage_80: 'coverage_80',
+  best_model: 'best_model',
+  models_trained: 'models_trained',
+  status: 'status',
+  is_champion: 'is_champion',
+  promoted_at: 'promoted_at',
+  artifact_path: 'artifact_path',
+  mlflow_run_id: 'mlflow_run_id',
+  tags: 'tags',
+  notes: 'notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Data_quality_logScalarFieldEnum = {
+  id: 'id',
+  table_name: 'table_name',
+  check_date: 'check_date',
+  row_count: 'row_count',
+  null_count: 'null_count',
+  latest_date: 'latest_date',
+  oldest_date: 'oldest_date',
+  issues: 'issues',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Data_quality_metricsScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  source: 'source',
+  last_update: 'last_update',
+  hours_since_update: 'hours_since_update',
+  total_rows: 'total_rows',
+  expected_rows: 'expected_rows',
+  completeness_pct: 'completeness_pct',
+  null_count: 'null_count',
+  null_pct: 'null_pct',
+  is_stale: 'is_stale',
+  is_incomplete: 'is_incomplete',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Data_source_registryScalarFieldEnum = {
+  id: 'id',
+  source_id: 'source_id',
+  source_name: 'source_name',
+  description: 'description',
+  target_table: 'target_table',
+  target_schema: 'target_schema',
+  api_provider: 'api_provider',
+  api_endpoint: 'api_endpoint',
+  api_docs_url: 'api_docs_url',
+  auth_type: 'auth_type',
+  auth_env_var: 'auth_env_var',
+  response_format: 'response_format',
+  date_column: 'date_column',
+  entity_column: 'entity_column',
+  update_frequency: 'update_frequency',
+  typical_lag_hours: 'typical_lag_hours',
+  ingestion_script: 'ingestion_script',
+  last_successful_run: 'last_successful_run',
+  is_active: 'is_active',
+  requires_subscription: 'requires_subscription',
+  subscription_status: 'subscription_status',
+  notes: 'notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Ingest_runScalarFieldEnum = {
+  id: 'id',
+  job_name: 'job_name',
+  started_at: 'started_at',
+  completed_at: 'completed_at',
+  status: 'status',
+  rows_attempted: 'rows_attempted',
+  rows_inserted: 'rows_inserted',
+  rows_skipped: 'rows_skipped',
+  rows_quarantined: 'rows_quarantined',
+  cursor_position: 'cursor_position',
+  error_message: 'error_message'
+};
+
+exports.Prisma.Model_core_auditScalarFieldEnum = {
+  id: 'id',
+  training_run_id: 'training_run_id',
+  horizon: 'horizon',
+  reviewed_at: 'reviewed_at',
+  reviewer: 'reviewer',
+  is_core_run: 'is_core_run',
+  cv_purged_walk_forward: 'cv_purged_walk_forward',
+  asof_alignment_valid: 'asof_alignment_valid',
+  chronos_bolt_present: 'chronos_bolt_present',
+  chronos2_present: 'chronos2_present',
+  chronos2_lora_present: 'chronos2_lora_present',
+  recursive_tabular_present: 'recursive_tabular_present',
+  autoets_present: 'autoets_present',
+  theta_present: 'theta_present',
+  seasonal_naive_present: 'seasonal_naive_present',
+  weighted_ensemble_used: 'weighted_ensemble_used',
+  oof_only: 'oof_only',
+  max_single_weight: 'max_single_weight',
+  chronos_weight_nonzero: 'chronos_weight_nonzero',
+  recursive_weight_zero_long: 'recursive_weight_zero_long',
+  monte_carlo_runs: 'monte_carlo_runs',
+  p10_present: 'p10_present',
+  p50_present: 'p50_present',
+  p90_present: 'p90_present',
+  stress_widening_applied: 'stress_widening_applied',
+  rmse_recorded: 'rmse_recorded',
+  brier_recorded: 'brier_recorded',
+  p10_coverage_ok: 'p10_coverage_ok',
+  p90_coverage_ok: 'p90_coverage_ok',
+  registry_complete: 'registry_complete',
+  ensemble_edges_recorded: 'ensemble_edges_recorded',
+  resources_logged: 'resources_logged',
+  artifact_isolation_safe: 'artifact_isolation_safe',
+  narrative_ready: 'narrative_ready',
+  buy_sell_language_absent: 'buy_sell_language_absent',
+  uncertainty_explained: 'uncertainty_explained',
+  specialist_divergence_flag: 'specialist_divergence_flag',
+  hard_gate_pass: 'hard_gate_pass',
+  final_approved: 'final_approved',
+  failure_reason: 'failure_reason'
+};
+
+exports.Prisma.Prediction_accuracyScalarFieldEnum = {
+  id: 'id',
+  model_id: 'model_id',
+  horizon: 'horizon',
+  prediction_date: 'prediction_date',
+  target_date: 'target_date',
+  actual: 'actual',
+  pred_p50: 'pred_p50',
+  error: 'error',
+  abs_error: 'abs_error',
+  pct_error: 'pct_error',
+  in_80_band: 'in_80_band',
+  created_at: 'created_at',
+  pred_p10: 'pred_p10',
+  pred_p90: 'pred_p90'
+};
+
+exports.Prisma.Quarantined_recordScalarFieldEnum = {
+  id: 'id',
+  source_table: 'source_table',
+  ingest_run_id: 'ingest_run_id',
+  attempted_at: 'attempted_at',
+  raw_payload: 'raw_payload',
+  validation_errors: 'validation_errors',
+  severity: 'severity',
+  resolution_status: 'resolution_status',
+  resolved_at: 'resolved_at',
+  resolved_by: 'resolved_by'
+};
+
+exports.Prisma.Source_relabel_auditScalarFieldEnum = {
+  id: 'id',
+  relabel_ts: 'relabel_ts',
+  table_name: 'table_name',
+  from_source: 'from_source',
+  to_source: 'to_source',
+  row_count: 'row_count',
+  min_as_of_date: 'min_as_of_date',
+  max_as_of_date: 'max_as_of_date'
+};
+
+exports.Prisma.Training_run_logScalarFieldEnum = {
+  id: 'id',
+  run_id: 'run_id',
+  horizon: 'horizon',
+  phase: 'phase',
+  status: 'status',
+  started_at: 'started_at',
+  completed_at: 'completed_at',
+  error_message: 'error_message',
+  metrics: 'metrics'
+};
+
+exports.Prisma.Training_runsScalarFieldEnum = {
+  id: 'id',
+  run_id: 'run_id',
+  run_name: 'run_name',
+  experiment_name: 'experiment_name',
+  model_type: 'model_type',
+  specialist_name: 'specialist_name',
+  horizon: 'horizon',
+  started_at: 'started_at',
+  completed_at: 'completed_at',
+  duration_seconds: 'duration_seconds',
+  status: 'status',
+  training_mode: 'training_mode',
+  hyperparameters: 'hyperparameters',
+  dataset_name: 'dataset_name',
+  dataset_rows: 'dataset_rows',
+  dataset_features: 'dataset_features',
+  metrics: 'metrics',
+  mase: 'mase',
+  error_message: 'error_message',
+  artifact_path: 'artifact_path',
+  log_path: 'log_path',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Cftc_1wScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  symbol: 'symbol',
+  open_interest: 'open_interest',
+  prod_merc_long: 'prod_merc_long',
+  prod_merc_short: 'prod_merc_short',
+  prod_merc_net: 'prod_merc_net',
+  swap_long: 'swap_long',
+  swap_short: 'swap_short',
+  swap_net: 'swap_net',
+  managed_money_long: 'managed_money_long',
+  managed_money_short: 'managed_money_short',
+  managed_money_net: 'managed_money_net',
+  other_rept_long: 'other_rept_long',
+  other_rept_short: 'other_rept_short',
+  other_rept_net: 'other_rept_net',
+  nonrept_long: 'nonrept_long',
+  nonrept_short: 'nonrept_short',
+  nonrept_net: 'nonrept_net',
+  managed_money_net_pct_oi: 'managed_money_net_pct_oi',
+  prod_merc_net_pct_oi: 'prod_merc_net_pct_oi',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Argentina_crush_1mScalarFieldEnum = {
+  id: 'id',
+  report_month: 'report_month',
+  crush_volume_mt: 'crush_volume_mt',
+  capacity_utilization: 'capacity_utilization',
+  oil_production_mt: 'oil_production_mt',
+  meal_production_mt: 'meal_production_mt',
+  exports_oil_mt: 'exports_oil_mt',
+  exports_meal_mt: 'exports_meal_mt',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload'
+};
+
+exports.Prisma.Conab_production_1mScalarFieldEnum = {
+  id: 'id',
+  report_month: 'report_month',
+  crop_year: 'crop_year',
+  commodity: 'commodity',
+  production_mt: 'production_mt',
+  area_harvested_ha: 'area_harvested_ha',
+  yield_mt_per_ha: 'yield_mt_per_ha',
+  exports_mt: 'exports_mt',
+  domestic_consumption_mt: 'domestic_consumption_mt',
+  ending_stocks_mt: 'ending_stocks_mt',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload'
+};
+
+exports.Prisma.Eia_biodiesel_1mScalarFieldEnum = {
+  report_month: 'report_month',
+  biodiesel_production_mgal: 'biodiesel_production_mgal',
+  renewable_diesel_production_mgal: 'renewable_diesel_production_mgal',
+  feedstock_soybean_oil_pct: 'feedstock_soybean_oil_pct',
+  capacity_utilization_pct: 'capacity_utilization_pct',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Epa_rin_1dScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  rin_type: 'rin_type',
+  price: 'price',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Lcfs_1dScalarFieldEnum = {
+  event_date: 'event_date',
+  price_usd_per_mt: 'price_usd_per_mt',
+  source: 'source',
+  ingestion_batch_id: 'ingestion_batch_id',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Mpob_palm_1mScalarFieldEnum = {
+  id: 'id',
+  report_month: 'report_month',
+  production_mt: 'production_mt',
+  exports_mt: 'exports_mt',
+  stocks_mt: 'stocks_mt',
+  local_consumption_mt: 'local_consumption_mt',
+  country: 'country',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  row_hash: 'row_hash',
+  raw_payload: 'raw_payload'
+};
+
+exports.Prisma.Usda_exports_1wScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  commodity: 'commodity',
+  destination_country: 'destination_country',
+  net_sales_mt: 'net_sales_mt',
+  exports_mt: 'exports_mt',
+  outstanding_sales_mt: 'outstanding_sales_mt',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Usda_wasde_1mScalarFieldEnum = {
+  id: 'id',
+  event_date: 'event_date',
+  commodity: 'commodity',
+  country: 'country',
+  metric: 'metric',
+  value: 'value',
+  unit: 'unit',
+  source: 'source',
+  ingested_at: 'ingested_at',
+  knowledge_time: 'knowledge_time',
+  row_hash: 'row_hash'
+};
+
+exports.Prisma.Features_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  features: 'features'
+};
+
+exports.Prisma.Matrix_1dScalarFieldEnum = {
+  trade_date: 'trade_date',
   symbol: 'symbol',
   open: 'open',
   high: 'high',
@@ -132,7 +1581,7 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   cmf_21: 'cmf_21',
   volume_zscore: 'volume_zscore',
   unusual_volume: 'unusual_volume',
-  createdAt: 'createdAt',
+  created_at: 'created_at',
   returns_1d: 'returns_1d',
   log_returns_1d: 'log_returns_1d',
   range_pct: 'range_pct',
@@ -292,32 +1741,29 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   rapeseed_close: 'rapeseed_close',
   sunflower_close: 'sunflower_close',
   usd_cny: 'usd_cny',
-  fx_aud_usd: 'fx_aud_usd',
   fx_audusd: 'fx_audusd',
-  fx_brl_usd: 'fx_brl_usd',
-  fx_cad_usd: 'fx_cad_usd',
-  fx_cny_usd: 'fx_cny_usd',
   fx_dxy_afe: 'fx_dxy_afe',
   fx_dxy_broad: 'fx_dxy_broad',
   fx_dxy_eme: 'fx_dxy_eme',
-  fx_eur_usd: 'fx_eur_usd',
   fx_eurusd: 'fx_eurusd',
-  fx_gbp_usd: 'fx_gbp_usd',
   fx_gbpusd: 'fx_gbpusd',
-  fx_inr_usd: 'fx_inr_usd',
-  fx_krw_usd: 'fx_krw_usd',
-  fx_mxn_usd: 'fx_mxn_usd',
-  fx_twd_usd: 'fx_twd_usd',
-  fx_usd_cad: 'fx_usd_cad',
-  fx_usd_cny: 'fx_usd_cny',
-  fx_usd_jpy: 'fx_usd_jpy',
+  fx_nzdusd: 'fx_nzdusd',
   fx_usdbrl: 'fx_usdbrl',
   fx_usdcad: 'fx_usdcad',
+  fx_usdchf: 'fx_usdchf',
   fx_usdcny: 'fx_usdcny',
+  fx_usdhkd: 'fx_usdhkd',
+  fx_usdinr: 'fx_usdinr',
   fx_usdjpy: 'fx_usdjpy',
   fx_usdkrw: 'fx_usdkrw',
   fx_usdmxn: 'fx_usdmxn',
+  fx_usdmyr: 'fx_usdmyr',
+  fx_usdnok: 'fx_usdnok',
+  fx_usdsek: 'fx_usdsek',
   fx_usdsgd: 'fx_usdsgd',
+  fx_usdthb: 'fx_usdthb',
+  fx_usdtwd: 'fx_usdtwd',
+  fx_usdzar: 'fx_usdzar',
   wx_ar_tavg_c: 'wx_ar_tavg_c',
   wx_br_tavg_c: 'wx_br_tavg_c',
   wx_us_tavg_c: 'wx_us_tavg_c',
@@ -616,6 +2062,173 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   pmi_cn_nbs_china_pmi_age_days: 'pmi_cn_nbs_china_pmi_age_days',
   pmi_cn_nbs_china_pmi_is_available: 'pmi_cn_nbs_china_pmi_is_available',
   china_pmi: 'china_pmi',
+  corr_cl_30d: 'corr_cl_30d',
+  corr_cpo_30d: 'corr_cpo_30d',
+  corr_dx_30d: 'corr_dx_30d',
+  corr_es_30d: 'corr_es_30d',
+  corr_gc_30d: 'corr_gc_30d',
+  corr_hg_30d: 'corr_hg_30d',
+  corr_ho_30d: 'corr_ho_30d',
+  corr_ng_30d: 'corr_ng_30d',
+  corr_rb_30d: 'corr_rb_30d',
+  corr_si_30d: 'corr_si_30d',
+  corr_vx_30d: 'corr_vx_30d',
+  corr_zc_30d: 'corr_zc_30d',
+  corr_zm_30d: 'corr_zm_30d',
+  corr_zs_30d: 'corr_zs_30d',
+  corr_zw_30d: 'corr_zw_30d',
+  corr_cl_60d: 'corr_cl_60d',
+  corr_cpo_60d: 'corr_cpo_60d',
+  corr_dx_60d: 'corr_dx_60d',
+  corr_es_60d: 'corr_es_60d',
+  corr_gc_60d: 'corr_gc_60d',
+  corr_hg_60d: 'corr_hg_60d',
+  corr_ho_60d: 'corr_ho_60d',
+  corr_ng_60d: 'corr_ng_60d',
+  corr_rb_60d: 'corr_rb_60d',
+  corr_si_60d: 'corr_si_60d',
+  corr_vx_60d: 'corr_vx_60d',
+  corr_zc_60d: 'corr_zc_60d',
+  corr_zm_60d: 'corr_zm_60d',
+  corr_zs_60d: 'corr_zs_60d',
+  corr_zw_60d: 'corr_zw_60d',
+  corr_cl_90d: 'corr_cl_90d',
+  corr_cpo_90d: 'corr_cpo_90d',
+  corr_dx_90d: 'corr_dx_90d',
+  corr_es_90d: 'corr_es_90d',
+  corr_gc_90d: 'corr_gc_90d',
+  corr_hg_90d: 'corr_hg_90d',
+  corr_ho_90d: 'corr_ho_90d',
+  corr_ng_90d: 'corr_ng_90d',
+  corr_rb_90d: 'corr_rb_90d',
+  corr_si_90d: 'corr_si_90d',
+  corr_vx_90d: 'corr_vx_90d',
+  corr_zc_90d: 'corr_zc_90d',
+  corr_zm_90d: 'corr_zm_90d',
+  corr_zs_90d: 'corr_zs_90d',
+  corr_zw_90d: 'corr_zw_90d',
+  cl_close: 'cl_close',
+  cpo_close: 'cpo_close',
+  dx_close: 'dx_close',
+  es_close: 'es_close',
+  gc_close: 'gc_close',
+  ho_close: 'ho_close',
+  ng_close: 'ng_close',
+  rb_close: 'rb_close',
+  zc_close: 'zc_close',
+  zm_close: 'zm_close',
+  zs_close: 'zs_close',
+  zw_close: 'zw_close',
+  cl_returns_1d: 'cl_returns_1d',
+  cpo_returns_1d: 'cpo_returns_1d',
+  dx_returns_1d: 'dx_returns_1d',
+  es_returns_1d: 'es_returns_1d',
+  gc_returns_1d: 'gc_returns_1d',
+  ho_returns_1d: 'ho_returns_1d',
+  ng_returns_1d: 'ng_returns_1d',
+  rb_returns_1d: 'rb_returns_1d',
+  zc_returns_1d: 'zc_returns_1d',
+  zm_returns_1d: 'zm_returns_1d',
+  zs_returns_1d: 'zs_returns_1d',
+  zw_returns_1d: 'zw_returns_1d',
+  cl_rsi_14: 'cl_rsi_14',
+  cpo_rsi_14: 'cpo_rsi_14',
+  dx_rsi_14: 'dx_rsi_14',
+  es_rsi_14: 'es_rsi_14',
+  gc_rsi_14: 'gc_rsi_14',
+  ho_rsi_14: 'ho_rsi_14',
+  ng_rsi_14: 'ng_rsi_14',
+  rb_rsi_14: 'rb_rsi_14',
+  zc_rsi_14: 'zc_rsi_14',
+  zm_rsi_14: 'zm_rsi_14',
+  zs_rsi_14: 'zs_rsi_14',
+  zw_rsi_14: 'zw_rsi_14',
+  cl_macd: 'cl_macd',
+  cpo_macd: 'cpo_macd',
+  dx_macd: 'dx_macd',
+  es_macd: 'es_macd',
+  gc_macd: 'gc_macd',
+  ho_macd: 'ho_macd',
+  ng_macd: 'ng_macd',
+  rb_macd: 'rb_macd',
+  zc_macd: 'zc_macd',
+  zm_macd: 'zm_macd',
+  zs_macd: 'zs_macd',
+  zw_macd: 'zw_macd',
+  cl_atr_ratio: 'cl_atr_ratio',
+  cpo_atr_ratio: 'cpo_atr_ratio',
+  dx_atr_ratio: 'dx_atr_ratio',
+  es_atr_ratio: 'es_atr_ratio',
+  gc_atr_ratio: 'gc_atr_ratio',
+  ho_atr_ratio: 'ho_atr_ratio',
+  ng_atr_ratio: 'ng_atr_ratio',
+  rb_atr_ratio: 'rb_atr_ratio',
+  zc_atr_ratio: 'zc_atr_ratio',
+  zm_atr_ratio: 'zm_atr_ratio',
+  zs_atr_ratio: 'zs_atr_ratio',
+  zw_atr_ratio: 'zw_atr_ratio',
+  cl_volume_zscore: 'cl_volume_zscore',
+  cpo_volume_zscore: 'cpo_volume_zscore',
+  dx_volume_zscore: 'dx_volume_zscore',
+  es_volume_zscore: 'es_volume_zscore',
+  gc_volume_zscore: 'gc_volume_zscore',
+  ho_volume_zscore: 'ho_volume_zscore',
+  ng_volume_zscore: 'ng_volume_zscore',
+  rb_volume_zscore: 'rb_volume_zscore',
+  zc_volume_zscore: 'zc_volume_zscore',
+  zm_volume_zscore: 'zm_volume_zscore',
+  zs_volume_zscore: 'zs_volume_zscore',
+  zw_volume_zscore: 'zw_volume_zscore',
+  cl_bb_percent_b: 'cl_bb_percent_b',
+  cpo_bb_percent_b: 'cpo_bb_percent_b',
+  dx_bb_percent_b: 'dx_bb_percent_b',
+  es_bb_percent_b: 'es_bb_percent_b',
+  gc_bb_percent_b: 'gc_bb_percent_b',
+  ho_bb_percent_b: 'ho_bb_percent_b',
+  ng_bb_percent_b: 'ng_bb_percent_b',
+  rb_bb_percent_b: 'rb_bb_percent_b',
+  zc_bb_percent_b: 'zc_bb_percent_b',
+  zm_bb_percent_b: 'zm_bb_percent_b',
+  zs_bb_percent_b: 'zs_bb_percent_b',
+  zw_bb_percent_b: 'zw_bb_percent_b',
+  cl_hurst_exponent: 'cl_hurst_exponent',
+  cpo_hurst_exponent: 'cpo_hurst_exponent',
+  dx_hurst_exponent: 'dx_hurst_exponent',
+  es_hurst_exponent: 'es_hurst_exponent',
+  gc_hurst_exponent: 'gc_hurst_exponent',
+  ho_hurst_exponent: 'ho_hurst_exponent',
+  ng_hurst_exponent: 'ng_hurst_exponent',
+  rb_hurst_exponent: 'rb_hurst_exponent',
+  zc_hurst_exponent: 'zc_hurst_exponent',
+  zm_hurst_exponent: 'zm_hurst_exponent',
+  zs_hurst_exponent: 'zs_hurst_exponent',
+  zw_hurst_exponent: 'zw_hurst_exponent',
+  board_crush: 'board_crush',
+  board_crush_zscore_21d: 'board_crush_zscore_21d',
+  board_crush_zscore_63d: 'board_crush_zscore_63d',
+  board_crush_zscore_252d: 'board_crush_zscore_252d',
+  board_crush_momentum_5d: 'board_crush_momentum_5d',
+  board_crush_expanding: 'board_crush_expanding',
+  soy_oil_share: 'soy_oil_share',
+  soy_oil_share_zscore: 'soy_oil_share_zscore',
+  zl_zs_ratio: 'zl_zs_ratio',
+  zl_zs_ratio_zscore: 'zl_zs_ratio_zscore',
+  zl_cl_ratio: 'zl_cl_ratio',
+  zl_cl_ratio_zscore: 'zl_cl_ratio_zscore',
+  zl_cpo_spread: 'zl_cpo_spread',
+  zl_cpo_spread_zscore: 'zl_cpo_spread_zscore',
+  crack_321: 'crack_321',
+  crack_321_zscore: 'crack_321_zscore',
+  ho_crack: 'ho_crack',
+  rb_crack: 'rb_crack',
+  ho_crack_zscore_63d: 'ho_crack_zscore_63d',
+  diesel_crack_wide: 'diesel_crack_wide',
+  opt_total_oi_c: 'opt_total_oi_c',
+  opt_total_oi_p: 'opt_total_oi_p',
+  opt_total_volume_c: 'opt_total_volume_c',
+  opt_total_volume_p: 'opt_total_volume_p',
+  opt_avg_premium_c: 'opt_avg_premium_c',
+  opt_avg_premium_p: 'opt_avg_premium_p',
   sig_biofuel_1: 'sig_biofuel_1',
   sig_china_1: 'sig_china_1',
   sig_crush_1: 'sig_crush_1',
@@ -649,6 +2262,26 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   sig_tariff_conf: 'sig_tariff_conf',
   sig_trump_effect_conf: 'sig_trump_effect_conf',
   sig_volatility_conf: 'sig_volatility_conf',
+  oi_delta_1d: 'oi_delta_1d',
+  oi_delta_5d: 'oi_delta_5d',
+  oi_pct_change_1d: 'oi_pct_change_1d',
+  oi_pct_change_5d: 'oi_pct_change_5d',
+  oi_momentum: 'oi_momentum',
+  oi_delta_zscore: 'oi_delta_zscore',
+  volume_ma_5d: 'volume_ma_5d',
+  volume_spike: 'volume_spike',
+  churn_rate: 'churn_rate',
+  churn_zscore: 'churn_zscore',
+  churn_high: 'churn_high',
+  price_direction: 'price_direction',
+  oi_direction: 'oi_direction',
+  oi_price_divergence: 'oi_price_divergence',
+  flow_conviction: 'flow_conviction',
+  cot_net_zscore: 'cot_net_zscore',
+  cot_age_fresh: 'cot_age_fresh',
+  cot_regime_numeric: 'cot_regime_numeric',
+  washout_risk: 'washout_risk',
+  vix_close: 'vix_close',
   open_is_missing: 'open_is_missing',
   high_is_missing: 'high_is_missing',
   low_is_missing: 'low_is_missing',
@@ -660,8 +2293,6 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   fisher_transform_is_missing: 'fisher_transform_is_missing',
   fisher_signal_is_missing: 'fisher_signal_is_missing',
   mcginley_dynamic_is_missing: 'mcginley_dynamic_is_missing',
-  ttm_squeeze_momentum_is_missing: 'ttm_squeeze_momentum_is_missing',
-  schaff_trend_cycle_is_missing: 'schaff_trend_cycle_is_missing',
   rvi_is_missing: 'rvi_is_missing',
   rvi_signal_is_missing: 'rvi_signal_is_missing',
   elder_force_index_is_missing: 'elder_force_index_is_missing',
@@ -670,7 +2301,6 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   alma_50_is_missing: 'alma_50_is_missing',
   rsi_2_is_missing: 'rsi_2_is_missing',
   rsi_14_is_missing: 'rsi_14_is_missing',
-  cumulative_rsi_is_missing: 'cumulative_rsi_is_missing',
   macd_is_missing: 'macd_is_missing',
   macd_signal_is_missing: 'macd_signal_is_missing',
   macd_histogram_is_missing: 'macd_histogram_is_missing',
@@ -840,32 +2470,29 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   rapeseed_close_is_missing: 'rapeseed_close_is_missing',
   sunflower_close_is_missing: 'sunflower_close_is_missing',
   usd_cny_is_missing: 'usd_cny_is_missing',
-  fx_aud_usd_is_missing: 'fx_aud_usd_is_missing',
   fx_audusd_is_missing: 'fx_audusd_is_missing',
-  fx_brl_usd_is_missing: 'fx_brl_usd_is_missing',
-  fx_cad_usd_is_missing: 'fx_cad_usd_is_missing',
-  fx_cny_usd_is_missing: 'fx_cny_usd_is_missing',
   fx_dxy_afe_is_missing: 'fx_dxy_afe_is_missing',
   fx_dxy_broad_is_missing: 'fx_dxy_broad_is_missing',
   fx_dxy_eme_is_missing: 'fx_dxy_eme_is_missing',
-  fx_eur_usd_is_missing: 'fx_eur_usd_is_missing',
   fx_eurusd_is_missing: 'fx_eurusd_is_missing',
-  fx_gbp_usd_is_missing: 'fx_gbp_usd_is_missing',
   fx_gbpusd_is_missing: 'fx_gbpusd_is_missing',
-  fx_inr_usd_is_missing: 'fx_inr_usd_is_missing',
-  fx_krw_usd_is_missing: 'fx_krw_usd_is_missing',
-  fx_mxn_usd_is_missing: 'fx_mxn_usd_is_missing',
-  fx_twd_usd_is_missing: 'fx_twd_usd_is_missing',
-  fx_usd_cad_is_missing: 'fx_usd_cad_is_missing',
-  fx_usd_cny_is_missing: 'fx_usd_cny_is_missing',
-  fx_usd_jpy_is_missing: 'fx_usd_jpy_is_missing',
+  fx_nzdusd_is_missing: 'fx_nzdusd_is_missing',
   fx_usdbrl_is_missing: 'fx_usdbrl_is_missing',
   fx_usdcad_is_missing: 'fx_usdcad_is_missing',
+  fx_usdchf_is_missing: 'fx_usdchf_is_missing',
   fx_usdcny_is_missing: 'fx_usdcny_is_missing',
+  fx_usdhkd_is_missing: 'fx_usdhkd_is_missing',
+  fx_usdinr_is_missing: 'fx_usdinr_is_missing',
   fx_usdjpy_is_missing: 'fx_usdjpy_is_missing',
   fx_usdkrw_is_missing: 'fx_usdkrw_is_missing',
   fx_usdmxn_is_missing: 'fx_usdmxn_is_missing',
+  fx_usdmyr_is_missing: 'fx_usdmyr_is_missing',
+  fx_usdnok_is_missing: 'fx_usdnok_is_missing',
+  fx_usdsek_is_missing: 'fx_usdsek_is_missing',
   fx_usdsgd_is_missing: 'fx_usdsgd_is_missing',
+  fx_usdthb_is_missing: 'fx_usdthb_is_missing',
+  fx_usdtwd_is_missing: 'fx_usdtwd_is_missing',
+  fx_usdzar_is_missing: 'fx_usdzar_is_missing',
   wx_ar_tavg_c_is_missing: 'wx_ar_tavg_c_is_missing',
   wx_br_tavg_c_is_missing: 'wx_br_tavg_c_is_missing',
   wx_us_tavg_c_is_missing: 'wx_us_tavg_c_is_missing',
@@ -954,6 +2581,173 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   wasde_soybean_oil_production_is_missing: 'wasde_soybean_oil_production_is_missing',
   wasde_soybean_oil_ending_stocks_is_missing: 'wasde_soybean_oil_ending_stocks_is_missing',
   china_pmi_is_missing: 'china_pmi_is_missing',
+  corr_cl_30d_is_missing: 'corr_cl_30d_is_missing',
+  corr_cpo_30d_is_missing: 'corr_cpo_30d_is_missing',
+  corr_dx_30d_is_missing: 'corr_dx_30d_is_missing',
+  corr_es_30d_is_missing: 'corr_es_30d_is_missing',
+  corr_gc_30d_is_missing: 'corr_gc_30d_is_missing',
+  corr_hg_30d_is_missing: 'corr_hg_30d_is_missing',
+  corr_ho_30d_is_missing: 'corr_ho_30d_is_missing',
+  corr_ng_30d_is_missing: 'corr_ng_30d_is_missing',
+  corr_rb_30d_is_missing: 'corr_rb_30d_is_missing',
+  corr_si_30d_is_missing: 'corr_si_30d_is_missing',
+  corr_vx_30d_is_missing: 'corr_vx_30d_is_missing',
+  corr_zc_30d_is_missing: 'corr_zc_30d_is_missing',
+  corr_zm_30d_is_missing: 'corr_zm_30d_is_missing',
+  corr_zs_30d_is_missing: 'corr_zs_30d_is_missing',
+  corr_zw_30d_is_missing: 'corr_zw_30d_is_missing',
+  corr_cl_60d_is_missing: 'corr_cl_60d_is_missing',
+  corr_cpo_60d_is_missing: 'corr_cpo_60d_is_missing',
+  corr_dx_60d_is_missing: 'corr_dx_60d_is_missing',
+  corr_es_60d_is_missing: 'corr_es_60d_is_missing',
+  corr_gc_60d_is_missing: 'corr_gc_60d_is_missing',
+  corr_hg_60d_is_missing: 'corr_hg_60d_is_missing',
+  corr_ho_60d_is_missing: 'corr_ho_60d_is_missing',
+  corr_ng_60d_is_missing: 'corr_ng_60d_is_missing',
+  corr_rb_60d_is_missing: 'corr_rb_60d_is_missing',
+  corr_si_60d_is_missing: 'corr_si_60d_is_missing',
+  corr_vx_60d_is_missing: 'corr_vx_60d_is_missing',
+  corr_zc_60d_is_missing: 'corr_zc_60d_is_missing',
+  corr_zm_60d_is_missing: 'corr_zm_60d_is_missing',
+  corr_zs_60d_is_missing: 'corr_zs_60d_is_missing',
+  corr_zw_60d_is_missing: 'corr_zw_60d_is_missing',
+  corr_cl_90d_is_missing: 'corr_cl_90d_is_missing',
+  corr_cpo_90d_is_missing: 'corr_cpo_90d_is_missing',
+  corr_dx_90d_is_missing: 'corr_dx_90d_is_missing',
+  corr_es_90d_is_missing: 'corr_es_90d_is_missing',
+  corr_gc_90d_is_missing: 'corr_gc_90d_is_missing',
+  corr_hg_90d_is_missing: 'corr_hg_90d_is_missing',
+  corr_ho_90d_is_missing: 'corr_ho_90d_is_missing',
+  corr_ng_90d_is_missing: 'corr_ng_90d_is_missing',
+  corr_rb_90d_is_missing: 'corr_rb_90d_is_missing',
+  corr_si_90d_is_missing: 'corr_si_90d_is_missing',
+  corr_vx_90d_is_missing: 'corr_vx_90d_is_missing',
+  corr_zc_90d_is_missing: 'corr_zc_90d_is_missing',
+  corr_zm_90d_is_missing: 'corr_zm_90d_is_missing',
+  corr_zs_90d_is_missing: 'corr_zs_90d_is_missing',
+  corr_zw_90d_is_missing: 'corr_zw_90d_is_missing',
+  cl_close_is_missing: 'cl_close_is_missing',
+  cpo_close_is_missing: 'cpo_close_is_missing',
+  dx_close_is_missing: 'dx_close_is_missing',
+  es_close_is_missing: 'es_close_is_missing',
+  gc_close_is_missing: 'gc_close_is_missing',
+  ho_close_is_missing: 'ho_close_is_missing',
+  ng_close_is_missing: 'ng_close_is_missing',
+  rb_close_is_missing: 'rb_close_is_missing',
+  zc_close_is_missing: 'zc_close_is_missing',
+  zm_close_is_missing: 'zm_close_is_missing',
+  zs_close_is_missing: 'zs_close_is_missing',
+  zw_close_is_missing: 'zw_close_is_missing',
+  cl_returns_1d_is_missing: 'cl_returns_1d_is_missing',
+  cpo_returns_1d_is_missing: 'cpo_returns_1d_is_missing',
+  dx_returns_1d_is_missing: 'dx_returns_1d_is_missing',
+  es_returns_1d_is_missing: 'es_returns_1d_is_missing',
+  gc_returns_1d_is_missing: 'gc_returns_1d_is_missing',
+  ho_returns_1d_is_missing: 'ho_returns_1d_is_missing',
+  ng_returns_1d_is_missing: 'ng_returns_1d_is_missing',
+  rb_returns_1d_is_missing: 'rb_returns_1d_is_missing',
+  zc_returns_1d_is_missing: 'zc_returns_1d_is_missing',
+  zm_returns_1d_is_missing: 'zm_returns_1d_is_missing',
+  zs_returns_1d_is_missing: 'zs_returns_1d_is_missing',
+  zw_returns_1d_is_missing: 'zw_returns_1d_is_missing',
+  cl_rsi_14_is_missing: 'cl_rsi_14_is_missing',
+  cpo_rsi_14_is_missing: 'cpo_rsi_14_is_missing',
+  dx_rsi_14_is_missing: 'dx_rsi_14_is_missing',
+  es_rsi_14_is_missing: 'es_rsi_14_is_missing',
+  gc_rsi_14_is_missing: 'gc_rsi_14_is_missing',
+  ho_rsi_14_is_missing: 'ho_rsi_14_is_missing',
+  ng_rsi_14_is_missing: 'ng_rsi_14_is_missing',
+  rb_rsi_14_is_missing: 'rb_rsi_14_is_missing',
+  zc_rsi_14_is_missing: 'zc_rsi_14_is_missing',
+  zm_rsi_14_is_missing: 'zm_rsi_14_is_missing',
+  zs_rsi_14_is_missing: 'zs_rsi_14_is_missing',
+  zw_rsi_14_is_missing: 'zw_rsi_14_is_missing',
+  cl_macd_is_missing: 'cl_macd_is_missing',
+  cpo_macd_is_missing: 'cpo_macd_is_missing',
+  dx_macd_is_missing: 'dx_macd_is_missing',
+  es_macd_is_missing: 'es_macd_is_missing',
+  gc_macd_is_missing: 'gc_macd_is_missing',
+  ho_macd_is_missing: 'ho_macd_is_missing',
+  ng_macd_is_missing: 'ng_macd_is_missing',
+  rb_macd_is_missing: 'rb_macd_is_missing',
+  zc_macd_is_missing: 'zc_macd_is_missing',
+  zm_macd_is_missing: 'zm_macd_is_missing',
+  zs_macd_is_missing: 'zs_macd_is_missing',
+  zw_macd_is_missing: 'zw_macd_is_missing',
+  cl_atr_ratio_is_missing: 'cl_atr_ratio_is_missing',
+  cpo_atr_ratio_is_missing: 'cpo_atr_ratio_is_missing',
+  dx_atr_ratio_is_missing: 'dx_atr_ratio_is_missing',
+  es_atr_ratio_is_missing: 'es_atr_ratio_is_missing',
+  gc_atr_ratio_is_missing: 'gc_atr_ratio_is_missing',
+  ho_atr_ratio_is_missing: 'ho_atr_ratio_is_missing',
+  ng_atr_ratio_is_missing: 'ng_atr_ratio_is_missing',
+  rb_atr_ratio_is_missing: 'rb_atr_ratio_is_missing',
+  zc_atr_ratio_is_missing: 'zc_atr_ratio_is_missing',
+  zm_atr_ratio_is_missing: 'zm_atr_ratio_is_missing',
+  zs_atr_ratio_is_missing: 'zs_atr_ratio_is_missing',
+  zw_atr_ratio_is_missing: 'zw_atr_ratio_is_missing',
+  cl_volume_zscore_is_missing: 'cl_volume_zscore_is_missing',
+  cpo_volume_zscore_is_missing: 'cpo_volume_zscore_is_missing',
+  dx_volume_zscore_is_missing: 'dx_volume_zscore_is_missing',
+  es_volume_zscore_is_missing: 'es_volume_zscore_is_missing',
+  gc_volume_zscore_is_missing: 'gc_volume_zscore_is_missing',
+  ho_volume_zscore_is_missing: 'ho_volume_zscore_is_missing',
+  ng_volume_zscore_is_missing: 'ng_volume_zscore_is_missing',
+  rb_volume_zscore_is_missing: 'rb_volume_zscore_is_missing',
+  zc_volume_zscore_is_missing: 'zc_volume_zscore_is_missing',
+  zm_volume_zscore_is_missing: 'zm_volume_zscore_is_missing',
+  zs_volume_zscore_is_missing: 'zs_volume_zscore_is_missing',
+  zw_volume_zscore_is_missing: 'zw_volume_zscore_is_missing',
+  cl_bb_percent_b_is_missing: 'cl_bb_percent_b_is_missing',
+  cpo_bb_percent_b_is_missing: 'cpo_bb_percent_b_is_missing',
+  dx_bb_percent_b_is_missing: 'dx_bb_percent_b_is_missing',
+  es_bb_percent_b_is_missing: 'es_bb_percent_b_is_missing',
+  gc_bb_percent_b_is_missing: 'gc_bb_percent_b_is_missing',
+  ho_bb_percent_b_is_missing: 'ho_bb_percent_b_is_missing',
+  ng_bb_percent_b_is_missing: 'ng_bb_percent_b_is_missing',
+  rb_bb_percent_b_is_missing: 'rb_bb_percent_b_is_missing',
+  zc_bb_percent_b_is_missing: 'zc_bb_percent_b_is_missing',
+  zm_bb_percent_b_is_missing: 'zm_bb_percent_b_is_missing',
+  zs_bb_percent_b_is_missing: 'zs_bb_percent_b_is_missing',
+  zw_bb_percent_b_is_missing: 'zw_bb_percent_b_is_missing',
+  cl_hurst_exponent_is_missing: 'cl_hurst_exponent_is_missing',
+  cpo_hurst_exponent_is_missing: 'cpo_hurst_exponent_is_missing',
+  dx_hurst_exponent_is_missing: 'dx_hurst_exponent_is_missing',
+  es_hurst_exponent_is_missing: 'es_hurst_exponent_is_missing',
+  gc_hurst_exponent_is_missing: 'gc_hurst_exponent_is_missing',
+  ho_hurst_exponent_is_missing: 'ho_hurst_exponent_is_missing',
+  ng_hurst_exponent_is_missing: 'ng_hurst_exponent_is_missing',
+  rb_hurst_exponent_is_missing: 'rb_hurst_exponent_is_missing',
+  zc_hurst_exponent_is_missing: 'zc_hurst_exponent_is_missing',
+  zm_hurst_exponent_is_missing: 'zm_hurst_exponent_is_missing',
+  zs_hurst_exponent_is_missing: 'zs_hurst_exponent_is_missing',
+  zw_hurst_exponent_is_missing: 'zw_hurst_exponent_is_missing',
+  board_crush_is_missing: 'board_crush_is_missing',
+  board_crush_zscore_21d_is_missing: 'board_crush_zscore_21d_is_missing',
+  board_crush_zscore_63d_is_missing: 'board_crush_zscore_63d_is_missing',
+  board_crush_zscore_252d_is_missing: 'board_crush_zscore_252d_is_missing',
+  board_crush_momentum_5d_is_missing: 'board_crush_momentum_5d_is_missing',
+  board_crush_expanding_is_missing: 'board_crush_expanding_is_missing',
+  soy_oil_share_is_missing: 'soy_oil_share_is_missing',
+  soy_oil_share_zscore_is_missing: 'soy_oil_share_zscore_is_missing',
+  zl_zs_ratio_is_missing: 'zl_zs_ratio_is_missing',
+  zl_zs_ratio_zscore_is_missing: 'zl_zs_ratio_zscore_is_missing',
+  zl_cl_ratio_is_missing: 'zl_cl_ratio_is_missing',
+  zl_cl_ratio_zscore_is_missing: 'zl_cl_ratio_zscore_is_missing',
+  zl_cpo_spread_is_missing: 'zl_cpo_spread_is_missing',
+  zl_cpo_spread_zscore_is_missing: 'zl_cpo_spread_zscore_is_missing',
+  crack_321_is_missing: 'crack_321_is_missing',
+  crack_321_zscore_is_missing: 'crack_321_zscore_is_missing',
+  ho_crack_is_missing: 'ho_crack_is_missing',
+  rb_crack_is_missing: 'rb_crack_is_missing',
+  ho_crack_zscore_63d_is_missing: 'ho_crack_zscore_63d_is_missing',
+  diesel_crack_wide_is_missing: 'diesel_crack_wide_is_missing',
+  opt_total_oi_c_is_missing: 'opt_total_oi_c_is_missing',
+  opt_total_oi_p_is_missing: 'opt_total_oi_p_is_missing',
+  opt_total_volume_c_is_missing: 'opt_total_volume_c_is_missing',
+  opt_total_volume_p_is_missing: 'opt_total_volume_p_is_missing',
+  opt_avg_premium_c_is_missing: 'opt_avg_premium_c_is_missing',
+  opt_avg_premium_p_is_missing: 'opt_avg_premium_p_is_missing',
   sig_biofuel_1_is_missing: 'sig_biofuel_1_is_missing',
   sig_china_1_is_missing: 'sig_china_1_is_missing',
   sig_crush_1_is_missing: 'sig_crush_1_is_missing',
@@ -987,44 +2781,79 @@ exports.Prisma.TrainingMatrix1dScalarFieldEnum = {
   sig_tariff_conf_is_missing: 'sig_tariff_conf_is_missing',
   sig_trump_effect_conf_is_missing: 'sig_trump_effect_conf_is_missing',
   sig_volatility_conf_is_missing: 'sig_volatility_conf_is_missing',
+  oi_delta_1d_is_missing: 'oi_delta_1d_is_missing',
+  oi_delta_5d_is_missing: 'oi_delta_5d_is_missing',
+  oi_pct_change_1d_is_missing: 'oi_pct_change_1d_is_missing',
+  oi_pct_change_5d_is_missing: 'oi_pct_change_5d_is_missing',
+  oi_momentum_is_missing: 'oi_momentum_is_missing',
+  oi_delta_zscore_is_missing: 'oi_delta_zscore_is_missing',
+  volume_ma_5d_is_missing: 'volume_ma_5d_is_missing',
+  volume_spike_is_missing: 'volume_spike_is_missing',
+  churn_rate_is_missing: 'churn_rate_is_missing',
+  churn_zscore_is_missing: 'churn_zscore_is_missing',
+  churn_high_is_missing: 'churn_high_is_missing',
+  price_direction_is_missing: 'price_direction_is_missing',
+  oi_direction_is_missing: 'oi_direction_is_missing',
+  oi_price_divergence_is_missing: 'oi_price_divergence_is_missing',
+  flow_conviction_is_missing: 'flow_conviction_is_missing',
+  cot_net_zscore_is_missing: 'cot_net_zscore_is_missing',
+  cot_age_fresh_is_missing: 'cot_age_fresh_is_missing',
+  cot_regime_numeric_is_missing: 'cot_regime_numeric_is_missing',
+  washout_risk_is_missing: 'washout_risk_is_missing',
+  vix_close_is_missing: 'vix_close_is_missing',
   target_ret_5d: 'target_ret_5d',
   target_ret_21d: 'target_ret_21d',
   target_ret_63d: 'target_ret_63d',
   target_ret_126d: 'target_ret_126d',
-  matrixVersion: 'matrixVersion'
+  matrix_version: 'matrix_version'
 };
 
-exports.Prisma.TrainingFeatures1dScalarFieldEnum = {
+exports.Prisma.Matrix_feature_stats_1dScalarFieldEnum = {
   id: 'id',
-  asOfDate: 'asOfDate',
-  features: 'features'
-};
-
-exports.Prisma.OofCore1dScalarFieldEnum = {
-  id: 'id',
-  tradeDate: 'tradeDate',
-  symbol: 'symbol',
-  horizonDays: 'horizonDays',
-  windowId: 'windowId',
-  cutoffDate: 'cutoffDate',
-  p30: 'p30',
+  run_id: 'run_id',
+  column_name: 'column_name',
+  dtype: 'dtype',
+  p01: 'p01',
+  p05: 'p05',
   p50: 'p50',
-  p70: 'p70',
-  targetValue: 'targetValue',
-  trainedAt: 'trainedAt',
-  runHash: 'runHash',
-  matrixVersion: 'matrixVersion',
-  run_id: 'run_id'
+  p95: 'p95',
+  p99: 'p99',
+  mean: 'mean',
+  std: 'std',
+  min_val: 'min_val',
+  max_val: 'max_val',
+  zero_rate: 'zero_rate',
+  missing_flag_rate: 'missing_flag_rate',
+  age_days_p95: 'age_days_p95',
+  release_day_rate: 'release_day_rate',
+  created_at: 'created_at'
 };
 
-exports.Prisma.MetaInputs1dScalarFieldEnum = {
+exports.Prisma.Matrix_manifest_1dScalarFieldEnum = {
+  run_id: 'run_id',
+  matrix_version: 'matrix_version',
+  commit_hash: 'commit_hash',
+  data_cutoff_date: 'data_cutoff_date',
+  schema_hash: 'schema_hash',
+  column_list: 'column_list',
+  column_metadata: 'column_metadata',
+  required_columns: 'required_columns',
+  feature_count: 'feature_count',
+  row_count: 'row_count',
+  min_date: 'min_date',
+  max_date: 'max_date',
+  validation_passed: 'validation_passed',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Meta_inputs_1dScalarFieldEnum = {
   id: 'id',
-  tradeDate: 'tradeDate',
+  trade_date: 'trade_date',
   symbol: 'symbol',
-  horizonDays: 'horizonDays',
-  coreP30: 'coreP30',
-  coreP50: 'coreP50',
-  coreP70: 'coreP70',
+  horizon_days: 'horizon_days',
+  core_p30: 'core_p30',
+  core_p50: 'core_p50',
+  core_p70: 'core_p70',
   biofuel_p30: 'biofuel_p30',
   biofuel_p50: 'biofuel_p50',
   biofuel_p70: 'biofuel_p70',
@@ -1058,1591 +2887,185 @@ exports.Prisma.MetaInputs1dScalarFieldEnum = {
   volatility_p30: 'volatility_p30',
   volatility_p50: 'volatility_p50',
   volatility_p70: 'volatility_p70',
-  targetValue: 'targetValue',
-  createdAt: 'createdAt'
+  target_value: 'target_value',
+  created_at: 'created_at'
 };
 
-exports.Prisma.RealizedVolatilityScalarFieldEnum = {
+exports.Prisma.Model_runsScalarFieldEnum = {
   id: 'id',
-  symbol: 'symbol',
-  asOfDate: 'asOfDate',
-  windowDays: 'windowDays',
-  realizedVol: 'realizedVol',
-  parkinsonVol: 'parkinsonVol',
-  garmanKlassVol: 'garmanKlassVol',
-  yangZhangVol: 'yangZhangVol',
-  annualized: 'annualized',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.SpecialistFeaturesScalarFieldEnum = {
-  id: 'id',
-  bucket: 'bucket',
-  asOfDate: 'asOfDate',
-  features: 'features'
-};
-
-exports.Prisma.VolatilitySurfaceScalarFieldEnum = {
-  id: 'id',
-  underlying: 'underlying',
-  asOfDate: 'asOfDate',
-  surfaceData: 'surfaceData',
-  atmVol: 'atmVol',
-  skew25d: 'skew25d',
-  butterfly25d: 'butterfly25d',
-  termSlope: 'termSlope',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.SpecialistTrumpEffect1dScalarFieldEnum = {
-  id: 'id',
-  asOfDate: 'asOfDate',
-  symbol: 'symbol',
-  signal: 'signal',
-  confidence: 'confidence',
-  features: 'features',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.SpecialistTrumpEffect1hScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  symbol: 'symbol',
-  signal: 'signal',
-  confidence: 'confidence',
-  features: 'features',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.ModelRegistryScalarFieldEnum = {
-  id: 'id',
-  modelId: 'modelId',
-  modelName: 'modelName',
-  modelType: 'modelType',
-  horizon: 'horizon',
-  version: 'version',
-  trainedAt: 'trainedAt',
-  trainingMode: 'trainingMode',
-  trainingTimeSeconds: 'trainingTimeSeconds',
-  datasetRows: 'datasetRows',
-  datasetFeatures: 'datasetFeatures',
-  datasetStartDate: 'datasetStartDate',
-  datasetEndDate: 'datasetEndDate',
-  mase: 'mase',
-  rmse: 'rmse',
-  mae: 'mae',
-  mape: 'mape',
-  pinballLossP10: 'pinballLossP10',
-  pinballLossP50: 'pinballLossP50',
-  pinballLossP90: 'pinballLossP90',
-  coverage80: 'coverage80',
-  bestModel: 'bestModel',
-  modelsTrained: 'modelsTrained',
-  status: 'status',
-  isChampion: 'isChampion',
-  promotedAt: 'promotedAt',
-  artifactPath: 'artifactPath',
-  mlflowRunId: 'mlflowRunId',
-  tags: 'tags',
-  notes: 'notes',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.ChartOverlaysScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  overlayType: 'overlayType',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  label: 'label',
-  color: 'color',
-  metadata: 'metadata',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.DashboardMetricsScalarFieldEnum = {
-  id: 'id',
-  metricName: 'metricName',
-  metricValue: 'metricValue',
-  asOfDate: 'asOfDate',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.DriverScoresScalarFieldEnum = {
-  id: 'id',
-  asOfDate: 'asOfDate',
-  specialist: 'specialist',
-  signal: 'signal',
-  direction: 'direction',
-  confidence: 'confidence',
-  shapContribution: 'shapContribution',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.MarketPostureScalarFieldEnum = {
-  id: 'id',
-  asOfDate: 'asOfDate',
-  horizon: 'horizon',
-  posture: 'posture',
-  confidence: 'confidence',
-  regime: 'regime',
-  tailRiskProb: 'tailRiskProb',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.ProcurementActionsScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  asOfDate: 'asOfDate',
-  action: 'action',
-  confidence: 'confidence',
-  rationale: 'rationale',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.RiskMetricsScalarFieldEnum = {
-  id: 'id',
-  asOfDate: 'asOfDate',
-  horizon: 'horizon',
-  var01: 'var01',
-  var05: 'var05',
-  var10: 'var10',
-  cvar05: 'cvar05',
-  probUp: 'probUp',
-  probUp5pct: 'probUp5pct',
-  probDown5pct: 'probDown5pct',
-  regime: 'regime',
-  tailRiskFlag: 'tailRiskFlag',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.ScenarioAnalysisScalarFieldEnum = {
-  id: 'id',
-  scenarioId: 'scenarioId',
-  scenarioName: 'scenarioName',
-  asOfDate: 'asOfDate',
-  horizon: 'horizon',
-  assumptions: 'assumptions',
-  baseForecast: 'baseForecast',
-  scenarioForecast: 'scenarioForecast',
-  impactPct: 'impactPct',
-  probability: 'probability',
-  confidence: 'confidence',
-  modelVersion: 'modelVersion',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.ValueTimingWindowsScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  asOfDate: 'asOfDate',
-  horizonDays: 'horizonDays',
-  tailProximity: 'tailProximity',
-  probabilityLift: 'probabilityLift',
-  confidenceAdjustedLift: 'confidenceAdjustedLift',
-  regimeDampening: 'regimeDampening',
-  windowStartWeek: 'windowStartWeek',
-  windowEndWeek: 'windowEndWeek',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.VolRegimesScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  asOfDate: 'asOfDate',
-  regime: 'regime',
-  regimeProb: 'regimeProb',
-  transitionProbs: 'transitionProbs',
-  smoothedProb: 'smoothedProb',
-  modelType: 'modelType',
-  modelVersion: 'modelVersion',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.DataSourceRegistryScalarFieldEnum = {
-  id: 'id',
-  sourceId: 'sourceId',
-  sourceName: 'sourceName',
-  description: 'description',
-  targetTable: 'targetTable',
-  targetSchema: 'targetSchema',
-  apiProvider: 'apiProvider',
-  apiEndpoint: 'apiEndpoint',
-  apiDocsUrl: 'apiDocsUrl',
-  authType: 'authType',
-  authEnvVar: 'authEnvVar',
-  responseFormat: 'responseFormat',
-  dateColumn: 'dateColumn',
-  entityColumn: 'entityColumn',
-  updateFrequency: 'updateFrequency',
-  typicalLagHours: 'typicalLagHours',
-  ingestionScript: 'ingestionScript',
-  lastSuccessfulRun: 'lastSuccessfulRun',
-  isActive: 'isActive',
-  requiresSubscription: 'requiresSubscription',
-  subscriptionStatus: 'subscriptionStatus',
-  notes: 'notes',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.IngestRunScalarFieldEnum = {
-  id: 'id',
-  jobName: 'jobName',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt',
-  status: 'status',
-  rowsAttempted: 'rowsAttempted',
-  rowsInserted: 'rowsInserted',
-  rowsSkipped: 'rowsSkipped',
-  rowsQuarantined: 'rowsQuarantined',
-  cursorPosition: 'cursorPosition',
-  errorMessage: 'errorMessage'
-};
-
-exports.Prisma.QuarantinedRecordScalarFieldEnum = {
-  id: 'id',
-  sourceTable: 'sourceTable',
-  ingestRunId: 'ingestRunId',
-  attemptedAt: 'attemptedAt',
-  rawPayload: 'rawPayload',
-  validationErrors: 'validationErrors',
-  severity: 'severity',
-  resolutionStatus: 'resolutionStatus',
-  resolvedAt: 'resolvedAt',
-  resolvedBy: 'resolvedBy'
-};
-
-exports.Prisma.IntelDropScalarFieldEnum = {
-  id: 'id',
-  asOfTs: 'asOfTs',
-  domain: 'domain',
-  horizon: 'horizon',
-  direction: 'direction',
-  pressureCents: 'pressureCents',
-  edge: 'edge',
-  driverWeights: 'driverWeights',
-  topDrivers: 'topDrivers',
-  regimeTags: 'regimeTags',
-  qualityFlags: 'qualityFlags',
-  dataGaps: 'dataGaps',
-  receipts: 'receipts',
-  narrative: 'narrative',
-  quantPayload: 'quantPayload',
-  sourceModel: 'sourceModel',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.Driver_attribution_1dScalarFieldEnum = {
-  id: 'id',
-  forecast_date: 'forecast_date',
+  model_name: 'model_name',
+  model_nickname: 'model_nickname',
   horizon_days: 'horizon_days',
-  driver_name: 'driver_name',
-  shap_value: 'shap_value',
-  direction: 'direction',
-  rank: 'rank',
+  trained_date: 'trained_date',
+  run_hash: 'run_hash',
+  mae: 'mae',
+  coverage_30_70: 'coverage_30_70',
+  oof_count: 'oof_count',
+  status: 'status',
+  outcome: 'outcome',
+  model_path: 'model_path',
+  notes: 'notes',
   created_at: 'created_at'
 };
 
-exports.Prisma.Regime_state_1dScalarFieldEnum = {
-  id: 'id',
-  forecast_date: 'forecast_date',
-  regime: 'regime',
-  vix_contribution: 'vix_contribution',
-  policy_contribution: 'policy_contribution',
-  news_contribution: 'news_contribution',
-  confidence: 'confidence',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Zl_price_15mScalarFieldEnum = {
-  id: 'id',
-  timestamp: 'timestamp',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  previous_close: 'previous_close',
-  change: 'change',
-  change_percent: 'change_percent',
-  day_high: 'day_high',
-  day_low: 'day_low',
-  source: 'source',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Elite_indicators_1dScalarFieldEnum = {
+exports.Prisma.Oof_core_1dScalarFieldEnum = {
   id: 'id',
   trade_date: 'trade_date',
   symbol: 'symbol',
-  hurst_exponent: 'hurst_exponent',
-  hurst_regime: 'hurst_regime',
-  connors_rsi: 'connors_rsi',
-  fisher_transform: 'fisher_transform',
-  fisher_signal: 'fisher_signal',
-  mcginley_dynamic: 'mcginley_dynamic',
-  ttm_squeeze_on: 'ttm_squeeze_on',
-  ttm_squeeze_momentum: 'ttm_squeeze_momentum',
-  schaff_trend_cycle: 'schaff_trend_cycle',
-  rvi: 'rvi',
-  rvi_signal: 'rvi_signal',
-  elder_force_index: 'elder_force_index',
-  kama_10: 'kama_10',
-  hma_20: 'hma_20',
-  alma_50: 'alma_50',
-  rsi_2: 'rsi_2',
-  rsi_14: 'rsi_14',
-  cumulative_rsi: 'cumulative_rsi',
-  macd: 'macd',
-  macd_signal: 'macd_signal',
-  macd_histogram: 'macd_histogram',
-  cci_14: 'cci_14',
-  cci_50: 'cci_50',
-  atr_10: 'atr_10',
-  atr_50: 'atr_50',
-  atr_ratio: 'atr_ratio',
-  garman_klass_vol: 'garman_klass_vol',
-  yang_zhang_vol: 'yang_zhang_vol',
-  bb_percent_b: 'bb_percent_b',
-  cmf_21: 'cmf_21',
-  volume_zscore: 'volume_zscore',
-  unusual_volume: 'unusual_volume',
-  created_at: 'created_at',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  returns_1d: 'returns_1d',
-  log_returns_1d: 'log_returns_1d',
-  range_pct: 'range_pct'
-};
-
-exports.Prisma.Data_quality_logScalarFieldEnum = {
-  id: 'id',
-  table_name: 'table_name',
-  check_date: 'check_date',
-  row_count: 'row_count',
-  null_count: 'null_count',
-  latest_date: 'latest_date',
-  oldest_date: 'oldest_date',
-  issues: 'issues',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Data_quality_metricsScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  source: 'source',
-  last_update: 'last_update',
-  hours_since_update: 'hours_since_update',
-  total_rows: 'total_rows',
-  expected_rows: 'expected_rows',
-  completeness_pct: 'completeness_pct',
-  null_count: 'null_count',
-  null_pct: 'null_pct',
-  is_stale: 'is_stale',
-  is_incomplete: 'is_incomplete',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Model_core_auditScalarFieldEnum = {
-  id: 'id',
-  training_run_id: 'training_run_id',
-  horizon: 'horizon',
-  reviewed_at: 'reviewed_at',
-  reviewer: 'reviewer',
-  is_core_run: 'is_core_run',
-  cv_purged_walk_forward: 'cv_purged_walk_forward',
-  asof_alignment_valid: 'asof_alignment_valid',
-  chronos_bolt_present: 'chronos_bolt_present',
-  chronos2_present: 'chronos2_present',
-  chronos2_lora_present: 'chronos2_lora_present',
-  recursive_tabular_present: 'recursive_tabular_present',
-  autoets_present: 'autoets_present',
-  theta_present: 'theta_present',
-  seasonal_naive_present: 'seasonal_naive_present',
-  weighted_ensemble_used: 'weighted_ensemble_used',
-  oof_only: 'oof_only',
-  max_single_weight: 'max_single_weight',
-  chronos_weight_nonzero: 'chronos_weight_nonzero',
-  recursive_weight_zero_long: 'recursive_weight_zero_long',
-  monte_carlo_runs: 'monte_carlo_runs',
-  p10_present: 'p10_present',
-  p50_present: 'p50_present',
-  p90_present: 'p90_present',
-  stress_widening_applied: 'stress_widening_applied',
-  rmse_recorded: 'rmse_recorded',
-  brier_recorded: 'brier_recorded',
-  p10_coverage_ok: 'p10_coverage_ok',
-  p90_coverage_ok: 'p90_coverage_ok',
-  registry_complete: 'registry_complete',
-  ensemble_edges_recorded: 'ensemble_edges_recorded',
-  resources_logged: 'resources_logged',
-  artifact_isolation_safe: 'artifact_isolation_safe',
-  narrative_ready: 'narrative_ready',
-  buy_sell_language_absent: 'buy_sell_language_absent',
-  uncertainty_explained: 'uncertainty_explained',
-  specialist_divergence_flag: 'specialist_divergence_flag',
-  hard_gate_pass: 'hard_gate_pass',
-  final_approved: 'final_approved',
-  failure_reason: 'failure_reason'
-};
-
-exports.Prisma.Prediction_accuracyScalarFieldEnum = {
-  id: 'id',
-  model_id: 'model_id',
-  horizon: 'horizon',
-  prediction_date: 'prediction_date',
-  target_date: 'target_date',
-  actual: 'actual',
-  pred_p50: 'pred_p50',
-  error: 'error',
-  abs_error: 'abs_error',
-  pct_error: 'pct_error',
-  in_80_band: 'in_80_band',
-  created_at: 'created_at',
-  pred_p10: 'pred_p10',
-  pred_p90: 'pred_p90'
-};
-
-exports.Prisma.Source_relabel_auditScalarFieldEnum = {
-  id: 'id',
-  relabel_ts: 'relabel_ts',
-  table_name: 'table_name',
-  from_source: 'from_source',
-  to_source: 'to_source',
-  row_count: 'row_count',
-  min_as_of_date: 'min_as_of_date',
-  max_as_of_date: 'max_as_of_date'
-};
-
-exports.Prisma.Training_run_logScalarFieldEnum = {
-  id: 'id',
-  run_id: 'run_id',
-  horizon: 'horizon',
-  phase: 'phase',
-  status: 'status',
-  started_at: 'started_at',
-  completed_at: 'completed_at',
-  error_message: 'error_message',
-  metrics: 'metrics'
-};
-
-exports.Prisma.Training_runsScalarFieldEnum = {
-  id: 'id',
-  run_id: 'run_id',
-  run_name: 'run_name',
-  experiment_name: 'experiment_name',
-  model_type: 'model_type',
-  specialist_name: 'specialist_name',
-  horizon: 'horizon',
-  started_at: 'started_at',
-  completed_at: 'completed_at',
-  duration_seconds: 'duration_seconds',
-  status: 'status',
-  training_mode: 'training_mode',
-  hyperparameters: 'hyperparameters',
-  dataset_name: 'dataset_name',
-  dataset_rows: 'dataset_rows',
-  dataset_features: 'dataset_features',
-  metrics: 'metrics',
-  mase: 'mase',
-  error_message: 'error_message',
-  artifact_path: 'artifact_path',
-  log_path: 'log_path',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Zl_price_1hScalarFieldEnum = {
-  timestamp: 'timestamp',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  source: 'source',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Zl_price_1dScalarFieldEnum = {
-  event_date: 'event_date',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  source: 'source',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Trump_effect_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  eo_count_7d: 'eo_count_7d',
-  eo_count_30d: 'eo_count_30d',
-  proclamation_count_7d: 'proclamation_count_7d',
-  proclamation_count_30d: 'proclamation_count_30d',
-  nomination_count_7d: 'nomination_count_7d',
-  nomination_count_30d: 'nomination_count_30d',
-  memorandum_count_7d: 'memorandum_count_7d',
-  memorandum_count_30d: 'memorandum_count_30d',
-  total_actions_7d: 'total_actions_7d',
-  total_actions_30d: 'total_actions_30d',
-  avg_sentiment_7d: 'avg_sentiment_7d',
-  avg_sentiment_30d: 'avg_sentiment_30d',
-  action_velocity: 'action_velocity',
-  action_acceleration: 'action_acceleration',
-  weighted_action_score: 'weighted_action_score',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Forecast_summary_1dScalarFieldEnum = {
-  id: 'id',
-  forecast_date: 'forecast_date',
   horizon_days: 'horizon_days',
-  opp: 'opp',
-  ruin: 'ruin',
-  calibrated_p10: 'calibrated_p10',
-  calibrated_p90: 'calibrated_p90',
-  coverage_error: 'coverage_error',
-  regime: 'regime',
-  regime_multiplier: 'regime_multiplier',
-  narrative: 'narrative',
-  top_driver_1: 'top_driver_1',
-  top_driver_2: 'top_driver_2',
-  top_driver_3: 'top_driver_3',
-  model_version: 'model_version',
-  ai_model: 'ai_model',
-  generated_at: 'generated_at',
+  window_id: 'window_id',
+  cutoff_date: 'cutoff_date',
   p30: 'p30',
   p50: 'p50',
   p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal'
+  target_value: 'target_value',
+  trained_at: 'trained_at',
+  run_hash: 'run_hash',
+  matrix_version: 'matrix_version',
+  run_id: 'run_id'
 };
 
-exports.Prisma.Core_cone_1dScalarFieldEnum = {
-  id: 'id',
-  forecast_date: 'forecast_date',
-  horizon_days: 'horizon_days',
-  target_date: 'target_date',
-  p10: 'p10',
-  p50: 'p50',
-  p90: 'p90',
-  model_version: 'model_version',
-  config_hash: 'config_hash',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Core_mc_1dScalarFieldEnum = {
-  id: 'id',
-  forecast_date: 'forecast_date',
-  horizon_days: 'horizon_days',
-  s0: 's0',
-  q10: 'q10',
-  q50: 'q50',
-  q90: 'q90',
-  mu_annual: 'mu_annual',
-  sigma_annual: 'sigma_annual',
-  mc_p10_final: 'mc_p10_final',
-  mc_p50_final: 'mc_p50_final',
-  mc_p90_final: 'mc_p90_final',
-  mc_min_p10: 'mc_min_p10',
-  mc_max_p90: 'mc_max_p90',
-  opp: 'opp',
-  ruin: 'ruin',
-  var_95: 'var_95',
-  cvar_95: 'cvar_95',
-  runs: 'runs',
-  seed: 'seed',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Forecast_quantilesScalarFieldEnum = {
-  id: 'id',
-  model_name: 'model_name',
-  horizon: 'horizon',
-  forecast_date: 'forecast_date',
-  target_date: 'target_date',
-  symbol: 'symbol',
-  p10: 'p10',
-  p50: 'p50',
-  p90: 'p90',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Garch_forecastsScalarFieldEnum = {
+exports.Prisma.Realized_volatilityScalarFieldEnum = {
   id: 'id',
   symbol: 'symbol',
   as_of_date: 'as_of_date',
-  horizon: 'horizon',
-  conditional_vol: 'conditional_vol',
-  annualized_vol: 'annualized_vol',
-  var_01: 'var_01',
-  var_05: 'var_05',
-  cvar_05: 'cvar_05',
-  vol_lower: 'vol_lower',
-  vol_upper: 'vol_upper',
+  window_days: 'window_days',
+  realized_vol: 'realized_vol',
+  parkinson_vol: 'parkinson_vol',
+  garman_klass_vol: 'garman_klass_vol',
+  yang_zhang_vol: 'yang_zhang_vol',
+  annualized: 'annualized',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Specialist_featuresScalarFieldEnum = {
+  id: 'id',
+  bucket: 'bucket',
+  as_of_date: 'as_of_date',
+  features: 'features'
+};
+
+exports.Prisma.Specialist_signals_1dScalarFieldEnum = {
+  id: 'id',
+  as_of_date: 'as_of_date',
+  bucket: 'bucket',
+  signal_1: 'signal_1',
+  signal_2: 'signal_2',
+  confidence: 'confidence',
   model_type: 'model_type',
-  model_version: 'model_version',
-  created_at: 'created_at'
+  run_hash: 'run_hash',
+  created_at: 'created_at',
+  max_input_age_days: 'max_input_age_days',
+  source_tag: 'source_tag',
+  degraded_level: 'degraded_level',
+  conf: 'conf',
+  data_quality: 'data_quality',
+  run_id: 'run_id',
+  abstained: 'abstained',
+  warmup: 'warmup',
+  signal_type: 'signal_type'
 };
 
-exports.Prisma.Horizon_reconciliation_1dScalarFieldEnum = {
+exports.Prisma.Specialist_trump_effect_1dScalarFieldEnum = {
   id: 'id',
-  forecast_date: 'forecast_date',
-  tactical_posture: 'tactical_posture',
-  short_posture: 'short_posture',
-  medium_posture: 'medium_posture',
-  strategic_posture: 'strategic_posture',
-  conflict_flag: 'conflict_flag',
-  reconciled_guidance: 'reconciled_guidance',
-  priority_horizon: 'priority_horizon',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Monte_carlo_runsScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
   as_of_date: 'as_of_date',
-  horizon: 'horizon',
-  num_sims: 'num_sims',
-  percentiles: 'percentiles',
-  correlations: 'correlations',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Probability_distributionsScalarFieldEnum = {
-  id: 'id',
   symbol: 'symbol',
-  as_of_date: 'as_of_date',
-  horizon: 'horizon',
-  percentile: 'percentile',
-  value: 'value',
-  model_version: 'model_version',
+  signal: 'signal',
+  confidence: 'confidence',
+  features: 'features',
   created_at: 'created_at'
 };
 
-exports.Prisma.VegasRestaurantScalarFieldEnum = {
+exports.Prisma.Volatility_surfaceScalarFieldEnum = {
   id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt',
-  cuisineType: 'cuisineType'
+  underlying: 'underlying',
+  as_of_date: 'as_of_date',
+  surface_data: 'surface_data',
+  atm_vol: 'atm_vol',
+  skew_25d: 'skew_25d',
+  butterfly_25d: 'butterfly_25d',
+  term_slope: 'term_slope',
+  created_at: 'created_at'
 };
 
-exports.Prisma.VegasCasinoScalarFieldEnum = {
+exports.Prisma.Vegas_activity_logScalarFieldEnum = {
   id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
+  activity_type: 'activity_type',
+  entity_type: 'entity_type',
+  entity_id: 'entity_id',
+  user_id: 'user_id',
+  details: 'details',
+  created_at: 'created_at'
 };
 
-exports.Prisma.VegasFryerScalarFieldEnum = {
+exports.Prisma.Vegas_casino_profilesScalarFieldEnum = {
   id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasExportListScalarFieldEnum = {
-  id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasScheduledReportScalarFieldEnum = {
-  id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasShiftScalarFieldEnum = {
-  id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasShiftCasinoScalarFieldEnum = {
-  id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasShiftRestaurantScalarFieldEnum = {
-  id: 'id',
-  glideRowId: 'glideRowId',
-  data: 'data',
-  ingestedAt: 'ingestedAt'
-};
-
-exports.Prisma.VegasEventScalarFieldEnum = {
-  id: 'id',
-  eventId: 'eventId',
-  name: 'name',
-  eventType: 'eventType',
-  venue: 'venue',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  attendance: 'attendance',
-  attendanceMin: 'attendanceMin',
-  attendanceMax: 'attendanceMax',
-  source: 'source',
-  sourceUrl: 'sourceUrl',
-  rawPayload: 'rawPayload',
-  isActive: 'isActive',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.VegasEventProfileScalarFieldEnum = {
-  id: 'id',
-  eventType: 'eventType',
-  displayName: 'displayName',
-  primaryDemo: 'primaryDemo',
-  psychographic: 'psychographic',
-  cuisineAffinity: 'cuisineAffinity',
-  avgSpendTier: 'avgSpendTier',
-  peakDiningHours: 'peakDiningHours',
-  notes: 'notes',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.VegasCasinoProfileScalarFieldEnum = {
-  id: 'id',
-  casinoName: 'casinoName',
+  casino_name: 'casino_name',
   vibe: 'vibe',
-  pullFactor: 'pullFactor',
-  targetDemo: 'targetDemo',
+  pull_factor: 'pull_factor',
+  target_demo: 'target_demo',
   tier: 'tier',
   corridor: 'corridor',
   notes: 'notes',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.VegasCuisineMatchScalarFieldEnum = {
-  id: 'id',
-  eventType: 'eventType',
-  cuisineType: 'cuisineType',
-  affinityScore: 'affinityScore',
-  notes: 'notes',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.VegasIntelSheetScalarFieldEnum = {
-  id: 'id',
-  sheetId: 'sheetId',
-  restaurantId: 'restaurantId',
-  eventId: 'eventId',
-  sheetType: 'sheetType',
-  headline: 'headline',
-  content: 'content',
-  shareableUrl: 'shareableUrl',
-  pdfUrl: 'pdfUrl',
-  viewCount: 'viewCount',
-  lastViewedAt: 'lastViewedAt',
-  sentAt: 'sentAt',
-  sentTo: 'sentTo',
-  status: 'status',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.VegasCustomerScoreScalarFieldEnum = {
-  id: 'id',
-  restaurantId: 'restaurantId',
-  casinoId: 'casinoId',
-  isCustomer: 'isCustomer',
-  priorityScore: 'priorityScore',
-  atRiskScore: 'atRiskScore',
-  daysSinceOrder: 'daysSinceOrder',
-  orderPattern: 'orderPattern',
-  volumeTrend: 'volumeTrend',
-  lastOrderDate: 'lastOrderDate',
-  avgOrderValue: 'avgOrderValue',
-  fryerCount: 'fryerCount',
-  eventImpactScore: 'eventImpactScore',
-  oneLiner: 'oneLiner',
-  computedAt: 'computedAt'
-};
-
-exports.Prisma.VegasActivityLogScalarFieldEnum = {
-  id: 'id',
-  activityType: 'activityType',
-  entityType: 'entityType',
-  entityId: 'entityId',
-  userId: 'userId',
-  details: 'details',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.VegasCuisineAffinityScalarFieldEnum = {
-  id: 'id',
-  eventCategory: 'eventCategory',
-  cuisineType: 'cuisineType',
-  affinityScore: 'affinityScore',
-  reasoning: 'reasoning',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.VegasDailySpendScalarFieldEnum = {
-  id: 'id',
-  impactDate: 'impactDate',
-  spendConcerts: 'spendConcerts',
-  spendConferences: 'spendConferences',
-  spendExpos: 'spendExpos',
-  spendFestivals: 'spendFestivals',
-  spendPerformingArts: 'spendPerformingArts',
-  spendSports: 'spendSports',
-  spendTotal: 'spendTotal',
-  importedAt: 'importedAt'
-};
-
-exports.Prisma.MktFutures1dScalarFieldEnum = {
-  eventDate: 'eventDate',
-  symbol: 'symbol',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  zl_corr_30d: 'zl_corr_30d',
-  zl_corr_60d: 'zl_corr_60d',
-  zl_corr_90d: 'zl_corr_90d',
-  hurst_exponent: 'hurst_exponent',
-  hurst_regime: 'hurst_regime',
-  connors_rsi: 'connors_rsi',
-  fisher_transform: 'fisher_transform',
-  fisher_signal: 'fisher_signal',
-  mcginley_dynamic: 'mcginley_dynamic',
-  ttm_squeeze_on: 'ttm_squeeze_on',
-  ttm_squeeze_momentum: 'ttm_squeeze_momentum',
-  schaff_trend_cycle: 'schaff_trend_cycle',
-  rvi: 'rvi',
-  rvi_signal: 'rvi_signal',
-  elder_force_index: 'elder_force_index',
-  kama_10: 'kama_10',
-  hma_20: 'hma_20',
-  alma_50: 'alma_50',
-  rsi_2: 'rsi_2',
-  rsi_14: 'rsi_14',
-  cumulative_rsi: 'cumulative_rsi',
-  macd: 'macd',
-  macd_signal: 'macd_signal',
-  macd_histogram: 'macd_histogram',
-  cci_14: 'cci_14',
-  cci_50: 'cci_50',
-  atr_10: 'atr_10',
-  atr_50: 'atr_50',
-  atr_ratio: 'atr_ratio',
-  garman_klass_vol: 'garman_klass_vol',
-  yang_zhang_vol: 'yang_zhang_vol',
-  bb_percent_b: 'bb_percent_b',
-  cmf_21: 'cmf_21',
-  volume_zscore: 'volume_zscore',
-  unusual_volume: 'unusual_volume',
-  returns_1d: 'returns_1d',
-  log_returns_1d: 'log_returns_1d',
-  range_pct: 'range_pct',
-  bb_upper: 'bb_upper',
-  bb_middle: 'bb_middle',
-  bb_lower: 'bb_lower',
-  atr_14: 'atr_14',
-  adx: 'adx',
-  adx_pos: 'adx_pos',
-  adx_neg: 'adx_neg',
-  stoch_k: 'stoch_k',
-  stoch_d: 'stoch_d',
-  obv: 'obv'
-};
-
-exports.Prisma.MktFutures1hScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  eventTime: 'eventTime',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.MktFx1dScalarFieldEnum = {
-  id: 'id',
-  pair: 'pair',
-  eventDate: 'eventDate',
-  rate: 'rate',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  zlCorr30d: 'zlCorr30d',
-  zlCorr60d: 'zlCorr60d',
-  zlCorr90d: 'zlCorr90d'
-};
-
-exports.Prisma.MktEtf1dScalarFieldEnum = {
-  id: 'id',
-  symbol: 'symbol',
-  eventDate: 'eventDate',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  source: 'source',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags',
-  createdAt: 'createdAt',
-  openingPrice: 'openingPrice',
-  closingPrice: 'closingPrice',
-  sessionHigh: 'sessionHigh',
-  sessionLow: 'sessionLow',
-  indicativeOpen: 'indicativeOpen',
-  indicativeClose: 'indicativeClose',
-  vwap: 'vwap',
-  zlCorr21d: 'zlCorr21d',
-  zlCorr63d: 'zlCorr63d',
-  zlCorr126d: 'zlCorr126d',
-  returns1d: 'returns1d',
-  returns5d: 'returns5d',
-  returns21d: 'returns21d',
-  momentum21d: 'momentum21d',
-  volatility21d: 'volatility21d'
-};
-
-exports.Prisma.MktOptions1dScalarFieldEnum = {
-  id: 'id',
-  underlying: 'underlying',
-  eventDate: 'eventDate',
-  expiration: 'expiration',
-  strike: 'strike',
-  optionType: 'optionType',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  change: 'change',
-  bid: 'bid',
-  ask: 'ask',
-  volume: 'volume',
-  openInterest: 'openInterest',
-  premium: 'premium',
-  openingPriceStat: 'openingPriceStat',
-  indicativeOpening: 'indicativeOpening',
-  sessionLowStat: 'sessionLowStat',
-  sessionHighStat: 'sessionHighStat',
-  clearedVolume: 'clearedVolume',
-  fixingPrice: 'fixingPrice',
-  closeStat: 'closeStat',
-  vwap: 'vwap',
-  impliedVolatility: 'impliedVolatility',
-  delta: 'delta',
-  closeVwap: 'closeVwap',
-  ohlcAvgVwap: 'ohlcAvgVwap',
-  lastTradeTime: 'lastTradeTime',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.MktOptionsGreeks1dScalarFieldEnum = {
-  id: 'id',
-  underlying: 'underlying',
-  eventDate: 'eventDate',
-  expiration: 'expiration',
-  strike: 'strike',
-  optionType: 'optionType',
-  lastPrice: 'lastPrice',
-  impliedVolatility: 'impliedVolatility',
-  delta: 'delta',
-  gamma: 'gamma',
-  theta: 'theta',
-  vega: 'vega',
-  ivSkew: 'ivSkew',
-  source: 'source',
-  rowHash: 'rowHash',
-  specialistTags: 'specialistTags',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.EconRates1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconInflation1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconLabor1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconActivity1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconVolIndices1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconCommodities1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.EconMoney1dScalarFieldEnum = {
-  id: 'id',
-  seriesId: 'seriesId',
-  eventDate: 'eventDate',
-  value: 'value',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.AltEconNewsScalarFieldEnum = {
-  id: 'id',
-  articleId: 'articleId',
-  eventDate: 'eventDate',
-  publishedAt: 'publishedAt',
-  headline: 'headline',
-  summary: 'summary',
-  content: 'content',
-  source: 'source',
-  url: 'url',
-  author: 'author',
-  specialistTags: 'specialistTags',
-  topics: 'topics',
-  subjects: 'subjects',
-  metaDescription: 'metaDescription',
-  rawPayload: 'rawPayload',
-  ingestedAt: 'ingestedAt',
   created_at: 'created_at',
   updated_at: 'updated_at'
 };
 
-exports.Prisma.PosCftc1wScalarFieldEnum = {
+exports.Prisma.Vegas_casinosScalarFieldEnum = {
   id: 'id',
-  eventDate: 'eventDate',
-  symbol: 'symbol',
-  openInterest: 'openInterest',
-  prodMercLong: 'prodMercLong',
-  prodMercShort: 'prodMercShort',
-  prodMercNet: 'prodMercNet',
-  swapLong: 'swapLong',
-  swapShort: 'swapShort',
-  swapNet: 'swapNet',
-  managedMoneyLong: 'managedMoneyLong',
-  managedMoneyShort: 'managedMoneyShort',
-  managedMoneyNet: 'managedMoneyNet',
-  otherReptLong: 'otherReptLong',
-  otherReptShort: 'otherReptShort',
-  otherReptNet: 'otherReptNet',
-  nonreptLong: 'nonreptLong',
-  nonreptShort: 'nonreptShort',
-  nonreptNet: 'nonreptNet',
-  managedMoneyNetPctOi: 'managedMoneyNetPctOi',
-  prodMercNetPctOi: 'prodMercNetPctOi',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
 };
 
-exports.Prisma.SupplyUsdaWasde1mScalarFieldEnum = {
+exports.Prisma.Vegas_cuisine_affinityScalarFieldEnum = {
   id: 'id',
-  eventDate: 'eventDate',
-  commodity: 'commodity',
-  country: 'country',
-  metric: 'metric',
-  value: 'value',
-  unit: 'unit',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
+  event_category: 'event_category',
+  cuisine_type: 'cuisine_type',
+  affinity_score: 'affinity_score',
+  reasoning: 'reasoning',
+  created_at: 'created_at'
 };
 
-exports.Prisma.SupplyUsdaExports1wScalarFieldEnum = {
+exports.Prisma.Vegas_cuisine_matchScalarFieldEnum = {
   id: 'id',
-  eventDate: 'eventDate',
-  commodity: 'commodity',
-  destinationCountry: 'destinationCountry',
-  netSalesMt: 'netSalesMt',
-  exportsMt: 'exportsMt',
-  outstandingSalesMt: 'outstandingSalesMt',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.SupplyEpaRin1dScalarFieldEnum = {
-  id: 'id',
-  eventDate: 'eventDate',
-  rinType: 'rinType',
-  price: 'price',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.SupplyLcfs1dScalarFieldEnum = {
-  eventDate: 'eventDate',
-  priceUsdPerMt: 'priceUsdPerMt',
-  source: 'source',
-  ingestionBatchId: 'ingestionBatchId',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.SupplyEiaBiodiesel1mScalarFieldEnum = {
-  reportMonth: 'reportMonth',
-  biodieselProductionMgal: 'biodieselProductionMgal',
-  renewableDieselProductionMgal: 'renewableDieselProductionMgal',
-  feedstockSoybeanOilPct: 'feedstockSoybeanOilPct',
-  capacityUtilizationPct: 'capacityUtilizationPct',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash'
-};
-
-exports.Prisma.SupplyMpobPalm1mScalarFieldEnum = {
-  id: 'id',
-  reportMonth: 'reportMonth',
-  productionMt: 'productionMt',
-  exportsMt: 'exportsMt',
-  stocksMt: 'stocksMt',
-  localConsumptionMt: 'localConsumptionMt',
-  country: 'country',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload'
-};
-
-exports.Prisma.SupplyArgentinaCrush1mScalarFieldEnum = {
-  id: 'id',
-  reportMonth: 'reportMonth',
-  crushVolumeMt: 'crushVolumeMt',
-  capacityUtilization: 'capacityUtilization',
-  oilProductionMt: 'oilProductionMt',
-  mealProductionMt: 'mealProductionMt',
-  exportsOilMt: 'exportsOilMt',
-  exportsMealMt: 'exportsMealMt',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload'
-};
-
-exports.Prisma.SupplyConabProduction1mScalarFieldEnum = {
-  id: 'id',
-  reportMonth: 'reportMonth',
-  cropYear: 'cropYear',
-  commodity: 'commodity',
-  productionMt: 'productionMt',
-  areaHarvestedHa: 'areaHarvestedHa',
-  yieldMtPerHa: 'yieldMtPerHa',
-  exportsMt: 'exportsMt',
-  domesticConsumptionMt: 'domesticConsumptionMt',
-  endingStocksMt: 'endingStocksMt',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload'
-};
-
-exports.Prisma.AltExecutiveActionsScalarFieldEnum = {
-  id: 'id',
-  articleId: 'articleId',
-  eventDate: 'eventDate',
-  publishedAt: 'publishedAt',
-  headline: 'headline',
-  content: 'content',
-  url: 'url',
-  author: 'author',
-  source: 'source',
-  documentType: 'documentType',
-  zlSentiment: 'zlSentiment',
-  specialistTags: 'specialistTags',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId'
-};
-
-exports.Prisma.AltPolicyNewsScalarFieldEnum = {
-  id: 'id',
-  articleId: 'articleId',
-  eventDate: 'eventDate',
-  publishedAt: 'publishedAt',
-  headline: 'headline',
-  content: 'content',
-  url: 'url',
-  author: 'author',
-  source: 'source',
-  zlSentiment: 'zlSentiment',
-  specialistTags: 'specialistTags',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId'
-};
-
-exports.Prisma.AltWeather1dScalarFieldEnum = {
-  id: 'id',
-  eventDate: 'eventDate',
-  stationId: 'stationId',
-  region: 'region',
-  country: 'country',
-  tmaxC: 'tmaxC',
-  tminC: 'tminC',
-  tavgC: 'tavgC',
-  prcpMm: 'prcpMm',
-  snowMm: 'snowMm',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId'
-};
-
-exports.Prisma.AltLegislation1dScalarFieldEnum = {
-  id: 'id',
-  eventDate: 'eventDate',
-  documentNumber: 'documentNumber',
-  title: 'title',
-  agency: 'agency',
-  documentType: 'documentType',
-  action: 'action',
-  specialistTags: 'specialistTags',
-  source: 'source',
-  ingestedAt: 'ingestedAt',
-  knowledgeTime: 'knowledgeTime',
-  rowHash: 'rowHash',
-  url: 'url',
-  rawPayload: 'rawPayload',
-  ingestionBatchId: 'ingestionBatchId'
-};
-
-exports.Prisma.AltTariffDeadlinesScalarFieldEnum = {
-  id: 'id',
-  deadlineName: 'deadlineName',
-  deadlineDate: 'deadlineDate',
-  daysToExpiry: 'daysToExpiry',
-  renewalProbability: 'renewalProbability',
-  policyType: 'policyType',
-  description: 'description',
-  isActive: 'isActive',
-  lastUpdated: 'lastUpdated'
-};
-
-exports.Prisma.AltProfarmerNewsScalarFieldEnum = {
-  id: 'id',
-  eventDate: 'eventDate',
-  section: 'section',
-  headline: 'headline',
-  content: 'content',
-  url: 'url',
-  author: 'author',
-  specialistTags: 'specialistTags',
-  ingestedAt: 'ingestedAt',
-  rowHash: 'rowHash',
-  rawPayload: 'rawPayload',
-  summary: 'summary',
-  topics: 'topics',
-  subjects: 'subjects',
-  meta_description: 'meta_description',
-  subject: 'subject',
-  tags: 'tags',
-  keywords: 'keywords',
-  categories: 'categories'
-};
-
-exports.Prisma.Event_probabilities_126d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
   event_type: 'event_type',
-  window_start: 'window_start',
-  window_end: 'window_end',
-  p_event: 'p_event',
-  severity_score: 'severity_score',
-  confidence: 'confidence',
-  drivers_topk: 'drivers_topk',
-  model_version: 'model_version',
-  created_at: 'created_at'
+  cuisine_type: 'cuisine_type',
+  affinity_score: 'affinity_score',
+  notes: 'notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
 };
 
-exports.Prisma.Event_probabilities_21d_1dScalarFieldEnum = {
+exports.Prisma.Vegas_customer_scoresScalarFieldEnum = {
   id: 'id',
-  as_of_date: 'as_of_date',
-  event_type: 'event_type',
-  window_start: 'window_start',
-  window_end: 'window_end',
-  p_event: 'p_event',
-  severity_score: 'severity_score',
-  confidence: 'confidence',
-  drivers_topk: 'drivers_topk',
-  model_version: 'model_version',
-  created_at: 'created_at'
+  restaurant_id: 'restaurant_id',
+  casino_id: 'casino_id',
+  is_customer: 'is_customer',
+  priority_score: 'priority_score',
+  at_risk_score: 'at_risk_score',
+  days_since_order: 'days_since_order',
+  order_pattern: 'order_pattern',
+  volume_trend: 'volume_trend',
+  last_order_date: 'last_order_date',
+  avg_order_value: 'avg_order_value',
+  fryer_count: 'fryer_count',
+  event_impact_score: 'event_impact_score',
+  one_liner: 'one_liner',
+  computed_at: 'computed_at'
 };
 
-exports.Prisma.Event_probabilities_5d_1dScalarFieldEnum = {
+exports.Prisma.Vegas_daily_spendScalarFieldEnum = {
   id: 'id',
-  as_of_date: 'as_of_date',
-  event_type: 'event_type',
-  window_start: 'window_start',
-  window_end: 'window_end',
-  p_event: 'p_event',
-  severity_score: 'severity_score',
-  confidence: 'confidence',
-  drivers_topk: 'drivers_topk',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Event_probabilities_63d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  event_type: 'event_type',
-  window_start: 'window_start',
-  window_end: 'window_end',
-  p_event: 'p_event',
-  severity_score: 'severity_score',
-  confidence: 'confidence',
-  drivers_topk: 'drivers_topk',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Price_scenarios_126d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  axis: 'axis',
-  scenario_name: 'scenario_name',
-  p_scenario: 'p_scenario',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  drivers_topk: 'drivers_topk',
-  display_order: 'display_order',
-  color_code: 'color_code',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Price_scenarios_21d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  axis: 'axis',
-  scenario_name: 'scenario_name',
-  p_scenario: 'p_scenario',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  drivers_topk: 'drivers_topk',
-  display_order: 'display_order',
-  color_code: 'color_code',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Price_scenarios_5d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  axis: 'axis',
-  scenario_name: 'scenario_name',
-  p_scenario: 'p_scenario',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  drivers_topk: 'drivers_topk',
-  display_order: 'display_order',
-  color_code: 'color_code',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Price_scenarios_63d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  axis: 'axis',
-  scenario_name: 'scenario_name',
-  p_scenario: 'p_scenario',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  drivers_topk: 'drivers_topk',
-  display_order: 'display_order',
-  color_code: 'color_code',
-  model_version: 'model_version',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Production_126d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  forecast_date: 'forecast_date',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  price_p10_cal: 'price_p10_cal',
-  price_p90_cal: 'price_p90_cal',
-  current_price: 'current_price',
-  model_version: 'model_version',
-  run_id: 'run_id',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Production_21d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  forecast_date: 'forecast_date',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  price_p10_cal: 'price_p10_cal',
-  price_p90_cal: 'price_p90_cal',
-  current_price: 'current_price',
-  model_version: 'model_version',
-  run_id: 'run_id',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Production_5d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  forecast_date: 'forecast_date',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  price_p10_cal: 'price_p10_cal',
-  price_p90_cal: 'price_p90_cal',
-  current_price: 'current_price',
-  model_version: 'model_version',
-  run_id: 'run_id',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Production_63d_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  forecast_date: 'forecast_date',
-  p30: 'p30',
-  p50: 'p50',
-  p70: 'p70',
-  p10_cal: 'p10_cal',
-  p90_cal: 'p90_cal',
-  price_p30: 'price_p30',
-  price_p50: 'price_p50',
-  price_p70: 'price_p70',
-  price_p10_cal: 'price_p10_cal',
-  price_p90_cal: 'price_p90_cal',
-  current_price: 'current_price',
-  model_version: 'model_version',
-  run_id: 'run_id',
-  created_at: 'created_at'
+  impact_date: 'impact_date',
+  spend_concerts: 'spend_concerts',
+  spend_conferences: 'spend_conferences',
+  spend_expos: 'spend_expos',
+  spend_festivals: 'spend_festivals',
+  spend_performing_arts: 'spend_performing_arts',
+  spend_sports: 'spend_sports',
+  spend_total: 'spend_total',
+  imported_at: 'imported_at'
 };
 
 exports.Prisma.Vegas_event_entitiesScalarFieldEnum = {
@@ -2678,12 +3101,114 @@ exports.Prisma.Vegas_event_labelsScalarFieldEnum = {
   created_at: 'created_at'
 };
 
+exports.Prisma.Vegas_event_profilesScalarFieldEnum = {
+  id: 'id',
+  event_type: 'event_type',
+  display_name: 'display_name',
+  primary_demo: 'primary_demo',
+  psychographic: 'psychographic',
+  cuisine_affinity: 'cuisine_affinity',
+  avg_spend_tier: 'avg_spend_tier',
+  peak_dining_hours: 'peak_dining_hours',
+  notes: 'notes',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.Vegas_event_venuesScalarFieldEnum = {
   id: 'id',
   event_id: 'event_id',
   venue_id: 'venue_id',
   is_primary: 'is_primary',
   created_at: 'created_at'
+};
+
+exports.Prisma.Vegas_eventsScalarFieldEnum = {
+  id: 'id',
+  event_id: 'event_id',
+  name: 'name',
+  event_type: 'event_type',
+  venue: 'venue',
+  start_date: 'start_date',
+  end_date: 'end_date',
+  attendance: 'attendance',
+  attendance_min: 'attendance_min',
+  attendance_max: 'attendance_max',
+  source: 'source',
+  source_url: 'source_url',
+  raw_payload: 'raw_payload',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Vegas_export_listScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
+};
+
+exports.Prisma.Vegas_fryersScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
+};
+
+exports.Prisma.Vegas_intel_sheetsScalarFieldEnum = {
+  id: 'id',
+  sheet_id: 'sheet_id',
+  restaurant_id: 'restaurant_id',
+  event_id: 'event_id',
+  sheet_type: 'sheet_type',
+  headline: 'headline',
+  content: 'content',
+  shareable_url: 'shareable_url',
+  pdf_url: 'pdf_url',
+  view_count: 'view_count',
+  last_viewed_at: 'last_viewed_at',
+  sent_at: 'sent_at',
+  sent_to: 'sent_to',
+  status: 'status',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
+exports.Prisma.Vegas_restaurantsScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at',
+  cuisine_type: 'cuisine_type'
+};
+
+exports.Prisma.Vegas_scheduled_reportsScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
+};
+
+exports.Prisma.Vegas_shift_casinosScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
+};
+
+exports.Prisma.Vegas_shift_restaurantsScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
+};
+
+exports.Prisma.Vegas_shiftsScalarFieldEnum = {
+  id: 'id',
+  glide_row_id: 'glide_row_id',
+  data: 'data',
+  ingested_at: 'ingested_at'
 };
 
 exports.Prisma.Vegas_venuesScalarFieldEnum = {
@@ -2703,202 +3228,17 @@ exports.Prisma.Vegas_venuesScalarFieldEnum = {
   updated_at: 'updated_at'
 };
 
-exports.Prisma.Model_runsScalarFieldEnum = {
-  id: 'id',
-  model_name: 'model_name',
-  model_nickname: 'model_nickname',
-  horizon_days: 'horizon_days',
-  trained_date: 'trained_date',
-  run_hash: 'run_hash',
-  mae: 'mae',
-  coverage_30_70: 'coverage_30_70',
-  oof_count: 'oof_count',
-  status: 'status',
-  outcome: 'outcome',
-  model_path: 'model_path',
-  notes: 'notes',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Specialist_signals_1dScalarFieldEnum = {
-  id: 'id',
-  as_of_date: 'as_of_date',
-  bucket: 'bucket',
-  signal_1: 'signal_1',
-  signal_2: 'signal_2',
-  confidence: 'confidence',
-  model_type: 'model_type',
-  run_hash: 'run_hash',
-  created_at: 'created_at',
-  max_input_age_days: 'max_input_age_days',
-  source_tag: 'source_tag',
-  degraded_level: 'degraded_level',
-  conf: 'conf',
-  data_quality: 'data_quality',
-  run_id: 'run_id',
-  abstained: 'abstained',
-  warmup: 'warmup',
-  signal_type: 'signal_type'
-};
-
-exports.Prisma.MatrixManifest1dScalarFieldEnum = {
-  runId: 'runId',
-  matrixVersion: 'matrixVersion',
-  commitHash: 'commitHash',
-  dataCutoffDate: 'dataCutoffDate',
-  schemaHash: 'schemaHash',
-  columnList: 'columnList',
-  columnMetadata: 'columnMetadata',
-  requiredColumns: 'requiredColumns',
-  featureCount: 'featureCount',
-  rowCount: 'rowCount',
-  minDate: 'minDate',
-  maxDate: 'maxDate',
-  validationPassed: 'validationPassed',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.MatrixFeatureStats1dScalarFieldEnum = {
-  id: 'id',
-  runId: 'runId',
-  columnName: 'columnName',
-  dtype: 'dtype',
-  p01: 'p01',
-  p05: 'p05',
-  p50: 'p50',
-  p95: 'p95',
-  p99: 'p99',
-  mean: 'mean',
-  std: 'std',
-  minVal: 'minVal',
-  maxVal: 'maxVal',
-  zeroRate: 'zeroRate',
-  missingFlagRate: 'missingFlagRate',
-  ageDaysP95: 'ageDaysP95',
-  releaseDayRate: 'releaseDayRate',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.AblationResultsScalarFieldEnum = {
-  id: 'id',
-  runId: 'runId',
-  bucket: 'bucket',
-  horizonDays: 'horizonDays',
-  baselineMae: 'baselineMae',
-  withSignalMae: 'withSignalMae',
-  deltaMae: 'deltaMae',
-  baselineCoverage40: 'baselineCoverage40',
-  withSignalCoverage40: 'withSignalCoverage40',
-  regimeStabilityScore: 'regimeStabilityScore',
-  recommendation: 'recommendation',
-  testedAt: 'testedAt'
-};
-
-exports.Prisma.AnalyticsBoardCrush1dScalarFieldEnum = {
-  tradeDate: 'tradeDate',
-  zsClose: 'zsClose',
-  zlClose: 'zlClose',
-  zmClose: 'zmClose',
-  boardCrush: 'boardCrush',
-  oilShare: 'oilShare',
-  createdAt: 'createdAt'
-};
-
-exports.Prisma.Inngest_receiptsScalarFieldEnum = {
-  id: 'id',
-  function_id: 'function_id',
-  event_name: 'event_name',
-  event_id: 'event_id',
-  received_at: 'received_at',
-  payload: 'payload'
-};
-
-exports.Prisma.Zl_forming_barScalarFieldEnum = {
-  timeframe: 'timeframe',
-  bar_start: 'bar_start',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  updated_at: 'updated_at'
-};
-
-exports.Prisma.Zl_latestScalarFieldEnum = {
-  id: 'id',
-  price: 'price',
-  timestamp: 'timestamp',
-  volume: 'volume',
-  updated_at: 'updated_at'
-};
-
-exports.Prisma.Zl_price_1mScalarFieldEnum = {
-  id: 'id',
-  timestamp: 'timestamp',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  previous_close: 'previous_close',
-  change: 'change',
-  change_percent: 'change_percent',
-  day_high: 'day_high',
-  day_low: 'day_low',
-  source: 'source',
-  created_at: 'created_at'
-};
-
-exports.Prisma.Zl_price_5mScalarFieldEnum = {
-  id: 'id',
-  timestamp: 'timestamp',
-  open: 'open',
-  high: 'high',
-  low: 'low',
-  close: 'close',
-  volume: 'volume',
-  previous_close: 'previous_close',
-  change: 'change',
-  change_percent: 'change_percent',
-  day_high: 'day_high',
-  day_low: 'day_low',
-  source: 'source',
-  created_at: 'created_at'
-};
-
-exports.Prisma.News_eventScalarFieldEnum = {
-  id: 'id',
-  article_id: 'article_id',
-  event_date: 'event_date',
-  published_at: 'published_at',
-  headline: 'headline',
-  content: 'content',
-  url: 'url',
-  author: 'author',
-  source: 'source',
-  zl_sentiment: 'zl_sentiment',
-  specialist_tags: 'specialist_tags',
-  ingested_at: 'ingested_at',
-  knowledge_time: 'knowledge_time',
-  row_hash: 'row_hash',
-  raw_payload: 'raw_payload',
-  ingestion_batch_id: 'ingestion_batch_id',
-  topics: 'topics',
-  subjects: 'subjects',
-  meta_description: 'meta_description'
-};
-
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -2907,139 +3247,138 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
-};
-
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
 
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+
 
 exports.Prisma.ModelName = {
-  TrainingMatrix1d: 'TrainingMatrix1d',
-  TrainingFeatures1d: 'TrainingFeatures1d',
-  OofCore1d: 'OofCore1d',
-  MetaInputs1d: 'MetaInputs1d',
-  RealizedVolatility: 'RealizedVolatility',
-  SpecialistFeatures: 'SpecialistFeatures',
-  VolatilitySurface: 'VolatilitySurface',
-  SpecialistTrumpEffect1d: 'SpecialistTrumpEffect1d',
-  SpecialistTrumpEffect1h: 'SpecialistTrumpEffect1h',
-  ModelRegistry: 'ModelRegistry',
-  ChartOverlays: 'ChartOverlays',
-  DashboardMetrics: 'DashboardMetrics',
-  DriverScores: 'DriverScores',
-  MarketPosture: 'MarketPosture',
-  ProcurementActions: 'ProcurementActions',
-  RiskMetrics: 'RiskMetrics',
-  ScenarioAnalysis: 'ScenarioAnalysis',
-  ValueTimingWindows: 'ValueTimingWindows',
-  VolRegimes: 'VolRegimes',
-  DataSourceRegistry: 'DataSourceRegistry',
-  IngestRun: 'IngestRun',
-  QuarantinedRecord: 'QuarantinedRecord',
-  IntelDrop: 'IntelDrop',
+  econ_news: 'econ_news',
+  executive_actions: 'executive_actions',
+  legislation_1d: 'legislation_1d',
+  policy_news: 'policy_news',
+  profarmer_news: 'profarmer_news',
+  tariff_deadlines: 'tariff_deadlines',
+  weather_1d: 'weather_1d',
+  ablation_results: 'ablation_results',
+  board_crush_1d: 'board_crush_1d',
+  chart_overlays: 'chart_overlays',
+  dashboard_metrics: 'dashboard_metrics',
   driver_attribution_1d: 'driver_attribution_1d',
-  regime_state_1d: 'regime_state_1d',
-  zl_price_15m: 'zl_price_15m',
-  elite_indicators_1d: 'elite_indicators_1d',
-  data_quality_log: 'data_quality_log',
-  data_quality_metrics: 'data_quality_metrics',
-  model_core_audit: 'model_core_audit',
-  prediction_accuracy: 'prediction_accuracy',
-  source_relabel_audit: 'source_relabel_audit',
-  training_run_log: 'training_run_log',
-  training_runs: 'training_runs',
-  zl_price_1h: 'zl_price_1h',
-  zl_price_1d: 'zl_price_1d',
-  trump_effect_1d: 'trump_effect_1d',
-  forecast_summary_1d: 'forecast_summary_1d',
-  core_cone_1d: 'core_cone_1d',
-  core_mc_1d: 'core_mc_1d',
-  forecast_quantiles: 'forecast_quantiles',
-  garch_forecasts: 'garch_forecasts',
-  horizon_reconciliation_1d: 'horizon_reconciliation_1d',
-  monte_carlo_runs: 'monte_carlo_runs',
-  probability_distributions: 'probability_distributions',
-  VegasRestaurant: 'VegasRestaurant',
-  VegasCasino: 'VegasCasino',
-  VegasFryer: 'VegasFryer',
-  VegasExportList: 'VegasExportList',
-  VegasScheduledReport: 'VegasScheduledReport',
-  VegasShift: 'VegasShift',
-  VegasShiftCasino: 'VegasShiftCasino',
-  VegasShiftRestaurant: 'VegasShiftRestaurant',
-  VegasEvent: 'VegasEvent',
-  VegasEventProfile: 'VegasEventProfile',
-  VegasCasinoProfile: 'VegasCasinoProfile',
-  VegasCuisineMatch: 'VegasCuisineMatch',
-  VegasIntelSheet: 'VegasIntelSheet',
-  VegasCustomerScore: 'VegasCustomerScore',
-  VegasActivityLog: 'VegasActivityLog',
-  VegasCuisineAffinity: 'VegasCuisineAffinity',
-  VegasDailySpend: 'VegasDailySpend',
-  MktFutures1d: 'MktFutures1d',
-  MktFutures1h: 'MktFutures1h',
-  MktFx1d: 'MktFx1d',
-  MktEtf1d: 'MktEtf1d',
-  MktOptions1d: 'MktOptions1d',
-  MktOptionsGreeks1d: 'MktOptionsGreeks1d',
-  EconRates1d: 'EconRates1d',
-  EconInflation1d: 'EconInflation1d',
-  EconLabor1d: 'EconLabor1d',
-  EconActivity1d: 'EconActivity1d',
-  EconVolIndices1d: 'EconVolIndices1d',
-  EconCommodities1d: 'EconCommodities1d',
-  EconMoney1d: 'EconMoney1d',
-  AltEconNews: 'AltEconNews',
-  PosCftc1w: 'PosCftc1w',
-  SupplyUsdaWasde1m: 'SupplyUsdaWasde1m',
-  SupplyUsdaExports1w: 'SupplyUsdaExports1w',
-  SupplyEpaRin1d: 'SupplyEpaRin1d',
-  SupplyLcfs1d: 'SupplyLcfs1d',
-  SupplyEiaBiodiesel1m: 'SupplyEiaBiodiesel1m',
-  SupplyMpobPalm1m: 'SupplyMpobPalm1m',
-  SupplyArgentinaCrush1m: 'SupplyArgentinaCrush1m',
-  SupplyConabProduction1m: 'SupplyConabProduction1m',
-  AltExecutiveActions: 'AltExecutiveActions',
-  AltPolicyNews: 'AltPolicyNews',
-  AltWeather1d: 'AltWeather1d',
-  AltLegislation1d: 'AltLegislation1d',
-  AltTariffDeadlines: 'AltTariffDeadlines',
-  AltProfarmerNews: 'AltProfarmerNews',
+  driver_scores: 'driver_scores',
   event_probabilities_126d_1d: 'event_probabilities_126d_1d',
   event_probabilities_21d_1d: 'event_probabilities_21d_1d',
   event_probabilities_5d_1d: 'event_probabilities_5d_1d',
   event_probabilities_63d_1d: 'event_probabilities_63d_1d',
+  inngest_receipts: 'inngest_receipts',
+  market_posture: 'market_posture',
   price_scenarios_126d_1d: 'price_scenarios_126d_1d',
   price_scenarios_21d_1d: 'price_scenarios_21d_1d',
   price_scenarios_5d_1d: 'price_scenarios_5d_1d',
   price_scenarios_63d_1d: 'price_scenarios_63d_1d',
+  procurement_actions: 'procurement_actions',
+  regime_state_1d: 'regime_state_1d',
+  risk_metrics: 'risk_metrics',
+  scenario_analysis: 'scenario_analysis',
+  specialist_trump_effect_1h: 'specialist_trump_effect_1h',
+  value_timing_windows: 'value_timing_windows',
+  vol_regimes: 'vol_regimes',
+  zl_forming_bar: 'zl_forming_bar',
+  zl_latest: 'zl_latest',
+  zl_price_15m: 'zl_price_15m',
+  zl_price_1d: 'zl_price_1d',
+  zl_price_1h: 'zl_price_1h',
+  zl_price_1m: 'zl_price_1m',
+  zl_price_5m: 'zl_price_5m',
+  activity_1d: 'activity_1d',
+  commodities_1d: 'commodities_1d',
+  inflation_1d: 'inflation_1d',
+  labor_1d: 'labor_1d',
+  money_1d: 'money_1d',
+  news_event: 'news_event',
+  rates_1d: 'rates_1d',
+  vol_indices_1d: 'vol_indices_1d',
+  elite_1d: 'elite_1d',
+  intel_drops: 'intel_drops',
+  trump_effect_1d: 'trump_effect_1d',
+  core_cone_1d: 'core_cone_1d',
+  core_mc_1d: 'core_mc_1d',
+  forecast_quantiles: 'forecast_quantiles',
+  forecast_summary_1d: 'forecast_summary_1d',
+  garch_forecasts: 'garch_forecasts',
+  horizon_reconciliation_1d: 'horizon_reconciliation_1d',
+  monte_carlo_runs: 'monte_carlo_runs',
+  probability_distributions: 'probability_distributions',
   production_126d_1d: 'production_126d_1d',
   production_21d_1d: 'production_21d_1d',
   production_5d_1d: 'production_5d_1d',
   production_63d_1d: 'production_63d_1d',
+  etf_1d: 'etf_1d',
+  futures_1d: 'futures_1d',
+  futures_1h: 'futures_1h',
+  fx_1d: 'fx_1d',
+  options_1d: 'options_1d',
+  model_registry: 'model_registry',
+  data_quality_log: 'data_quality_log',
+  data_quality_metrics: 'data_quality_metrics',
+  data_source_registry: 'data_source_registry',
+  ingest_run: 'ingest_run',
+  model_core_audit: 'model_core_audit',
+  prediction_accuracy: 'prediction_accuracy',
+  quarantined_record: 'quarantined_record',
+  source_relabel_audit: 'source_relabel_audit',
+  training_run_log: 'training_run_log',
+  training_runs: 'training_runs',
+  cftc_1w: 'cftc_1w',
+  argentina_crush_1m: 'argentina_crush_1m',
+  conab_production_1m: 'conab_production_1m',
+  eia_biodiesel_1m: 'eia_biodiesel_1m',
+  epa_rin_1d: 'epa_rin_1d',
+  lcfs_1d: 'lcfs_1d',
+  mpob_palm_1m: 'mpob_palm_1m',
+  usda_exports_1w: 'usda_exports_1w',
+  usda_wasde_1m: 'usda_wasde_1m',
+  features_1d: 'features_1d',
+  matrix_1d: 'matrix_1d',
+  matrix_feature_stats_1d: 'matrix_feature_stats_1d',
+  matrix_manifest_1d: 'matrix_manifest_1d',
+  meta_inputs_1d: 'meta_inputs_1d',
+  model_runs: 'model_runs',
+  oof_core_1d: 'oof_core_1d',
+  realized_volatility: 'realized_volatility',
+  specialist_features: 'specialist_features',
+  specialist_signals_1d: 'specialist_signals_1d',
+  specialist_trump_effect_1d: 'specialist_trump_effect_1d',
+  volatility_surface: 'volatility_surface',
+  vegas_activity_log: 'vegas_activity_log',
+  vegas_casino_profiles: 'vegas_casino_profiles',
+  vegas_casinos: 'vegas_casinos',
+  vegas_cuisine_affinity: 'vegas_cuisine_affinity',
+  vegas_cuisine_match: 'vegas_cuisine_match',
+  vegas_customer_scores: 'vegas_customer_scores',
+  vegas_daily_spend: 'vegas_daily_spend',
   vegas_event_entities: 'vegas_event_entities',
   vegas_event_impact: 'vegas_event_impact',
   vegas_event_labels: 'vegas_event_labels',
+  vegas_event_profiles: 'vegas_event_profiles',
   vegas_event_venues: 'vegas_event_venues',
-  vegas_venues: 'vegas_venues',
-  model_runs: 'model_runs',
-  specialist_signals_1d: 'specialist_signals_1d',
-  MatrixManifest1d: 'MatrixManifest1d',
-  MatrixFeatureStats1d: 'MatrixFeatureStats1d',
-  AblationResults: 'AblationResults',
-  AnalyticsBoardCrush1d: 'AnalyticsBoardCrush1d',
-  inngest_receipts: 'inngest_receipts',
-  zl_forming_bar: 'zl_forming_bar',
-  zl_latest: 'zl_latest',
-  zl_price_1m: 'zl_price_1m',
-  zl_price_5m: 'zl_price_5m',
-  news_event: 'news_event'
+  vegas_events: 'vegas_events',
+  vegas_export_list: 'vegas_export_list',
+  vegas_fryers: 'vegas_fryers',
+  vegas_intel_sheets: 'vegas_intel_sheets',
+  vegas_restaurants: 'vegas_restaurants',
+  vegas_scheduled_reports: 'vegas_scheduled_reports',
+  vegas_shift_casinos: 'vegas_shift_casinos',
+  vegas_shift_restaurants: 'vegas_shift_restaurants',
+  vegas_shifts: 'vegas_shifts',
+  vegas_venues: 'vegas_venues'
 };
 /**
  * Create the Client
@@ -3051,10 +3390,10 @@ const config = {
   "clientVersion": "7.2.0",
   "engineVersion": "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider        = \"prisma-client-js\"\n  output          = \"./generated/prisma\"\n  previewFeatures = [\"multiSchema\"]\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  schemas  = [\"alt\", \"analytics\", \"econ\", \"features\", \"forecasts\", \"mkt\", \"model\", \"ops\", \"pos\", \"supply\", \"training\", \"vegas\"]\n}\n\nmodel TrainingMatrix1d {\n  tradeDate                                       DateTime @map(\"trade_date\") @db.Date\n  symbol                                          String   @db.VarChar(20)\n  open                                            Float?\n  high                                            Float?\n  low                                             Float?\n  close                                           Float?\n  volume                                          Float?\n  open_interest                                   Float?\n  hurst_exponent                                  Float?\n  connors_rsi                                     Float?\n  fisher_transform                                Float?\n  fisher_signal                                   Float?\n  mcginley_dynamic                                Float?\n  ttm_squeeze_on                                  BigInt?\n  ttm_squeeze_momentum                            Float?\n  schaff_trend_cycle                              Float?\n  rvi                                             Float?\n  rvi_signal                                      Float?\n  elder_force_index                               Float?\n  kama_10                                         Float?\n  hma_20                                          Float?\n  alma_50                                         Float?\n  rsi_2                                           Float?\n  rsi_14                                          Float?\n  cumulative_rsi                                  Float?\n  macd                                            Float?\n  macd_signal                                     Float?\n  macd_histogram                                  Float?\n  cci_14                                          Float?\n  cci_50                                          Float?\n  atr_10                                          Float?\n  atr_50                                          Float?\n  atr_ratio                                       Float?\n  garman_klass_vol                                Float?\n  yang_zhang_vol                                  Float?\n  bb_percent_b                                    Float?\n  cmf_21                                          Float?\n  volume_zscore                                   Float?\n  unusual_volume                                  BigInt?\n  createdAt                                       String?  @map(\"created_at\")\n  returns_1d                                      Float?\n  log_returns_1d                                  Float?\n  range_pct                                       Float?\n  hurst_regime_raw                                String?  @map(\"_hurst_regime_raw\")\n  hurst_regime                                    BigInt?\n  hurst_regime_is_missing                         BigInt?\n  ttm_squeeze_on_is_missing                       BigInt?\n  fred_anfci                                      Float?\n  fred_apu000074714                               Float?\n  fred_b235rc1q027sbea                            Float?\n  fred_bamlc0a0cm                                 Float?\n  fred_bamlh0a0hym2                               Float?\n  fred_bogmbase                                   Float?\n  fred_bopgstb                                    Float?\n  fred_busloans                                   Float?\n  fred_ccsa                                       Float?\n  fred_chncpiallminmei                            Float?\n  fred_chngdpnqdsmei                              Float?\n  fred_chnmainlandtpu                             Float?\n  fred_clvmnacscab1gqea19                         Float?\n  fred_cpiaucsl                                   Float?\n  fred_cpilfesl                                   Float?\n  fred_dcoilbrenteu                               Float?\n  fred_dcoilwtico                                 Float?\n  fred_ddfuelusgulf                               Float?\n  fred_dexars                                     Float?\n  fred_dexbzus                                    Float?\n  fred_dexcaus                                    Float?\n  fred_dexchus                                    Float?\n  fred_dexhkus                                    Float?\n  fred_dexinus                                    Float?\n  fred_dexjpus                                    Float?\n  fred_dexkous                                    Float?\n  fred_dexmaus                                    Float?\n  fred_dexmxus                                    Float?\n  fred_dexnous                                    Float?\n  fred_dexsfus                                    Float?\n  fred_dexsius                                    Float?\n  fred_dexszus                                    Float?\n  fred_dextaus                                    Float?\n  fred_dexthus                                    Float?\n  fred_dexusal                                    Float?\n  fred_dexuseu                                    Float?\n  fred_dexusuk                                    Float?\n  fred_dfedtarl                                   Float?\n  fred_dfedtaru                                   Float?\n  fred_dff                                        Float?\n  fred_dfii10                                     Float?\n  fred_dfii20                                     Float?\n  fred_dfii30                                     Float?\n  fred_dfii5                                      Float?\n  fred_dfii7                                      Float?\n  fred_dgasusgulf                                 Float?\n  fred_dgs1                                       Float?\n  fred_dgs10                                      Float?\n  fred_dgs1mo                                     Float?\n  fred_dgs2                                       Float?\n  fred_dgs20                                      Float?\n  fred_dgs30                                      Float?\n  fred_dgs3mo                                     Float?\n  fred_dgs5                                       Float?\n  fred_dgs6mo                                     Float?\n  fred_dgs7                                       Float?\n  fred_dhhngsp                                    Float?\n  fred_dhoilnyh                                   Float?\n  fred_djfuelusgulf                               Float?\n  fred_dprime                                     Float?\n  fred_dpropanembtx                               Float?\n  fred_drcclacbs                                  Float?\n  fred_dtwexafegs                                 Float?\n  fred_dtwexbgs                                   Float?\n  fred_dtwexemegs                                 Float?\n  fred_dxy                                        Float?\n  fred_emvtradepolemv                             Float?\n  fred_eputrade                                   Float?\n  fred_expch                                      Float?\n  fred_expgs                                      Float?\n  fred_fedfunds                                   Float?\n  fred_frgshpusm649ncis                           Float?\n  fred_gasdesw                                    Float?\n  fred_gasregw                                    Float?\n  fred_gdp                                        Float?\n  fred_gdpc1                                      Float?\n  fred_gvzcls                                     Float?\n  fred_houst                                      Float?\n  fred_icsa                                       Float?\n  fred_impch                                      Float?\n  fred_impgs                                      Float?\n  fred_indpro                                     Float?\n  fred_ir3tib01cnm156n                            Float?\n  fred_lvxrnsa                                    Float?\n  fred_m2sl                                       Float?\n  fred_manemp                                     Float?\n  fred_mortgage30us                               Float?\n  fred_myagm2cnm189n                              Float?\n  fred_nasdaqcom                                  Float?\n  fred_nfci                                       Float?\n  fred_nyfed_bgcr                                 Float?\n  fred_nyfed_effr                                 Float?\n  fred_nyfed_obfr                                 Float?\n  fred_nyfed_sofr                                 Float?\n  fred_nyfed_tgcr                                 Float?\n  fred_ovxcls                                     Float?\n  fred_payems                                     Float?\n  fred_pbarlusdm                                  Float?\n  fred_pce                                        Float?\n  fred_pcepi                                      Float?\n  fred_pcepilfe                                   Float?\n  fred_pcoppusdm                                  Float?\n  fred_pcu311224311224                            Float?\n  fred_pcu32411032411012                          Float?\n  fred_permit                                     Float?\n  fred_pmaizmtusdm                                Float?\n  fred_pngaseuusdm                                Float?\n  fred_polvoilusdm                                Float?\n  fred_ppiaco                                     Float?\n  fred_ppifgs                                     Float?\n  fred_ppifis                                     Float?\n  fred_ppoilusdm                                  Float?\n  fred_pricenpqusdm                               Float?\n  fred_proilusdm                                  Float?\n  fred_psoilusdm                                  Float?\n  fred_psoybusdm                                  Float?\n  fred_psugaisausdm                               Float?\n  fred_psunousdm                                  Float?\n  fred_pwheamtusdm                                Float?\n  fred_rrpontsyd                                  Float?\n  fred_rsxfs                                      Float?\n  fred_sofr                                       Float?\n  fred_sp500                                      Float?\n  fred_stlfsi                                     Float?\n  fred_stlfsi4                                    Float?\n  fred_t10y2y                                     Float?\n  fred_t10y3m                                     Float?\n  fred_t10yie                                     Float?\n  fred_t20yiem                                    Float?\n  fred_t30yiem                                    Float?\n  fred_t5yie                                      Float?\n  fred_t5yifr                                     Float?\n  fred_tedrate                                    Float?\n  fred_totresns                                   Float?\n  fred_umcsent                                    Float?\n  fred_unrate                                     Float?\n  fred_usepuindxd                                 Float?\n  fred_usepuindxm                                 Float?\n  fred_vixcls                                     Float?\n  fred_vxgscls                                    Float?\n  fred_vxvcls                                     Float?\n  fred_walcl                                      Float?\n  fred_wpu01830161                                Float?\n  fred_wpu01830171                                Float?\n  fred_wpu057303                                  Float?\n  fred_wpu06140341                                Float?\n  fred_wresbal                                    Float?\n  fred_xtexva01cnm667s                            Float?\n  fred_xtimva01cnm667s                            Float?\n  rapeseed_close                                  Float?\n  sunflower_close                                 Float?\n  usd_cny                                         Float?\n  fx_aud_usd                                      Float?\n  fx_audusd                                       Float?\n  fx_brl_usd                                      Float?\n  fx_cad_usd                                      Float?\n  fx_cny_usd                                      Float?\n  fx_dxy_afe                                      Float?\n  fx_dxy_broad                                    Float?\n  fx_dxy_eme                                      Float?\n  fx_eur_usd                                      Float?\n  fx_eurusd                                       Float?\n  fx_gbp_usd                                      Float?\n  fx_gbpusd                                       Float?\n  fx_inr_usd                                      Float?\n  fx_krw_usd                                      Float?\n  fx_mxn_usd                                      Float?\n  fx_twd_usd                                      Float?\n  fx_usd_cad                                      Float?\n  fx_usd_cny                                      Float?\n  fx_usd_jpy                                      Float?\n  fx_usdbrl                                       Float?\n  fx_usdcad                                       Float?\n  fx_usdcny                                       Float?\n  fx_usdjpy                                       Float?\n  fx_usdkrw                                       Float?\n  fx_usdmxn                                       Float?\n  fx_usdsgd                                       Float?\n  wx_ar_tavg_c                                    Float?\n  wx_br_tavg_c                                    Float?\n  wx_us_tavg_c                                    Float?\n  wx_ar_tmin_c                                    Float?\n  wx_br_tmin_c                                    Float?\n  wx_us_tmin_c                                    Float?\n  wx_ar_tmax_c                                    Float?\n  wx_br_tmax_c                                    Float?\n  wx_us_tmax_c                                    Float?\n  wx_ar_prcp_mm                                   Float?\n  wx_br_prcp_mm                                   Float?\n  wx_us_prcp_mm                                   Float?\n  wx_ar_snow_mm                                   Float?\n  wx_br_snow_mm                                   Float?\n  wx_us_snow_mm                                   Float?\n  wx_ar_gdd_10c                                   Float?\n  wx_br_gdd_10c                                   Float?\n  wx_us_gdd_10c                                   Float?\n  wx_ar_gdd_30d_sum                               Float?\n  wx_br_gdd_30d_sum                               Float?\n  wx_us_gdd_30d_sum                               Float?\n  wx_ar_prcp_7d_sum                               Float?\n  wx_br_prcp_7d_sum                               Float?\n  wx_us_prcp_7d_sum                               Float?\n  wx_ar_prcp_14d_sum                              Float?\n  wx_br_prcp_14d_sum                              Float?\n  wx_us_prcp_14d_sum                              Float?\n  wx_ar_temp_anom_30d                             Float?\n  wx_br_temp_anom_30d                             Float?\n  wx_us_temp_anom_30d                             Float?\n  wx_ar_prcp_anom_30d                             Float?\n  wx_br_prcp_anom_30d                             Float?\n  wx_us_prcp_anom_30d                             Float?\n  wx_ar_temp_vol_7d                               Float?\n  wx_br_temp_vol_7d                               Float?\n  wx_us_temp_vol_7d                               Float?\n  cftc_zl_cot_managed_money_net_event_value       Float?\n  cftc_zl_cot_managed_money_net_event_delta       Float?\n  cftc_zl_cot_managed_money_net_is_release_day    Int?\n  cftc_zl_cot_managed_money_net_age_days          Int?\n  cftc_zl_cot_managed_money_net_is_available      Int?\n  cftc_zl_cot_mm_pct_oi_event_value               Float?\n  cftc_zl_cot_mm_pct_oi_event_delta               Float?\n  cftc_zl_cot_mm_pct_oi_is_release_day            Int?\n  cftc_zl_cot_mm_pct_oi_age_days                  Int?\n  cftc_zl_cot_mm_pct_oi_is_available              Int?\n  cftc_zl_cot_prod_merc_net_event_value           Float?\n  cftc_zl_cot_prod_merc_net_event_delta           Float?\n  cftc_zl_cot_prod_merc_net_is_release_day        Int?\n  cftc_zl_cot_prod_merc_net_age_days              Int?\n  cftc_zl_cot_prod_merc_net_is_available          Int?\n  cftc_zl_cot_open_interest_event_value           Float?\n  cftc_zl_cot_open_interest_event_delta           Float?\n  cftc_zl_cot_open_interest_is_release_day        Int?\n  cftc_zl_cot_open_interest_age_days              Int?\n  cftc_zl_cot_open_interest_is_available          Int?\n  cot_managed_money_net                           Float?\n  cot_prod_merc_net                               Float?\n  cot_open_interest                               Float?\n  cot_mm_pct_oi                                   Float?\n  cot_comm_pct_oi                                 Float?\n  cot_mm_net_chg                                  Float?\n  cot_comm_net_chg                                Float?\n  rin_d3                                          Float?\n  rin_d4                                          Float?\n  rin_d5                                          Float?\n  rin_d6                                          Float?\n  lcfs_ca_lcfs_credit_event_value                 Float?\n  lcfs_ca_lcfs_credit_event_delta                 Float?\n  lcfs_ca_lcfs_credit_is_release_day              Int?\n  lcfs_ca_lcfs_credit_age_days                    Int?\n  lcfs_ca_lcfs_credit_is_available                Int?\n  lcfs_credit                                     Float?\n  usda_exports_usda_zl_exports_event_value        Float?\n  usda_exports_usda_zl_exports_event_delta        Float?\n  usda_exports_usda_zl_exports_is_release_day     Int?\n  usda_exports_usda_zl_exports_age_days           Int?\n  usda_exports_usda_zl_exports_is_available       Int?\n  usda_exports_usda_zl_net_sales_event_value      Float?\n  usda_exports_usda_zl_net_sales_event_delta      Float?\n  usda_exports_usda_zl_net_sales_is_release_day   Int?\n  usda_exports_usda_zl_net_sales_age_days         Int?\n  usda_exports_usda_zl_net_sales_is_available     Int?\n  usda_exports_usda_zl_outstanding_event_value    Float?\n  usda_exports_usda_zl_outstanding_event_delta    Float?\n  usda_exports_usda_zl_outstanding_is_release_day Int?\n  usda_exports_usda_zl_outstanding_age_days       Int?\n  usda_exports_usda_zl_outstanding_is_available   Int?\n  usda_exports_usda_zs_exports_event_value        Float?\n  usda_exports_usda_zs_exports_event_delta        Float?\n  usda_exports_usda_zs_exports_is_release_day     Int?\n  usda_exports_usda_zs_exports_age_days           Int?\n  usda_exports_usda_zs_exports_is_available       Int?\n  usda_exports_usda_zs_net_sales_event_value      Float?\n  usda_exports_usda_zs_net_sales_event_delta      Float?\n  usda_exports_usda_zs_net_sales_is_release_day   Int?\n  usda_exports_usda_zs_net_sales_age_days         Int?\n  usda_exports_usda_zs_net_sales_is_available     Int?\n  usda_exports_usda_zs_outstanding_event_value    Float?\n  usda_exports_usda_zs_outstanding_event_delta    Float?\n  usda_exports_usda_zs_outstanding_is_release_day Int?\n  usda_exports_usda_zs_outstanding_age_days       Int?\n  usda_exports_usda_zs_outstanding_is_available   Int?\n  usda_exports_usda_zm_exports_event_value        Float?\n  usda_exports_usda_zm_exports_event_delta        Float?\n  usda_exports_usda_zm_exports_is_release_day     Int?\n  usda_exports_usda_zm_exports_age_days           Int?\n  usda_exports_usda_zm_exports_is_available       Int?\n  usda_exports_usda_zm_net_sales_event_value      Float?\n  usda_exports_usda_zm_net_sales_event_delta      Float?\n  usda_exports_usda_zm_net_sales_is_release_day   Int?\n  usda_exports_usda_zm_net_sales_age_days         Int?\n  usda_exports_usda_zm_net_sales_is_available     Int?\n  usda_exports_usda_zm_outstanding_event_value    Float?\n  usda_exports_usda_zm_outstanding_event_delta    Float?\n  usda_exports_usda_zm_outstanding_is_release_day Int?\n  usda_exports_usda_zm_outstanding_age_days       Int?\n  usda_exports_usda_zm_outstanding_is_available   Int?\n  usda_zl_exports                                 Float?\n  usda_zl_net_sales                               Float?\n  usda_zl_outstanding                             Float?\n  usda_zs_exports                                 Float?\n  usda_zs_net_sales                               Float?\n  usda_zs_outstanding                             Float?\n  usda_zm_exports                                 Float?\n  usda_zm_net_sales                               Float?\n  usda_zm_outstanding                             Float?\n  wasde_us_zl_consumption_event_value             Float?\n  wasde_us_zl_consumption_event_delta             Float?\n  wasde_us_zl_consumption_is_release_day          Int?\n  wasde_us_zl_consumption_age_days                Int?\n  wasde_us_zl_consumption_is_available            Int?\n  wasde_us_zl_crush_event_value                   Float?\n  wasde_us_zl_crush_event_delta                   Float?\n  wasde_us_zl_crush_is_release_day                BigInt?\n  wasde_us_zl_crush_age_days                      Int?\n  wasde_us_zl_crush_is_available                  Int?\n  wasde_us_zl_ending_stocks_event_value           Float?\n  wasde_us_zl_ending_stocks_event_delta           Float?\n  wasde_us_zl_ending_stocks_is_release_day        Int?\n  wasde_us_zl_ending_stocks_age_days              Int?\n  wasde_us_zl_ending_stocks_is_available          Int?\n  wasde_us_zl_exports_event_value                 Float?\n  wasde_us_zl_exports_event_delta                 Float?\n  wasde_us_zl_exports_is_release_day              Int?\n  wasde_us_zl_exports_age_days                    Int?\n  wasde_us_zl_exports_is_available                Int?\n  wasde_us_zl_production_event_value              Float?\n  wasde_us_zl_production_event_delta              Float?\n  wasde_us_zl_production_is_release_day           Int?\n  wasde_us_zl_production_age_days                 Int?\n  wasde_us_zl_production_is_available             Int?\n  wasde_us_zm_consumption_event_value             Float?\n  wasde_us_zm_consumption_event_delta             Float?\n  wasde_us_zm_consumption_is_release_day          Int?\n  wasde_us_zm_consumption_age_days                Int?\n  wasde_us_zm_consumption_is_available            Int?\n  wasde_us_zm_crush_event_value                   Float?\n  wasde_us_zm_crush_event_delta                   Float?\n  wasde_us_zm_crush_is_release_day                BigInt?\n  wasde_us_zm_crush_age_days                      Int?\n  wasde_us_zm_crush_is_available                  Int?\n  wasde_us_zm_ending_stocks_event_value           Float?\n  wasde_us_zm_ending_stocks_event_delta           Float?\n  wasde_us_zm_ending_stocks_is_release_day        Int?\n  wasde_us_zm_ending_stocks_age_days              Int?\n  wasde_us_zm_ending_stocks_is_available          Int?\n  wasde_us_zm_exports_event_value                 Float?\n  wasde_us_zm_exports_event_delta                 Float?\n  wasde_us_zm_exports_is_release_day              Int?\n  wasde_us_zm_exports_age_days                    Int?\n  wasde_us_zm_exports_is_available                Int?\n  wasde_us_zm_production_event_value              Float?\n  wasde_us_zm_production_event_delta              Float?\n  wasde_us_zm_production_is_release_day           Int?\n  wasde_us_zm_production_age_days                 Int?\n  wasde_us_zm_production_is_available             Int?\n  wasde_us_zs_consumption_event_value             Float?\n  wasde_us_zs_consumption_event_delta             Float?\n  wasde_us_zs_consumption_is_release_day          Int?\n  wasde_us_zs_consumption_age_days                Int?\n  wasde_us_zs_consumption_is_available            Int?\n  wasde_us_zs_crush_event_value                   Float?\n  wasde_us_zs_crush_event_delta                   Float?\n  wasde_us_zs_crush_is_release_day                BigInt?\n  wasde_us_zs_crush_age_days                      Int?\n  wasde_us_zs_crush_is_available                  Int?\n  wasde_us_zs_ending_stocks_event_value           Float?\n  wasde_us_zs_ending_stocks_event_delta           Float?\n  wasde_us_zs_ending_stocks_is_release_day        Int?\n  wasde_us_zs_ending_stocks_age_days              Int?\n  wasde_us_zs_ending_stocks_is_available          Int?\n  wasde_us_zs_exports_event_value                 Float?\n  wasde_us_zs_exports_event_delta                 Float?\n  wasde_us_zs_exports_is_release_day              Int?\n  wasde_us_zs_exports_age_days                    Int?\n  wasde_us_zs_exports_is_available                Int?\n  wasde_us_zs_production_event_value              Float?\n  wasde_us_zs_production_event_delta              Float?\n  wasde_us_zs_production_is_release_day           Int?\n  wasde_us_zs_production_age_days                 Int?\n  wasde_us_zs_production_is_available             Int?\n  wasde_world_zl_consumption_event_value          Float?\n  wasde_world_zl_consumption_event_delta          Float?\n  wasde_world_zl_consumption_is_release_day       Int?\n  wasde_world_zl_consumption_age_days             Int?\n  wasde_world_zl_consumption_is_available         Int?\n  wasde_world_zl_ending_stocks_event_value        Float?\n  wasde_world_zl_ending_stocks_event_delta        Float?\n  wasde_world_zl_ending_stocks_is_release_day     Int?\n  wasde_world_zl_ending_stocks_age_days           Int?\n  wasde_world_zl_ending_stocks_is_available       Int?\n  wasde_world_zl_exports_event_value              Float?\n  wasde_world_zl_exports_event_delta              Float?\n  wasde_world_zl_exports_is_release_day           Int?\n  wasde_world_zl_exports_age_days                 Int?\n  wasde_world_zl_exports_is_available             Int?\n  wasde_world_zl_production_event_value           Float?\n  wasde_world_zl_production_event_delta           Float?\n  wasde_world_zl_production_is_release_day        Int?\n  wasde_world_zl_production_age_days              Int?\n  wasde_world_zl_production_is_available          Int?\n  wasde_world_zm_consumption_event_value          Float?\n  wasde_world_zm_consumption_event_delta          Float?\n  wasde_world_zm_consumption_is_release_day       Int?\n  wasde_world_zm_consumption_age_days             Int?\n  wasde_world_zm_consumption_is_available         Int?\n  wasde_world_zm_ending_stocks_event_value        Float?\n  wasde_world_zm_ending_stocks_event_delta        Float?\n  wasde_world_zm_ending_stocks_is_release_day     Int?\n  wasde_world_zm_ending_stocks_age_days           Int?\n  wasde_world_zm_ending_stocks_is_available       Int?\n  wasde_world_zm_exports_event_value              Float?\n  wasde_world_zm_exports_event_delta              Float?\n  wasde_world_zm_exports_is_release_day           Int?\n  wasde_world_zm_exports_age_days                 Int?\n  wasde_world_zm_exports_is_available             Int?\n  wasde_world_zm_production_event_value           Float?\n  wasde_world_zm_production_event_delta           Float?\n  wasde_world_zm_production_is_release_day        Int?\n  wasde_world_zm_production_age_days              Int?\n  wasde_world_zm_production_is_available          Int?\n  wasde_world_zs_consumption_event_value          Float?\n  wasde_world_zs_consumption_event_delta          Float?\n  wasde_world_zs_consumption_is_release_day       Int?\n  wasde_world_zs_consumption_age_days             Int?\n  wasde_world_zs_consumption_is_available         Int?\n  wasde_world_zs_ending_stocks_event_value        Float?\n  wasde_world_zs_ending_stocks_event_delta        Float?\n  wasde_world_zs_ending_stocks_is_release_day     Int?\n  wasde_world_zs_ending_stocks_age_days           Int?\n  wasde_world_zs_ending_stocks_is_available       Int?\n  wasde_world_zs_exports_event_value              Float?\n  wasde_world_zs_exports_event_delta              Float?\n  wasde_world_zs_exports_is_release_day           Int?\n  wasde_world_zs_exports_age_days                 Int?\n  wasde_world_zs_exports_is_available             Int?\n  wasde_world_zs_production_event_value           Float?\n  wasde_world_zs_production_event_delta           Float?\n  wasde_world_zs_production_is_release_day        Int?\n  wasde_world_zs_production_age_days              Int?\n  wasde_world_zs_production_is_available          Int?\n  wasde_us_zl_consumption                         Float?\n  wasde_us_zl_crush                               Float?\n  wasde_us_zl_ending_stocks                       Float?\n  wasde_us_zl_exports                             Float?\n  wasde_us_zl_production                          Float?\n  wasde_us_zm_consumption                         Float?\n  wasde_us_zm_crush                               Float?\n  wasde_us_zm_ending_stocks                       Float?\n  wasde_us_zm_exports                             Float?\n  wasde_us_zm_production                          Float?\n  wasde_us_zs_consumption                         Float?\n  wasde_us_zs_crush                               Float?\n  wasde_us_zs_ending_stocks                       Float?\n  wasde_us_zs_exports                             Float?\n  wasde_us_zs_production                          Float?\n  wasde_world_zl_consumption                      Float?\n  wasde_world_zl_ending_stocks                    Float?\n  wasde_world_zl_exports                          Float?\n  wasde_world_zl_production                       Float?\n  wasde_world_zm_consumption                      Float?\n  wasde_world_zm_ending_stocks                    Float?\n  wasde_world_zm_exports                          Float?\n  wasde_world_zm_production                       Float?\n  wasde_world_zs_consumption                      Float?\n  wasde_world_zs_ending_stocks                    Float?\n  wasde_world_zs_exports                          Float?\n  wasde_world_zs_production                       Float?\n  wasde_soybeans_crush                            Float?\n  wasde_soybean_oil_production                    Float?\n  wasde_soybean_oil_ending_stocks                 Float?\n  pmi_cn_nbs_china_pmi_event_value                Float?\n  pmi_cn_nbs_china_pmi_event_delta                Float?\n  pmi_cn_nbs_china_pmi_is_release_day             Int?\n  pmi_cn_nbs_china_pmi_age_days                   Int?\n  pmi_cn_nbs_china_pmi_is_available               Int?\n  china_pmi                                       Float?\n  sig_biofuel_1                                   Float?\n  sig_china_1                                     Float?\n  sig_crush_1                                     Float?\n  sig_energy_1                                    Float?\n  sig_fed_1                                       Float?\n  sig_fx_1                                        Float?\n  sig_palm_1                                      Float?\n  sig_substitutes_1                               Float?\n  sig_tariff_1                                    Float?\n  sig_trump_effect_1                              Float?\n  sig_volatility_1                                Float?\n  sig_biofuel_2                                   Float?\n  sig_china_2                                     Float?\n  sig_crush_2                                     Float?\n  sig_energy_2                                    Float?\n  sig_fed_2                                       Float?\n  sig_fx_2                                        Float?\n  sig_palm_2                                      Float?\n  sig_substitutes_2                               Float?\n  sig_tariff_2                                    Float?\n  sig_trump_effect_2                              Float?\n  sig_volatility_2                                Float?\n  sig_biofuel_conf                                Float?\n  sig_china_conf                                  Float?\n  sig_crush_conf                                  Float?\n  sig_energy_conf                                 Float?\n  sig_fed_conf                                    Float?\n  sig_fx_conf                                     Float?\n  sig_palm_conf                                   Float?\n  sig_substitutes_conf                            Float?\n  sig_tariff_conf                                 Float?\n  sig_trump_effect_conf                           Float?\n  sig_volatility_conf                             Float?\n  open_is_missing                                 BigInt?\n  high_is_missing                                 BigInt?\n  low_is_missing                                  BigInt?\n  close_is_missing                                BigInt?\n  volume_is_missing                               BigInt?\n  open_interest_is_missing                        BigInt?\n  hurst_exponent_is_missing                       BigInt?\n  connors_rsi_is_missing                          BigInt?\n  fisher_transform_is_missing                     BigInt?\n  fisher_signal_is_missing                        BigInt?\n  mcginley_dynamic_is_missing                     BigInt?\n  ttm_squeeze_momentum_is_missing                 BigInt?\n  schaff_trend_cycle_is_missing                   BigInt?\n  rvi_is_missing                                  BigInt?\n  rvi_signal_is_missing                           BigInt?\n  elder_force_index_is_missing                    BigInt?\n  kama_10_is_missing                              BigInt?\n  hma_20_is_missing                               BigInt?\n  alma_50_is_missing                              BigInt?\n  rsi_2_is_missing                                BigInt?\n  rsi_14_is_missing                               BigInt?\n  cumulative_rsi_is_missing                       BigInt?\n  macd_is_missing                                 BigInt?\n  macd_signal_is_missing                          BigInt?\n  macd_histogram_is_missing                       BigInt?\n  cci_14_is_missing                               BigInt?\n  cci_50_is_missing                               BigInt?\n  atr_10_is_missing                               BigInt?\n  atr_50_is_missing                               BigInt?\n  atr_ratio_is_missing                            BigInt?\n  garman_klass_vol_is_missing                     BigInt?\n  yang_zhang_vol_is_missing                       BigInt?\n  bb_percent_b_is_missing                         BigInt?\n  cmf_21_is_missing                               BigInt?\n  volume_zscore_is_missing                        BigInt?\n  unusual_volume_is_missing                       BigInt?\n  returns_1d_is_missing                           BigInt?\n  log_returns_1d_is_missing                       BigInt?\n  range_pct_is_missing                            BigInt?\n  fred_anfci_is_missing                           BigInt?\n  fred_apu000074714_is_missing                    BigInt?\n  fred_b235rc1q027sbea_is_missing                 BigInt?\n  fred_bamlc0a0cm_is_missing                      BigInt?\n  fred_bamlh0a0hym2_is_missing                    BigInt?\n  fred_bogmbase_is_missing                        BigInt?\n  fred_bopgstb_is_missing                         BigInt?\n  fred_busloans_is_missing                        BigInt?\n  fred_ccsa_is_missing                            BigInt?\n  fred_chncpiallminmei_is_missing                 BigInt?\n  fred_chngdpnqdsmei_is_missing                   BigInt?\n  fred_chnmainlandtpu_is_missing                  BigInt?\n  fred_clvmnacscab1gqea19_is_missing              BigInt?\n  fred_cpiaucsl_is_missing                        BigInt?\n  fred_cpilfesl_is_missing                        BigInt?\n  fred_dcoilbrenteu_is_missing                    BigInt?\n  fred_dcoilwtico_is_missing                      BigInt?\n  fred_ddfuelusgulf_is_missing                    BigInt?\n  fred_dexars_is_missing                          BigInt?\n  fred_dexbzus_is_missing                         BigInt?\n  fred_dexcaus_is_missing                         BigInt?\n  fred_dexchus_is_missing                         BigInt?\n  fred_dexhkus_is_missing                         BigInt?\n  fred_dexinus_is_missing                         BigInt?\n  fred_dexjpus_is_missing                         BigInt?\n  fred_dexkous_is_missing                         BigInt?\n  fred_dexmaus_is_missing                         BigInt?\n  fred_dexmxus_is_missing                         BigInt?\n  fred_dexnous_is_missing                         BigInt?\n  fred_dexsfus_is_missing                         BigInt?\n  fred_dexsius_is_missing                         BigInt?\n  fred_dexszus_is_missing                         BigInt?\n  fred_dextaus_is_missing                         BigInt?\n  fred_dexthus_is_missing                         BigInt?\n  fred_dexusal_is_missing                         BigInt?\n  fred_dexuseu_is_missing                         BigInt?\n  fred_dexusuk_is_missing                         BigInt?\n  fred_dfedtarl_is_missing                        BigInt?\n  fred_dfedtaru_is_missing                        BigInt?\n  fred_dff_is_missing                             BigInt?\n  fred_dfii10_is_missing                          BigInt?\n  fred_dfii20_is_missing                          BigInt?\n  fred_dfii30_is_missing                          BigInt?\n  fred_dfii5_is_missing                           BigInt?\n  fred_dfii7_is_missing                           BigInt?\n  fred_dgasusgulf_is_missing                      BigInt?\n  fred_dgs1_is_missing                            BigInt?\n  fred_dgs10_is_missing                           BigInt?\n  fred_dgs1mo_is_missing                          BigInt?\n  fred_dgs2_is_missing                            BigInt?\n  fred_dgs20_is_missing                           BigInt?\n  fred_dgs30_is_missing                           BigInt?\n  fred_dgs3mo_is_missing                          BigInt?\n  fred_dgs5_is_missing                            BigInt?\n  fred_dgs6mo_is_missing                          BigInt?\n  fred_dgs7_is_missing                            BigInt?\n  fred_dhhngsp_is_missing                         BigInt?\n  fred_dhoilnyh_is_missing                        BigInt?\n  fred_djfuelusgulf_is_missing                    BigInt?\n  fred_dprime_is_missing                          BigInt?\n  fred_dpropanembtx_is_missing                    BigInt?\n  fred_drcclacbs_is_missing                       BigInt?\n  fred_dtwexafegs_is_missing                      BigInt?\n  fred_dtwexbgs_is_missing                        BigInt?\n  fred_dtwexemegs_is_missing                      BigInt?\n  fred_dxy_is_missing                             BigInt?\n  fred_emvtradepolemv_is_missing                  BigInt?\n  fred_eputrade_is_missing                        BigInt?\n  fred_expch_is_missing                           BigInt?\n  fred_expgs_is_missing                           BigInt?\n  fred_fedfunds_is_missing                        BigInt?\n  fred_frgshpusm649ncis_is_missing                BigInt?\n  fred_gasdesw_is_missing                         BigInt?\n  fred_gasregw_is_missing                         BigInt?\n  fred_gdp_is_missing                             BigInt?\n  fred_gdpc1_is_missing                           BigInt?\n  fred_gvzcls_is_missing                          BigInt?\n  fred_houst_is_missing                           BigInt?\n  fred_icsa_is_missing                            BigInt?\n  fred_impch_is_missing                           BigInt?\n  fred_impgs_is_missing                           BigInt?\n  fred_indpro_is_missing                          BigInt?\n  fred_ir3tib01cnm156n_is_missing                 BigInt?\n  fred_lvxrnsa_is_missing                         BigInt?\n  fred_m2sl_is_missing                            BigInt?\n  fred_manemp_is_missing                          BigInt?\n  fred_mortgage30us_is_missing                    BigInt?\n  fred_myagm2cnm189n_is_missing                   BigInt?\n  fred_nasdaqcom_is_missing                       BigInt?\n  fred_nfci_is_missing                            BigInt?\n  fred_nyfed_bgcr_is_missing                      BigInt?\n  fred_nyfed_effr_is_missing                      BigInt?\n  fred_nyfed_obfr_is_missing                      BigInt?\n  fred_nyfed_sofr_is_missing                      BigInt?\n  fred_nyfed_tgcr_is_missing                      BigInt?\n  fred_ovxcls_is_missing                          BigInt?\n  fred_payems_is_missing                          BigInt?\n  fred_pbarlusdm_is_missing                       BigInt?\n  fred_pce_is_missing                             BigInt?\n  fred_pcepi_is_missing                           BigInt?\n  fred_pcepilfe_is_missing                        BigInt?\n  fred_pcoppusdm_is_missing                       BigInt?\n  fred_pcu311224311224_is_missing                 BigInt?\n  fred_pcu32411032411012_is_missing               BigInt?\n  fred_permit_is_missing                          BigInt?\n  fred_pmaizmtusdm_is_missing                     BigInt?\n  fred_pngaseuusdm_is_missing                     BigInt?\n  fred_polvoilusdm_is_missing                     BigInt?\n  fred_ppiaco_is_missing                          BigInt?\n  fred_ppifgs_is_missing                          BigInt?\n  fred_ppifis_is_missing                          BigInt?\n  fred_ppoilusdm_is_missing                       BigInt?\n  fred_pricenpqusdm_is_missing                    BigInt?\n  fred_proilusdm_is_missing                       BigInt?\n  fred_psoilusdm_is_missing                       BigInt?\n  fred_psoybusdm_is_missing                       BigInt?\n  fred_psugaisausdm_is_missing                    BigInt?\n  fred_psunousdm_is_missing                       BigInt?\n  fred_pwheamtusdm_is_missing                     BigInt?\n  fred_rrpontsyd_is_missing                       BigInt?\n  fred_rsxfs_is_missing                           BigInt?\n  fred_sofr_is_missing                            BigInt?\n  fred_sp500_is_missing                           BigInt?\n  fred_stlfsi_is_missing                          BigInt?\n  fred_stlfsi4_is_missing                         BigInt?\n  fred_t10y2y_is_missing                          BigInt?\n  fred_t10y3m_is_missing                          BigInt?\n  fred_t10yie_is_missing                          BigInt?\n  fred_t20yiem_is_missing                         BigInt?\n  fred_t30yiem_is_missing                         BigInt?\n  fred_t5yie_is_missing                           BigInt?\n  fred_t5yifr_is_missing                          BigInt?\n  fred_tedrate_is_missing                         BigInt?\n  fred_totresns_is_missing                        BigInt?\n  fred_umcsent_is_missing                         BigInt?\n  fred_unrate_is_missing                          BigInt?\n  fred_usepuindxd_is_missing                      BigInt?\n  fred_usepuindxm_is_missing                      BigInt?\n  fred_vixcls_is_missing                          BigInt?\n  fred_vxgscls_is_missing                         BigInt?\n  fred_vxvcls_is_missing                          BigInt?\n  fred_walcl_is_missing                           BigInt?\n  fred_wpu01830161_is_missing                     BigInt?\n  fred_wpu01830171_is_missing                     BigInt?\n  fred_wpu057303_is_missing                       BigInt?\n  fred_wpu06140341_is_missing                     BigInt?\n  fred_wresbal_is_missing                         BigInt?\n  fred_xtexva01cnm667s_is_missing                 BigInt?\n  fred_xtimva01cnm667s_is_missing                 BigInt?\n  rapeseed_close_is_missing                       BigInt?\n  sunflower_close_is_missing                      BigInt?\n  usd_cny_is_missing                              BigInt?\n  fx_aud_usd_is_missing                           BigInt?\n  fx_audusd_is_missing                            BigInt?\n  fx_brl_usd_is_missing                           BigInt?\n  fx_cad_usd_is_missing                           BigInt?\n  fx_cny_usd_is_missing                           BigInt?\n  fx_dxy_afe_is_missing                           BigInt?\n  fx_dxy_broad_is_missing                         BigInt?\n  fx_dxy_eme_is_missing                           BigInt?\n  fx_eur_usd_is_missing                           BigInt?\n  fx_eurusd_is_missing                            BigInt?\n  fx_gbp_usd_is_missing                           BigInt?\n  fx_gbpusd_is_missing                            BigInt?\n  fx_inr_usd_is_missing                           BigInt?\n  fx_krw_usd_is_missing                           BigInt?\n  fx_mxn_usd_is_missing                           BigInt?\n  fx_twd_usd_is_missing                           BigInt?\n  fx_usd_cad_is_missing                           BigInt?\n  fx_usd_cny_is_missing                           BigInt?\n  fx_usd_jpy_is_missing                           BigInt?\n  fx_usdbrl_is_missing                            BigInt?\n  fx_usdcad_is_missing                            BigInt?\n  fx_usdcny_is_missing                            BigInt?\n  fx_usdjpy_is_missing                            BigInt?\n  fx_usdkrw_is_missing                            BigInt?\n  fx_usdmxn_is_missing                            BigInt?\n  fx_usdsgd_is_missing                            BigInt?\n  wx_ar_tavg_c_is_missing                         BigInt?\n  wx_br_tavg_c_is_missing                         BigInt?\n  wx_us_tavg_c_is_missing                         BigInt?\n  wx_ar_tmin_c_is_missing                         BigInt?\n  wx_br_tmin_c_is_missing                         BigInt?\n  wx_us_tmin_c_is_missing                         BigInt?\n  wx_ar_tmax_c_is_missing                         BigInt?\n  wx_br_tmax_c_is_missing                         BigInt?\n  wx_us_tmax_c_is_missing                         BigInt?\n  wx_ar_prcp_mm_is_missing                        BigInt?\n  wx_br_prcp_mm_is_missing                        BigInt?\n  wx_us_prcp_mm_is_missing                        BigInt?\n  wx_ar_snow_mm_is_missing                        BigInt?\n  wx_br_snow_mm_is_missing                        BigInt?\n  wx_us_snow_mm_is_missing                        BigInt?\n  wx_ar_gdd_10c_is_missing                        BigInt?\n  wx_br_gdd_10c_is_missing                        BigInt?\n  wx_us_gdd_10c_is_missing                        BigInt?\n  wx_ar_gdd_30d_sum_is_missing                    BigInt?\n  wx_br_gdd_30d_sum_is_missing                    BigInt?\n  wx_us_gdd_30d_sum_is_missing                    BigInt?\n  wx_ar_prcp_7d_sum_is_missing                    BigInt?\n  wx_br_prcp_7d_sum_is_missing                    BigInt?\n  wx_us_prcp_7d_sum_is_missing                    BigInt?\n  wx_ar_prcp_14d_sum_is_missing                   BigInt?\n  wx_br_prcp_14d_sum_is_missing                   BigInt?\n  wx_us_prcp_14d_sum_is_missing                   BigInt?\n  wx_ar_temp_anom_30d_is_missing                  BigInt?\n  wx_br_temp_anom_30d_is_missing                  BigInt?\n  wx_us_temp_anom_30d_is_missing                  BigInt?\n  wx_ar_prcp_anom_30d_is_missing                  BigInt?\n  wx_br_prcp_anom_30d_is_missing                  BigInt?\n  wx_us_prcp_anom_30d_is_missing                  BigInt?\n  wx_ar_temp_vol_7d_is_missing                    BigInt?\n  wx_br_temp_vol_7d_is_missing                    BigInt?\n  wx_us_temp_vol_7d_is_missing                    BigInt?\n  cot_managed_money_net_is_missing                BigInt?\n  cot_prod_merc_net_is_missing                    BigInt?\n  cot_open_interest_is_missing                    BigInt?\n  cot_mm_pct_oi_is_missing                        BigInt?\n  cot_comm_pct_oi_is_missing                      BigInt?\n  cot_mm_net_chg_is_missing                       BigInt?\n  cot_comm_net_chg_is_missing                     BigInt?\n  rin_d3_is_missing                               BigInt?\n  rin_d4_is_missing                               BigInt?\n  rin_d5_is_missing                               BigInt?\n  rin_d6_is_missing                               BigInt?\n  lcfs_credit_is_missing                          BigInt?\n  usda_zl_exports_is_missing                      BigInt?\n  usda_zl_net_sales_is_missing                    BigInt?\n  usda_zl_outstanding_is_missing                  BigInt?\n  usda_zs_exports_is_missing                      BigInt?\n  usda_zs_net_sales_is_missing                    BigInt?\n  usda_zs_outstanding_is_missing                  BigInt?\n  usda_zm_exports_is_missing                      BigInt?\n  usda_zm_net_sales_is_missing                    BigInt?\n  usda_zm_outstanding_is_missing                  BigInt?\n  wasde_us_zl_consumption_is_missing              BigInt?\n  wasde_us_zl_crush_is_missing                    BigInt?\n  wasde_us_zl_ending_stocks_is_missing            BigInt?\n  wasde_us_zl_exports_is_missing                  BigInt?\n  wasde_us_zl_production_is_missing               BigInt?\n  wasde_us_zm_consumption_is_missing              BigInt?\n  wasde_us_zm_crush_is_missing                    BigInt?\n  wasde_us_zm_ending_stocks_is_missing            BigInt?\n  wasde_us_zm_exports_is_missing                  BigInt?\n  wasde_us_zm_production_is_missing               BigInt?\n  wasde_us_zs_consumption_is_missing              BigInt?\n  wasde_us_zs_crush_is_missing                    BigInt?\n  wasde_us_zs_ending_stocks_is_missing            BigInt?\n  wasde_us_zs_exports_is_missing                  BigInt?\n  wasde_us_zs_production_is_missing               BigInt?\n  wasde_world_zl_consumption_is_missing           BigInt?\n  wasde_world_zl_ending_stocks_is_missing         BigInt?\n  wasde_world_zl_exports_is_missing               BigInt?\n  wasde_world_zl_production_is_missing            BigInt?\n  wasde_world_zm_consumption_is_missing           BigInt?\n  wasde_world_zm_ending_stocks_is_missing         BigInt?\n  wasde_world_zm_exports_is_missing               BigInt?\n  wasde_world_zm_production_is_missing            BigInt?\n  wasde_world_zs_consumption_is_missing           BigInt?\n  wasde_world_zs_ending_stocks_is_missing         BigInt?\n  wasde_world_zs_exports_is_missing               BigInt?\n  wasde_world_zs_production_is_missing            BigInt?\n  wasde_soybeans_crush_is_missing                 BigInt?\n  wasde_soybean_oil_production_is_missing         BigInt?\n  wasde_soybean_oil_ending_stocks_is_missing      BigInt?\n  china_pmi_is_missing                            BigInt?\n  sig_biofuel_1_is_missing                        BigInt?\n  sig_china_1_is_missing                          BigInt?\n  sig_crush_1_is_missing                          BigInt?\n  sig_energy_1_is_missing                         BigInt?\n  sig_fed_1_is_missing                            BigInt?\n  sig_fx_1_is_missing                             BigInt?\n  sig_palm_1_is_missing                           BigInt?\n  sig_substitutes_1_is_missing                    BigInt?\n  sig_tariff_1_is_missing                         BigInt?\n  sig_trump_effect_1_is_missing                   BigInt?\n  sig_volatility_1_is_missing                     BigInt?\n  sig_biofuel_2_is_missing                        BigInt?\n  sig_china_2_is_missing                          BigInt?\n  sig_crush_2_is_missing                          BigInt?\n  sig_energy_2_is_missing                         BigInt?\n  sig_fed_2_is_missing                            BigInt?\n  sig_fx_2_is_missing                             BigInt?\n  sig_palm_2_is_missing                           BigInt?\n  sig_substitutes_2_is_missing                    BigInt?\n  sig_tariff_2_is_missing                         BigInt?\n  sig_trump_effect_2_is_missing                   BigInt?\n  sig_volatility_2_is_missing                     BigInt?\n  sig_biofuel_conf_is_missing                     BigInt?\n  sig_china_conf_is_missing                       BigInt?\n  sig_crush_conf_is_missing                       BigInt?\n  sig_energy_conf_is_missing                      BigInt?\n  sig_fed_conf_is_missing                         BigInt?\n  sig_fx_conf_is_missing                          BigInt?\n  sig_palm_conf_is_missing                        BigInt?\n  sig_substitutes_conf_is_missing                 BigInt?\n  sig_tariff_conf_is_missing                      BigInt?\n  sig_trump_effect_conf_is_missing                BigInt?\n  sig_volatility_conf_is_missing                  BigInt?\n  target_ret_5d                                   Float?\n  target_ret_21d                                  Float?\n  target_ret_63d                                  Float?\n  target_ret_126d                                 Float?\n  matrixVersion                                   String?  @map(\"matrix_version\")\n\n  @@id([tradeDate, symbol])\n  @@map(\"matrix_1d\")\n  @@schema(\"training\")\n}\n\nmodel TrainingFeatures1d {\n  id       Int      @id @default(autoincrement())\n  asOfDate DateTime @unique(map: \"core_features_as_of_date_key\") @map(\"as_of_date\")\n  features Json\n\n  @@index([asOfDate], map: \"core_features_as_of_date_idx\")\n  @@map(\"features_1d\")\n  @@schema(\"training\")\n}\n\nmodel OofCore1d {\n  id            Int      @id @default(autoincrement())\n  tradeDate     DateTime @map(\"trade_date\") @db.Date\n  symbol        String   @default(\"ZL\") @db.VarChar(20)\n  horizonDays   Int      @map(\"horizon_days\")\n  windowId      Int      @map(\"window_id\")\n  cutoffDate    DateTime @map(\"cutoff_date\") @db.Date\n  p30           Float\n  p50           Float\n  p70           Float\n  targetValue   Float?   @map(\"target_value\")\n  trainedAt     DateTime @default(now()) @map(\"trained_at\") @db.Timestamp(6)\n  runHash       String   @map(\"run_hash\") @db.VarChar(64)\n  matrixVersion String?  @map(\"matrix_version\") @db.VarChar(64)\n  run_id        String   @db.Uuid\n\n  @@unique([tradeDate, symbol, horizonDays, windowId])\n  @@index([tradeDate], map: \"idx_oof_core_date\")\n  @@index([horizonDays], map: \"idx_oof_core_horizon\")\n  @@index([runHash], map: \"idx_oof_core_run\")\n  @@map(\"oof_core_1d\")\n  @@schema(\"training\")\n}\n\nmodel MetaInputs1d {\n  id               Int      @id @default(autoincrement())\n  tradeDate        DateTime @map(\"trade_date\") @db.Date\n  symbol           String   @default(\"ZL\") @db.VarChar(20)\n  horizonDays      Int      @map(\"horizon_days\")\n  coreP30          Float?   @map(\"core_p30\")\n  coreP50          Float?   @map(\"core_p50\")\n  coreP70          Float?   @map(\"core_p70\")\n  biofuel_p30      Float?\n  biofuel_p50      Float?\n  biofuel_p70      Float?\n  china_p30        Float?\n  china_p50        Float?\n  china_p70        Float?\n  crush_p30        Float?\n  crush_p50        Float?\n  crush_p70        Float?\n  energy_p30       Float?\n  energy_p50       Float?\n  energy_p70       Float?\n  fed_p30          Float?\n  fed_p50          Float?\n  fed_p70          Float?\n  fx_p30           Float?\n  fx_p50           Float?\n  fx_p70           Float?\n  palm_p30         Float?\n  palm_p50         Float?\n  palm_p70         Float?\n  substitutes_p30  Float?\n  substitutes_p50  Float?\n  substitutes_p70  Float?\n  tariff_p30       Float?\n  tariff_p50       Float?\n  tariff_p70       Float?\n  trump_effect_p30 Float?\n  trump_effect_p50 Float?\n  trump_effect_p70 Float?\n  volatility_p30   Float?\n  volatility_p50   Float?\n  volatility_p70   Float?\n  targetValue      Float?   @map(\"target_value\")\n  createdAt        DateTime @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([tradeDate, symbol, horizonDays])\n  @@index([tradeDate], map: \"idx_meta_inputs_date\")\n  @@index([horizonDays], map: \"idx_meta_inputs_horizon\")\n  @@map(\"meta_inputs_1d\")\n  @@schema(\"training\")\n}\n\nmodel RealizedVolatility {\n  id             Int       @id @default(autoincrement())\n  symbol         String    @db.VarChar(20)\n  asOfDate       DateTime  @map(\"as_of_date\") @db.Date\n  windowDays     Int       @map(\"window_days\")\n  realizedVol    Float     @map(\"realized_vol\")\n  parkinsonVol   Float?    @map(\"parkinson_vol\")\n  garmanKlassVol Float?    @map(\"garman_klass_vol\")\n  yangZhangVol   Float?    @map(\"yang_zhang_vol\")\n  annualized     Boolean?  @default(true)\n  createdAt      DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([symbol, asOfDate, windowDays])\n  @@index([asOfDate], map: \"idx_realized_vol_date\")\n  @@index([symbol], map: \"idx_realized_vol_symbol\")\n  @@map(\"realized_volatility\")\n  @@schema(\"training\")\n}\n\nmodel SpecialistFeatures {\n  id       Int      @id @default(autoincrement())\n  bucket   String\n  asOfDate DateTime @map(\"as_of_date\")\n  features Json\n\n  @@unique([bucket, asOfDate])\n  @@index([asOfDate])\n  @@index([bucket])\n  @@map(\"specialist_features\")\n  @@schema(\"training\")\n}\n\nmodel VolatilitySurface {\n  id           Int       @id @default(autoincrement())\n  underlying   String?   @db.VarChar(10)\n  asOfDate     DateTime? @map(\"as_of_date\") @db.Date\n  surfaceData  Json?     @map(\"surface_data\")\n  atmVol       Decimal?  @map(\"atm_vol\") @db.Decimal(8, 6)\n  skew25d      Decimal?  @map(\"skew_25d\") @db.Decimal(8, 6)\n  butterfly25d Decimal?  @map(\"butterfly_25d\") @db.Decimal(8, 6)\n  termSlope    Decimal?  @map(\"term_slope\") @db.Decimal(8, 6)\n  createdAt    DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([underlying, asOfDate])\n  @@index([asOfDate], map: \"idx_vol_surface_date\")\n  @@index([underlying], map: \"idx_vol_surface_underlying\")\n  @@map(\"volatility_surface\")\n  @@schema(\"training\")\n}\n\nmodel SpecialistTrumpEffect1d {\n  id         Int       @id @default(autoincrement())\n  asOfDate   DateTime  @map(\"as_of_date\") @db.Date\n  symbol     String?   @default(\"ZL\") @db.VarChar(20)\n  signal     Float?\n  confidence Float?\n  features   Json?\n  createdAt  DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([asOfDate, symbol])\n  @@index([asOfDate], map: \"idx_trump_1d_date\")\n  @@index([asOfDate], map: \"idx_trump_effect_1d_date\")\n  @@index([asOfDate], map: \"idx_trump_effect_date\")\n  @@map(\"specialist_trump_effect_1d\")\n  @@schema(\"training\")\n}\n\nmodel SpecialistTrumpEffect1h {\n  id         Int       @id @default(autoincrement())\n  as_of_date DateTime  @db.Timestamp(6)\n  symbol     String?   @default(\"ZL\") @db.VarChar(20)\n  signal     Float?\n  confidence Float?\n  features   Json?\n  createdAt  DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([as_of_date, symbol])\n  @@index([as_of_date], map: \"idx_trump_1h_date\")\n  @@index([as_of_date], map: \"idx_trump_effect_1h_date\")\n  @@map(\"specialist_trump_effect_1h\")\n  @@schema(\"analytics\")\n}\n\nmodel ModelRegistry {\n  id                  Int       @id @default(autoincrement())\n  modelId             String    @map(\"model_id\")\n  modelName           String    @map(\"model_name\")\n  modelType           String    @map(\"model_type\")\n  horizon             Int?\n  version             Int       @default(1)\n  trainedAt           DateTime  @default(now()) @map(\"trained_at\") @db.Timestamptz(6)\n  trainingMode        String?   @map(\"training_mode\")\n  trainingTimeSeconds Decimal?  @map(\"training_time_seconds\") @db.Decimal\n  datasetRows         Int?      @map(\"dataset_rows\")\n  datasetFeatures     Int?      @map(\"dataset_features\")\n  datasetStartDate    DateTime? @map(\"dataset_start_date\") @db.Date\n  datasetEndDate      DateTime? @map(\"dataset_end_date\") @db.Date\n  mase                Decimal?  @db.Decimal\n  rmse                Decimal?  @db.Decimal\n  mae                 Decimal?  @db.Decimal\n  mape                Decimal?  @db.Decimal\n  pinballLossP10      Decimal?  @map(\"pinball_loss_p10\") @db.Decimal\n  pinballLossP50      Decimal?  @map(\"pinball_loss_p50\") @db.Decimal\n  pinballLossP90      Decimal?  @map(\"pinball_loss_p90\") @db.Decimal\n  coverage80          Decimal?  @map(\"coverage_80\") @db.Decimal\n  bestModel           String?   @map(\"best_model\")\n  modelsTrained       Int?      @map(\"models_trained\")\n  status              String    @default(\"trained\")\n  isChampion          Boolean?  @default(false) @map(\"is_champion\")\n  promotedAt          DateTime? @map(\"promoted_at\") @db.Timestamptz(6)\n  artifactPath        String?   @map(\"artifact_path\")\n  mlflowRunId         String?   @map(\"mlflow_run_id\")\n  tags                Json?     @default(\"{}\")\n  notes               String?\n  createdAt           DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt           DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@unique([modelId, version])\n  @@index([horizon], map: \"idx_registry_horizon\")\n  @@index([isChampion], map: \"idx_registry_is_champion\")\n  @@index([modelType], map: \"idx_registry_model_type\")\n  @@index([status], map: \"idx_registry_status\")\n  @@index([trainedAt], map: \"idx_registry_trained_at\")\n  @@map(\"model_registry\")\n  @@schema(\"model\")\n}\n\nmodel ChartOverlays {\n  id          Int       @id @default(autoincrement())\n  symbol      String\n  overlayType String    @map(\"overlay_type\")\n  startDate   DateTime  @map(\"start_date\")\n  endDate     DateTime? @map(\"end_date\")\n  label       String\n  color       String?\n  metadata    Json?\n  createdAt   DateTime  @default(now()) @map(\"created_at\")\n\n  @@index([overlayType])\n  @@index([startDate])\n  @@index([symbol])\n  @@map(\"chart_overlays\")\n  @@schema(\"analytics\")\n}\n\nmodel DashboardMetrics {\n  id          Int       @id @default(autoincrement())\n  metricName  String    @map(\"metric_name\")\n  metricValue Decimal?  @map(\"metric_value\") @db.Decimal(18, 6)\n  asOfDate    DateTime? @map(\"as_of_date\") @db.Date\n  updatedAt   DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@map(\"dashboard_metrics\")\n  @@schema(\"analytics\")\n}\n\nmodel DriverScores {\n  id               Int       @id @default(autoincrement())\n  asOfDate         DateTime  @map(\"as_of_date\") @db.Date\n  specialist       String\n  signal           Decimal?  @db.Decimal(10, 6)\n  direction        String?\n  confidence       Decimal?  @db.Decimal(10, 6)\n  shapContribution Decimal?  @map(\"shap_contribution\") @db.Decimal(10, 6)\n  createdAt        DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@unique([asOfDate, specialist])\n  @@map(\"driver_scores\")\n  @@schema(\"analytics\")\n}\n\nmodel MarketPosture {\n  id           Int       @id @default(autoincrement())\n  asOfDate     DateTime  @map(\"as_of_date\") @db.Date\n  horizon      Int\n  posture      String?\n  confidence   Decimal?  @db.Decimal(10, 6)\n  regime       String?\n  tailRiskProb Decimal?  @map(\"tail_risk_prob\") @db.Decimal(10, 6)\n  createdAt    DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@unique([asOfDate, horizon])\n  @@map(\"market_posture\")\n  @@schema(\"analytics\")\n}\n\nmodel ProcurementActions {\n  id         Int      @id @default(autoincrement())\n  symbol     String\n  asOfDate   DateTime @map(\"as_of_date\")\n  action     String\n  confidence Float\n  rationale  String?\n  createdAt  DateTime @default(now()) @map(\"created_at\")\n\n  @@unique([symbol, asOfDate])\n  @@index([asOfDate])\n  @@index([symbol])\n  @@map(\"procurement_actions\")\n  @@schema(\"analytics\")\n}\n\nmodel RiskMetrics {\n  id           Int       @id @default(autoincrement())\n  asOfDate     DateTime  @map(\"as_of_date\") @db.Timestamp(6)\n  horizon      Int\n  var01        Float     @map(\"var_01\")\n  var05        Float     @map(\"var_05\")\n  var10        Float     @map(\"var_10\")\n  cvar05       Float     @map(\"cvar_05\")\n  probUp       Float     @map(\"prob_up\")\n  probUp5pct   Float     @map(\"prob_up_5pct\")\n  probDown5pct Float     @map(\"prob_down_5pct\")\n  regime       String    @db.VarChar(20)\n  tailRiskFlag Boolean   @map(\"tail_risk_flag\")\n  createdAt    DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([asOfDate, horizon])\n  @@map(\"risk_metrics\")\n  @@schema(\"analytics\")\n}\n\nmodel ScenarioAnalysis {\n  id               Int       @id @default(autoincrement())\n  scenarioId       String    @map(\"scenario_id\") @db.VarChar(100)\n  scenarioName     String    @map(\"scenario_name\") @db.VarChar(200)\n  asOfDate         DateTime  @map(\"as_of_date\") @db.Date\n  horizon          Int\n  assumptions      Json\n  baseForecast     Float?    @map(\"base_forecast\")\n  scenarioForecast Float?    @map(\"scenario_forecast\")\n  impactPct        Float?    @map(\"impact_pct\")\n  probability      Float?\n  confidence       String?   @db.VarChar(20)\n  modelVersion     String?   @map(\"model_version\") @db.VarChar(100)\n  createdAt        DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([scenarioId, asOfDate, horizon])\n  @@index([asOfDate], map: \"idx_scenario_date\")\n  @@map(\"scenario_analysis\")\n  @@schema(\"analytics\")\n}\n\nmodel ValueTimingWindows {\n  id                     Int      @id @default(autoincrement())\n  symbol                 String\n  asOfDate               DateTime @map(\"as_of_date\")\n  horizonDays            Int      @map(\"horizon_days\")\n  tailProximity          Float    @map(\"tail_proximity\")\n  probabilityLift        Float    @map(\"probability_lift\")\n  confidenceAdjustedLift Float    @map(\"confidence_adjusted_lift\")\n  regimeDampening        Float?   @map(\"regime_dampening\")\n  windowStartWeek        Int?     @map(\"window_start_week\")\n  windowEndWeek          Int?     @map(\"window_end_week\")\n  createdAt              DateTime @default(now()) @map(\"created_at\")\n\n  @@unique([symbol, asOfDate, horizonDays])\n  @@index([asOfDate])\n  @@index([horizonDays])\n  @@index([symbol])\n  @@map(\"value_timing_windows\")\n  @@schema(\"analytics\")\n}\n\nmodel VolRegimes {\n  id              Int       @id @default(autoincrement())\n  symbol          String    @db.VarChar(20)\n  asOfDate        DateTime  @map(\"as_of_date\") @db.Date\n  regime          String    @db.VarChar(20)\n  regimeProb      Float?    @map(\"regime_prob\")\n  transitionProbs Json?     @map(\"transition_probs\")\n  smoothedProb    Float?    @map(\"smoothed_prob\")\n  modelType       String?   @map(\"model_type\") @db.VarChar(50)\n  modelVersion    String?   @map(\"model_version\") @db.VarChar(100)\n  createdAt       DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([symbol, asOfDate, modelVersion])\n  @@index([asOfDate], map: \"idx_vol_regime_date\")\n  @@index([symbol], map: \"idx_vol_regime_symbol\")\n  @@map(\"vol_regimes\")\n  @@schema(\"analytics\")\n}\n\nmodel DataSourceRegistry {\n  id                   Int       @id @default(autoincrement())\n  sourceId             String    @unique @map(\"source_id\")\n  sourceName           String    @map(\"source_name\")\n  description          String?\n  targetTable          String    @map(\"target_table\")\n  targetSchema         String    @default(\"raw\") @map(\"target_schema\")\n  apiProvider          String    @map(\"api_provider\")\n  apiEndpoint          String    @map(\"api_endpoint\")\n  apiDocsUrl           String?   @map(\"api_docs_url\")\n  authType             String?   @map(\"auth_type\")\n  authEnvVar           String?   @map(\"auth_env_var\")\n  responseFormat       String?   @map(\"response_format\")\n  dateColumn           String?   @map(\"date_column\")\n  entityColumn         String?   @map(\"entity_column\")\n  updateFrequency      String    @map(\"update_frequency\")\n  typicalLagHours      Int?      @map(\"typical_lag_hours\")\n  ingestionScript      String?   @map(\"ingestion_script\")\n  lastSuccessfulRun    DateTime? @map(\"last_successful_run\") @db.Timestamptz(6)\n  isActive             Boolean?  @default(true) @map(\"is_active\")\n  requiresSubscription Boolean?  @default(false) @map(\"requires_subscription\")\n  subscriptionStatus   String?   @map(\"subscription_status\")\n  notes                String?\n  createdAt            DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt            DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@map(\"data_source_registry\")\n  @@schema(\"ops\")\n}\n\nmodel IngestRun {\n  id                 String              @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid\n  jobName            String              @map(\"job_name\") @db.VarChar\n  startedAt          DateTime?           @default(now()) @map(\"started_at\") @db.Timestamptz(6)\n  completedAt        DateTime?           @map(\"completed_at\") @db.Timestamptz(6)\n  status             String?             @default(\"running\") @db.VarChar\n  rowsAttempted      Int?                @default(0) @map(\"rows_attempted\")\n  rowsInserted       Int?                @default(0) @map(\"rows_inserted\")\n  rowsSkipped        Int?                @default(0) @map(\"rows_skipped\")\n  rowsQuarantined    Int?                @default(0) @map(\"rows_quarantined\")\n  cursorPosition     Json?               @map(\"cursor_position\")\n  errorMessage       String?             @map(\"error_message\")\n  quarantinedRecords QuarantinedRecord[]\n\n  @@index([jobName, startedAt], map: \"idx_ingest_run_job_started\")\n  @@map(\"ingest_run\")\n  @@schema(\"ops\")\n}\n\nmodel QuarantinedRecord {\n  id               Int       @id @default(autoincrement())\n  sourceTable      String    @map(\"source_table\") @db.VarChar\n  ingestRunId      String    @map(\"ingest_run_id\") @db.Uuid\n  attemptedAt      DateTime? @default(now()) @map(\"attempted_at\") @db.Timestamptz(6)\n  rawPayload       Json      @map(\"raw_payload\")\n  validationErrors String[]  @map(\"validation_errors\")\n  severity         String?   @default(\"error\") @db.VarChar\n  resolutionStatus String?   @default(\"pending\") @map(\"resolution_status\") @db.VarChar\n  resolvedAt       DateTime? @map(\"resolved_at\") @db.Timestamptz(6)\n  resolvedBy       String?   @map(\"resolved_by\") @db.VarChar\n  ingestRun        IngestRun @relation(fields: [ingestRunId], references: [id], onDelete: Cascade, onUpdate: NoAction)\n\n  @@index([ingestRunId], map: \"idx_quarantine_ingest_run_id\")\n  @@index([resolutionStatus], map: \"idx_quarantine_resolution_status\")\n  @@index([sourceTable], map: \"idx_quarantine_source_table\")\n  @@map(\"quarantined_record\")\n  @@schema(\"ops\")\n}\n\nmodel IntelDrop {\n  id            Int       @id @default(autoincrement())\n  asOfTs        DateTime  @map(\"as_of_ts\") @db.Timestamp(6)\n  domain        String    @db.VarChar(20)\n  horizon       String    @db.VarChar(5)\n  direction     Int\n  pressureCents Float     @map(\"pressure_cents\")\n  edge          Float\n  driverWeights Json      @map(\"driver_weights\")\n  topDrivers    Json      @map(\"top_drivers\")\n  regimeTags    String[]  @default([]) @map(\"regime_tags\")\n  qualityFlags  String[]  @default([]) @map(\"quality_flags\")\n  dataGaps      String[]  @default([]) @map(\"data_gaps\")\n  receipts      Json?\n  narrative     String\n  quantPayload  Json      @map(\"quant_payload\")\n  sourceModel   String?   @map(\"source_model\") @db.VarChar(50)\n  createdAt     DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([asOfTs, domain, horizon], map: \"intel_drops_unique\")\n  @@index([asOfTs], map: \"idx_intel_drops_as_of_ts\")\n  @@index([direction], map: \"idx_intel_drops_direction\")\n  @@index([domain], map: \"idx_intel_drops_domain\")\n  @@map(\"intel_drops\")\n  @@schema(\"features\")\n}\n\nmodel driver_attribution_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  driver_name   String    @db.VarChar(50)\n  shap_value    Float?\n  direction     String?   @db.VarChar(10)\n  rank          Int?\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days, driver_name])\n  @@index([forecast_date], map: \"idx_driver_attr_forecast_date\")\n  @@schema(\"analytics\")\n}\n\nmodel regime_state_1d {\n  id                  Int       @id @default(autoincrement())\n  forecast_date       DateTime  @unique @db.Date\n  regime              String    @db.VarChar(20)\n  vix_contribution    Float?\n  policy_contribution Float?\n  news_contribution   Float?\n  confidence          Float?\n  created_at          DateTime? @default(now()) @db.Timestamp(6)\n\n  @@index([forecast_date], map: \"idx_regime_state_forecast_date\")\n  @@schema(\"analytics\")\n}\n\n/// ZL 15-minute bars for dashboard charts\nmodel zl_price_15m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @db.Timestamptz(6)\n\n  @@index([timestamp(sort: Desc)], map: \"idx_zl_price_15m_ts\")\n  @@schema(\"analytics\")\n}\n\nmodel elite_indicators_1d {\n  id                   Int       @id @default(autoincrement())\n  trade_date           DateTime  @db.Date\n  symbol               String    @db.VarChar(20)\n  hurst_exponent       Float?\n  hurst_regime         String?   @db.VarChar(20)\n  connors_rsi          Float?\n  fisher_transform     Float?\n  fisher_signal        Float?\n  mcginley_dynamic     Float?\n  ttm_squeeze_on       Boolean?\n  ttm_squeeze_momentum Float?\n  schaff_trend_cycle   Float?\n  rvi                  Float?\n  rvi_signal           Float?\n  elder_force_index    Float?\n  kama_10              Float?\n  hma_20               Float?\n  alma_50              Float?\n  rsi_2                Float?\n  rsi_14               Float?\n  cumulative_rsi       Float?\n  macd                 Float?\n  macd_signal          Float?\n  macd_histogram       Float?\n  cci_14               Float?\n  cci_50               Float?\n  atr_10               Float?\n  atr_50               Float?\n  atr_ratio            Float?\n  garman_klass_vol     Float?\n  yang_zhang_vol       Float?\n  bb_percent_b         Float?\n  cmf_21               Float?\n  volume_zscore        Float?\n  unusual_volume       Boolean?\n  created_at           DateTime? @default(now()) @db.Timestamp(6)\n  open                 Float?\n  high                 Float?\n  low                  Float?\n  close                Float?\n  volume               BigInt?\n  returns_1d           Float?\n  log_returns_1d       Float?\n  range_pct            Float?\n\n  @@map(\"elite_1d\")\n  @@schema(\"features\")\n}\n\nmodel data_quality_log {\n  id          Int      @id @default(autoincrement())\n  table_name  String\n  check_date  DateTime\n  row_count   Int\n  null_count  Int\n  latest_date DateTime\n  oldest_date DateTime\n  issues      Json?\n  created_at  DateTime @default(now())\n\n  @@index([check_date])\n  @@index([table_name])\n  @@schema(\"ops\")\n}\n\nmodel data_quality_metrics {\n  id                 Int       @id @default(autoincrement())\n  as_of_date         DateTime  @db.Date\n  source             String\n  last_update        DateTime? @db.Timestamptz(6)\n  hours_since_update Decimal?  @db.Decimal\n  total_rows         Int?\n  expected_rows      Int?\n  completeness_pct   Decimal?  @db.Decimal\n  null_count         Int?\n  null_pct           Decimal?  @db.Decimal\n  is_stale           Boolean?  @default(false)\n  is_incomplete      Boolean?  @default(false)\n  created_at         DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, source])\n  @@index([as_of_date], map: \"idx_dq_date\")\n  @@index([source], map: \"idx_dq_source\")\n  @@schema(\"ops\")\n}\n\nmodel model_core_audit {\n  id                         String   @id @default(dbgenerated(\"gen_random_uuid()\"))\n  training_run_id            String   @unique\n  horizon                    String\n  reviewed_at                DateTime @default(now())\n  reviewer                   String\n  is_core_run                Boolean\n  cv_purged_walk_forward     Boolean\n  asof_alignment_valid       Boolean\n  chronos_bolt_present       Boolean\n  chronos2_present           Boolean\n  chronos2_lora_present      Boolean\n  recursive_tabular_present  Boolean\n  autoets_present            Boolean\n  theta_present              Boolean\n  seasonal_naive_present     Boolean\n  weighted_ensemble_used     Boolean\n  oof_only                   Boolean\n  max_single_weight          Float\n  chronos_weight_nonzero     Boolean\n  recursive_weight_zero_long Boolean\n  monte_carlo_runs           Int\n  p10_present                Boolean\n  p50_present                Boolean\n  p90_present                Boolean\n  stress_widening_applied    Boolean\n  rmse_recorded              Boolean\n  brier_recorded             Boolean\n  p10_coverage_ok            Boolean\n  p90_coverage_ok            Boolean\n  registry_complete          Boolean\n  ensemble_edges_recorded    Boolean\n  resources_logged           Boolean\n  artifact_isolation_safe    Boolean\n  narrative_ready            Boolean\n  buy_sell_language_absent   Boolean\n  uncertainty_explained      Boolean\n  specialist_divergence_flag Boolean\n  hard_gate_pass             Boolean\n  final_approved             Boolean\n  failure_reason             String?\n\n  @@index([final_approved])\n  @@index([horizon])\n  @@schema(\"ops\")\n}\n\nmodel prediction_accuracy {\n  id              Int       @id @default(autoincrement())\n  model_id        String\n  horizon         Int\n  prediction_date DateTime  @db.Date\n  target_date     DateTime  @db.Date\n  actual          Decimal?  @db.Decimal\n  pred_p50        Decimal?  @db.Decimal\n  error           Decimal?  @db.Decimal\n  abs_error       Decimal?  @db.Decimal\n  pct_error       Decimal?  @db.Decimal\n  in_80_band      Boolean?\n  created_at      DateTime? @default(now()) @db.Timestamptz(6)\n  pred_p10        Decimal?  @db.Decimal\n  pred_p90        Decimal?  @db.Decimal\n\n  @@unique([model_id, prediction_date, target_date])\n  @@index([model_id], map: \"idx_accuracy_model\")\n  @@index([target_date], map: \"idx_accuracy_target_date\")\n  @@schema(\"ops\")\n}\n\nmodel source_relabel_audit {\n  id             Int       @id @default(autoincrement())\n  relabel_ts     DateTime  @default(now()) @db.Timestamptz(6)\n  table_name     String\n  from_source    String\n  to_source      String\n  row_count      BigInt\n  min_as_of_date DateTime? @db.Date\n  max_as_of_date DateTime? @db.Date\n\n  @@schema(\"ops\")\n}\n\nmodel training_run_log {\n  id            Int       @id @default(autoincrement())\n  run_id        String    @unique\n  horizon       Int\n  phase         String\n  status        String\n  started_at    DateTime\n  completed_at  DateTime?\n  error_message String?\n  metrics       Json?\n\n  @@index([horizon])\n  @@index([phase])\n  @@index([status])\n  @@schema(\"ops\")\n}\n\nmodel training_runs {\n  id               Int       @id @default(autoincrement())\n  run_id           String    @unique\n  run_name         String?\n  experiment_name  String?\n  model_type       String\n  specialist_name  String?\n  horizon          Int?\n  started_at       DateTime  @default(now()) @db.Timestamptz(6)\n  completed_at     DateTime? @db.Timestamptz(6)\n  duration_seconds Decimal?  @db.Decimal\n  status           String?   @default(\"running\")\n  training_mode    String?\n  hyperparameters  Json?     @default(\"{}\")\n  dataset_name     String?\n  dataset_rows     Int?\n  dataset_features Int?\n  metrics          Json?     @default(\"{}\")\n  mase             Decimal?  @db.Decimal\n  error_message    String?\n  artifact_path    String?\n  log_path         String?\n  created_at       DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([model_type], map: \"idx_runs_model_type\")\n  @@index([started_at], map: \"idx_runs_started_at\")\n  @@index([status], map: \"idx_runs_status\")\n  @@schema(\"ops\")\n}\n\n/// ZL 1h bars for dashboard charts\nmodel zl_price_1h {\n  timestamp  DateTime @id @db.Timestamptz(6)\n  open       Decimal  @db.Decimal(10, 4)\n  high       Decimal  @db.Decimal(10, 4)\n  low        Decimal  @db.Decimal(10, 4)\n  close      Decimal  @db.Decimal(10, 4)\n  volume     BigInt   @default(0)\n  source     String   @default(\"yahoo\") @db.VarChar(50)\n  created_at DateTime @default(now()) @db.Timestamptz(6)\n\n  @@index([timestamp(sort: Desc)], map: \"idx_zl_price_1h_ts\")\n  @@schema(\"analytics\")\n}\n\n/// ZL 1d bars for dashboard - copied from mkt.futures_1d\nmodel zl_price_1d {\n  event_date DateTime  @id @db.Date\n  open       Decimal   @db.Decimal(10, 4)\n  high       Decimal   @db.Decimal(10, 4)\n  low        Decimal   @db.Decimal(10, 4)\n  close      Decimal   @db.Decimal(10, 4)\n  volume     BigInt?   @default(0)\n  source     String?   @default(\"yahoo\") @db.VarChar(50)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_date(sort: Desc)], map: \"idx_zl_price_1d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel trump_effect_1d {\n  id                     Int       @id @default(autoincrement())\n  as_of_date             DateTime  @unique @db.Date\n  eo_count_7d            Int?      @default(0)\n  eo_count_30d           Int?      @default(0)\n  proclamation_count_7d  Int?      @default(0)\n  proclamation_count_30d Int?      @default(0)\n  nomination_count_7d    Int?      @default(0)\n  nomination_count_30d   Int?      @default(0)\n  memorandum_count_7d    Int?      @default(0)\n  memorandum_count_30d   Int?      @default(0)\n  total_actions_7d       Int?      @default(0)\n  total_actions_30d      Int?      @default(0)\n  avg_sentiment_7d       Float?\n  avg_sentiment_30d      Float?\n  action_velocity        Float?\n  action_acceleration    Float?\n  weighted_action_score  Float?\n  created_at             DateTime? @default(now()) @db.Timestamp(6)\n\n  @@index([as_of_date], map: \"idx_trump_effect_as_of_date\")\n  @@schema(\"features\")\n}\n\nmodel forecast_summary_1d {\n  id                Int       @id @default(autoincrement())\n  forecast_date     DateTime  @db.Date\n  horizon_days      Int\n  opp               Float?\n  ruin              Float?\n  calibrated_p10    Float?\n  calibrated_p90    Float?\n  coverage_error    Float?\n  regime            String?   @db.VarChar(20)\n  regime_multiplier Float?    @default(1.0)\n  narrative         String?\n  top_driver_1      String?   @db.VarChar(50)\n  top_driver_2      String?   @db.VarChar(50)\n  top_driver_3      String?   @db.VarChar(50)\n  model_version     String?   @db.VarChar(50)\n  ai_model          String?   @db.VarChar(50)\n  generated_at      DateTime? @default(now()) @db.Timestamp(6)\n  p30               Float?\n  p50               Float?\n  p70               Float?\n  p10_cal           Float?\n  p90_cal           Float?\n\n  @@unique([forecast_date, horizon_days], map: \"ai_decision_1d_forecast_date_horizon_days_key\")\n  @@index([forecast_date], map: \"idx_ai_decision_forecast_date\")\n  @@map(\"forecast_summary_1d\")\n  @@schema(\"forecasts\")\n}\n\nmodel core_cone_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  target_date   DateTime  @db.Date\n  p10           Float\n  p50           Float\n  p90           Float\n  model_version String?   @default(\"chronos2-v1\") @db.VarChar(50)\n  config_hash   String?   @db.VarChar(64)\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days])\n  @@index([forecast_date], map: \"idx_core_cone_forecast_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel core_mc_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  s0            Float\n  q10           Float\n  q50           Float\n  q90           Float\n  mu_annual     Float?\n  sigma_annual  Float?\n  mc_p10_final  Float?\n  mc_p50_final  Float?\n  mc_p90_final  Float?\n  mc_min_p10    Float?\n  mc_max_p90    Float?\n  opp           Float?\n  ruin          Float?\n  var_95        Float?\n  cvar_95       Float?\n  runs          Int?      @default(5000)\n  seed          Int?\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days])\n  @@index([forecast_date], map: \"idx_core_mc_forecast_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel forecast_quantiles {\n  id            Int       @id @default(autoincrement())\n  model_name    String\n  horizon       Int\n  forecast_date DateTime  @db.Date\n  target_date   DateTime  @db.Date\n  symbol        String?   @default(\"ZL\")\n  p10           Decimal?  @db.Decimal(18, 6)\n  p50           Decimal?  @db.Decimal(18, 6)\n  p90           Decimal?  @db.Decimal(18, 6)\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"forecasts\")\n}\n\nmodel garch_forecasts {\n  id              Int       @id @default(autoincrement())\n  symbol          String    @db.VarChar(20)\n  as_of_date      DateTime  @db.Date\n  horizon         Int\n  conditional_vol Float\n  annualized_vol  Float\n  var_01          Float?\n  var_05          Float?\n  cvar_05         Float?\n  vol_lower       Float?\n  vol_upper       Float?\n  model_type      String?   @db.VarChar(50)\n  model_version   String?   @db.VarChar(100)\n  created_at      DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, horizon, model_version])\n  @@index([as_of_date], map: \"idx_garch_forecast_date\")\n  @@index([symbol], map: \"idx_garch_forecast_symbol\")\n  @@schema(\"forecasts\")\n}\n\nmodel horizon_reconciliation_1d {\n  id                  Int       @id @default(autoincrement())\n  forecast_date       DateTime  @unique @db.Date\n  tactical_posture    String?   @db.VarChar(20)\n  short_posture       String?   @db.VarChar(20)\n  medium_posture      String?   @db.VarChar(20)\n  strategic_posture   String?   @db.VarChar(20)\n  conflict_flag       Boolean?  @default(false)\n  reconciled_guidance String?\n  priority_horizon    Int?\n  created_at          DateTime? @default(now()) @db.Timestamp(6)\n\n  @@schema(\"forecasts\")\n}\n\nmodel monte_carlo_runs {\n  id            Int      @id @default(autoincrement())\n  symbol        String\n  as_of_date    DateTime\n  horizon       Int\n  num_sims      Int\n  percentiles   Json\n  correlations  Json?\n  model_version String\n  created_at    DateTime @default(now())\n\n  @@unique([symbol, as_of_date, horizon, model_version])\n  @@index([as_of_date])\n  @@index([horizon])\n  @@index([symbol])\n  @@schema(\"forecasts\")\n}\n\nmodel probability_distributions {\n  id            Int       @id @default(autoincrement())\n  symbol        String    @db.VarChar(20)\n  as_of_date    DateTime  @db.Date\n  horizon       Int\n  percentile    Float\n  value         Float\n  model_version String?   @db.VarChar(100)\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, horizon, percentile])\n  @@index([as_of_date], map: \"idx_prob_dist_date\")\n  @@index([symbol], map: \"idx_prob_dist_symbol\")\n  @@schema(\"forecasts\")\n}\n\nmodel VegasRestaurant {\n  id          Int       @id @default(autoincrement())\n  glideRowId  String    @map(\"glide_row_id\") @db.VarChar(100)\n  data        Json\n  ingestedAt  DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  cuisineType String?   @map(\"cuisine_type\") @db.VarChar(50)\n\n  @@index([glideRowId], map: \"idx_vegas_restaurants_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_restaurants_ingested_at\")\n  @@index([cuisineType], map: \"idx_vegas_restaurants_cuisine\")\n  @@map(\"vegas_restaurants\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasCasino {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_casinos_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_casinos_ingested_at\")\n  @@map(\"vegas_casinos\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasFryer {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_fryers_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_fryers_ingested_at\")\n  @@map(\"vegas_fryers\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasExportList {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_export_list_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_export_list_ingested_at\")\n  @@map(\"vegas_export_list\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasScheduledReport {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @unique @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_scheduled_reports_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_scheduled_reports_ingested_at\")\n  @@map(\"vegas_scheduled_reports\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasShift {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_shifts_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_shifts_ingested_at\")\n  @@map(\"vegas_shifts\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasShiftCasino {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @unique @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_shift_casinos_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_shift_casinos_ingested_at\")\n  @@map(\"vegas_shift_casinos\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasShiftRestaurant {\n  id         Int       @id @default(autoincrement())\n  glideRowId String    @unique @map(\"glide_row_id\") @db.VarChar(100)\n  data       Json\n  ingestedAt DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n\n  @@index([glideRowId], map: \"idx_vegas_shift_restaurants_glide_row_id\")\n  @@index([ingestedAt], map: \"idx_vegas_shift_restaurants_ingested_at\")\n  @@map(\"vegas_shift_restaurants\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasEvent {\n  id            Int       @id @default(autoincrement())\n  eventId       String    @unique @map(\"event_id\") @db.VarChar(100)\n  name          String    @db.VarChar(255)\n  eventType     String?   @map(\"event_type\") @db.VarChar(100)\n  venue         String?   @db.VarChar(255)\n  startDate     DateTime  @map(\"start_date\") @db.Date\n  endDate       DateTime? @map(\"end_date\") @db.Date\n  attendance    Int?\n  attendanceMin Int?      @map(\"attendance_min\")\n  attendanceMax Int?      @map(\"attendance_max\")\n  source        String?   @db.VarChar(50)\n  sourceUrl     String?   @map(\"source_url\") @db.VarChar(500)\n  rawPayload    Json?     @map(\"raw_payload\")\n  isActive      Boolean   @default(true) @map(\"is_active\")\n  createdAt     DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt     DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@index([startDate], map: \"idx_vegas_events_start_date\")\n  @@index([eventType], map: \"idx_vegas_events_type\")\n  @@index([isActive], map: \"idx_vegas_events_active\")\n  @@map(\"vegas_events\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasEventProfile {\n  id              Int       @id @default(autoincrement())\n  eventType       String    @unique @map(\"event_type\") @db.VarChar(100)\n  displayName     String    @map(\"display_name\") @db.VarChar(255)\n  primaryDemo     String?   @map(\"primary_demo\") @db.VarChar(255)\n  psychographic   String?   @db.VarChar(255)\n  cuisineAffinity Json?     @map(\"cuisine_affinity\")\n  avgSpendTier    String?   @map(\"avg_spend_tier\") @db.VarChar(50)\n  peakDiningHours String?   @map(\"peak_dining_hours\") @db.VarChar(100)\n  notes           String?\n  createdAt       DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt       DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@map(\"vegas_event_profiles\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasCasinoProfile {\n  id         Int       @id @default(autoincrement())\n  casinoName String    @unique @map(\"casino_name\") @db.VarChar(255)\n  vibe       String?   @db.VarChar(100)\n  pullFactor Float?    @map(\"pull_factor\")\n  targetDemo String?   @map(\"target_demo\") @db.VarChar(255)\n  tier       String?   @db.VarChar(50)\n  corridor   String?   @db.VarChar(100)\n  notes      String?\n  createdAt  DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt  DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@map(\"vegas_casino_profiles\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasCuisineMatch {\n  id            Int       @id @default(autoincrement())\n  eventType     String    @map(\"event_type\") @db.VarChar(100)\n  cuisineType   String    @map(\"cuisine_type\") @db.VarChar(100)\n  affinityScore Float     @map(\"affinity_score\")\n  notes         String?\n  createdAt     DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt     DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@unique([eventType, cuisineType], map: \"vegas_cuisine_match_event_cuisine_key\")\n  @@index([eventType], map: \"idx_vegas_cuisine_match_event_type\")\n  @@map(\"vegas_cuisine_match\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasIntelSheet {\n  id           Int       @id @default(autoincrement())\n  sheetId      String    @unique @map(\"sheet_id\") @db.VarChar(100)\n  restaurantId String?   @map(\"restaurant_id\") @db.VarChar(100)\n  eventId      String?   @map(\"event_id\") @db.VarChar(100)\n  sheetType    String    @map(\"sheet_type\") @db.VarChar(50)\n  headline     String?   @db.VarChar(500)\n  content      Json?\n  shareableUrl String?   @map(\"shareable_url\") @db.VarChar(500)\n  pdfUrl       String?   @map(\"pdf_url\") @db.VarChar(500)\n  viewCount    Int       @default(0) @map(\"view_count\")\n  lastViewedAt DateTime? @map(\"last_viewed_at\") @db.Timestamptz(6)\n  sentAt       DateTime? @map(\"sent_at\") @db.Timestamptz(6)\n  sentTo       String?   @map(\"sent_to\") @db.VarChar(255)\n  status       String    @default(\"draft\") @db.VarChar(50)\n  createdAt    DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  updatedAt    DateTime? @default(now()) @map(\"updated_at\") @db.Timestamptz(6)\n\n  @@index([restaurantId], map: \"idx_vegas_intel_sheets_restaurant\")\n  @@index([eventId], map: \"idx_vegas_intel_sheets_event\")\n  @@index([status], map: \"idx_vegas_intel_sheets_status\")\n  @@map(\"vegas_intel_sheets\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasCustomerScore {\n  id               Int       @id @default(autoincrement())\n  restaurantId     String    @unique @map(\"restaurant_id\") @db.VarChar(100)\n  casinoId         String?   @map(\"casino_id\") @db.VarChar(100)\n  isCustomer       Boolean   @default(false) @map(\"is_customer\")\n  priorityScore    Float?    @map(\"priority_score\")\n  atRiskScore      Float?    @map(\"at_risk_score\")\n  daysSinceOrder   Int?      @map(\"days_since_order\")\n  orderPattern     String?   @map(\"order_pattern\") @db.VarChar(100)\n  volumeTrend      String?   @map(\"volume_trend\") @db.VarChar(50)\n  lastOrderDate    DateTime? @map(\"last_order_date\") @db.Date\n  avgOrderValue    Float?    @map(\"avg_order_value\")\n  fryerCount       Int?      @map(\"fryer_count\")\n  eventImpactScore Float?    @map(\"event_impact_score\")\n  oneLiner         String?   @map(\"one_liner\") @db.VarChar(500)\n  computedAt       DateTime? @default(now()) @map(\"computed_at\") @db.Timestamptz(6)\n\n  @@index([isCustomer], map: \"idx_vegas_customer_scores_is_customer\")\n  @@index([priorityScore], map: \"idx_vegas_customer_scores_priority\")\n  @@index([atRiskScore], map: \"idx_vegas_customer_scores_at_risk\")\n  @@map(\"vegas_customer_scores\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasActivityLog {\n  id           Int       @id @default(autoincrement())\n  activityType String    @map(\"activity_type\") @db.VarChar(50)\n  entityType   String    @map(\"entity_type\") @db.VarChar(50)\n  entityId     String    @map(\"entity_id\") @db.VarChar(100)\n  userId       String?   @map(\"user_id\") @db.VarChar(100)\n  details      Json?\n  createdAt    DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([activityType], map: \"idx_vegas_activity_log_type\")\n  @@index([entityType, entityId], map: \"idx_vegas_activity_log_entity\")\n  @@index([createdAt], map: \"idx_vegas_activity_log_created\")\n  @@map(\"vegas_activity_log\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasCuisineAffinity {\n  id            Int       @id @default(autoincrement())\n  eventCategory String    @map(\"event_category\") @db.VarChar(50)\n  cuisineType   String    @map(\"cuisine_type\") @db.VarChar(50)\n  affinityScore Int       @map(\"affinity_score\")\n  reasoning     String?\n  createdAt     DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@unique([eventCategory, cuisineType])\n  @@index([eventCategory], map: \"idx_vegas_cuisine_affinity_category\")\n  @@index([cuisineType], map: \"idx_vegas_cuisine_affinity_cuisine\")\n  @@map(\"vegas_cuisine_affinity\")\n  @@schema(\"vegas\")\n}\n\nmodel VegasDailySpend {\n  id                  Int       @id @default(autoincrement())\n  impactDate          DateTime  @unique @map(\"impact_date\") @db.Date\n  spendConcerts       Int       @default(0) @map(\"spend_concerts\")\n  spendConferences    Int       @default(0) @map(\"spend_conferences\")\n  spendExpos          Int       @default(0) @map(\"spend_expos\")\n  spendFestivals      Int       @default(0) @map(\"spend_festivals\")\n  spendPerformingArts Int       @default(0) @map(\"spend_performing_arts\")\n  spendSports         Int       @default(0) @map(\"spend_sports\")\n  spendTotal          Int?      @map(\"spend_total\")\n  importedAt          DateTime? @default(now()) @map(\"imported_at\") @db.Timestamptz(6)\n\n  @@index([impactDate], map: \"idx_vegas_daily_spend_date\")\n  @@map(\"vegas_daily_spend\")\n  @@schema(\"vegas\")\n}\n\nmodel MktFutures1d {\n  eventDate            DateTime  @map(\"event_date\") @db.Date\n  symbol               String    @db.VarChar(20)\n  open                 Float?\n  high                 Float?\n  low                  Float?\n  close                Float?\n  volume               BigInt?\n  openInterest         BigInt?   @map(\"open_interest\")\n  source               String?   @db.VarChar(50)\n  ingestedAt           DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime        DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash              String?   @map(\"row_hash\") @db.VarChar(64)\n  zl_corr_30d          Decimal?  @db.Decimal(6, 4)\n  zl_corr_60d          Decimal?  @db.Decimal(6, 4)\n  zl_corr_90d          Decimal?  @db.Decimal(6, 4)\n  hurst_exponent       Float?\n  hurst_regime         String?   @db.VarChar(20)\n  connors_rsi          Float?\n  fisher_transform     Float?\n  fisher_signal        Float?\n  mcginley_dynamic     Float?\n  ttm_squeeze_on       Boolean?\n  ttm_squeeze_momentum Float?\n  schaff_trend_cycle   Float?\n  rvi                  Float?\n  rvi_signal           Float?\n  elder_force_index    Float?\n  kama_10              Float?\n  hma_20               Float?\n  alma_50              Float?\n  rsi_2                Float?\n  rsi_14               Float?\n  cumulative_rsi       Float?\n  macd                 Float?\n  macd_signal          Float?\n  macd_histogram       Float?\n  cci_14               Float?\n  cci_50               Float?\n  atr_10               Float?\n  atr_50               Float?\n  atr_ratio            Float?\n  garman_klass_vol     Float?\n  yang_zhang_vol       Float?\n  bb_percent_b         Float?\n  cmf_21               Float?\n  volume_zscore        Float?\n  unusual_volume       Boolean?\n  returns_1d           Float?\n  log_returns_1d       Float?\n  range_pct            Float?\n  bb_upper             Float?\n  bb_middle            Float?\n  bb_lower             Float?\n  atr_14               Float?\n  adx                  Float?\n  adx_pos              Float?\n  adx_neg              Float?\n  stoch_k              Float?\n  stoch_d              Float?\n  obv                  Float?\n\n  @@id([eventDate, symbol])\n  @@map(\"futures_1d\")\n  @@schema(\"mkt\")\n}\n\nmodel MktFutures1h {\n  id            Int       @id @default(autoincrement())\n  symbol        String    @db.VarChar(20)\n  eventTime     DateTime  @map(\"event_time\") @db.Timestamp(6)\n  open          Float?\n  high          Float?\n  low           Float?\n  close         Float?\n  volume        BigInt?\n  source        String?   @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([symbol, eventTime])\n  @@index([symbol, eventTime], map: \"idx_mkt_futures_1h_symbol_time\")\n  @@map(\"futures_1h\")\n  @@schema(\"mkt\")\n}\n\nmodel MktFx1d {\n  id            Int       @id @default(autoincrement())\n  pair          String    @db.VarChar(10)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  rate          Float\n  source        String?   @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n  zlCorr30d     Float?    @map(\"zl_corr_30d\")\n  zlCorr60d     Float?    @map(\"zl_corr_60d\")\n  zlCorr90d     Float?    @map(\"zl_corr_90d\")\n\n  @@unique([pair, eventDate])\n  @@index([pair, eventDate], map: \"idx_mkt_fx_1d_pair_date\")\n  @@map(\"fx_1d\")\n  @@schema(\"mkt\")\n}\n\nmodel MktEtf1d {\n  id             Int       @id @default(autoincrement())\n  symbol         String    @db.VarChar(20)\n  eventDate      DateTime  @map(\"event_date\") @db.Date\n  open           Float?\n  high           Float?\n  low            Float?\n  close          Float?\n  volume         BigInt?\n  source         String?   @default(\"barchart\") @db.VarChar(50)\n  rowHash        String    @map(\"row_hash\") @db.VarChar(64)\n  specialistTags String[]  @map(\"specialist_tags\")\n  createdAt      DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  // Databento Statistics (ETF auction/session data)\n  openingPrice    Float? @map(\"opening_price\")\n  closingPrice    Float? @map(\"closing_price\")\n  sessionHigh     Float? @map(\"session_high\")\n  sessionLow      Float? @map(\"session_low\")\n  indicativeOpen  Float? @map(\"indicative_open\")\n  indicativeClose Float? @map(\"indicative_close\")\n  vwap            Float?\n\n  // ZL Correlations (computed for specialist integration)\n  zlCorr21d  Float? @map(\"zl_corr_21d\")\n  zlCorr63d  Float? @map(\"zl_corr_63d\")\n  zlCorr126d Float? @map(\"zl_corr_126d\")\n\n  // Derived metrics (computed post-ingestion)\n  returns1d     Float? @map(\"returns_1d\")\n  returns5d     Float? @map(\"returns_5d\")\n  returns21d    Float? @map(\"returns_21d\")\n  momentum21d   Float? @map(\"momentum_21d\")\n  volatility21d Float? @map(\"volatility_21d\")\n\n  @@unique([symbol, eventDate])\n  @@index([symbol, eventDate], map: \"idx_mkt_etf_1d_symbol_date\")\n  @@index([specialistTags], map: \"idx_mkt_etf_1d_tags\", type: Gin)\n  @@map(\"etf_1d\")\n  @@schema(\"mkt\")\n}\n\nmodel MktOptions1d {\n  id                Int       @id @default(autoincrement())\n  underlying        String    @db.VarChar(20)\n  eventDate         DateTime  @map(\"event_date\") @db.Date\n  expiration        DateTime  @db.Date\n  strike            Float\n  optionType        String    @map(\"option_type\") @db.VarChar(4)\n  open              Float?\n  high              Float?\n  low               Float?\n  close             Float?\n  change            Float?\n  bid               Float?\n  ask               Float?\n  volume            BigInt?\n  openInterest      BigInt?   @map(\"open_interest\")\n  premium           Float?\n  // Databento statistics schema - all 15 stat types (stat_type 1-15)\n  openingPriceStat  Float?    @map(\"opening_price_stat\") // 1\n  indicativeOpening Float?    @map(\"indicative_opening\") // 2\n  sessionLowStat    Float?    @map(\"session_low_stat\") // 4\n  sessionHighStat   Float?    @map(\"session_high_stat\") // 5\n  clearedVolume     BigInt?   @map(\"cleared_volume\") // 6\n  fixingPrice       Float?    @map(\"fixing_price\") // 10\n  closeStat         Float?    @map(\"close_stat\") // 11\n  vwap              Float?    @map(\"vwap\") // 13\n  impliedVolatility Float?    @map(\"implied_volatility\") // 14\n  delta             Float?    @map(\"delta\") // 15\n  // Calculated VWAP approximations (since Databento doesn't provide true VWAP)\n  closeVwap         Float?    @map(\"close_vwap\") // Close × Volume approximation\n  ohlcAvgVwap       Float?    @map(\"ohlc_avg_vwap\") // OHLC average × Volume approximation\n  lastTradeTime     String?   @map(\"last_trade_time\") @db.VarChar(20)\n  source            String?   @default(\"barchart\") @db.VarChar(50)\n  ingestedAt        DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash           String    @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([underlying, eventDate, expiration, strike, optionType])\n  @@index([underlying, eventDate], map: \"idx_mkt_options_1d_underlying_date\")\n  @@map(\"options_1d\")\n  @@schema(\"mkt\")\n}\n\nmodel MktOptionsGreeks1d {\n  id                Int       @id @default(autoincrement())\n  underlying        String    @db.VarChar(20)\n  eventDate         DateTime  @map(\"event_date\") @db.Date\n  expiration        DateTime? @db.Date\n  strike            Float\n  optionType        String    @map(\"option_type\") @db.VarChar(10)\n  lastPrice         Float?    @map(\"last_price\")\n  impliedVolatility Float?    @map(\"implied_volatility\")\n  delta             Float?\n  gamma             Float?\n  theta             Float?\n  vega              Float?\n  ivSkew            Float?    @map(\"iv_skew\")\n  source            String?   @default(\"barchart\") @db.VarChar(50)\n  rowHash           String    @map(\"row_hash\") @db.VarChar(64)\n  specialistTags    String[]  @map(\"specialist_tags\")\n  createdAt         DateTime? @default(now()) @map(\"created_at\") @db.Timestamp(6)\n\n  @@unique([underlying, eventDate, expiration, strike, optionType])\n  @@index([underlying, eventDate], map: \"idx_mkt_options_greeks_1d_underlying_date\")\n  @@index([specialistTags], map: \"idx_mkt_options_greeks_1d_tags\", type: Gin)\n  @@map(\"options_greeks_1d\")\n  @@schema(\"mkt\")\n}\n\nmodel EconRates1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_rates_series_date\")\n  @@map(\"rates_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconInflation1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_inflation_series_date\")\n  @@map(\"inflation_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconLabor1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_labor_series_date\")\n  @@map(\"labor_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconActivity1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_activity_series_date\")\n  @@map(\"activity_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconVolIndices1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_vol_indices_series_date\")\n  @@map(\"vol_indices_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconCommodities1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_commodities_series_date\")\n  @@map(\"commodities_1d\")\n  @@schema(\"econ\")\n}\n\nmodel EconMoney1d {\n  id            Int       @id @default(autoincrement())\n  seriesId      String    @map(\"series_id\") @db.VarChar(50)\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  value         Float?\n  source        String?   @default(\"FRED\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([seriesId, eventDate])\n  @@index([seriesId, eventDate], map: \"idx_econ_money_series_date\")\n  @@map(\"money_1d\")\n  @@schema(\"econ\")\n}\n\nmodel AltEconNews {\n  id              Int       @id @default(autoincrement())\n  articleId       String?   @map(\"article_id\") @db.VarChar(100)\n  eventDate       DateTime  @map(\"event_date\") @db.Date\n  publishedAt     DateTime? @map(\"published_at\") @db.Timestamptz(6)\n  headline        String\n  summary         String?\n  content         String?\n  source          String?   @db.VarChar(50)\n  url             String?\n  author          String?   @db.VarChar(200)\n  specialistTags  String[]  @map(\"specialist_tags\")\n  topics          String[]  @map(\"topics\")\n  subjects        String[]  @map(\"subjects\")\n  metaDescription String?   @map(\"meta_description\")\n  rawPayload      Json?     @map(\"raw_payload\")\n  ingestedAt      DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  created_at      DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at      DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([eventDate], map: \"idx_alt_econ_news_date\")\n  @@index([publishedAt], map: \"idx_alt_econ_news_published_at\")\n  @@index([specialistTags], map: \"idx_alt_econ_news_tags\", type: Gin)\n  @@map(\"econ_news\")\n  @@schema(\"alt\")\n}\n\nmodel PosCftc1w {\n  id                   Int       @id @default(autoincrement())\n  eventDate            DateTime  @map(\"event_date\") @db.Date\n  symbol               String    @db.VarChar(20)\n  openInterest         BigInt?   @map(\"open_interest\")\n  prodMercLong         BigInt?   @map(\"prod_merc_long\")\n  prodMercShort        BigInt?   @map(\"prod_merc_short\")\n  prodMercNet          BigInt?   @map(\"prod_merc_net\")\n  swapLong             BigInt?   @map(\"swap_long\")\n  swapShort            BigInt?   @map(\"swap_short\")\n  swapNet              BigInt?   @map(\"swap_net\")\n  managedMoneyLong     BigInt?   @map(\"managed_money_long\")\n  managedMoneyShort    BigInt?   @map(\"managed_money_short\")\n  managedMoneyNet      BigInt?   @map(\"managed_money_net\")\n  otherReptLong        BigInt?   @map(\"other_rept_long\")\n  otherReptShort       BigInt?   @map(\"other_rept_short\")\n  otherReptNet         BigInt?   @map(\"other_rept_net\")\n  nonreptLong          BigInt?   @map(\"nonrept_long\")\n  nonreptShort         BigInt?   @map(\"nonrept_short\")\n  nonreptNet           BigInt?   @map(\"nonrept_net\")\n  managedMoneyNetPctOi Float?    @map(\"managed_money_net_pct_oi\")\n  prodMercNetPctOi     Float?    @map(\"prod_merc_net_pct_oi\")\n  source               String?   @db.VarChar(50)\n  ingestedAt           DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime        DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash              String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([symbol, eventDate])\n  @@index([symbol, eventDate], map: \"idx_pos_cftc_1w_symbol_date\")\n  @@map(\"cftc_1w\")\n  @@schema(\"pos\")\n}\n\nmodel SupplyUsdaWasde1m {\n  id            Int       @id @default(autoincrement())\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  commodity     String    @db.VarChar(50)\n  country       String?   @db.VarChar(100)\n  metric        String?   @db.VarChar(100)\n  value         Float?\n  unit          String?   @db.VarChar(20)\n  source        String?   @default(\"USDA\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@map(\"usda_wasde_1m\")\n  @@schema(\"supply\")\n}\n\nmodel SupplyUsdaExports1w {\n  id                 Int       @id @default(autoincrement())\n  eventDate          DateTime  @map(\"event_date\") @db.Date\n  commodity          String    @db.VarChar(50)\n  destinationCountry String?   @map(\"destination_country\") @db.VarChar(100)\n  netSalesMt         Float?    @map(\"net_sales_mt\")\n  exportsMt          Float?    @map(\"exports_mt\")\n  outstandingSalesMt Float?    @map(\"outstanding_sales_mt\")\n  source             String?   @default(\"USDA\") @db.VarChar(50)\n  ingestedAt         DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime      DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash            String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@map(\"usda_exports_1w\")\n  @@schema(\"supply\")\n}\n\nmodel SupplyEpaRin1d {\n  id            Int       @id @default(autoincrement())\n  eventDate     DateTime  @map(\"event_date\") @db.Date\n  rinType       String    @map(\"rin_type\") @db.VarChar(20)\n  price         Float?\n  source        String?   @default(\"EPA\") @db.VarChar(50)\n  ingestedAt    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@unique([rinType, eventDate])\n  @@map(\"epa_rin_1d\")\n  @@schema(\"supply\")\n}\n\nmodel SupplyLcfs1d {\n  eventDate        DateTime @id @map(\"event_date\") @db.Date\n  priceUsdPerMt    Decimal  @map(\"price_usd_per_mt\") @db.Decimal(12, 4)\n  source           String\n  ingestionBatchId String?  @map(\"ingestion_batch_id\")\n  createdAt        DateTime @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([createdAt], map: \"idx_supply_lcfs_created_at\")\n  @@map(\"lcfs_1d\")\n  @@schema(\"supply\")\n}\n\n/// EIA Biodiesel & Renewable Diesel Production (Monthly)\n/// Source: https://api.eia.gov/v2/biofuels/biodiesel/production/\nmodel SupplyEiaBiodiesel1m {\n  reportMonth                   DateTime  @id @map(\"report_month\") @db.Date\n  biodieselProductionMgal       Decimal?  @map(\"biodiesel_production_mgal\") @db.Decimal(12, 2)\n  renewableDieselProductionMgal Decimal?  @map(\"renewable_diesel_production_mgal\") @db.Decimal(12, 2)\n  feedstockSoybeanOilPct        Decimal?  @map(\"feedstock_soybean_oil_pct\") @db.Decimal(5, 2)\n  capacityUtilizationPct        Decimal?  @map(\"capacity_utilization_pct\") @db.Decimal(5, 2)\n  ingestedAt                    DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash                       String?   @map(\"row_hash\") @db.VarChar(64)\n\n  @@index([reportMonth], map: \"idx_supply_eia_biodiesel_month\")\n  @@map(\"eia_biodiesel_1m\")\n  @@schema(\"supply\")\n}\n\n/// MPOB Palm Oil Production (Malaysia Palm Oil Board)\n/// Monthly palm oil production, exports, stocks from Malaysia/Indonesia\nmodel SupplyMpobPalm1m {\n  id                 Int       @id @default(autoincrement())\n  reportMonth        DateTime  @map(\"report_month\") @db.Date\n  productionMt       Decimal?  @map(\"production_mt\") @db.Decimal(12, 2)\n  exportsMt          Decimal?  @map(\"exports_mt\") @db.Decimal(12, 2)\n  stocksMt           Decimal?  @map(\"stocks_mt\") @db.Decimal(12, 2)\n  localConsumptionMt Decimal?  @map(\"local_consumption_mt\") @db.Decimal(12, 2)\n  country            String?   @default(\"Malaysia\") @db.VarChar(50)\n  source             String?   @default(\"MPOB\") @db.VarChar(100)\n  ingestedAt         DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash            String?   @unique @map(\"row_hash\") @db.VarChar(64)\n  rawPayload         Json?     @map(\"raw_payload\")\n\n  @@unique([reportMonth, country])\n  @@index([reportMonth], map: \"idx_mpob_palm_month\")\n  @@index([country], map: \"idx_mpob_palm_country\")\n  @@map(\"mpob_palm_1m\")\n  @@schema(\"supply\")\n}\n\n/// Argentina Soybean Crush (Ciara-CEC / Ministry of Agriculture)\n/// Monthly soybean crush volumes, capacity, oil/meal production\nmodel SupplyArgentinaCrush1m {\n  id                  Int       @id @default(autoincrement())\n  reportMonth         DateTime  @unique @map(\"report_month\") @db.Date\n  crushVolumeMt       Decimal?  @map(\"crush_volume_mt\") @db.Decimal(12, 2)\n  capacityUtilization Decimal?  @map(\"capacity_utilization\") @db.Decimal(5, 2)\n  oilProductionMt     Decimal?  @map(\"oil_production_mt\") @db.Decimal(12, 2)\n  mealProductionMt    Decimal?  @map(\"meal_production_mt\") @db.Decimal(12, 2)\n  exportsOilMt        Decimal?  @map(\"exports_oil_mt\") @db.Decimal(12, 2)\n  exportsMealMt       Decimal?  @map(\"exports_meal_mt\") @db.Decimal(12, 2)\n  source              String?   @default(\"CIARA-CEC\") @db.VarChar(100)\n  ingestedAt          DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash             String?   @unique @map(\"row_hash\") @db.VarChar(64)\n  rawPayload          Json?     @map(\"raw_payload\")\n\n  @@index([reportMonth], map: \"idx_argentina_crush_month\")\n  @@map(\"argentina_crush_1m\")\n  @@schema(\"supply\")\n}\n\n/// CONAB Brazil Production Forecasts\n/// Official Brazilian crop production forecasts (monthly reports)\nmodel SupplyConabProduction1m {\n  id                    Int       @id @default(autoincrement())\n  reportMonth           DateTime  @map(\"report_month\") @db.Date\n  cropYear              String?   @map(\"crop_year\") @db.VarChar(20)\n  commodity             String?   @db.VarChar(50)\n  productionMt          Decimal?  @map(\"production_mt\") @db.Decimal(12, 2)\n  areaHarvestedHa       Decimal?  @map(\"area_harvested_ha\") @db.Decimal(12, 2)\n  yieldMtPerHa          Decimal?  @map(\"yield_mt_per_ha\") @db.Decimal(6, 2)\n  exportsMt             Decimal?  @map(\"exports_mt\") @db.Decimal(12, 2)\n  domesticConsumptionMt Decimal?  @map(\"domestic_consumption_mt\") @db.Decimal(12, 2)\n  endingStocksMt        Decimal?  @map(\"ending_stocks_mt\") @db.Decimal(12, 2)\n  source                String?   @default(\"CONAB\") @db.VarChar(100)\n  ingestedAt            DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash               String?   @unique @map(\"row_hash\") @db.VarChar(64)\n  rawPayload            Json?     @map(\"raw_payload\")\n\n  @@unique([reportMonth, cropYear, commodity])\n  @@index([reportMonth], map: \"idx_conab_production_month\")\n  @@index([commodity], map: \"idx_conab_production_commodity\")\n  @@index([cropYear], map: \"idx_conab_production_crop_year\")\n  @@map(\"conab_production_1m\")\n  @@schema(\"supply\")\n}\n\n/// Executive Actions (WhiteHouse Presidential Documents)\n/// Executive Orders, Proclamations, Memoranda, etc.\nmodel AltExecutiveActions {\n  id               Int       @id @default(autoincrement())\n  articleId        String?   @map(\"article_id\") @db.VarChar(100)\n  eventDate        DateTime  @map(\"event_date\") @db.Date\n  publishedAt      DateTime? @map(\"published_at\") @db.Timestamptz(6)\n  headline         String\n  content          String?\n  url              String?\n  author           String?   @db.VarChar(200)\n  source           String?   @db.VarChar(100)\n  documentType     String?   @map(\"document_type\") @db.VarChar(100)\n  zlSentiment      String?   @map(\"zl_sentiment\") @db.VarChar(50)\n  specialistTags   String[]  @default([]) @map(\"specialist_tags\")\n  ingestedAt       DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime    DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash          String?   @map(\"row_hash\") @db.VarChar(64)\n  rawPayload       Json?     @map(\"raw_payload\")\n  ingestionBatchId String?   @map(\"ingestion_batch_id\") @db.Uuid\n\n  @@index([eventDate], map: \"idx_executive_actions_date\")\n  @@index([documentType], map: \"idx_executive_actions_type\")\n  @@index([specialistTags], map: \"idx_executive_actions_tags\", type: Gin)\n  @@map(\"executive_actions\")\n  @@schema(\"alt\")\n}\n\n/// Policy News from Other Sources\n/// ICE, CBP, AEI, FarmDoc, etc.\nmodel AltPolicyNews {\n  id               Int       @id @default(autoincrement())\n  articleId        String?   @map(\"article_id\") @db.VarChar(100)\n  eventDate        DateTime  @map(\"event_date\") @db.Date\n  publishedAt      DateTime? @map(\"published_at\") @db.Timestamptz(6)\n  headline         String\n  content          String?\n  url              String?\n  author           String?   @db.VarChar(200)\n  source           String?   @db.VarChar(100)\n  zlSentiment      String?   @map(\"zl_sentiment\") @db.VarChar(50)\n  specialistTags   String[]  @default([]) @map(\"specialist_tags\")\n  ingestedAt       DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime    DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash          String?   @map(\"row_hash\") @db.VarChar(64)\n  rawPayload       Json?     @map(\"raw_payload\")\n  ingestionBatchId String?   @map(\"ingestion_batch_id\") @db.Uuid\n\n  @@index([eventDate], map: \"idx_policy_news_date\")\n  @@index([source], map: \"idx_policy_news_source\")\n  @@index([specialistTags], map: \"idx_policy_news_tags\", type: Gin)\n  @@map(\"policy_news\")\n  @@schema(\"alt\")\n}\n\nmodel AltWeather1d {\n  id               Int       @id @default(autoincrement())\n  eventDate        DateTime  @map(\"event_date\") @db.Date\n  stationId        String    @map(\"station_id\") @db.VarChar(20)\n  region           String?   @db.VarChar(50)\n  country          String?   @db.VarChar(50)\n  tmaxC            Float?    @map(\"tmax_c\")\n  tminC            Float?    @map(\"tmin_c\")\n  tavgC            Float?    @map(\"tavg_c\")\n  prcpMm           Float?    @map(\"prcp_mm\")\n  snowMm           Float?    @map(\"snow_mm\")\n  source           String?   @default(\"NOAA\") @db.VarChar(50)\n  ingestedAt       DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime    DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash          String?   @map(\"row_hash\") @db.VarChar(64)\n  rawPayload       Json?     @map(\"raw_payload\")\n  ingestionBatchId String?   @map(\"ingestion_batch_id\") @db.Uuid\n\n  @@index([region, eventDate], map: \"idx_alt_weather_region_date\")\n  @@map(\"weather_1d\")\n  @@schema(\"alt\")\n}\n\nmodel AltLegislation1d {\n  id               Int       @id @default(autoincrement())\n  eventDate        DateTime  @map(\"event_date\") @db.Date\n  documentNumber   String?   @map(\"document_number\") @db.VarChar(50)\n  title            String?\n  agency           String?   @db.VarChar(200)\n  documentType     String?   @map(\"document_type\") @db.VarChar(50)\n  action           String?   @db.VarChar(50)\n  specialistTags   String[]  @map(\"specialist_tags\")\n  source           String?   @default(\"FEDERAL_REGISTER\") @db.VarChar(50)\n  ingestedAt       DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  knowledgeTime    DateTime? @default(now()) @map(\"knowledge_time\") @db.Timestamptz(6)\n  rowHash          String?   @map(\"row_hash\") @db.VarChar(64)\n  url              String?\n  rawPayload       Json?     @map(\"raw_payload\")\n  ingestionBatchId String?   @map(\"ingestion_batch_id\") @db.Uuid\n\n  @@map(\"legislation_1d\")\n  @@schema(\"alt\")\n}\n\n/// Tariff Policy Deadline Tracking\n/// Tracks key policy expiration dates for tariff specialist\nmodel AltTariffDeadlines {\n  id                 Int       @id @default(autoincrement())\n  deadlineName       String    @map(\"deadline_name\") @db.VarChar(100)\n  deadlineDate       DateTime  @map(\"deadline_date\") @db.Date\n  daysToExpiry       Int       @map(\"days_to_expiry\")\n  renewalProbability Decimal?  @map(\"renewal_probability\") @db.Decimal(5, 4)\n  policyType         String?   @map(\"policy_type\") @db.VarChar(50)\n  description        String?\n  isActive           Boolean?  @default(true) @map(\"is_active\")\n  lastUpdated        DateTime? @default(now()) @map(\"last_updated\") @db.Timestamptz(6)\n\n  @@unique([deadlineName, deadlineDate])\n  @@index([deadlineDate], map: \"idx_alt_tariff_deadline_date\")\n  @@index([isActive], map: \"idx_alt_tariff_deadline_active\")\n  @@map(\"tariff_deadlines\")\n  @@schema(\"alt\")\n}\n\n/// ProFarmer Premium News ($500/month subscription)\n/// Dedicated table for ProFarmer articles with proper dates\n/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.\nmodel AltProfarmerNews {\n  id               Int       @id @default(autoincrement())\n  eventDate        DateTime  @map(\"event_date\") @db.Date\n  section          String    @db.VarChar(100)\n  headline         String\n  content          String?\n  url              String    @unique @db.VarChar(500)\n  author           String?   @db.VarChar(200)\n  specialistTags   String[]  @map(\"specialist_tags\")\n  ingestedAt       DateTime? @default(now()) @map(\"ingested_at\") @db.Timestamptz(6)\n  rowHash          String    @unique @map(\"row_hash\") @db.VarChar(64)\n  rawPayload       Json?     @map(\"raw_payload\")\n  summary          String?\n  topics           String[]\n  subjects         String[]\n  meta_description String?\n  subject          String?   @db.VarChar(500)\n  tags             String[]\n  keywords         String[]\n  categories       String[]\n\n  @@index([eventDate], map: \"idx_alt_profarmer_date\")\n  @@index([section], map: \"idx_alt_profarmer_section\")\n  @@index([specialistTags], map: \"idx_alt_profarmer_tags\", type: Gin)\n  @@index([tags], map: \"idx_profarmer_tags\", type: Gin)\n  @@index([topics], map: \"idx_profarmer_topics\", type: Gin)\n  @@index([keywords], map: \"idx_profarmer_keywords\", type: Gin)\n  @@index([categories], map: \"idx_profarmer_categories\", type: Gin)\n  @@map(\"profarmer_news\")\n  @@schema(\"alt\")\n}\n\nmodel event_probabilities_126d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_126d_date\")\n  @@index([event_type], map: \"idx_event_prob_126d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_21d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_21d_date\")\n  @@index([event_type], map: \"idx_event_prob_21d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_5d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_5d_date\")\n  @@index([event_type], map: \"idx_event_prob_5d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_63d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_63d_date\")\n  @@index([event_type], map: \"idx_event_prob_63d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_126d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_126d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_126d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_21d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_21d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_21d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_5d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_5d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_5d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_63d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_63d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_63d_date\")\n  @@schema(\"analytics\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_126d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_126d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_21d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_21d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_5d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_5d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_63d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_63d_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel vegas_event_entities {\n  id                Int       @id @default(autoincrement())\n  event_id          String    @db.VarChar(100)\n  entity_id         String    @db.VarChar(100)\n  entity_type       String    @db.VarChar(50)\n  name              String    @db.VarChar(255)\n  formatted_address String?\n  category          String?   @db.VarChar(50)\n  description       String?\n  labels            String[]\n  recurring_ical    String?\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, entity_id])\n  @@index([event_id], map: \"idx_vegas_event_entities_event\")\n  @@index([name], map: \"idx_vegas_event_entities_name\")\n  @@index([entity_type], map: \"idx_vegas_event_entities_type\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_impact {\n  id           Int       @id @default(autoincrement())\n  event_id     String    @db.VarChar(100)\n  vertical     String    @db.VarChar(50)\n  impact_type  String    @db.VarChar(50)\n  impact_date  DateTime  @db.Date\n  impact_value Int\n  position     String?   @db.VarChar(20)\n  created_at   DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, vertical, impact_date])\n  @@index([impact_date], map: \"idx_vegas_event_impact_date\")\n  @@index([impact_date, vertical, impact_value(sort: Desc)], map: \"idx_vegas_event_impact_date_vertical\")\n  @@index([event_id], map: \"idx_vegas_event_impact_event\")\n  @@index([impact_value(sort: Desc)], map: \"idx_vegas_event_impact_value\")\n  @@index([vertical], map: \"idx_vegas_event_impact_vertical\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_labels {\n  id         Int       @id @default(autoincrement())\n  event_id   String    @db.VarChar(100)\n  label      String    @db.VarChar(100)\n  weight     Decimal?  @db.Decimal(4, 3)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, label])\n  @@index([event_id], map: \"idx_vegas_event_labels_event\")\n  @@index([label], map: \"idx_vegas_event_labels_label\")\n  @@index([weight(sort: Desc)], map: \"idx_vegas_event_labels_weight\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_venues {\n  id         Int       @id @default(autoincrement())\n  event_id   String    @db.VarChar(100)\n  venue_id   String    @db.VarChar(100)\n  is_primary Boolean?  @default(true)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_id], map: \"idx_vegas_event_venues_event\")\n  @@index([venue_id], map: \"idx_vegas_event_venues_venue\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_venues {\n  id                Int       @id @default(autoincrement())\n  venue_id          String    @unique @db.VarChar(100)\n  name              String    @db.VarChar(255)\n  formatted_address String?\n  latitude          Decimal?  @db.Decimal(10, 7)\n  longitude         Decimal?  @db.Decimal(10, 7)\n  placekey          String?   @db.VarChar(50)\n  postcode          String?   @db.VarChar(20)\n  locality          String?   @db.VarChar(100)\n  region            String?   @db.VarChar(100)\n  country_code      String?   @db.VarChar(5)\n  geo_type          String?   @default(\"Point\") @db.VarChar(20)\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([latitude, longitude], map: \"idx_vegas_venues_coords\")\n  @@index([name], map: \"idx_vegas_venues_name\")\n  @@index([placekey], map: \"idx_vegas_venues_placekey\")\n  @@schema(\"vegas\")\n}\n\nmodel model_runs {\n  id             Int       @id @default(autoincrement())\n  model_name     String    @db.VarChar(100)\n  model_nickname String?   @db.VarChar(100)\n  horizon_days   Int\n  trained_date   String    @db.VarChar(10)\n  run_hash       String    @db.VarChar(64)\n  mae            Float?\n  coverage_30_70 Float?\n  oof_count      Int?\n  status         String?   @default(\"experimental\") @db.VarChar(20)\n  outcome        String?   @default(\"pending\") @db.VarChar(10)\n  model_path     String?\n  notes          String?\n  created_at     DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([run_hash, horizon_days])\n  @@index([model_name, horizon_days], map: \"idx_model_runs_model\")\n  @@index([status, outcome], map: \"idx_model_runs_status\")\n  @@schema(\"training\")\n}\n\nmodel specialist_signals_1d {\n  id                 Int       @id @default(autoincrement())\n  as_of_date         DateTime  @db.Date\n  bucket             String    @db.VarChar(30)\n  signal_1           Float\n  signal_2           Float\n  confidence         Float\n  model_type         String    @db.VarChar(50)\n  run_hash           String    @db.VarChar(64)\n  created_at         DateTime? @default(now()) @db.Timestamp(6)\n  max_input_age_days Int       @map(\"max_input_age_days\")\n  source_tag         String?   @db.VarChar(50)\n  degraded_level     Int?      @map(\"degraded_level\")\n  conf               Float?\n  data_quality       Json?\n  run_id             String    @db.Uuid\n  abstained          Boolean   @default(false)\n  warmup             Boolean   @default(false)\n  signal_type        String    @default(\"continuous\") @db.VarChar(30)\n\n  @@unique([as_of_date, bucket])\n  @@index([as_of_date], map: \"idx_specialist_signals_date\")\n  @@index([bucket], map: \"idx_specialist_signals_bucket\")\n  @@index([run_hash], map: \"idx_specialist_signals_run\")\n  @@index([max_input_age_days], map: \"idx_specialist_signals_staleness\")\n  @@schema(\"training\")\n}\n\n/// Matrix Manifest - tracks schema, lineage, and validation status for each matrix build\nmodel MatrixManifest1d {\n  runId            String                 @id @map(\"run_id\") @db.Uuid\n  matrixVersion    String?                @map(\"matrix_version\") @db.VarChar(64)\n  commitHash       String                 @map(\"commit_hash\") @db.VarChar(64)\n  dataCutoffDate   DateTime               @map(\"data_cutoff_date\") @db.Date\n  schemaHash       String                 @map(\"schema_hash\") @db.VarChar(64)\n  columnList       Json                   @map(\"column_list\")\n  columnMetadata   Json                   @map(\"column_metadata\")\n  requiredColumns  String[]               @map(\"required_columns\")\n  featureCount     Int                    @map(\"feature_count\")\n  rowCount         Int                    @map(\"row_count\")\n  minDate          DateTime               @map(\"min_date\") @db.Date\n  maxDate          DateTime               @map(\"max_date\") @db.Date\n  validationPassed Boolean                @map(\"validation_passed\")\n  createdAt        DateTime?              @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  stats            MatrixFeatureStats1d[]\n\n  @@index([schemaHash], map: \"idx_manifest_schema_hash\")\n  @@map(\"matrix_manifest_1d\")\n  @@schema(\"training\")\n}\n\n/// Matrix Feature Stats - column-level statistics for each matrix build\nmodel MatrixFeatureStats1d {\n  id              Int              @id @default(autoincrement())\n  runId           String           @map(\"run_id\") @db.Uuid\n  columnName      String           @map(\"column_name\") @db.VarChar(100)\n  dtype           String           @db.VarChar(20)\n  p01             Float?\n  p05             Float?\n  p50             Float?\n  p95             Float?\n  p99             Float?\n  mean            Float?\n  std             Float?\n  minVal          Float?           @map(\"min_val\")\n  maxVal          Float?           @map(\"max_val\")\n  zeroRate        Float?           @map(\"zero_rate\")\n  missingFlagRate Float?           @map(\"missing_flag_rate\")\n  ageDaysP95      Int?             @map(\"age_days_p95\")\n  releaseDayRate  Float?           @map(\"release_day_rate\")\n  createdAt       DateTime?        @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  manifest        MatrixManifest1d @relation(fields: [runId], references: [runId], onDelete: NoAction, onUpdate: NoAction)\n\n  @@unique([runId, columnName])\n  @@map(\"matrix_feature_stats_1d\")\n  @@schema(\"training\")\n}\n\nmodel AblationResults {\n  id                   Int      @id @default(autoincrement())\n  runId                String   @map(\"run_id\") @db.VarChar(64)\n  bucket               String   @db.VarChar(30)\n  horizonDays          Int      @map(\"horizon_days\")\n  baselineMae          Float    @map(\"baseline_mae\")\n  withSignalMae        Float    @map(\"with_signal_mae\")\n  deltaMae             Float    @map(\"delta_mae\")\n  baselineCoverage40   Float    @map(\"baseline_coverage_40\")\n  withSignalCoverage40 Float    @map(\"with_signal_coverage_40\")\n  regimeStabilityScore Float?   @map(\"regime_stability_score\")\n  recommendation       String   @db.VarChar(20)\n  testedAt             DateTime @default(now()) @map(\"tested_at\") @db.Timestamp(6)\n\n  @@unique([runId, bucket, horizonDays])\n  @@index([bucket], map: \"idx_ablation_bucket\")\n  @@index([horizonDays], map: \"idx_ablation_horizon\")\n  @@map(\"ablation_results\")\n  @@schema(\"analytics\")\n}\n\n/// Board Crush & Oil Share Daily Calculations\n/// Derived from ZS/ZL/ZM closes in mkt.futures_1d\n/// Formula: board_crush = ZS - (ZL * 0.11) - (ZM * 0.022)\n/// Formula: oil_share = (ZL * 0.11) / ((ZL * 0.11) + (ZM * 0.022))\nmodel AnalyticsBoardCrush1d {\n  tradeDate  DateTime  @id @map(\"trade_date\") @db.Date\n  zsClose    Decimal   @map(\"zs_close\") @db.Decimal(10, 4)\n  zlClose    Decimal   @map(\"zl_close\") @db.Decimal(10, 4)\n  zmClose    Decimal   @map(\"zm_close\") @db.Decimal(10, 4)\n  boardCrush Decimal   @map(\"board_crush\") @db.Decimal(10, 4)\n  oilShare   Decimal   @map(\"oil_share\") @db.Decimal(10, 6)\n  createdAt  DateTime? @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([tradeDate], map: \"idx_analytics_board_crush_date\")\n  @@map(\"board_crush_1d\")\n  @@schema(\"analytics\")\n}\n\nmodel inngest_receipts {\n  id          Int       @id @default(autoincrement())\n  function_id String\n  event_name  String\n  event_id    String?\n  received_at DateTime? @default(now()) @db.Timestamptz(6)\n  payload     Json?\n\n  @@schema(\"analytics\")\n}\n\nmodel zl_forming_bar {\n  timeframe  String    @id @db.VarChar(10)\n  bar_start  DateTime  @db.Timestamptz(6)\n  open       Float\n  high       Float\n  low        Float\n  close      Float\n  volume     Int?      @default(0)\n  updated_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel zl_latest {\n  id         Int       @id @default(1)\n  price      Float\n  timestamp  DateTime  @db.Timestamptz(6)\n  volume     Int?\n  updated_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\n/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.\nmodel zl_price_1d_yahoo_backup {\n  event_date DateTime? @db.Date\n  open       Decimal?  @db.Decimal(10, 4)\n  high       Decimal?  @db.Decimal(10, 4)\n  low        Decimal?  @db.Decimal(10, 4)\n  close      Decimal?  @db.Decimal(10, 4)\n  volume     BigInt?\n  source     String?   @db.VarChar(50)\n  created_at DateTime? @db.Timestamptz(6)\n\n  @@ignore\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_1m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_5m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel news_event {\n  id                 Int       @id @default(autoincrement())\n  article_id         String?   @db.VarChar(100)\n  event_date         DateTime  @db.Date\n  published_at       DateTime? @db.Timestamptz(6)\n  headline           String\n  content            String?\n  url                String?\n  author             String?   @db.VarChar(200)\n  source             String?   @db.VarChar(100)\n  zl_sentiment       String?   @db.VarChar(50)\n  specialist_tags    String[]\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n  topics             String[]  @default([])\n  subjects           String[]  @default([])\n  meta_description   String?\n\n  @@index([event_date], map: \"idx_econ_news_event_date\")\n  @@index([published_at], map: \"idx_econ_news_published_at\")\n  @@index([specialist_tags], map: \"idx_econ_news_tags\", type: Gin)\n  @@schema(\"econ\")\n}\n"
+  "inlineSchema": "generator client {\n  provider        = \"prisma-client-js\"\n  output          = \"./generated/prisma\"\n  previewFeatures = [\"multiSchema\"]\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  schemas  = [\"alt\", \"analytics\", \"econ\", \"features\", \"forecasts\", \"mkt\", \"model\", \"ops\", \"pos\", \"supply\", \"training\", \"vegas\"]\n}\n\nmodel econ_news {\n  id               Int       @id @default(autoincrement())\n  article_id       String?   @db.VarChar(100)\n  event_date       DateTime  @db.Date\n  published_at     DateTime? @db.Timestamptz(6)\n  headline         String\n  summary          String?\n  content          String?\n  source           String?   @db.VarChar(50)\n  url              String?\n  author           String?   @db.VarChar(200)\n  specialist_tags  String[]\n  topics           String[]\n  subjects         String[]\n  meta_description String?\n  raw_payload      Json?\n  ingested_at      DateTime? @default(now()) @db.Timestamptz(6)\n  created_at       DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at       DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_date], map: \"idx_alt_econ_news_date\")\n  @@index([published_at], map: \"idx_alt_econ_news_published_at\")\n  @@index([specialist_tags], map: \"idx_alt_econ_news_tags\", type: Gin)\n  @@schema(\"alt\")\n}\n\nmodel executive_actions {\n  id                 Int       @id @default(autoincrement())\n  article_id         String?   @db.VarChar(100)\n  event_date         DateTime  @db.Date\n  published_at       DateTime? @db.Timestamptz(6)\n  headline           String\n  content            String?\n  url                String?\n  author             String?   @db.VarChar(200)\n  source             String?   @db.VarChar(100)\n  document_type      String?   @db.VarChar(100)\n  zl_sentiment       String?   @db.VarChar(50)\n  specialist_tags    String[]  @default([])\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n\n  @@index([event_date], map: \"idx_executive_actions_date\")\n  @@index([specialist_tags], map: \"idx_executive_actions_tags\", type: Gin)\n  @@index([document_type], map: \"idx_executive_actions_type\")\n  @@schema(\"alt\")\n}\n\nmodel legislation_1d {\n  id                 Int       @id @default(autoincrement())\n  event_date         DateTime  @db.Date\n  document_number    String?   @db.VarChar(50)\n  title              String?\n  agency             String?   @db.VarChar(200)\n  document_type      String?   @db.VarChar(50)\n  action             String?   @db.VarChar(50)\n  specialist_tags    String[]\n  source             String?   @default(\"FEDERAL_REGISTER\") @db.VarChar(50)\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  url                String?\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n\n  @@schema(\"alt\")\n}\n\nmodel policy_news {\n  id                 Int       @id @default(autoincrement())\n  article_id         String?   @db.VarChar(100)\n  event_date         DateTime  @db.Date\n  published_at       DateTime? @db.Timestamptz(6)\n  headline           String\n  content            String?\n  url                String?\n  author             String?   @db.VarChar(200)\n  source             String?   @db.VarChar(100)\n  zl_sentiment       String?   @db.VarChar(50)\n  specialist_tags    String[]  @default([])\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n\n  @@index([event_date], map: \"idx_policy_news_date\")\n  @@index([source], map: \"idx_policy_news_source\")\n  @@index([specialist_tags], map: \"idx_policy_news_tags\", type: Gin)\n  @@schema(\"alt\")\n}\n\n/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.\nmodel profarmer_news {\n  id               Int       @id @default(autoincrement())\n  event_date       DateTime  @db.Date\n  section          String    @db.VarChar(100)\n  headline         String\n  content          String?\n  url              String    @unique @db.VarChar(500)\n  author           String?   @db.VarChar(200)\n  specialist_tags  String[]\n  ingested_at      DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash         String    @unique @db.VarChar(64)\n  raw_payload      Json?\n  summary          String?\n  topics           String[]\n  subjects         String[]\n  meta_description String?\n  subject          String?   @db.VarChar(500)\n  tags             String[]\n  keywords         String[]\n  categories       String[]\n\n  @@index([event_date], map: \"idx_alt_profarmer_date\")\n  @@index([section], map: \"idx_alt_profarmer_section\")\n  @@index([specialist_tags], map: \"idx_alt_profarmer_tags\", type: Gin)\n  @@index([categories], map: \"idx_profarmer_categories\", type: Gin)\n  @@index([keywords], map: \"idx_profarmer_keywords\", type: Gin)\n  @@index([tags], map: \"idx_profarmer_tags\", type: Gin)\n  @@index([topics], map: \"idx_profarmer_topics\", type: Gin)\n  @@schema(\"alt\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel tariff_deadlines {\n  id                  Int       @id @default(autoincrement())\n  deadline_name       String    @db.VarChar(100)\n  deadline_date       DateTime  @db.Date\n  days_to_expiry      Int\n  renewal_probability Decimal?  @db.Decimal(5, 4)\n  policy_type         String?   @db.VarChar(50)\n  description         String?\n  is_active           Boolean?  @default(true)\n  last_updated        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([deadline_name, deadline_date])\n  @@index([is_active], map: \"idx_alt_tariff_deadline_active\")\n  @@index([deadline_date], map: \"idx_alt_tariff_deadline_date\")\n  @@schema(\"alt\")\n}\n\nmodel weather_1d {\n  id                 Int       @id @default(autoincrement())\n  event_date         DateTime  @db.Date\n  station_id         String    @db.VarChar(20)\n  region             String?   @db.VarChar(50)\n  country            String?   @db.VarChar(50)\n  tmax_c             Float?\n  tmin_c             Float?\n  tavg_c             Float?\n  prcp_mm            Float?\n  snow_mm            Float?\n  source             String?   @default(\"NOAA\") @db.VarChar(50)\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n\n  @@index([region, event_date], map: \"idx_alt_weather_region_date\")\n  @@schema(\"alt\")\n}\n\nmodel ablation_results {\n  id                      Int      @id @default(autoincrement())\n  run_id                  String   @db.VarChar(64)\n  bucket                  String   @db.VarChar(30)\n  horizon_days            Int\n  baseline_mae            Float\n  with_signal_mae         Float\n  delta_mae               Float\n  baseline_coverage_40    Float\n  with_signal_coverage_40 Float\n  regime_stability_score  Float?\n  recommendation          String   @db.VarChar(20)\n  tested_at               DateTime @default(now()) @db.Timestamp(6)\n\n  @@unique([run_id, bucket, horizon_days])\n  @@index([bucket], map: \"idx_ablation_bucket\")\n  @@index([horizon_days], map: \"idx_ablation_horizon\")\n  @@schema(\"analytics\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel board_crush_1d {\n  trade_date  DateTime  @id @db.Date\n  zs_close    Decimal   @db.Decimal(10, 4)\n  zl_close    Decimal   @db.Decimal(10, 4)\n  zm_close    Decimal   @db.Decimal(10, 4)\n  board_crush Decimal   @db.Decimal(10, 4)\n  oil_share   Decimal   @db.Decimal(10, 6)\n  created_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([trade_date], map: \"idx_analytics_board_crush_date\")\n  @@schema(\"analytics\")\n}\n\nmodel chart_overlays {\n  id           Int       @id @default(autoincrement())\n  symbol       String\n  overlay_type String\n  start_date   DateTime\n  end_date     DateTime?\n  label        String\n  color        String?\n  metadata     Json?\n  created_at   DateTime  @default(now())\n\n  @@index([overlay_type])\n  @@index([start_date])\n  @@index([symbol])\n  @@schema(\"analytics\")\n}\n\nmodel dashboard_metrics {\n  id           Int       @id @default(autoincrement())\n  metric_name  String\n  metric_value Decimal?  @db.Decimal(18, 6)\n  as_of_date   DateTime? @db.Date\n  updated_at   DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel driver_attribution_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  driver_name   String    @db.VarChar(50)\n  shap_value    Float?\n  direction     String?   @db.VarChar(10)\n  rank          Int?\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days, driver_name])\n  @@index([forecast_date], map: \"idx_driver_attr_forecast_date\")\n  @@schema(\"analytics\")\n}\n\nmodel driver_scores {\n  id                Int       @id @default(autoincrement())\n  as_of_date        DateTime  @db.Date\n  specialist        String\n  signal            Decimal?  @db.Decimal(10, 6)\n  direction         String?\n  confidence        Decimal?  @db.Decimal(10, 6)\n  shap_contribution Decimal?  @db.Decimal(10, 6)\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, specialist])\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_126d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_126d_date\")\n  @@index([event_type], map: \"idx_event_prob_126d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_21d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_21d_date\")\n  @@index([event_type], map: \"idx_event_prob_21d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_5d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_5d_date\")\n  @@index([event_type], map: \"idx_event_prob_5d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel event_probabilities_63d_1d {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  event_type     String\n  window_start   DateTime? @db.Date\n  window_end     DateTime? @db.Date\n  p_event        Decimal?  @db.Decimal(5, 4)\n  severity_score Decimal?  @db.Decimal(5, 4)\n  confidence     Decimal?  @db.Decimal(5, 4)\n  drivers_topk   Json?\n  model_version  String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, event_type])\n  @@index([as_of_date], map: \"idx_event_prob_63d_date\")\n  @@index([event_type], map: \"idx_event_prob_63d_type\")\n  @@schema(\"analytics\")\n}\n\nmodel inngest_receipts {\n  id          Int       @id @default(autoincrement())\n  function_id String\n  event_name  String\n  event_id    String?\n  received_at DateTime? @default(now()) @db.Timestamptz(6)\n  payload     Json?\n\n  @@schema(\"analytics\")\n}\n\nmodel market_posture {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Date\n  horizon        Int\n  posture        String?\n  confidence     Decimal?  @db.Decimal(10, 6)\n  regime         String?\n  tail_risk_prob Decimal?  @db.Decimal(10, 6)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, horizon])\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_126d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_126d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_126d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_21d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_21d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_21d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_5d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_5d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_5d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel price_scenarios_63d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @db.Date\n  axis          String\n  scenario_name String\n  p_scenario    Decimal?  @db.Decimal(5, 4)\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  drivers_topk  Json?\n  display_order Int?\n  color_code    String?\n  model_version String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, axis, scenario_name])\n  @@index([axis], map: \"idx_scenarios_63d_axis\")\n  @@index([as_of_date], map: \"idx_scenarios_63d_date\")\n  @@schema(\"analytics\")\n}\n\nmodel procurement_actions {\n  id         Int      @id @default(autoincrement())\n  symbol     String\n  as_of_date DateTime\n  action     String\n  confidence Float\n  rationale  String?\n  created_at DateTime @default(now())\n\n  @@unique([symbol, as_of_date])\n  @@index([as_of_date])\n  @@index([symbol])\n  @@schema(\"analytics\")\n}\n\nmodel regime_state_1d {\n  id                  Int       @id @default(autoincrement())\n  forecast_date       DateTime  @unique @db.Date\n  regime              String    @db.VarChar(20)\n  vix_contribution    Float?\n  policy_contribution Float?\n  news_contribution   Float?\n  confidence          Float?\n  created_at          DateTime? @default(now()) @db.Timestamp(6)\n\n  @@index([forecast_date], map: \"idx_regime_state_forecast_date\")\n  @@schema(\"analytics\")\n}\n\nmodel risk_metrics {\n  id             Int       @id @default(autoincrement())\n  as_of_date     DateTime  @db.Timestamp(6)\n  horizon        Int\n  var_01         Float\n  var_05         Float\n  var_10         Float\n  cvar_05        Float\n  prob_up        Float\n  prob_up_5pct   Float\n  prob_down_5pct Float\n  regime         String    @db.VarChar(20)\n  tail_risk_flag Boolean\n  created_at     DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([as_of_date, horizon])\n  @@schema(\"analytics\")\n}\n\nmodel scenario_analysis {\n  id                Int       @id @default(autoincrement())\n  scenario_id       String    @db.VarChar(100)\n  scenario_name     String    @db.VarChar(200)\n  as_of_date        DateTime  @db.Date\n  horizon           Int\n  assumptions       Json\n  base_forecast     Float?\n  scenario_forecast Float?\n  impact_pct        Float?\n  probability       Float?\n  confidence        String?   @db.VarChar(20)\n  model_version     String?   @db.VarChar(100)\n  created_at        DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([scenario_id, as_of_date, horizon])\n  @@index([as_of_date], map: \"idx_scenario_date\")\n  @@schema(\"analytics\")\n}\n\nmodel specialist_trump_effect_1h {\n  id         Int       @id @default(autoincrement())\n  as_of_date DateTime  @db.Timestamp(6)\n  symbol     String?   @default(\"ZL\") @db.VarChar(20)\n  signal     Float?\n  confidence Float?\n  features   Json?\n  created_at DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([as_of_date, symbol])\n  @@index([as_of_date], map: \"idx_trump_1h_date\")\n  @@index([as_of_date], map: \"idx_trump_effect_1h_date\")\n  @@schema(\"analytics\")\n}\n\nmodel value_timing_windows {\n  id                       Int      @id @default(autoincrement())\n  symbol                   String\n  as_of_date               DateTime\n  horizon_days             Int\n  tail_proximity           Float\n  probability_lift         Float\n  confidence_adjusted_lift Float\n  regime_dampening         Float?\n  window_start_week        Int?\n  window_end_week          Int?\n  created_at               DateTime @default(now())\n\n  @@unique([symbol, as_of_date, horizon_days])\n  @@index([as_of_date])\n  @@index([horizon_days])\n  @@index([symbol])\n  @@schema(\"analytics\")\n}\n\nmodel vol_regimes {\n  id               Int       @id @default(autoincrement())\n  symbol           String    @db.VarChar(20)\n  as_of_date       DateTime  @db.Date\n  regime           String    @db.VarChar(20)\n  regime_prob      Float?\n  transition_probs Json?\n  smoothed_prob    Float?\n  model_type       String?   @db.VarChar(50)\n  model_version    String?   @db.VarChar(100)\n  created_at       DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, model_version])\n  @@index([as_of_date], map: \"idx_vol_regime_date\")\n  @@index([symbol], map: \"idx_vol_regime_symbol\")\n  @@schema(\"analytics\")\n}\n\nmodel zl_forming_bar {\n  timeframe  String    @id @db.VarChar(10)\n  bar_start  DateTime  @db.Timestamptz(6)\n  open       Float\n  high       Float\n  low        Float\n  close      Float\n  volume     Int?      @default(0)\n  updated_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel zl_latest {\n  id         Int       @id @default(1)\n  price      Float\n  timestamp  DateTime  @db.Timestamptz(6)\n  volume     Int?\n  updated_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_15m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @db.Timestamptz(6)\n\n  @@index([timestamp(sort: Desc)], map: \"idx_zl_price_15m_ts\")\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_1d {\n  event_date DateTime  @id @db.Date\n  open       Decimal   @db.Decimal(10, 4)\n  high       Decimal   @db.Decimal(10, 4)\n  low        Decimal   @db.Decimal(10, 4)\n  close      Decimal   @db.Decimal(10, 4)\n  volume     BigInt?   @default(0)\n  source     String?   @default(\"yahoo\") @db.VarChar(50)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_date(sort: Desc)], map: \"idx_zl_price_1d_date\")\n  @@schema(\"analytics\")\n}\n\n/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.\nmodel zl_price_1d_yahoo_backup {\n  event_date DateTime? @db.Date\n  open       Decimal?  @db.Decimal(10, 4)\n  high       Decimal?  @db.Decimal(10, 4)\n  low        Decimal?  @db.Decimal(10, 4)\n  close      Decimal?  @db.Decimal(10, 4)\n  volume     BigInt?\n  source     String?   @db.VarChar(50)\n  created_at DateTime? @db.Timestamptz(6)\n\n  @@ignore\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_1h {\n  timestamp  DateTime @id @db.Timestamptz(6)\n  open       Decimal  @db.Decimal(10, 4)\n  high       Decimal  @db.Decimal(10, 4)\n  low        Decimal  @db.Decimal(10, 4)\n  close      Decimal  @db.Decimal(10, 4)\n  volume     BigInt   @default(0)\n  source     String   @default(\"yahoo\") @db.VarChar(50)\n  created_at DateTime @default(now()) @db.Timestamptz(6)\n\n  @@index([timestamp(sort: Desc)], map: \"idx_zl_price_1h_ts\")\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_1m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel zl_price_5m {\n  id             Int       @id @default(autoincrement())\n  timestamp      DateTime  @unique @db.Timestamptz(6)\n  open           Float\n  high           Float\n  low            Float\n  close          Float\n  volume         Int?\n  previous_close Float?\n  change         Float?\n  change_percent Float?\n  day_high       Float?\n  day_low        Float?\n  source         String?   @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"analytics\")\n}\n\nmodel activity_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_activity_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel commodities_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_commodities_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel inflation_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_inflation_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel labor_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_labor_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel money_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_money_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel news_event {\n  id                 Int       @id @default(autoincrement())\n  article_id         String?   @db.VarChar(100)\n  event_date         DateTime  @db.Date\n  published_at       DateTime? @db.Timestamptz(6)\n  headline           String\n  content            String?\n  url                String?\n  author             String?   @db.VarChar(200)\n  source             String?   @db.VarChar(100)\n  zl_sentiment       String?   @db.VarChar(50)\n  specialist_tags    String[]\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time     DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n  raw_payload        Json?\n  ingestion_batch_id String?   @db.Uuid\n  topics             String[]  @default([])\n  subjects           String[]  @default([])\n  meta_description   String?\n\n  @@index([event_date], map: \"idx_econ_news_event_date\")\n  @@index([published_at], map: \"idx_econ_news_published_at\")\n  @@index([specialist_tags], map: \"idx_econ_news_tags\", type: Gin)\n  @@schema(\"econ\")\n}\n\nmodel rates_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_rates_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel vol_indices_1d {\n  id             Int       @id @default(autoincrement())\n  series_id      String    @db.VarChar(50)\n  event_date     DateTime  @db.Date\n  value          Float?\n  source         String?   @default(\"FRED\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([series_id, event_date])\n  @@index([series_id, event_date], map: \"idx_econ_vol_indices_series_date\")\n  @@schema(\"econ\")\n}\n\nmodel elite_1d {\n  id                   Int       @id @default(autoincrement())\n  trade_date           DateTime  @db.Date\n  symbol               String    @db.VarChar(20)\n  hurst_exponent       Float?\n  hurst_regime         String?   @db.VarChar(20)\n  connors_rsi          Float?\n  fisher_transform     Float?\n  fisher_signal        Float?\n  mcginley_dynamic     Float?\n  ttm_squeeze_on       Boolean?\n  ttm_squeeze_momentum Float?\n  schaff_trend_cycle   Float?\n  rvi                  Float?\n  rvi_signal           Float?\n  elder_force_index    Float?\n  kama_10              Float?\n  hma_20               Float?\n  alma_50              Float?\n  rsi_2                Float?\n  rsi_14               Float?\n  cumulative_rsi       Float?\n  macd                 Float?\n  macd_signal          Float?\n  macd_histogram       Float?\n  cci_14               Float?\n  cci_50               Float?\n  atr_10               Float?\n  atr_50               Float?\n  atr_ratio            Float?\n  garman_klass_vol     Float?\n  yang_zhang_vol       Float?\n  bb_percent_b         Float?\n  cmf_21               Float?\n  volume_zscore        Float?\n  unusual_volume       Boolean?\n  created_at           DateTime? @default(now()) @db.Timestamp(6)\n  open                 Float?\n  high                 Float?\n  low                  Float?\n  close                Float?\n  volume               BigInt?\n  returns_1d           Float?\n  log_returns_1d       Float?\n  range_pct            Float?\n\n  @@schema(\"features\")\n}\n\nmodel intel_drops {\n  id             Int       @id @default(autoincrement())\n  as_of_ts       DateTime  @db.Timestamp(6)\n  domain         String    @db.VarChar(20)\n  horizon        String    @db.VarChar(5)\n  direction      Int\n  pressure_cents Float\n  edge           Float\n  driver_weights Json\n  top_drivers    Json\n  regime_tags    String[]  @default([])\n  quality_flags  String[]  @default([])\n  data_gaps      String[]  @default([])\n  receipts       Json?\n  narrative      String\n  quant_payload  Json\n  source_model   String?   @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([as_of_ts, domain, horizon], map: \"intel_drops_unique\")\n  @@index([as_of_ts], map: \"idx_intel_drops_as_of_ts\")\n  @@index([direction], map: \"idx_intel_drops_direction\")\n  @@index([domain], map: \"idx_intel_drops_domain\")\n  @@schema(\"features\")\n}\n\nmodel trump_effect_1d {\n  id                     Int       @id @default(autoincrement())\n  as_of_date             DateTime  @unique @db.Date\n  eo_count_7d            Int?      @default(0)\n  eo_count_30d           Int?      @default(0)\n  proclamation_count_7d  Int?      @default(0)\n  proclamation_count_30d Int?      @default(0)\n  nomination_count_7d    Int?      @default(0)\n  nomination_count_30d   Int?      @default(0)\n  memorandum_count_7d    Int?      @default(0)\n  memorandum_count_30d   Int?      @default(0)\n  total_actions_7d       Int?      @default(0)\n  total_actions_30d      Int?      @default(0)\n  avg_sentiment_7d       Float?\n  avg_sentiment_30d      Float?\n  action_velocity        Float?\n  action_acceleration    Float?\n  weighted_action_score  Float?\n  created_at             DateTime? @default(now()) @db.Timestamp(6)\n\n  @@index([as_of_date], map: \"idx_trump_effect_as_of_date\")\n  @@schema(\"features\")\n}\n\nmodel core_cone_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  target_date   DateTime  @db.Date\n  p10           Float\n  p50           Float\n  p90           Float\n  model_version String?   @default(\"chronos2-v1\") @db.VarChar(50)\n  config_hash   String?   @db.VarChar(64)\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days])\n  @@index([forecast_date], map: \"idx_core_cone_forecast_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel core_mc_1d {\n  id            Int       @id @default(autoincrement())\n  forecast_date DateTime  @db.Date\n  horizon_days  Int\n  s0            Float\n  q10           Float\n  q50           Float\n  q90           Float\n  mu_annual     Float?\n  sigma_annual  Float?\n  mc_p10_final  Float?\n  mc_p50_final  Float?\n  mc_p90_final  Float?\n  mc_min_p10    Float?\n  mc_max_p90    Float?\n  opp           Float?\n  ruin          Float?\n  var_95        Float?\n  cvar_95       Float?\n  runs          Int?      @default(5000)\n  seed          Int?\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([forecast_date, horizon_days])\n  @@index([forecast_date], map: \"idx_core_mc_forecast_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel forecast_quantiles {\n  id            Int       @id @default(autoincrement())\n  model_name    String\n  horizon       Int\n  forecast_date DateTime  @db.Date\n  target_date   DateTime  @db.Date\n  symbol        String?   @default(\"ZL\")\n  p10           Decimal?  @db.Decimal(18, 6)\n  p50           Decimal?  @db.Decimal(18, 6)\n  p90           Decimal?  @db.Decimal(18, 6)\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"forecasts\")\n}\n\nmodel forecast_summary_1d {\n  id                Int       @id @default(autoincrement())\n  forecast_date     DateTime  @db.Date\n  horizon_days      Int\n  opp               Float?\n  ruin              Float?\n  calibrated_p10    Float?\n  calibrated_p90    Float?\n  coverage_error    Float?\n  regime            String?   @db.VarChar(20)\n  regime_multiplier Float?    @default(1.0)\n  narrative         String?\n  top_driver_1      String?   @db.VarChar(50)\n  top_driver_2      String?   @db.VarChar(50)\n  top_driver_3      String?   @db.VarChar(50)\n  model_version     String?   @db.VarChar(50)\n  ai_model          String?   @db.VarChar(50)\n  generated_at      DateTime? @default(now()) @db.Timestamp(6)\n  p30               Float?\n  p50               Float?\n  p70               Float?\n  p10_cal           Float?\n  p90_cal           Float?\n\n  @@unique([forecast_date, horizon_days], map: \"ai_decision_1d_forecast_date_horizon_days_key\")\n  @@index([forecast_date], map: \"idx_ai_decision_forecast_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel garch_forecasts {\n  id              Int       @id @default(autoincrement())\n  symbol          String    @db.VarChar(20)\n  as_of_date      DateTime  @db.Date\n  horizon         Int\n  conditional_vol Float\n  annualized_vol  Float\n  var_01          Float?\n  var_05          Float?\n  cvar_05         Float?\n  vol_lower       Float?\n  vol_upper       Float?\n  model_type      String?   @db.VarChar(50)\n  model_version   String?   @db.VarChar(100)\n  created_at      DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, horizon, model_version])\n  @@index([as_of_date], map: \"idx_garch_forecast_date\")\n  @@index([symbol], map: \"idx_garch_forecast_symbol\")\n  @@schema(\"forecasts\")\n}\n\nmodel horizon_reconciliation_1d {\n  id                  Int       @id @default(autoincrement())\n  forecast_date       DateTime  @unique @db.Date\n  tactical_posture    String?   @db.VarChar(20)\n  short_posture       String?   @db.VarChar(20)\n  medium_posture      String?   @db.VarChar(20)\n  strategic_posture   String?   @db.VarChar(20)\n  conflict_flag       Boolean?  @default(false)\n  reconciled_guidance String?\n  priority_horizon    Int?\n  created_at          DateTime? @default(now()) @db.Timestamp(6)\n\n  @@schema(\"forecasts\")\n}\n\nmodel monte_carlo_runs {\n  id            Int      @id @default(autoincrement())\n  symbol        String\n  as_of_date    DateTime\n  horizon       Int\n  num_sims      Int\n  percentiles   Json\n  correlations  Json?\n  model_version String\n  created_at    DateTime @default(now())\n\n  @@unique([symbol, as_of_date, horizon, model_version])\n  @@index([as_of_date])\n  @@index([horizon])\n  @@index([symbol])\n  @@schema(\"forecasts\")\n}\n\nmodel probability_distributions {\n  id            Int       @id @default(autoincrement())\n  symbol        String    @db.VarChar(20)\n  as_of_date    DateTime  @db.Date\n  horizon       Int\n  percentile    Float\n  value         Float\n  model_version String?   @db.VarChar(100)\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, horizon, percentile])\n  @@index([as_of_date], map: \"idx_prob_dist_date\")\n  @@index([symbol], map: \"idx_prob_dist_symbol\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_126d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_126d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_21d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_21d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_5d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_5d_date\")\n  @@schema(\"forecasts\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel production_63d_1d {\n  id            Int       @id @default(autoincrement())\n  as_of_date    DateTime  @unique @db.Date\n  forecast_date DateTime  @db.Date\n  p30           Decimal?  @db.Decimal(10, 4)\n  p50           Decimal?  @db.Decimal(10, 4)\n  p70           Decimal?  @db.Decimal(10, 4)\n  p10_cal       Decimal?  @db.Decimal(10, 4)\n  p90_cal       Decimal?  @db.Decimal(10, 4)\n  price_p30     Decimal?  @db.Decimal(10, 4)\n  price_p50     Decimal?  @db.Decimal(10, 4)\n  price_p70     Decimal?  @db.Decimal(10, 4)\n  price_p10_cal Decimal?  @db.Decimal(10, 4)\n  price_p90_cal Decimal?  @db.Decimal(10, 4)\n  current_price Decimal?  @db.Decimal(10, 4)\n  model_version String?\n  run_id        String?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([as_of_date], map: \"idx_production_63d_date\")\n  @@schema(\"forecasts\")\n}\n\nmodel etf_1d {\n  id               Int       @id @default(autoincrement())\n  symbol           String    @db.VarChar(20)\n  event_date       DateTime  @db.Date\n  open             Float?\n  high             Float?\n  low              Float?\n  close            Float?\n  volume           BigInt?\n  source           String?   @default(\"barchart\") @db.VarChar(50)\n  row_hash         String    @db.VarChar(64)\n  specialist_tags  String[]\n  created_at       DateTime? @default(now()) @db.Timestamp(6)\n  opening_price    Float?\n  closing_price    Float?\n  session_high     Float?\n  session_low      Float?\n  indicative_open  Float?\n  indicative_close Float?\n  vwap             Float?\n  zl_corr_21d      Float?\n  zl_corr_63d      Float?\n  zl_corr_126d     Float?\n  returns_1d       Float?\n  returns_5d       Float?\n  returns_21d      Float?\n  momentum_21d     Float?\n  volatility_21d   Float?\n\n  @@unique([symbol, event_date])\n  @@index([symbol, event_date], map: \"idx_mkt_etf_1d_symbol_date\")\n  @@index([specialist_tags], map: \"idx_mkt_etf_1d_tags\", type: Gin)\n  @@schema(\"mkt\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel futures_1d {\n  event_date           DateTime  @db.Date\n  symbol               String    @db.VarChar(20)\n  open                 Float?\n  high                 Float?\n  low                  Float?\n  close                Float?\n  volume               BigInt?\n  open_interest        BigInt?\n  source               String?   @db.VarChar(50)\n  ingested_at          DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time       DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash             String?   @db.VarChar(64)\n  zl_corr_30d          Decimal?  @db.Decimal(6, 4)\n  zl_corr_60d          Decimal?  @db.Decimal(6, 4)\n  zl_corr_90d          Decimal?  @db.Decimal(6, 4)\n  hurst_exponent       Float?\n  hurst_regime         String?   @db.VarChar(20)\n  connors_rsi          Float?\n  fisher_transform     Float?\n  fisher_signal        Float?\n  mcginley_dynamic     Float?\n  ttm_squeeze_on       Boolean?\n  ttm_squeeze_momentum Float?\n  schaff_trend_cycle   Float?\n  rvi                  Float?\n  rvi_signal           Float?\n  elder_force_index    Float?\n  kama_10              Float?\n  hma_20               Float?\n  alma_50              Float?\n  rsi_2                Float?\n  rsi_14               Float?\n  cumulative_rsi       Float?\n  macd                 Float?\n  macd_signal          Float?\n  macd_histogram       Float?\n  cci_14               Float?\n  cci_50               Float?\n  atr_10               Float?\n  atr_50               Float?\n  atr_ratio            Float?\n  garman_klass_vol     Float?\n  yang_zhang_vol       Float?\n  bb_percent_b         Float?\n  cmf_21               Float?\n  volume_zscore        Float?\n  unusual_volume       Boolean?\n  returns_1d           Float?\n  log_returns_1d       Float?\n  range_pct            Float?\n  bb_upper             Float?\n  bb_middle            Float?\n  bb_lower             Float?\n  atr_14               Float?\n  adx                  Float?\n  adx_pos              Float?\n  adx_neg              Float?\n  stoch_k              Float?\n  stoch_d              Float?\n  obv                  Float?\n\n  @@id([event_date, symbol])\n  @@schema(\"mkt\")\n}\n\nmodel futures_1h {\n  id             Int       @id @default(autoincrement())\n  symbol         String    @db.VarChar(20)\n  event_time     DateTime  @db.Timestamp(6)\n  open           Float?\n  high           Float?\n  low            Float?\n  close          Float?\n  volume         BigInt?\n  source         String?   @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([symbol, event_time], map: \"uq_mkt_futures_1h_symbol_time\")\n  @@index([symbol, event_time], map: \"idx_mkt_futures_1h_symbol_time\")\n  @@schema(\"mkt\")\n}\n\nmodel fx_1d {\n  id             Int       @id @default(autoincrement())\n  pair           String    @db.VarChar(10)\n  event_date     DateTime  @db.Date\n  rate           Float\n  source         String?   @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n  zl_corr_30d    Float?\n  zl_corr_60d    Float?\n  zl_corr_90d    Float?\n\n  @@unique([pair, event_date])\n  @@index([pair, event_date], map: \"idx_mkt_fx_1d_pair_date\")\n  @@schema(\"mkt\")\n}\n\nmodel options_1d {\n  id                 Int       @id @default(autoincrement())\n  underlying         String    @db.VarChar(20)\n  event_date         DateTime  @db.Date\n  expiration         DateTime  @db.Date\n  strike             Float\n  option_type        String    @db.VarChar(10)\n  open               Float?\n  high               Float?\n  low                Float?\n  close              Float?\n  volume             BigInt?\n  open_interest      BigInt?\n  bid                Float?\n  ask                Float?\n  change             Float?\n  premium            Float?\n  vwap               Float?\n  settlement         Float?\n  implied_volatility Float?\n  delta              Float?\n  gamma              Float?\n  theta              Float?\n  vega               Float?\n  rho                Float?\n  source             String?   @default(\"databento\") @db.VarChar(50)\n  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash           String?   @db.VarChar(64)\n\n  @@unique([underlying, event_date, expiration, strike, option_type])\n  @@index([expiration], map: \"idx_options_expiration\")\n  @@index([strike], map: \"idx_options_strike\")\n  @@index([underlying, event_date], map: \"idx_options_underlying_date\")\n  @@schema(\"mkt\")\n}\n\nmodel model_registry {\n  id                    Int       @id @default(autoincrement())\n  model_id              String\n  model_name            String\n  model_type            String\n  horizon               Int?\n  version               Int       @default(1)\n  trained_at            DateTime  @default(now()) @db.Timestamptz(6)\n  training_mode         String?\n  training_time_seconds Decimal?  @db.Decimal\n  dataset_rows          Int?\n  dataset_features      Int?\n  dataset_start_date    DateTime? @db.Date\n  dataset_end_date      DateTime? @db.Date\n  mase                  Decimal?  @db.Decimal\n  rmse                  Decimal?  @db.Decimal\n  mae                   Decimal?  @db.Decimal\n  mape                  Decimal?  @db.Decimal\n  pinball_loss_p10      Decimal?  @db.Decimal\n  pinball_loss_p50      Decimal?  @db.Decimal\n  pinball_loss_p90      Decimal?  @db.Decimal\n  coverage_80           Decimal?  @db.Decimal\n  best_model            String?\n  models_trained        Int?\n  status                String    @default(\"trained\")\n  is_champion           Boolean?  @default(false)\n  promoted_at           DateTime? @db.Timestamptz(6)\n  artifact_path         String?\n  mlflow_run_id         String?\n  tags                  Json?     @default(\"{}\")\n  notes                 String?\n  created_at            DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at            DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([model_id, version])\n  @@index([horizon], map: \"idx_registry_horizon\")\n  @@index([is_champion], map: \"idx_registry_is_champion\")\n  @@index([model_type], map: \"idx_registry_model_type\")\n  @@index([status], map: \"idx_registry_status\")\n  @@index([trained_at], map: \"idx_registry_trained_at\")\n  @@schema(\"model\")\n}\n\nmodel data_quality_log {\n  id          Int      @id @default(autoincrement())\n  table_name  String\n  check_date  DateTime\n  row_count   Int\n  null_count  Int\n  latest_date DateTime\n  oldest_date DateTime\n  issues      Json?\n  created_at  DateTime @default(now())\n\n  @@index([check_date])\n  @@index([table_name])\n  @@schema(\"ops\")\n}\n\nmodel data_quality_metrics {\n  id                 Int       @id @default(autoincrement())\n  as_of_date         DateTime  @db.Date\n  source             String\n  last_update        DateTime? @db.Timestamptz(6)\n  hours_since_update Decimal?  @db.Decimal\n  total_rows         Int?\n  expected_rows      Int?\n  completeness_pct   Decimal?  @db.Decimal\n  null_count         Int?\n  null_pct           Decimal?  @db.Decimal\n  is_stale           Boolean?  @default(false)\n  is_incomplete      Boolean?  @default(false)\n  created_at         DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([as_of_date, source])\n  @@index([as_of_date], map: \"idx_dq_date\")\n  @@index([source], map: \"idx_dq_source\")\n  @@schema(\"ops\")\n}\n\nmodel data_source_registry {\n  id                    Int       @id @default(autoincrement())\n  source_id             String    @unique\n  source_name           String\n  description           String?\n  target_table          String\n  target_schema         String    @default(\"raw\")\n  api_provider          String\n  api_endpoint          String\n  api_docs_url          String?\n  auth_type             String?\n  auth_env_var          String?\n  response_format       String?\n  date_column           String?\n  entity_column         String?\n  update_frequency      String\n  typical_lag_hours     Int?\n  ingestion_script      String?\n  last_successful_run   DateTime? @db.Timestamptz(6)\n  is_active             Boolean?  @default(true)\n  requires_subscription Boolean?  @default(false)\n  subscription_status   String?\n  notes                 String?\n  created_at            DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at            DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"ops\")\n}\n\nmodel ingest_run {\n  id                 String               @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid\n  job_name           String               @db.VarChar\n  started_at         DateTime?            @default(now()) @db.Timestamptz(6)\n  completed_at       DateTime?            @db.Timestamptz(6)\n  status             String?              @default(\"running\") @db.VarChar\n  rows_attempted     Int?                 @default(0)\n  rows_inserted      Int?                 @default(0)\n  rows_skipped       Int?                 @default(0)\n  rows_quarantined   Int?                 @default(0)\n  cursor_position    Json?\n  error_message      String?\n  quarantined_record quarantined_record[]\n\n  @@index([job_name, started_at], map: \"idx_ingest_run_job_started\")\n  @@schema(\"ops\")\n}\n\nmodel model_core_audit {\n  id                         String   @id @default(dbgenerated(\"gen_random_uuid()\"))\n  training_run_id            String   @unique\n  horizon                    String\n  reviewed_at                DateTime @default(now())\n  reviewer                   String\n  is_core_run                Boolean\n  cv_purged_walk_forward     Boolean\n  asof_alignment_valid       Boolean\n  chronos_bolt_present       Boolean\n  chronos2_present           Boolean\n  chronos2_lora_present      Boolean\n  recursive_tabular_present  Boolean\n  autoets_present            Boolean\n  theta_present              Boolean\n  seasonal_naive_present     Boolean\n  weighted_ensemble_used     Boolean\n  oof_only                   Boolean\n  max_single_weight          Float\n  chronos_weight_nonzero     Boolean\n  recursive_weight_zero_long Boolean\n  monte_carlo_runs           Int\n  p10_present                Boolean\n  p50_present                Boolean\n  p90_present                Boolean\n  stress_widening_applied    Boolean\n  rmse_recorded              Boolean\n  brier_recorded             Boolean\n  p10_coverage_ok            Boolean\n  p90_coverage_ok            Boolean\n  registry_complete          Boolean\n  ensemble_edges_recorded    Boolean\n  resources_logged           Boolean\n  artifact_isolation_safe    Boolean\n  narrative_ready            Boolean\n  buy_sell_language_absent   Boolean\n  uncertainty_explained      Boolean\n  specialist_divergence_flag Boolean\n  hard_gate_pass             Boolean\n  final_approved             Boolean\n  failure_reason             String?\n\n  @@index([final_approved])\n  @@index([horizon])\n  @@schema(\"ops\")\n}\n\nmodel prediction_accuracy {\n  id              Int       @id @default(autoincrement())\n  model_id        String\n  horizon         Int\n  prediction_date DateTime  @db.Date\n  target_date     DateTime  @db.Date\n  actual          Decimal?  @db.Decimal\n  pred_p50        Decimal?  @db.Decimal\n  error           Decimal?  @db.Decimal\n  abs_error       Decimal?  @db.Decimal\n  pct_error       Decimal?  @db.Decimal\n  in_80_band      Boolean?\n  created_at      DateTime? @default(now()) @db.Timestamptz(6)\n  pred_p10        Decimal?  @db.Decimal\n  pred_p90        Decimal?  @db.Decimal\n\n  @@unique([model_id, prediction_date, target_date])\n  @@index([model_id], map: \"idx_accuracy_model\")\n  @@index([target_date], map: \"idx_accuracy_target_date\")\n  @@schema(\"ops\")\n}\n\nmodel quarantined_record {\n  id                Int        @id @default(autoincrement())\n  source_table      String     @db.VarChar\n  ingest_run_id     String     @db.Uuid\n  attempted_at      DateTime?  @default(now()) @db.Timestamptz(6)\n  raw_payload       Json\n  validation_errors String[]\n  severity          String?    @default(\"error\") @db.VarChar\n  resolution_status String?    @default(\"pending\") @db.VarChar\n  resolved_at       DateTime?  @db.Timestamptz(6)\n  resolved_by       String?    @db.VarChar\n  ingest_run        ingest_run @relation(fields: [ingest_run_id], references: [id], onDelete: Cascade, onUpdate: NoAction)\n\n  @@index([ingest_run_id], map: \"idx_quarantine_ingest_run_id\")\n  @@index([resolution_status], map: \"idx_quarantine_resolution_status\")\n  @@index([source_table], map: \"idx_quarantine_source_table\")\n  @@schema(\"ops\")\n}\n\nmodel source_relabel_audit {\n  id             Int       @id @default(autoincrement())\n  relabel_ts     DateTime  @default(now()) @db.Timestamptz(6)\n  table_name     String\n  from_source    String\n  to_source      String\n  row_count      BigInt\n  min_as_of_date DateTime? @db.Date\n  max_as_of_date DateTime? @db.Date\n\n  @@schema(\"ops\")\n}\n\nmodel training_run_log {\n  id            Int       @id @default(autoincrement())\n  run_id        String    @unique\n  horizon       Int\n  phase         String\n  status        String\n  started_at    DateTime\n  completed_at  DateTime?\n  error_message String?\n  metrics       Json?\n\n  @@index([horizon])\n  @@index([phase])\n  @@index([status])\n  @@schema(\"ops\")\n}\n\nmodel training_runs {\n  id               Int       @id @default(autoincrement())\n  run_id           String    @unique\n  run_name         String?\n  experiment_name  String?\n  model_type       String\n  specialist_name  String?\n  horizon          Int?\n  started_at       DateTime  @default(now()) @db.Timestamptz(6)\n  completed_at     DateTime? @db.Timestamptz(6)\n  duration_seconds Decimal?  @db.Decimal\n  status           String?   @default(\"running\")\n  training_mode    String?\n  hyperparameters  Json?     @default(\"{}\")\n  dataset_name     String?\n  dataset_rows     Int?\n  dataset_features Int?\n  metrics          Json?     @default(\"{}\")\n  mase             Decimal?  @db.Decimal\n  error_message    String?\n  artifact_path    String?\n  log_path         String?\n  created_at       DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([model_type], map: \"idx_runs_model_type\")\n  @@index([started_at], map: \"idx_runs_started_at\")\n  @@index([status], map: \"idx_runs_status\")\n  @@schema(\"ops\")\n}\n\nmodel cftc_1w {\n  id                       Int       @id @default(autoincrement())\n  event_date               DateTime  @db.Date\n  symbol                   String    @db.VarChar(20)\n  open_interest            BigInt?\n  prod_merc_long           BigInt?\n  prod_merc_short          BigInt?\n  prod_merc_net            BigInt?\n  swap_long                BigInt?\n  swap_short               BigInt?\n  swap_net                 BigInt?\n  managed_money_long       BigInt?\n  managed_money_short      BigInt?\n  managed_money_net        BigInt?\n  other_rept_long          BigInt?\n  other_rept_short         BigInt?\n  other_rept_net           BigInt?\n  nonrept_long             BigInt?\n  nonrept_short            BigInt?\n  nonrept_net              BigInt?\n  managed_money_net_pct_oi Float?\n  prod_merc_net_pct_oi     Float?\n  source                   String?   @db.VarChar(50)\n  ingested_at              DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time           DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash                 String?   @db.VarChar(64)\n\n  @@unique([symbol, event_date])\n  @@index([symbol, event_date], map: \"idx_pos_cftc_1w_symbol_date\")\n  @@schema(\"pos\")\n}\n\nmodel argentina_crush_1m {\n  id                   Int       @id @default(autoincrement())\n  report_month         DateTime  @unique @db.Date\n  crush_volume_mt      Decimal?  @db.Decimal(12, 2)\n  capacity_utilization Decimal?  @db.Decimal(5, 2)\n  oil_production_mt    Decimal?  @db.Decimal(12, 2)\n  meal_production_mt   Decimal?  @db.Decimal(12, 2)\n  exports_oil_mt       Decimal?  @db.Decimal(12, 2)\n  exports_meal_mt      Decimal?  @db.Decimal(12, 2)\n  source               String?   @default(\"CIARA-CEC\") @db.VarChar(100)\n  ingested_at          DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash             String?   @unique @db.VarChar(64)\n  raw_payload          Json?\n\n  @@index([report_month], map: \"idx_argentina_crush_month\")\n  @@schema(\"supply\")\n}\n\nmodel conab_production_1m {\n  id                      Int       @id @default(autoincrement())\n  report_month            DateTime  @db.Date\n  crop_year               String?   @db.VarChar(20)\n  commodity               String?   @db.VarChar(50)\n  production_mt           Decimal?  @db.Decimal(12, 2)\n  area_harvested_ha       Decimal?  @db.Decimal(12, 2)\n  yield_mt_per_ha         Decimal?  @db.Decimal(6, 2)\n  exports_mt              Decimal?  @db.Decimal(12, 2)\n  domestic_consumption_mt Decimal?  @db.Decimal(12, 2)\n  ending_stocks_mt        Decimal?  @db.Decimal(12, 2)\n  source                  String?   @default(\"CONAB\") @db.VarChar(100)\n  ingested_at             DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash                String?   @unique @db.VarChar(64)\n  raw_payload             Json?\n\n  @@unique([report_month, crop_year, commodity])\n  @@index([commodity], map: \"idx_conab_production_commodity\")\n  @@index([crop_year], map: \"idx_conab_production_crop_year\")\n  @@index([report_month], map: \"idx_conab_production_month\")\n  @@schema(\"supply\")\n}\n\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel eia_biodiesel_1m {\n  report_month                     DateTime  @id @db.Date\n  biodiesel_production_mgal        Decimal?  @db.Decimal(12, 2)\n  renewable_diesel_production_mgal Decimal?  @db.Decimal(12, 2)\n  feedstock_soybean_oil_pct        Decimal?  @db.Decimal(5, 2)\n  capacity_utilization_pct         Decimal?  @db.Decimal(5, 2)\n  ingested_at                      DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash                         String?   @db.VarChar(64)\n\n  @@index([report_month], map: \"idx_supply_eia_biodiesel_month\")\n  @@schema(\"supply\")\n}\n\nmodel epa_rin_1d {\n  id             Int       @id @default(autoincrement())\n  event_date     DateTime  @db.Date\n  rin_type       String    @db.VarChar(20)\n  price          Float?\n  source         String?   @default(\"EPA\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@unique([rin_type, event_date])\n  @@schema(\"supply\")\n}\n\nmodel lcfs_1d {\n  event_date         DateTime @id @db.Date\n  price_usd_per_mt   Decimal  @db.Decimal(12, 4)\n  source             String\n  ingestion_batch_id String?\n  created_at         DateTime @default(now()) @db.Timestamptz(6)\n\n  @@index([created_at], map: \"idx_supply_lcfs_created_at\")\n  @@schema(\"supply\")\n}\n\nmodel mpob_palm_1m {\n  id                   Int       @id @default(autoincrement())\n  report_month         DateTime  @db.Date\n  production_mt        Decimal?  @db.Decimal(12, 2)\n  exports_mt           Decimal?  @db.Decimal(12, 2)\n  stocks_mt            Decimal?  @db.Decimal(12, 2)\n  local_consumption_mt Decimal?  @db.Decimal(12, 2)\n  country              String?   @default(\"Malaysia\") @db.VarChar(50)\n  source               String?   @default(\"MPOB\") @db.VarChar(100)\n  ingested_at          DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash             String?   @unique @db.VarChar(64)\n  raw_payload          Json?\n\n  @@unique([report_month, country])\n  @@index([country], map: \"idx_mpob_palm_country\")\n  @@index([report_month], map: \"idx_mpob_palm_month\")\n  @@schema(\"supply\")\n}\n\nmodel usda_exports_1w {\n  id                   Int       @id @default(autoincrement())\n  event_date           DateTime  @db.Date\n  commodity            String    @db.VarChar(50)\n  destination_country  String?   @db.VarChar(100)\n  net_sales_mt         Float?\n  exports_mt           Float?\n  outstanding_sales_mt Float?\n  source               String?   @default(\"USDA\") @db.VarChar(50)\n  ingested_at          DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time       DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash             String?   @db.VarChar(64)\n\n  @@schema(\"supply\")\n}\n\nmodel usda_wasde_1m {\n  id             Int       @id @default(autoincrement())\n  event_date     DateTime  @db.Date\n  commodity      String    @db.VarChar(50)\n  country        String?   @db.VarChar(100)\n  metric         String?   @db.VarChar(100)\n  value          Float?\n  unit           String?   @db.VarChar(20)\n  source         String?   @default(\"USDA\") @db.VarChar(50)\n  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)\n  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)\n  row_hash       String?   @db.VarChar(64)\n\n  @@schema(\"supply\")\n}\n\nmodel features_1d {\n  id         Int      @id @default(autoincrement())\n  as_of_date DateTime @unique(map: \"core_features_as_of_date_key\")\n  features   Json\n\n  @@index([as_of_date], map: \"core_features_as_of_date_idx\")\n  @@schema(\"training\")\n}\n\nmodel matrix_1d {\n  trade_date                                      DateTime @db.Date\n  symbol                                          String   @db.VarChar(20)\n  open                                            Float?\n  high                                            Float?\n  low                                             Float?\n  close                                           Float?\n  volume                                          Float?\n  open_interest                                   Float?\n  hurst_exponent                                  Float?\n  connors_rsi                                     Float?\n  fisher_transform                                Float?\n  fisher_signal                                   Float?\n  mcginley_dynamic                                Float?\n  ttm_squeeze_on                                  BigInt?\n  ttm_squeeze_momentum                            String?\n  schaff_trend_cycle                              String?\n  rvi                                             Float?\n  rvi_signal                                      Float?\n  elder_force_index                               Float?\n  kama_10                                         Float?\n  hma_20                                          Float?\n  alma_50                                         Float?\n  rsi_2                                           Float?\n  rsi_14                                          Float?\n  cumulative_rsi                                  String?\n  macd                                            Float?\n  macd_signal                                     Float?\n  macd_histogram                                  Float?\n  cci_14                                          Float?\n  cci_50                                          Float?\n  atr_10                                          Float?\n  atr_50                                          Float?\n  atr_ratio                                       Float?\n  garman_klass_vol                                Float?\n  yang_zhang_vol                                  Float?\n  bb_percent_b                                    Float?\n  cmf_21                                          Float?\n  volume_zscore                                   Float?\n  unusual_volume                                  BigInt?\n  created_at                                      String?\n  returns_1d                                      Float?\n  log_returns_1d                                  Float?\n  range_pct                                       Float?\n  hurst_regime_raw                                String?  @map(\"_hurst_regime_raw\")\n  hurst_regime                                    BigInt?\n  hurst_regime_is_missing                         BigInt?\n  ttm_squeeze_on_is_missing                       BigInt?\n  fred_anfci                                      Float?\n  fred_apu000074714                               Float?\n  fred_b235rc1q027sbea                            Float?\n  fred_bamlc0a0cm                                 Float?\n  fred_bamlh0a0hym2                               Float?\n  fred_bogmbase                                   Float?\n  fred_bopgstb                                    Float?\n  fred_busloans                                   Float?\n  fred_ccsa                                       Float?\n  fred_chncpiallminmei                            Float?\n  fred_chngdpnqdsmei                              Float?\n  fred_chnmainlandtpu                             Float?\n  fred_clvmnacscab1gqea19                         Float?\n  fred_cpiaucsl                                   Float?\n  fred_cpilfesl                                   Float?\n  fred_dcoilbrenteu                               Float?\n  fred_dcoilwtico                                 Float?\n  fred_ddfuelusgulf                               Float?\n  fred_dexars                                     Float?\n  fred_dexbzus                                    Float?\n  fred_dexcaus                                    Float?\n  fred_dexchus                                    Float?\n  fred_dexhkus                                    Float?\n  fred_dexinus                                    Float?\n  fred_dexjpus                                    Float?\n  fred_dexkous                                    Float?\n  fred_dexmaus                                    Float?\n  fred_dexmxus                                    Float?\n  fred_dexnous                                    Float?\n  fred_dexsfus                                    Float?\n  fred_dexsius                                    Float?\n  fred_dexszus                                    Float?\n  fred_dextaus                                    Float?\n  fred_dexthus                                    Float?\n  fred_dexusal                                    Float?\n  fred_dexuseu                                    Float?\n  fred_dexusuk                                    Float?\n  fred_dfedtarl                                   Float?\n  fred_dfedtaru                                   Float?\n  fred_dff                                        Float?\n  fred_dfii10                                     Float?\n  fred_dfii20                                     Float?\n  fred_dfii30                                     Float?\n  fred_dfii5                                      Float?\n  fred_dfii7                                      Float?\n  fred_dgasusgulf                                 Float?\n  fred_dgs1                                       Float?\n  fred_dgs10                                      Float?\n  fred_dgs1mo                                     Float?\n  fred_dgs2                                       Float?\n  fred_dgs20                                      Float?\n  fred_dgs30                                      Float?\n  fred_dgs3mo                                     Float?\n  fred_dgs5                                       Float?\n  fred_dgs6mo                                     Float?\n  fred_dgs7                                       Float?\n  fred_dhhngsp                                    Float?\n  fred_dhoilnyh                                   Float?\n  fred_djfuelusgulf                               Float?\n  fred_dprime                                     Float?\n  fred_dpropanembtx                               Float?\n  fred_drcclacbs                                  Float?\n  fred_dtwexafegs                                 Float?\n  fred_dtwexbgs                                   Float?\n  fred_dtwexemegs                                 Float?\n  fred_dxy                                        Float?\n  fred_emvtradepolemv                             Float?\n  fred_eputrade                                   Float?\n  fred_expch                                      Float?\n  fred_expgs                                      Float?\n  fred_fedfunds                                   Float?\n  fred_frgshpusm649ncis                           Float?\n  fred_gasdesw                                    Float?\n  fred_gasregw                                    Float?\n  fred_gdp                                        Float?\n  fred_gdpc1                                      Float?\n  fred_gvzcls                                     Float?\n  fred_houst                                      Float?\n  fred_icsa                                       Float?\n  fred_impch                                      Float?\n  fred_impgs                                      Float?\n  fred_indpro                                     Float?\n  fred_ir3tib01cnm156n                            Float?\n  fred_lvxrnsa                                    Float?\n  fred_m2sl                                       Float?\n  fred_manemp                                     Float?\n  fred_mortgage30us                               Float?\n  fred_myagm2cnm189n                              Float?\n  fred_nasdaqcom                                  Float?\n  fred_nfci                                       Float?\n  fred_nyfed_bgcr                                 Float?\n  fred_nyfed_effr                                 Float?\n  fred_nyfed_obfr                                 Float?\n  fred_nyfed_sofr                                 Float?\n  fred_nyfed_tgcr                                 Float?\n  fred_ovxcls                                     Float?\n  fred_payems                                     Float?\n  fred_pbarlusdm                                  Float?\n  fred_pce                                        Float?\n  fred_pcepi                                      Float?\n  fred_pcepilfe                                   Float?\n  fred_pcoppusdm                                  Float?\n  fred_pcu311224311224                            Float?\n  fred_pcu32411032411012                          Float?\n  fred_permit                                     Float?\n  fred_pmaizmtusdm                                Float?\n  fred_pngaseuusdm                                Float?\n  fred_polvoilusdm                                Float?\n  fred_ppiaco                                     Float?\n  fred_ppifgs                                     Float?\n  fred_ppifis                                     Float?\n  fred_ppoilusdm                                  Float?\n  fred_pricenpqusdm                               Float?\n  fred_proilusdm                                  Float?\n  fred_psoilusdm                                  Float?\n  fred_psoybusdm                                  Float?\n  fred_psugaisausdm                               Float?\n  fred_psunousdm                                  Float?\n  fred_pwheamtusdm                                Float?\n  fred_rrpontsyd                                  Float?\n  fred_rsxfs                                      Float?\n  fred_sofr                                       Float?\n  fred_sp500                                      Float?\n  fred_stlfsi                                     Float?\n  fred_stlfsi4                                    Float?\n  fred_t10y2y                                     Float?\n  fred_t10y3m                                     Float?\n  fred_t10yie                                     Float?\n  fred_t20yiem                                    Float?\n  fred_t30yiem                                    Float?\n  fred_t5yie                                      Float?\n  fred_t5yifr                                     Float?\n  fred_tedrate                                    Float?\n  fred_totresns                                   Float?\n  fred_umcsent                                    Float?\n  fred_unrate                                     Float?\n  fred_usepuindxd                                 Float?\n  fred_usepuindxm                                 Float?\n  fred_vixcls                                     Float?\n  fred_vxgscls                                    Float?\n  fred_vxvcls                                     Float?\n  fred_walcl                                      Float?\n  fred_wpu01830161                                Float?\n  fred_wpu01830171                                Float?\n  fred_wpu057303                                  Float?\n  fred_wpu06140341                                Float?\n  fred_wresbal                                    Float?\n  fred_xtexva01cnm667s                            Float?\n  fred_xtimva01cnm667s                            Float?\n  rapeseed_close                                  Float?\n  sunflower_close                                 Float?\n  usd_cny                                         Float?\n  fx_audusd                                       Float?\n  fx_dxy_afe                                      Float?\n  fx_dxy_broad                                    Float?\n  fx_dxy_eme                                      Float?\n  fx_eurusd                                       Float?\n  fx_gbpusd                                       Float?\n  fx_nzdusd                                       Float?\n  fx_usdbrl                                       Float?\n  fx_usdcad                                       Float?\n  fx_usdchf                                       Float?\n  fx_usdcny                                       Float?\n  fx_usdhkd                                       Float?\n  fx_usdinr                                       Float?\n  fx_usdjpy                                       Float?\n  fx_usdkrw                                       Float?\n  fx_usdmxn                                       Float?\n  fx_usdmyr                                       Float?\n  fx_usdnok                                       Float?\n  fx_usdsek                                       Float?\n  fx_usdsgd                                       Float?\n  fx_usdthb                                       Float?\n  fx_usdtwd                                       Float?\n  fx_usdzar                                       Float?\n  wx_ar_tavg_c                                    Float?\n  wx_br_tavg_c                                    Float?\n  wx_us_tavg_c                                    Float?\n  wx_ar_tmin_c                                    Float?\n  wx_br_tmin_c                                    Float?\n  wx_us_tmin_c                                    Float?\n  wx_ar_tmax_c                                    Float?\n  wx_br_tmax_c                                    Float?\n  wx_us_tmax_c                                    Float?\n  wx_ar_prcp_mm                                   Float?\n  wx_br_prcp_mm                                   Float?\n  wx_us_prcp_mm                                   Float?\n  wx_ar_snow_mm                                   Float?\n  wx_br_snow_mm                                   Float?\n  wx_us_snow_mm                                   Float?\n  wx_ar_gdd_10c                                   Float?\n  wx_br_gdd_10c                                   Float?\n  wx_us_gdd_10c                                   Float?\n  wx_ar_gdd_30d_sum                               Float?\n  wx_br_gdd_30d_sum                               Float?\n  wx_us_gdd_30d_sum                               Float?\n  wx_ar_prcp_7d_sum                               Float?\n  wx_br_prcp_7d_sum                               Float?\n  wx_us_prcp_7d_sum                               Float?\n  wx_ar_prcp_14d_sum                              Float?\n  wx_br_prcp_14d_sum                              Float?\n  wx_us_prcp_14d_sum                              Float?\n  wx_ar_temp_anom_30d                             Float?\n  wx_br_temp_anom_30d                             Float?\n  wx_us_temp_anom_30d                             Float?\n  wx_ar_prcp_anom_30d                             Float?\n  wx_br_prcp_anom_30d                             Float?\n  wx_us_prcp_anom_30d                             Float?\n  wx_ar_temp_vol_7d                               Float?\n  wx_br_temp_vol_7d                               Float?\n  wx_us_temp_vol_7d                               Float?\n  cftc_zl_cot_managed_money_net_event_value       Float?\n  cftc_zl_cot_managed_money_net_event_delta       Float?\n  cftc_zl_cot_managed_money_net_is_release_day    Int?\n  cftc_zl_cot_managed_money_net_age_days          Int?\n  cftc_zl_cot_managed_money_net_is_available      Int?\n  cftc_zl_cot_mm_pct_oi_event_value               Float?\n  cftc_zl_cot_mm_pct_oi_event_delta               Float?\n  cftc_zl_cot_mm_pct_oi_is_release_day            Int?\n  cftc_zl_cot_mm_pct_oi_age_days                  Int?\n  cftc_zl_cot_mm_pct_oi_is_available              Int?\n  cftc_zl_cot_prod_merc_net_event_value           Float?\n  cftc_zl_cot_prod_merc_net_event_delta           Float?\n  cftc_zl_cot_prod_merc_net_is_release_day        Int?\n  cftc_zl_cot_prod_merc_net_age_days              Int?\n  cftc_zl_cot_prod_merc_net_is_available          Int?\n  cftc_zl_cot_open_interest_event_value           Float?\n  cftc_zl_cot_open_interest_event_delta           Float?\n  cftc_zl_cot_open_interest_is_release_day        Int?\n  cftc_zl_cot_open_interest_age_days              Int?\n  cftc_zl_cot_open_interest_is_available          Int?\n  cot_managed_money_net                           Float?\n  cot_prod_merc_net                               Float?\n  cot_open_interest                               Float?\n  cot_mm_pct_oi                                   Float?\n  cot_comm_pct_oi                                 Float?\n  cot_mm_net_chg                                  Float?\n  cot_comm_net_chg                                Float?\n  rin_d3                                          Float?\n  rin_d4                                          Float?\n  rin_d5                                          Float?\n  rin_d6                                          Float?\n  lcfs_ca_lcfs_credit_event_value                 Float?\n  lcfs_ca_lcfs_credit_event_delta                 Float?\n  lcfs_ca_lcfs_credit_is_release_day              Int?\n  lcfs_ca_lcfs_credit_age_days                    Int?\n  lcfs_ca_lcfs_credit_is_available                Int?\n  lcfs_credit                                     Float?\n  usda_exports_usda_zl_exports_event_value        Float?\n  usda_exports_usda_zl_exports_event_delta        Float?\n  usda_exports_usda_zl_exports_is_release_day     Int?\n  usda_exports_usda_zl_exports_age_days           Int?\n  usda_exports_usda_zl_exports_is_available       Int?\n  usda_exports_usda_zl_net_sales_event_value      Float?\n  usda_exports_usda_zl_net_sales_event_delta      Float?\n  usda_exports_usda_zl_net_sales_is_release_day   Int?\n  usda_exports_usda_zl_net_sales_age_days         Int?\n  usda_exports_usda_zl_net_sales_is_available     Int?\n  usda_exports_usda_zl_outstanding_event_value    Float?\n  usda_exports_usda_zl_outstanding_event_delta    Float?\n  usda_exports_usda_zl_outstanding_is_release_day Int?\n  usda_exports_usda_zl_outstanding_age_days       Int?\n  usda_exports_usda_zl_outstanding_is_available   Int?\n  usda_exports_usda_zs_exports_event_value        Float?\n  usda_exports_usda_zs_exports_event_delta        Float?\n  usda_exports_usda_zs_exports_is_release_day     Int?\n  usda_exports_usda_zs_exports_age_days           Int?\n  usda_exports_usda_zs_exports_is_available       Int?\n  usda_exports_usda_zs_net_sales_event_value      Float?\n  usda_exports_usda_zs_net_sales_event_delta      Float?\n  usda_exports_usda_zs_net_sales_is_release_day   Int?\n  usda_exports_usda_zs_net_sales_age_days         Int?\n  usda_exports_usda_zs_net_sales_is_available     Int?\n  usda_exports_usda_zs_outstanding_event_value    Float?\n  usda_exports_usda_zs_outstanding_event_delta    Float?\n  usda_exports_usda_zs_outstanding_is_release_day Int?\n  usda_exports_usda_zs_outstanding_age_days       Int?\n  usda_exports_usda_zs_outstanding_is_available   Int?\n  usda_exports_usda_zm_exports_event_value        Float?\n  usda_exports_usda_zm_exports_event_delta        Float?\n  usda_exports_usda_zm_exports_is_release_day     Int?\n  usda_exports_usda_zm_exports_age_days           Int?\n  usda_exports_usda_zm_exports_is_available       Int?\n  usda_exports_usda_zm_net_sales_event_value      Float?\n  usda_exports_usda_zm_net_sales_event_delta      Float?\n  usda_exports_usda_zm_net_sales_is_release_day   Int?\n  usda_exports_usda_zm_net_sales_age_days         Int?\n  usda_exports_usda_zm_net_sales_is_available     Int?\n  usda_exports_usda_zm_outstanding_event_value    Float?\n  usda_exports_usda_zm_outstanding_event_delta    Float?\n  usda_exports_usda_zm_outstanding_is_release_day Int?\n  usda_exports_usda_zm_outstanding_age_days       Int?\n  usda_exports_usda_zm_outstanding_is_available   Int?\n  usda_zl_exports                                 Float?\n  usda_zl_net_sales                               Float?\n  usda_zl_outstanding                             Float?\n  usda_zs_exports                                 Float?\n  usda_zs_net_sales                               Float?\n  usda_zs_outstanding                             Float?\n  usda_zm_exports                                 Float?\n  usda_zm_net_sales                               Float?\n  usda_zm_outstanding                             Float?\n  wasde_us_zl_consumption_event_value             Float?\n  wasde_us_zl_consumption_event_delta             Float?\n  wasde_us_zl_consumption_is_release_day          Int?\n  wasde_us_zl_consumption_age_days                Int?\n  wasde_us_zl_consumption_is_available            Int?\n  wasde_us_zl_crush_event_value                   Float?\n  wasde_us_zl_crush_event_delta                   Float?\n  wasde_us_zl_crush_is_release_day                BigInt?\n  wasde_us_zl_crush_age_days                      Int?\n  wasde_us_zl_crush_is_available                  Int?\n  wasde_us_zl_ending_stocks_event_value           Float?\n  wasde_us_zl_ending_stocks_event_delta           Float?\n  wasde_us_zl_ending_stocks_is_release_day        Int?\n  wasde_us_zl_ending_stocks_age_days              Int?\n  wasde_us_zl_ending_stocks_is_available          Int?\n  wasde_us_zl_exports_event_value                 Float?\n  wasde_us_zl_exports_event_delta                 Float?\n  wasde_us_zl_exports_is_release_day              Int?\n  wasde_us_zl_exports_age_days                    Int?\n  wasde_us_zl_exports_is_available                Int?\n  wasde_us_zl_production_event_value              Float?\n  wasde_us_zl_production_event_delta              Float?\n  wasde_us_zl_production_is_release_day           Int?\n  wasde_us_zl_production_age_days                 Int?\n  wasde_us_zl_production_is_available             Int?\n  wasde_us_zm_consumption_event_value             Float?\n  wasde_us_zm_consumption_event_delta             Float?\n  wasde_us_zm_consumption_is_release_day          Int?\n  wasde_us_zm_consumption_age_days                Int?\n  wasde_us_zm_consumption_is_available            Int?\n  wasde_us_zm_crush_event_value                   Float?\n  wasde_us_zm_crush_event_delta                   Float?\n  wasde_us_zm_crush_is_release_day                BigInt?\n  wasde_us_zm_crush_age_days                      Int?\n  wasde_us_zm_crush_is_available                  Int?\n  wasde_us_zm_ending_stocks_event_value           Float?\n  wasde_us_zm_ending_stocks_event_delta           Float?\n  wasde_us_zm_ending_stocks_is_release_day        Int?\n  wasde_us_zm_ending_stocks_age_days              Int?\n  wasde_us_zm_ending_stocks_is_available          Int?\n  wasde_us_zm_exports_event_value                 Float?\n  wasde_us_zm_exports_event_delta                 Float?\n  wasde_us_zm_exports_is_release_day              Int?\n  wasde_us_zm_exports_age_days                    Int?\n  wasde_us_zm_exports_is_available                Int?\n  wasde_us_zm_production_event_value              Float?\n  wasde_us_zm_production_event_delta              Float?\n  wasde_us_zm_production_is_release_day           Int?\n  wasde_us_zm_production_age_days                 Int?\n  wasde_us_zm_production_is_available             Int?\n  wasde_us_zs_consumption_event_value             Float?\n  wasde_us_zs_consumption_event_delta             Float?\n  wasde_us_zs_consumption_is_release_day          Int?\n  wasde_us_zs_consumption_age_days                Int?\n  wasde_us_zs_consumption_is_available            Int?\n  wasde_us_zs_crush_event_value                   Float?\n  wasde_us_zs_crush_event_delta                   Float?\n  wasde_us_zs_crush_is_release_day                BigInt?\n  wasde_us_zs_crush_age_days                      Int?\n  wasde_us_zs_crush_is_available                  Int?\n  wasde_us_zs_ending_stocks_event_value           Float?\n  wasde_us_zs_ending_stocks_event_delta           Float?\n  wasde_us_zs_ending_stocks_is_release_day        Int?\n  wasde_us_zs_ending_stocks_age_days              Int?\n  wasde_us_zs_ending_stocks_is_available          Int?\n  wasde_us_zs_exports_event_value                 Float?\n  wasde_us_zs_exports_event_delta                 Float?\n  wasde_us_zs_exports_is_release_day              Int?\n  wasde_us_zs_exports_age_days                    Int?\n  wasde_us_zs_exports_is_available                Int?\n  wasde_us_zs_production_event_value              Float?\n  wasde_us_zs_production_event_delta              Float?\n  wasde_us_zs_production_is_release_day           Int?\n  wasde_us_zs_production_age_days                 Int?\n  wasde_us_zs_production_is_available             Int?\n  wasde_world_zl_consumption_event_value          Float?\n  wasde_world_zl_consumption_event_delta          Float?\n  wasde_world_zl_consumption_is_release_day       Int?\n  wasde_world_zl_consumption_age_days             Int?\n  wasde_world_zl_consumption_is_available         Int?\n  wasde_world_zl_ending_stocks_event_value        Float?\n  wasde_world_zl_ending_stocks_event_delta        Float?\n  wasde_world_zl_ending_stocks_is_release_day     Int?\n  wasde_world_zl_ending_stocks_age_days           Int?\n  wasde_world_zl_ending_stocks_is_available       Int?\n  wasde_world_zl_exports_event_value              Float?\n  wasde_world_zl_exports_event_delta              Float?\n  wasde_world_zl_exports_is_release_day           Int?\n  wasde_world_zl_exports_age_days                 Int?\n  wasde_world_zl_exports_is_available             Int?\n  wasde_world_zl_production_event_value           Float?\n  wasde_world_zl_production_event_delta           Float?\n  wasde_world_zl_production_is_release_day        Int?\n  wasde_world_zl_production_age_days              Int?\n  wasde_world_zl_production_is_available          Int?\n  wasde_world_zm_consumption_event_value          Float?\n  wasde_world_zm_consumption_event_delta          Float?\n  wasde_world_zm_consumption_is_release_day       Int?\n  wasde_world_zm_consumption_age_days             Int?\n  wasde_world_zm_consumption_is_available         Int?\n  wasde_world_zm_ending_stocks_event_value        Float?\n  wasde_world_zm_ending_stocks_event_delta        Float?\n  wasde_world_zm_ending_stocks_is_release_day     Int?\n  wasde_world_zm_ending_stocks_age_days           Int?\n  wasde_world_zm_ending_stocks_is_available       Int?\n  wasde_world_zm_exports_event_value              Float?\n  wasde_world_zm_exports_event_delta              Float?\n  wasde_world_zm_exports_is_release_day           Int?\n  wasde_world_zm_exports_age_days                 Int?\n  wasde_world_zm_exports_is_available             Int?\n  wasde_world_zm_production_event_value           Float?\n  wasde_world_zm_production_event_delta           Float?\n  wasde_world_zm_production_is_release_day        Int?\n  wasde_world_zm_production_age_days              Int?\n  wasde_world_zm_production_is_available          Int?\n  wasde_world_zs_consumption_event_value          Float?\n  wasde_world_zs_consumption_event_delta          Float?\n  wasde_world_zs_consumption_is_release_day       Int?\n  wasde_world_zs_consumption_age_days             Int?\n  wasde_world_zs_consumption_is_available         Int?\n  wasde_world_zs_ending_stocks_event_value        Float?\n  wasde_world_zs_ending_stocks_event_delta        Float?\n  wasde_world_zs_ending_stocks_is_release_day     Int?\n  wasde_world_zs_ending_stocks_age_days           Int?\n  wasde_world_zs_ending_stocks_is_available       Int?\n  wasde_world_zs_exports_event_value              Float?\n  wasde_world_zs_exports_event_delta              Float?\n  wasde_world_zs_exports_is_release_day           Int?\n  wasde_world_zs_exports_age_days                 Int?\n  wasde_world_zs_exports_is_available             Int?\n  wasde_world_zs_production_event_value           Float?\n  wasde_world_zs_production_event_delta           Float?\n  wasde_world_zs_production_is_release_day        Int?\n  wasde_world_zs_production_age_days              Int?\n  wasde_world_zs_production_is_available          Int?\n  wasde_us_zl_consumption                         Float?\n  wasde_us_zl_crush                               Float?\n  wasde_us_zl_ending_stocks                       Float?\n  wasde_us_zl_exports                             Float?\n  wasde_us_zl_production                          Float?\n  wasde_us_zm_consumption                         Float?\n  wasde_us_zm_crush                               Float?\n  wasde_us_zm_ending_stocks                       Float?\n  wasde_us_zm_exports                             Float?\n  wasde_us_zm_production                          Float?\n  wasde_us_zs_consumption                         Float?\n  wasde_us_zs_crush                               Float?\n  wasde_us_zs_ending_stocks                       Float?\n  wasde_us_zs_exports                             Float?\n  wasde_us_zs_production                          Float?\n  wasde_world_zl_consumption                      Float?\n  wasde_world_zl_ending_stocks                    Float?\n  wasde_world_zl_exports                          Float?\n  wasde_world_zl_production                       Float?\n  wasde_world_zm_consumption                      Float?\n  wasde_world_zm_ending_stocks                    Float?\n  wasde_world_zm_exports                          Float?\n  wasde_world_zm_production                       Float?\n  wasde_world_zs_consumption                      Float?\n  wasde_world_zs_ending_stocks                    Float?\n  wasde_world_zs_exports                          Float?\n  wasde_world_zs_production                       Float?\n  wasde_soybeans_crush                            Float?\n  wasde_soybean_oil_production                    Float?\n  wasde_soybean_oil_ending_stocks                 Float?\n  pmi_cn_nbs_china_pmi_event_value                Float?\n  pmi_cn_nbs_china_pmi_event_delta                Float?\n  pmi_cn_nbs_china_pmi_is_release_day             Int?\n  pmi_cn_nbs_china_pmi_age_days                   Int?\n  pmi_cn_nbs_china_pmi_is_available               Int?\n  china_pmi                                       Float?\n  corr_cl_30d                                     Float?\n  corr_cpo_30d                                    Float?\n  corr_dx_30d                                     Float?\n  corr_es_30d                                     Float?\n  corr_gc_30d                                     Float?\n  corr_hg_30d                                     Float?\n  corr_ho_30d                                     Float?\n  corr_ng_30d                                     Float?\n  corr_rb_30d                                     Float?\n  corr_si_30d                                     Float?\n  corr_vx_30d                                     Float?\n  corr_zc_30d                                     Float?\n  corr_zm_30d                                     Float?\n  corr_zs_30d                                     Float?\n  corr_zw_30d                                     Float?\n  corr_cl_60d                                     Float?\n  corr_cpo_60d                                    Float?\n  corr_dx_60d                                     Float?\n  corr_es_60d                                     Float?\n  corr_gc_60d                                     Float?\n  corr_hg_60d                                     Float?\n  corr_ho_60d                                     Float?\n  corr_ng_60d                                     Float?\n  corr_rb_60d                                     Float?\n  corr_si_60d                                     Float?\n  corr_vx_60d                                     Float?\n  corr_zc_60d                                     Float?\n  corr_zm_60d                                     Float?\n  corr_zs_60d                                     Float?\n  corr_zw_60d                                     Float?\n  corr_cl_90d                                     Float?\n  corr_cpo_90d                                    Float?\n  corr_dx_90d                                     Float?\n  corr_es_90d                                     Float?\n  corr_gc_90d                                     Float?\n  corr_hg_90d                                     Float?\n  corr_ho_90d                                     Float?\n  corr_ng_90d                                     Float?\n  corr_rb_90d                                     Float?\n  corr_si_90d                                     Float?\n  corr_vx_90d                                     Float?\n  corr_zc_90d                                     Float?\n  corr_zm_90d                                     Float?\n  corr_zs_90d                                     Float?\n  corr_zw_90d                                     Float?\n  cl_close                                        Float?\n  cpo_close                                       Float?\n  dx_close                                        Float?\n  es_close                                        Float?\n  gc_close                                        Float?\n  ho_close                                        Float?\n  ng_close                                        Float?\n  rb_close                                        Float?\n  zc_close                                        Float?\n  zm_close                                        Float?\n  zs_close                                        Float?\n  zw_close                                        Float?\n  cl_returns_1d                                   Float?\n  cpo_returns_1d                                  Float?\n  dx_returns_1d                                   Float?\n  es_returns_1d                                   Float?\n  gc_returns_1d                                   Float?\n  ho_returns_1d                                   Float?\n  ng_returns_1d                                   Float?\n  rb_returns_1d                                   Float?\n  zc_returns_1d                                   Float?\n  zm_returns_1d                                   Float?\n  zs_returns_1d                                   Float?\n  zw_returns_1d                                   Float?\n  cl_rsi_14                                       Float?\n  cpo_rsi_14                                      Float?\n  dx_rsi_14                                       Float?\n  es_rsi_14                                       Float?\n  gc_rsi_14                                       Float?\n  ho_rsi_14                                       Float?\n  ng_rsi_14                                       Float?\n  rb_rsi_14                                       Float?\n  zc_rsi_14                                       Float?\n  zm_rsi_14                                       Float?\n  zs_rsi_14                                       Float?\n  zw_rsi_14                                       Float?\n  cl_macd                                         Float?\n  cpo_macd                                        Float?\n  dx_macd                                         Float?\n  es_macd                                         Float?\n  gc_macd                                         Float?\n  ho_macd                                         Float?\n  ng_macd                                         Float?\n  rb_macd                                         Float?\n  zc_macd                                         Float?\n  zm_macd                                         Float?\n  zs_macd                                         Float?\n  zw_macd                                         Float?\n  cl_atr_ratio                                    Float?\n  cpo_atr_ratio                                   Float?\n  dx_atr_ratio                                    Float?\n  es_atr_ratio                                    Float?\n  gc_atr_ratio                                    Float?\n  ho_atr_ratio                                    Float?\n  ng_atr_ratio                                    Float?\n  rb_atr_ratio                                    Float?\n  zc_atr_ratio                                    Float?\n  zm_atr_ratio                                    Float?\n  zs_atr_ratio                                    Float?\n  zw_atr_ratio                                    Float?\n  cl_volume_zscore                                Float?\n  cpo_volume_zscore                               Float?\n  dx_volume_zscore                                Float?\n  es_volume_zscore                                Float?\n  gc_volume_zscore                                Float?\n  ho_volume_zscore                                Float?\n  ng_volume_zscore                                Float?\n  rb_volume_zscore                                Float?\n  zc_volume_zscore                                Float?\n  zm_volume_zscore                                Float?\n  zs_volume_zscore                                Float?\n  zw_volume_zscore                                Float?\n  cl_bb_percent_b                                 Float?\n  cpo_bb_percent_b                                Float?\n  dx_bb_percent_b                                 Float?\n  es_bb_percent_b                                 Float?\n  gc_bb_percent_b                                 Float?\n  ho_bb_percent_b                                 Float?\n  ng_bb_percent_b                                 Float?\n  rb_bb_percent_b                                 Float?\n  zc_bb_percent_b                                 Float?\n  zm_bb_percent_b                                 Float?\n  zs_bb_percent_b                                 Float?\n  zw_bb_percent_b                                 Float?\n  cl_hurst_exponent                               Float?\n  cpo_hurst_exponent                              Float?\n  dx_hurst_exponent                               Float?\n  es_hurst_exponent                               Float?\n  gc_hurst_exponent                               Float?\n  ho_hurst_exponent                               Float?\n  ng_hurst_exponent                               Float?\n  rb_hurst_exponent                               Float?\n  zc_hurst_exponent                               Float?\n  zm_hurst_exponent                               Float?\n  zs_hurst_exponent                               Float?\n  zw_hurst_exponent                               Float?\n  board_crush                                     Float?\n  board_crush_zscore_21d                          Float?\n  board_crush_zscore_63d                          Float?\n  board_crush_zscore_252d                         Float?\n  board_crush_momentum_5d                         Float?\n  board_crush_expanding                           BigInt?\n  soy_oil_share                                   Float?\n  soy_oil_share_zscore                            Float?\n  zl_zs_ratio                                     Float?\n  zl_zs_ratio_zscore                              Float?\n  zl_cl_ratio                                     Float?\n  zl_cl_ratio_zscore                              Float?\n  zl_cpo_spread                                   Float?\n  zl_cpo_spread_zscore                            Float?\n  crack_321                                       Float?\n  crack_321_zscore                                Float?\n  ho_crack                                        Float?\n  rb_crack                                        Float?\n  ho_crack_zscore_63d                             Float?\n  diesel_crack_wide                               BigInt?\n  opt_total_oi_c                                  Float?\n  opt_total_oi_p                                  Float?\n  opt_total_volume_c                              Float?\n  opt_total_volume_p                              Float?\n  opt_avg_premium_c                               Float?\n  opt_avg_premium_p                               Float?\n  sig_biofuel_1                                   Float?\n  sig_china_1                                     Float?\n  sig_crush_1                                     Float?\n  sig_energy_1                                    Float?\n  sig_fed_1                                       Float?\n  sig_fx_1                                        Float?\n  sig_palm_1                                      Float?\n  sig_substitutes_1                               Float?\n  sig_tariff_1                                    Float?\n  sig_trump_effect_1                              Float?\n  sig_volatility_1                                Float?\n  sig_biofuel_2                                   Float?\n  sig_china_2                                     Float?\n  sig_crush_2                                     Float?\n  sig_energy_2                                    Float?\n  sig_fed_2                                       Float?\n  sig_fx_2                                        Float?\n  sig_palm_2                                      Float?\n  sig_substitutes_2                               Float?\n  sig_tariff_2                                    Float?\n  sig_trump_effect_2                              Float?\n  sig_volatility_2                                Float?\n  sig_biofuel_conf                                Float?\n  sig_china_conf                                  Float?\n  sig_crush_conf                                  Float?\n  sig_energy_conf                                 Float?\n  sig_fed_conf                                    Float?\n  sig_fx_conf                                     Float?\n  sig_palm_conf                                   Float?\n  sig_substitutes_conf                            Float?\n  sig_tariff_conf                                 Float?\n  sig_trump_effect_conf                           Float?\n  sig_volatility_conf                             Float?\n  oi_delta_1d                                     Float?\n  oi_delta_5d                                     Float?\n  oi_pct_change_1d                                Float?\n  oi_pct_change_5d                                Float?\n  oi_momentum                                     Float?\n  oi_delta_zscore                                 Float?\n  volume_ma_5d                                    Float?\n  volume_spike                                    BigInt?\n  churn_rate                                      Float?\n  churn_zscore                                    Float?\n  churn_high                                      BigInt?\n  price_direction                                 Float?\n  oi_direction                                    Float?\n  oi_price_divergence                             BigInt?\n  flow_conviction                                 BigInt?\n  cot_net_zscore                                  Float?\n  cot_age_fresh                                   BigInt?\n  cot_regime_numeric                              BigInt?\n  washout_risk                                    BigInt?\n  vix_close                                       Float?\n  open_is_missing                                 BigInt?\n  high_is_missing                                 BigInt?\n  low_is_missing                                  BigInt?\n  close_is_missing                                BigInt?\n  volume_is_missing                               BigInt?\n  open_interest_is_missing                        BigInt?\n  hurst_exponent_is_missing                       BigInt?\n  connors_rsi_is_missing                          BigInt?\n  fisher_transform_is_missing                     BigInt?\n  fisher_signal_is_missing                        BigInt?\n  mcginley_dynamic_is_missing                     BigInt?\n  rvi_is_missing                                  BigInt?\n  rvi_signal_is_missing                           BigInt?\n  elder_force_index_is_missing                    BigInt?\n  kama_10_is_missing                              BigInt?\n  hma_20_is_missing                               BigInt?\n  alma_50_is_missing                              BigInt?\n  rsi_2_is_missing                                BigInt?\n  rsi_14_is_missing                               BigInt?\n  macd_is_missing                                 BigInt?\n  macd_signal_is_missing                          BigInt?\n  macd_histogram_is_missing                       BigInt?\n  cci_14_is_missing                               BigInt?\n  cci_50_is_missing                               BigInt?\n  atr_10_is_missing                               BigInt?\n  atr_50_is_missing                               BigInt?\n  atr_ratio_is_missing                            BigInt?\n  garman_klass_vol_is_missing                     BigInt?\n  yang_zhang_vol_is_missing                       BigInt?\n  bb_percent_b_is_missing                         BigInt?\n  cmf_21_is_missing                               BigInt?\n  volume_zscore_is_missing                        BigInt?\n  unusual_volume_is_missing                       BigInt?\n  returns_1d_is_missing                           BigInt?\n  log_returns_1d_is_missing                       BigInt?\n  range_pct_is_missing                            BigInt?\n  fred_anfci_is_missing                           BigInt?\n  fred_apu000074714_is_missing                    BigInt?\n  fred_b235rc1q027sbea_is_missing                 BigInt?\n  fred_bamlc0a0cm_is_missing                      BigInt?\n  fred_bamlh0a0hym2_is_missing                    BigInt?\n  fred_bogmbase_is_missing                        BigInt?\n  fred_bopgstb_is_missing                         BigInt?\n  fred_busloans_is_missing                        BigInt?\n  fred_ccsa_is_missing                            BigInt?\n  fred_chncpiallminmei_is_missing                 BigInt?\n  fred_chngdpnqdsmei_is_missing                   BigInt?\n  fred_chnmainlandtpu_is_missing                  BigInt?\n  fred_clvmnacscab1gqea19_is_missing              BigInt?\n  fred_cpiaucsl_is_missing                        BigInt?\n  fred_cpilfesl_is_missing                        BigInt?\n  fred_dcoilbrenteu_is_missing                    BigInt?\n  fred_dcoilwtico_is_missing                      BigInt?\n  fred_ddfuelusgulf_is_missing                    BigInt?\n  fred_dexars_is_missing                          BigInt?\n  fred_dexbzus_is_missing                         BigInt?\n  fred_dexcaus_is_missing                         BigInt?\n  fred_dexchus_is_missing                         BigInt?\n  fred_dexhkus_is_missing                         BigInt?\n  fred_dexinus_is_missing                         BigInt?\n  fred_dexjpus_is_missing                         BigInt?\n  fred_dexkous_is_missing                         BigInt?\n  fred_dexmaus_is_missing                         BigInt?\n  fred_dexmxus_is_missing                         BigInt?\n  fred_dexnous_is_missing                         BigInt?\n  fred_dexsfus_is_missing                         BigInt?\n  fred_dexsius_is_missing                         BigInt?\n  fred_dexszus_is_missing                         BigInt?\n  fred_dextaus_is_missing                         BigInt?\n  fred_dexthus_is_missing                         BigInt?\n  fred_dexusal_is_missing                         BigInt?\n  fred_dexuseu_is_missing                         BigInt?\n  fred_dexusuk_is_missing                         BigInt?\n  fred_dfedtarl_is_missing                        BigInt?\n  fred_dfedtaru_is_missing                        BigInt?\n  fred_dff_is_missing                             BigInt?\n  fred_dfii10_is_missing                          BigInt?\n  fred_dfii20_is_missing                          BigInt?\n  fred_dfii30_is_missing                          BigInt?\n  fred_dfii5_is_missing                           BigInt?\n  fred_dfii7_is_missing                           BigInt?\n  fred_dgasusgulf_is_missing                      BigInt?\n  fred_dgs1_is_missing                            BigInt?\n  fred_dgs10_is_missing                           BigInt?\n  fred_dgs1mo_is_missing                          BigInt?\n  fred_dgs2_is_missing                            BigInt?\n  fred_dgs20_is_missing                           BigInt?\n  fred_dgs30_is_missing                           BigInt?\n  fred_dgs3mo_is_missing                          BigInt?\n  fred_dgs5_is_missing                            BigInt?\n  fred_dgs6mo_is_missing                          BigInt?\n  fred_dgs7_is_missing                            BigInt?\n  fred_dhhngsp_is_missing                         BigInt?\n  fred_dhoilnyh_is_missing                        BigInt?\n  fred_djfuelusgulf_is_missing                    BigInt?\n  fred_dprime_is_missing                          BigInt?\n  fred_dpropanembtx_is_missing                    BigInt?\n  fred_drcclacbs_is_missing                       BigInt?\n  fred_dtwexafegs_is_missing                      BigInt?\n  fred_dtwexbgs_is_missing                        BigInt?\n  fred_dtwexemegs_is_missing                      BigInt?\n  fred_dxy_is_missing                             BigInt?\n  fred_emvtradepolemv_is_missing                  BigInt?\n  fred_eputrade_is_missing                        BigInt?\n  fred_expch_is_missing                           BigInt?\n  fred_expgs_is_missing                           BigInt?\n  fred_fedfunds_is_missing                        BigInt?\n  fred_frgshpusm649ncis_is_missing                BigInt?\n  fred_gasdesw_is_missing                         BigInt?\n  fred_gasregw_is_missing                         BigInt?\n  fred_gdp_is_missing                             BigInt?\n  fred_gdpc1_is_missing                           BigInt?\n  fred_gvzcls_is_missing                          BigInt?\n  fred_houst_is_missing                           BigInt?\n  fred_icsa_is_missing                            BigInt?\n  fred_impch_is_missing                           BigInt?\n  fred_impgs_is_missing                           BigInt?\n  fred_indpro_is_missing                          BigInt?\n  fred_ir3tib01cnm156n_is_missing                 BigInt?\n  fred_lvxrnsa_is_missing                         BigInt?\n  fred_m2sl_is_missing                            BigInt?\n  fred_manemp_is_missing                          BigInt?\n  fred_mortgage30us_is_missing                    BigInt?\n  fred_myagm2cnm189n_is_missing                   BigInt?\n  fred_nasdaqcom_is_missing                       BigInt?\n  fred_nfci_is_missing                            BigInt?\n  fred_nyfed_bgcr_is_missing                      BigInt?\n  fred_nyfed_effr_is_missing                      BigInt?\n  fred_nyfed_obfr_is_missing                      BigInt?\n  fred_nyfed_sofr_is_missing                      BigInt?\n  fred_nyfed_tgcr_is_missing                      BigInt?\n  fred_ovxcls_is_missing                          BigInt?\n  fred_payems_is_missing                          BigInt?\n  fred_pbarlusdm_is_missing                       BigInt?\n  fred_pce_is_missing                             BigInt?\n  fred_pcepi_is_missing                           BigInt?\n  fred_pcepilfe_is_missing                        BigInt?\n  fred_pcoppusdm_is_missing                       BigInt?\n  fred_pcu311224311224_is_missing                 BigInt?\n  fred_pcu32411032411012_is_missing               BigInt?\n  fred_permit_is_missing                          BigInt?\n  fred_pmaizmtusdm_is_missing                     BigInt?\n  fred_pngaseuusdm_is_missing                     BigInt?\n  fred_polvoilusdm_is_missing                     BigInt?\n  fred_ppiaco_is_missing                          BigInt?\n  fred_ppifgs_is_missing                          BigInt?\n  fred_ppifis_is_missing                          BigInt?\n  fred_ppoilusdm_is_missing                       BigInt?\n  fred_pricenpqusdm_is_missing                    BigInt?\n  fred_proilusdm_is_missing                       BigInt?\n  fred_psoilusdm_is_missing                       BigInt?\n  fred_psoybusdm_is_missing                       BigInt?\n  fred_psugaisausdm_is_missing                    BigInt?\n  fred_psunousdm_is_missing                       BigInt?\n  fred_pwheamtusdm_is_missing                     BigInt?\n  fred_rrpontsyd_is_missing                       BigInt?\n  fred_rsxfs_is_missing                           BigInt?\n  fred_sofr_is_missing                            BigInt?\n  fred_sp500_is_missing                           BigInt?\n  fred_stlfsi_is_missing                          BigInt?\n  fred_stlfsi4_is_missing                         BigInt?\n  fred_t10y2y_is_missing                          BigInt?\n  fred_t10y3m_is_missing                          BigInt?\n  fred_t10yie_is_missing                          BigInt?\n  fred_t20yiem_is_missing                         BigInt?\n  fred_t30yiem_is_missing                         BigInt?\n  fred_t5yie_is_missing                           BigInt?\n  fred_t5yifr_is_missing                          BigInt?\n  fred_tedrate_is_missing                         BigInt?\n  fred_totresns_is_missing                        BigInt?\n  fred_umcsent_is_missing                         BigInt?\n  fred_unrate_is_missing                          BigInt?\n  fred_usepuindxd_is_missing                      BigInt?\n  fred_usepuindxm_is_missing                      BigInt?\n  fred_vixcls_is_missing                          BigInt?\n  fred_vxgscls_is_missing                         BigInt?\n  fred_vxvcls_is_missing                          BigInt?\n  fred_walcl_is_missing                           BigInt?\n  fred_wpu01830161_is_missing                     BigInt?\n  fred_wpu01830171_is_missing                     BigInt?\n  fred_wpu057303_is_missing                       BigInt?\n  fred_wpu06140341_is_missing                     BigInt?\n  fred_wresbal_is_missing                         BigInt?\n  fred_xtexva01cnm667s_is_missing                 BigInt?\n  fred_xtimva01cnm667s_is_missing                 BigInt?\n  rapeseed_close_is_missing                       BigInt?\n  sunflower_close_is_missing                      BigInt?\n  usd_cny_is_missing                              BigInt?\n  fx_audusd_is_missing                            BigInt?\n  fx_dxy_afe_is_missing                           BigInt?\n  fx_dxy_broad_is_missing                         BigInt?\n  fx_dxy_eme_is_missing                           BigInt?\n  fx_eurusd_is_missing                            BigInt?\n  fx_gbpusd_is_missing                            BigInt?\n  fx_nzdusd_is_missing                            BigInt?\n  fx_usdbrl_is_missing                            BigInt?\n  fx_usdcad_is_missing                            BigInt?\n  fx_usdchf_is_missing                            BigInt?\n  fx_usdcny_is_missing                            BigInt?\n  fx_usdhkd_is_missing                            BigInt?\n  fx_usdinr_is_missing                            BigInt?\n  fx_usdjpy_is_missing                            BigInt?\n  fx_usdkrw_is_missing                            BigInt?\n  fx_usdmxn_is_missing                            BigInt?\n  fx_usdmyr_is_missing                            BigInt?\n  fx_usdnok_is_missing                            BigInt?\n  fx_usdsek_is_missing                            BigInt?\n  fx_usdsgd_is_missing                            BigInt?\n  fx_usdthb_is_missing                            BigInt?\n  fx_usdtwd_is_missing                            BigInt?\n  fx_usdzar_is_missing                            BigInt?\n  wx_ar_tavg_c_is_missing                         BigInt?\n  wx_br_tavg_c_is_missing                         BigInt?\n  wx_us_tavg_c_is_missing                         BigInt?\n  wx_ar_tmin_c_is_missing                         BigInt?\n  wx_br_tmin_c_is_missing                         BigInt?\n  wx_us_tmin_c_is_missing                         BigInt?\n  wx_ar_tmax_c_is_missing                         BigInt?\n  wx_br_tmax_c_is_missing                         BigInt?\n  wx_us_tmax_c_is_missing                         BigInt?\n  wx_ar_prcp_mm_is_missing                        BigInt?\n  wx_br_prcp_mm_is_missing                        BigInt?\n  wx_us_prcp_mm_is_missing                        BigInt?\n  wx_ar_snow_mm_is_missing                        BigInt?\n  wx_br_snow_mm_is_missing                        BigInt?\n  wx_us_snow_mm_is_missing                        BigInt?\n  wx_ar_gdd_10c_is_missing                        BigInt?\n  wx_br_gdd_10c_is_missing                        BigInt?\n  wx_us_gdd_10c_is_missing                        BigInt?\n  wx_ar_gdd_30d_sum_is_missing                    BigInt?\n  wx_br_gdd_30d_sum_is_missing                    BigInt?\n  wx_us_gdd_30d_sum_is_missing                    BigInt?\n  wx_ar_prcp_7d_sum_is_missing                    BigInt?\n  wx_br_prcp_7d_sum_is_missing                    BigInt?\n  wx_us_prcp_7d_sum_is_missing                    BigInt?\n  wx_ar_prcp_14d_sum_is_missing                   BigInt?\n  wx_br_prcp_14d_sum_is_missing                   BigInt?\n  wx_us_prcp_14d_sum_is_missing                   BigInt?\n  wx_ar_temp_anom_30d_is_missing                  BigInt?\n  wx_br_temp_anom_30d_is_missing                  BigInt?\n  wx_us_temp_anom_30d_is_missing                  BigInt?\n  wx_ar_prcp_anom_30d_is_missing                  BigInt?\n  wx_br_prcp_anom_30d_is_missing                  BigInt?\n  wx_us_prcp_anom_30d_is_missing                  BigInt?\n  wx_ar_temp_vol_7d_is_missing                    BigInt?\n  wx_br_temp_vol_7d_is_missing                    BigInt?\n  wx_us_temp_vol_7d_is_missing                    BigInt?\n  cot_managed_money_net_is_missing                BigInt?\n  cot_prod_merc_net_is_missing                    BigInt?\n  cot_open_interest_is_missing                    BigInt?\n  cot_mm_pct_oi_is_missing                        BigInt?\n  cot_comm_pct_oi_is_missing                      BigInt?\n  cot_mm_net_chg_is_missing                       BigInt?\n  cot_comm_net_chg_is_missing                     BigInt?\n  rin_d3_is_missing                               BigInt?\n  rin_d4_is_missing                               BigInt?\n  rin_d5_is_missing                               BigInt?\n  rin_d6_is_missing                               BigInt?\n  lcfs_credit_is_missing                          BigInt?\n  usda_zl_exports_is_missing                      BigInt?\n  usda_zl_net_sales_is_missing                    BigInt?\n  usda_zl_outstanding_is_missing                  BigInt?\n  usda_zs_exports_is_missing                      BigInt?\n  usda_zs_net_sales_is_missing                    BigInt?\n  usda_zs_outstanding_is_missing                  BigInt?\n  usda_zm_exports_is_missing                      BigInt?\n  usda_zm_net_sales_is_missing                    BigInt?\n  usda_zm_outstanding_is_missing                  BigInt?\n  wasde_us_zl_consumption_is_missing              BigInt?\n  wasde_us_zl_crush_is_missing                    BigInt?\n  wasde_us_zl_ending_stocks_is_missing            BigInt?\n  wasde_us_zl_exports_is_missing                  BigInt?\n  wasde_us_zl_production_is_missing               BigInt?\n  wasde_us_zm_consumption_is_missing              BigInt?\n  wasde_us_zm_crush_is_missing                    BigInt?\n  wasde_us_zm_ending_stocks_is_missing            BigInt?\n  wasde_us_zm_exports_is_missing                  BigInt?\n  wasde_us_zm_production_is_missing               BigInt?\n  wasde_us_zs_consumption_is_missing              BigInt?\n  wasde_us_zs_crush_is_missing                    BigInt?\n  wasde_us_zs_ending_stocks_is_missing            BigInt?\n  wasde_us_zs_exports_is_missing                  BigInt?\n  wasde_us_zs_production_is_missing               BigInt?\n  wasde_world_zl_consumption_is_missing           BigInt?\n  wasde_world_zl_ending_stocks_is_missing         BigInt?\n  wasde_world_zl_exports_is_missing               BigInt?\n  wasde_world_zl_production_is_missing            BigInt?\n  wasde_world_zm_consumption_is_missing           BigInt?\n  wasde_world_zm_ending_stocks_is_missing         BigInt?\n  wasde_world_zm_exports_is_missing               BigInt?\n  wasde_world_zm_production_is_missing            BigInt?\n  wasde_world_zs_consumption_is_missing           BigInt?\n  wasde_world_zs_ending_stocks_is_missing         BigInt?\n  wasde_world_zs_exports_is_missing               BigInt?\n  wasde_world_zs_production_is_missing            BigInt?\n  wasde_soybeans_crush_is_missing                 BigInt?\n  wasde_soybean_oil_production_is_missing         BigInt?\n  wasde_soybean_oil_ending_stocks_is_missing      BigInt?\n  china_pmi_is_missing                            BigInt?\n  corr_cl_30d_is_missing                          BigInt?\n  corr_cpo_30d_is_missing                         BigInt?\n  corr_dx_30d_is_missing                          BigInt?\n  corr_es_30d_is_missing                          BigInt?\n  corr_gc_30d_is_missing                          BigInt?\n  corr_hg_30d_is_missing                          BigInt?\n  corr_ho_30d_is_missing                          BigInt?\n  corr_ng_30d_is_missing                          BigInt?\n  corr_rb_30d_is_missing                          BigInt?\n  corr_si_30d_is_missing                          BigInt?\n  corr_vx_30d_is_missing                          BigInt?\n  corr_zc_30d_is_missing                          BigInt?\n  corr_zm_30d_is_missing                          BigInt?\n  corr_zs_30d_is_missing                          BigInt?\n  corr_zw_30d_is_missing                          BigInt?\n  corr_cl_60d_is_missing                          BigInt?\n  corr_cpo_60d_is_missing                         BigInt?\n  corr_dx_60d_is_missing                          BigInt?\n  corr_es_60d_is_missing                          BigInt?\n  corr_gc_60d_is_missing                          BigInt?\n  corr_hg_60d_is_missing                          BigInt?\n  corr_ho_60d_is_missing                          BigInt?\n  corr_ng_60d_is_missing                          BigInt?\n  corr_rb_60d_is_missing                          BigInt?\n  corr_si_60d_is_missing                          BigInt?\n  corr_vx_60d_is_missing                          BigInt?\n  corr_zc_60d_is_missing                          BigInt?\n  corr_zm_60d_is_missing                          BigInt?\n  corr_zs_60d_is_missing                          BigInt?\n  corr_zw_60d_is_missing                          BigInt?\n  corr_cl_90d_is_missing                          BigInt?\n  corr_cpo_90d_is_missing                         BigInt?\n  corr_dx_90d_is_missing                          BigInt?\n  corr_es_90d_is_missing                          BigInt?\n  corr_gc_90d_is_missing                          BigInt?\n  corr_hg_90d_is_missing                          BigInt?\n  corr_ho_90d_is_missing                          BigInt?\n  corr_ng_90d_is_missing                          BigInt?\n  corr_rb_90d_is_missing                          BigInt?\n  corr_si_90d_is_missing                          BigInt?\n  corr_vx_90d_is_missing                          BigInt?\n  corr_zc_90d_is_missing                          BigInt?\n  corr_zm_90d_is_missing                          BigInt?\n  corr_zs_90d_is_missing                          BigInt?\n  corr_zw_90d_is_missing                          BigInt?\n  cl_close_is_missing                             BigInt?\n  cpo_close_is_missing                            BigInt?\n  dx_close_is_missing                             BigInt?\n  es_close_is_missing                             BigInt?\n  gc_close_is_missing                             BigInt?\n  ho_close_is_missing                             BigInt?\n  ng_close_is_missing                             BigInt?\n  rb_close_is_missing                             BigInt?\n  zc_close_is_missing                             BigInt?\n  zm_close_is_missing                             BigInt?\n  zs_close_is_missing                             BigInt?\n  zw_close_is_missing                             BigInt?\n  cl_returns_1d_is_missing                        BigInt?\n  cpo_returns_1d_is_missing                       BigInt?\n  dx_returns_1d_is_missing                        BigInt?\n  es_returns_1d_is_missing                        BigInt?\n  gc_returns_1d_is_missing                        BigInt?\n  ho_returns_1d_is_missing                        BigInt?\n  ng_returns_1d_is_missing                        BigInt?\n  rb_returns_1d_is_missing                        BigInt?\n  zc_returns_1d_is_missing                        BigInt?\n  zm_returns_1d_is_missing                        BigInt?\n  zs_returns_1d_is_missing                        BigInt?\n  zw_returns_1d_is_missing                        BigInt?\n  cl_rsi_14_is_missing                            BigInt?\n  cpo_rsi_14_is_missing                           BigInt?\n  dx_rsi_14_is_missing                            BigInt?\n  es_rsi_14_is_missing                            BigInt?\n  gc_rsi_14_is_missing                            BigInt?\n  ho_rsi_14_is_missing                            BigInt?\n  ng_rsi_14_is_missing                            BigInt?\n  rb_rsi_14_is_missing                            BigInt?\n  zc_rsi_14_is_missing                            BigInt?\n  zm_rsi_14_is_missing                            BigInt?\n  zs_rsi_14_is_missing                            BigInt?\n  zw_rsi_14_is_missing                            BigInt?\n  cl_macd_is_missing                              BigInt?\n  cpo_macd_is_missing                             BigInt?\n  dx_macd_is_missing                              BigInt?\n  es_macd_is_missing                              BigInt?\n  gc_macd_is_missing                              BigInt?\n  ho_macd_is_missing                              BigInt?\n  ng_macd_is_missing                              BigInt?\n  rb_macd_is_missing                              BigInt?\n  zc_macd_is_missing                              BigInt?\n  zm_macd_is_missing                              BigInt?\n  zs_macd_is_missing                              BigInt?\n  zw_macd_is_missing                              BigInt?\n  cl_atr_ratio_is_missing                         BigInt?\n  cpo_atr_ratio_is_missing                        BigInt?\n  dx_atr_ratio_is_missing                         BigInt?\n  es_atr_ratio_is_missing                         BigInt?\n  gc_atr_ratio_is_missing                         BigInt?\n  ho_atr_ratio_is_missing                         BigInt?\n  ng_atr_ratio_is_missing                         BigInt?\n  rb_atr_ratio_is_missing                         BigInt?\n  zc_atr_ratio_is_missing                         BigInt?\n  zm_atr_ratio_is_missing                         BigInt?\n  zs_atr_ratio_is_missing                         BigInt?\n  zw_atr_ratio_is_missing                         BigInt?\n  cl_volume_zscore_is_missing                     BigInt?\n  cpo_volume_zscore_is_missing                    BigInt?\n  dx_volume_zscore_is_missing                     BigInt?\n  es_volume_zscore_is_missing                     BigInt?\n  gc_volume_zscore_is_missing                     BigInt?\n  ho_volume_zscore_is_missing                     BigInt?\n  ng_volume_zscore_is_missing                     BigInt?\n  rb_volume_zscore_is_missing                     BigInt?\n  zc_volume_zscore_is_missing                     BigInt?\n  zm_volume_zscore_is_missing                     BigInt?\n  zs_volume_zscore_is_missing                     BigInt?\n  zw_volume_zscore_is_missing                     BigInt?\n  cl_bb_percent_b_is_missing                      BigInt?\n  cpo_bb_percent_b_is_missing                     BigInt?\n  dx_bb_percent_b_is_missing                      BigInt?\n  es_bb_percent_b_is_missing                      BigInt?\n  gc_bb_percent_b_is_missing                      BigInt?\n  ho_bb_percent_b_is_missing                      BigInt?\n  ng_bb_percent_b_is_missing                      BigInt?\n  rb_bb_percent_b_is_missing                      BigInt?\n  zc_bb_percent_b_is_missing                      BigInt?\n  zm_bb_percent_b_is_missing                      BigInt?\n  zs_bb_percent_b_is_missing                      BigInt?\n  zw_bb_percent_b_is_missing                      BigInt?\n  cl_hurst_exponent_is_missing                    BigInt?\n  cpo_hurst_exponent_is_missing                   BigInt?\n  dx_hurst_exponent_is_missing                    BigInt?\n  es_hurst_exponent_is_missing                    BigInt?\n  gc_hurst_exponent_is_missing                    BigInt?\n  ho_hurst_exponent_is_missing                    BigInt?\n  ng_hurst_exponent_is_missing                    BigInt?\n  rb_hurst_exponent_is_missing                    BigInt?\n  zc_hurst_exponent_is_missing                    BigInt?\n  zm_hurst_exponent_is_missing                    BigInt?\n  zs_hurst_exponent_is_missing                    BigInt?\n  zw_hurst_exponent_is_missing                    BigInt?\n  board_crush_is_missing                          BigInt?\n  board_crush_zscore_21d_is_missing               BigInt?\n  board_crush_zscore_63d_is_missing               BigInt?\n  board_crush_zscore_252d_is_missing              BigInt?\n  board_crush_momentum_5d_is_missing              BigInt?\n  board_crush_expanding_is_missing                BigInt?\n  soy_oil_share_is_missing                        BigInt?\n  soy_oil_share_zscore_is_missing                 BigInt?\n  zl_zs_ratio_is_missing                          BigInt?\n  zl_zs_ratio_zscore_is_missing                   BigInt?\n  zl_cl_ratio_is_missing                          BigInt?\n  zl_cl_ratio_zscore_is_missing                   BigInt?\n  zl_cpo_spread_is_missing                        BigInt?\n  zl_cpo_spread_zscore_is_missing                 BigInt?\n  crack_321_is_missing                            BigInt?\n  crack_321_zscore_is_missing                     BigInt?\n  ho_crack_is_missing                             BigInt?\n  rb_crack_is_missing                             BigInt?\n  ho_crack_zscore_63d_is_missing                  BigInt?\n  diesel_crack_wide_is_missing                    BigInt?\n  opt_total_oi_c_is_missing                       BigInt?\n  opt_total_oi_p_is_missing                       BigInt?\n  opt_total_volume_c_is_missing                   BigInt?\n  opt_total_volume_p_is_missing                   BigInt?\n  opt_avg_premium_c_is_missing                    BigInt?\n  opt_avg_premium_p_is_missing                    BigInt?\n  sig_biofuel_1_is_missing                        BigInt?\n  sig_china_1_is_missing                          BigInt?\n  sig_crush_1_is_missing                          BigInt?\n  sig_energy_1_is_missing                         BigInt?\n  sig_fed_1_is_missing                            BigInt?\n  sig_fx_1_is_missing                             BigInt?\n  sig_palm_1_is_missing                           BigInt?\n  sig_substitutes_1_is_missing                    BigInt?\n  sig_tariff_1_is_missing                         BigInt?\n  sig_trump_effect_1_is_missing                   BigInt?\n  sig_volatility_1_is_missing                     BigInt?\n  sig_biofuel_2_is_missing                        BigInt?\n  sig_china_2_is_missing                          BigInt?\n  sig_crush_2_is_missing                          BigInt?\n  sig_energy_2_is_missing                         BigInt?\n  sig_fed_2_is_missing                            BigInt?\n  sig_fx_2_is_missing                             BigInt?\n  sig_palm_2_is_missing                           BigInt?\n  sig_substitutes_2_is_missing                    BigInt?\n  sig_tariff_2_is_missing                         BigInt?\n  sig_trump_effect_2_is_missing                   BigInt?\n  sig_volatility_2_is_missing                     BigInt?\n  sig_biofuel_conf_is_missing                     BigInt?\n  sig_china_conf_is_missing                       BigInt?\n  sig_crush_conf_is_missing                       BigInt?\n  sig_energy_conf_is_missing                      BigInt?\n  sig_fed_conf_is_missing                         BigInt?\n  sig_fx_conf_is_missing                          BigInt?\n  sig_palm_conf_is_missing                        BigInt?\n  sig_substitutes_conf_is_missing                 BigInt?\n  sig_tariff_conf_is_missing                      BigInt?\n  sig_trump_effect_conf_is_missing                BigInt?\n  sig_volatility_conf_is_missing                  BigInt?\n  oi_delta_1d_is_missing                          BigInt?\n  oi_delta_5d_is_missing                          BigInt?\n  oi_pct_change_1d_is_missing                     BigInt?\n  oi_pct_change_5d_is_missing                     BigInt?\n  oi_momentum_is_missing                          BigInt?\n  oi_delta_zscore_is_missing                      BigInt?\n  volume_ma_5d_is_missing                         BigInt?\n  volume_spike_is_missing                         BigInt?\n  churn_rate_is_missing                           BigInt?\n  churn_zscore_is_missing                         BigInt?\n  churn_high_is_missing                           BigInt?\n  price_direction_is_missing                      BigInt?\n  oi_direction_is_missing                         BigInt?\n  oi_price_divergence_is_missing                  BigInt?\n  flow_conviction_is_missing                      BigInt?\n  cot_net_zscore_is_missing                       BigInt?\n  cot_age_fresh_is_missing                        BigInt?\n  cot_regime_numeric_is_missing                   BigInt?\n  washout_risk_is_missing                         BigInt?\n  vix_close_is_missing                            BigInt?\n  target_ret_5d                                   Float?\n  target_ret_21d                                  Float?\n  target_ret_63d                                  Float?\n  target_ret_126d                                 Float?\n  matrix_version                                  String?\n\n  @@id([trade_date, symbol])\n  @@schema(\"training\")\n}\n\nmodel matrix_feature_stats_1d {\n  id                 Int                @id @default(autoincrement())\n  run_id             String             @db.Uuid\n  column_name        String             @db.VarChar(100)\n  dtype              String             @db.VarChar(20)\n  p01                Float?\n  p05                Float?\n  p50                Float?\n  p95                Float?\n  p99                Float?\n  mean               Float?\n  std                Float?\n  min_val            Float?\n  max_val            Float?\n  zero_rate          Float?\n  missing_flag_rate  Float?\n  age_days_p95       Int?\n  release_day_rate   Float?\n  created_at         DateTime?          @default(now()) @db.Timestamptz(6)\n  matrix_manifest_1d matrix_manifest_1d @relation(fields: [run_id], references: [run_id], onDelete: NoAction, onUpdate: NoAction)\n\n  @@unique([run_id, column_name])\n  @@schema(\"training\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel matrix_manifest_1d {\n  run_id                  String                    @id @db.Uuid\n  matrix_version          String?                   @db.VarChar(64)\n  commit_hash             String                    @db.VarChar(64)\n  data_cutoff_date        DateTime                  @db.Date\n  schema_hash             String                    @db.VarChar(64)\n  column_list             Json\n  column_metadata         Json\n  required_columns        String[]\n  feature_count           Int\n  row_count               Int\n  min_date                DateTime                  @db.Date\n  max_date                DateTime                  @db.Date\n  validation_passed       Boolean\n  created_at              DateTime?                 @default(now()) @db.Timestamptz(6)\n  matrix_feature_stats_1d matrix_feature_stats_1d[]\n\n  @@index([schema_hash], map: \"idx_manifest_schema_hash\")\n  @@schema(\"training\")\n}\n\nmodel meta_inputs_1d {\n  id               Int      @id @default(autoincrement())\n  trade_date       DateTime @db.Date\n  symbol           String   @default(\"ZL\") @db.VarChar(20)\n  horizon_days     Int\n  core_p30         Float?\n  core_p50         Float?\n  core_p70         Float?\n  biofuel_p30      Float?\n  biofuel_p50      Float?\n  biofuel_p70      Float?\n  china_p30        Float?\n  china_p50        Float?\n  china_p70        Float?\n  crush_p30        Float?\n  crush_p50        Float?\n  crush_p70        Float?\n  energy_p30       Float?\n  energy_p50       Float?\n  energy_p70       Float?\n  fed_p30          Float?\n  fed_p50          Float?\n  fed_p70          Float?\n  fx_p30           Float?\n  fx_p50           Float?\n  fx_p70           Float?\n  palm_p30         Float?\n  palm_p50         Float?\n  palm_p70         Float?\n  substitutes_p30  Float?\n  substitutes_p50  Float?\n  substitutes_p70  Float?\n  tariff_p30       Float?\n  tariff_p50       Float?\n  tariff_p70       Float?\n  trump_effect_p30 Float?\n  trump_effect_p50 Float?\n  trump_effect_p70 Float?\n  volatility_p30   Float?\n  volatility_p50   Float?\n  volatility_p70   Float?\n  target_value     Float?\n  created_at       DateTime @default(now()) @db.Timestamp(6)\n\n  @@unique([trade_date, symbol, horizon_days])\n  @@index([trade_date], map: \"idx_meta_inputs_date\")\n  @@index([horizon_days], map: \"idx_meta_inputs_horizon\")\n  @@schema(\"training\")\n}\n\nmodel model_runs {\n  id             Int       @id @default(autoincrement())\n  model_name     String    @db.VarChar(100)\n  model_nickname String?   @db.VarChar(100)\n  horizon_days   Int\n  trained_date   String    @db.VarChar(10)\n  run_hash       String    @db.VarChar(64)\n  mae            Float?\n  coverage_30_70 Float?\n  oof_count      Int?\n  status         String?   @default(\"experimental\") @db.VarChar(20)\n  outcome        String?   @default(\"pending\") @db.VarChar(10)\n  model_path     String?\n  notes          String?\n  created_at     DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([run_hash, horizon_days])\n  @@index([model_name, horizon_days], map: \"idx_model_runs_model\")\n  @@index([status, outcome], map: \"idx_model_runs_status\")\n  @@schema(\"training\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel oof_core_1d {\n  id             Int      @id @default(autoincrement())\n  trade_date     DateTime @db.Date\n  symbol         String   @default(\"ZL\") @db.VarChar(20)\n  horizon_days   Int\n  window_id      Int\n  cutoff_date    DateTime @db.Date\n  p30            Float\n  p50            Float\n  p70            Float\n  target_value   Float?\n  trained_at     DateTime @default(now()) @db.Timestamp(6)\n  run_hash       String   @db.VarChar(64)\n  matrix_version String?  @db.VarChar(64)\n  run_id         String   @db.Uuid\n\n  @@unique([trade_date, symbol, horizon_days, window_id])\n  @@index([trade_date], map: \"idx_oof_core_date\")\n  @@index([horizon_days], map: \"idx_oof_core_horizon\")\n  @@index([run_hash], map: \"idx_oof_core_run\")\n  @@schema(\"training\")\n}\n\nmodel realized_volatility {\n  id               Int       @id @default(autoincrement())\n  symbol           String    @db.VarChar(20)\n  as_of_date       DateTime  @db.Date\n  window_days      Int\n  realized_vol     Float\n  parkinson_vol    Float?\n  garman_klass_vol Float?\n  yang_zhang_vol   Float?\n  annualized       Boolean?  @default(true)\n  created_at       DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([symbol, as_of_date, window_days])\n  @@index([as_of_date], map: \"idx_realized_vol_date\")\n  @@index([symbol], map: \"idx_realized_vol_symbol\")\n  @@schema(\"training\")\n}\n\nmodel specialist_features {\n  id         Int      @id @default(autoincrement())\n  bucket     String\n  as_of_date DateTime\n  features   Json\n\n  @@unique([bucket, as_of_date])\n  @@index([as_of_date])\n  @@index([bucket])\n  @@schema(\"training\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\n/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments\nmodel specialist_signals_1d {\n  id                 Int       @id @default(autoincrement())\n  as_of_date         DateTime  @db.Date\n  bucket             String    @db.VarChar(30)\n  signal_1           Float\n  signal_2           Float\n  confidence         Float\n  model_type         String    @db.VarChar(50)\n  run_hash           String    @db.VarChar(64)\n  created_at         DateTime? @default(now()) @db.Timestamp(6)\n  max_input_age_days Int\n  source_tag         String?   @db.VarChar(50)\n  degraded_level     Int?\n  conf               Float?\n  data_quality       Json?\n  run_id             String    @db.Uuid\n  abstained          Boolean   @default(false)\n  warmup             Boolean   @default(false)\n  signal_type        String    @default(\"continuous\") @db.VarChar(30)\n\n  @@unique([as_of_date, bucket])\n  @@index([bucket], map: \"idx_specialist_signals_bucket\")\n  @@index([as_of_date], map: \"idx_specialist_signals_date\")\n  @@index([run_hash], map: \"idx_specialist_signals_run\")\n  @@index([max_input_age_days], map: \"idx_specialist_signals_staleness\")\n  @@schema(\"training\")\n}\n\nmodel specialist_trump_effect_1d {\n  id         Int       @id @default(autoincrement())\n  as_of_date DateTime  @db.Date\n  symbol     String?   @default(\"ZL\") @db.VarChar(20)\n  signal     Float?\n  confidence Float?\n  features   Json?\n  created_at DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([as_of_date, symbol])\n  @@index([as_of_date], map: \"idx_trump_1d_date\")\n  @@index([as_of_date], map: \"idx_trump_effect_1d_date\")\n  @@index([as_of_date], map: \"idx_trump_effect_date\")\n  @@schema(\"training\")\n}\n\nmodel volatility_surface {\n  id            Int       @id @default(autoincrement())\n  underlying    String?   @db.VarChar(10)\n  as_of_date    DateTime? @db.Date\n  surface_data  Json?\n  atm_vol       Decimal?  @db.Decimal(8, 6)\n  skew_25d      Decimal?  @db.Decimal(8, 6)\n  butterfly_25d Decimal?  @db.Decimal(8, 6)\n  term_slope    Decimal?  @db.Decimal(8, 6)\n  created_at    DateTime? @default(now()) @db.Timestamp(6)\n\n  @@unique([underlying, as_of_date])\n  @@index([as_of_date], map: \"idx_vol_surface_date\")\n  @@index([underlying], map: \"idx_vol_surface_underlying\")\n  @@schema(\"training\")\n}\n\nmodel vegas_activity_log {\n  id            Int       @id @default(autoincrement())\n  activity_type String    @db.VarChar(50)\n  entity_type   String    @db.VarChar(50)\n  entity_id     String    @db.VarChar(100)\n  user_id       String?   @db.VarChar(100)\n  details       Json?\n  created_at    DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([created_at], map: \"idx_vegas_activity_log_created\")\n  @@index([entity_type, entity_id], map: \"idx_vegas_activity_log_entity\")\n  @@index([activity_type], map: \"idx_vegas_activity_log_type\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_casino_profiles {\n  id          Int       @id @default(autoincrement())\n  casino_name String    @unique @db.VarChar(255)\n  vibe        String?   @db.VarChar(100)\n  pull_factor Float?\n  target_demo String?   @db.VarChar(255)\n  tier        String?   @db.VarChar(50)\n  corridor    String?   @db.VarChar(100)\n  notes       String?\n  created_at  DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"vegas\")\n}\n\nmodel vegas_casinos {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_casinos_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_casinos_ingested_at\")\n  @@schema(\"vegas\")\n}\n\n/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.\nmodel vegas_cuisine_affinity {\n  id             Int       @id @default(autoincrement())\n  event_category String    @db.VarChar(50)\n  cuisine_type   String    @db.VarChar(50)\n  affinity_score Int\n  reasoning      String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_category, cuisine_type])\n  @@index([event_category], map: \"idx_vegas_cuisine_affinity_category\")\n  @@index([cuisine_type], map: \"idx_vegas_cuisine_affinity_cuisine\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_cuisine_match {\n  id             Int       @id @default(autoincrement())\n  event_type     String    @db.VarChar(100)\n  cuisine_type   String    @db.VarChar(100)\n  affinity_score Float\n  notes          String?\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_type, cuisine_type], map: \"vegas_cuisine_match_event_cuisine_key\")\n  @@index([event_type], map: \"idx_vegas_cuisine_match_event_type\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_customer_scores {\n  id                 Int       @id @default(autoincrement())\n  restaurant_id      String    @unique @db.VarChar(100)\n  casino_id          String?   @db.VarChar(100)\n  is_customer        Boolean   @default(false)\n  priority_score     Float?\n  at_risk_score      Float?\n  days_since_order   Int?\n  order_pattern      String?   @db.VarChar(100)\n  volume_trend       String?   @db.VarChar(50)\n  last_order_date    DateTime? @db.Date\n  avg_order_value    Float?\n  fryer_count        Int?\n  event_impact_score Float?\n  one_liner          String?   @db.VarChar(500)\n  computed_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([at_risk_score], map: \"idx_vegas_customer_scores_at_risk\")\n  @@index([is_customer], map: \"idx_vegas_customer_scores_is_customer\")\n  @@index([priority_score], map: \"idx_vegas_customer_scores_priority\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_daily_spend {\n  id                    Int       @id @default(autoincrement())\n  impact_date           DateTime  @unique @db.Date\n  spend_concerts        Int       @default(0)\n  spend_conferences     Int       @default(0)\n  spend_expos           Int       @default(0)\n  spend_festivals       Int       @default(0)\n  spend_performing_arts Int       @default(0)\n  spend_sports          Int       @default(0)\n  spend_total           Int?\n  imported_at           DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([impact_date], map: \"idx_vegas_daily_spend_date\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_entities {\n  id                Int       @id @default(autoincrement())\n  event_id          String    @db.VarChar(100)\n  entity_id         String    @db.VarChar(100)\n  entity_type       String    @db.VarChar(50)\n  name              String    @db.VarChar(255)\n  formatted_address String?\n  category          String?   @db.VarChar(50)\n  description       String?\n  labels            String[]\n  recurring_ical    String?\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, entity_id])\n  @@index([event_id], map: \"idx_vegas_event_entities_event\")\n  @@index([name], map: \"idx_vegas_event_entities_name\")\n  @@index([entity_type], map: \"idx_vegas_event_entities_type\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_impact {\n  id           Int       @id @default(autoincrement())\n  event_id     String    @db.VarChar(100)\n  vertical     String    @db.VarChar(50)\n  impact_type  String    @db.VarChar(50)\n  impact_date  DateTime  @db.Date\n  impact_value Int\n  position     String?   @db.VarChar(20)\n  created_at   DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, vertical, impact_date])\n  @@index([impact_date], map: \"idx_vegas_event_impact_date\")\n  @@index([impact_date, vertical, impact_value(sort: Desc)], map: \"idx_vegas_event_impact_date_vertical\")\n  @@index([event_id], map: \"idx_vegas_event_impact_event\")\n  @@index([impact_value(sort: Desc)], map: \"idx_vegas_event_impact_value\")\n  @@index([vertical], map: \"idx_vegas_event_impact_vertical\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_labels {\n  id         Int       @id @default(autoincrement())\n  event_id   String    @db.VarChar(100)\n  label      String    @db.VarChar(100)\n  weight     Decimal?  @db.Decimal(4, 3)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@unique([event_id, label])\n  @@index([event_id], map: \"idx_vegas_event_labels_event\")\n  @@index([label], map: \"idx_vegas_event_labels_label\")\n  @@index([weight(sort: Desc)], map: \"idx_vegas_event_labels_weight\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_profiles {\n  id                Int       @id @default(autoincrement())\n  event_type        String    @unique @db.VarChar(100)\n  display_name      String    @db.VarChar(255)\n  primary_demo      String?   @db.VarChar(255)\n  psychographic     String?   @db.VarChar(255)\n  cuisine_affinity  Json?\n  avg_spend_tier    String?   @db.VarChar(50)\n  peak_dining_hours String?   @db.VarChar(100)\n  notes             String?\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@schema(\"vegas\")\n}\n\nmodel vegas_event_venues {\n  id         Int       @id @default(autoincrement())\n  event_id   String    @db.VarChar(100)\n  venue_id   String    @db.VarChar(100)\n  is_primary Boolean?  @default(true)\n  created_at DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_id], map: \"idx_vegas_event_venues_event\")\n  @@index([venue_id], map: \"idx_vegas_event_venues_venue\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_events {\n  id             Int       @id @default(autoincrement())\n  event_id       String    @unique @db.VarChar(100)\n  name           String    @db.VarChar(255)\n  event_type     String?   @db.VarChar(100)\n  venue          String?   @db.VarChar(255)\n  start_date     DateTime  @db.Date\n  end_date       DateTime? @db.Date\n  attendance     Int?\n  attendance_min Int?\n  attendance_max Int?\n  source         String?   @db.VarChar(50)\n  source_url     String?   @db.VarChar(500)\n  raw_payload    Json?\n  is_active      Boolean   @default(true)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([is_active], map: \"idx_vegas_events_active\")\n  @@index([start_date], map: \"idx_vegas_events_start_date\")\n  @@index([event_type], map: \"idx_vegas_events_type\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_export_list {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_export_list_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_export_list_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_fryers {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_fryers_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_fryers_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_intel_sheets {\n  id             Int       @id @default(autoincrement())\n  sheet_id       String    @unique @db.VarChar(100)\n  restaurant_id  String?   @db.VarChar(100)\n  event_id       String?   @db.VarChar(100)\n  sheet_type     String    @db.VarChar(50)\n  headline       String?   @db.VarChar(500)\n  content        Json?\n  shareable_url  String?   @db.VarChar(500)\n  pdf_url        String?   @db.VarChar(500)\n  view_count     Int       @default(0)\n  last_viewed_at DateTime? @db.Timestamptz(6)\n  sent_at        DateTime? @db.Timestamptz(6)\n  sent_to        String?   @db.VarChar(255)\n  status         String    @default(\"draft\") @db.VarChar(50)\n  created_at     DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at     DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([event_id], map: \"idx_vegas_intel_sheets_event\")\n  @@index([restaurant_id], map: \"idx_vegas_intel_sheets_restaurant\")\n  @@index([status], map: \"idx_vegas_intel_sheets_status\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_restaurants {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n  cuisine_type String?   @db.VarChar(50)\n\n  @@index([cuisine_type], map: \"idx_vegas_restaurants_cuisine\")\n  @@index([glide_row_id], map: \"idx_vegas_restaurants_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_restaurants_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_scheduled_reports {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @unique @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_scheduled_reports_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_scheduled_reports_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_shift_casinos {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @unique @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_shift_casinos_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_shift_casinos_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_shift_restaurants {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @unique @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_shift_restaurants_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_shift_restaurants_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_shifts {\n  id           Int       @id @default(autoincrement())\n  glide_row_id String    @db.VarChar(100)\n  data         Json\n  ingested_at  DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([glide_row_id], map: \"idx_vegas_shifts_glide_row_id\")\n  @@index([ingested_at], map: \"idx_vegas_shifts_ingested_at\")\n  @@schema(\"vegas\")\n}\n\nmodel vegas_venues {\n  id                Int       @id @default(autoincrement())\n  venue_id          String    @unique @db.VarChar(100)\n  name              String    @db.VarChar(255)\n  formatted_address String?\n  latitude          Decimal?  @db.Decimal(10, 7)\n  longitude         Decimal?  @db.Decimal(10, 7)\n  placekey          String?   @db.VarChar(50)\n  postcode          String?   @db.VarChar(20)\n  locality          String?   @db.VarChar(100)\n  region            String?   @db.VarChar(100)\n  country_code      String?   @db.VarChar(5)\n  geo_type          String?   @default(\"Point\") @db.VarChar(20)\n  created_at        DateTime? @default(now()) @db.Timestamptz(6)\n  updated_at        DateTime? @default(now()) @db.Timestamptz(6)\n\n  @@index([latitude, longitude], map: \"idx_vegas_venues_coords\")\n  @@index([name], map: \"idx_vegas_venues_name\")\n  @@index([placekey], map: \"idx_vegas_venues_placekey\")\n  @@schema(\"vegas\")\n}\n"
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"TrainingMatrix1d\":{\"fields\":[{\"name\":\"tradeDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trade_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"open_interest\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"created_at\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime_raw\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"_hurst_regime_raw\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hurst_regime_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ttm_squeeze_on_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_anfci\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_apu000074714\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_b235rc1q027sbea\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bamlc0a0cm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bamlh0a0hym2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bogmbase\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bopgstb\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_busloans\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ccsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chncpiallminmei\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chngdpnqdsmei\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chnmainlandtpu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_clvmnacscab1gqea19\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_cpiaucsl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_cpilfesl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dcoilbrenteu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dcoilwtico\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ddfuelusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexars\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexbzus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexcaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexchus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexhkus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexinus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexjpus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexkous\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexmaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexmxus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexnous\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexsfus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexsius\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexszus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dextaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexthus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexusal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexuseu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexusuk\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfedtarl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfedtaru\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dff\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii7\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgasusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs1mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs3mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs6mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs7\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dhhngsp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dhoilnyh\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_djfuelusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dprime\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dpropanembtx\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_drcclacbs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexafegs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexbgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexemegs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dxy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_emvtradepolemv\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_eputrade\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_expch\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_expgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_fedfunds\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_frgshpusm649ncis\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gasdesw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gasregw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gdp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gdpc1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gvzcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_houst\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_icsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_impch\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_impgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_indpro\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ir3tib01cnm156n\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_lvxrnsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_m2sl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_manemp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_mortgage30us\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_myagm2cnm189n\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nasdaqcom\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nfci\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_bgcr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_effr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_obfr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_sofr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_tgcr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ovxcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_payems\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pbarlusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pce\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcepi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcepilfe\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcoppusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcu311224311224\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcu32411032411012\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_permit\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pmaizmtusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pngaseuusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_polvoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppiaco\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppifgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppifis\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pricenpqusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_proilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psoybusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psugaisausdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psunousdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pwheamtusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_rrpontsyd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_rsxfs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_sofr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_sp500\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_stlfsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_stlfsi4\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10y2y\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10y3m\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10yie\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t20yiem\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t30yiem\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t5yie\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t5yifr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_tedrate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_totresns\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_umcsent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_unrate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_usepuindxd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_usepuindxm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vixcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vxgscls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vxvcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_walcl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu01830161\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu01830171\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu057303\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu06140341\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wresbal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_xtexva01cnm667s\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_xtimva01cnm667s\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rapeseed_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sunflower_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usd_cny\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_aud_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_audusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_brl_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_cad_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_cny_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_afe\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_broad\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_eme\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_eur_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_eurusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_gbp_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_gbpusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_inr_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_krw_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_mxn_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_twd_usd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usd_cad\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usd_cny\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usd_jpy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdbrl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdcad\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdcny\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdjpy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdkrw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdmxn\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdsgd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_managed_money_net_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_managed_money_net_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_prod_merc_net_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_prod_merc_net_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_open_interest_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_open_interest_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cot_managed_money_net\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_prod_merc_net\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_open_interest\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_mm_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_comm_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_mm_net_chg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_comm_net_chg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d3\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d4\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d6\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_ca_lcfs_credit_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_ca_lcfs_credit_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_credit\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zl_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zl_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybeans_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybean_oil_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybean_oil_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pmi_cn_nbs_china_pmi_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pmi_cn_nbs_china_pmi_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"china_pmi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"open_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"high_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"low_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"open_interest_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"connors_rsi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fisher_transform_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fisher_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"mcginley_dynamic_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ttm_squeeze_momentum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"schaff_trend_cycle_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rvi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rvi_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"elder_force_index_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"kama_10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hma_20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"alma_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rsi_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cumulative_rsi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_histogram_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cci_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cci_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"garman_klass_vol_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"yang_zhang_vol_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cmf_21_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"unusual_volume_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"log_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"range_pct_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_anfci_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_apu000074714_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_b235rc1q027sbea_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bamlc0a0cm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bamlh0a0hym2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bogmbase_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bopgstb_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_busloans_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ccsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chncpiallminmei_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chngdpnqdsmei_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chnmainlandtpu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_clvmnacscab1gqea19_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_cpiaucsl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_cpilfesl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dcoilbrenteu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dcoilwtico_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ddfuelusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexars_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexbzus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexcaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexchus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexhkus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexinus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexjpus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexkous_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexmaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexmxus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexnous_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexsfus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexsius_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexszus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dextaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexthus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexusal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexuseu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexusuk_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfedtarl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfedtaru_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dff_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii30_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii7_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgasusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs1mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs30_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs3mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs6mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs7_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dhhngsp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dhoilnyh_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_djfuelusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dprime_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dpropanembtx_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_drcclacbs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexafegs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexbgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexemegs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dxy_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_emvtradepolemv_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_eputrade_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_expch_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_expgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_fedfunds_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_frgshpusm649ncis_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gasdesw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gasregw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gdp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gdpc1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gvzcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_houst_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_icsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_impch_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_impgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_indpro_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ir3tib01cnm156n_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_lvxrnsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_m2sl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_manemp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_mortgage30us_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_myagm2cnm189n_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nasdaqcom_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nfci_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_bgcr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_effr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_obfr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_sofr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_tgcr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ovxcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_payems_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pbarlusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pce_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcepi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcepilfe_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcoppusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcu311224311224_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcu32411032411012_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_permit_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pmaizmtusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pngaseuusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_polvoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppiaco_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppifgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppifis_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pricenpqusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_proilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psoybusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psugaisausdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psunousdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pwheamtusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_rrpontsyd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_rsxfs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_sofr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_sp500_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_stlfsi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_stlfsi4_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10y2y_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10y3m_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10yie_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t20yiem_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t30yiem_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t5yie_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t5yifr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_tedrate_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_totresns_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_umcsent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_unrate_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_usepuindxd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_usepuindxm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vixcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vxgscls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vxvcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_walcl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu01830161_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu01830171_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu057303_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu06140341_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wresbal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_xtexva01cnm667s_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_xtimva01cnm667s_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rapeseed_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sunflower_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usd_cny_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_aud_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_audusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_brl_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_cad_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_cny_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_afe_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_broad_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_eme_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_eur_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_eurusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_gbp_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_gbpusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_inr_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_krw_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_mxn_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_twd_usd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usd_cad_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usd_cny_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usd_jpy_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdbrl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdcad_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdcny_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdjpy_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdkrw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdmxn_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdsgd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_managed_money_net_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_prod_merc_net_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_open_interest_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_mm_pct_oi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_comm_pct_oi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_mm_net_chg_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_comm_net_chg_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d3_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d4_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d6_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"lcfs_credit_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybeans_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybean_oil_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybean_oil_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"china_pmi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"target_ret_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_63d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_126d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"matrixVersion\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"matrix_version\"}],\"dbName\":\"matrix_1d\"},\"TrainingFeatures1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":\"features_1d\"},\"OofCore1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"tradeDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trade_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizonDays\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"horizon_days\"},{\"name\":\"windowId\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"window_id\"},{\"name\":\"cutoffDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"cutoff_date\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"targetValue\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"target_value\"},{\"name\":\"trainedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trained_at\"},{\"name\":\"runHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"run_hash\"},{\"name\":\"matrixVersion\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"matrix_version\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":\"oof_core_1d\"},\"MetaInputs1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"tradeDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trade_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizonDays\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"horizon_days\"},{\"name\":\"coreP30\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"core_p30\"},{\"name\":\"coreP50\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"core_p50\"},{\"name\":\"coreP70\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"core_p70\"},{\"name\":\"biofuel_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"biofuel_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"biofuel_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"targetValue\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"target_value\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"meta_inputs_1d\"},\"RealizedVolatility\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"windowDays\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"window_days\"},{\"name\":\"realizedVol\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"realized_vol\"},{\"name\":\"parkinsonVol\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"parkinson_vol\"},{\"name\":\"garmanKlassVol\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"garman_klass_vol\"},{\"name\":\"yangZhangVol\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"yang_zhang_vol\"},{\"name\":\"annualized\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"realized_volatility\"},\"SpecialistFeatures\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":\"specialist_features\"},\"VolatilitySurface\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"underlying\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"surfaceData\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"surface_data\"},{\"name\":\"atmVol\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"atm_vol\"},{\"name\":\"skew25d\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"skew_25d\"},{\"name\":\"butterfly25d\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"butterfly_25d\"},{\"name\":\"termSlope\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"term_slope\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"volatility_surface\"},\"SpecialistTrumpEffect1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"specialist_trump_effect_1d\"},\"SpecialistTrumpEffect1h\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"specialist_trump_effect_1h\"},\"ModelRegistry\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"modelId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_id\"},{\"name\":\"modelName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_name\"},{\"name\":\"modelType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_type\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"version\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trainedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trained_at\"},{\"name\":\"trainingMode\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"training_mode\"},{\"name\":\"trainingTimeSeconds\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"training_time_seconds\"},{\"name\":\"datasetRows\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"dataset_rows\"},{\"name\":\"datasetFeatures\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"dataset_features\"},{\"name\":\"datasetStartDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"dataset_start_date\"},{\"name\":\"datasetEndDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"dataset_end_date\"},{\"name\":\"mase\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"rmse\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"mae\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"mape\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pinballLossP10\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"pinball_loss_p10\"},{\"name\":\"pinballLossP50\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"pinball_loss_p50\"},{\"name\":\"pinballLossP90\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"pinball_loss_p90\"},{\"name\":\"coverage80\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"coverage_80\"},{\"name\":\"bestModel\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"best_model\"},{\"name\":\"modelsTrained\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"models_trained\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isChampion\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"is_champion\"},{\"name\":\"promotedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"promoted_at\"},{\"name\":\"artifactPath\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"artifact_path\"},{\"name\":\"mlflowRunId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"mlflow_run_id\"},{\"name\":\"tags\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"model_registry\"},\"ChartOverlays\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"overlayType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"overlay_type\"},{\"name\":\"startDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"start_date\"},{\"name\":\"endDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"end_date\"},{\"name\":\"label\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"color\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metadata\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"chart_overlays\"},\"DashboardMetrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"metricName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"metric_name\"},{\"name\":\"metricValue\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"metric_value\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"dashboard_metrics\"},\"DriverScores\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"specialist\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"shapContribution\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"shap_contribution\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"driver_scores\"},\"MarketPosture\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tailRiskProb\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"tail_risk_prob\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"market_posture\"},\"ProcurementActions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rationale\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"procurement_actions\"},\"RiskMetrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"var01\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"var_01\"},{\"name\":\"var05\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"var_05\"},{\"name\":\"var10\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"var_10\"},{\"name\":\"cvar05\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"cvar_05\"},{\"name\":\"probUp\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"prob_up\"},{\"name\":\"probUp5pct\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"prob_up_5pct\"},{\"name\":\"probDown5pct\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"prob_down_5pct\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tailRiskFlag\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"tail_risk_flag\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"risk_metrics\"},\"ScenarioAnalysis\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"scenarioId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"scenario_id\"},{\"name\":\"scenarioName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"scenario_name\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"assumptions\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"baseForecast\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"base_forecast\"},{\"name\":\"scenarioForecast\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"scenario_forecast\"},{\"name\":\"impactPct\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"impact_pct\"},{\"name\":\"probability\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"modelVersion\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_version\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"scenario_analysis\"},\"ValueTimingWindows\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"horizonDays\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"horizon_days\"},{\"name\":\"tailProximity\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"tail_proximity\"},{\"name\":\"probabilityLift\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"probability_lift\"},{\"name\":\"confidenceAdjustedLift\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"confidence_adjusted_lift\"},{\"name\":\"regimeDampening\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"regime_dampening\"},{\"name\":\"windowStartWeek\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"window_start_week\"},{\"name\":\"windowEndWeek\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"window_end_week\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"value_timing_windows\"},\"VolRegimes\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"asOfDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_date\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"regimeProb\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"regime_prob\"},{\"name\":\"transitionProbs\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"transition_probs\"},{\"name\":\"smoothedProb\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"smoothed_prob\"},{\"name\":\"modelType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_type\"},{\"name\":\"modelVersion\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"model_version\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"vol_regimes\"},\"DataSourceRegistry\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sourceId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"source_id\"},{\"name\":\"sourceName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"source_name\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"targetTable\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"target_table\"},{\"name\":\"targetSchema\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"target_schema\"},{\"name\":\"apiProvider\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"api_provider\"},{\"name\":\"apiEndpoint\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"api_endpoint\"},{\"name\":\"apiDocsUrl\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"api_docs_url\"},{\"name\":\"authType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"auth_type\"},{\"name\":\"authEnvVar\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"auth_env_var\"},{\"name\":\"responseFormat\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"response_format\"},{\"name\":\"dateColumn\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"date_column\"},{\"name\":\"entityColumn\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"entity_column\"},{\"name\":\"updateFrequency\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"update_frequency\"},{\"name\":\"typicalLagHours\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"typical_lag_hours\"},{\"name\":\"ingestionScript\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_script\"},{\"name\":\"lastSuccessfulRun\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"last_successful_run\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"is_active\"},{\"name\":\"requiresSubscription\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"requires_subscription\"},{\"name\":\"subscriptionStatus\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"subscription_status\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"data_source_registry\"},\"IngestRun\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"jobName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"job_name\"},{\"name\":\"startedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"started_at\"},{\"name\":\"completedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"completed_at\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rowsAttempted\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"rows_attempted\"},{\"name\":\"rowsInserted\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"rows_inserted\"},{\"name\":\"rowsSkipped\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"rows_skipped\"},{\"name\":\"rowsQuarantined\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"rows_quarantined\"},{\"name\":\"cursorPosition\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"cursor_position\"},{\"name\":\"errorMessage\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"error_message\"},{\"name\":\"quarantinedRecords\",\"kind\":\"object\",\"type\":\"QuarantinedRecord\",\"relationName\":\"IngestRunToQuarantinedRecord\"}],\"dbName\":\"ingest_run\"},\"QuarantinedRecord\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sourceTable\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"source_table\"},{\"name\":\"ingestRunId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingest_run_id\"},{\"name\":\"attemptedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"attempted_at\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"validationErrors\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"validation_errors\"},{\"name\":\"severity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resolutionStatus\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"resolution_status\"},{\"name\":\"resolvedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"resolved_at\"},{\"name\":\"resolvedBy\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"resolved_by\"},{\"name\":\"ingestRun\",\"kind\":\"object\",\"type\":\"IngestRun\",\"relationName\":\"IngestRunToQuarantinedRecord\"}],\"dbName\":\"quarantined_record\"},\"IntelDrop\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"asOfTs\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"as_of_ts\"},{\"name\":\"domain\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pressureCents\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"pressure_cents\"},{\"name\":\"edge\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"driverWeights\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"driver_weights\"},{\"name\":\"topDrivers\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"top_drivers\"},{\"name\":\"regimeTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"regime_tags\"},{\"name\":\"qualityFlags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"quality_flags\"},{\"name\":\"dataGaps\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"data_gaps\"},{\"name\":\"receipts\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"narrative\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quantPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"quant_payload\"},{\"name\":\"sourceModel\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"source_model\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"intel_drops\"},\"driver_attribution_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"driver_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"shap_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rank\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"regime_state_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"vix_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"policy_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"news_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_15m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"elite_indicators_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":\"elite_1d\"},\"data_quality_log\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"table_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"check_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"null_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"latest_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"oldest_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"issues\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"data_quality_metrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"last_update\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"hours_since_update\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"total_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"expected_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"completeness_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"null_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"null_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"is_stale\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"is_incomplete\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"model_core_audit\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"training_run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"reviewed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"reviewer\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_core_run\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"cv_purged_walk_forward\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"asof_alignment_valid\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos_bolt_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos2_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos2_lora_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"recursive_tabular_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"autoets_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"theta_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"seasonal_naive_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"weighted_ensemble_used\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"oof_only\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"max_single_weight\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"chronos_weight_nonzero\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"recursive_weight_zero_long\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"monte_carlo_runs\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"p10_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p50_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p90_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"stress_widening_applied\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"rmse_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"brier_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p10_coverage_ok\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p90_coverage_ok\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"registry_complete\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ensemble_edges_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"resources_logged\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"artifact_isolation_safe\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"narrative_ready\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"buy_sell_language_absent\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"uncertainty_explained\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"specialist_divergence_flag\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"hard_gate_pass\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"final_approved\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"failure_reason\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"prediction_accuracy\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"prediction_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"actual\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pred_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"abs_error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pct_error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"in_80_band\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"pred_p10\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pred_p90\",\"kind\":\"scalar\",\"type\":\"Decimal\"}],\"dbName\":null},\"source_relabel_audit\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"relabel_ts\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"table_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"from_source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"to_source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"row_count\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"min_as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"max_as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"training_run_log\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"phase\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"started_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"completed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"error_message\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metrics\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"training_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"experiment_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"started_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"completed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"duration_seconds\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"training_mode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"hyperparameters\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"dataset_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataset_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"dataset_features\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"metrics\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"mase\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"error_message\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"artifact_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"log_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1h\":{\"fields\":[{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1d\":{\"fields\":[{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"trump_effect_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"eo_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eo_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"proclamation_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"proclamation_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"nomination_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"nomination_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"memorandum_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"memorandum_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"total_actions_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"total_actions_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"avg_sentiment_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"avg_sentiment_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"action_velocity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"action_acceleration\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"weighted_action_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"forecast_summary_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"opp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ruin\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"calibrated_p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"calibrated_p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"coverage_error\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"regime_multiplier\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"narrative\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_1\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_2\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_3\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ai_model\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"generated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":\"forecast_summary_1d\"},\"core_cone_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"config_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"core_mc_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"s0\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mu_annual\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sigma_annual\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p10_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p50_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p90_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_min_p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_max_p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ruin\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cvar_95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"runs\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seed\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"forecast_quantiles\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p10\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"garch_forecasts\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"conditional_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"annualized_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_01\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cvar_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vol_lower\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vol_upper\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"horizon_reconciliation_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"tactical_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"short_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"medium_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"strategic_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"conflict_flag\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"reconciled_guidance\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"priority_horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"monte_carlo_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"num_sims\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"percentiles\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"correlations\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"probability_distributions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"percentile\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"VegasRestaurant\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"cuisineType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"cuisine_type\"}],\"dbName\":\"vegas_restaurants\"},\"VegasCasino\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_casinos\"},\"VegasFryer\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_fryers\"},\"VegasExportList\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_export_list\"},\"VegasScheduledReport\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_scheduled_reports\"},\"VegasShift\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_shifts\"},\"VegasShiftCasino\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_shift_casinos\"},\"VegasShiftRestaurant\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glideRowId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"glide_row_id\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"}],\"dbName\":\"vegas_shift_restaurants\"},\"VegasEvent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_id\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_type\"},{\"name\":\"venue\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"startDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"start_date\"},{\"name\":\"endDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"end_date\"},{\"name\":\"attendance\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"attendanceMin\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"attendance_min\"},{\"name\":\"attendanceMax\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"attendance_max\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sourceUrl\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"source_url\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"is_active\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"vegas_events\"},\"VegasEventProfile\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_type\"},{\"name\":\"displayName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"display_name\"},{\"name\":\"primaryDemo\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"primary_demo\"},{\"name\":\"psychographic\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cuisineAffinity\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"cuisine_affinity\"},{\"name\":\"avgSpendTier\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"avg_spend_tier\"},{\"name\":\"peakDiningHours\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"peak_dining_hours\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"vegas_event_profiles\"},\"VegasCasinoProfile\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"casinoName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"casino_name\"},{\"name\":\"vibe\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pullFactor\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"pull_factor\"},{\"name\":\"targetDemo\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"target_demo\"},{\"name\":\"tier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"corridor\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"vegas_casino_profiles\"},\"VegasCuisineMatch\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_type\"},{\"name\":\"cuisineType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"cuisine_type\"},{\"name\":\"affinityScore\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"affinity_score\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"vegas_cuisine_match\"},\"VegasIntelSheet\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sheetId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"sheet_id\"},{\"name\":\"restaurantId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"restaurant_id\"},{\"name\":\"eventId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_id\"},{\"name\":\"sheetType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"sheet_type\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"shareableUrl\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"shareable_url\"},{\"name\":\"pdfUrl\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"pdf_url\"},{\"name\":\"viewCount\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"view_count\"},{\"name\":\"lastViewedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"last_viewed_at\"},{\"name\":\"sentAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"sent_at\"},{\"name\":\"sentTo\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"sent_to\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"updated_at\"}],\"dbName\":\"vegas_intel_sheets\"},\"VegasCustomerScore\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"restaurantId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"restaurant_id\"},{\"name\":\"casinoId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"casino_id\"},{\"name\":\"isCustomer\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"is_customer\"},{\"name\":\"priorityScore\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"priority_score\"},{\"name\":\"atRiskScore\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"at_risk_score\"},{\"name\":\"daysSinceOrder\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"days_since_order\"},{\"name\":\"orderPattern\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"order_pattern\"},{\"name\":\"volumeTrend\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"volume_trend\"},{\"name\":\"lastOrderDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"last_order_date\"},{\"name\":\"avgOrderValue\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"avg_order_value\"},{\"name\":\"fryerCount\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"fryer_count\"},{\"name\":\"eventImpactScore\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"event_impact_score\"},{\"name\":\"oneLiner\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"one_liner\"},{\"name\":\"computedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"computed_at\"}],\"dbName\":\"vegas_customer_scores\"},\"VegasActivityLog\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"activityType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"activity_type\"},{\"name\":\"entityType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"entity_type\"},{\"name\":\"entityId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"entity_id\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"user_id\"},{\"name\":\"details\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"vegas_activity_log\"},\"VegasCuisineAffinity\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventCategory\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"event_category\"},{\"name\":\"cuisineType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"cuisine_type\"},{\"name\":\"affinityScore\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"affinity_score\"},{\"name\":\"reasoning\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"vegas_cuisine_affinity\"},\"VegasDailySpend\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"impactDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"impact_date\"},{\"name\":\"spendConcerts\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_concerts\"},{\"name\":\"spendConferences\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_conferences\"},{\"name\":\"spendExpos\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_expos\"},{\"name\":\"spendFestivals\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_festivals\"},{\"name\":\"spendPerformingArts\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_performing_arts\"},{\"name\":\"spendSports\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_sports\"},{\"name\":\"spendTotal\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"spend_total\"},{\"name\":\"importedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"imported_at\"}],\"dbName\":\"vegas_daily_spend\"},\"MktFutures1d\":{\"fields\":[{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"openInterest\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"open_interest\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"zl_corr_30d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zl_corr_60d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zl_corr_90d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_upper\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_middle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_lower\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx_pos\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx_neg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"stoch_k\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"stoch_d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"obv\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":\"futures_1d\"},\"MktFutures1h\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_time\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"futures_1h\"},\"MktFx1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pair\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"zlCorr30d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_30d\"},{\"name\":\"zlCorr60d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_60d\"},{\"name\":\"zlCorr90d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_90d\"}],\"dbName\":\"fx_1d\"},\"MktEtf1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"openingPrice\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"opening_price\"},{\"name\":\"closingPrice\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"closing_price\"},{\"name\":\"sessionHigh\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"session_high\"},{\"name\":\"sessionLow\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"session_low\"},{\"name\":\"indicativeOpen\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"indicative_open\"},{\"name\":\"indicativeClose\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"indicative_close\"},{\"name\":\"vwap\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zlCorr21d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_21d\"},{\"name\":\"zlCorr63d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_63d\"},{\"name\":\"zlCorr126d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zl_corr_126d\"},{\"name\":\"returns1d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"returns_1d\"},{\"name\":\"returns5d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"returns_5d\"},{\"name\":\"returns21d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"returns_21d\"},{\"name\":\"momentum21d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"momentum_21d\"},{\"name\":\"volatility21d\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"volatility_21d\"}],\"dbName\":\"etf_1d\"},\"MktOptions1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"underlying\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"expiration\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"strike\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"optionType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"option_type\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bid\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ask\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"openInterest\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"open_interest\"},{\"name\":\"premium\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"openingPriceStat\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"opening_price_stat\"},{\"name\":\"indicativeOpening\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"indicative_opening\"},{\"name\":\"sessionLowStat\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"session_low_stat\"},{\"name\":\"sessionHighStat\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"session_high_stat\"},{\"name\":\"clearedVolume\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"cleared_volume\"},{\"name\":\"fixingPrice\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"fixing_price\"},{\"name\":\"closeStat\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"close_stat\"},{\"name\":\"vwap\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"vwap\"},{\"name\":\"impliedVolatility\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"implied_volatility\"},{\"name\":\"delta\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"delta\"},{\"name\":\"closeVwap\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"close_vwap\"},{\"name\":\"ohlcAvgVwap\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"ohlc_avg_vwap\"},{\"name\":\"lastTradeTime\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"last_trade_time\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"options_1d\"},\"MktOptionsGreeks1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"underlying\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"expiration\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"strike\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"optionType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"option_type\"},{\"name\":\"lastPrice\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"last_price\"},{\"name\":\"impliedVolatility\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"implied_volatility\"},{\"name\":\"delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gamma\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"theta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vega\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ivSkew\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"iv_skew\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"options_greeks_1d\"},\"EconRates1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"rates_1d\"},\"EconInflation1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"inflation_1d\"},\"EconLabor1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"labor_1d\"},\"EconActivity1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"activity_1d\"},\"EconVolIndices1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"vol_indices_1d\"},\"EconCommodities1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"commodities_1d\"},\"EconMoney1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seriesId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"series_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"money_1d\"},\"AltEconNews\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"articleId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"article_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"publishedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"published_at\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"topics\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"subjects\"},{\"name\":\"metaDescription\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"meta_description\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":\"econ_news\"},\"PosCftc1w\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"openInterest\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"open_interest\"},{\"name\":\"prodMercLong\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"prod_merc_long\"},{\"name\":\"prodMercShort\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"prod_merc_short\"},{\"name\":\"prodMercNet\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"prod_merc_net\"},{\"name\":\"swapLong\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"swap_long\"},{\"name\":\"swapShort\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"swap_short\"},{\"name\":\"swapNet\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"swap_net\"},{\"name\":\"managedMoneyLong\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"managed_money_long\"},{\"name\":\"managedMoneyShort\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"managed_money_short\"},{\"name\":\"managedMoneyNet\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"managed_money_net\"},{\"name\":\"otherReptLong\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"other_rept_long\"},{\"name\":\"otherReptShort\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"other_rept_short\"},{\"name\":\"otherReptNet\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"other_rept_net\"},{\"name\":\"nonreptLong\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"nonrept_long\"},{\"name\":\"nonreptShort\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"nonrept_short\"},{\"name\":\"nonreptNet\",\"kind\":\"scalar\",\"type\":\"BigInt\",\"dbName\":\"nonrept_net\"},{\"name\":\"managedMoneyNetPctOi\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"managed_money_net_pct_oi\"},{\"name\":\"prodMercNetPctOi\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"prod_merc_net_pct_oi\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"cftc_1w\"},\"SupplyUsdaWasde1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metric\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unit\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"usda_wasde_1m\"},\"SupplyUsdaExports1w\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"destinationCountry\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"destination_country\"},{\"name\":\"netSalesMt\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"net_sales_mt\"},{\"name\":\"exportsMt\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"exports_mt\"},{\"name\":\"outstandingSalesMt\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"outstanding_sales_mt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"usda_exports_1w\"},\"SupplyEpaRin1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"rinType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"rin_type\"},{\"name\":\"price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"epa_rin_1d\"},\"SupplyLcfs1d\":{\"fields\":[{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"priceUsdPerMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"price_usd_per_mt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestionBatchId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_batch_id\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"lcfs_1d\"},\"SupplyEiaBiodiesel1m\":{\"fields\":[{\"name\":\"reportMonth\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"report_month\"},{\"name\":\"biodieselProductionMgal\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"biodiesel_production_mgal\"},{\"name\":\"renewableDieselProductionMgal\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"renewable_diesel_production_mgal\"},{\"name\":\"feedstockSoybeanOilPct\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"feedstock_soybean_oil_pct\"},{\"name\":\"capacityUtilizationPct\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"capacity_utilization_pct\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"}],\"dbName\":\"eia_biodiesel_1m\"},\"SupplyMpobPalm1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"reportMonth\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"report_month\"},{\"name\":\"productionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"production_mt\"},{\"name\":\"exportsMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"exports_mt\"},{\"name\":\"stocksMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"stocks_mt\"},{\"name\":\"localConsumptionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"local_consumption_mt\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"}],\"dbName\":\"mpob_palm_1m\"},\"SupplyArgentinaCrush1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"reportMonth\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"report_month\"},{\"name\":\"crushVolumeMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"crush_volume_mt\"},{\"name\":\"capacityUtilization\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"capacity_utilization\"},{\"name\":\"oilProductionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"oil_production_mt\"},{\"name\":\"mealProductionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"meal_production_mt\"},{\"name\":\"exportsOilMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"exports_oil_mt\"},{\"name\":\"exportsMealMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"exports_meal_mt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"}],\"dbName\":\"argentina_crush_1m\"},\"SupplyConabProduction1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"reportMonth\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"report_month\"},{\"name\":\"cropYear\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"crop_year\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"productionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"production_mt\"},{\"name\":\"areaHarvestedHa\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"area_harvested_ha\"},{\"name\":\"yieldMtPerHa\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"yield_mt_per_ha\"},{\"name\":\"exportsMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"exports_mt\"},{\"name\":\"domesticConsumptionMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"domestic_consumption_mt\"},{\"name\":\"endingStocksMt\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"ending_stocks_mt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"}],\"dbName\":\"conab_production_1m\"},\"AltExecutiveActions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"articleId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"article_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"publishedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"published_at\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"documentType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"document_type\"},{\"name\":\"zlSentiment\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"zl_sentiment\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"ingestionBatchId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_batch_id\"}],\"dbName\":\"executive_actions\"},\"AltPolicyNews\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"articleId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"article_id\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"publishedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"published_at\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zlSentiment\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"zl_sentiment\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"ingestionBatchId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_batch_id\"}],\"dbName\":\"policy_news\"},\"AltWeather1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"stationId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"station_id\"},{\"name\":\"region\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tmaxC\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"tmax_c\"},{\"name\":\"tminC\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"tmin_c\"},{\"name\":\"tavgC\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"tavg_c\"},{\"name\":\"prcpMm\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"prcp_mm\"},{\"name\":\"snowMm\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"snow_mm\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"ingestionBatchId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_batch_id\"}],\"dbName\":\"weather_1d\"},\"AltLegislation1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"documentNumber\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"document_number\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"agency\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"documentType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"document_type\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"knowledgeTime\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"knowledge_time\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"ingestionBatchId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"ingestion_batch_id\"}],\"dbName\":\"legislation_1d\"},\"AltTariffDeadlines\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"deadlineName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"deadline_name\"},{\"name\":\"deadlineDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"deadline_date\"},{\"name\":\"daysToExpiry\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"days_to_expiry\"},{\"name\":\"renewalProbability\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"renewal_probability\"},{\"name\":\"policyType\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"policy_type\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"is_active\"},{\"name\":\"lastUpdated\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"last_updated\"}],\"dbName\":\"tariff_deadlines\"},\"AltProfarmerNews\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eventDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"event_date\"},{\"name\":\"section\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialistTags\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"specialist_tags\"},{\"name\":\"ingestedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"ingested_at\"},{\"name\":\"rowHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"row_hash\"},{\"name\":\"rawPayload\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"raw_payload\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meta_description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subject\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"keywords\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"categories\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":\"profarmer_news\"},\"event_probabilities_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_entities\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"formatted_address\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"category\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"labels\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recurring_ical\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_impact\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"vertical\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"impact_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"impact_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"impact_value\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"position\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_labels\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"label\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"weight\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_venues\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"venue_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_primary\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_venues\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"venue_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"formatted_address\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"latitude\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"longitude\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"placekey\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"postcode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"locality\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"region\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"geo_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"model_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_nickname\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trained_date\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mae\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"coverage_30_70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oof_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"outcome\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"specialist_signals_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"signal_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"max_input_age_days\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"max_input_age_days\"},{\"name\":\"source_tag\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"degraded_level\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"degraded_level\"},{\"name\":\"conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"data_quality\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"abstained\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"warmup\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"signal_type\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"MatrixManifest1d\":{\"fields\":[{\"name\":\"runId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"run_id\"},{\"name\":\"matrixVersion\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"matrix_version\"},{\"name\":\"commitHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"commit_hash\"},{\"name\":\"dataCutoffDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"data_cutoff_date\"},{\"name\":\"schemaHash\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"schema_hash\"},{\"name\":\"columnList\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"column_list\"},{\"name\":\"columnMetadata\",\"kind\":\"scalar\",\"type\":\"Json\",\"dbName\":\"column_metadata\"},{\"name\":\"requiredColumns\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"required_columns\"},{\"name\":\"featureCount\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"feature_count\"},{\"name\":\"rowCount\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"row_count\"},{\"name\":\"minDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"min_date\"},{\"name\":\"maxDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"max_date\"},{\"name\":\"validationPassed\",\"kind\":\"scalar\",\"type\":\"Boolean\",\"dbName\":\"validation_passed\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"stats\",\"kind\":\"object\",\"type\":\"MatrixFeatureStats1d\",\"relationName\":\"MatrixFeatureStats1dToMatrixManifest1d\"}],\"dbName\":\"matrix_manifest_1d\"},\"MatrixFeatureStats1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"runId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"run_id\"},{\"name\":\"columnName\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"column_name\"},{\"name\":\"dtype\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p01\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p99\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mean\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"std\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"minVal\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"min_val\"},{\"name\":\"maxVal\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"max_val\"},{\"name\":\"zeroRate\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"zero_rate\"},{\"name\":\"missingFlagRate\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"missing_flag_rate\"},{\"name\":\"ageDaysP95\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"age_days_p95\"},{\"name\":\"releaseDayRate\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"release_day_rate\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"},{\"name\":\"manifest\",\"kind\":\"object\",\"type\":\"MatrixManifest1d\",\"relationName\":\"MatrixFeatureStats1dToMatrixManifest1d\"}],\"dbName\":\"matrix_feature_stats_1d\"},\"AblationResults\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"runId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"run_id\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizonDays\",\"kind\":\"scalar\",\"type\":\"Int\",\"dbName\":\"horizon_days\"},{\"name\":\"baselineMae\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"baseline_mae\"},{\"name\":\"withSignalMae\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"with_signal_mae\"},{\"name\":\"deltaMae\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"delta_mae\"},{\"name\":\"baselineCoverage40\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"baseline_coverage_40\"},{\"name\":\"withSignalCoverage40\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"with_signal_coverage_40\"},{\"name\":\"regimeStabilityScore\",\"kind\":\"scalar\",\"type\":\"Float\",\"dbName\":\"regime_stability_score\"},{\"name\":\"recommendation\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"testedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"tested_at\"}],\"dbName\":\"ablation_results\"},\"AnalyticsBoardCrush1d\":{\"fields\":[{\"name\":\"tradeDate\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"trade_date\"},{\"name\":\"zsClose\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"zs_close\"},{\"name\":\"zlClose\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"zl_close\"},{\"name\":\"zmClose\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"zm_close\"},{\"name\":\"boardCrush\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"board_crush\"},{\"name\":\"oilShare\",\"kind\":\"scalar\",\"type\":\"Decimal\",\"dbName\":\"oil_share\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"board_crush_1d\"},\"inngest_receipts\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"function_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"received_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"payload\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"zl_forming_bar\":{\"fields\":[{\"name\":\"timeframe\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"bar_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_latest\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_5m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"news_event\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"article_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"published_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_sentiment\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meta_description\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"econ_news\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"article_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"published_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meta_description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"executive_actions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"article_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"published_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"document_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_sentiment\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"legislation_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"document_number\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"agency\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"document_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"policy_news\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"article_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"published_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_sentiment\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"profarmer_news\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"section\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"summary\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meta_description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subject\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"keywords\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"categories\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"tariff_deadlines\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"deadline_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"deadline_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"days_to_expiry\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"renewal_probability\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"policy_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_active\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"last_updated\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"weather_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"station_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"region\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"ablation_results\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"baseline_mae\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"with_signal_mae\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"delta_mae\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"baseline_coverage_40\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"with_signal_coverage_40\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"regime_stability_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"recommendation\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"board_crush_1d\":{\"fields\":[{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"zs_close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zl_close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zm_close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"board_crush\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"oil_share\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"chart_overlays\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"overlay_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"start_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"end_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"label\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"color\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metadata\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"dashboard_metrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"metric_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metric_value\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"driver_attribution_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"driver_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"shap_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rank\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"driver_scores\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"specialist\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"shap_contribution\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"event_probabilities_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"window_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_end\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p_event\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"severity_score\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"inngest_receipts\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"function_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"received_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"payload\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"market_posture\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tail_risk_prob\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"price_scenarios_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"axis\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p_scenario\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"drivers_topk\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"display_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"color_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"procurement_actions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"action\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rationale\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"regime_state_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"vix_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"policy_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"news_contribution\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"risk_metrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"var_01\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cvar_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"prob_up\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"prob_up_5pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"prob_down_5pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tail_risk_flag\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"scenario_analysis\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"scenario_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"scenario_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"assumptions\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"base_forecast\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"scenario_forecast\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"impact_pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"probability\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"specialist_trump_effect_1h\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"value_timing_windows\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"tail_proximity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"probability_lift\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence_adjusted_lift\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"regime_dampening\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"window_start_week\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"window_end_week\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vol_regimes\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"regime_prob\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"transition_probs\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"smoothed_prob\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_forming_bar\":{\"fields\":[{\"name\":\"timeframe\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"bar_start\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_latest\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_15m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1d\":{\"fields\":[{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1h\":{\"fields\":[{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"zl_price_5m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"previous_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change_percent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"day_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"activity_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"commodities_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"inflation_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"labor_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"money_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"news_event\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"article_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"published_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_sentiment\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"topics\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"subjects\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meta_description\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"rates_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"vol_indices_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"series_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"elite_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":null},\"intel_drops\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_ts\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"domain\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"direction\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pressure_cents\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"edge\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"driver_weights\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"top_drivers\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"regime_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quality_flags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data_gaps\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"receipts\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"narrative\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quant_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"source_model\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"trump_effect_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"eo_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"eo_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"proclamation_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"proclamation_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"nomination_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"nomination_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"memorandum_count_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"memorandum_count_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"total_actions_7d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"total_actions_30d\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"avg_sentiment_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"avg_sentiment_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"action_velocity\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"action_acceleration\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"weighted_action_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"core_cone_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"config_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"core_mc_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"s0\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"q90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mu_annual\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sigma_annual\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p10_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p50_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_p90_final\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_min_p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mc_max_p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ruin\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cvar_95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"runs\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seed\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"forecast_quantiles\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p10\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"forecast_summary_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"opp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ruin\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"calibrated_p10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"calibrated_p90\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"coverage_error\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"regime_multiplier\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"narrative\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_1\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_2\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"top_driver_3\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ai_model\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"generated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":null},\"garch_forecasts\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"conditional_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"annualized_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_01\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"var_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cvar_05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vol_lower\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vol_upper\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"horizon_reconciliation_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"tactical_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"short_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"medium_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"strategic_posture\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"conflict_flag\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"reconciled_guidance\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"priority_horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"monte_carlo_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"num_sims\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"percentiles\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"correlations\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"probability_distributions\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"percentile\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_126d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_21d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_5d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"production_63d_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"forecast_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p30\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p70\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p10_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"price_p90_cal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"current_price\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"model_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"etf_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_tags\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"opening_price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"closing_price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"session_high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"session_low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"indicative_open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"indicative_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vwap\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_corr_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_corr_63d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_corr_126d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"returns_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"returns_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"momentum_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_21d\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":null},\"futures_1d\":{\"fields\":[{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"open_interest\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_corr_30d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zl_corr_60d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"zl_corr_90d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_upper\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_middle\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_lower\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx_pos\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"adx_neg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"stoch_k\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"stoch_d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"obv\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":null},\"futures_1h\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"fx_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pair\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"zl_corr_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_corr_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_corr_90d\",\"kind\":\"scalar\",\"type\":\"Float\"}],\"dbName\":null},\"options_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"underlying\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"expiration\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"strike\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"option_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"open_interest\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"bid\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ask\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"change\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"premium\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vwap\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"settlement\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"implied_volatility\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gamma\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"theta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"vega\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rho\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"model_registry\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"version\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trained_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"training_mode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"training_time_seconds\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"dataset_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"dataset_features\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"dataset_start_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"dataset_end_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"mase\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"rmse\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"mae\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"mape\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pinball_loss_p10\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pinball_loss_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pinball_loss_p90\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"coverage_80\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"best_model\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"models_trained\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_champion\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"promoted_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"artifact_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mlflow_run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tags\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"data_quality_log\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"table_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"check_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"null_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"latest_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"oldest_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"issues\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"data_quality_metrics\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"last_update\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"hours_since_update\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"total_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"expected_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"completeness_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"null_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"null_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"is_stale\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"is_incomplete\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"data_source_registry\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"source_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"target_table\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"target_schema\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"api_provider\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"api_endpoint\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"api_docs_url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"auth_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"auth_env_var\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"response_format\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"date_column\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_column\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"update_frequency\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"typical_lag_hours\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"ingestion_script\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"last_successful_run\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"is_active\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"requires_subscription\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"subscription_status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"ingest_run\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"job_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"started_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"completed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rows_attempted\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"rows_inserted\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"rows_skipped\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"rows_quarantined\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cursor_position\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"error_message\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quarantined_record\",\"kind\":\"object\",\"type\":\"quarantined_record\",\"relationName\":\"ingest_runToquarantined_record\"}],\"dbName\":null},\"model_core_audit\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"training_run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"reviewed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"reviewer\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_core_run\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"cv_purged_walk_forward\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"asof_alignment_valid\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos_bolt_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos2_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"chronos2_lora_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"recursive_tabular_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"autoets_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"theta_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"seasonal_naive_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"weighted_ensemble_used\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"oof_only\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"max_single_weight\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"chronos_weight_nonzero\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"recursive_weight_zero_long\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"monte_carlo_runs\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"p10_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p50_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p90_present\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"stress_widening_applied\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"rmse_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"brier_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p10_coverage_ok\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"p90_coverage_ok\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"registry_complete\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"ensemble_edges_recorded\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"resources_logged\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"artifact_isolation_safe\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"narrative_ready\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"buy_sell_language_absent\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"uncertainty_explained\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"specialist_divergence_flag\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"hard_gate_pass\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"final_approved\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"failure_reason\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"prediction_accuracy\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"prediction_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"target_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"actual\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pred_p50\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"abs_error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pct_error\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"in_80_band\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"pred_p10\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"pred_p90\",\"kind\":\"scalar\",\"type\":\"Decimal\"}],\"dbName\":null},\"quarantined_record\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"source_table\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingest_run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"attempted_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"validation_errors\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"severity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resolution_status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"resolved_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"resolved_by\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingest_run\",\"kind\":\"object\",\"type\":\"ingest_run\",\"relationName\":\"ingest_runToquarantined_record\"}],\"dbName\":null},\"source_relabel_audit\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"relabel_ts\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"table_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"from_source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"to_source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"row_count\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"min_as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"max_as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"training_run_log\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"phase\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"started_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"completed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"error_message\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metrics\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"training_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"experiment_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"specialist_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"started_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"completed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"duration_seconds\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"training_mode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"hyperparameters\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"dataset_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dataset_rows\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"dataset_features\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"metrics\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"mase\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"error_message\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"artifact_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"log_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"cftc_1w\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open_interest\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"prod_merc_long\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"prod_merc_short\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"prod_merc_net\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"swap_long\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"swap_short\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"swap_net\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"managed_money_long\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"managed_money_short\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"managed_money_net\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"other_rept_long\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"other_rept_short\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"other_rept_net\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"nonrept_long\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"nonrept_short\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"nonrept_net\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"managed_money_net_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"prod_merc_net_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"argentina_crush_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"report_month\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"crush_volume_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"capacity_utilization\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"oil_production_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"meal_production_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"exports_oil_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"exports_meal_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"conab_production_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"report_month\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"crop_year\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"production_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"area_harvested_ha\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"yield_mt_per_ha\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"exports_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"domestic_consumption_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"ending_stocks_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"eia_biodiesel_1m\":{\"fields\":[{\"name\":\"report_month\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"biodiesel_production_mgal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"renewable_diesel_production_mgal\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"feedstock_soybean_oil_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"capacity_utilization_pct\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"epa_rin_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"rin_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"price\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"lcfs_1d\":{\"fields\":[{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"price_usd_per_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingestion_batch_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"mpob_palm_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"report_month\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"production_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"exports_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"stocks_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"local_consumption_mt\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"usda_exports_1w\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"destination_country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"net_sales_mt\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"exports_mt\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"outstanding_sales_mt\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"usda_wasde_1m\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"commodity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"metric\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unit\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"knowledge_time\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"row_hash\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"features_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"matrix_1d\":{\"fields\":[{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"open\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"high\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"low\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"open_interest\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"connors_rsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_transform\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fisher_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mcginley_dynamic\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ttm_squeeze_on\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ttm_squeeze_momentum\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"schaff_trend_cycle\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"rvi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rvi_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"elder_force_index\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"kama_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hma_20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"alma_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cumulative_rsi\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"macd_histogram\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cci_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cmf_21\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"unusual_volume\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"log_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"range_pct\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"hurst_regime_raw\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"_hurst_regime_raw\"},{\"name\":\"hurst_regime\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hurst_regime_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ttm_squeeze_on_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_anfci\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_apu000074714\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_b235rc1q027sbea\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bamlc0a0cm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bamlh0a0hym2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bogmbase\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_bopgstb\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_busloans\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ccsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chncpiallminmei\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chngdpnqdsmei\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_chnmainlandtpu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_clvmnacscab1gqea19\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_cpiaucsl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_cpilfesl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dcoilbrenteu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dcoilwtico\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ddfuelusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexars\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexbzus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexcaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexchus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexhkus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexinus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexjpus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexkous\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexmaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexmxus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexnous\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexsfus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexsius\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexszus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dextaus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexthus\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexusal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexuseu\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dexusuk\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfedtarl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfedtaru\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dff\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dfii7\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgasusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs10\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs1mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs20\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs3mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs6mo\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dgs7\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dhhngsp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dhoilnyh\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_djfuelusgulf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dprime\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dpropanembtx\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_drcclacbs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexafegs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexbgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dtwexemegs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_dxy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_emvtradepolemv\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_eputrade\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_expch\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_expgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_fedfunds\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_frgshpusm649ncis\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gasdesw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gasregw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gdp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gdpc1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_gvzcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_houst\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_icsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_impch\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_impgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_indpro\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ir3tib01cnm156n\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_lvxrnsa\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_m2sl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_manemp\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_mortgage30us\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_myagm2cnm189n\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nasdaqcom\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nfci\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_bgcr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_effr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_obfr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_sofr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_nyfed_tgcr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ovxcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_payems\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pbarlusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pce\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcepi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcepilfe\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcoppusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcu311224311224\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pcu32411032411012\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_permit\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pmaizmtusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pngaseuusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_polvoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppiaco\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppifgs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppifis\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_ppoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pricenpqusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_proilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psoilusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psoybusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psugaisausdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_psunousdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_pwheamtusdm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_rrpontsyd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_rsxfs\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_sofr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_sp500\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_stlfsi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_stlfsi4\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10y2y\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10y3m\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t10yie\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t20yiem\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t30yiem\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t5yie\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_t5yifr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_tedrate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_totresns\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_umcsent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_unrate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_usepuindxd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_usepuindxm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vixcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vxgscls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_vxvcls\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_walcl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu01830161\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu01830171\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu057303\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wpu06140341\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_wresbal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_xtexva01cnm667s\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fred_xtimva01cnm667s\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rapeseed_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sunflower_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usd_cny\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_audusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_afe\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_broad\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_dxy_eme\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_eurusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_gbpusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_nzdusd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdbrl\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdcad\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdchf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdcny\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdhkd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdinr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdjpy\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdkrw\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdmxn\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdmyr\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdnok\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdsek\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdsgd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdthb\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdtwd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_usdzar\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tavg_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tmin_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_tmax_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_snow_mm\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_gdd_10c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_gdd_30d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_7d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_14d_sum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_temp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_prcp_anom_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_ar_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_br_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wx_us_temp_vol_7d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_managed_money_net_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_managed_money_net_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_managed_money_net_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_mm_pct_oi_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_prod_merc_net_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_prod_merc_net_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_prod_merc_net_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_open_interest_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cftc_zl_cot_open_interest_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cftc_zl_cot_open_interest_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cot_managed_money_net\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_prod_merc_net\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_open_interest\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_mm_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_comm_pct_oi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_mm_net_chg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_comm_net_chg\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d3\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d4\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d5\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rin_d6\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"lcfs_ca_lcfs_credit_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_ca_lcfs_credit_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_ca_lcfs_credit_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"lcfs_credit\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zl_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zl_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zs_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zs_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_net_sales_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_net_sales_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_net_sales_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_outstanding_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_exports_usda_zm_outstanding_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_exports_usda_zm_outstanding_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"usda_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zl_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zl_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zs_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_net_sales\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"usda_zm_outstanding\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zm_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_crush_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush_is_release_day\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_crush_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_crush_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zs_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zl_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zm_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_consumption_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_ending_stocks_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_exports_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_world_zs_production_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"wasde_us_zl_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zl_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zm_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_us_zs_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zl_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zm_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_consumption\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_exports\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_world_zs_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybeans_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybean_oil_production\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"wasde_soybean_oil_ending_stocks\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_event_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_event_delta\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"pmi_cn_nbs_china_pmi_is_release_day\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pmi_cn_nbs_china_pmi_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pmi_cn_nbs_china_pmi_is_available\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"china_pmi\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cl_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cpo_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_dx_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_es_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_gc_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_hg_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ho_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ng_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_rb_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_si_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_vx_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zc_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zm_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zs_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zw_30d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cl_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cpo_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_dx_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_es_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_gc_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_hg_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ho_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ng_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_rb_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_si_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_vx_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zc_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zm_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zs_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zw_60d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cl_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_cpo_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_dx_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_es_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_gc_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_hg_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ho_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_ng_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_rb_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_si_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_vx_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zc_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zm_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zs_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"corr_zw_90d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_returns_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_rsi_14\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_macd\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_atr_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_volume_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_bb_percent_b\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cl_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cpo_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"dx_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"es_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"gc_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ng_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zc_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zm_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zs_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zw_hurst_exponent\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush_zscore_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush_zscore_63d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush_zscore_252d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush_momentum_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"board_crush_expanding\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"soy_oil_share\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"soy_oil_share_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_zs_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_zs_ratio_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_cl_ratio\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_cl_ratio_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_cpo_spread\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zl_cpo_spread_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crack_321\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crack_321_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_crack\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"rb_crack\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"ho_crack_zscore_63d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"diesel_crack_wide\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_total_oi_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opt_total_oi_p\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opt_total_volume_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opt_total_volume_p\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opt_avg_premium_c\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"opt_avg_premium_p\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_biofuel_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_china_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_crush_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_energy_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fed_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_fx_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_palm_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_substitutes_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_tariff_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_trump_effect_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"sig_volatility_conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_delta_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_delta_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_pct_change_1d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_pct_change_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_momentum\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_delta_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_ma_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volume_spike\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"churn_rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"churn_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"churn_high\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"price_direction\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_direction\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oi_price_divergence\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"flow_conviction\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_net_zscore\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"cot_age_fresh\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_regime_numeric\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"washout_risk\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"vix_close\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"open_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"high_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"low_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"open_interest_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"connors_rsi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fisher_transform_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fisher_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"mcginley_dynamic_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rvi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rvi_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"elder_force_index_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"kama_10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"hma_20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"alma_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rsi_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_signal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"macd_histogram_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cci_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cci_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_50_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"garman_klass_vol_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"yang_zhang_vol_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cmf_21_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"unusual_volume_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"log_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"range_pct_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_anfci_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_apu000074714_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_b235rc1q027sbea_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bamlc0a0cm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bamlh0a0hym2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bogmbase_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_bopgstb_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_busloans_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ccsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chncpiallminmei_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chngdpnqdsmei_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_chnmainlandtpu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_clvmnacscab1gqea19_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_cpiaucsl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_cpilfesl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dcoilbrenteu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dcoilwtico_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ddfuelusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexars_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexbzus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexcaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexchus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexhkus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexinus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexjpus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexkous_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexmaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexmxus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexnous_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexsfus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexsius_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexszus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dextaus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexthus_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexusal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexuseu_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dexusuk_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfedtarl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfedtaru_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dff_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii30_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dfii7_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgasusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs10_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs1mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs20_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs30_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs3mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs6mo_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dgs7_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dhhngsp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dhoilnyh_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_djfuelusgulf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dprime_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dpropanembtx_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_drcclacbs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexafegs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexbgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dtwexemegs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_dxy_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_emvtradepolemv_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_eputrade_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_expch_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_expgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_fedfunds_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_frgshpusm649ncis_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gasdesw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gasregw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gdp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gdpc1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_gvzcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_houst_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_icsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_impch_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_impgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_indpro_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ir3tib01cnm156n_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_lvxrnsa_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_m2sl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_manemp_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_mortgage30us_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_myagm2cnm189n_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nasdaqcom_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nfci_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_bgcr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_effr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_obfr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_sofr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_nyfed_tgcr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ovxcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_payems_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pbarlusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pce_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcepi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcepilfe_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcoppusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcu311224311224_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pcu32411032411012_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_permit_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pmaizmtusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pngaseuusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_polvoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppiaco_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppifgs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppifis_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_ppoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pricenpqusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_proilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psoilusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psoybusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psugaisausdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_psunousdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_pwheamtusdm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_rrpontsyd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_rsxfs_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_sofr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_sp500_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_stlfsi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_stlfsi4_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10y2y_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10y3m_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t10yie_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t20yiem_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t30yiem_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t5yie_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_t5yifr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_tedrate_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_totresns_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_umcsent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_unrate_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_usepuindxd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_usepuindxm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vixcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vxgscls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_vxvcls_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_walcl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu01830161_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu01830171_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu057303_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wpu06140341_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_wresbal_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_xtexva01cnm667s_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fred_xtimva01cnm667s_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rapeseed_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sunflower_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usd_cny_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_audusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_afe_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_broad_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_dxy_eme_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_eurusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_gbpusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_nzdusd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdbrl_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdcad_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdchf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdcny_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdhkd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdinr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdjpy_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdkrw_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdmxn_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdmyr_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdnok_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdsek_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdsgd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdthb_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdtwd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"fx_usdzar_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tavg_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tmin_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_tmax_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_snow_mm_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_gdd_10c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_gdd_30d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_7d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_14d_sum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_temp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_prcp_anom_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_ar_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_br_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wx_us_temp_vol_7d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_managed_money_net_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_prod_merc_net_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_open_interest_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_mm_pct_oi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_comm_pct_oi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_mm_net_chg_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_comm_net_chg_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d3_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d4_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d5_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rin_d6_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"lcfs_credit_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zl_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zs_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_net_sales_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"usda_zm_outstanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zl_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zm_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_us_zs_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zl_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zm_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_consumption_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_exports_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_world_zs_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybeans_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybean_oil_production_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"wasde_soybean_oil_ending_stocks_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"china_pmi_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cl_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cpo_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_dx_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_es_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_gc_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_hg_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ho_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ng_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_rb_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_si_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_vx_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zc_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zm_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zs_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zw_30d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cl_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cpo_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_dx_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_es_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_gc_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_hg_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ho_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ng_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_rb_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_si_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_vx_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zc_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zm_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zs_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zw_60d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cl_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_cpo_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_dx_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_es_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_gc_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_hg_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ho_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_ng_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_rb_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_si_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_vx_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zc_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zm_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zs_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"corr_zw_90d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_returns_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_rsi_14_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_macd_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_atr_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_volume_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_bb_percent_b_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cl_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cpo_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"dx_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"es_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"gc_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ng_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zc_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zm_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zs_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zw_hurst_exponent_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_zscore_21d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_zscore_63d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_zscore_252d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_momentum_5d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"board_crush_expanding_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"soy_oil_share_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"soy_oil_share_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_zs_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_zs_ratio_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_cl_ratio_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_cl_ratio_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_cpo_spread_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"zl_cpo_spread_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"crack_321_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"crack_321_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_crack_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"rb_crack_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"ho_crack_zscore_63d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"diesel_crack_wide_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_total_oi_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_total_oi_p_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_total_volume_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_total_volume_p_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_avg_premium_c_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"opt_avg_premium_p_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_1_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_2_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_biofuel_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_china_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_crush_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_energy_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fed_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_fx_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_palm_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_substitutes_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_tariff_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_trump_effect_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"sig_volatility_conf_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_delta_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_delta_5d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_pct_change_1d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_pct_change_5d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_momentum_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_delta_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_ma_5d_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"volume_spike_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"churn_rate_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"churn_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"churn_high_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"price_direction_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_direction_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"oi_price_divergence_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"flow_conviction_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_net_zscore_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_age_fresh_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"cot_regime_numeric_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"washout_risk_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"vix_close_is_missing\",\"kind\":\"scalar\",\"type\":\"BigInt\"},{\"name\":\"target_ret_5d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_21d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_63d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_ret_126d\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"matrix_version\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"matrix_feature_stats_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"column_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"dtype\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"p01\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p05\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p95\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p99\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"mean\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"std\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"min_val\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"max_val\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"zero_rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"missing_flag_rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"age_days_p95\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"release_day_rate\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"matrix_manifest_1d\",\"kind\":\"object\",\"type\":\"matrix_manifest_1d\",\"relationName\":\"matrix_feature_stats_1dTomatrix_manifest_1d\"}],\"dbName\":null},\"matrix_manifest_1d\":{\"fields\":[{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"matrix_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"commit_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data_cutoff_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"schema_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"column_list\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"column_metadata\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"required_columns\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"feature_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"row_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"min_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"max_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"validation_passed\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"matrix_feature_stats_1d\",\"kind\":\"object\",\"type\":\"matrix_feature_stats_1d\",\"relationName\":\"matrix_feature_stats_1dTomatrix_manifest_1d\"}],\"dbName\":null},\"meta_inputs_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"core_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"core_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"core_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"biofuel_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"biofuel_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"biofuel_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"china_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"crush_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"energy_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fed_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fx_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"palm_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"substitutes_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"tariff_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trump_effect_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"volatility_p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"model_runs\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"model_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_nickname\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trained_date\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"mae\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"coverage_30_70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"oof_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"outcome\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"model_path\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"oof_core_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"trade_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"horizon_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"window_id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cutoff_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"p30\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p50\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"p70\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"trained_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"run_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"matrix_version\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"realized_volatility\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"window_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"realized_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"parkinson_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"garman_klass_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"yang_zhang_vol\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"annualized\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"specialist_features\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"}],\"dbName\":null},\"specialist_signals_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"bucket\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal_1\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"signal_2\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"model_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"run_hash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"max_input_age_days\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"source_tag\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"degraded_level\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"conf\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"data_quality\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"run_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"abstained\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"warmup\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"signal_type\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"specialist_trump_effect_1d\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"symbol\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"signal\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"confidence\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"features\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"volatility_surface\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"underlying\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"as_of_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"surface_data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"atm_vol\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"skew_25d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"butterfly_25d\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"term_slope\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_activity_log\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"activity_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"details\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_casino_profiles\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"casino_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"vibe\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pull_factor\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"target_demo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"tier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"corridor\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_casinos\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_cuisine_affinity\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_category\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cuisine_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"affinity_score\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"reasoning\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_cuisine_match\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cuisine_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"affinity_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_customer_scores\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"restaurant_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"casino_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_customer\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"priority_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"at_risk_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"days_since_order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"order_pattern\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"volume_trend\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"last_order_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"avg_order_value\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"fryer_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_impact_score\",\"kind\":\"scalar\",\"type\":\"Float\"},{\"name\":\"one_liner\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"computed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_daily_spend\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"impact_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"spend_concerts\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_conferences\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_expos\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_festivals\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_performing_arts\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_sports\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"spend_total\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"imported_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_entities\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"entity_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"formatted_address\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"category\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"labels\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recurring_ical\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_impact\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"vertical\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"impact_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"impact_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"impact_value\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"position\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_labels\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"label\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"weight\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_profiles\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"display_name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"primary_demo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"psychographic\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"cuisine_affinity\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"avg_spend_tier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"peak_dining_hours\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"notes\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_event_venues\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"venue_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"is_primary\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_events\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"venue\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"start_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"end_date\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"attendance\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"attendance_min\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"attendance_max\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"source\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"source_url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"raw_payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"is_active\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_export_list\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_fryers\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_intel_sheets\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sheet_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"restaurant_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"event_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"sheet_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"headline\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"shareable_url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"pdf_url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"view_count\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"last_viewed_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"sent_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"sent_to\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_restaurants\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"cuisine_type\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"vegas_scheduled_reports\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_shift_casinos\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_shift_restaurants\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_shifts\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"glide_row_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"data\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"ingested_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"vegas_venues\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"venue_id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"formatted_address\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"latitude\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"longitude\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"placekey\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"postcode\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"locality\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"region\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"country_code\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"geo_type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updated_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.compilerWasm = {
   getRuntime: async () => require('./query_compiler_bg.js'),
