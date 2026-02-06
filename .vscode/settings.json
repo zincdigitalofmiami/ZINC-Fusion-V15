@@ -81,7 +81,7 @@
     
     // === COPILOT (keep enabled) ===
     "github.copilot.enable": {
-        "*": false
+        "*": true
     },
 
     "prisma.enableCodeLens": true,
