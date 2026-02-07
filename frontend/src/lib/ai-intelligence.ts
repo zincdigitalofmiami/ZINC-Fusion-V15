@@ -26,23 +26,23 @@ const anthropic = new Anthropic({
 
 export interface MarketData {
   // Volatility
-  vix: number
-  ovx: number | null
+  vix?: number
+  ovx?: number | null
   vix3m?: number | null
 
   // Crush Economics
-  boardCrush: number
-  oilShare: number | null
+  boardCrush?: number
+  oilShare?: number | null
 
   // China/Trade
-  cnyRate: number
-  fxiChange20d: number
-  fxiChange5d: number
-  bdryChange20d: number | null
+  cnyRate?: number
+  fxiChange20d?: number
+  fxiChange5d?: number
+  bdryChange20d?: number | null
 
   // Tariff/Policy
-  tpu: number
-  emv: number | null
+  tpu?: number
+  emv?: number | null
 
   // Rule-based scores (already calculated)
   scores: {
@@ -161,20 +161,20 @@ DATA AS OF: ${asOfDate}
 ${zlPriceSection}
 
 VOLATILITY:
-- VIX: ${data.vix.toFixed(1)}${data.ovx !== null ? ` | OVX: ${data.ovx.toFixed(1)}` : ''}
+- VIX: ${data.vix.toFixed(1)}${data.ovx != null ? ` | OVX: ${data.ovx.toFixed(1)}` : ''}
 - Pre-calculated pressure score: ${data.scores.vix}/100
 
 CRUSH ECONOMICS:
-- Board Crush: $${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ''}
+- Board Crush: $${data.boardCrush.toFixed(2)}/bu${data.oilShare != null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ''}
 - Pre-calculated pressure score: ${data.scores.crush}/100
 
 CHINA/TRADE:
 - CNY/USD: ${data.cnyRate.toFixed(2)}
-- FXI 20d change: ${(data.fxiChange20d * 100).toFixed(1)}%${data.bdryChange20d !== null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ''}
+- FXI 20d change: ${data.fxiChange20d !== undefined ? `${(data.fxiChange20d * 100).toFixed(1)}%` : 'N/A'}${data.bdryChange20d != null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ''}
 - Pre-calculated tension score: ${data.scores.china}/100
 
 TARIFF/POLICY:
-- Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ''}
+- Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv != null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ''}
 - Pre-calculated threat score: ${data.scores.tariff}/100
 ${newsSection}
 
@@ -250,13 +250,13 @@ export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
   const keyRisks: string[] = []
   const keySupports: string[] = []
 
-  if (data.scores.vix >= 65) keyRisks.push(`VIX at ${data.vix.toFixed(1)} - fund liquidation risk`)
-  if (data.scores.crush >= 65) keyRisks.push(`Crush margins squeezed at $${data.boardCrush.toFixed(2)}`)
-  if (data.scores.china >= 65) keyRisks.push(`China tension elevated - CNY at ${data.cnyRate.toFixed(2)}`)
-  if (data.scores.tariff >= 65) keyRisks.push(`Tariff risk high - TPU at ${data.tpu.toFixed(0)}`)
+  if (data.scores.vix >= 65) keyRisks.push(`VIX at ${data.vix?.toFixed(1) ?? '?'} - fund liquidation risk`)
+  if (data.scores.crush >= 65) keyRisks.push(`Crush margins squeezed at $${data.boardCrush?.toFixed(2) ?? '?'}`)
+  if (data.scores.china >= 65) keyRisks.push(`China tension elevated - CNY at ${data.cnyRate?.toFixed(2) ?? '?'}`)
+  if (data.scores.tariff >= 65) keyRisks.push(`Tariff risk high - TPU at ${data.tpu?.toFixed(0) ?? '?'}`)
 
-  if (data.scores.vix <= 35) keySupports.push(`Low VIX at ${data.vix.toFixed(1)} - stable conditions`)
-  if (data.scores.crush <= 35) keySupports.push(`Strong crush at $${data.boardCrush.toFixed(2)} - processor demand`)
+  if (data.scores.vix <= 35) keySupports.push(`Low VIX at ${data.vix?.toFixed(1) ?? '?'} - stable conditions`)
+  if (data.scores.crush <= 35) keySupports.push(`Strong crush at $${data.boardCrush?.toFixed(2) ?? '?'} - processor demand`)
   if (data.scores.china <= 35) keySupports.push(`Constructive China trade flow`)
   if (data.scores.tariff <= 35) keySupports.push(`Trade policy calm`)
 

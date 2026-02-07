@@ -853,12 +853,34 @@ export async function GET() {
         WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
         ORDER BY event_date DESC OFFSET 20 LIMIT 1
       `),
-      // FXI - DISABLED: ETF data has reverse-split artifacts
-      // Returns neutral defaults (0% change)
-      Promise.resolve([{ price: 0, change_20d: 0, change_5d: 0 }]),
-      // BDRY - DISABLED: ETF data has quality issues
-      // Returns neutral default (0% change)
-      Promise.resolve([{ change_20d: 0 }]),
+      // FXI (iShares China Large-Cap ETF) - China equity proxy
+      query<{ price: number; change_20d: number; change_5d: number }>(`
+        WITH fxi AS (
+          SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+          FROM mkt.etf_1d WHERE symbol = 'FXI' AND close IS NOT NULL
+          ORDER BY event_date DESC LIMIT 21
+        )
+        SELECT
+          (SELECT close FROM fxi WHERE rn = 1)::float8 as price,
+          CASE WHEN (SELECT close FROM fxi WHERE rn = 21) > 0
+               THEN ((SELECT close FROM fxi WHERE rn = 1) - (SELECT close FROM fxi WHERE rn = 21)) / (SELECT close FROM fxi WHERE rn = 21)
+               ELSE NULL END::float8 as change_20d,
+          CASE WHEN (SELECT close FROM fxi WHERE rn = 6) > 0
+               THEN ((SELECT close FROM fxi WHERE rn = 1) - (SELECT close FROM fxi WHERE rn = 6)) / (SELECT close FROM fxi WHERE rn = 6)
+               ELSE NULL END::float8 as change_5d
+      `).catch(() => [{ price: null, change_20d: null, change_5d: null }]),
+      // BDRY (Breakwave Dry Bulk Shipping ETF) - shipping proxy
+      query<{ change_20d: number }>(`
+        WITH bdry AS (
+          SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+          FROM mkt.etf_1d WHERE symbol = 'BDRY' AND close IS NOT NULL
+          ORDER BY event_date DESC LIMIT 21
+        )
+        SELECT
+          CASE WHEN (SELECT close FROM bdry WHERE rn = 21) > 0
+               THEN ((SELECT close FROM bdry WHERE rn = 1) - (SELECT close FROM bdry WHERE rn = 21)) / (SELECT close FROM bdry WHERE rn = 21)
+               ELSE NULL END::float8 as change_20d
+      `).catch(() => [{ change_20d: null }]),
       // Soy China News (ProFarmer)
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.profarmer_news
@@ -897,16 +919,27 @@ export async function GET() {
              OR content ILIKE '%soy tariff%' OR content ILIKE '%soybean tariff%' OR content ILIKE '%25 percent%')
       `),
 
-      // === SPECIALIST SIGNALS ===
-      // DISABLED: Data in training.specialist_signals_1d is FAKE/PLACEHOLDER:
-      // - volatility: outputs only 0/1/2/3 discrete values (not real GARCH), all recent = 1.0
-      // - Real specialist models (GARCH, XGB, ARDL, etc.) have NOT been trained
-      // - 82K rows exist but are rule-based script output, not ML model predictions
-      // Enable when REAL trained specialist models exist in models/specialists/
-      Promise.resolve([] as { signal: number }[]),  // volSignal - FAKE (regime labels only)
-      Promise.resolve([] as { signal: number }[]),  // crushSignal - FAKE (not trained XGB)
-      Promise.resolve([] as { signal: number }[]),  // chinaSignal - FAKE (not trained GBM)
-      Promise.resolve([] as { signal: number }[]),  // tariffSignal - FAKE (not trained tree)
+      // === SPECIALIST SIGNALS (live query - returns null if no trained models exist) ===
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
+        WHERE bucket = 'volatility' AND signal_1 IS NOT NULL
+        ORDER BY trade_date DESC LIMIT 1
+      `).catch(() => [] as { signal: number }[]),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
+        WHERE bucket = 'crush' AND signal_1 IS NOT NULL
+        ORDER BY trade_date DESC LIMIT 1
+      `).catch(() => [] as { signal: number }[]),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
+        WHERE bucket = 'china' AND signal_1 IS NOT NULL
+        ORDER BY trade_date DESC LIMIT 1
+      `).catch(() => [] as { signal: number }[]),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal FROM training.specialist_signals_1d
+        WHERE bucket = 'tariff' AND signal_1 IS NOT NULL
+        ORDER BY trade_date DESC LIMIT 1
+      `).catch(() => [] as { signal: number }[]),
 
       // === ZL PRICE DATA (for comprehensive reports) ===
       query<{ close: number; change_5d: number; change_20d: number }>(`
@@ -934,8 +967,8 @@ export async function GET() {
       `).catch(() => [] as { headline: string }[]),
     ])
 
-    // Extract values with defaults
-    const vixValue = vixRows[0]?.vix ?? 20
+    // Extract values — null when no data (no fake defaults)
+    const vixValue = vixRows[0]?.vix ?? null
     const vixDate = vixRows[0]?.event_date ?? null
     const vix3mValue = vix3mRows[0]?.vix3m ?? null
     const ovxValue = ovxRows[0]?.ovx ?? null
@@ -944,24 +977,24 @@ export async function GET() {
     const hedgeCount = hedgeNewsRows[0]?.count ?? 0
     const volSignal = volSignalRows[0]?.signal ?? null
 
-    const crushValue = crushRows[0]?.crush ?? 1.50
+    const crushValue = crushRows[0]?.crush ?? null
     const crushDate = crushRows[0]?.trade_date ?? null
     const oilShareValue = crushRows[0]?.oil_share ?? null
     const oilShare5dAgo = oilShare5dRows[0]?.oil_share_5d ?? null
     const crushSignal = crushSignalRows[0]?.signal ?? null
 
-    const cnyRate = cnyRows[0]?.rate ?? 7.25
+    const cnyRate = cnyRows[0]?.rate ?? null
     const cnyDate = cnyRows[0]?.event_date ?? null
     const cnyRate20d = cnyChangeRows[0]?.rate_20d ?? null
-    const cnyChange20d = (cnyRate20d && cnyRate20d > 0) ? (cnyRate - cnyRate20d) / cnyRate20d : null
-    const fxiChange20d = fxiRows[0]?.change_20d ?? 0
-    const fxiChange5d = fxiRows[0]?.change_5d ?? 0
+    const cnyChange20d = (cnyRate !== null && cnyRate20d && cnyRate20d > 0) ? (cnyRate - cnyRate20d) / cnyRate20d : null
+    const fxiChange20d = fxiRows[0]?.change_20d ?? null
+    const fxiChange5d = fxiRows[0]?.change_5d ?? null
     const bdryChange20d = bdryRows[0]?.change_20d ?? null
     const soyChinaNews = soyChinaNewsRows[0]?.count ?? 0
     const totalNews = totalNewsRows[0]?.count ?? 1
     const chinaSignal = chinaSignalRows[0]?.signal ?? null
 
-    const tpuValue = tpuRows[0]?.tpu ?? 100
+    const tpuValue = tpuRows[0]?.tpu ?? null
     const tpuDate = tpuRows[0]?.tpu_date ?? null
     const emvValue = tpuRows[0]?.emv ?? null
     const legislationCount = legislationRows[0]?.count ?? 0
@@ -991,25 +1024,41 @@ export async function GET() {
       cny: { date: cnyDate, days_old: daysSince(cnyDate), status: daysSince(cnyDate) !== null && daysSince(cnyDate)! <= 5 ? 'fresh' : 'stale' },
       tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },  // Monthly data
       vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VXVCLS (VIX 3-month) series not found' : 'Term structure calc enabled' },
-      specialist_signals: { available: false, note: 'Specialist models not trained yet. No signal data.' },
+      specialist_signals: {
+        available: volSignal !== null || crushSignal !== null || chinaSignal !== null || tariffSignal !== null,
+        note: volSignal !== null ? 'Live specialist signals' : 'No specialist signal data available',
+      },
+      fxi: { available: fxiChange20d !== null, note: fxiChange20d === null ? 'No FXI ETF data in mkt.etf_1d' : 'Live FXI data' },
+      bdry: { available: bdryChange20d !== null, note: bdryChange20d === null ? 'No BDRY ETF data in mkt.etf_1d' : 'Live BDRY data' },
     }
 
-    // Calculate scores with full sophistication
-    const vixResult = calculateVixStress(vixValue, vix3mValue, ovxValue, realizedVol, vixZlCorr, hedgeCount, volSignal)
-    const crushResult = calculateCrushPressure(crushValue, oilShareValue, oilShare5dAgo, crushSignal)
-    const chinaResult = calculateChinaTension(fxiChange20d, fxiChange5d, cnyRate, cnyChange20d, bdryChange20d, soyChinaNews, totalNews, chinaSignal)
-    const tariffResult = calculateTariffThreat(tpuValue, emvValue, legislationCount, soyTariffNews, tariffSignal)
+    // No-data result for drivers with missing primary values
+    const noDataResult = { score: 0, level: 'No Data', regime: 'unavailable', headline: 'Data unavailable', components: {} }
+
+    // Calculate scores — skip if primary data missing
+    const vixResult = vixValue !== null
+      ? calculateVixStress(vixValue, vix3mValue, ovxValue, realizedVol, vixZlCorr, hedgeCount, volSignal)
+      : { ...noDataResult, headline: 'VIX data unavailable', components: {} as VixComponents }
+    const crushResult = crushValue !== null
+      ? calculateCrushPressure(crushValue, oilShareValue, oilShare5dAgo, crushSignal)
+      : { ...noDataResult, headline: 'Crush data unavailable', components: {} as CrushComponents }
+    const chinaResult = cnyRate !== null
+      ? calculateChinaTension(fxiChange20d ?? 0, fxiChange5d ?? 0, cnyRate, cnyChange20d, bdryChange20d, soyChinaNews, totalNews, chinaSignal)
+      : { ...noDataResult, headline: 'China/CNY data unavailable', components: {} as ChinaComponents }
+    const tariffResult = tpuValue !== null
+      ? calculateTariffThreat(tpuValue, emvValue, legislationCount, soyTariffNews, tariffSignal)
+      : { ...noDataResult, headline: 'TPU data unavailable', components: {} as TariffComponents }
 
     // Generate narrative
     const ruleBasedIntelligence = generateMarketIntelligence(
-      vixResult, vixValue, crushResult, crushValue, oilShareValue,
-      chinaResult, cnyRate, fxiChange20d, tariffResult, tpuValue
+      vixResult, vixValue ?? 0, crushResult, crushValue ?? 0, oilShareValue,
+      chinaResult, cnyRate ?? 0, fxiChange20d ?? 0, tariffResult, tpuValue ?? 0
     )
 
     // Prepare AI data
     const marketData: MarketData = {
-      vix: vixValue, ovx: ovxValue, boardCrush: crushValue, oilShare: oilShareValue,
-      cnyRate, fxiChange20d, fxiChange5d, bdryChange20d, tpu: tpuValue, emv: emvValue,
+      vix: vixValue ?? undefined, ovx: ovxValue, boardCrush: crushValue ?? undefined, oilShare: oilShareValue,
+      cnyRate: cnyRate ?? undefined, fxiChange20d: fxiChange20d ?? undefined, fxiChange5d: fxiChange5d ?? undefined, bdryChange20d, tpu: tpuValue ?? undefined, emv: emvValue,
       scores: { vix: vixResult.score, crush: crushResult.score, china: chinaResult.score, tariff: tariffResult.score },
       // ZL Price Data for comprehensive reports
       zlPrice: zlPrice ?? undefined,

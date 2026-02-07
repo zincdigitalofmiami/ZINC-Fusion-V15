@@ -176,6 +176,26 @@ model weather_1d {
   @@schema("alt")
 }
 
+model news_1d {
+  id                 Int       @id @default(autoincrement())
+  headline           String
+  source_id          String?   @db.VarChar(100)
+  source             String?   @db.VarChar(100)
+  url                String?
+  source_url         String?
+  published_at       DateTime? @db.Timestamptz(6)
+  event_date         DateTime? @db.Date
+  content_snippet    String?
+  specialist_tags    String[]  @default([])
+  row_hash           String?   @db.VarChar(64)
+  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([event_date], map: "idx_alt_news_1d_date")
+  @@index([row_hash], map: "idx_alt_news_1d_hash")
+  @@index([specialist_tags], map: "idx_alt_news_1d_tags", type: Gin)
+  @@schema("alt")
+}
+
 model ablation_results {
   id                      Int      @id @default(autoincrement())
   run_id                  String   @db.VarChar(64)
@@ -1422,6 +1442,22 @@ model model_registry {
   @@schema("model")
 }
 
+model model_leaderboard {
+  id                Int       @id @default(autoincrement())
+  run_id            String
+  model_name        String
+  rank              Int?
+  score_val         Decimal?  @db.Decimal
+  score_test        Decimal?  @db.Decimal
+  fit_time_seconds  Decimal?  @db.Decimal
+  pred_time_seconds Decimal?  @db.Decimal
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([run_id], map: "idx_leaderboard_run_id")
+  @@index([rank], map: "idx_leaderboard_rank")
+  @@schema("model")
+}
+
 model data_quality_log {
   id          Int      @id @default(autoincrement())
   table_name  String
@@ -1814,6 +1850,25 @@ model usda_wasde_1m {
   knowledge_time DateTime? @default(now()) @db.Timestamptz(6)
   row_hash       String?   @db.VarChar(64)
 
+  @@schema("supply")
+}
+
+model usda_nass_1d {
+  id                 Int       @id @default(autoincrement())
+  event_date         DateTime  @db.Date
+  series_id          String    @db.VarChar(100)
+  value              Float?
+  source             String?   @default("nass_api") @db.VarChar(50)
+  source_url         String?
+  raw_payload        Json?
+  ingestion_batch_id String?   @db.Uuid
+  row_hash           String?   @db.VarChar(64)
+  specialist_tags    String[]  @default([])
+  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([event_date], map: "idx_supply_nass_date")
+  @@index([series_id], map: "idx_supply_nass_series")
+  @@index([row_hash], map: "idx_supply_nass_hash")
   @@schema("supply")
 }
 

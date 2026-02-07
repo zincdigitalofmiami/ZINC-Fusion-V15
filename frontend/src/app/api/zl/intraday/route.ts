@@ -18,11 +18,11 @@ interface IntradayRow {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const hours = parseInt(searchParams.get('hours') || '24', 10)
+  const hours = Math.max(1, Math.min(parseInt(searchParams.get('hours') || '24', 10), 720))
 
   try {
-    const rows = await query<IntradayRow>(`
-      SELECT
+    const rows = await query<IntradayRow>(
+      `SELECT
         timestamp,
         open,
         high,
@@ -30,9 +30,10 @@ export async function GET(request: NextRequest) {
         close,
         volume
       FROM analytics.zl_price_15m
-      WHERE timestamp > NOW() - INTERVAL '${hours} hours'
-      ORDER BY timestamp ASC
-    `)
+      WHERE timestamp > NOW() - $1::interval
+      ORDER BY timestamp ASC`,
+      [`${hours} hours`]
+    )
 
     // Format for lightweight-charts (unix timestamp)
     const bars = rows.map(row => ({

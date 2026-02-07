@@ -1,10 +1,10 @@
 /**
  * CBP Trade RSS Data Ingestion
- * 
+ *
  * INGESTION CONTRACT
  * SOURCE: https://www.cbp.gov/rss/trade
  * Tags: tariff, legislation
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
  * @version 1.0.0
  * @date 2026-01-11
@@ -120,7 +120,7 @@ export const cbpTradeDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(link, pubDate);
 
-          if (await hashExists(client, "alt.news_1d", rowHash)) {
+          if (await hashExists(client, "alt.policy_news", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 

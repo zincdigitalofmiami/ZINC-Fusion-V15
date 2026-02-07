@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     // Clamp hours to reasonable range (1 hour to 30 days)
     const clampedHours = Math.max(1, Math.min(hours, 720));
 
-    const query = `
-      SELECT
+    const result = await pool.query(
+      `SELECT
         timestamp,
         open,
         high,
@@ -34,11 +34,10 @@ export async function GET(req: NextRequest) {
         source,
         created_at
       FROM analytics.zl_price_5m
-      WHERE timestamp >= NOW() - INTERVAL '${clampedHours} hours'
-      ORDER BY timestamp ASC
-    `;
-
-    const result = await pool.query(query);
+      WHERE timestamp >= NOW() - $1::interval
+      ORDER BY timestamp ASC`,
+      [`${clampedHours} hours`]
+    );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
