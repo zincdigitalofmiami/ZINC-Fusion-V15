@@ -1,28 +1,7 @@
 {
     "notebook.experimental.remoteSave": false,
     "chatgpt.commentCodeLensEnabled": true,
-
-    // === CURSOR AI SETTINGS ===
-    "cursor.aipreview.enabled": true,
-    "cursor.cpp.disabledLanguages": [],
-    "cursor.chat.showSuggestedFiles": true,
-    "cursor.chat.smoothStreaming": true,
-
-    // === CODEBASE INDEXING (Augment-style) ===
-    // Enable full codebase indexing for better context
-    "cursor.indexing.includes": [
-        "**/*"
-    ],
-    "cursor.indexing.excludes": [
-        ".venv/**",
-        "node_modules/**",
-        "AutogluonModels/**",
-        "**/__pycache__/**",
-        "**/.pytest_cache/**",
-        "frontend/.next/**",
-        "*.egg-info/**"
-    ],
-
+    
     // === DISABLE INTELLISENSE NOISE ===
     "python.languageServer": "None",
     "python.analysis.diagnosticMode": "openFilesOnly",
@@ -61,7 +40,7 @@
         ".venv/**": true,
         "AutogluonModels/**": true,
         "**/node_modules/**": true,
-        "frontend/.next/**": true
+        "client/.next/**": true
     },
     
     // === PYTHON ===

@@ -1,5 +1,6 @@
 /**
- * Quick DB check for fred-daily Bronze run
+ * Quick DB check for fred-daily ingestion run
+ * @deprecated Use Inngest dashboard instead
  */
 import { Pool } from "pg";
 import * as dotenv from "dotenv";

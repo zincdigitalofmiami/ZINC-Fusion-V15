@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 /**
  * GET /api/zl/price-1h?hours=168

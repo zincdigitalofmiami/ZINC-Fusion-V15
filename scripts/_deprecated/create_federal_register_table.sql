@@ -1,5 +1,6 @@
--- Create raw.legislation_federal_register_1d table with Bronze v2.0 columns
--- Track A: federal-register.ts Inngest job target table
+-- DEPRECATED: This script uses banned 'raw' schema
+-- Migrated to alt.legislation_1d per v2 architecture
+-- Create raw.legislation_federal_register_1d table with ingestion columns
 
 CREATE TABLE IF NOT EXISTS raw.legislation_federal_register_1d (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS raw.legislation_federal_register_1d (
   agency TEXT[],
   publication_date DATE,
   effective_date DATE,
-  -- Bronze columns
+  -- Ingestion metadata columns
   knowledge_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   revision_no INTEGER NOT NULL DEFAULT 1,
   supersedes_id UUID REFERENCES raw.legislation_federal_register_1d(id),

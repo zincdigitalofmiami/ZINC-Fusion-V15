@@ -74,5 +74,3 @@ print("  ✅ Can generate row_hash for dedup")
 print("  ✅ Can map to specialists via keyword matching")
 print("  ✅ Provides summary/content for sentiment analysis")
 print("\nNext: Test FRED release calendar API")
-
-__test__ = False  # Pytest should not collect integration scripts.
