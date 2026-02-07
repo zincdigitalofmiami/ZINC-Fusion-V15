@@ -1,0 +1,6 @@
+{
+  "setup_script": "npm install && cd frontend && npm install && cd .. && npx prisma generate",
+  "dev_script": "cd frontend && npm run dev",
+  "verification_script": "cd frontend && npx eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
+  "copy_files": [".env"]
+}
