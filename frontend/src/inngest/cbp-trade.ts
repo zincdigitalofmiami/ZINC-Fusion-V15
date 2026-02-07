@@ -11,14 +11,10 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // =============================================================================
 // BRONZE HELPERS
@@ -60,7 +56,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 // =============================================================================
 
 export const cbpTradeDaily = inngest.createFunction(
-  { id: "cbp-trade-daily", name: "CBP Trade RSS Bronze Ingestion", retries: 3 },
+  { id: "cbp-trade-daily", name: "CBP Trade RSS Bronze Ingestion", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();

@@ -1,10 +1,5 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "@/lib/db";
 
 type ZlBar15mEvent = {
   timestamp: string;

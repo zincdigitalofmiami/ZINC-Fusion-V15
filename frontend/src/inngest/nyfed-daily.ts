@@ -19,14 +19,9 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
-
-// Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // =============================================================================
 // BRONZE HELPER FUNCTIONS
@@ -100,10 +95,11 @@ interface NYFedResponse {
 // =============================================================================
 
 export const nyfedDaily = inngest.createFunction(
-  { 
-    id: "nyfed-daily", 
+  {
+    id: "nyfed-daily",
     name: "NY Fed Rates Daily Bronze Ingestion",
     retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {

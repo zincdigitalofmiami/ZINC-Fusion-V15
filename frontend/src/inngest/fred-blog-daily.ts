@@ -11,12 +11,8 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 
 // Base URL kept for documentation - feed URL used for scraping
 void "https://fredblog.stlouisfed.org/";
@@ -265,7 +261,7 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
 }
 
 export const fredBlogDaily = inngest.createFunction(
-  { id: "fred-blog-daily", name: "FRED Blog Scraper", retries: 3 },
+  { id: "fred-blog-daily", name: "FRED Blog Scraper", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 */4 * * *" }, // Every 4 hours
   async ({ step, logger }) => {
     const client = await pool.connect();

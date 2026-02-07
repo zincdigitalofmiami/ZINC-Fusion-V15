@@ -8,17 +8,12 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import {
   fetchDatabentoCsv,
   parseDatabentoStatisticsCsvOptions,
 } from "@/lib/databento";
 import { createHash } from "crypto";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // =============================================================================
 // COMPLETE OPTIONS COVERAGE - ALL 75+ PRODUCTS
@@ -376,6 +371,7 @@ export const databentoOptionsDaily = inngest.createFunction(
     id: "databento-options-daily",
     name: "Databento Options Daily OHLCV",
     retries: 2,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
   async ({ step, logger }) => {

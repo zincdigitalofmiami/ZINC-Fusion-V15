@@ -1,18 +1,13 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 /**
  * Fetch ZL 1-hour bars from Databento and write to analytics.zl_price_1h
  * Runs every hour
  */
 export const zl1h = inngest.createFunction(
-  { id: "zl-1h", name: "ZL 1h Bars" },
+  { id: "zl-1h", name: "ZL 1h Bars", concurrency: [{ limit: 1 }] },
   { cron: "0 * * * *" }, // Every hour on the hour
   async ({ step }) => {
     const endStr = await step.run("compute-end-time", async () => {

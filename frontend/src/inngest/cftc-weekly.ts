@@ -1,11 +1,7 @@
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 
 const CFTC_SOURCE_URL =
   "https://publicreporting.cftc.gov/resource/72hh-3qpy.json?$order=report_date_as_yyyy_mm_dd%20DESC&$limit=500";
@@ -76,7 +72,7 @@ const CFTC_CONTRACTS = [
  * Runs every Friday at 4:00 PM ET (after CFTC release)
  */
 export const cftcWeekly = inngest.createFunction(
-  { id: "cftc-weekly", name: "CFTC Weekly COT", retries: 3 },
+  { id: "cftc-weekly", name: "CFTC Weekly COT", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 21 * * 5" }, // 4PM ET = 9PM UTC, Fridays only
   async ({ step, logger }) => {
     const results: { symbol: string; status: string; date?: string }[] = [];

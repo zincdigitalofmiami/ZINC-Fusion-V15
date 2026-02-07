@@ -16,13 +16,8 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { createHash } from "crypto";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 /**
  * Fetch Malaysia palm oil data from USDA PSD database
@@ -37,26 +32,35 @@ interface USDAPSDRecord {
 async function fetchMalaysiaPalmProduction(): Promise<USDAPSDRecord[]> {
   const USDA_API_KEY = process.env.USDA_API_KEY;
   const BASE_URL = "https://apps.fas.usda.gov/OpenData/api/psd";
-  
+
   // Malaysia palm oil (country: MY, commodity code for palm oil)
   const params = new URLSearchParams({
     api_key: USDA_API_KEY || "",
     countryCode: "MY", // Malaysia
     commodityCode: "4243", // Palm Oil
   });
-  
-  const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
-  if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
-  
-  const data = await response.json();
-  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
+
+    const data = await response.json();
+    return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const mpobPalmMonthly = inngest.createFunction(
-  { 
-    id: "mpob-palm-monthly", 
+  {
+    id: "mpob-palm-monthly",
     name: "MPOB Palm via USDA PSD (CRITICAL)",
-    retries: 3 
+    retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 0 15 * *" }, // 15th of each month
   async ({ step, logger }) => {

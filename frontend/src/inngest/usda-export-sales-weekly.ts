@@ -10,13 +10,9 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { inngest } from "./client";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 const SOURCE_URL = "https://apps.fas.usda.gov/export-sales/complete.htm";
 
@@ -245,7 +241,7 @@ function parseDestinationSection(
 }
 
 export const usdaExportSalesWeekly = inngest.createFunction(
-  { id: "usda-export-sales-weekly", name: "USDA Export Sales (Weekly)", retries: 3 },
+  { id: "usda-export-sales-weekly", name: "USDA Export Sales (Weekly)", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 18 * * 4" }, // Thursdays 12PM CT
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");

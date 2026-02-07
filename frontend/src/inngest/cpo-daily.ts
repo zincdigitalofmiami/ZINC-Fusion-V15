@@ -1,10 +1,5 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "@/lib/db";
 
 /**
  * CPO Data Sources (in order of preference):
@@ -25,29 +20,36 @@ interface CpoData {
 async function fetchFromInvestingCom(): Promise<CpoData | null> {
   const url = "https://api.investing.com/api/financialdata/8849/historical/chart/?interval=P1D&pointscount=2";
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-      "Accept": "application/json",
-      "Domain-Id": "www",
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "Accept": "application/json",
+        "Domain-Id": "www",
+      },
+      signal: controller.signal
+    });
 
-  if (!res.ok) {
-    console.warn(`Investing.com API error: ${res.status}`);
-    return null;
-  }
+    if (!res.ok) {
+      console.warn(`Investing.com API error: ${res.status}`);
+      return null;
+    }
 
   const json = await res.json();
   if (!json?.data || json.data.length === 0) {
     return null;
   }
 
-  const latestCandle = json.data[json.data.length - 1];
-  const [timestamp, open, high, low, close] = latestCandle;
-  const eventDate = new Date(timestamp).toISOString().split("T")[0];
+    const latestCandle = json.data[json.data.length - 1];
+    const [timestamp, open, high, low, close] = latestCandle;
+    const eventDate = new Date(timestamp).toISOString().split("T")[0];
 
-  return { source: "investing_com", eventDate, open, high, low, close };
+    return { source: "investing_com", eventDate, open, high, low, close };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchFromYahooFinance(): Promise<CpoData | null> {
@@ -55,16 +57,20 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
   // Note: FCPO=F (Bursa Malaysia symbol) was delisted, using CPO=F instead
   const url = "https://query1.finance.yahoo.com/v8/finance/chart/CPO=F?interval=1d&range=5d";
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      },
+      signal: controller.signal
+    });
 
-  if (!res.ok) {
-    console.warn(`Yahoo Finance API error: ${res.status}`);
-    return null;
-  }
+    if (!res.ok) {
+      console.warn(`Yahoo Finance API error: ${res.status}`);
+      return null;
+    }
 
   const json = await res.json();
   const result = json?.chart?.result?.[0];
@@ -85,14 +91,17 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
   const close = quote.close?.[lastIdx];
   if (close === undefined || close === null) return null;
 
-  return {
-    source: "yahoo_finance",
-    eventDate,
-    open: quote.open?.[lastIdx],
-    high: quote.high?.[lastIdx],
-    low: quote.low?.[lastIdx],
-    close,
-  };
+    return {
+      source: "yahoo_finance",
+      eventDate,
+      open: quote.open?.[lastIdx],
+      high: quote.high?.[lastIdx],
+      low: quote.low?.[lastIdx],
+      close,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
@@ -100,7 +109,7 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
  * Tries Investing.com first, falls back to Yahoo Finance
  */
 export const cpoPalmOilDaily = inngest.createFunction(
-  { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3 },
+  { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     // Try to fetch CPO data from multiple sources
@@ -163,7 +172,7 @@ export const cpoPalmOilDaily = inngest.createFunction(
  * Runs 2 hours after primary to fill any gaps
  */
 export const cpoTradingEconomics = inngest.createFunction(
-  { id: "cpo-trading-economics", name: "CPO Trading Economics" },
+  { id: "cpo-trading-economics", name: "CPO Trading Economics", concurrency: [{ limit: 1 }] },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30 (backup)
   async ({ step, logger }) => {
     const apiKey = process.env.TRADING_ECONOMICS_API_KEY;
@@ -195,13 +204,19 @@ export const cpoTradingEconomics = inngest.createFunction(
 
     const data = await step.run("fetch-te-palm-oil", async () => {
       const url = `https://api.tradingeconomics.com/markets/commodity/palm%20oil?c=${apiKey}`;
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
 
-      if (!res.ok) {
-        throw new Error(`Trading Economics API error: ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Trading Economics API error: ${res.status}`);
+        }
+
+        return res.json();
+      } finally {
+        clearTimeout(timeout);
       }
-
-      return res.json();
     });
 
     const result = await step.run("insert-te-data", async () => {

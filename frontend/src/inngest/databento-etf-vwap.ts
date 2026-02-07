@@ -22,13 +22,8 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv } from "@/lib/databento";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // ETF symbols with their Databento datasets
 const DATABENTO_ETF_SYMBOLS = [
@@ -261,6 +256,7 @@ export const databentoEtfVwapDaily = inngest.createFunction(
     id: "databento-etf-vwap-daily",
     name: "Databento ETF VWAP Daily (from Trades)",
     retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/New_York 30 20 * * 1-5" }, // 8:30 PM ET (30min after OHLCV)
   async ({ step, logger }) => {

@@ -6,13 +6,9 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { inngest } from "./client";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 const NOAA_API_TOKEN = process.env.NOAA_API_TOKEN || process.env.NOAA_TOKEN;
 const NOAA_BASE_URL = "https://www.ncei.noaa.gov/cdo-web/api/v2/data";
@@ -110,6 +106,7 @@ async function fetchNoaaStation(
   const all: Array<{ date: string; datatype: string; value: number }> = [];
   let offset = 1;
   const limit = 1000;
+  let rateLimitRetries = 0;
 
   while (true) {
     const url = new URL(NOAA_BASE_URL);
@@ -126,6 +123,10 @@ async function fetchNoaaStation(
     const res = await fetch(url.toString(), { headers });
     if (res.status === 429) {
       // NOAA rate limit; wait and retry this page.
+      rateLimitRetries++;
+      if (rateLimitRetries > 5) {
+        throw new Error("NOAA API rate limit exceeded after 5 retries");
+      }
       await sleep(60_000);
       continue;
     }
@@ -172,7 +173,7 @@ function toNoaaStationId(stationId: string): string | null {
 }
 
 export const noaaWeatherDaily = inngest.createFunction(
-  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3 },
+  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

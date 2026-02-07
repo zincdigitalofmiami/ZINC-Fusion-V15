@@ -8,14 +8,10 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { inngest } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // Databento FX pairs not available from FRED
 // Note: These are CME futures, close price used as spot proxy
@@ -72,7 +68,7 @@ function addDays(yyyyMmDd: string, days: number): string {
 }
 
 export const fxDatabentoSpotDaily = inngest.createFunction(
-  { id: "fx-databento-spot-daily", name: "FX Spot (1D) via Databento", retries: 3 },
+  { id: "fx-databento-spot-daily", name: "FX Spot (1D) via Databento", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 UTC) - offset from FRED job
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

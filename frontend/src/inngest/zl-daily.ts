@@ -1,11 +1,6 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 interface DatabentoDailyQuote {
   eventDate: Date;
@@ -54,7 +49,7 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
  * ZL daily bars for analytics.zl_price_1d (Databento only)
  */
 export const zlDaily = inngest.createFunction(
-  { id: "zl-daily", name: "ZL Daily (Databento)" },
+  { id: "zl-daily", name: "ZL Daily (Databento)", concurrency: [{ limit: 1 }] },
   { cron: "TZ=America/Chicago 5 */8 * * *" }, // Every 8 hours at :05 (0:05, 8:05, 16:05 CT)
   async ({ step, logger }) => {
     const zlQuote = await step.run("fetch-databento-zl", async () => {

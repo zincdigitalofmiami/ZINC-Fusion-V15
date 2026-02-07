@@ -34,6 +34,7 @@
 import { inngest } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
+import pool from "@/lib/db";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -260,6 +261,7 @@ export const whitehouseDaily = inngest.createFunction(
   {
     id: "whitehouse-comprehensive-daily",
     name: "White House Comprehensive (20+ URLs)",
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 7,11,15,19 * * *" }, // 4x daily
   async ({ step }) => {
@@ -328,9 +330,6 @@ export const whitehouseDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
-
       let inserted = 0;
       let skipped = 0;
 
@@ -381,7 +380,7 @@ export const whitehouseDaily = inngest.createFunction(
           inserted++;
         }
       } finally {
-        await pool.end();
+        // Shared pool - do not close
       }
 
       return { inserted, skipped };

@@ -16,14 +16,9 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 interface EIADataPoint {
   period: string;
@@ -57,6 +52,7 @@ export const eiaBiodieselMonthly = inngest.createFunction(
     id: "eia-biodiesel-monthly",
     name: "EIA Biodiesel Production Monthly",
     retries: 2,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 10 18 * *" }, // 10 AM UTC on 18th of month
   async ({ step, logger }) => {

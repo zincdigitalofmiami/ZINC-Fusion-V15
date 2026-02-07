@@ -13,6 +13,7 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
+import pool from "@/lib/db";
 
 const USDA_API_KEY = process.env.USDA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -117,6 +118,7 @@ export const usdaDaily = inngest.createFunction(
   {
     id: "nass-crush-weekly",
     name: "NASS Soybean Crush & Prices (QuickStats API)",
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 10 * * 1" }, // Mondays at 10am (NASS releases data monthly)
   async ({ step }) => {
@@ -145,9 +147,6 @@ export const usdaDaily = inngest.createFunction(
       if (!DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
       }
-
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
 
       let inserted = 0;
       let skipped = 0;
@@ -204,7 +203,7 @@ export const usdaDaily = inngest.createFunction(
           inserted++;
         }
       } finally {
-        await pool.end();
+        // Shared pool - do not close
       }
 
       return { inserted, skipped, invalid, total: allData.length };

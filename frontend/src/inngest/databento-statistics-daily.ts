@@ -9,13 +9,8 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // Symbols to fetch: match OHLCV function (Crush uses .n.0, Energy/Metals use .c.0)
 // Top 50 CME symbols per Databento catalog
@@ -99,6 +94,7 @@ export const databentoStatisticsDaily = inngest.createFunction(
     id: "databento-statistics-daily",
     name: "Databento Statistics Daily (Open Interest)",
     retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
   async ({ step, logger }) => {

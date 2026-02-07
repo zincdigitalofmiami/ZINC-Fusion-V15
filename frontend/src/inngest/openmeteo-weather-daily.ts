@@ -11,13 +11,9 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { inngest } from "./client";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";
@@ -161,10 +157,16 @@ async function geocodeStrict(
   url.searchParams.set("format", "json");
   url.searchParams.set("country", country);
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
-  if (!res.ok) {
-    throw new Error(`Open-Meteo geocoding failed (${country}/${name}): ${res.status}`);
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { "User-Agent": "ZINC-Fusion/1.0" },
+      signal: controller.signal
+    });
+    if (!res.ok) {
+      throw new Error(`Open-Meteo geocoding failed (${country}/${name}): ${res.status}`);
+    }
 
   const json = (await res.json()) as {
     results?: Array<{ name?: string; admin1?: string; latitude?: number; longitude?: number; country_code?: string }>;
@@ -188,10 +190,13 @@ async function geocodeStrict(
     throw new Error(`Open-Meteo geocoding returned invalid lat/lon for ${country}/${name}`);
   }
 
-  const labelParts = [pick.name ?? name];
-  if (pick.admin1) labelParts.push(pick.admin1);
-  if (pick.country_code) labelParts.push(pick.country_code);
-  return { latitude, longitude, label: labelParts.join(", ") };
+    const labelParts = [pick.name ?? name];
+    if (pick.admin1) labelParts.push(pick.admin1);
+    if (pick.country_code) labelParts.push(pick.country_code);
+    return { latitude, longitude, label: labelParts.join(", ") };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchDailyArchive(
@@ -220,10 +225,16 @@ async function fetchDailyArchive(
   );
   url.searchParams.set("timezone", "UTC");
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
-  if (!res.ok) {
-    throw new Error(`Open-Meteo archive failed: ${res.status}`);
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { "User-Agent": "ZINC-Fusion/1.0" },
+      signal: controller.signal
+    });
+    if (!res.ok) {
+      throw new Error(`Open-Meteo archive failed: ${res.status}`);
+    }
 
   const json = (await res.json()) as {
     daily?: {
@@ -255,11 +266,14 @@ async function fetchDailyArchive(
     return null;
   });
 
-  return { time, tmax, tmin, tmean, prcp, snowMm, sourceUrl: url.toString(), raw: json };
+    return { time, tmax, tmin, tmean, prcp, snowMm, sourceUrl: url.toString(), raw: json };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const openmeteoWeatherDaily = inngest.createFunction(
-  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3 },
+  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "10 */8 * * *" }, // Every 8 hours at :10
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");

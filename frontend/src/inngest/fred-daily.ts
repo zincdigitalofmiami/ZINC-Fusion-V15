@@ -14,14 +14,9 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
-
-// Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // =============================================================================
 // FRED SERIES CONFIGURATION WITH SPECIALIST TAGS
@@ -915,6 +910,7 @@ function createFredSegmentJob(config: FredSegmentConfig) {
       id: config.id,
       name: config.displayName,
       retries: config.retries ?? DEFAULT_JOB_RETRIES,
+      concurrency: [{ limit: 1 }],
     },
     { cron: config.cron },
     async ({ step, logger }) => {

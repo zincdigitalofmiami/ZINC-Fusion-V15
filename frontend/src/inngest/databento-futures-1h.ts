@@ -6,14 +6,9 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 const SYMBOLS = [
   { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },
@@ -110,6 +105,7 @@ export const databentoFutures1h = inngest.createFunction(
     id: "databento-futures-1h",
     name: "Databento Futures 1h OHLCV",
     retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" },
   async ({ step, logger }) => {

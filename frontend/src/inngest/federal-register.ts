@@ -33,15 +33,10 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
-
-// Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // =============================================================================
 // TAG ASSIGNMENT RULES
@@ -342,10 +337,11 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
  * Ingests recent Federal Register documents with Bronze contract compliance.
  */
 export const federalRegisterDaily = inngest.createFunction(
-  { 
-    id: "federal-register-daily", 
+  {
+    id: "federal-register-daily",
     name: "Federal Register Daily Bronze Ingestion",
     retries: 3,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {

@@ -8,12 +8,7 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "@/lib/db";
 
 interface StaleSymbol {
   underlying: string;
@@ -27,6 +22,7 @@ export const optionsStalenessCheck = inngest.createFunction(
     id: "options-staleness-check",
     name: "Options Data Staleness Check",
     retries: 1,
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // 7am CT weekdays
   async ({ step, logger }) => {

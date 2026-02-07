@@ -15,6 +15,7 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
+import pool from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -52,6 +53,7 @@ export const eiaDaily = inngest.createFunction(
   {
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step }) => {
@@ -94,9 +96,6 @@ export const eiaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
-
       let inserted = 0;
       let skipped = 0;
 
@@ -138,7 +137,7 @@ export const eiaDaily = inngest.createFunction(
           inserted++;
         }
       } finally {
-        await pool.end();
+        // Shared pool - do not close
       }
 
       return { inserted, skipped, total: filteredData.length };
