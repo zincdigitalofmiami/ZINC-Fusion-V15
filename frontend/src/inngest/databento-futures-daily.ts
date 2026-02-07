@@ -10,14 +10,11 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // Symbols to fetch from GLBX.MDP3 (CME Globex, COMEX, NYMEX)
 // Crush-relevant use .n.0 (open-interest-ranked), Energy/Metals use .c.0 (calendar)

@@ -28,12 +28,13 @@
  * - /briefing-room/statements-releases/feed/
  * 
  * Routes to: tariff, trump_effect, energy, china specialists
- * Table: alt.executive_actions (presidential documents)
+ * Table: alt.news_1d
  */
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
+import dbPool from "@/lib/db";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -328,60 +329,43 @@ export const whitehouseDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
+      const pool = dbPool;
 
       let inserted = 0;
       let skipped = 0;
 
-      try {
-        for (const item of uniqueItems) {
-          const rowHash = generateRowHash(item);
-          const specialists = classifySpecialists(item);
-          const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
+      for (const item of uniqueItems) {
+        const rowHash = generateRowHash(item);
+        const specialists = classifySpecialists(item);
+        const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
-          // Check if exists
-          const checkResult = await pool.query(
-            `SELECT 1 FROM alt.executive_actions WHERE row_hash = $1`,
-            [rowHash]
-          );
+        // Check if exists
+        const checkResult = await pool.query(
+          `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
+          [rowHash]
+        );
 
-          if (checkResult.rows.length > 0) {
-            skipped++;
-            continue;
-          }
-
-          // Extract document type from source
-          let documentType = 'Other';
-          if (item.sourceCategory.includes('executiveOrder')) documentType = 'Executive Order';
-          else if (item.sourceCategory.includes('memorand')) documentType = 'Presidential Memorandum';
-          else if (item.sourceCategory.includes('proclamation')) documentType = 'Proclamation';
-          else if (item.sourceCategory.includes('briefing')) documentType = 'Press Briefing';
-          else if (item.sourceCategory.includes('factSheet')) documentType = 'Fact Sheet';
-          else if (item.sourceCategory.includes('remark')) documentType = 'Remarks';
-
-          // Insert into executive_actions
-          await pool.query(
-            `INSERT INTO alt.executive_actions
-             (event_date, headline, url, published_at, content, source, document_type, specialist_tags, row_hash, raw_payload)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [
-              publishedAt.toISOString().split('T')[0],
-              item.title,
-              item.link,
-              publishedAt,
-              item.description || null,
-              `whitehouse_${item.sourceCategory}`,
-              documentType,
-              specialists,
-              rowHash,
-              JSON.stringify(item),
-            ]
-          );
-          inserted++;
+        if (checkResult.rows.length > 0) {
+          skipped++;
+          continue;
         }
-      } finally {
-        await pool.end();
+
+        // Insert
+        await pool.query(
+          `INSERT INTO alt.news_1d 
+           (source_id, title, url, published_at, content_snippet, specialist_tags, row_hash, ingested_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            `whitehouse_${item.sourceCategory}`,
+            item.title,
+            item.link,
+            publishedAt,
+            item.description || null,
+            specialists,
+            rowHash,
+          ]
+        );
+        inserted++;
       }
 
       return { inserted, skipped };

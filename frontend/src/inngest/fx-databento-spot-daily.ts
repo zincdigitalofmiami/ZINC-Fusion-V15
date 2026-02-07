@@ -8,14 +8,12 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { inngest } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // Databento FX pairs not available from FRED
 // Note: These are CME futures, close price used as spot proxy

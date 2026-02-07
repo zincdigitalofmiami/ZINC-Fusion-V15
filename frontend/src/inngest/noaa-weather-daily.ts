@@ -1,18 +1,16 @@
 /**
- * NOAA Weather (1D) Bronze Ingestion
+ * NOAA Weather (1D) Data Ingestion
  *
  * Refreshes `alt.weather_1d` using NOAA CDO API (GHCN-Daily).
  * Pulls only incremental dates per station (no synthetic data, no schema creation).
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { inngest } from "./client";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 const NOAA_API_TOKEN = process.env.NOAA_API_TOKEN || process.env.NOAA_TOKEN;
 const NOAA_BASE_URL = "https://www.ncei.noaa.gov/cdo-web/api/v2/data";

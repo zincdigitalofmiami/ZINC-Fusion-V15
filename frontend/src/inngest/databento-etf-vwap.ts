@@ -22,13 +22,10 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import { fetchDatabentoCsv } from "@/lib/databento";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // ETF symbols with their Databento datasets
 const DATABENTO_ETF_SYMBOLS = [

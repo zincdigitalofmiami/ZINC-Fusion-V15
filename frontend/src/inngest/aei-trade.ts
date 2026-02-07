@@ -1,7 +1,7 @@
 /**
  * AEI Think Tank RSS Ingestion (Trade Policy feed)
  * 
- * BRONZE CONTRACT COMPLIANT
+ * INGESTION CONTRACT
  * 
  * @author Claude (ZINC-FUSION-V15)
  * @version 2.0.0
@@ -9,14 +9,12 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
@@ -48,7 +46,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const aeiTradeDaily = inngest.createFunction(
-  { id: "aei-trade-daily", name: "AEI Trade Policy RSS Bronze Ingestion", retries: 3 },
+  { id: "aei-trade-daily", name: "AEI Trade Policy RSS Data Ingestion", retries: 3 },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();

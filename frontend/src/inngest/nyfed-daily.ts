@@ -1,35 +1,33 @@
 /**
- * NY Fed Rates Daily Bronze Ingestion
- * 
- * BRONZE CONTRACT COMPLIANT:
+ * NY Fed Rates Daily Data Ingestion
+ *
+ * INGESTION CONTRACT:
  * - Logs each run in ops.ingest_run
  * - Computes row_hash for idempotency
  * - Assigns specialist_tags per RAW_SOURCE_SPECIALIST_MAPPING.md
  * - Append-only inserts (no upserts)
- * 
+ *
  * SOURCE: https://markets.newyorkfed.org/api/rates/all/latest.json
  * - No API key required (public API)
  * - Returns SOFR, EFFR, OBFR, TGCR, BGCR rates
- * 
+ *
  * Tags: fed
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0 - Bronze Contract
- * @date 2026-01-11
+ * @version 1.1.0
+ * @date 2026-02-07
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
 // Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // =============================================================================
-// BRONZE HELPER FUNCTIONS
+// HELPER FUNCTIONS
 // =============================================================================
 
 function computeRowHash(rateType: string, effectiveDate: string, rate: number): string {
@@ -102,7 +100,7 @@ interface NYFedResponse {
 export const nyfedDaily = inngest.createFunction(
   { 
     id: "nyfed-daily", 
-    name: "NY Fed Rates Daily Bronze Ingestion",
+    name: "NY Fed Rates Daily Ingestion",
     retries: 3,
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)

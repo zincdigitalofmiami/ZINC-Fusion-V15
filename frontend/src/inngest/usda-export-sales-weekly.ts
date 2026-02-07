@@ -1,5 +1,5 @@
 /**
- * USDA FAS Export Sales (Weekly) Bronze Ingestion
+ * USDA FAS Export Sales (Weekly) Data Ingestion
  *
  * Source: https://apps.fas.usda.gov/export-sales/complete.htm
  * Inserts into: supply.usda_exports_1w
@@ -10,13 +10,11 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { inngest } from "./client";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 const SOURCE_URL = "https://apps.fas.usda.gov/export-sales/complete.htm";
 

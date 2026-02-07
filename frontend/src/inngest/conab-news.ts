@@ -1,7 +1,7 @@
 /**
- * CONAB Brazil News RSS Bronze Ingestion
+ * CONAB Brazil News RSS Data Ingestion
  * 
- * BRONZE CONTRACT COMPLIANT
+ * INGESTION CONTRACT
  * SOURCE: https://www.conab.gov.br/rss
  * Tags: crush, china
  * 
@@ -11,14 +11,12 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
@@ -50,7 +48,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const conabNewsDaily = inngest.createFunction(
-  { id: "conab-news-daily", name: "CONAB Brazil News RSS Bronze Ingestion", retries: 3 },
+  { id: "conab-news-daily", name: "CONAB Brazil News RSS Data Ingestion", retries: 3 },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();

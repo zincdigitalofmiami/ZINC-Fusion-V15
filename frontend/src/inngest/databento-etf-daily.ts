@@ -26,14 +26,11 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // ETF symbols with their Databento dataset and specialist tags
 // ARCX.PILLAR = NYSE Arca (most ETFs), XNAS.ITCH = Nasdaq

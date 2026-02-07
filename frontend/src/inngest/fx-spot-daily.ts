@@ -1,18 +1,16 @@
 /**
- * FX Spot (1D) Bronze Ingestion via FRED
+ * FX Spot (1D) Data Ingestion via FRED
  *
  * Purpose: keep `mkt.fx_1d` fresh for Core/Specialists.
  * Zero tolerance: no synthetic data; fail loudly on missing config.
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { inngest } from "./client";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 const FRED_API_KEY = process.env.FRED_API_KEY;
 

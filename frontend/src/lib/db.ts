@@ -4,13 +4,27 @@
  */
 import { Pool } from 'pg'
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-})
+type GlobalDbPool = {
+  __zincDbPool?: Pool
+}
+
+const globalDb = globalThis as unknown as GlobalDbPool
+
+const pool =
+  globalDb.__zincDbPool ??
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    // Keep pool conservative for serverless/edge fanout.
+    max: Number(process.env.PGPOOL_MAX ?? 4),
+    idleTimeoutMillis: Number(process.env.PGPOOL_IDLE_TIMEOUT_MS ?? 10000),
+    connectionTimeoutMillis: Number(process.env.PGPOOL_CONNECT_TIMEOUT_MS ?? 5000),
+    application_name: process.env.PGAPPNAME ?? 'zinc-frontend',
+  })
+
+if (!globalDb.__zincDbPool) {
+  globalDb.__zincDbPool = pool
+}
 
 export async function query<T = Record<string, unknown>>(
   sql: string,

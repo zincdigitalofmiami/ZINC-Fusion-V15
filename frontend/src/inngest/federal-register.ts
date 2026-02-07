@@ -1,7 +1,7 @@
 /**
- * Federal Register Daily Bronze Ingestion
+ * Federal Register Daily Data Ingestion
  * 
- * BRONZE CONTRACT COMPLIANT:
+ * INGESTION CONTRACT:
  * - Logs each run in ops.ingest_run
  * - Computes row_hash for idempotency
  * - Assigns specialist_tags per RAW_SOURCE_SPECIALIST_MAPPING.md
@@ -28,20 +28,18 @@
  * - epa, environment, emissions → biofuel
  * 
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0 - Bronze Contract
+ * @version 1.1.0
  * @date 2026-01-11
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
+import dbPool from "@/lib/db";
 
 // Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // =============================================================================
 // TAG ASSIGNMENT RULES
@@ -336,15 +334,15 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
 // =============================================================================
 
 /**
- * Federal Register Daily Bronze Ingestion
+ * Federal Register Daily Data Ingestion
  * 
  * Runs daily at 11:00 AM UTC (5AM CT) Mon-Fri.
- * Ingests recent Federal Register documents with Bronze contract compliance.
+ * Ingests recent Federal Register documents with ingestion contract compliance.
  */
 export const federalRegisterDaily = inngest.createFunction(
   { 
     id: "federal-register-daily", 
-    name: "Federal Register Daily Bronze Ingestion",
+    name: "Federal Register Daily Data Ingestion",
     retries: 3,
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)

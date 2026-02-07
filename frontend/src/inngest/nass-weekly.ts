@@ -1,7 +1,7 @@
 /**
- * USDA NASS QuickStats API Bronze Ingestion
+ * USDA NASS QuickStats API Data Ingestion
  * 
- * BRONZE CONTRACT COMPLIANT
+ * INGESTION CONTRACT
  * SOURCE: https://quickstats.nass.usda.gov/api/api_GET
  * Tags: crush
  * 
@@ -11,13 +11,11 @@
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 function computeRowHash(seriesId: string, date: string, value: string): string {
   return createHash("sha256").update(`${seriesId}|${date}|${value}`).digest("hex");
@@ -44,12 +42,12 @@ async function updateIngestRun(
 }
 
 async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM econ.rates_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
+  const r = await client.query(`SELECT 1 FROM raw.fred_observations_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
   return r.rows.length > 0;
 }
 
 export const nassWeekly = inngest.createFunction(
-  { id: "nass-weekly", name: "USDA NASS API Bronze Ingestion", retries: 3 },
+  { id: "nass-weekly", name: "USDA NASS API Data Ingestion", retries: 3 },
   { cron: "0 17 * * 5" }, // Fridays 11AM CT
   async ({ step, logger }) => {
     const client = await pool.connect();
@@ -67,29 +65,12 @@ export const nassWeekly = inngest.createFunction(
 
       const data = await step.run("fetch-api", async () => {
         const currentYear = new Date().getFullYear();
-        const stats = ["PRODUCTION", "YIELD", "AREA PLANTED"];
-        interface NASSRow {
-          year: number;
-          commodity_desc: string;
-          statisticcat_desc: string;
-          Value: string;
-          short_desc: string;
-        }
-        const allData: NASSRow[] = [];
-
-        for (const stat of stats) {
-          const url = `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=${encodeURIComponent(stat)}`;
-          const response = await fetch(url);
-          if (!response.ok) {
-            console.error(`NASS API error for ${stat}: ${response.status}`);
-            continue;
-          }
-          const json = await response.json();
-          if (json.data) {
-            allData.push(...json.data);
-          }
-        }
-        return allData;
+        const response = await fetch(
+          `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`
+        );
+        if (!response.ok) throw new Error(`NASS API error: ${response.status}`);
+        const json = await response.json();
+        return json.data || [];
       });
 
       logger.info(`Fetched ${data.length} records from NASS API`);
@@ -113,15 +94,17 @@ export const nassWeekly = inngest.createFunction(
           }
 
           await client.query(
-            `INSERT INTO econ.rates_1d (
-               series_id, event_date, value, source, row_hash
-             ) VALUES ($1,$2,$3,$4,$5)`,
+            `INSERT INTO raw.fred_observations_1d (
+               event_date, series_id, value, source, source_url, raw_payload, 
+               ingestion_batch_id, row_hash, specialist_tags
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
-              seriesId,
-              obsDate,
-              value,
+              obsDate, seriesId, value,
               "nass_api",
-              rowHash,
+              "https://quickstats.nass.usda.gov/api",
+              JSON.stringify(row),
+              runId, rowHash,
+              ["crush"]
             ]
           );
           return { status: "inserted" as const };

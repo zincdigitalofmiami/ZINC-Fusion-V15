@@ -15,6 +15,7 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -53,7 +54,7 @@ export const eiaDaily = inngest.createFunction(
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
   },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
   async ({ step }) => {
     if (!EIA_API_KEY) {
       throw new Error("EIA_API_KEY not configured");
@@ -94,51 +95,47 @@ export const eiaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
+      const pool = dbPool;
 
       let inserted = 0;
       let skipped = 0;
 
-      try {
-        for (const dataPoint of filteredData) {
-          const mapping = PRODUCT_MAPPING[dataPoint.product];
-          if (!mapping) continue;
+      for (const dataPoint of filteredData) {
+        const mapping = PRODUCT_MAPPING[dataPoint.product];
+        if (!mapping) continue;
 
-          const rowHash = generateRowHash(
+        const rowHash = generateRowHash(
+          mapping.seriesId,
+          dataPoint.period,
+          dataPoint.value
+        );
+
+        // Check if exists
+        const checkResult = await pool.query(
+          `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
+          [rowHash]
+        );
+
+        if (checkResult.rows.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        // Insert - reusing fred_observations_1d pattern
+        await pool.query(
+          `INSERT INTO econ.rates_1d 
+           (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          [
             mapping.seriesId,
             dataPoint.period,
-            dataPoint.value
-          );
-
-          // Check if exists
-          const checkResult = await pool.query(
-            `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
-            [rowHash]
-          );
-
-          if (checkResult.rows.length > 0) {
-            skipped++;
-            continue;
-          }
-
-          // Insert into unified rates table
-          await pool.query(
-            `INSERT INTO econ.rates_1d
-             (series_id, event_date, value, source, row_hash)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [
-              mapping.seriesId,
-              dataPoint.period,
-              dataPoint.value,
-              "eia_api",
-              rowHash,
-            ]
-          );
-          inserted++;
-        }
-      } finally {
-        await pool.end();
+            dataPoint.value,
+            dataPoint.units,
+            rowHash,
+            ["energy"],
+          ]
+        );
+        inserted++;
       }
 
       return { inserted, skipped, total: filteredData.length };

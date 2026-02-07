@@ -17,12 +17,10 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 const PROFARMER_BASE = "https://www.profarmer.com";
 const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;

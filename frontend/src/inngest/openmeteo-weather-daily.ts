@@ -1,5 +1,5 @@
 /**
- * Open-Meteo Weather (1D) Bronze Ingestion
+ * Open-Meteo Weather (1D) Data Ingestion
  *
  * Refreshes `alt.weather_1d` for Open-Meteo-backed station ids:
  * - `OM_*` (US soy belt cities)
@@ -11,13 +11,11 @@
  */
 
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { inngest } from "./client";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";

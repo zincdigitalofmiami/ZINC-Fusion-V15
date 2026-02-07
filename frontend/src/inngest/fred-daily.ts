@@ -1,27 +1,25 @@
 /**
- * FRED Daily Bronze Ingestion
- * 
- * BRONZE CONTRACT COMPLIANT:
+ * FRED Daily Data Ingestion
+ *
+ * INGESTION CONTRACT:
  * - Logs each run in ops.ingest_run
  * - Computes row_hash for idempotency
  * - Assigns specialist_tags per MAPPING doc
  * - Append-only inserts (no upserts)
  * - Quarantines invalid records to ops.quarantined_record
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
- * @version 2.0.0 - Bronze Contract
- * @date 2026-01-11
+ * @version 2.1.0
+ * @date 2026-02-07
  */
 
 import { inngest } from "./client";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
 // Database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // =============================================================================
 // FRED SERIES CONFIGURATION WITH SPECIALIST TAGS

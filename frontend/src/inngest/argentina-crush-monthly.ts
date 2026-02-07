@@ -18,14 +18,11 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
 interface USDAPSDRecord {
   marketYear: string;

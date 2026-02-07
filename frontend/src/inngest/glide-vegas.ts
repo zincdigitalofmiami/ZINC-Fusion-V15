@@ -1,10 +1,7 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // Glide API Configuration
 const GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables";

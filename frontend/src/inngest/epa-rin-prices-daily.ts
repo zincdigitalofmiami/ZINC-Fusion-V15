@@ -1,6 +1,7 @@
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
+import dbPool from "@/lib/db";
 
 const EPA_RIN_PAGE_URL =
   "https://www.epa.gov/fuels-registration-reporting-and-compliance-help/rin-trades-and-price-information";
@@ -8,10 +9,7 @@ const EPA_RIN_PAGE_URL =
 const EPA_QLIK_APP_ID = "73b2b6a5-70c6-4820-b3fa-186ac094f10d";
 const EPA_QLIK_WS_URL = `wss://edap.epa.gov/public/app/${EPA_QLIK_APP_ID}`;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 function computeRowHash(parts: string[]): string {
   return createHash("sha256").update(parts.join("|")).digest("hex");
@@ -295,7 +293,7 @@ async function fetchRinPricesFromQlik(maxRetries: number = 3): Promise<{ lastRel
 }
 
 export const epaRinPricesDaily = inngest.createFunction(
-  { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Bronze Ingestion", retries: 3 },
+  { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Data Ingestion", retries: 3 },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30
   async ({ step, logger }) => {
     const client = await pool.connect();

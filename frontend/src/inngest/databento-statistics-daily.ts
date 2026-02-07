@@ -9,13 +9,10 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // Symbols to fetch: match OHLCV function (Crush uses .n.0, Energy/Metals use .c.0)
 // Top 50 CME symbols per Databento catalog

@@ -8,17 +8,14 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import {
   fetchDatabentoCsv,
   parseDatabentoStatisticsCsvOptions,
 } from "@/lib/databento";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // =============================================================================
 // COMPLETE OPTIONS COVERAGE - ALL 75+ PRODUCTS

@@ -13,6 +13,7 @@
 
 import { inngest } from "./client";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
 const USDA_API_KEY = process.env.USDA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -146,65 +147,61 @@ export const usdaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: DATABASE_URL });
+      const pool = dbPool;
 
       let inserted = 0;
       let skipped = 0;
       let invalid = 0;
 
-      try {
-        for (const dataPoint of allData) {
-          const value = parseNASSValue(dataPoint.Value);
-          if (value === null) {
-            invalid++;
-            continue;
-          }
-
-          const obsDate = buildObservationDate(
-            dataPoint.year,
-            dataPoint.reference_period_desc
-          );
-          if (!obsDate) {
-            invalid++;
-            continue;
-          }
-
-          const seriesId = buildSeriesId(
-            dataPoint.statisticcat_desc,
-            dataPoint.state_name
-          );
-
-          const rowHash = generateRowHash(seriesId, obsDate, value);
-
-          // Check if exists
-          const checkResult = await pool.query(
-            `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
-            [rowHash]
-          );
-
-          if (checkResult.rows.length > 0) {
-            skipped++;
-            continue;
-          }
-
-          // Insert into unified rates table
-          await pool.query(
-            `INSERT INTO econ.rates_1d
-             (series_id, event_date, value, source, row_hash)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [
-              seriesId,
-              obsDate,
-              value,
-              "usda_nass_api",
-              rowHash,
-            ]
-          );
-          inserted++;
+      for (const dataPoint of allData) {
+        const value = parseNASSValue(dataPoint.Value);
+        if (value === null) {
+          invalid++;
+          continue;
         }
-      } finally {
-        await pool.end();
+
+        const obsDate = buildObservationDate(
+          dataPoint.year,
+          dataPoint.reference_period_desc
+        );
+        if (!obsDate) {
+          invalid++;
+          continue;
+        }
+
+        const seriesId = buildSeriesId(
+          dataPoint.statisticcat_desc,
+          dataPoint.state_name
+        );
+
+        const rowHash = generateRowHash(seriesId, obsDate, value);
+
+        // Check if exists
+        const checkResult = await pool.query(
+          `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
+          [rowHash]
+        );
+
+        if (checkResult.rows.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        // Insert - reusing fred_observations_1d pattern
+        await pool.query(
+          `INSERT INTO econ.rates_1d 
+           (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          [
+            seriesId,
+            obsDate,
+            value,
+            dataPoint.unit_desc,
+            rowHash,
+            ["crush"],
+          ]
+        );
+        inserted++;
       }
 
       return { inserted, skipped, invalid, total: allData.length };

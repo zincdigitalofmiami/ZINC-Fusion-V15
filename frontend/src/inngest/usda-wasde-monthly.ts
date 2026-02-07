@@ -1,17 +1,15 @@
 import { inngest } from "./client";
 import { createHash } from "crypto";
-import { Pool, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import { XMLParser } from "fast-xml-parser";
+import dbPool from "@/lib/db";
 
 const CORNELL_PUBLICATIONS_URL =
   "https://usda.library.cornell.edu/concern/publications?locale=en";
 
 const CORNELL_BASE_URL = "https://usda.library.cornell.edu";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // Minimum acceptable rows (allow partial data rather than failing completely)
 // Full expected: 3 commodities × 5 countries × 4 metrics = 60
@@ -275,7 +273,7 @@ async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn
 }
 
 export const usdaWasdeMonthly = inngest.createFunction(
-  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Bronze Ingestion", retries: 3 },
+  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3 },
   { cron: "0 */8 * * *" }, // Every 8 hours to catch monthly WASDE releases
   async ({ step, logger }) => {
     const client = await pool.connect();

@@ -14,14 +14,11 @@
  */
 
 import { inngest } from "./client";
-import { Pool } from "pg";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
 import { createHash } from "crypto";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 // FX Futures symbols - continuous front month (calendar roll)
 const FX_SYMBOLS = [
