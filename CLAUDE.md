@@ -258,9 +258,7 @@ When tagging or routing data, use these canonical bucket names:
 - NO horizons - Core owns all horizon forecasting (5d, 21d, 63d, 126d)
 - Signals stored in `training.specialist_signals_1d`
 
-## SoT v2 Training Architecture (Primary)
-
-**SoT v3** is the canonical training model architecture for this project.
+## SoT v3 Training Architecture (Canonical)
 
 ### Model Stack (19 Models)
 - **L0 Core:** 4 models (`zinc-fusion-v2-core-h{5,21,63,126}d`)

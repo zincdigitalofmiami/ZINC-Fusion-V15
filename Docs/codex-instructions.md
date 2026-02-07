@@ -117,7 +117,7 @@ This is intentional architecture, not drift.
 
 **DO NOT** attempt to migrate to PrismaClient for runtime queries.
 
-### Multi-Schema Layout (14 Schemas)
+### Multi-Schema Layout (12 + 1 Isolated)
 
 **Landing (append-only):**
 - `mkt` — Market prices (futures, options, FX)

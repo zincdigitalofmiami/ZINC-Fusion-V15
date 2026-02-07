@@ -416,7 +416,7 @@ type FeedPullEvent = {
 3. Create `ops.ingest_run` record
 4. Fetch by `feed_type` (rss/api/scrape)
 5. Apply `filter_rules` to items
-6. Normalize → Bronze row with PIT semantics
+6. Normalize → landing row with PIT semantics
 7. Dedupe via `row_hash`
 8. Handle revisions via `revision_no` + `supersedes_id`
 9. Quarantine bad rows to `ops.quarantined_record`
