@@ -38,6 +38,11 @@ except ImportError:
     logger.warning("arch package not available; using simplified volatility model")
 
 
+# Conservative guard against obviously corrupt daily jumps in raw futures prices.
+# Soybean oil daily returns above 20% are treated as invalid observations.
+MAX_ABS_DAILY_RETURN = 0.20
+
+
 # =============================================================================
 # VOLATILITY SIGNAL GENERATOR
 # =============================================================================
@@ -228,11 +233,21 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         return elite
 
     def _compute_returns(self, data: pd.DataFrame) -> pd.Series:
-        """Compute returns from close if not present."""
-        if "returns_1d" in data.columns:
+        """Compute returns with no implicit forward-fill."""
+        # Prefer raw close-to-close returns so we can enforce fill_method=None.
+        if "close" in data.columns:
+            returns = data["close"].pct_change(fill_method=None)
+            outlier_mask = returns.abs() > MAX_ABS_DAILY_RETURN
+            if outlier_mask.any():
+                logger.warning(
+                    "VOLATILITY_RETURN_OUTLIERS: masking %d returns with abs(ret) > %.2f",
+                    int(outlier_mask.sum()),
+                    MAX_ABS_DAILY_RETURN,
+                )
+                returns = returns.mask(outlier_mask)
+            return returns
+        elif "returns_1d" in data.columns:
             return data["returns_1d"]
-        elif "close" in data.columns:
-            return data["close"].pct_change(fill_method=None)
         else:
             raise ValueError("Neither returns_1d nor close available")
 
@@ -294,18 +309,28 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         Returns:
             (term_slope, is_backwardation, term_zscore)
         """
-        # Try different column name patterns
-        # VIX: VIXCLS (FRED)
-        # VIX3M: VXVCLS (FRED) - 3-month VIX for term structure
-        vix_col = None
-        vix3m_col = None
+        # Use explicit raw-column priority to avoid matching derived indicator columns
+        # (e.g., vix3m_autocorr_126d) after elite feature expansion.
+        lower_to_original = {c.lower(): c for c in data.columns}
 
-        for col in data.columns:
-            col_lower = col.lower()
-            if 'vixcls' in col_lower and 'vxv' not in col_lower:
-                vix_col = col
-            elif 'vxvcls' in col_lower or 'vix3m' in col_lower or 'vix_3m' in col_lower:
-                vix3m_col = col
+        vix_col = None
+        for key in ("fred_vixcls", "vixcls"):
+            if key in lower_to_original:
+                vix_col = lower_to_original[key]
+                break
+
+        vix3m_col = None
+        for key in (
+            "fred_vix3mcls",
+            "fred_vxvcls",
+            "vix3mcls",
+            "vxvcls",
+            "vix3m",
+            "vix_3m",
+        ):
+            if key in lower_to_original:
+                vix3m_col = lower_to_original[key]
+                break
 
         if vix_col is None or vix3m_col is None:
             # LOUD WARNING: Missing data should never silently become zeros
@@ -453,7 +478,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
 
         # VIX term structure (NEW)
         term_slope, is_backwardation, term_zscore, term_slope_normalized = self._compute_vix_term_structure(data)
-        has_term_structure = term_slope.abs().sum() > 0
+        has_term_structure = term_slope.notna().any()
 
         # Term structure adjustment: backwardation adds to fear signal
         term_adjustment = pd.Series(0.0, index=data.index)
@@ -518,6 +543,10 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                     garch_cond_vol_zscore = None
 
         for idx in data.index:
+            # Skip non-trading/null-price rows to avoid fabricating daily signals.
+            if "close" in data.columns and pd.isna(data.loc[idx, "close"]):
+                continue
+
             if pd.isna(vol_zscore.loc[idx]):
                 continue
 

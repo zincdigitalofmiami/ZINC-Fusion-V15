@@ -14,7 +14,7 @@ Usage:
     python -m src.fusion.validators.quarantine_verifier
 
 Validators:
-- SchemaContractValidator: Ensures Bronze contract compliance (naming + columns)
+- SchemaContractValidator: Ensures ingestion contract compliance (naming + columns)
 - FreshnessMonitor: Checks for stale data based on cadence
 - QuarantineVerifier: Tests quarantine pipeline functionality
 """

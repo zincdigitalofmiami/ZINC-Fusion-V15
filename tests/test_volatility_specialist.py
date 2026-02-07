@@ -144,6 +144,75 @@ class TestVolatilityDataContract:
             "backwardation should be True/False when data present, not pd.NA"
         )
 
+    def test_term_structure_prefers_raw_vix3m_over_derived_columns(
+        self, volatility_generator, sample_dates
+    ):
+        """
+        Term structure should use raw VIX3M/VXV columns, not derived feature columns.
+        """
+        data = pd.DataFrame(
+            {
+                "close": np.random.uniform(50, 60, len(sample_dates)),
+                "fred_vixcls": np.linspace(18, 22, len(sample_dates)),
+                "fred_vix3mcls": np.linspace(20, 24, len(sample_dates)),
+                # Derived feature that previously could be selected by substring match.
+                "vix3m_autocorr_126d": [np.nan] * len(sample_dates),
+            },
+            index=sample_dates,
+        )
+
+        term_slope, is_backwardation, term_zscore, term_slope_normalized = (
+            volatility_generator._compute_vix_term_structure(data)
+        )
+
+        expected = data["fred_vixcls"] - data["fred_vix3mcls"]
+        pd.testing.assert_series_equal(term_slope, expected, check_names=False)
+        assert not is_backwardation.isna().all()
+        assert not term_slope_normalized.isna().all()
+        # Small sample -> zscore can be NaN; this assertion mainly guards source selection.
+        assert term_zscore.index.equals(data.index)
+
+    def test_compute_returns_from_close_uses_no_fill_method(
+        self, volatility_generator, sample_dates
+    ):
+        """
+        Returns from close should not bridge across missing close values.
+        """
+        data = pd.DataFrame(
+            {
+                "close": [100.0, np.nan, 110.0] + [111.0] * (len(sample_dates) - 3),
+                # Fabricated precomputed returns should be ignored when close is present.
+                "returns_1d": [np.nan, 0.0, 0.1] + [0.0] * (len(sample_dates) - 3),
+            },
+            index=sample_dates,
+        )
+
+        returns = volatility_generator._compute_returns(data)
+
+        assert pd.isna(returns.iloc[0])
+        assert pd.isna(returns.iloc[1])
+        assert pd.isna(returns.iloc[2])
+
+    def test_compute_returns_masks_extreme_outliers(
+        self, volatility_generator, sample_dates
+    ):
+        """
+        Extreme daily jumps (>20%) should be masked as invalid returns.
+        """
+        data = pd.DataFrame(
+            {
+                "close": [100.0, 130.0, 131.0] + [132.0] * (len(sample_dates) - 3),
+            },
+            index=sample_dates,
+        )
+
+        returns = volatility_generator._compute_returns(data)
+
+        # 30% jump should be masked.
+        assert pd.isna(returns.iloc[1])
+        # Normal next-day move should remain.
+        assert returns.iloc[2] == pytest.approx((131.0 / 130.0) - 1.0)
+
 
 class TestTermStructureSemantics:
     """Test that term structure semantics are correct."""

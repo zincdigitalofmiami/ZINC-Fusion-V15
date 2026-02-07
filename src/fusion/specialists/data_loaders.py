@@ -65,7 +65,8 @@ def load_news_for_specialist(
             FROM information_schema.columns 
             WHERE table_schema = '{schema}' AND table_name = '{table}'
               AND column_name IN ('event_date', 'published_at', 'headline', 
-                                  'content', 'sentiment_score', 'summary')
+                                  'content', 'sentiment_score', 'zl_sentiment',
+                                  'avg_sentiment', 'summary')
             """
             cols_df = pd.read_sql(cols_query, conn)
             available = set(cols_df["column_name"])
@@ -81,8 +82,13 @@ def load_news_for_specialist(
                 select_parts.append("headline")
             if "summary" in available:
                 select_parts.append("summary")
-            if "sentiment_score" in available:
-                select_parts.append("sentiment_score")
+            sentiment_col = None
+            for candidate in ("sentiment_score", "zl_sentiment", "avg_sentiment"):
+                if candidate in available:
+                    sentiment_col = candidate
+                    break
+            if sentiment_col is not None:
+                select_parts.append(f"{sentiment_col} as sentiment_score")
 
             query = f"""
             SELECT {', '.join(select_parts)}
@@ -820,7 +826,8 @@ def load_volatility_data(
     result = pd.read_sql(zl_query, conn)
     result["trade_date"] = pd.to_datetime(result["trade_date"])
     result.set_index("trade_date", inplace=True)
-    result["returns_1d"] = result["close"].pct_change()
+    # No implicit fill across NaN close rows.
+    result["returns_1d"] = result["close"].pct_change(fill_method=None)
 
     # ==========================================================================
     # VOL INDICES (econ.vol_indices_1d) - Only active series
@@ -1018,6 +1025,26 @@ def load_palm_data(
         # No forward-fill (policy)
         for c in pivot.columns:
             result[c] = pivot.reindex(result.index)[c]
+
+    # MPOB monthly fundamentals (production, exports, stocks)
+    mpob_query = """
+    SELECT report_month as trade_date, production_mt, exports_mt,
+           stocks_mt, local_consumption_mt
+    FROM supply.mpob_palm_1m
+    WHERE country = 'Malaysia'
+    ORDER BY report_month
+    """
+    mpob_df = pd.read_sql(mpob_query, conn)
+    if not mpob_df.empty:
+        mpob_df["trade_date"] = pd.to_datetime(mpob_df["trade_date"])
+        mpob_df.set_index("trade_date", inplace=True)
+        # Rename for clarity
+        mpob_df.columns = [f"palm_{c}" for c in mpob_df.columns]
+        # Forward-fill monthly data to daily frequency
+        mpob_daily = mpob_df.reindex(result.index, method="ffill")
+        for c in mpob_daily.columns:
+            result[c] = mpob_daily[c]
+        logger.info(f"  MPOB fundamentals: {mpob_df.shape[0]} months joined")
 
     conn.close()
 

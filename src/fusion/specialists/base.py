@@ -44,7 +44,7 @@ MODEL_TYPES = {
     "tariff": "tree",
     "energy": "var",
     "biofuel": "nlp_ema",
-    "palm": "ecm",
+    "palm": "ecm_ridge",  # Ridge regression on ECM-derived features
     "volatility": "garch",
     "substitutes": "rf",
     "trump_effect": "event_study",

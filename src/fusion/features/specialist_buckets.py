@@ -1093,9 +1093,12 @@ class PalmBucketIndicators:
             )
 
         # ZL vs Palm spread (critical competitive relationship)
+        # NOTE: ZL is cents/lb, CPO is USD/metric tonne — must convert before comparing
         if palm_col in df.columns and zl_col in df.columns:
-            result["zl_palm_spread"] = df[zl_col] - df[palm_col]
-            result["zl_palm_ratio"] = df[zl_col] / df[palm_col]
+            # Convert CPO from USD/tonne to cents/lb for apples-to-apples comparison
+            palm_cents_lb = (df[palm_col] / 2204.6) * 100
+            result["zl_palm_spread"] = df[zl_col] - palm_cents_lb
+            result["zl_palm_ratio"] = df[zl_col] / palm_cents_lb
 
             # Spread z-score
             result["zl_palm_spread_zscore"] = (

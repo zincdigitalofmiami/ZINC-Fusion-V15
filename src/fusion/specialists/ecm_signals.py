@@ -188,26 +188,56 @@ class PalmMLMixin:
             )
             return False
 
-        # Scale features
+        # === TWO-PHASE TRAINING: Feature Selection + Refit ===
+        # Phase 1: Initial fit on all features
         X_scaled = self.scaler.fit_transform(X_clean)
-
-        # Create and train model
         self.model = self._create_model()
         self.model.fit(X_scaled, y_clean)
 
+        # Phase 2: Prune low-importance features, keeping ECM + news protected
+        ECM_PROTECTED = {
+            "spread_zscore", "ecm_residual_zscore", "reversion_speed",
+            "spread_mom_5d", "spread_mom_21d", "spread_mom_63d",
+            "is_cointegrated", "coint_strength", "spread_vol_21d", "spread_vol_63d",
+            "palm_sentiment", "palm_sentiment_7d", "palm_news_intensity",
+            "palm_article_count", "palm_articles_7d", "palm_sentiment_delta",
+        }
+        MAX_FEATURES = 50  # Cap total features for interpretability
+
+        coef_importance = dict(zip(usable_features, abs(self.model.coef_)))
+        protected = [f for f in usable_features if f in ECM_PROTECTED]
+        remaining = [f for f in usable_features if f not in ECM_PROTECTED]
+        remaining_sorted = sorted(remaining, key=lambda f: coef_importance.get(f, 0), reverse=True)
+        top_remaining = remaining_sorted[:MAX_FEATURES - len(protected)]
+        selected_features = protected + top_remaining
+
+        if len(selected_features) < len(usable_features):
+            logger.info(f"   Feature pruning: {len(usable_features)} -> {len(selected_features)} "
+                        f"({len(protected)} ECM/news protected + {len(top_remaining)} by importance)")
+            # Refit on selected features only
+            X_selected = X_clean[selected_features]
+            self.scaler = StandardScaler()
+            X_scaled = self.scaler.fit_transform(X_selected)
+            self.model = self._create_model()
+            self.model.fit(X_scaled, y_clean)
+            self.feature_names = selected_features
+
         self.last_train_date = current_date
 
-        # Log coefficients (Ridge doesn't have feature_importances_, use coef_)
+        # Log coefficients
         if hasattr(self.model, "coef_"):
-            coefs = dict(zip(feature_names, self.model.coef_))
+            coefs = dict(zip(self.feature_names, self.model.coef_))
+            ecm_coefs = {k: v for k, v in coefs.items() if k in ECM_PROTECTED}
             top_coefs = sorted(coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
             logger.info(f"   Top coefficients: {top_coefs}")
+            if ecm_coefs:
+                logger.info(f"   ECM coefficients: {sorted(ecm_coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]}")
 
         # Save model
         self._save_model()
 
         logger.info(
-            f"   Trained on {len(X_clean)} samples, {len(feature_names)} features"
+            f"   Trained on {len(X_clean)} samples, {len(self.feature_names)} features"
         )
         return True
 
@@ -496,8 +526,21 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
                     hl = -np.log(2) / np.log(beta)
                     half_life.iloc[i] = min(hl, 252)  # Cap at 1 year
 
-            # Convert to speed (inverse of half-life)
-            reversion_speed = 63 / half_life  # Normalized to quarter speed
+            # Convert to speed using percentile rank for better variability
+            # Old: reversion_speed = 63 / half_life  → constant 1.0 when hl=63
+            # New: z-score the half-life, then invert so faster reversion = higher score
+            hl_clean = half_life.dropna()
+            if len(hl_clean) > 30:
+                hl_median = half_life.rolling(252, min_periods=63).median()
+                hl_iqr = half_life.rolling(252, min_periods=63).apply(
+                    lambda x: x.quantile(0.75) - x.quantile(0.25), raw=False
+                )
+                # Robust z-score: negative = faster than median (good for mean reversion)
+                hl_zscore = -(half_life - hl_median) / hl_iqr.replace(0, np.nan)
+                # Map to 0-5 range with sigmoid-like transform
+                reversion_speed = 2.5 + 2.5 * np.tanh(hl_zscore * 0.5)
+            else:
+                reversion_speed = 63 / half_life  # Fallback
             return reversion_speed.clip(0, 5)
 
         except Exception as e:
@@ -643,6 +686,72 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             ):
                 if col not in features:
                     features[col] = data[col]
+
+        # === MPOB FUNDAMENTAL FEATURES ===
+        # load_palm_data() now joins supply.mpob_palm_1m (monthly, ffill to daily)
+        if "palm_production_mt" in data.columns:
+            prod = data["palm_production_mt"]
+            exp = data["palm_exports_mt"]
+            stk = data["palm_stocks_mt"]
+            # Production momentum (month-over-month change in production level)
+            features["mpob_prod_mom_1m"] = prod.pct_change(21, fill_method=None)
+            features["mpob_prod_mom_3m"] = prod.pct_change(63, fill_method=None)
+            # Stocks-to-production ratio (supply tightness)
+            features["mpob_stocks_prod_ratio"] = stk / prod.replace(0, np.nan)
+            features["mpob_stocks_prod_zscore"] = self.compute_zscore(
+                features["mpob_stocks_prod_ratio"], window=252, min_periods=63
+            )
+            # Export pace relative to production
+            features["mpob_export_rate"] = exp / prod.replace(0, np.nan)
+            # Stocks z-score (absolute supply level signal)
+            features["mpob_stocks_zscore"] = self.compute_zscore(
+                stk, window=252, min_periods=63
+            )
+            logger.debug("   MPOB fundamental features added (6 features)")
+
+        # === NEWS / SENTIMENT FEATURES ===
+        # Accept both legacy and current loader contracts:
+        # - article_count / avg_sentiment
+        # - news_article_count / news_avg_sentiment
+        article_col = None
+        if "news_article_count" in data.columns:
+            article_col = "news_article_count"
+        elif "article_count" in data.columns:
+            article_col = "article_count"
+
+        sentiment_col = None
+        if "news_avg_sentiment" in data.columns:
+            sentiment_col = "news_avg_sentiment"
+        elif "avg_sentiment" in data.columns:
+            sentiment_col = "avg_sentiment"
+
+        if article_col is not None:
+            features["palm_article_count"] = data[article_col].fillna(0)
+            features["palm_articles_7d"] = (
+                data[article_col].fillna(0).rolling(7, min_periods=1).sum()
+            )
+            features["palm_articles_21d"] = (
+                data[article_col].fillna(0).rolling(21, min_periods=5).sum()
+            )
+            # Article surge indicator (z-score of article flow)
+            art_mean = features["palm_articles_21d"].rolling(63, min_periods=21).mean()
+            art_std = features["palm_articles_21d"].rolling(63, min_periods=21).std()
+            features["palm_news_intensity"] = (
+                (features["palm_articles_21d"] - art_mean) / art_std.replace(0, np.nan)
+            ).fillna(0)
+
+        if sentiment_col is not None:
+            features["palm_sentiment"] = data[sentiment_col]
+            features["palm_sentiment_7d"] = data[sentiment_col].rolling(
+                7, min_periods=1
+            ).mean()
+            features["palm_sentiment_21d"] = data[sentiment_col].rolling(
+                21, min_periods=5
+            ).mean()
+            # Sentiment momentum (shift in tone)
+            features["palm_sentiment_delta"] = (
+                features["palm_sentiment_7d"] - features["palm_sentiment_21d"]
+            )
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
