@@ -87,6 +87,7 @@ scripts/run_fx_options.sh
 
 # Zencoder local state
 .zencoder/
+.zenflow/tasks/
 
 # Local artifacts (ignore permanently)
 Docs/screencapture-app-inngest-env-production-runs-2026-01-20-11_57_04.png

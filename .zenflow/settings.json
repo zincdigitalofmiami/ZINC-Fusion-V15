@@ -1,6 +1,129 @@
 {
-  "setup_script": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && .venv/bin/pip install pytest ruff pre-commit && .venv/bin/pre-commit install && (cd frontend && npm install) && (cd config && npm install)",
-  "verification_script": "bash scripts/verify.sh --python-only && (cd frontend && npm run lint)",
-  "copy_files": [".env", "frontend/.env.local"],
-  "dev_script": "(cd frontend && npm run dev)"
+  "$schema": "https://zencoder.ai/schemas/zenflow-settings.json",
+  "project_name": "ZINC-FUSION-V15",
+  "description": "Commodity procurement forecasting - soybean oil (ZL)",
+
+  "git_repository_path": ".",
+
+  "scripts": {
+    "setup": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && .venv/bin/pip install pytest ruff pre-commit && .venv/bin/pre-commit install && (cd frontend && npm install) && (cd config && npm install)",
+    "dev_server": "(cd frontend && npm run dev)",
+    "cleanup": "rm -rf .zenflow/tasks/*/worktree 2>/dev/null; echo 'Cleanup complete'",
+    "verification": "bash -lc 'files=$(git diff --name-only --diff-filter=ACMRT); if [ -z \"$files\" ]; then echo \"No changed files to verify\"; exit 0; fi; .venv/bin/pre-commit run --files $files'"
+  },
+
+  "copy_files": [
+    ".env",
+    "frontend/.env.local"
+  ],
+
+  "rules": {
+    "folders": [
+      ".zenflow/rules"
+    ],
+    "always_include": [
+      "CLAUDE.md",
+      "AGENTS.md"
+    ]
+  },
+
+  "model": {
+    "default": "claude-sonnet-4-5-20250929",
+    "review": "claude-opus-4-6",
+    "fast": "claude-haiku-4-5-20251001"
+  },
+
+  "append_prompt": "## ZINC-FUSION-V15 Critical Rules\n\n**BEFORE any code change:**\n1. Read AGENTS.md and CLAUDE.md fully\n2. Run configured verification command (must exit 0 before claiming done)\n3. Verify imports exist: .venv/bin/ruff check --select F821 <file>\n4. Verify tables exist: check prisma/schema.prisma\n\n**BANNED:**\n- Inventing imports/functions/tables that don't exist\n- Saying \"I believe\" or \"probably\" - cite file:line evidence\n- Skipping verification\n- Using banned schemas: raw, gold, silver, bronze, monitoring, specialist, weather, archive, vegas\n\n**For complex tasks (3+ steps):**\nUse .zenflow/workflows/full-sdd.md with STOP checkpoints at each phase.",
+
+  "workflows": {
+    "default": "full-sdd",
+    "available": [
+      {
+        "id": "full-sdd",
+        "name": "Full SDD Workflow",
+        "description": "Spec-Driven Development for complex tasks (3+ steps)",
+        "file": ".zenflow/workflows/full-sdd.md",
+        "phases": ["requirements", "spec", "plan", "implement"],
+        "review_required": true,
+        "auto_start_steps": false
+      },
+      {
+        "id": "quick-change",
+        "name": "Quick Change",
+        "description": "For simple single-file changes",
+        "file": ".zenflow/workflows/quick-change.md",
+        "phases": ["implement"],
+        "review_required": false,
+        "auto_start_steps": true
+      },
+      {
+        "id": "fix-bug",
+        "name": "Fix Bug",
+        "description": "Structured debugging with root cause analysis",
+        "file": ".zenflow/workflows/fix-bug.md",
+        "phases": ["reproduce", "analyze", "fix"],
+        "review_required": true,
+        "auto_start_steps": false
+      }
+    ]
+  },
+
+  "verification_gates": {
+    "pre_commit": {
+      "command": "bash -lc 'files=$(git diff --name-only --diff-filter=ACMRT); if [ -z \"$files\" ]; then echo \"No changed files to verify\"; exit 0; fi; .venv/bin/pre-commit run --files $files'",
+      "block_on_failure": true
+    },
+    "python": {
+      "ruff_rules": ["F401", "F403", "F405", "F821", "F841"],
+      "command": "bash -lc 'files=$(git diff --name-only --diff-filter=ACMRT | grep -E \"\\\\.py$\" || true); if [ -z \"$files\" ]; then echo \"No changed Python files to lint\"; exit 0; fi; .venv/bin/ruff check --select F401,F403,F405,F821,F841 $files'",
+      "pytest_args": "-q --tb=short"
+    },
+    "frontend": {
+      "lint_command": "npm --prefix frontend run lint",
+      "typecheck_command": "cd frontend && npx tsc --noEmit"
+    },
+    "prisma": {
+      "validate_command": "npx prisma validate --schema prisma/schema.prisma"
+    }
+  },
+
+  "anti_hallucination": {
+    "require_file_read_before_edit": true,
+    "require_import_verification": true,
+    "require_schema_verification": true,
+    "cite_evidence_format": "file.py:L42",
+    "banned_phrases": ["I believe", "I think", "probably", "should work", "might be"],
+    "require_verification_before_done": true
+  },
+
+  "checkpoints": {
+    "requirements_complete": {
+      "message": "STOP: Review requirements.md before proceeding to spec",
+      "approval_required": true,
+      "pause_execution": true
+    },
+    "spec_complete": {
+      "message": "STOP: Review spec.md before proceeding to plan",
+      "approval_required": true,
+      "pause_execution": true
+    },
+    "plan_complete": {
+      "message": "STOP: Review plan.md before implementation",
+      "approval_required": true,
+      "pause_execution": true
+    },
+    "implementation_complete": {
+      "message": "STOP: Run configured verification command and review all changes",
+      "approval_required": true,
+      "pause_execution": true,
+      "verification_command": "bash -lc 'files=$(git diff --name-only --diff-filter=ACMRT); if [ -z \"$files\" ]; then echo \"No changed files to verify\"; exit 0; fi; .venv/bin/pre-commit run --files $files'",
+      "require_exit_zero": true
+    }
+  },
+
+  "agents": {
+    "cross_model_review": true,
+    "review_model": "claude-opus-4-6",
+    "implementation_model": "claude-sonnet-4-5-20250929"
+  }
 }
