@@ -1,223 +1,159 @@
-# ZINC-FUSION-V15 Cursor Rules (Augment-Optimized)
+# ZINC-FUSION-V15 — Cursor Rules
 
-## Ray Cluster (22 cores)
-**Your AI agents can use `ray.init(address='auto')` and get 22 cores without melting your machine.**
+`AGENTS.md` is the primary source of truth. Read it before acting on any non-trivial task.
 
-## MANDATORY: Planning Phase (Before ANY Implementation)
+## Mandatory Review Before Completing ANY Task
 
-### Planning Gate (Non-Negotiable)
-Every non-trivial task MUST go through this planning phase before writing code:
+**Run these checks before marking any coding task done. No exceptions.**
 
-1. **Context Gathering**
-   - Read MCP memory graph for project knowledge
-   - Query relevant files/schemas
-   - Check git status for current state
+```bash
+# Python files you touched:
+.venv/bin/ruff check --select F401,F403,F405,F821,F841 <files>
 
-2. **Scope Definition**
-   - State the goal in one sentence
-   - List files that will be modified (max 5 per change)
-   - Identify dependencies and prerequisites
-   - Estimate number of atomic steps
+# Tests:
+.venv/bin/pytest -q
 
-3. **Risk Assessment**
-   - Is this reversible? (Y/N)
-   - Does it touch database schema? (requires explicit approval)
-   - Does it cross schema boundaries? (mkt → training, etc.)
-   - What could break?
+# Frontend files you touched:
+npm --prefix frontend run lint
 
-4. **Plan Output (Required Format)**
-   ```
-   ## Task: [one-line goal]
-   ## Scope: [files to modify]
-   ## Steps:
-   1. [atomic step 1]
-   2. [atomic step 2]
-   ...
-   ## Validation: [how to verify success]
-   ## Risks: [what could go wrong]
-   ```
+# Prisma schema changes:
+npx prisma validate --schema prisma/schema.prisma
+```
 
-5. **Approval Gate**
-   - For schema changes: STOP and get explicit user approval
-   - For multi-file changes: present plan and confirm
-   - For single-file edits: proceed with validation
+**If any check fails, fix it before reporting completion.**
 
-### Skip Planning Only If:
-- Single line fix (typo, obvious bug)
-- User explicitly says "just do it"
-- Pure research/exploration task
+## Sequential Thinking (REQUIRED for Complex Tasks)
 
-## Augment-Style Reliability Principles
+For tasks with 3+ steps, multiple files, or architectural decisions:
+- Use sequential-thinking to decompose the problem BEFORE writing code
+- Track reasoning step by step, verify at each step
+- Prevents "confident but wrong" failure mode
 
-### 1. Codebase Awareness (Index Everything)
-- Use @codebase to search before implementing
-- Check existing patterns before writing new code
-- Understand file relationships and imports
-- Never guess at function signatures - look them up
+## Verification Protocol (EVERY TASK)
 
-### 2. Stepwise Verification
-- Break complex tasks into atomic steps
-- Verify each step before proceeding
-- If a step fails, stop and diagnose before continuing
-- Never batch multiple changes without intermediate validation
+### Before You Edit
+1. READ the file you're about to modify — completely
+2. SEARCH the codebase for existing patterns (`@codebase` or grep)
+3. VERIFY any DB tables/columns exist in `prisma/schema.prisma`
+4. STATE your plan: one sentence — file, change, why
 
-### 3. Schema-First Development
-- Query the database to confirm table/column existence
-- Check Prisma schema before writing queries
-- Validate INSERT columns match target table
-- Use MCP postgres server for live schema inspection
-
-### 4. Context Preservation
-- Use MCP memory server to persist decisions across sessions
-- Document assumptions explicitly
-- Track what was verified vs assumed
-- Reference prior conversations when relevant
-
-## Core Operating Principles
-
-### Accuracy Over Speed
-- Never prioritize speed over correctness
-- Verify before asserting - if you didn't inspect it, don't claim it exists
-- Read files before modifying them
-- Query database state before making claims about data
-
-### Atomic Changes
-- Make small, focused changes (one logical change per edit)
-- Keep diffs minimal and reversible
-- Avoid unrelated refactors in the same change
-- Complete one task fully before starting another
-
-### Validation-First Workflow
-1. **Read** the relevant files/schemas first
-2. **Verify** current state matches expectations
-3. **Plan** the minimal change needed
-4. **Implement** one atomic change
-5. **Validate** the change worked (run tests, query DB)
-
-## Project-Specific Constraints
-
-### Database Architecture (CRITICAL)
-- **Prisma Postgres is the ONLY database**
-- Connection: `DATABASE_URL` in `.env`
-- Schema: `prisma/schema.prisma`
-- Always use `.venv/bin/python` for Python scripts
-
-### Forbidden Actions
-- Do NOT invent schemas, tables, columns, symbols, endpoints, or file paths
-- Do NOT mutate Prisma schemas without explicit user approval
-- Do NOT add "buy/sell/act now" or execution logic
-- Do NOT create schemas named: `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`
-- Do NOT write code in chat responses unless explicitly asked
-
-### Schema Boundaries (v2 Architecture)
-**Landing (append-only):** `mkt`, `econ`, `alt`, `pos`, `supply`
-**Derived (computed):** `features`, `training`
-**Output (versioned):** `model`, `forecasts`, `analytics`
-**Governance:** `metadata`, `ops`
-
-### Before ANY Database Change
-1. State intent: "I am going to modify X for reason Y"
-2. Define scope: Files affected, tables touched
-3. Declare reversibility: Can this be reverted cleanly?
-4. Wait for explicit approval
-
-## Reliability Patterns
-
-### File Operations
-- Always read a file before editing it
-- Use absolute paths, not relative paths
-- Verify parent directories exist before creating files
-- Never assume file contents - always inspect first
-
-### Code Changes
-- Prefer editing existing files over creating new ones
-- Check for existing patterns in the codebase before implementing
-- Match existing code style (indentation, naming, structure)
-- Add validation/assertions but avoid over-engineering
-
-### Testing & Validation
-- Run `.venv/bin/pytest -q` after Python changes
-- Use Prisma queries to verify database state
-- Check that changes don't break existing functionality
-- Validate outputs match expected schema
-
-### Error Handling
-- Fail loudly on missing tables/columns
-- No implicit DDL creation during training
-- Scripts should error on validation failure, not silently continue
-
-## Context Management
-
-### When to Stop and Ask
-- Required file/config is missing
-- Schema contradicts documentation
-- Request implies external systems without concrete paths
-- Ambiguous requirements that could go multiple ways
-
-### What to Verify Before Acting
-- Table/column exists in Prisma schema
-- File path exists and is readable
-- Environment variables are set
-- Dependencies are installed
-
-## Specialist Taxonomy (Big 11)
-When tagging or routing data, use these canonical bucket names:
-`crush`, `china`, `fx`, `fed`, `tariff`, `energy`, `biofuel`, `palm`, `volatility`, `substitutes`, `trump_effect`
-
-## Ground Truth Entrypoints
-- Prisma schema: `prisma/schema.prisma`
-- Prisma connection: `DATABASE_URL` in `.env`
-- FastAPI app: `fusion.api.server:app`
-- Primary instructions: `AGENTS.md`
-
-## Instruction Precedence
-1. System instructions (highest)
-2. AGENTS.md
-3. CLAUDE.md
-4. README.md
-5. Code and tests
-6. Notebooks (lowest)
-
-## MCP Server Usage
-
-### Available Servers (Configured)
-- **sequential-thinking**: Multi-step reasoning, problem decomposition, hypothesis verification
-- **memory**: Knowledge graph for project facts, decisions, architecture (persists across sessions)
-- **filesystem**: Sandboxed file operations for `/Volumes/Satechi Hub/ZINC-FUSION-V15`
-- **git**: Repository operations, history analysis, branch management
-- **Prisma-Local/Remote**: Database schema inspection and Prisma operations
-
-### When to Use MCP (Required)
-| Situation | MCP Tool | Action |
-|-----------|----------|--------|
-| Starting a session | `memory.read_graph` | Load project context |
-| Complex multi-step task | `sequential-thinking` | Break down and track reasoning |
-| Before database changes | `Prisma` MCP | Verify schema exists |
-| Learning something new | `memory.create_entities` | Persist for future sessions |
-| Before committing | `git` MCP | Check status, diff, history |
-
-### Memory Graph Bootstrap
-At session start, always check: `mcp__memory__read_graph`
-This contains: Project architecture, schema contracts, specialist taxonomy, non-negotiables
-
-## Error Recovery Patterns
-
-### If a Change Fails
-1. Read the error message completely
-2. Query relevant state (file contents, DB schema, test output)
-3. Identify the root cause, not just symptoms
-4. Propose a fix that addresses the root cause
-5. Validate the fix works before claiming success
+### After You Edit
+1. Run ruff on every Python file you modified
+2. Run `.venv/bin/pytest -q` or relevant test
+3. Re-read your diff — does every import resolve?
+4. Confirm no phantom symbols (invented functions/classes)
+5. Check schema alignment if DB-related
 
 ### If Uncertain
-- Ask clarifying questions rather than guessing
-- Propose multiple options with tradeoffs
-- State assumptions explicitly
-- Prefer reversible actions over irreversible ones
+- Say "I don't know" — never invent plausible-sounding answers
+- Ask for clarification rather than guessing
+- Show evidence: "I see in `file.py:L42` that…"
 
-### Common Failure Modes to Avoid
-- Editing files without reading them first
-- Assuming column/table exists without checking
-- Using deprecated schema names (raw/gold/silver)
-- Making multiple unrelated changes in one edit
-- Claiming success without running validation
+## Prisma CLI (CRITICAL — URL NOT IN SCHEMA)
+
+The `prisma/schema.prisma` has **NO `url` field**. URL is injected via config.
+
+```bash
+# CORRECT — always use --config or the wrapper:
+scripts/prisma.sh migrate status
+npx prisma migrate status --config config/prisma.config.ts
+npx prisma validate --schema prisma/schema.prisma
+
+# WRONG — will fail with connection error:
+npx prisma migrate status
+npx prisma db pull
+```
+
+## Repository Structure (Root ≠ Frontend)
+
+**Two environments. Do not confuse them.**
+
+| Aspect | Root (`/`) — Python/ML | Frontend (`frontend/`) — Next.js |
+|--------|----------------------|--------------------------------|
+| Language | Python 3.11 | TypeScript |
+| Package mgr | uv / pip | npm |
+| DB connection | psycopg2 via `src/fusion/db/connection.py` | `pg` Pool via `frontend/src/lib/db.ts` |
+| Env file | `.env` | `frontend/.env.local` |
+| Tests | `.venv/bin/pytest` | `npm --prefix frontend test` |
+| Linter | ruff | ESLint |
+
+**Root `package.json` = Prisma CLI only.** No `npm run build` at root.
+**App npm commands** require `--prefix frontend` or `cd frontend`.
+
+## Anti-Hallucination Rules
+
+- **If you didn't read it, don't claim it exists.** No invented files, tables, columns, functions, or parameters.
+- **No fabrication.** Never invent schemas, endpoints, credentials, or file paths.
+- **Cite evidence.** Reference file:line, not assumptions.
+- **Prefer existing patterns.** Always search the codebase before writing new code.
+
+## Atomic Change Protocol
+
+1. One logical change per edit
+2. Max 5 files per change
+3. Verify each step before proceeding
+4. If a step fails, STOP and diagnose — do not continue
+5. Never batch multiple changes without intermediate validation
+6. Keep diffs minimal and reversible
+
+## Database Architecture (DO NOT CHANGE)
+
+- **Only database:** Prisma Postgres via `DATABASE_URL`
+- **Schema authority:** `prisma/schema.prisma`
+- **TypeScript runtime:** `pg` Pool via `frontend/src/lib/db.ts`
+- **Python runtime:** psycopg2 via `src/fusion/db/connection.py`
+- **NEVER** suggest PrismaClient for runtime queries
+
+## Forbidden Patterns
+
+| Pattern | Why |
+|---------|-----|
+| Inventing functions/classes that don't exist | ImportError hallucination |
+| `PrismaClient` for queries | Architecture violation |
+| `raw.*`, `gold.*`, `silver.*`, `bronze.*` schemas | Banned schema names |
+| Buy/sell/execute logic | Intelligence system, not execution |
+| Forward-fill without approval | OFF by default |
+| Editing without reading first | Root cause of most bad edits |
+| 48 OOF tables / 12 L0 models | Legacy v2 — v3 has 1 OOF + 4 core |
+| Bare `npx prisma` without `--config` | Schema has no URL — will fail |
+| `npm run` at repo root | Root is Python — use `--prefix frontend` |
+
+## Schema Boundaries (12 schemas)
+
+**Landing:** `mkt`, `econ`, `alt`, `pos`, `supply`
+**Derived:** `features`, `training`
+**Output:** `model`, `forecasts`, `analytics`
+**Governance:** `metadata`, `ops`
+
+**BANNED:** `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
+
+## Change Authority
+
+- **Code:** Freely modify — add tests, refactor, improve
+- **Database schemas:** STOP. Get explicit approval first.
+- **Config / governance files:** Propose and wait for approval
+- **File deletion/rename/move:** Never without explicit consent
+
+## Specialist Taxonomy (Big 11)
+
+Canonical bucket names: `crush`, `china`, `fx`, `fed`, `tariff`, `energy`, `biofuel`, `palm`, `volatility`, `substitutes`, `trump_effect`
+
+Each specialist has a unique custom architecture (NOT generic AutoGluon). Specialists produce SIGNALS, not forecasts. Core owns all horizon forecasting (5d/21d/63d/126d).
+
+## Entrypoints
+
+- Prisma schema: `prisma/schema.prisma`
+- Prisma CLI: `scripts/prisma.sh <command>` (wraps `--config`)
+- FastAPI: `fusion.api.server:app`
+- Lint: `.venv/bin/ruff check --select F401,F403,F405,F821,F841 src/`
+- Tests: `.venv/bin/pytest -q`
+- Full rules: `AGENTS.md`
+- Python: `.venv/bin/python`
+
+## Instruction Precedence
+
+1. System instructions (highest)
+2. AGENTS.md
+3. .cursorrules (this file)
+4. README.md
+5. Code and tests (lowest)
