@@ -30,8 +30,7 @@ export async function fetchDatabentoCsv(
   const body = new URLSearchParams(params);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
   try {
     const res = await fetch(DATABENTO_BASE_URL, {
       method: "POST",
@@ -50,7 +49,7 @@ export async function fetchDatabentoCsv(
 
     return await res.text();
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timeout);
   }
 }
 
