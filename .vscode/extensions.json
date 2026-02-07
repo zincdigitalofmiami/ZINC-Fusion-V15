@@ -1,13 +1,14 @@
 {
   "recommendations": [
-    "prisma.prisma",
     "github.copilot",
     "github.copilot-chat",
     "charliermarsh.ruff",
     "ms-python.python",
     "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "prisma.prisma",
+    "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "frenco.vscode-vercel",
-    "dbaeumer.vscode-eslint"
+    "tamasfe.even-better-toml"
   ]
 }

@@ -24,8 +24,8 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit",
-            "source.organizeImports": "explicit"
+            "source.fixAll.ruff": "always",
+            "source.organizeImports.ruff": "always"
         }
     },
     "[typescript]": {
@@ -57,8 +57,7 @@
         "*.yaml": "yaml",
         "CLAUDE.md": "markdown",
         "AGENTS.md": "markdown",
-        ".clinerules": "markdown",
-        ".cursorrules": "markdown"
+        ".clinerules": "markdown"
     },
 
     "files.exclude": {
