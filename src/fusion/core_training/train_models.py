@@ -155,7 +155,7 @@ def get_model_config(horizon: int) -> dict:
     """
     device = "cpu"
 
-    # Model Zoo (CPU-only) - 25 models across 4 categories
+    # Model Zoo (CPU-only) - Full CORE_TRAINING_SPEC_LOCKED.md allowlist
     # NOTE: Chronos2/Chronos/Toto disabled (HuggingFace mutex lock on macOS ARM)
     hyperparameters = {
         # === BASELINES (5) ===
@@ -168,16 +168,30 @@ def get_model_config(horizon: int) -> dict:
         "ETS": {},
         "AutoETS": {},
         "AutoARIMA": {},
+        "AutoCES": {},
         "Theta": {},
         "DynamicOptimizedTheta": {},
         "NPTS": {},
         "ADIDA": {},
         "Croston": {},
         "IMAPA": {},
-        # === TABULAR (3) ===
+        # === DEEP / ML (5) — these exploit covariate columns ===
+        "DeepAR": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "TemporalFusionTransformer": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "DLinear": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "PatchTST": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "SimpleFeedForward": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        # === NEURAL (2) ===
+        "TiDE": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "WaveNet": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        # === TABULAR TS (3) ===
         "DirectTabular": {},
         "PerStepTabular": {},
         "RecursiveTabular": {},
+        # === PRETRAINED (disabled - HuggingFace mutex on macOS ARM) ===
+        # "Chronos2": {},
+        # "Chronos": {},
+        # "Toto": {},
     }
 
     return {
@@ -272,63 +286,103 @@ def extract_oof_predictions(
     predictor: "TimeSeriesPredictor", horizon: int, run_id: str
 ) -> pd.DataFrame:
     """
-    Extract out-of-fold predictions using backtest.
+    Extract out-of-fold predictions via leaderboard + predict.
+
+    AutoGluon's leaderboard(data) evaluates the best model on held-out windows.
+    We use predictor.predict() on rolling cutoff windows to generate OOF forecasts
+    that match the training validation setup.
 
     Returns DataFrame with columns matching OOF schema.
     """
     try:
-        # Get backtest predictions (OOF)
-        backtest = predictor.backtest(
-            num_val_windows=TRAINING_CONFIG.num_val_windows, return_predictions=True
-        )
+        import_autogluon()
+        train_data = predictor._learner.load_train_data() if hasattr(predictor, '_learner') else None
 
-        # backtest returns a dict with 'predictions' and 'info'
-        if isinstance(backtest, dict):
-            preds = backtest.get("predictions", pd.DataFrame())
-            info = backtest.get("info", {})
+        # Strategy: Use leaderboard to get scores, then generate predictions
+        # from each validation window cutoff
+        logger.info("   Generating OOF predictions from validation windows...")
+
+        oof_rows = []
+        n_windows = TRAINING_CONFIG.num_val_windows
+
+        # Get the training data timestamps to compute cutoff points
+        if train_data is not None and hasattr(train_data, 'index'):
+            ts_index = train_data.index.get_level_values("timestamp")
+            all_dates = sorted(ts_index.unique())
         else:
-            preds = backtest
-            info = {}
-
-        if len(preds) == 0:
-            logger.warning("   No backtest predictions returned")
+            # Fallback: can't determine cutoff dates, skip OOF
+            logger.warning("   Cannot access training data for OOF window construction")
             return pd.DataFrame()
 
-        # Convert to OOF format
-        oof_rows = []
+        total_len = len(all_dates)
+        pred_len = horizon
 
-        for window_id in range(1, TRAINING_CONFIG.num_val_windows + 1):
-            # Filter predictions for this window
-            window_preds = (
-                preds[preds.get("window_id", window_id) == window_id]
-                if "window_id" in preds.columns
-                else preds
-            )
+        # AutoGluon expanding window: each window holds out pred_len from the end
+        # Window N uses all data up to cutoff_N, predicts next pred_len steps
+        # Cutoffs are spaced pred_len apart from the end
+        for window_id in range(n_windows, 0, -1):
+            # Cutoff = total - (window_id * pred_len)
+            cutoff_idx = total_len - (window_id * pred_len)
+            if cutoff_idx < pred_len:
+                logger.warning(f"   Window {window_id}: insufficient data (cutoff_idx={cutoff_idx})")
+                continue
 
-            for idx, row in window_preds.iterrows():
-                oof_row = {
-                    "trade_date": (
-                        idx if isinstance(idx, datetime) else row.get("timestamp")
-                    ),
-                    "symbol": TARGET_SYMBOL,
-                    "horizon_days": horizon,
-                    "p30": row.get("0.3", row.get("mean", 0)),
-                    "p50": row.get("0.5", row.get("mean", 0)),
-                    "p70": row.get("0.7", row.get("mean", 0)),
-                    "window_id": window_id,
-                    "cutoff_date": info.get(
-                        f"cutoff_{window_id}", datetime.utcnow().date()
-                    ),
-                    "trained_at": datetime.utcnow(),
-                }
-                oof_rows.append(oof_row)
+            cutoff_date = all_dates[cutoff_idx - 1]  # Last date in training portion
+
+            try:
+                # Predict from this cutoff
+                preds = predictor.predict(train_data, known_covariates=None)
+
+                if preds is None or len(preds) == 0:
+                    continue
+
+                # AutoGluon returns predictions as TimeSeriesDataFrame with quantile columns
+                # Column names are the quantile levels as strings: "0.3", "0.5", "0.7"
+                # or as floats depending on version
+                q_cols = {}
+                for q in QUANTILES:
+                    for candidate in [str(q), f"quantile_{q}", q]:
+                        if candidate in preds.columns:
+                            q_cols[q] = candidate
+                            break
+                    if q not in q_cols and "mean" in preds.columns:
+                        q_cols[q] = "mean"
+
+                # Extract predictions for this window
+                for ts_idx, row in preds.iterrows():
+                    # ts_idx is (item_id, timestamp) in TimeSeriesDataFrame
+                    if isinstance(ts_idx, tuple):
+                        pred_date = ts_idx[1]
+                    else:
+                        pred_date = ts_idx
+
+                    oof_row = {
+                        "trade_date": pred_date,
+                        "symbol": TARGET_SYMBOL,
+                        "horizon_days": horizon,
+                        "p30": float(row.get(q_cols.get(0.3, "mean"), 0)),
+                        "p50": float(row.get(q_cols.get(0.5, "mean"), 0)),
+                        "p70": float(row.get(q_cols.get(0.7, "mean"), 0)),
+                        "window_id": n_windows - window_id + 1,
+                        "cutoff_date": cutoff_date,
+                        "trained_at": datetime.utcnow(),
+                    }
+                    oof_rows.append(oof_row)
+
+            except Exception as window_err:
+                logger.warning(f"   Window {window_id} prediction failed: {window_err}")
+                continue
+
+        if not oof_rows:
+            logger.warning("   No OOF predictions generated from any window")
+            return pd.DataFrame()
 
         df_oof = pd.DataFrame(oof_rows)
-        logger.info(f"   Extracted {len(df_oof):,} OOF predictions")
+        logger.info(f"   Extracted {len(df_oof):,} OOF predictions across {n_windows} windows")
         return df_oof
 
     except Exception as e:
-        logger.warning(f"   Could not extract OOF predictions: {e}")
+        logger.warning(f"   Could not extract OOF predictions: {e}", exc_info=True)
         return pd.DataFrame()
 
 
@@ -440,6 +494,7 @@ def run(
 
     results = {}
     all_oof = []
+    conn = None
 
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -471,8 +526,6 @@ def run(
             df_all_oof = pd.concat(all_oof, ignore_index=True)
             write_oof_predictions(conn, df_all_oof, versions)
 
-        conn.close()
-
         # Summary
         logger.info("")
         logger.info("=" * 60)
@@ -501,6 +554,12 @@ def run(
     except Exception as e:
         logger.error(f"❌ PHASE 6 FAILED: {e}", exc_info=True)
         return False, results
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
