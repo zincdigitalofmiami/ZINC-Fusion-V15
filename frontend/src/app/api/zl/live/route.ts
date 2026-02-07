@@ -1,120 +1,112 @@
 /**
  * GET /api/zl/live
- * Real-time ZL price from analytics.zl_latest + forming bars
- * Updated every ~1 min by Databento live connector on Fly.io
+ *
+ * Returns the latest ZL price directly from Databento HTTP API.
+ * Pure Databento - no database queries.
  */
 import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
-
-interface ZlLatest {
-  price: number
-  timestamp: string
-  volume: number
-  updated_at: string
-}
-
-interface FormingBar {
-  timeframe: string
-  bar_start: string
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
-  updated_at: string
-}
+import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from '@/lib/databento'
 
 export async function GET() {
   try {
-    // Get latest price
-    const latestRows = await query<ZlLatest>(`
-      SELECT price, timestamp, volume, updated_at
-      FROM analytics.zl_latest
-      WHERE id = 1
-    `)
+    // Databento historical API has ~24h delay - data available up to midnight UTC
+    // Fetch last 48 hours ending at midnight UTC today to get most recent data
+    const now = new Date()
+    const endOfYesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    const start = new Date(endOfYesterday.getTime() - 48 * 60 * 60 * 1000)
 
-    // Get forming bars (incomplete candles)
-    const formingRows = await query<FormingBar>(`
-      SELECT timeframe, bar_start, open, high, low, close, volume, updated_at
-      FROM analytics.zl_forming_bar
-      ORDER BY timeframe
-    `)
+    const csv = await fetchDatabentoCsv({
+      dataset: 'GLBX.MDP3',
+      schema: 'ohlcv-1m',
+      symbols: 'ZL.n.0',
+      stype_in: 'continuous',
+      start: start.toISOString(),
+      end: endOfYesterday.toISOString(),
+      encoding: 'csv',
+      pretty_ts: 'true',
+      pretty_px: 'true',
+    })
 
-    // Get previous day close for change calculation
-    const prevCloseRows = await query<{ close: number }>(`
-      SELECT close
-      FROM analytics.zl_price_1d
-      ORDER BY event_date DESC
-      LIMIT 1 OFFSET 1
-    `)
+    const bars = parseDatabentoOhlcvCsv(csv)
 
-    if (!latestRows.length) {
-      // Fallback to 15m table if live not available yet
-      const fallbackRows = await query<{ close: number; timestamp: string }>(`
-        SELECT close, timestamp
-        FROM analytics.zl_price_15m
-        ORDER BY timestamp DESC
-        LIMIT 1
-      `)
-      if (fallbackRows.length) {
-        return NextResponse.json({
-          symbol: 'ZL',
-          price: fallbackRows[0].close,
-          timestamp: fallbackRows[0].timestamp,
-          source: 'fallback_15m',
-          forming_bars: {},
-        })
-      }
-      return NextResponse.json(
-        { error: 'No price data available' },
-        { status: 404 }
-      )
+    if (bars.length === 0) {
+      return NextResponse.json({
+        symbol: 'ZL',
+        price: null,
+        timestamp: null,
+        source: 'databento',
+        error: 'No data - market may be closed',
+        forming_bars: {},
+      })
     }
 
-    const latest = latestRows[0]
-    const prevClose = prevCloseRows[0]?.close || null
-    const change = prevClose ? latest.price - prevClose : null
-    const changePct = prevClose ? ((latest.price - prevClose) / prevClose) * 100 : null
+    const latest = bars[bars.length - 1]
 
-    // Build forming bars object keyed by timeframe
-    const formingBars: Record<string, {
-      bar_start: string
-      open: number
-      high: number
-      low: number
-      close: number
-      volume: number
-      updated_at: string
-    }> = {}
-    
-    for (const bar of formingRows) {
-      formingBars[bar.timeframe] = {
-        bar_start: bar.bar_start,
-        open: bar.open,
-        high: bar.high,
-        low: bar.low,
-        close: bar.close,
-        volume: bar.volume,
-        updated_at: bar.updated_at,
+    let dayHigh = latest.high
+    let dayLow = latest.low
+    const dayOpen = bars[0].open
+    let dayVolume = 0
+
+    for (const bar of bars) {
+      if (bar.high > dayHigh) dayHigh = bar.high
+      if (bar.low < dayLow) dayLow = bar.low
+      dayVolume += bar.volume
+    }
+
+    const bucket15m = Math.floor(latest.tsEvent.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000)
+    const bucket1h = Math.floor(latest.tsEvent.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000)
+    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+
+    const bars15m = bars.filter(b => b.tsEvent.getTime() >= bucket15m)
+    const bars1h = bars.filter(b => b.tsEvent.getTime() >= bucket1h)
+
+    const agg = (subset: typeof bars) => {
+      if (subset.length === 0) return null
+      return {
+        bar_start: subset[0].tsEvent.toISOString(),
+        open: subset[0].open,
+        high: Math.max(...subset.map(b => b.high)),
+        low: Math.min(...subset.map(b => b.low)),
+        close: subset[subset.length - 1].close,
+        volume: subset.reduce((sum, b) => sum + b.volume, 0),
+        updated_at: new Date().toISOString(),
       }
     }
+
+    const formingBars: Record<string, unknown> = {}
+    const f15m = agg(bars15m)
+    if (f15m) formingBars['15m'] = f15m
+    const f1h = agg(bars1h)
+    if (f1h) formingBars['1h'] = f1h
+    formingBars['1d'] = {
+      bar_start: dayStart.toISOString(),
+      open: dayOpen,
+      high: dayHigh,
+      low: dayLow,
+      close: latest.close,
+      volume: dayVolume,
+      updated_at: new Date().toISOString(),
+    }
+
+    const change = latest.close - dayOpen
+    const changePct = dayOpen !== 0 ? (change / dayOpen) * 100 : 0
 
     return NextResponse.json({
       symbol: 'ZL',
-      price: latest.price,
-      timestamp: latest.timestamp,
+      price: latest.close,
+      timestamp: latest.tsEvent.toISOString(),
       volume: latest.volume,
-      updated_at: latest.updated_at,
-      previous_close: prevClose,
-      change: change,
+      updated_at: new Date().toISOString(),
+      previous_close: dayOpen,
+      change,
       change_pct: changePct,
-      source: 'databento_live',
+      source: 'databento',
       forming_bars: formingBars,
     })
   } catch (error) {
-    console.error('Database error:', error)
+    console.error('Databento fetch error:', error)
     return NextResponse.json(
-      { error: 'Database query failed' },
+      { error: error instanceof Error ? error.message : 'Databento fetch failed' },
       { status: 500 }
     )
   }

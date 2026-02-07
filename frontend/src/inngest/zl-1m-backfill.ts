@@ -152,7 +152,7 @@ export const zl1mBackfill = inngest.createFunction(
 
       return await fetchDatabentoCsv({
         dataset: DATABENTO_DATASET,
-        symbols: [ZL_SYMBOL],
+        symbols: ZL_SYMBOL,
         schema: "ohlcv-1m",
         start: startStr,
         end: endStr,

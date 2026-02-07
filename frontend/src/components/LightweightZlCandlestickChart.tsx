@@ -124,7 +124,7 @@ export function LightweightZlCandlestickChart({
       }
     }
     fetchData()
-    const interval = setInterval(fetchData, 900000) // 15 minutes
+    const interval = setInterval(fetchData, 15000) // 15 seconds for responsive updates
     return () => clearInterval(interval)
   }, [])
 
@@ -164,7 +164,7 @@ export function LightweightZlCandlestickChart({
 
         if (json.price) {
           setLastPrice(json.price)
-          setIsLive(json.source === 'databento_live')
+          setIsLive(json.source === 'databento' || json.source === 'databento_live')
           if (json.updated_at) {
             const updated = new Date(json.updated_at)
             setLastUpdate(updated.toLocaleTimeString())
