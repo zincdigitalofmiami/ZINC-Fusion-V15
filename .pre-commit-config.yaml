@@ -1,0 +1,47 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+      - id: check-json
+        exclude: '\.vscode/'
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.0
+    hooks:
+      - id: ruff-check
+        args: ['--select', 'F401,F403,F405,F821,F841']
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks-system
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: ESLint frontend
+        entry: npm --prefix frontend run lint
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: prisma-validate
+        name: Prisma schema validate
+        entry: npx --yes --prefix config prisma validate --schema prisma/schema.prisma
+        language: system
+        pass_filenames: false
+        always_run: true
