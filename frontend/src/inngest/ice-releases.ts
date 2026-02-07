@@ -22,7 +22,7 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import pool from "@/lib/db";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -67,19 +67,23 @@ function generateRowHash(title: string, link: string): string {
 
 async function scrapePage(url: string, sourceKey: string): Promise<ICEItem[]> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept": "text/html",
-      },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "Accept": "text/html",
+        },
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      console.log(`ICE page ${sourceKey} returned ${response.status}`);
-      return [];
-    }
+      if (!response.ok) {
+        console.log(`ICE page ${sourceKey} returned ${response.status}`);
+        return [];
+      }
 
-    const html = await response.text();
+      const html = await response.text();
     const items: ICEItem[] = [];
     const seen = new Set<string>();
 
@@ -113,7 +117,10 @@ async function scrapePage(url: string, sourceKey: string): Promise<ICEItem[]> {
       }
     }
 
-    return items.slice(0, 25);
+      return items.slice(0, 25);
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch (error) {
     console.error(`Error scraping ICE ${sourceKey}:`, error);
     return [];
@@ -121,7 +128,7 @@ async function scrapePage(url: string, sourceKey: string): Promise<ICEItem[]> {
 }
 
 export const iceReleasesDaily = inngest.createFunction(
-  { id: "ice-comprehensive-daily", name: "ICE.gov Comprehensive (20+ URLs)", retries: 3, concurrency: [DB_CONCURRENCY] },
+  { id: "ice-comprehensive-daily", name: "ICE.gov Comprehensive (20+ URLs)", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 8,14,20 * * *" }, // 3x daily
   async ({ step }) => {
     const allItems: ICEItem[] = [];
@@ -155,8 +162,6 @@ export const iceReleasesDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
-
       let inserted = 0;
       let skipped = 0;
 
@@ -172,20 +177,8 @@ export const iceReleasesDaily = inngest.createFunction(
           skipped++;
           continue;
         }
-
-        await pool.query(
-          `INSERT INTO alt.ice_enforcement
-           (headline, source, url, published_at, event_date, row_hash, specialist_tags)
-           VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
-          [
-            item.title,
-            `ice_${item.sourceKey}`,
-            item.link,
-            rowHash,
-            ["trump_effect"],
-          ]
-        );
-        inserted++;
+      } finally {
+        // Shared pool - do not close
       }
 
       return { inserted, skipped };

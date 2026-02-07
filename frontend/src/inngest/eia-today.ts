@@ -15,7 +15,7 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import pool from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -53,8 +53,7 @@ export const eiaDaily = inngest.createFunction(
   {
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
   async ({ step }) => {
@@ -97,8 +96,6 @@ export const eiaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
-
       let inserted = 0;
       let skipped = 0;
 
@@ -133,12 +130,37 @@ export const eiaDaily = inngest.createFunction(
           [
             mapping.seriesId,
             dataPoint.period,
-            dataPoint.value,
-            "EIA",
-            rowHash,
-          ]
-        );
-        inserted++;
+            dataPoint.value
+          );
+
+          // Check if exists
+          const checkResult = await pool.query(
+            `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
+            [rowHash]
+          );
+
+          if (checkResult.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          // Insert into unified rates table
+          await pool.query(
+            `INSERT INTO econ.rates_1d
+             (series_id, event_date, value, source, row_hash)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+              mapping.seriesId,
+              dataPoint.period,
+              dataPoint.value,
+              "eia_api",
+              rowHash,
+            ]
+          );
+          inserted++;
+        }
+      } finally {
+        // Shared pool - do not close
       }
 
       return { inserted, skipped, total: filteredData.length };

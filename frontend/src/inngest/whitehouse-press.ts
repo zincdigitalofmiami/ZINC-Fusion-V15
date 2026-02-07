@@ -34,7 +34,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
-import dbPool from "@/lib/db";
+import pool from "@/lib/db";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -261,7 +261,7 @@ export const whitehouseDaily = inngest.createFunction(
   {
     id: "whitehouse-comprehensive-daily",
     name: "White House Comprehensive (20+ URLs)",
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 7,11,15,19 * * *" }, // 4x daily
   async ({ step }) => {
@@ -330,8 +330,6 @@ export const whitehouseDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
-
       let inserted = 0;
       let skipped = 0;
 
@@ -349,22 +347,8 @@ export const whitehouseDaily = inngest.createFunction(
           skipped++;
           continue;
         }
-
-        await pool.query(
-          `INSERT INTO alt.executive_actions
-           (source, headline, url, published_at, event_date, content, specialist_tags, row_hash)
-           VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7)`,
-          [
-            `whitehouse_${item.sourceCategory}`,
-            item.title,
-            item.link,
-            publishedAt,
-            item.description || null,
-            specialists,
-            rowHash,
-          ]
-        );
-        inserted++;
+      } finally {
+        // Shared pool - do not close
       }
 
       return { inserted, skipped };

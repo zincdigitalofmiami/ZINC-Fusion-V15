@@ -5,12 +5,11 @@
  * Runs every 8 hours with a small overlap buffer.
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 const SYMBOLS = [
   { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },
@@ -107,7 +106,7 @@ export const databentoFutures1h = inngest.createFunction(
     id: "databento-futures-1h",
     name: "Databento Futures 1h OHLCV",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" },
   async ({ step, logger }) => {

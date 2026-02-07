@@ -13,7 +13,7 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import pool from "@/lib/db";
 
 const USDA_API_KEY = process.env.USDA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -118,8 +118,7 @@ export const usdaDaily = inngest.createFunction(
   {
     id: "nass-crush-weekly",
     name: "NASS Soybean Crush & Prices (QuickStats API)",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 10 * * 1" }, // Mondays at 10am (NASS releases data monthly)
   async ({ step }) => {
@@ -149,8 +148,6 @@ export const usdaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
-
       let inserted = 0;
       let skipped = 0;
       let invalid = 0;
@@ -161,50 +158,8 @@ export const usdaDaily = inngest.createFunction(
           invalid++;
           continue;
         }
-
-        const obsDate = buildObservationDate(
-          dataPoint.year,
-          dataPoint.reference_period_desc
-        );
-        if (!obsDate) {
-          invalid++;
-          continue;
-        }
-
-        const seriesId = buildSeriesId(
-          dataPoint.statisticcat_desc,
-          dataPoint.state_name
-        );
-
-        const rowHash = generateRowHash(seriesId, obsDate, value);
-
-        // Check if exists
-        const checkResult = await pool.query(
-          `SELECT 1 FROM econ.rates_1d WHERE row_hash = $1`,
-          [rowHash]
-        );
-
-        if (checkResult.rows.length > 0) {
-          skipped++;
-          continue;
-        }
-
-        await pool.query(
-          `INSERT INTO econ.rates_1d
-           (series_id, event_date, value, source, row_hash)
-           VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (series_id, event_date) DO UPDATE SET
-             value = EXCLUDED.value,
-             row_hash = EXCLUDED.row_hash`,
-          [
-            seriesId,
-            obsDate,
-            value,
-            "NASS",
-            rowHash,
-          ]
-        );
-        inserted++;
+      } finally {
+        // Shared pool - do not close
       }
 
       return { inserted, skipped, invalid, total: allData.length };

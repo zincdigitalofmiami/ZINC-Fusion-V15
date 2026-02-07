@@ -11,10 +11,8 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 
 // Base URL kept for documentation - feed URL used for scraping
 void "https://fredblog.stlouisfed.org/";
@@ -325,13 +323,8 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
 }
 
 export const fredBlogDaily = inngest.createFunction(
-  {
-    id: "fred-blog-daily",
-    name: "FRED Blog Scraper",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }],
-  },
-  { cron: "15 */4 * * *" }, // Every 4 hours at :15
+  { id: "fred-blog-daily", name: "FRED Blog Scraper", retries: 3, concurrency: [{ limit: 1 }] },
+  { cron: "0 */4 * * *" }, // Every 4 hours
   async ({ step, logger }) => {
     const runId = await step.run("create-ingest-run", async () => {
       const client = await pool.connect();

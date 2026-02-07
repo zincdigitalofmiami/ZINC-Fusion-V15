@@ -25,12 +25,11 @@
  * @date 2026-02-03
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 // ETF symbols with their Databento dataset and specialist tags
 // ARCX.PILLAR = NYSE Arca (most ETFs), XNAS.ITCH = Nasdaq
@@ -236,29 +235,54 @@ function computeRowHash(
 }
 
 /**
- * Upsert full ETF row into mkt.etf_1d with OHLCV + statistics
+ * Batch upsert ETF rows into mkt.etf_1d with OHLCV + statistics
+ * Uses a single multi-row INSERT for efficiency.
  */
-async function upsertEtfRow(
-  symbol: string,
-  eventDate: Date,
-  open: number | null,
-  high: number | null,
-  low: number | null,
-  close: number,
-  volume: number,
-  rowHash: string,
-  specialistTags: string[],
-  stats?: EtfStatistics
+async function batchUpsertEtfRows(
+  rows: Array<{
+    symbol: string;
+    eventDate: Date;
+    open: number | null;
+    high: number | null;
+    low: number | null;
+    close: number;
+    volume: number;
+    rowHash: string;
+    specialistTags: string[];
+    stats?: EtfStatistics;
+  }>
 ): Promise<void> {
+  if (rows.length === 0) return;
   const client = await pool.connect();
   try {
-    // Databento takes precedence - full upsert with OHLCV + statistics
+    // 16 params per row
+    const COLS = 16;
+    const values: unknown[] = [];
+    const placeholders: string[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const off = i * COLS;
+      placeholders.push(
+        `($${off + 1}, $${off + 2}, $${off + 3}, $${off + 4}, $${off + 5}, $${off + 6}, $${off + 7}, 'databento', $${off + 8}, $${off + 9}, NOW(), $${off + 10}, $${off + 11}, $${off + 12}, $${off + 13}, $${off + 14}, $${off + 15}, $${off + 16})`
+      );
+      const r = rows[i];
+      values.push(
+        r.symbol, r.eventDate, r.open, r.high, r.low, r.close, r.volume,
+        r.rowHash, r.specialistTags,
+        r.stats?.openingPrice ?? null,
+        r.stats?.closingPrice ?? null,
+        r.stats?.sessionHigh ?? null,
+        r.stats?.sessionLow ?? null,
+        r.stats?.indicativeOpen ?? null,
+        r.stats?.indicativeClose ?? null,
+        r.stats?.vwap ?? null,
+      );
+    }
+
     await client.query(
       `INSERT INTO mkt.etf_1d
         (symbol, event_date, open, high, low, close, volume, source, row_hash, specialist_tags, created_at,
          opening_price, closing_price, session_high, session_low, indicative_open, indicative_close, vwap)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'databento', $8, $9, NOW(),
-               $10, $11, $12, $13, $14, $15, $16)
+       VALUES ${placeholders.join(", ")}
        ON CONFLICT (symbol, event_date) DO UPDATE SET
          open = EXCLUDED.open,
          high = EXCLUDED.high,
@@ -275,16 +299,7 @@ async function upsertEtfRow(
          indicative_open = COALESCE(EXCLUDED.indicative_open, mkt.etf_1d.indicative_open),
          indicative_close = COALESCE(EXCLUDED.indicative_close, mkt.etf_1d.indicative_close),
          vwap = COALESCE(EXCLUDED.vwap, mkt.etf_1d.vwap)`,
-      [
-        symbol, eventDate, open, high, low, close, volume, rowHash, specialistTags,
-        stats?.openingPrice ?? null,
-        stats?.closingPrice ?? null,
-        stats?.sessionHigh ?? null,
-        stats?.sessionLow ?? null,
-        stats?.indicativeOpen ?? null,
-        stats?.indicativeClose ?? null,
-        stats?.vwap ?? null,
-      ]
+      values
     );
   } finally {
     client.release();
@@ -347,7 +362,7 @@ export const databentoEtfDaily = inngest.createFunction(
     id: "databento-etf-daily",
     name: "Databento ETF Daily (OHLCV + Statistics)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/New_York 0 20 * * 1-5" }, // 8 PM ET on weekdays (after market close)
   async ({ step, logger }) => {
@@ -393,41 +408,30 @@ export const databentoEtfDaily = inngest.createFunction(
             return;
           }
 
-          // Insert each bar with statistics if available
-          let inserted = 0;
-          for (const bar of ohlcvBars) {
+          // Collect rows and batch-insert
+          const rowsToInsert = ohlcvBars.map((bar) => {
             const eventDate = new Date(Date.UTC(
               bar.tsEvent.getUTCFullYear(),
               bar.tsEvent.getUTCMonth(),
               bar.tsEvent.getUTCDate()
             ));
             const dateStr = eventDate.toISOString().split("T")[0];
-            const stats = statsMap.get(dateStr);
-
-            const rowHash = computeRowHash(
-              config.symbol,
+            return {
+              symbol: config.symbol,
               eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume
-            );
+              open: bar.open,
+              high: bar.high,
+              low: bar.low,
+              close: bar.close,
+              volume: bar.volume,
+              rowHash: computeRowHash(config.symbol, eventDate, bar.open, bar.high, bar.low, bar.close, bar.volume),
+              specialistTags: config.tags,
+              stats: statsMap.get(dateStr),
+            };
+          });
 
-            await upsertEtfRow(
-              config.symbol,
-              eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume,
-              rowHash,
-              config.tags,
-              stats
-            );
-            inserted++;
-          }
+          await batchUpsertEtfRows(rowsToInsert);
+          const inserted = rowsToInsert.length;
 
           logger.info(`Inserted ${inserted} rows for ${config.symbol} (stats: ${statsMap.size} days)`);
           results.push({
@@ -500,41 +504,33 @@ export const databentoEtfBackfill = inngest.createFunction(
             return;
           }
 
-          // Batch insert
-          let inserted = 0;
-          for (const bar of ohlcvBars) {
+          // Collect rows and batch-insert (in chunks of 500 for large backfills)
+          const allRows = ohlcvBars.map((bar) => {
             const eventDate = new Date(Date.UTC(
               bar.tsEvent.getUTCFullYear(),
               bar.tsEvent.getUTCMonth(),
               bar.tsEvent.getUTCDate()
             ));
             const dateStr = eventDate.toISOString().split("T")[0];
-            const stats = statsMap.get(dateStr);
-
-            const rowHash = computeRowHash(
-              config.symbol,
+            return {
+              symbol: config.symbol,
               eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume
-            );
+              open: bar.open,
+              high: bar.high,
+              low: bar.low,
+              close: bar.close,
+              volume: bar.volume,
+              rowHash: computeRowHash(config.symbol, eventDate, bar.open, bar.high, bar.low, bar.close, bar.volume),
+              specialistTags: config.tags,
+              stats: statsMap.get(dateStr),
+            };
+          });
 
-            await upsertEtfRow(
-              config.symbol,
-              eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume,
-              rowHash,
-              config.tags,
-              stats
-            );
-            inserted++;
+          const BATCH_SIZE = 500;
+          for (let b = 0; b < allRows.length; b += BATCH_SIZE) {
+            await batchUpsertEtfRows(allRows.slice(b, b + BATCH_SIZE));
           }
+          const inserted = allRows.length;
 
           const range = `${ohlcvBars[0]?.tsEvent.toISOString().split("T")[0]} to ${ohlcvBars[ohlcvBars.length - 1]?.tsEvent.toISOString().split("T")[0]}`;
           logger.info(`Backfilled ${inserted} rows for ${config.symbol} (${range})`);

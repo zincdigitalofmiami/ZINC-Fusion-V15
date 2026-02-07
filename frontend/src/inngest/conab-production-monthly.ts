@@ -15,11 +15,10 @@
  * @date 2026-01-31
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 interface USDAPSDRecord {
   marketYear: string;
@@ -47,11 +46,19 @@ async function fetchBrazilProduction(): Promise<USDAPSDRecord[]> {
     commodityCode: "2222", // Soybeans
   });
 
-  const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
-  if (!response.ok) throw new Error(`USDA PSD API error: ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`USDA PSD API error: ${response.status}`);
 
-  const data = await response.json();
-  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021"); // Last 5 years
+    const data = await response.json();
+    return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021"); // Last 5 years
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const conabProductionMonthly = inngest.createFunction(
@@ -59,7 +66,7 @@ export const conabProductionMonthly = inngest.createFunction(
     id: "conab-production-monthly",
     name: "Brazil Production via USDA PSD (CRITICAL)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 0 12 * *" }, // 12th of each month
   async ({ step, logger }) => {

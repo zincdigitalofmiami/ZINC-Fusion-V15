@@ -9,12 +9,11 @@
  * Handles "no new rows" gracefully (historical API may lag by 24h).
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 // Symbols to fetch from GLBX.MDP3 (CME Globex, COMEX, NYMEX)
 // Crush-relevant use .n.0 (open-interest-ranked), Energy/Metals use .c.0 (calendar)
@@ -99,25 +98,40 @@ function computeRowHash(
 }
 
 /**
- * Upsert OHLCV row into mkt.futures_1d
+ * Batch upsert OHLCV rows into mkt.futures_1d
+ * Uses a single multi-row INSERT for efficiency (instead of one query per row).
  */
-async function upsertOhlcvRow(
-  symbol: string,
-  eventDate: Date,
-  open: number | null,
-  high: number | null,
-  low: number | null,
-  close: number,
-  volume: number,
-  rowHash: string
+async function batchUpsertOhlcvRows(
+  rows: Array<{
+    symbol: string;
+    eventDate: Date;
+    open: number | null;
+    high: number | null;
+    low: number | null;
+    close: number;
+    volume: number;
+    rowHash: string;
+  }>
 ): Promise<void> {
+  if (rows.length === 0) return;
   const client = await pool.connect();
   try {
-    // Only update if existing row is from Databento or NULL (don't overwrite Yahoo)
+    // Build multi-row VALUES clause: 8 params per row
+    const values: unknown[] = [];
+    const placeholders: string[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const off = i * 8;
+      placeholders.push(
+        `($${off + 1}, $${off + 2}, $${off + 3}, $${off + 4}, $${off + 5}, $${off + 6}, $${off + 7}, 'databento', NOW(), $${off + 8})`
+      );
+      const r = rows[i];
+      values.push(r.eventDate, r.symbol, r.open, r.high, r.low, r.close, r.volume, r.rowHash);
+    }
+
     await client.query(
       `INSERT INTO mkt.futures_1d
         (event_date, symbol, open, high, low, close, volume, source, ingested_at, row_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'databento', NOW(), $8)
+       VALUES ${placeholders.join(", ")}
        ON CONFLICT (event_date, symbol) DO UPDATE SET
          open = COALESCE(EXCLUDED.open, mkt.futures_1d.open),
          high = COALESCE(EXCLUDED.high, mkt.futures_1d.high),
@@ -132,7 +146,7 @@ async function upsertOhlcvRow(
          ingested_at = NOW(),
          row_hash = EXCLUDED.row_hash
        WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL`,
-      [eventDate, symbol, open, high, low, close, volume, rowHash]
+      values
     );
   } finally {
     client.release();
@@ -144,7 +158,7 @@ export const databentoFuturesDaily = inngest.createFunction(
     id: "databento-futures-daily",
     name: "Databento Futures Daily OHLCV",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
   async ({ step, logger }) => {
@@ -205,37 +219,27 @@ export const databentoFuturesDaily = inngest.createFunction(
             return;
           }
 
-          // Insert each bar
-          let inserted = 0;
-          for (const bar of bars) {
+          // Collect rows and batch-insert
+          const rowsToInsert = bars.map((bar) => {
             const eventDate = new Date(Date.UTC(
               bar.tsEvent.getUTCFullYear(),
               bar.tsEvent.getUTCMonth(),
               bar.tsEvent.getUTCDate()
             ));
-
-            const rowHash = computeRowHash(
-              config.canonical,
+            return {
+              symbol: config.canonical,
               eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume
-            );
+              open: bar.open,
+              high: bar.high,
+              low: bar.low,
+              close: bar.close,
+              volume: bar.volume,
+              rowHash: computeRowHash(config.canonical, eventDate, bar.open, bar.high, bar.low, bar.close, bar.volume),
+            };
+          });
 
-            await upsertOhlcvRow(
-              config.canonical,
-              eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume,
-              rowHash
-            );
-            inserted++;
-          }
+          await batchUpsertOhlcvRows(rowsToInsert);
+          const inserted = rowsToInsert.length;
 
           logger.info(`Inserted ${inserted} rows for ${config.canonical}`);
           results.push({

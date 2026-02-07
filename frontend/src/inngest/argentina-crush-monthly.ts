@@ -17,7 +17,8 @@
  * @date 2026-01-31
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -49,11 +50,19 @@ async function fetchArgentinaCrush(): Promise<USDAPSDRecord[]> {
     commodityCode: "2222", // Soybeans
   });
 
-  const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
-  if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
 
-  const data = await response.json();
-  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+    const data = await response.json();
+    return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const argentinaCrushMonthly = inngest.createFunction(
@@ -61,7 +70,7 @@ export const argentinaCrushMonthly = inngest.createFunction(
     id: "argentina-crush-monthly",
     name: "Argentina Crush via USDA PSD (CRITICAL)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 0 18 * *" }, // 18th of each month
   async ({ step, logger }) => {

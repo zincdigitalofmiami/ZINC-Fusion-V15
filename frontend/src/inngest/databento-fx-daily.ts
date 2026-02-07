@@ -13,12 +13,11 @@
  * @date 2026-01-30
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 // FX Futures symbols - continuous front month (calendar roll)
 const FX_SYMBOLS = [
@@ -130,7 +129,7 @@ export const databentoFxDaily = inngest.createFunction(
     id: "databento-fx-daily",
     name: "Databento FX Futures Daily (OHLCV + OI)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/Chicago 15 */8 * * *" }, // Every 8 hours at :15 (0:15, 8:15, 16:15 CT)
   async ({ step, logger }) => {

@@ -15,11 +15,10 @@
  * @date 2026-01-31
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest } from "./client";
+import pool from "@/lib/db";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 /**
  * Fetch Malaysia palm oil data from USDA PSD database
@@ -47,11 +46,19 @@ async function fetchMalaysiaPalmProduction(): Promise<USDAPSDRecord[]> {
     commodityCode: "4243", // Palm Oil
   });
 
-  const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
-  if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
 
-  const data = await response.json();
-  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+    const data = await response.json();
+    return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const mpobPalmMonthly = inngest.createFunction(
@@ -59,7 +66,7 @@ export const mpobPalmMonthly = inngest.createFunction(
     id: "mpob-palm-monthly",
     name: "MPOB Palm via USDA PSD (CRITICAL)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "0 0 15 * *" }, // 15th of each month
   async ({ step, logger }) => {

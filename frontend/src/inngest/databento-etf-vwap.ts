@@ -21,15 +21,9 @@
  * @date 2026-02-03
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import {
-  fetchDatabentoCsv,
-  parseDatabentoOhlcvCsv,
-  type DatabentoOhlcvBar,
-} from "@/lib/databento";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import { fetchDatabentoCsv } from "@/lib/databento";
 
 // ETF symbols with their Databento datasets
 const DATABENTO_ETF_SYMBOLS = [
@@ -231,7 +225,7 @@ export const databentoEtfVwapDaily = inngest.createFunction(
     id: "databento-etf-vwap-daily",
     name: "Databento ETF VWAP Daily (from Trades)",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "TZ=America/New_York 30 20 * * 1-5" }, // 8:30 PM ET (30min after OHLCV)
   async ({ step, logger }) => {

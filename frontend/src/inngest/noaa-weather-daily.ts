@@ -6,11 +6,9 @@
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
+import { inngest } from "./client";
 
 const NOAA_API_TOKEN = process.env.NOAA_API_TOKEN || process.env.NOAA_TOKEN;
 const NOAA_BASE_URL = "https://www.ncei.noaa.gov/cdo-web/api/v2/data";
@@ -139,12 +137,12 @@ async function fetchNoaaStation(
     }
 
     if (res.status === 429) {
-      // NOAA rate limit; bounded retries to avoid hanging indefinitely.
-      rateLimitRetries += 1;
-      if (rateLimitRetries > NOAA_MAX_429_RETRIES) {
-        throw new Error(`NOAA rate limit exceeded for ${stationId}: ${NOAA_MAX_429_RETRIES} retries`);
+      // NOAA rate limit; wait and retry this page.
+      rateLimitRetries++;
+      if (rateLimitRetries > 5) {
+        throw new Error("NOAA API rate limit exceeded after 5 retries");
       }
-      await sleep(Math.min(60_000, 5000 * rateLimitRetries));
+      await sleep(60_000);
       continue;
     }
     rateLimitRetries = 0;
@@ -192,8 +190,8 @@ function toNoaaStationId(stationId: string): string | null {
 }
 
 export const noaaWeatherDaily = inngest.createFunction(
-  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "6 */8 * * *" }, // Every 8 hours at :06 UTC
+  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [{ limit: 1 }] },
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

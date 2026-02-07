@@ -17,11 +17,8 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import puppeteer, { type Page } from "puppeteer-core";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 
 const PROFARMER_BASE = "https://www.profarmer.com";
 const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;
@@ -249,6 +246,10 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
 
   const page = await browser.newPage();
 
+  // Guard against indefinite hangs on any page operation
+  page.setDefaultTimeout(30000);
+  page.setDefaultNavigationTimeout(45000);
+
   // Set realistic viewport and user agent
   await page.setViewport({ width: 1920, height: 1080 });
   await page.setUserAgent(
@@ -266,10 +267,10 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
   });
 
   // Navigate to login page
-  console.log("Navigating to ProFarmer login...");
+  console.log('Navigating to ProFarmer login...');
   await page.goto(PROFARMER_LOGIN_URL, {
-    waitUntil: "networkidle2",
-    timeout: 60000,
+    waitUntil: 'domcontentloaded',
+    timeout: 45000
   });
 
   const loginFormSelector = await page.evaluate(() => {
@@ -350,8 +351,8 @@ async function scrapeReportArticles(
   maxArticles: number = 15,
 ): Promise<ScrapedArticle[]> {
   console.log(`Scraping ${reportUrl}...`);
-  await page.goto(reportUrl, { waitUntil: "networkidle2", timeout: 60000 });
-  await new Promise((r) => setTimeout(r, 1000 + Math.random() * 1000));
+  await page.goto(reportUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
 
   // Extract articles
   const articles = await page.evaluate(
@@ -477,24 +478,27 @@ async function scrapeReportArticles(
     maxArticles,
   );
 
-  // Fetch full content for articles with short excerpts
+  // Fetch full content for articles with short excerpts (2-min circuit breaker)
+  const contentFetchStart = Date.now();
+  const CONTENT_FETCH_LIMIT_MS = 120_000;
   for (const article of articles.slice(0, 10)) {
+    if (Date.now() - contentFetchStart > CONTENT_FETCH_LIMIT_MS) {
+      console.log("Content fetch circuit breaker triggered - keeping partial content");
+      break;
+    }
     if (article.content.length < 500) {
       try {
-        await page.goto(article.url, {
-          waitUntil: "networkidle2",
-          timeout: 30000,
-        });
-        await new Promise((r) => setTimeout(r, 500));
+        await page.goto(article.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await new Promise(r => setTimeout(r, 500));
 
         const fullContent = await page.evaluate(() => {
           const selectors = [
-            ".entry-content",
-            ".article-content",
-            ".post-content",
-            ".content",
-            "article",
-            "main",
+            '.entry-content',
+            '.article-content',
+            '.post-content',
+            '.content',
+            'article',
+            'main',
           ];
 
           for (const sel of selectors) {
@@ -509,8 +513,8 @@ async function scrapeReportArticles(
         if (fullContent.length > article.content.length) {
           article.content = fullContent;
         }
-      } catch {
-        // Keep partial content
+      } catch (err) {
+        console.warn(`Content fetch failed for ${article.url}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -519,13 +523,8 @@ async function scrapeReportArticles(
 }
 
 export const profarmerDaily = inngest.createFunction(
-  {
-    id: "profarmer-daily",
-    name: "ProFarmer Premium Scraper",
-    retries: 2,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }],
-  },
-  { cron: "5 */4 * * *" }, // Every 4 hours at :05
+  { id: "profarmer-daily", name: "ProFarmer Premium Scraper (Stealth)", retries: 2, concurrency: [{ limit: 1 }] },
+  { cron: "0 */4 * * *" }, // Every 4 hours
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -558,6 +557,10 @@ export const profarmerDaily = inngest.createFunction(
           `[profarmer] login failed runId=${runId} node=${process.version} region=${process.env.VERCEL_REGION ?? "n/a"} msg=${msg}`,
         );
         logger.error(`ProFarmer login failed: ${msg}`);
+        if (browser) {
+          try { await browser.close(); } catch { /* ignore close errors */ }
+          browser = null;
+        }
         await updateIngestRun(client, runId!, "login_failed", 0, 0, 0, 0, msg);
         return { status: "login_failed", error: msg };
       }
@@ -678,7 +681,11 @@ export const profarmerDaily = inngest.createFunction(
       }
       throw error;
     } finally {
-      if (browser) await browser.close();
+      if (browser) {
+        try {
+          await Promise.race([browser.close(), new Promise(r => setTimeout(r, 10000))]);
+        } catch { /* ignore close errors */ }
+      }
       client.release();
     }
   },
@@ -792,13 +799,15 @@ export const profarmerBackfill = inngest.createFunction(
                   ],
                 );
                 inserted++;
-              } catch {
+              } catch (err) {
                 quarantined++;
+                console.warn(`Backfill insert failed for ${article.url}: ${err instanceof Error ? err.message : String(err)}`);
               }
             }
 
-            await new Promise((r) => setTimeout(r, 2000));
-          } catch {
+            await new Promise(r => setTimeout(r, 2000));
+          } catch (err) {
+            console.warn(`Backfill page ${pageNum} of ${report.slug} failed: ${err instanceof Error ? err.message : String(err)}`);
             break;
           }
         }
@@ -829,7 +838,11 @@ export const profarmerBackfill = inngest.createFunction(
         );
       throw error;
     } finally {
-      if (browser) await browser.close();
+      if (browser) {
+        try {
+          await Promise.race([browser.close(), new Promise(r => setTimeout(r, 10000))]);
+        } catch { /* ignore close errors */ }
+      }
       client.release();
     }
   },

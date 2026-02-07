@@ -6,11 +6,9 @@
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
+import { inngest } from "./client";
 
 const FRED_API_KEY = process.env.FRED_API_KEY;
 
@@ -135,8 +133,8 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 }
 
 export const fxSpotDaily = inngest.createFunction(
-  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "8 */8 * * *" }, // Every 8 hours at :08 UTC
+  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3, concurrency: [{ limit: 1 }] },
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

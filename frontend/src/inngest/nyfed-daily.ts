@@ -18,13 +18,11 @@
  * @date 2026-02-07
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-// Database connection pool
-const pool = dbPool;
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -100,9 +98,9 @@ interface NYFedResponse {
 export const nyfedDaily = inngest.createFunction(
   {
     id: "nyfed-daily",
-    name: "NY Fed Rates Daily Ingestion",
+    name: "NY Fed Rates Daily Bronze Ingestion",
     retries: 3,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }],
+    concurrency: [{ limit: 1 }],
   },
   { cron: "12 */8 * * *" }, // Every 8 hours at :12 UTC
   async ({ step, logger }) => {

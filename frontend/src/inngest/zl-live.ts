@@ -1,33 +1,5 @@
-import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
-
-type ZlBar1mEvent = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  previousClose: number | null;
-  dayHigh: number | null;
-  dayLow: number | null;
-  source?: string;
-};
-
-type ZlBar5mEvent = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  previousClose: number | null;
-  dayHigh: number | null;
-  dayLow: number | null;
-  source?: string;
-};
+import { inngest } from "./client";
+import pool from "@/lib/db";
 
 type ZlBar15mEvent = {
   timestamp: string;

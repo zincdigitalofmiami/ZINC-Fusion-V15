@@ -10,12 +10,11 @@
  * @date 2026-01-13
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 function computeRowHash(seriesId: string, date: string, value: string): string {
   return createHash("sha256").update(`${seriesId}|${date}|${value}`).digest("hex");
@@ -47,7 +46,7 @@ async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
 }
 
 export const nassWeekly = inngest.createFunction(
-  { id: "nass-weekly", name: "USDA NASS API Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
+  { id: "nass-weekly", name: "USDA NASS API Bronze Ingestion", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "0 17 * * 5" }, // Fridays 11AM CT
   async ({ step, logger }) => {
     const client = await pool.connect();

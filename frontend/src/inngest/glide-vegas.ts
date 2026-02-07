@@ -1,7 +1,5 @@
-import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { inngest } from "./client";
+import pool from "@/lib/db";
 
 // Glide API Configuration
 const GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables";
@@ -79,12 +77,20 @@ async function syncTableToPostgres(
     // Truncate for full refresh
     await client.query(`TRUNCATE TABLE ${fullTable}`);
 
-    // Insert rows
-    for (const row of rows) {
-      const glideRowId = (row["$rowID"] as string) || null;
+    // Batch insert rows (chunks of 250 to stay within param limits)
+    const BATCH = 250;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const chunk = rows.slice(i, i + BATCH);
+      const values: unknown[] = [];
+      const placeholders: string[] = [];
+      for (let j = 0; j < chunk.length; j++) {
+        const off = j * 2;
+        placeholders.push(`($${off + 1}, $${off + 2}, NOW())`);
+        values.push((chunk[j]["$rowID"] as string) || null, JSON.stringify(chunk[j]));
+      }
       await client.query(
-        `INSERT INTO ${fullTable} (glide_row_id, data, ingested_at) VALUES ($1, $2, NOW())`,
-        [glideRowId, JSON.stringify(row)]
+        `INSERT INTO ${fullTable} (glide_row_id, data, ingested_at) VALUES ${placeholders.join(", ")}`,
+        values
       );
     }
 
@@ -103,7 +109,7 @@ async function syncTableToPostgres(
  * Runs every 6 hours to keep data fresh
  */
 export const glideVegasSync = inngest.createFunction(
-  { id: "glide-vegas-sync", name: "Glide Vegas Sync", concurrency: [DB_CONCURRENCY] },
+  { id: "glide-vegas-sync", name: "Glide Vegas Sync", concurrency: [{ limit: 1 }] },
   { cron: "0 */6 * * *" }, // Every 6 hours
   async ({ step }) => {
     const results: { table: string; status: string; count?: number }[] = [];

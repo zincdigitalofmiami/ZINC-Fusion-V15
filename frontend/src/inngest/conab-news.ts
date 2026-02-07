@@ -10,13 +10,12 @@
  * @date 2026-01-11
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
@@ -48,8 +47,8 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const conabNewsDaily = inngest.createFunction(
-  { id: "conab-news-daily", name: "CONAB Brazil News RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "20 */8 * * *" }, // Every 8 hours at :20 UTC
+  { id: "conab-news-daily", name: "CONAB Brazil News RSS Bronze Ingestion", retries: 3, concurrency: [{ limit: 1 }] },
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -66,22 +65,21 @@ export const conabNewsDaily = inngest.createFunction(
 
       const items = await step.run("fetch-rss", async () => {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        let response: Response;
+        const timeout = setTimeout(() => controller.abort(), 30000);
         try {
-          response = await fetch("https://www.conab.gov.br/rss", {
+          const response = await fetch("https://www.conab.gov.br/rss", {
             headers: { "User-Agent": "ZINC-Fusion/1.0" },
-            signal: controller.signal,
+            signal: controller.signal
           });
+          if (!response.ok) throw new Error(`CONAB RSS error: ${response.status}`);
+          const xml = await response.text();
+          const parser = new XMLParser({ ignoreAttributes: false });
+          const parsed = parser.parse(xml);
+          // CONAB uses Atom or RSS - handle both
+          return parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
         } finally {
           clearTimeout(timeout);
         }
-        if (!response.ok) throw new Error(`CONAB RSS error: ${response.status}`);
-        const xml = await response.text();
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const parsed = parser.parse(xml);
-        // CONAB uses Atom or RSS - handle both
-        return parsed?.rss?.channel?.item || parsed?.feed?.entry || [];
       });
 
       logger.info(`Fetched ${Array.isArray(items) ? items.length : 1} items from CONAB`);

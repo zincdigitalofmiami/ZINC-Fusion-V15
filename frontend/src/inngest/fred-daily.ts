@@ -13,13 +13,11 @@
  * @date 2026-02-07
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
-
-// Database connection pool
-const pool = dbPool;
 
 // =============================================================================
 // FRED SERIES CONFIGURATION WITH SPECIALIST TAGS
@@ -913,7 +911,7 @@ function createFredSegmentJob(config: FredSegmentConfig) {
       id: config.id,
       name: config.displayName,
       retries: config.retries ?? DEFAULT_JOB_RETRIES,
-      concurrency: [DB_CONCURRENCY, { limit: 1 }],
+      concurrency: [{ limit: 1 }],
     },
     { cron: config.cron },
     async ({ step, logger }) => {

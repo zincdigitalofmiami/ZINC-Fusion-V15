@@ -10,13 +10,12 @@
  * @date 2026-01-11
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
+import { inngest } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");
@@ -48,8 +47,8 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const farmdocRinsDaily = inngest.createFunction(
-  { id: "farmdoc-rins-daily", name: "Farmdoc RINs RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "14 */8 * * *" }, // Every 8 hours at :14 UTC
+  { id: "farmdoc-rins-daily", name: "Farmdoc RINs RSS Bronze Ingestion", retries: 3, concurrency: [{ limit: 1 }] },
+  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

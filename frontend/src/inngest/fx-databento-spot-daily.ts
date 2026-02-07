@@ -8,12 +8,11 @@
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import { inngest, DB_CONCURRENCY } from "./client";
+import pool from "@/lib/db";
+import type { PoolClient } from "pg";
+import { inngest } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import dbPool from "@/lib/db";
-
-const pool = dbPool;
 
 // Databento FX pairs not available from FRED
 // Pair names use SLASH format per 20260118_fx_consolidation migration convention.
@@ -79,12 +78,7 @@ function addDays(yyyyMmDd: string, days: number): string {
 }
 
 export const fxDatabentoSpotDaily = inngest.createFunction(
-  {
-    id: "fx-databento-spot-daily",
-    name: "FX Spot (1D) via Databento",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY],
-  },
+  { id: "fx-databento-spot-daily", name: "FX Spot (1D) via Databento", retries: 3, concurrency: [{ limit: 1 }] },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 UTC) - offset from FRED job
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
