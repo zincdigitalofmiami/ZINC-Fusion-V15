@@ -134,7 +134,7 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
 async function getForecasts(currentPrice: number): Promise<ForecastHorizon[]> {
   try {
     // Try production forecasts first
-    const forecasts = await query<{
+    const fcRows = await query<{
       horizon_days: number, price_p30: number, price_p50: number, price_p70: number
     }>(`
       WITH latest_5d AS (
@@ -160,8 +160,8 @@ async function getForecasts(currentPrice: number): Promise<ForecastHorizon[]> {
       ORDER BY horizon_days
     `)
 
-    if (forecasts.length > 0) {
-      return forecasts.map(f => formatForecast(f, currentPrice))
+    if (fcRows.length > 0) {
+      return fcRows.map(f => formatForecast(f, currentPrice))
     }
 
     // No model forecasts available - return empty (NO FAKE DATA)
@@ -268,26 +268,28 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       return 'live'
     }
 
-    // Score calculations (only if data available)
-    const vixScore = vix !== null ? Math.min(100, Math.max(0, ((vix - 12) / 28) * 100)) : 50
+    // Score calculations — null means no data, not neutral
+    const vixScore = vix !== null ? Math.min(100, Math.max(0, ((vix - 12) / 28) * 100)) : null
     const crushScore = crush !== null
       ? (crush < 1 ? 90 : crush < 1.25 ? 75 : crush < 1.5 ? 50 : crush < 1.75 ? 35 : 20)
-      : 50
+      : null
     const chinaScore = cny !== null
       ? (cny > 7.3 ? 70 : cny > 7.2 ? 55 : cny > 7.0 ? 40 : 30)
-      : 50
+      : null
     const tariffScore = tpu !== null
       ? (tpu > 200 ? 80 : tpu > 150 ? 60 : tpu > 100 ? 45 : 30)
-      : 50
+      : null
 
-    const avgScore = (vixScore + crushScore + chinaScore + tariffScore) / 4
+    // Only average scores that actually have data
+    const validScores = [vixScore, crushScore, chinaScore, tariffScore].filter((s): s is number => s !== null)
+    const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0
 
     const drivers: DriverSummary[] = [
       {
         name: 'Markets',
-        score: vixScore,
-        status: vix === null ? 'NO DATA' : vixScore >= 65 ? 'PANIC' : vixScore >= 50 ? 'NERVOUS' : vixScore <= 35 ? 'CALM' : 'OK',
-        impact: vix === null ? 'VIX data unavailable' :
+        score: vixScore ?? 0,
+        status: vixScore === null ? 'NO DATA' : vixScore >= 65 ? 'PANIC' : vixScore >= 50 ? 'NERVOUS' : vixScore <= 35 ? 'CALM' : 'OK',
+        impact: vixScore === null ? 'VIX data unavailable — score excluded from average' :
                 vixScore >= 65 ? 'Funds dumping commodities, wild swings' :
                 vixScore <= 35 ? 'Stable, fundamentals-driven pricing' : 'Normal volatility',
         rawValue: vix,
@@ -297,12 +299,12 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       },
       {
         name: 'Crush',
-        score: crushScore,
-        status: crush === null ? 'NO DATA' : crushScore >= 65 ? 'TIGHT' : crushScore <= 35 ? 'FLUSH' : 'NORMAL',
-        impact: crush === null ? 'Crush data unavailable' :
-                crushScore >= 65 ? `Plants slowing at $${crush.toFixed(2)}/bu - supply tightening` :
-                crushScore <= 35 ? `Plants running full at $${crush.toFixed(2)}/bu - plenty of oil` :
-                `Normal margins at $${crush.toFixed(2)}/bu`,
+        score: crushScore ?? 0,
+        status: crushScore === null ? 'NO DATA' : crushScore >= 65 ? 'TIGHT' : crushScore <= 35 ? 'FLUSH' : 'NORMAL',
+        impact: crushScore === null ? 'Crush data unavailable — score excluded from average' :
+                crushScore >= 65 ? `Plants slowing at $${crush!.toFixed(2)}/bu - supply tightening` :
+                crushScore <= 35 ? `Plants running full at $${crush!.toFixed(2)}/bu - plenty of oil` :
+                `Normal margins at $${crush!.toFixed(2)}/bu`,
         rawValue: crush,
         unit: '$/bushel',
         asOfDate: crushDate,
@@ -310,11 +312,11 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       },
       {
         name: 'China',
-        score: chinaScore,
-        status: cny === null ? 'NO DATA' : chinaScore >= 65 ? 'FROZEN' : 'BRAZIL PREFERRED',
-        impact: cny === null ? 'FX data unavailable' :
+        score: chinaScore ?? 0,
+        status: chinaScore === null ? 'NO DATA' : chinaScore >= 65 ? 'FROZEN' : 'BRAZIL PREFERRED',
+        impact: chinaScore === null ? 'FX data unavailable — score excluded from average' :
                 chinaScore >= 65 ? 'Trade disrupted, soy demand weak' :
-                `Brazil beats US (CNY at ${cny.toFixed(2)}) - 13% tariff gap`,
+                `Brazil beats US (CNY at ${cny!.toFixed(2)}) - 13% tariff gap`,
         rawValue: cny,
         unit: 'CNY/USD',
         asOfDate: cnyDate,
@@ -322,10 +324,10 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       },
       {
         name: 'Trade',
-        score: tariffScore,
-        status: tpu === null ? 'NO DATA' : tariffScore >= 65 ? 'WAR RISK' : tariffScore >= 50 ? 'NOISY' : 'QUIET',
-        impact: tpu === null ? 'Policy index unavailable' :
-                tariffScore >= 65 ? `TPU at ${tpu.toFixed(0)} - escalation risk, stay defensive` :
+        score: tariffScore ?? 0,
+        status: tariffScore === null ? 'NO DATA' : tariffScore >= 65 ? 'WAR RISK' : tariffScore >= 50 ? 'NOISY' : 'QUIET',
+        impact: tariffScore === null ? 'Policy index unavailable — score excluded from average' :
+                tariffScore >= 65 ? `TPU at ${tpu!.toFixed(0)} - escalation risk, stay defensive` :
                 tariffScore <= 35 ? 'Policy stable, no new threats' : 'Headlines, no action',
         rawValue: tpu,
         unit: 'index',
@@ -334,8 +336,11 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       }
     ]
 
-    const summary = dataIssues.length > 2
-      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores may be unreliable.`
+    const missingCount = 4 - validScores.length
+    const summary = missingCount >= 3
+      ? `${missingCount} of 4 drivers have no data. Brief is unreliable.`
+      : dataIssues.length > 2
+      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores based on ${validScores.length}/4 drivers.`
       : avgScore >= 60
       ? 'Multiple headwinds. Markets nervous, trade uncertain.'
       : avgScore <= 40
@@ -495,11 +500,11 @@ function getPolicyContext(_avgScore: number): string {
 
 function generateTLDR(
   price: PriceSummary,
-  forecasts: ForecastHorizon[],
+  fcHorizons: ForecastHorizon[],
   driverData: {drivers: DriverSummary[], avgScore: number, dataIssues: string[]}
 ): string {
-  const f1m = forecasts.find(f => f.days === 21) || forecasts[1]
-  const f6m = forecasts.find(f => f.days === 126) || forecasts[3]
+  const f1m = fcHorizons.find(f => f.days === 21) || fcHorizons[1]
+  const f6m = fcHorizons.find(f => f.days === 126) || fcHorizons[3]
 
   const priceDesc = `Soybean oil (ZL) at ${price.current.toFixed(2)}¢/lb`
   const change = price.changePct >= 0
@@ -615,7 +620,7 @@ export async function GET() {
       }, { status: 503 })
     }
 
-    const [forecasts, driverData, correlations] = await Promise.all([
+    const [fcHorizons, driverData, correlations] = await Promise.all([
       getForecasts(price.current),
       getDriverScores(),
       getCorrelations()
@@ -625,7 +630,7 @@ export async function GET() {
     const recommendation = getRecommendation(driverData.avgScore, driverData.dataIssues)
 
     // Check if forecasts are available (not all placeholders)
-    const forecastsAvailable = forecasts.some(f => f.source === 'model')
+    const forecastsAvailable = fcHorizons.some(f => f.source === 'model')
 
     // Determine overall data quality
     const unavailableDrivers = driverData.drivers.filter(d => d.source === 'unavailable').length
@@ -643,12 +648,12 @@ export async function GET() {
       generatedAt: now.toISOString(),
       asOfDate,
 
-      tldr: generateTLDR(price, forecasts, driverData),
+      tldr: generateTLDR(price, fcHorizons, driverData),
       recommendation: recommendation.text,
       recommendationColor: recommendation.color,
 
       price,
-      forecasts,
+      forecasts: fcHorizons,
       forecastsAvailable,
 
       drivers: driverData.drivers,
