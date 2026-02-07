@@ -1,10 +1,7 @@
 import { inngest } from "./client";
-import { Pool } from "pg";
+import dbPool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = dbPool;
 
 /**
  * Board Crush Calculation:
@@ -177,6 +174,166 @@ export const boardCrushDaily = inngest.createFunction(
       zmClose: crushResult.zmClose,
       boardCrush: crushResult.boardCrush,
       oilShare: crushResult.oilShare,
+    };
+  }
+);
+
+/**
+ * Board Crush Historical Backfill
+ *
+ * Calculates board crush for all historical dates where ZS, ZL, ZM are available.
+ * Data available from 2000-05-15 (when ZM started trading).
+ *
+ * Event payload:
+ * - startDate?: string (ISO date, default "2000-05-15")
+ * - endDate?: string (ISO date, default yesterday)
+ * - batchSize?: number (default 500 days per batch)
+ */
+interface BackfillParams {
+  startDate?: string;
+  endDate?: string;
+  batchSize?: number;
+}
+
+export const boardCrushBackfill = inngest.createFunction(
+  {
+    id: "board-crush-backfill",
+    name: "Board Crush Historical Backfill",
+    retries: 2,
+    concurrency: { limit: 1 },
+  },
+  { event: "board-crush.backfill" },
+  async ({ event, step, logger }) => {
+    const params = event.data as BackfillParams;
+    const startDate = params.startDate ?? "2000-05-15";
+    const endDate = params.endDate ?? new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const batchSize = params.batchSize ?? 500;
+
+    logger.info(`Board Crush Backfill: ${startDate} to ${endDate}, batch size ${batchSize}`);
+
+    // Step 1: Check existing data to avoid duplicates
+    const existingRange = await step.run("check-existing-data", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(`
+          SELECT MIN(trade_date) as min_date, MAX(trade_date) as max_date, COUNT(*) as count
+          FROM analytics.board_crush_1d
+        `);
+        return result.rows[0];
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Existing board crush: ${existingRange.count} rows, ${existingRange.min_date} to ${existingRange.max_date}`);
+
+    // Step 2: Fetch all dates with complete data (ZS, ZL, ZM all present)
+    const allComponents = await step.run("fetch-all-crush-components", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query<{
+          event_date: Date;
+          zs_close: string;
+          zl_close: string;
+          zm_close: string;
+        }>(`
+          SELECT
+            f.event_date,
+            MAX(CASE WHEN f.symbol = 'ZS' THEN f.close END)::text as zs_close,
+            MAX(CASE WHEN f.symbol = 'ZL' THEN f.close END)::text as zl_close,
+            MAX(CASE WHEN f.symbol = 'ZM' THEN f.close END)::text as zm_close
+          FROM mkt.futures_1d f
+          WHERE f.symbol IN ('ZS', 'ZL', 'ZM')
+            AND f.close IS NOT NULL
+            AND f.event_date >= $1
+            AND f.event_date <= $2
+          GROUP BY f.event_date
+          HAVING COUNT(DISTINCT f.symbol) = 3
+          ORDER BY f.event_date
+        `, [startDate, endDate]);
+
+        return result.rows.map(row => ({
+          tradeDate: row.event_date instanceof Date
+            ? row.event_date.toISOString().split('T')[0]
+            : String(row.event_date).split('T')[0],
+          zsClose: parseFloat(row.zs_close),
+          zlClose: parseFloat(row.zl_close),
+          zmClose: parseFloat(row.zm_close),
+        }));
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Found ${allComponents.length} dates with complete data`);
+
+    if (allComponents.length === 0) {
+      return { status: "no_data", startDate, endDate };
+    }
+
+    // Step 3: Calculate and insert in batches
+    let totalInserted = 0;
+    let totalSkipped = 0;
+
+    for (let i = 0; i < allComponents.length; i += batchSize) {
+      const batch = allComponents.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+
+      const batchResult = await step.run(`insert-batch-${batchNum}`, async () => {
+        const client = await pool.connect();
+        let inserted = 0;
+        let skipped = 0;
+
+        try {
+          for (const components of batch) {
+            const crushResult = calculateBoardCrush(components as CrushComponents);
+
+            // Check if already exists (skip if unchanged)
+            const existing = await client.query(
+              `SELECT board_crush FROM analytics.board_crush_1d WHERE trade_date = $1`,
+              [crushResult.tradeDate]
+            );
+
+            if (existing.rows.length > 0) {
+              skipped++;
+              continue;
+            }
+
+            await client.query(
+              `INSERT INTO analytics.board_crush_1d
+                (trade_date, zs_close, zl_close, zm_close, board_crush, oil_share, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6, NOW())
+               ON CONFLICT (trade_date) DO NOTHING`,
+              [
+                crushResult.tradeDate,
+                crushResult.zsClose,
+                crushResult.zlClose,
+                crushResult.zmClose,
+                crushResult.boardCrush,
+                crushResult.oilShare,
+              ]
+            );
+            inserted++;
+          }
+        } finally {
+          client.release();
+        }
+
+        return { inserted, skipped };
+      });
+
+      totalInserted += batchResult.inserted;
+      totalSkipped += batchResult.skipped;
+      logger.info(`Batch ${batchNum}: inserted ${batchResult.inserted}, skipped ${batchResult.skipped}`);
+    }
+
+    return {
+      status: "success",
+      startDate,
+      endDate,
+      totalDates: allComponents.length,
+      inserted: totalInserted,
+      skipped: totalSkipped,
     };
   }
 );

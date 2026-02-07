@@ -71,6 +71,7 @@ DO NOT attempt to migrate to PrismaClient for runtime queries.
 6. **Assume constrained environments:** avoid adding new network calls, paid services, or external dependencies without explicit approval and concrete configuration.
 7. **No destructive repo edits without explicit consent:** do not delete, rename, move, or "replace" files (including configs) unless the user explicitly requests it. If you think removal/renaming is necessary, propose it and wait for confirmation.
 8. **Forward fill policy (LOCKED):** forward fill is OFF by default. Any use requires explicit approval and must follow TTL + staleness gating + as‑of correctness + event-encoding rules. See `Docs/FORWARD_FILL_POLICY.md`.
+9. **Check before pull (LOCKED):** Before ingesting or backfilling data, ALWAYS verify the data does not already exist in the target table. Query the existing date range/row count first. Only pull data for gaps or new periods. This prevents duplicate ingestion costs and data integrity issues.
 
 ## Operating Principles (Agents)
 
@@ -205,7 +206,7 @@ FRED series are routed at two levels:
    - Use `get_fred_bucket(series_id)` for feature generation
    - Updates require keeping tests green (`tests/test_fred_routing.py`)
 
-### Allowed Schemas (v2, 11 total)
+### Allowed Schemas (v2, 12 total)
 
 **Landing (append-only):** `mkt`, `econ`, `alt`, `pos`, `supply`
 **Derived (computed):** `features`, `training`
@@ -577,6 +578,12 @@ CI is repo-specific; keep checks aligned to the current codebase.
 
 ## Known Drift / Sharp Edges
 
+1. **README.md still describes v2 52-model architecture.** The README references 48 OOF tables, 12 L0 models per horizon, specialists as TabularPredictors with horizons, and a `features.driver_scores_1d` canonical feature table. The current v3 architecture uses 19 models, 1 OOF table (`training.oof_core_1d`), and specialists as signal generators. README needs a v3 refresh.
+2. **README.md uses banned/legacy table names.** References `raw_market_futures`, `raw_fred_observations`, `raw_weather_observations`, `driver_scores`, `oof_predictions` — none of which follow the schema-prefixed naming contract.
+3. **README.md references `weather.*` schemas.** The "Latest Update" header advertises 5 regional weather schemas (`weather.us_cornbelt`, etc.), but `weather` is a banned schema per this document. The weather data was migrated to `alt.weather_1d`.
+4. **README.md says GrafanaRegistry for model tracking.** AGENTS.md says MLflow (local SQLite). Needs reconciliation.
+5. **Model names still use `v2` prefix.** Model naming (`zinc-fusion-v2-core-h{H}d`) hasn't been updated to reflect v3 architecture. This is cosmetic but could confuse agents.
+6. **`scripts/v2_training/` path.** The training scripts directory is still named `v2_training` even though the architecture is v3.
 
 ## Core OOF Training (Troubleshooting Notes)
 
@@ -703,7 +710,7 @@ Before implementing, confirm:
 ### Plan template (preferred)
 - **Phase 0: Validate current state** (schemas, table existence, tests/CI)
 - **Phase 1: Ingestion** (only after requirements/credentials are confirmed)
-- **Phase 2: Feature engineering** (aligned to Big‑8 taxonomy)
+- **Phase 2: Feature engineering** (aligned to Big‑11 taxonomy)
 - **Phase 3: Training** (OOF extraction rules, leakage checks)
 - **Phase 4: Inference + forecasts tables**
 - **Phase 5: Risk layer (Monte Carlo / VaR/CVaR)**

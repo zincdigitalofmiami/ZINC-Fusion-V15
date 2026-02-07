@@ -1,7 +1,7 @@
 export { zl15m } from "./zl-15m";
 export { zl1h } from "./zl-1h";
 export { zlDaily } from "./zl-daily";
-export { zlLive15m, zlLive1h, zlLive1d } from "./zl-live";
+export { zlLive1m, zlLive5m, zlLive15m, zlLive1h, zlLive1d } from "./zl-live";
 export {
   fredDailyFed,
   fredDailyFx,
@@ -42,9 +42,10 @@ export { databentoStatisticsDaily } from "./databento-statistics-daily";
 export { databentoFxDaily } from "./databento-fx-daily";
 export { databentoOptionsDaily } from "./databento-options-daily";
 export { optionsStalenessCheck } from "./options-staleness-check";
-export { boardCrushDaily } from "./board-crush-daily";
-export { eiaBiodieselMonthly } from "./eia-biodiesel-monthly";
+export { boardCrushDaily, boardCrushBackfill } from "./board-crush-daily";
+export { eiaBiodieselMonthly, eiaBiodieselBackfill } from "./eia-biodiesel-monthly";
 export { mpobPalmMonthly } from "./mpob-palm-monthly";
 export { conabProductionMonthly } from "./conab-production-monthly";
 export { databentoEtfDaily, databentoEtfBackfill } from "./databento-etf-daily";
 export { databentoEtfVwapDaily, databentoEtfVwapBackfill } from "./databento-etf-vwap";
+export { zl1mBackfill, zl1mScheduledBackfill } from "./zl-1m-backfill";
