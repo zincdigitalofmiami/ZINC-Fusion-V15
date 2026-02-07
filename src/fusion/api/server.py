@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
-from fusion.api.db import fetch_rows, get_backend, get_query_builder, DatabaseConnection
+from fusion.api.db import fetch_rows, get_backend, get_query_builder
 
 # Import domain-specific pressure calculators for Key Market Drivers
 from fusion.analytics.pressures import (
@@ -190,6 +190,90 @@ def _first_existing_column(
     return None
 
 
+def _to_datetime(value: Any) -> datetime:
+    """Best-effort conversion of DB values to datetime for sorting."""
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+    if isinstance(value, str):
+        text = value.strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(text)
+        except ValueError:
+            return datetime.min
+    return datetime.min
+
+
+def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
+    """
+    Fetch normalized recent news rows from canonical alt.* news tables.
+
+    Legacy single news table names are intentionally not used here.
+    """
+    rows: list[dict[str, Any]] = []
+    per_table_limit = max(limit, 200)
+
+    if _table_exists("alt", "econ_news"):
+        rows.extend(
+            _fetch_rows(
+                """
+                SELECT
+                    article_id,
+                    COALESCE(published_at, event_date) AS published_at,
+                    COALESCE(source, 'econ_news') AS source,
+                    headline AS title,
+                    content
+                FROM alt.econ_news
+                ORDER BY COALESCE(published_at, event_date) DESC
+                LIMIT ?
+                """,
+                [per_table_limit],
+            )
+        )
+
+    if _table_exists("alt", "policy_news"):
+        rows.extend(
+            _fetch_rows(
+                """
+                SELECT
+                    article_id,
+                    COALESCE(published_at, event_date) AS published_at,
+                    COALESCE(source, 'policy_news') AS source,
+                    headline AS title,
+                    content
+                FROM alt.policy_news
+                ORDER BY COALESCE(published_at, event_date) DESC
+                LIMIT ?
+                """,
+                [per_table_limit],
+            )
+        )
+
+    if _table_exists("alt", "profarmer_news"):
+        rows.extend(
+            _fetch_rows(
+                """
+                SELECT
+                    COALESCE(url, CAST(id AS TEXT)) AS article_id,
+                    event_date AS published_at,
+                    'profarmer_news' AS source,
+                    headline AS title,
+                    content
+                FROM alt.profarmer_news
+                ORDER BY event_date DESC
+                LIMIT ?
+                """,
+                [per_table_limit],
+            )
+        )
+
+    rows.sort(key=lambda r: _to_datetime(r.get("published_at")), reverse=True)
+    return rows[:limit]
+
+
 def _log_tail(path: str, max_bytes: int = 8192) -> str:
     try:
         with open(path, "rb") as f:
@@ -334,14 +418,14 @@ def overview_models() -> Dict[str, Any]:
         if combined_data and combined_data[0]["rows"] > 0:
             combined["exists"] = True
             combined.update(combined_data[0])
-    elif _table_exists("training", "oof_specialist_combined_1d"):
+    elif _table_exists("training", "specialist_signals_1d"):
         combined["exists"] = True
         combined.update(
             _fetch_rows(
                 """
                 SELECT COUNT(*)::BIGINT as rows,
                        MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.oof_specialist_combined_1d
+                FROM training.specialist_signals_1d
                 """
             )[0]
         )
@@ -604,25 +688,39 @@ def forecast_bands(
     symbol: str = "ZL",
     horizon_days: Optional[List[int]] = Query(None),
 ) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use forecasts.forecast_quantiles for bands
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles
-            WHERE symbol = ?
-            ORDER BY as_of_date ASC
-            """,
-            [symbol],
+    if _table_exists("forecasts", "forecast_quantiles"):
+        horizon_col = _first_existing_column(
+            "forecasts", "forecast_quantiles", ["horizon", "horizon_days"]
         )
+        date_col = _first_existing_column(
+            "forecasts", "forecast_quantiles", ["forecast_date", "as_of_date"]
+        )
+        if not horizon_col or not date_col:
+            rows = []
+        else:
+            rows = _fetch_rows(
+                f"""
+                SELECT {date_col} as as_of_date, {horizon_col} as horizon_days, p10, p50, p90
+                FROM forecasts.forecast_quantiles
+                WHERE symbol = ?
+                ORDER BY {date_col} ASC
+                """,
+                [symbol],
+            )
     else:
+        # Long-form fallback if only probability_distributions is present.
         rows = _fetch_rows(
             """
-            SELECT as_of_date, horizon_days, p10, p50, p90
-            FROM forecasts.probability_bands_1d
+            SELECT
+                as_of_date,
+                horizon as horizon_days,
+                MAX(CASE WHEN percentile IN (10, 0.10) THEN value END) AS p10,
+                MAX(CASE WHEN percentile IN (50, 0.50) THEN value END) AS p50,
+                MAX(CASE WHEN percentile IN (90, 0.90) THEN value END) AS p90
+            FROM forecasts.probability_distributions
             WHERE symbol = ?
-            ORDER BY as_of_date ASC
+            GROUP BY as_of_date, horizon
+            ORDER BY as_of_date ASC, horizon
             """,
             [symbol],
         )
@@ -637,15 +735,7 @@ def forecast_bands(
 def sentiment_news(
     limit: int = Query(200, ge=1, le=2000),
 ) -> Dict[str, Any]:
-    articles = _fetch_rows(
-        """
-        SELECT article_id, published_at, source, headline as title, content
-        FROM alt.news_1d
-        ORDER BY published_at DESC
-        LIMIT ?
-        """,
-        [limit],
-    )
+    articles = _fetch_recent_news_rows(limit)
 
     mapped = [
         {
@@ -844,21 +934,45 @@ def db_query(
 
 @app.get("/api/sentiment/series")
 def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
-    rows = _fetch_rows(
-        """
-        SELECT
-            CAST(published_at AS DATE) AS as_of_date,
-            AVG(sentiment_score) AS sentiment_score,
-            COUNT(*) AS article_count
-        FROM alt.news_1d
-        WHERE sentiment_score IS NOT NULL
-        GROUP BY 1
-        ORDER BY as_of_date DESC
-        LIMIT ?
-        """,
-        [limit],
-    )
-    rows = list(reversed(rows))
+    scan_limit = min(max(limit * 25, 500), 5000)
+    articles = _fetch_recent_news_rows(scan_limit)
+    analyzed = analyze_articles(
+        [
+            {
+                "id": row.get("article_id"),
+                "title": row.get("title"),
+                "body": row.get("content"),
+                "source": row.get("source"),
+                "published_at": row.get("published_at"),
+            }
+            for row in articles
+        ]
+    ).get("articles", [])
+
+    by_day: Dict[date, Dict[str, Any]] = {}
+    for article in analyzed:
+        published_at = article.get("published_at")
+        ts = _to_datetime(published_at)
+        day = ts.date() if ts != datetime.min else None
+        score = article.get("impact_score")
+        if day is None or score is None:
+            continue
+        if day not in by_day:
+            by_day[day] = {"sum": 0.0, "count": 0}
+        by_day[day]["sum"] += float(score)
+        by_day[day]["count"] += 1
+
+    rows = [
+        {
+            "as_of_date": as_of_date,
+            "sentiment_score": agg["sum"] / agg["count"] if agg["count"] else None,
+            "article_count": agg["count"],
+        }
+        for as_of_date, agg in by_day.items()
+    ]
+    rows.sort(key=lambda row: row["as_of_date"])
+    rows = rows[-limit:]
+
     series = [
         {
             "time": row["as_of_date"],
@@ -1158,14 +1272,12 @@ def zl_intraday(
     )
 
     # Format for charting libraries (TradingView lightweight-charts format)
-    from datetime import datetime as dt
-
     bars = []
     for row in rows:
         ts = row["timestamp"]
         # Handle string or datetime
         if isinstance(ts, str):
-            ts = dt.fromisoformat(ts.replace("Z", "+00:00"))
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         bars.append(
             {
                 "time": int(ts.timestamp()),  # Unix timestamp
@@ -1209,8 +1321,6 @@ def zl_intraday_ohlc(
         ORDER BY timestamp ASC
         """
     )
-
-    from datetime import datetime as dt
 
     bars = []
     for row in rows:
@@ -1355,7 +1465,7 @@ def pulse_drop_by_id(drop_id: int) -> Dict[str, Any]:
 
 @app.get("/api/pulse/consensus")
 def pulse_consensus(
-    horizon: str = Query("1W", description="Time horizon (1W, 1M, 3M, 6M)")
+    horizon: str = Query("1W", description="Time horizon (1W, 1M, 3M, 6M)"),
 ) -> Dict[str, Any]:
     """
     Get consensus view across all domains for the latest timestamp.
@@ -1428,7 +1538,9 @@ def pulse_consensus(
             "signal": (
                 "BULLISH"
                 if total_direction > 3
-                else "BEARISH" if total_direction < -3 else "NEUTRAL"
+                else "BEARISH"
+                if total_direction < -3
+                else "NEUTRAL"
             ),
         },
         "domains": domains,
@@ -1542,12 +1654,15 @@ def pulse_signals(
 def _get_db_connection():
     """Get database connection for pressure calculations."""
     import psycopg2
+
     return psycopg2.connect(os.environ.get("DATABASE_URL", ""))
 
 
 @app.get("/api/market-drivers")
 def market_drivers_all(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD), defaults to today")
+    as_of_date: Optional[str] = Query(
+        None, description="Date (YYYY-MM-DD), defaults to today"
+    ),
 ) -> Dict[str, Any]:
     """
     Get all 4 Key Market Drivers for dashboard cards.
@@ -1591,23 +1706,28 @@ def market_drivers_all(
         },
         "summary": {
             "average_pressure": round(
-                (vix["score"] + crush["score"] + china["score"] + tariff["score"]) / 4, 1
+                (vix["score"] + crush["score"] + china["score"] + tariff["score"]) / 4,
+                1,
             ),
             "highest_pressure": max(
-                [(vix["name"], vix["score"]),
-                 (crush["name"], crush["score"]),
-                 (china["name"], china["score"]),
-                 (tariff["name"], tariff["score"])],
-                key=lambda x: x[1]
+                [
+                    (vix["name"], vix["score"]),
+                    (crush["name"], crush["score"]),
+                    (china["name"], china["score"]),
+                    (tariff["name"], tariff["score"]),
+                ],
+                key=lambda x: x[1],
             ),
-            "alert_count": sum(1 for d in [vix, crush, china, tariff] if d["score"] >= 65),
+            "alert_count": sum(
+                1 for d in [vix, crush, china, tariff] if d["score"] >= 65
+            ),
         },
     }
 
 
 @app.get("/api/market-drivers/vix-stress")
 def market_driver_vix_stress(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)")
+    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
 ) -> Dict[str, Any]:
     """
     Get VIX Stress indicator.
@@ -1633,7 +1753,7 @@ def market_driver_vix_stress(
 
 @app.get("/api/market-drivers/crush-pressure")
 def market_driver_crush_pressure(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)")
+    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
 ) -> Dict[str, Any]:
     """
     Get Crush Pressure indicator.
@@ -1659,7 +1779,7 @@ def market_driver_crush_pressure(
 
 @app.get("/api/market-drivers/china-tension")
 def market_driver_china_tension(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)")
+    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
 ) -> Dict[str, Any]:
     """
     Get China Tension indicator.
@@ -1691,7 +1811,7 @@ def market_driver_china_tension(
 
 @app.get("/api/market-drivers/tariff-threat")
 def market_driver_tariff_threat(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)")
+    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
 ) -> Dict[str, Any]:
     """
     Get Tariff Threat indicator.
