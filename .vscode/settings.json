@@ -1,116 +1,156 @@
 {
-    "notebook.experimental.remoteSave": false,
+  "notebook.experimental.remoteSave": false,
 
-    "python.languageServer": "Pylance",
-    "python.analysis.diagnosticMode": "openFilesOnly",
-    "python.analysis.typeCheckingMode": "basic",
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-    "python.analysis.extraPaths": ["${workspaceFolder}/src"],
-    "python.analysis.autoImportCompletions": true,
+  "python.languageServer": "Pylance",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/src"],
+  "python.analysis.autoImportCompletions": true,
 
-    "editor.rulers": [88, 120],
-    "editor.parameterHints.enabled": true,
-    "editor.hover.enabled": true,
-    "editor.suggestOnTriggerCharacters": true,
-    "editor.quickSuggestions": {
-        "other": true,
-        "comments": false,
-        "strings": false
-    },
-    "editor.wordBasedSuggestions": "currentDocument",
+  "editor.rulers": [88, 120],
+  "editor.parameterHints.enabled": true,
+  "editor.hover.enabled": "on",
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  },
+  "editor.wordBasedSuggestions": "currentDocument",
+  "editor.formatOnSave": true,
+
+  "[python]": {
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "always",
+      "source.organizeImports.ruff": "always"
+    }
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+  "[prisma]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
 
-    "[python]": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": "always",
-            "source.organizeImports.ruff": "always"
-        }
-    },
-    "[typescript]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[typescriptreact]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[javascript]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[markdown]": {
-        "editor.wordWrap": "on"
-    },
-    "[prisma]": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "Prisma.prisma"
-    },
-    "[json]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[jsonc]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
+  "files.associations": {
+    "*.md": "markdown",
+    "*.sql": "sql",
+    "*.yaml": "yaml",
+    "CLAUDE.md": "markdown",
+    "AGENTS.md": "markdown",
+    ".clinerules": "markdown"
+  },
 
-    "files.associations": {
-        "*.md": "markdown",
-        "*.sql": "sql",
-        "*.yaml": "yaml",
-        "CLAUDE.md": "markdown",
-        "AGENTS.md": "markdown",
-        ".clinerules": "markdown"
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/*.egg-info": true,
+    "AutogluonModels": true,
+    ".venv": false
+  },
+
+  "search.exclude": {
+    ".venv/**": true,
+    "AutogluonModels/**": true,
+    "**/node_modules/**": true,
+    "frontend/.next/**": true,
+    "client/.next/**": true,
+    "data/**": true,
+    "data-alloy/**": true,
+    "logs/**": true,
+    "reports/**": true,
+    "archive/**": true,
+    "models/**": true,
+    "grafana/**": true,
+    "docker/**": true,
+    "fly/**": true,
+    "*.csv": true,
+    "*.parquet": true,
+    "*.pkl": true,
+    "*.joblib": true
+  },
+
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "python": true,
+    "typescript": true,
+    "prisma": true
+  },
+
+  "chat.agent.enabled": true,
+
+  "typescript.suggest.enabled": true,
+  "javascript.suggest.enabled": true,
+  "typescript.preferences.importModuleSpecifier": "relative",
+
+  "json.validate.enable": true,
+  "yaml.validate": true,
+
+  "prisma.enableCodeLens": true,
+  "prisma.trace.server": "messages",
+
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["-q"],
+  "python.testing.unittestEnabled": false,
+  "chat.mcp.serverSampling": {
+    "ZINC-FUSION-V15/.vscode/mcp.json: sequential-thinking": {
+      "allowedModels": [
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.5",
+        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
+        "copilot/gpt-5.2-codex"
+      ]
     },
-
-    "files.exclude": {
-        "**/__pycache__": true,
-        "**/.pytest_cache": true,
-        "**/*.egg-info": true,
-        "AutogluonModels": true,
-        ".venv": false
+    "ZINC-FUSION-V15/.vscode/mcp.json: context7": {
+      "allowedModels": [
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.5",
+        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
+        "copilot/gpt-5.2-codex"
+      ]
     },
-
-    "search.exclude": {
-        ".venv/**": true,
-        "AutogluonModels/**": true,
-        "**/node_modules/**": true,
-        "frontend/.next/**": true,
-        "client/.next/**": true,
-        "data/**": true,
-        "data-alloy/**": true,
-        "logs/**": true,
-        "reports/**": true,
-        "archive/**": true,
-        "models/**": true,
-        "grafana/**": true,
-        "docker/**": true,
-        "fly/**": true,
-        "*.csv": true,
-        "*.parquet": true,
-        "*.pkl": true,
-        "*.joblib": true
+    "ZINC-FUSION-V15/.vscode/mcp.json: filesystem": {
+      "allowedModels": [
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.5",
+        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
+        "copilot/gpt-5.2-codex"
+      ]
     },
-
-    "github.copilot.enable": {
-        "*": true,
-        "plaintext": true,
-        "markdown": true,
-        "python": true,
-        "typescript": true,
-        "prisma": true
+    "ZINC-FUSION-V15/.vscode/mcp.json: Prisma-Remote": {
+      "allowedModels": [
+        "copilot/claude-sonnet-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/gpt-5.2-codex"
+      ]
     },
-
-    "chat.agent.enabled": true,
-
-    "typescript.suggest.enabled": true,
-    "javascript.suggest.enabled": true,
-    "typescript.preferences.importModuleSpecifier": "relative",
-
-    "json.validate.enable": true,
-    "yaml.validate": true,
-
-    "prisma.enableCodeLens": true,
-    "prisma.trace.server": "messages",
-
-    "python.testing.pytestEnabled": true,
-    "python.testing.pytestArgs": ["-q"],
-    "python.testing.unittestEnabled": false
+    "ZINC-FUSION-V15/.vscode/mcp.json: memory": {
+      "allowedModels": [
+        "copilot/claude-sonnet-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/gpt-5.2-codex"
+      ]
+    }
+  }
 }

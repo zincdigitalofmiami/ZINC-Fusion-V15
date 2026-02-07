@@ -32,6 +32,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: sql-table-contract
+        name: SQL table references exist in Prisma schema
+        entry: python3 scripts/check_sql_table_references.py
+        language: system
+        files: '^(src|scripts|frontend/src|tests|sql)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$'
+
       - id: eslint-frontend
         name: ESLint frontend
         entry: npm --prefix frontend run lint

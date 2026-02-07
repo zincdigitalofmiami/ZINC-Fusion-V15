@@ -52,6 +52,16 @@ where = ["src"]
 target-version = "py311"
 line-length = 88
 src = ["src", "scripts", "tests"]
+exclude = [
+    "src/fusion/features/gs_quant_lib",
+    "src/fusion/features/macrosynergy_signal",
+    "src/fusion/features/jpm_bt_algos.py",
+    "src/fusion/features/jpm_bt_core.py",
+    "AutogluonModels",
+    "archive",
+    "data",
+    "models",
+]
 
 [tool.ruff.lint]
 select = [

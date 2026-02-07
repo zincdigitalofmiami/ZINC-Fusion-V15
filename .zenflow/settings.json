@@ -1,0 +1,6 @@
+{
+  "setup_script": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && .venv/bin/pip install pytest ruff pre-commit && .venv/bin/pre-commit install && (cd frontend && npm install) && (cd config && npm install)",
+  "verification_script": "bash scripts/verify.sh --python-only && (cd frontend && npm run lint)",
+  "copy_files": [".env", "frontend/.env.local"],
+  "dev_script": "(cd frontend && npm run dev)"
+}
