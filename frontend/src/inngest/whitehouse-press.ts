@@ -1,14 +1,14 @@
 /**
  * White House Policy Ingestion (COMPREHENSIVE - ALL TARGETED URLs)
- * 
+ *
  * Hits 20+ TARGETED White House endpoints organized by category:
- * 
+ *
  * PRESIDENTIAL ACTIONS:
  * - /presidential-actions/executive-orders/
  * - /presidential-actions/presidential-memoranda/
  * - /presidential-actions/proclamations/
  * - /presidential-actions/nominations-appointments/
- * 
+ *
  * POLICY ISSUES:
  * - /issues/trade/ (TRADE POLICY - CRITICAL)
  * - /issues/border-immigration/ (ICE, immigration)
@@ -17,18 +17,18 @@
  * - /issues/national-security/
  * - /issues/doge/ (DOGE/gov efficiency)
  * - /issues/safe-communities/
- * 
+ *
  * NEWS/CONTENT:
  * - /briefings-statements/
  * - /fact-sheets/
  * - /remarks/
  * - /news/
- * 
+ *
  * RSS FEEDS:
  * - /briefing-room/statements-releases/feed/
- * 
+ *
  * Routes to: tariff, trump_effect, energy, china specialists
- * Table: alt.news_1d
+ * Table: alt.executive_actions
  */
 
 import { inngest } from "./client";
@@ -58,7 +58,7 @@ const WHITEHOUSE_SOURCES = {
     proclamations: "https://www.whitehouse.gov/presidential-actions/proclamations/",
     nominations: "https://www.whitehouse.gov/presidential-actions/nominations-appointments/",
   },
-  
+
   // Policy Issues - CRITICAL for specialists
   issues: {
     trade: "https://www.whitehouse.gov/issues/trade/", // tariff specialist
@@ -72,7 +72,7 @@ const WHITEHOUSE_SOURCES = {
     maha: "https://www.whitehouse.gov/issues/maha/", // health policy
     socialCauses: "https://www.whitehouse.gov/issues/social-causes/",
   },
-  
+
   // News & Statements
   news: {
     briefings: "https://www.whitehouse.gov/briefings-statements/",
@@ -81,7 +81,7 @@ const WHITEHOUSE_SOURCES = {
     news: "https://www.whitehouse.gov/news/",
     articles: "https://www.whitehouse.gov/articles/",
   },
-  
+
   // RSS Feeds
   rss: {
     statementsReleases: "https://www.whitehouse.gov/briefing-room/statements-releases/feed/",
@@ -95,7 +95,7 @@ const SOURCE_TO_SPECIALISTS: Record<string, string[]> = {
   memoranda: ["trump_effect"],
   proclamations: ["trump_effect"],
   nominations: ["trump_effect"],
-  
+
   // Issues
   trade: ["tariff", "china"],
   borderImmigration: ["trump_effect"],
@@ -107,14 +107,14 @@ const SOURCE_TO_SPECIALISTS: Record<string, string[]> = {
   techInnovation: ["trump_effect"],
   maha: ["trump_effect"],
   socialCauses: ["trump_effect"],
-  
+
   // News
   briefings: ["trump_effect", "tariff"],
   factSheets: ["trump_effect", "tariff"],
   remarks: ["trump_effect"],
   news: ["trump_effect"],
   articles: ["trump_effect"],
-  
+
   // RSS
   statementsReleases: ["trump_effect", "tariff"],
 };
@@ -135,7 +135,7 @@ async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
   const text = await response.text();
   const items: WhiteHouseItem[] = [];
   const itemMatches = text.match(/<item>[\s\S]*?<\/item>/g) || [];
-  
+
   for (const itemXml of itemMatches.slice(0, 25)) {
     const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
     const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
@@ -196,13 +196,13 @@ async function scrapePage(url: string, sourceKey: string): Promise<WhiteHouseIte
     ];
 
     const seen = new Set<string>();
-    
+
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(html)) !== null) {
         const link = match[1];
         const title = match[2].trim();
-        
+
         // Skip if already seen, too short, or navigation text
         if (
           seen.has(link) ||
@@ -213,7 +213,7 @@ async function scrapePage(url: string, sourceKey: string): Promise<WhiteHouseIte
         ) {
           continue;
         }
-        
+
         seen.add(link);
         items.push({
           title,
@@ -339,9 +339,8 @@ export const whitehouseDaily = inngest.createFunction(
         const specialists = classifySpecialists(item);
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
-        // Check if exists
         const checkResult = await pool.query(
-          `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
+          `SELECT 1 FROM alt.executive_actions WHERE row_hash = $1`,
           [rowHash]
         );
 
@@ -350,11 +349,10 @@ export const whitehouseDaily = inngest.createFunction(
           continue;
         }
 
-        // Insert
         await pool.query(
-          `INSERT INTO alt.news_1d 
-           (source_id, title, url, published_at, content_snippet, specialist_tags, row_hash, ingested_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          `INSERT INTO alt.executive_actions
+           (source, headline, url, published_at, event_date, content, specialist_tags, row_hash)
+           VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7)`,
           [
             `whitehouse_${item.sourceCategory}`,
             item.title,

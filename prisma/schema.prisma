@@ -60,6 +60,23 @@ model executive_actions {
   @@schema("alt")
 }
 
+model ice_enforcement {
+  id                 Int       @id @default(autoincrement())
+  event_date         DateTime  @db.Date
+  published_at       DateTime? @db.Timestamptz(6)
+  headline           String
+  url                String?
+  source             String?   @db.VarChar(100)
+  specialist_tags    String[]  @default([])
+  ingested_at        DateTime? @default(now()) @db.Timestamptz(6)
+  row_hash           String?   @db.VarChar(64)
+
+  @@index([event_date], map: "idx_ice_enforcement_date")
+  @@index([specialist_tags], map: "idx_ice_enforcement_tags", type: Gin)
+  @@index([source], map: "idx_ice_enforcement_source")
+  @@schema("alt")
+}
+
 model legislation_1d {
   id                 Int       @id @default(autoincrement())
   event_date         DateTime  @db.Date

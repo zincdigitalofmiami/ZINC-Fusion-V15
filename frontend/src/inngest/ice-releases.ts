@@ -1,9 +1,8 @@
 /**
  * ICE.gov Comprehensive Ingestion (20+ URLs)
- * 
- * USES EXISTING TABLE: alt.news_1d
- * NO NEW TABLES CREATED
- * 
+ *
+ * Table: alt.ice_enforcement (dedicated — separate from policy_news)
+ *
  * URLS HIT:
  * - /rss (RSS feed)
  * - /news (news releases)
@@ -17,7 +16,7 @@
  * - /identify-and-arrest/287g
  * - /detain
  * - /detention-facilities
- * 
+ *
  * Tags: trump_effect
  */
 
@@ -33,10 +32,10 @@ const ICE_URLS = {
   news: "https://www.ice.gov/news",
   featureStories: "https://www.ice.gov/feature-stories",
   factsheets: "https://www.ice.gov/factsheets",
-  
+
   // Enforcement & Removal Operations (ERO)
   ero: "https://www.ice.gov/about-ice/ero",
-  
+
   // Homeland Security Investigations (HSI)
   hsi: "https://www.ice.gov/about-ice/hsi",
   hsiNews: "https://www.ice.gov/about-ice/hsi/news",
@@ -44,12 +43,12 @@ const ICE_URLS = {
   hsiNationalSecurity: "https://www.ice.gov/about-ice/hsi/priorities/protecting-national-security",
   hsiGlobalTrade: "https://www.ice.gov/about-ice/hsi/priorities/global-trade",
   hsiFinancialCrime: "https://www.ice.gov/about-ice/hsi/priorities/combatting-financial-crime",
-  
+
   // Enforcement Programs
   identifyArrest: "https://www.ice.gov/identify-and-arrest",
   program287g: "https://www.ice.gov/identify-and-arrest/287g",
   criminalAlien: "https://www.ice.gov/identify-and-arrest/criminal-alien-program",
-  
+
   // Detention
   detain: "https://www.ice.gov/detain",
   detentionFacilities: "https://www.ice.gov/detention-facilities",
@@ -150,7 +149,7 @@ export const iceReleasesDaily = inngest.createFunction(
       return true;
     });
 
-    // Insert into EXISTING alt.news_1d table
+    // Insert into alt.ice_enforcement
     const result = await step.run("insert-articles", async () => {
       if (!DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
@@ -164,9 +163,8 @@ export const iceReleasesDaily = inngest.createFunction(
       for (const item of uniqueItems) {
         const rowHash = generateRowHash(item.title, item.link);
 
-        // Check if exists in EXISTING table
         const checkResult = await pool.query(
-          `SELECT 1 FROM alt.news_1d WHERE row_hash = $1`,
+          `SELECT 1 FROM alt.ice_enforcement WHERE row_hash = $1`,
           [rowHash]
         );
 
@@ -175,10 +173,9 @@ export const iceReleasesDaily = inngest.createFunction(
           continue;
         }
 
-        // Insert into EXISTING alt.news_1d table
         await pool.query(
-          `INSERT INTO alt.news_1d 
-           (headline, source, source_url, published_at, event_date, row_hash, specialist_tags)
+          `INSERT INTO alt.ice_enforcement
+           (headline, source, url, published_at, event_date, row_hash, specialist_tags)
            VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
           [
             item.title,

@@ -934,8 +934,8 @@ export async function GET() {
       `).catch(() => [] as { headline: string }[]),
     ])
 
-    // Extract values with defaults
-    const vixValue = vixRows[0]?.vix ?? 20
+    // Extract values — NO FALLBACKS. If primary data is missing, we fail honestly.
+    const vixValue = vixRows[0]?.vix ?? null
     const vixDate = vixRows[0]?.event_date ?? null
     const vix3mValue = vix3mRows[0]?.vix3m ?? null
     const ovxValue = ovxRows[0]?.ovx ?? null
@@ -944,16 +944,16 @@ export async function GET() {
     const hedgeCount = hedgeNewsRows[0]?.count ?? 0
     const volSignal = volSignalRows[0]?.signal ?? null
 
-    const crushValue = crushRows[0]?.crush ?? 1.50
+    const crushValue = crushRows[0]?.crush ?? null
     const crushDate = crushRows[0]?.trade_date ?? null
     const oilShareValue = crushRows[0]?.oil_share ?? null
     const oilShare5dAgo = oilShare5dRows[0]?.oil_share_5d ?? null
     const crushSignal = crushSignalRows[0]?.signal ?? null
 
-    const cnyRate = cnyRows[0]?.rate ?? 7.25
+    const cnyRate = cnyRows[0]?.rate ?? null
     const cnyDate = cnyRows[0]?.event_date ?? null
     const cnyRate20d = cnyChangeRows[0]?.rate_20d ?? null
-    const cnyChange20d = (cnyRate20d && cnyRate20d > 0) ? (cnyRate - cnyRate20d) / cnyRate20d : null
+    const cnyChange20d = (cnyRate20d && cnyRate && cnyRate20d > 0) ? (cnyRate - cnyRate20d) / cnyRate20d : null
     const fxiChange20d = fxiRows[0]?.change_20d ?? 0
     const fxiChange5d = fxiRows[0]?.change_5d ?? 0
     const bdryChange20d = bdryRows[0]?.change_20d ?? null
@@ -961,12 +961,32 @@ export async function GET() {
     const totalNews = totalNewsRows[0]?.count ?? 1
     const chinaSignal = chinaSignalRows[0]?.signal ?? null
 
-    const tpuValue = tpuRows[0]?.tpu ?? 100
+    const tpuValue = tpuRows[0]?.tpu ?? null
     const tpuDate = tpuRows[0]?.tpu_date ?? null
     const emvValue = tpuRows[0]?.emv ?? null
     const legislationCount = legislationRows[0]?.count ?? 0
     const soyTariffNews = soyTariffNewsRows[0]?.count ?? 0
     const tariffSignal = tariffSignalRows[0]?.signal ?? null
+
+    // HARD STOP: If any primary driver data is missing, return 503.
+    // All 4 drivers are interconnected — partial data produces wrong results.
+    const missing: string[] = []
+    if (vixValue === null) missing.push('VIX (econ.vol_indices_1d VIXCLS)')
+    if (crushValue === null) missing.push('Board Crush (analytics.board_crush_1d)')
+    if (cnyRate === null) missing.push('CNY Rate (mkt.fx_1d USD/CNY)')
+    if (tpuValue === null) missing.push('TPU (econ.vol_indices_1d USEPUINDXM)')
+    if (missing.length > 0) {
+      return NextResponse.json({
+        error: 'Missing required market data — all 4 drivers must have live data',
+        missing,
+        data_quality: {
+          vix: { date: vixDate, available: vixValue !== null },
+          crush: { date: crushDate, available: crushValue !== null },
+          cny: { date: cnyDate, available: cnyRate !== null },
+          tpu: { date: tpuDate, available: tpuValue !== null },
+        },
+      }, { status: 503 })
+    }
 
     // ZL Price Data for comprehensive reports
     const zlPrice = zlPriceRows[0]?.close ?? null
@@ -977,6 +997,12 @@ export async function GET() {
     const recentNews = recentNewsRows?.map(r => r.headline) ?? []
 
     const asOfDate = new Date().toISOString().split('T')[0]
+
+    // Past the 503 guard: all 4 primary values are guaranteed non-null
+    const vix = vixValue as number
+    const crush = crushValue as number
+    const cny = cnyRate as number
+    const tpu = tpuValue as number
 
     // Data quality tracking
     const today = new Date()
@@ -989,27 +1015,27 @@ export async function GET() {
       vix: { date: vixDate, days_old: daysSince(vixDate), status: daysSince(vixDate) !== null && daysSince(vixDate)! <= 2 ? 'fresh' : 'stale' },
       crush: { date: crushDate, days_old: daysSince(crushDate), status: daysSince(crushDate) !== null && daysSince(crushDate)! <= 2 ? 'fresh' : 'stale' },
       cny: { date: cnyDate, days_old: daysSince(cnyDate), status: daysSince(cnyDate) !== null && daysSince(cnyDate)! <= 5 ? 'fresh' : 'stale' },
-      tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },  // Monthly data
+      tpu: { date: tpuDate, days_old: daysSince(tpuDate), status: daysSince(tpuDate) !== null && daysSince(tpuDate)! <= 45 ? 'fresh' : 'stale' },
       vix3m: { available: vix3mValue !== null, note: vix3mValue === null ? 'VXVCLS (VIX 3-month) series not found' : 'Term structure calc enabled' },
       specialist_signals: { available: false, note: 'Specialist models not trained yet. No signal data.' },
     }
 
     // Calculate scores with full sophistication
-    const vixResult = calculateVixStress(vixValue, vix3mValue, ovxValue, realizedVol, vixZlCorr, hedgeCount, volSignal)
-    const crushResult = calculateCrushPressure(crushValue, oilShareValue, oilShare5dAgo, crushSignal)
-    const chinaResult = calculateChinaTension(fxiChange20d, fxiChange5d, cnyRate, cnyChange20d, bdryChange20d, soyChinaNews, totalNews, chinaSignal)
-    const tariffResult = calculateTariffThreat(tpuValue, emvValue, legislationCount, soyTariffNews, tariffSignal)
+    const vixResult = calculateVixStress(vix, vix3mValue, ovxValue, realizedVol, vixZlCorr, hedgeCount, volSignal)
+    const crushResult = calculateCrushPressure(crush, oilShareValue, oilShare5dAgo, crushSignal)
+    const chinaResult = calculateChinaTension(fxiChange20d, fxiChange5d, cny, cnyChange20d, bdryChange20d, soyChinaNews, totalNews, chinaSignal)
+    const tariffResult = calculateTariffThreat(tpu, emvValue, legislationCount, soyTariffNews, tariffSignal)
 
     // Generate narrative
     const ruleBasedIntelligence = generateMarketIntelligence(
-      vixResult, vixValue, crushResult, crushValue, oilShareValue,
-      chinaResult, cnyRate, fxiChange20d, tariffResult, tpuValue
+      vixResult, vix, crushResult, crush, oilShareValue,
+      chinaResult, cny, fxiChange20d, tariffResult, tpu
     )
 
     // Prepare AI data
     const marketData: MarketData = {
-      vix: vixValue, ovx: ovxValue, boardCrush: crushValue, oilShare: oilShareValue,
-      cnyRate, fxiChange20d, fxiChange5d, bdryChange20d, tpu: tpuValue, emv: emvValue,
+      vix, ovx: ovxValue, boardCrush: crush, oilShare: oilShareValue,
+      cnyRate: cny, fxiChange20d, fxiChange5d, bdryChange20d, tpu, emv: emvValue,
       scores: { vix: vixResult.score, crush: crushResult.score, china: chinaResult.score, tariff: tariffResult.score },
       // ZL Price Data for comprehensive reports
       zlPrice: zlPrice ?? undefined,

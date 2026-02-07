@@ -642,8 +642,14 @@ export function ChrisTop4Compact() {
 
   useEffect(() => {
     fetch('/api/market-drivers')
-      .then(res => res.json())
-      .then(setData)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then(json => {
+        if (json.error) throw new Error(json.error)
+        setData(json)
+      })
       .catch(console.error)
   }, [])
 
