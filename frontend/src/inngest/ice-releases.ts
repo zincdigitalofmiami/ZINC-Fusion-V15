@@ -25,8 +25,6 @@ import { inngest } from "./client";
 import { createHash } from "crypto";
 import pool from "@/lib/db";
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
 // ALL ICE.gov URLs to scrape
 const ICE_URLS = {
   // News & Releases
@@ -159,10 +157,6 @@ export const iceReleasesDaily = inngest.createFunction(
 
     // Insert into EXISTING alt.news_1d table
     const result = await step.run("insert-articles", async () => {
-      if (!DATABASE_URL) {
-        throw new Error("DATABASE_URL not configured");
-      }
-
       let inserted = 0;
       let skipped = 0;
 

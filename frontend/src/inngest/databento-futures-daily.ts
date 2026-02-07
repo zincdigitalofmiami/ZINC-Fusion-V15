@@ -237,7 +237,11 @@ export const databentoFuturesDaily = inngest.createFunction(
             };
           });
 
-          await batchUpsertOhlcvRows(rowsToInsert);
+          // Insert in chunks of 500 to avoid oversized queries
+          const CHUNK = 500;
+          for (let c = 0; c < rowsToInsert.length; c += CHUNK) {
+            await batchUpsertOhlcvRows(rowsToInsert.slice(c, c + CHUNK));
+          }
           const inserted = rowsToInsert.length;
 
           logger.info(`Inserted ${inserted} rows for ${config.canonical}`);

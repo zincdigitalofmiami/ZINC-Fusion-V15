@@ -36,8 +36,6 @@ import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 import pool from "@/lib/db";
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
 interface WhiteHouseItem {
   title: string;
   link: string;
@@ -326,10 +324,6 @@ export const whitehouseDaily = inngest.createFunction(
 
     // Step 5: Insert into database
     const result = await step.run("insert-articles", async () => {
-      if (!DATABASE_URL) {
-        throw new Error("DATABASE_URL not configured");
-      }
-
       let inserted = 0;
       let skipped = 0;
 

@@ -26,21 +26,28 @@ export async function fetchDatabentoCsv(params: Record<string, string>): Promise
   const apiKey = requireApiKey();
   const body = new URLSearchParams(params);
 
-  const res = await fetch(DATABENTO_BASE_URL, {
-    method: "POST",
-    headers: {
-      Authorization: basicAuthHeader(apiKey),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+  try {
+    const res = await fetch(DATABENTO_BASE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: basicAuthHeader(apiKey),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Databento API error ${res.status}: ${text}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Databento API error ${res.status}: ${text}`);
+    }
+
+    return await res.text();
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return await res.text();
 }
 
 function parseTimestamp(value: string): Date | null {

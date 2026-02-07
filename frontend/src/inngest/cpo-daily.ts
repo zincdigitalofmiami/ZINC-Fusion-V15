@@ -37,10 +37,10 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
       return null;
     }
 
-  const json = await res.json();
-  if (!json?.data || json.data.length === 0) {
-    return null;
-  }
+    const json = await res.json();
+    if (!json?.data || json.data.length === 0) {
+      return null;
+    }
 
     const latestCandle = json.data[json.data.length - 1];
     const [timestamp, open, high, low, close] = latestCandle;
@@ -72,24 +72,24 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
       return null;
     }
 
-  const json = await res.json();
-  const result = json?.chart?.result?.[0];
-  if (!result?.timestamp || !result?.indicators?.quote?.[0]) {
-    return null;
-  }
+    const json = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result?.timestamp || !result?.indicators?.quote?.[0]) {
+      return null;
+    }
 
-  const timestamps = result.timestamp;
-  const quote = result.indicators.quote[0];
+    const timestamps = result.timestamp;
+    const quote = result.indicators.quote[0];
 
-  // Get the most recent complete trading day
-  const lastIdx = timestamps.length - 1;
-  if (lastIdx < 0) return null;
+    // Get the most recent complete trading day
+    const lastIdx = timestamps.length - 1;
+    if (lastIdx < 0) return null;
 
-  const timestamp = timestamps[lastIdx] * 1000; // Convert to milliseconds
-  const eventDate = new Date(timestamp).toISOString().split("T")[0];
+    const timestamp = timestamps[lastIdx] * 1000; // Convert to milliseconds
+    const eventDate = new Date(timestamp).toISOString().split("T")[0];
 
-  const close = quote.close?.[lastIdx];
-  if (close === undefined || close === null) return null;
+    const close = quote.close?.[lastIdx];
+    if (close === undefined || close === null) return null;
 
     return {
       source: "yahoo_finance",
