@@ -777,18 +777,28 @@ def forward_fill_low_coverage_series(
         coverage = df[col].notna().mean()
         if coverage < threshold and coverage > 0.01:  # Has some data but sparse
             original_nulls = df[col].isna().sum()
-            # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill WITH age tracking per policy
-            # Default 3-day TTL for daily data (LOCKED threshold)
+            # TTL UPDATE (2026-02-07): Adaptive TTL per Forward Fill Policy
+            # Coverage-based cadence detection:
+            #   <5%  coverage → quarterly (~120 day cadence) → TTL=120 days
+            #   <15% coverage → monthly (~30 day cadence)   → TTL=45 days
+            #   <30% coverage → weekly (~7 day cadence)     → TTL=10 days
+            #   <50% coverage → daily-ish with gaps         → TTL=3 days
+            if coverage < 0.05:
+                ttl = 120  # Quarterly per policy
+            elif coverage < 0.15:
+                ttl = 45   # Monthly per policy
+            elif coverage < 0.30:
+                ttl = 10   # Weekly per policy
+            else:
+                ttl = 3    # Daily per policy
             # Age tracking is MANDATORY for state-level features
-            filled, age = ffill_with_age(df[col], ttl_days=3)
+            filled, age = ffill_with_age(df[col], ttl_days=ttl)
             df[col] = filled
             df[f"{col}_age_days"] = age
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
-                logger.debug(
-                    f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs + age column"
-                )
+                logger.debug(f"   Forward-filled {col} (TTL={ttl}d, cov={coverage*100:.1f}%): {original_nulls} → {new_nulls} NULLs + age column")
 
     if filled_count > 0:
         logger.info(
@@ -2808,6 +2818,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
     )
     logger.info("=" * 70)
 
+    conn = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
         logger.info("✅ Database connected")
@@ -3150,6 +3161,23 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             signal_cols = [c for c in df.columns if c.startswith("sig_")]
             logger.info(f"   Added {len(signal_cols)} specialist signal columns")
 
+            # Forward-fill specialist signals with 3-day TTL (daily cadence)
+            # Specialists run daily but may miss days due to failures/abstentions.
+            # Without fill, a single missing day creates 33 NaN entries (11 buckets x 3 cols).
+            # TTL=3 carries the last signal forward for up to 3 calendar days (weekday tolerance).
+            sig_fill_count = 0
+            for scol in signal_cols:
+                if df[scol].isna().any():
+                    filled, age = ffill_with_age(df[scol], ttl_days=3)
+                    before_nulls = df[scol].isna().sum()
+                    df[scol] = filled
+                    df[f"{scol}_age_days"] = age
+                    after_nulls = df[scol].isna().sum()
+                    if after_nulls < before_nulls:
+                        sig_fill_count += 1
+            if sig_fill_count > 0:
+                logger.info(f"   Forward-filled {sig_fill_count} specialist signal columns (TTL=3d)")
+
         logger.info(f"Combined matrix: {len(df):,} rows, {len(df.columns)} columns")
 
         # =============================================================================
@@ -3304,8 +3332,6 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             validation_passed=validation_result.passed,
         )
 
-        conn.close()
-
         logger.info("=" * 60)
         logger.info("✅ PHASE 3 COMPLETE - Core matrix built")
         logger.info(f"   Rows: {rows_written:,}")
@@ -3323,6 +3349,12 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
     except Exception as e:
         logger.error(f"❌ PHASE 3 FAILED: {e}", exc_info=True)
         return False, None, 0
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
