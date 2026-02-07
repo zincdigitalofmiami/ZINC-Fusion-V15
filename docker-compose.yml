@@ -1,8 +1,0 @@
-# ZINC-FUSION-V15 Docker Compose - Root Convenience Wrapper
-# Main configuration moved to: docker/docker-compose.yml
-
-# Run from root with: docker-compose -f docker/docker-compose.yml up
-# Or use this convenience alias
-version: '3.8'
-include:
-  - docker/docker-compose.yml

@@ -108,14 +108,14 @@ Train (all models): quantile_levels = [0.30, 0.50, 0.70]
 Publish: p30/p50/p70 + calibrated p10_cal/p90_cal
 
 
-AutoGluon TimeSeriesPredictor supports custom quantiles via quantile_levels. 
+AutoGluon TimeSeriesPredictor supports custom quantiles via quantile_levels.
 
 L0: Base models (12 per horizon)
 L0 Core (1 per horizon; 4 total)
 Model: AutoGluon TimeSeriesPredictor (Chronos family)
 
 
-Output: probabilistic multi-step forecasts (quantiles). 
+Output: probabilistic multi-step forecasts (quantiles).
 
 
 Training window policy (per your spec):
@@ -192,12 +192,12 @@ minimal regime/calendar features (see below)
 
 
 OOF integrity (hard rule)
-Meta must train on out-of-fold predictions from base models to avoid leakage. Stacking literature and practice use CV-level predictions for level-1 training. 
+Meta must train on out-of-fold predictions from base models to avoid leakage. Stacking literature and practice use CV-level predictions for level-1 training.
 
 L2: Calibration (per horizon; 4 modules)
 Goal: provide a truthful outer risk envelope without distorting the central band.
 Method: Conformalized Quantile Regression (CQR)
-Combines quantile regression with conformal prediction to achieve finite-sample coverage under exchangeability while adapting interval width to heteroskedasticity. 
+Combines quantile regression with conformal prediction to achieve finite-sample coverage under exchangeability while adapting interval width to heteroskedasticity.
 
 
 Outputs
@@ -290,7 +290,7 @@ drivers_topk (JSON)
 
 
 5.2 Scenario math (mixture, not hand-waving)
-When you “blend” scenario forecasts, you are forming a mixture distribution. Mixture quantiles generally do not have a closed form; compute via mixture CDF inversion or sampling. 
+When you “blend” scenario forecasts, you are forming a mixture distribution. Mixture quantiles generally do not have a closed form; compute via mixture CDF inversion or sampling.
 Implementation default: sampling-based mixture using the same MC engine (fast, robust).
 
 A) EVENTS axis (your existing price-impact table)
@@ -317,14 +317,14 @@ B) TRUMP_EFFECT axis (drop it in, explicitly)
 Operational definition (3-part)
 Policy uncertainty level (news-based)
 
- EPU indices are constructed from newspaper coverage frequency and are designed to proxy policy-related uncertainty. 
+ EPU indices are constructed from newspaper coverage frequency and are designed to proxy policy-related uncertainty.
 
 
 Policy action intensity (executive actions + regulatory pipeline)
 
- FederalRegister.gov provides a public API (no key required) for documents and metadata. 
+ FederalRegister.gov provides a public API (no key required) for documents and metadata.
 
- Presidential documents receive priority processing and appear on public inspection before publication. 
+ Presidential documents receive priority processing and appear on public inspection before publication.
 
 
 Policy category focus (trade/energy/biofuel/sanctions, etc.)
@@ -352,7 +352,7 @@ Primary effect: shifts event probabilities and cascade strengths (policy shocks)
 
 C) VOLATILITY axis (independent)
 Definition
-Use implied-vol regime proxies. VIX is the canonical “expected 30-day volatility implied by SPX options.” 
+Use implied-vol regime proxies. VIX is the canonical “expected 30-day volatility implied by SPX options.”
 (For ZL, prefer ZL IV; VIX is a global risk regime proxy.)
 Scenario states
 VOL_BASELINE
@@ -506,7 +506,7 @@ Build meta input tables per horizon
 Train Meta_H per horizon
 
 
-Run L2 CQR calibration → p10_cal/p90_cal 
+Run L2 CQR calibration → p10_cal/p90_cal
 
 
 Run L3 risk engine (MC)
@@ -524,11 +524,11 @@ Probabilistic quality
 Quantile loss / coverage checks on p30/p70 (≈40% empirical)
 
 
-Calibrated envelope coverage on p10_cal/p90_cal (≈80% empirical) via conformal/CQR. 
+Calibrated envelope coverage on p10_cal/p90_cal (≈80% empirical) via conformal/CQR.
 
 
 Stacking sanity
-Meta must use OOF features only; avoid leakage per stacking practice and CV stacking literature. 
+Meta must use OOF features only; avoid leakage per stacking practice and CV stacking literature.
 
 
 Regime-block CV + embargo
@@ -556,7 +556,7 @@ primary: P30–P70
 outer: P10_cal–P90_cal (lighter)
 
 
-Scenario mixture: probability-weighted blended forecast (computed as mixture, not averaged quantiles). 
+Scenario mixture: probability-weighted blended forecast (computed as mixture, not averaged quantiles).
 
 
 
@@ -756,7 +756,6 @@ Model artifacts are stored under `models/core_v2/` (Core) and `models/specialist
 
 ## Documentation
 
-- **Docker Config**: `docker/README.md` - Docker Compose stack documentation
 - **Prisma Schema**: `prisma/schema.prisma` - Authoritative database schema
 - **Agent Guide**: `AGENTS.md` - Operational rules for AI assistants
 - **Prisma Docs**: [https://www.prisma.io/docs](https://www.prisma.io/docs)

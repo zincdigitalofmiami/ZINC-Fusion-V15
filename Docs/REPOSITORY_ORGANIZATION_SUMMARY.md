@@ -8,7 +8,6 @@ NOTE: Production is the dashboard/frontend, not the repo root.
 | Folder | Contents | Previously Scattered |
 |--------|----------|---------------------|
 | **grafana/** | All Grafana components | ✅ src/fusion/grafana_registry.py |
-| **docker/** | All Docker configurations | ✅ docker-compose.yml, .dockerignore, Dockerfile.api, Dockerfile.mlflow |
 | **audit/** | All audit and QA scripts | ✅ audit_data.py, data_quality_audit.py, *.json, AUDIT_EXECUTIVE_SUMMARY.md |
 | **Docs/** | All documentation | ✅ 11 scattered .md files + .html preview |
 | **config/** | All configuration files | ✅ package.json, requirements.txt, prisma.config.ts |
@@ -34,16 +33,10 @@ ZINC-FUSION-V15/
 ├── ⚙️ **config/**                          # Configuration Management
 │   ├── package.json                        # Node.js dependencies
 │   ├── package-lock.json                   # Lock file
-│   ├── requirements.txt                    # Python dependencies  
+│   ├── requirements.txt                    # Python dependencies
 │   ├── requirements.api.txt                # API-specific requirements
 │   ├── prisma.config.ts                    # Prisma configuration
 │   └── yahoo_tickers.json                  # Yahoo Finance tickers
-│
-├── 🐳 **docker/**                          # Docker & Containerization
-│   ├── docker-compose.yml                  # Main compose file
-│   ├── .dockerignore                       # Docker ignore rules
-│   ├── Dockerfile.api                      # API container
-│   └── Dockerfile.mlflow                   # MLflow container
 │
 ├── 📚 **Docs/**                            # Documentation Hub
 │   ├── PROJECT_STATUS.md                   # Current status
@@ -72,7 +65,6 @@ ZINC-FUSION-V15/
 
 - `grafana_registry.py`: Updated import path in documentation
 - Created symbolic links: `requirements.txt` and `package.json` at root
-- Created `docker-compose.yml` wrapper at root for convenience
 - Removed empty `mlflow-server/` directory
 
 ### 🎯 **BENEFITS**
@@ -86,7 +78,7 @@ ZINC-FUSION-V15/
 ### 📋 **NEXT STEPS**
 
 - All scattered items consolidated ✅
-- File references updated ✅  
+- File references updated ✅
 - Convenience symlinks created ✅
 - Empty directories removed ✅
 
