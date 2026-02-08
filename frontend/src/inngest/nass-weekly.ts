@@ -1,10 +1,10 @@
 /**
  * USDA NASS QuickStats API Data Ingestion
- * 
+ *
  * INGESTION CONTRACT
  * SOURCE: https://quickstats.nass.usda.gov/api/api_GET
  * Tags: crush
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
  * @version 1.0.0
  * @date 2026-01-13
@@ -42,7 +42,7 @@ async function updateIngestRun(
 }
 
 async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM raw.fred_observations_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
+  const r = await client.query(`SELECT 1 FROM econ.activity_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
   return r.rows.length > 0;
 }
 
@@ -77,12 +77,12 @@ export const nassWeekly = inngest.createFunction(
 
       for (const row of data) {
         rowsAttempted++;
-        
+
         const outcome = await step.run(`ingest-${row.year}-${row.short_desc}`, async () => {
           const obsDate = `${row.year}-01-01`;
           const seriesId = `NASS_${row.commodity_desc}_${row.statisticcat_desc}`.replace(/\s+/g, '_').toUpperCase();
           const value = row.Value ? parseFloat(row.Value.replace(/,/g, "")) : null;
-          
+
           if (value === null || isNaN(value)) {
             return { status: "skipped_invalid" as const };
           }
@@ -94,17 +94,13 @@ export const nassWeekly = inngest.createFunction(
           }
 
           await client.query(
-            `INSERT INTO raw.fred_observations_1d (
-               event_date, series_id, value, source, source_url, raw_payload, 
-               ingestion_batch_id, row_hash, specialist_tags
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            `INSERT INTO econ.activity_1d (
+               event_date, series_id, value, source, row_hash
+             ) VALUES ($1,$2,$3,$4,$5)`,
             [
               obsDate, seriesId, value,
               "nass_api",
-              "https://quickstats.nass.usda.gov/api",
-              JSON.stringify(row),
-              runId, rowHash,
-              ["crush"]
+              rowHash
             ]
           );
           return { status: "inserted" as const };

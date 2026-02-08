@@ -57,7 +57,11 @@ Known tables:
 ### alt (alternative data)
 Purpose: News, weather, legislation, and other alternative sources.
 Known tables:
-- alt.news_1d
+- alt.econ_news
+- alt.policy_news
+- alt.profarmer_news
+- alt.executive_actions
+- alt.ice_enforcement
 - alt.weather_1d
 - alt.legislation_1d
 
@@ -255,7 +259,11 @@ Consider `metadata.trading_calendar` table for business day mapping (holidays, h
 | `mkt.fx_1d` | (event_date, pair) | DO UPDATE | Updateable |
 | `mkt.options_1d` | (event_date, symbol, strike, expiry, option_type) | DO UPDATE | Updateable |
 | `econ.rates_1d` | (event_date, series_id) | DO UPDATE | Updateable |
-| `alt.news_1d` | (article_id) or (content_hash) | DO NOTHING | Append-only |
+| `alt.econ_news` | (url) | DO NOTHING | Append-only |
+| `alt.policy_news` | (row_hash) | DO NOTHING | Append-only |
+| `alt.profarmer_news` | (row_hash) or (url) | DO NOTHING | Append-only |
+| `alt.executive_actions` | (row_hash) | DO NOTHING | Append-only |
+| `alt.ice_enforcement` | (row_hash) | DO NOTHING | Append-only |
 | `alt.weather_1d` | (event_date, station_id) | DO UPDATE | Updateable |
 | `alt.legislation_1d` | (event_date, document_id) | DO NOTHING | Append-only |
 | `pos.cftc_1w` | (report_date, contract_code, report_type) | DO UPDATE | Updateable |
@@ -285,9 +293,9 @@ DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high,
               volume = EXCLUDED.volume, updated_at = NOW();
 
 -- DO NOTHING pattern (append-only tables)
-INSERT INTO alt.news_1d (article_id, event_date, title, content, source)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (article_id) DO NOTHING;
+INSERT INTO alt.profarmer_news (event_date, headline, url, row_hash)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (row_hash) DO NOTHING;
 ```
 
 ---

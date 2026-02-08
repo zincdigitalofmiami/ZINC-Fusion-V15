@@ -1,8 +1,8 @@
 /**
  * AEI Think Tank RSS Ingestion (Trade Policy feed)
- * 
+ *
  * INGESTION CONTRACT
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
  * @version 2.0.0
  * @date 2026-01-13
@@ -106,7 +106,7 @@ export const aeiTradeDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(link, pubDate);
 
-          if (await hashExists(client, "alt.news_1d", rowHash)) {
+          if (await hashExists(client, "alt.policy_news", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 

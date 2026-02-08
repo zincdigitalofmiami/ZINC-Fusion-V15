@@ -97,12 +97,12 @@ This prevents PIT leakage and “silent join death.”
 Mixed frequency handling (weekly/monthly in daily matrix)
 Forward-fill slow series with staleness encoding (age days, release day flags, delta-on-release). This allows daily training while preserving information arrival timing.
 
-3) Model Architecture: 52-model horizon-aligned stack
+3) Model Architecture: 19-model ensemble (v3)
 Horizons
 H ∈ {5, 21, 63, 126} days.
-Each horizon has its own self-contained stack (direct multi-step; no recursive horizon mixing).
+Core and Meta train one model per horizon (direct multi-step; no recursive horizon mixing).
 Quantiles
-Train (all models): quantile_levels = [0.30, 0.50, 0.70]
+OOF/stacking quantiles: [0.30, 0.50, 0.70]
 
 
 Publish: p30/p50/p70 + calibrated p10_cal/p90_cal
@@ -110,7 +110,6 @@ Publish: p30/p50/p70 + calibrated p10_cal/p90_cal
 
 AutoGluon TimeSeriesPredictor supports custom quantiles via quantile_levels.
 
-L0: Base models (12 per horizon)
 L0 Core (1 per horizon; 4 total)
 Model: AutoGluon TimeSeriesPredictor (Chronos family)
 
@@ -127,11 +126,11 @@ Training window policy (per your spec):
 63d/126d: 2000+ (regime learning)
 
 
-L0 Specialists (11 per horizon; 44 total)
-Model: AutoGluon TabularPredictor in quantile mode (P30/P50/P70)
-
-
-Targets: target_{H}d (ZL close at t+H)
+L0 Specialists (11 total; horizon-agnostic signal generators)
+Models: custom per specialist (XGB, GBM, RF, ARDL, Ridge, GARCH, VAR, ECM, rules-based, EMA, event-study)
+Output contract: signal_1 (required), signal_2 (optional), confidence (optional)
+Storage: training.specialist_signals_1d
+Specialists do not produce horizon forecasts and do not have OOF tables.
 
 
 The 11 Specialists
@@ -168,31 +167,21 @@ SUBSTITUTES
 TRUMP_EFFECT
 
 
-Training window policy
-5d/21d specialists: 2020+
-
-
-63d/126d specialists: 2000+
+Specialist policy
+Specialists run daily to generate regime/context signals consumed by Core + Meta.
 
 
 
 L1: Meta-learner (1 per horizon; 4 total)
 Purpose: learn when to trust each base model (Core + Specialists) for horizon H.
 Input matrix (per horizon)
-12 models × 3 quantiles = 36 OOF columns
-
-
-core_p30/p50/p70
-
-
-{specialist}_p30/p50/p70 for all 11 specialists
-
-
-minimal regime/calendar features (see below)
+Core OOF from training.oof_core_1d (p30/p50/p70)
+Specialist signals from training.specialist_signals_1d
+Regime/calendar features in training.meta_inputs_1d
 
 
 OOF integrity (hard rule)
-Meta must train on out-of-fold predictions from base models to avoid leakage. Stacking literature and practice use CV-level predictions for level-1 training.
+Meta must train on out-of-fold Core predictions + as-of specialist signals to avoid leakage.
 
 L2: Calibration (per horizon; 4 modules)
 Goal: provide a truthful outer risk envelope without distorting the central band.
@@ -438,30 +427,26 @@ N = 2,000, deterministic seed, variance reduction ON
 
 7) Tables and artifacts dev must build
 Training matrices
-training.core_matrix_1d (Core features + target_{H}d)
+training.matrix_1d (Core features + targets)
 
 
-training.specialist_{bucket}_1d for each specialist
+training.specialist_signals_1d (all 11 specialists in one table)
 
 
-Target columns: target_5d, target_21d, target_63d, target_126d
+Target columns: target_ret_5d, target_ret_21d, target_ret_63d, target_ret_126d
 
 
-OOF tables (48 total)
-Pattern: training.oof_{model}_{H}d_1d
+OOF table (single)
+training.oof_core_1d
 Columns:
-as_of_date (PK)
-
-
-{model}_p30/p50/p70
-
-
-target_{H}d
+trade_date, symbol, horizon_days, window_id (PK)
+p30/p50/p70
+target_value, trained_at, run_hash, matrix_version
 
 
 Meta inputs (4 total)
-training.meta_inputs_{H}d_1d
-join all OOF columns + regime/calendar features + target_{H}d
+training.meta_inputs_1d
+Core OOF + specialist signals + regime/calendar features + target values
 
 
 Forecast outputs (4 total)
@@ -494,13 +479,13 @@ Build targets target_{H}d
 Train Core_H (H ∈ {5,21,63,126})
 
 
-Train 11 specialists × H
+Train 11 specialists (horizon-agnostic signal generation)
 
 
-Generate + persist OOF for all L0 models
+Generate + persist OOF for Core only (single table with horizon_days)
 
 
-Build meta input tables per horizon
+Build `training.meta_inputs_1d` and train meta per horizon (horizon filter)
 
 
 Train Meta_H per horizon
@@ -561,7 +546,7 @@ Scenario mixture: probability-weighted blended forecast (computed as mixture, no
 
 
 If dev builds to this SoT, you get:
-horizon-aligned stacked ensemble (52 models)
+horizon-aligned stacked ensemble (19 models)
 
 
 11 specialists integrated correctly
@@ -578,7 +563,7 @@ MC performance tuned for speed without turning outputs into noisy garbage
 
 
 
-### SoT v2: Prisma Cloud Readiness (Pre-Training)
+### SoT v3: Prisma Cloud Readiness (Pre-Training)
 
 Preflight report (generated from PROD `DATABASE_URL`):
 - `Docs/PRETRAINING_READINESS_2026_01_14.md`
@@ -586,13 +571,13 @@ Preflight report (generated from PROD `DATABASE_URL`):
 
 Current verdict (2026-01-14): **NOT READY**.
 - `training.matrix_1d` populated with 114 columns, 7,808 rows ✅
-- `training.specialist_*_1d` tables exist with proper schema
+- `training.specialist_signals_1d` table exists with proper schema
 - Landing tables (mkt.*, econ.*, alt.*, pos.*, supply.*) receiving data
 - `metadata.symbol_mapping` covers `7/104` `mkt.futures_1d` symbols (governance gap; not always a hard blocker)
 
-### SoT v2: Model Plan + Code Location
+### SoT v3: Model Plan + Code Location
 
-SoT v2 model catalog + naming (52-model stack):
+SoT v3 model catalog + naming (19-model stack; legacy `v2_training` path retained):
 - `scripts/v2_training/MODEL_CATALOG.md`
 - `scripts/v2_training/README.md`
 
@@ -750,7 +735,7 @@ pytest tests/ -v
 
 ## Model Registry
 
-Trained models register in Prisma `model.model_registry` with `model_id`, `model_version`, `horizon_steps`, `trained_at`, `artifact_path`, `metrics_json`. MLflow (local SQLite) is used for experiment tracking.
+Trained models register in Prisma `model.model_registry` with `model_id`, `model_version`, `horizon_steps`, `trained_at`, `artifact_path`, `metrics_json`.
 
 Model artifacts are stored under `models/core_v2/` (Core) and `models/specialists/{bucket}/` (Specialists).
 

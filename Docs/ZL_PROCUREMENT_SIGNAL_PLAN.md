@@ -20,14 +20,14 @@ tracks demand pressure, supply risk, and volatility without encoding buy/sell lo
 ### Substitutes / Palm Watch
 
 - Track FCPO and related palm indicators to detect substitution pressure.
-- Leverage existing palm specialist path (mkt.futures_1d + alt.news_1d).
+- Leverage existing palm specialist path (mkt.futures_1d + alt.profarmer_news / alt.policy_news).
 - Add dashboard emphasis on palm vs ZL relative moves and divergence.
 
 ### Agri-Energy Partnerships (Leading Indicator)
 
 - Maintain a watchlist of major crushers and energy firms (examples mentioned:
   ADM, Bunge, Chevron, Shell) and log JV announcements and expansions.
-- Source via existing news stream (alt.news_1d) with entity + partnership tagging.
+- Source via existing policy/news streams (`alt.policy_news`, `alt.profarmer_news`, `alt.executive_actions`) with entity + partnership tagging.
 - Present as a "Demand Lockup" panel with timeline and intensity score.
 
 ### Volatility as Core Driver
@@ -39,7 +39,7 @@ tracks demand pressure, supply risk, and volatility without encoding buy/sell lo
 
 ## Data & Feature Notes (Proposed; Requires Approval)
 
-- Entity extraction for JV/partnership events in alt.news_1d.
+- Entity extraction for JV/partnership events in `alt.policy_news` and `alt.profarmer_news`.
 - A "Demand Lockup" feature derived from JV announcements and capacity headlines.
 - A "Palm Substitution Pressure" feature using palm vs ZL price spreads.
 - A "Volatility Regime" feature for procurement risk framing.

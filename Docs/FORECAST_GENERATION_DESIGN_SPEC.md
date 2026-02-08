@@ -64,7 +64,7 @@ Verification:
 ### 1.2 Training Run Reference
 
 Each forecast generation must reference:
-- `training_run_id` (from `model.training_runs` or MLflow)
+- `training_run_id` (from `model.training_runs`)
 - Must map to an existing audit row in `model.model_core_audit`
 
 ---

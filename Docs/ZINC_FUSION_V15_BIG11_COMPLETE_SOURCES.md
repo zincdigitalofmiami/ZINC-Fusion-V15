@@ -12,16 +12,16 @@ NOTE: Production is the dashboard/frontend, not the repo root.
 | Specialist | Quant % | Qual % | Primary Data Type | Key Tables |
 |------------|---------|--------|-------------------|------------|
 | **CRUSH** | 100% | 0% | ZL/ZS/ZM prices → crush margin math | mkt.futures_1d, pos.cftc_1w |
-| **CHINA** | 70% | 30% | Copper proxy, imports, CNY + trade news | mkt.futures_1d, mkt.fx_1d, alt.news_1d |
+| **CHINA** | 70% | 30% | Copper proxy, imports, CNY + trade news | mkt.futures_1d, mkt.fx_1d, alt.policy_news, alt.profarmer_news |
 | **FX** | 100% | 0% | Exchange rates, DXY indices | mkt.fx_1d |
 | **FED** | 100% | 0% | Interest rates, yield curve, NFCI | econ.rates_1d |
-| **TARIFF** | 40% | 60% | EPU index + trade policy news | econ.rates_1d, alt.news_1d, alt.legislation_1d |
+| **TARIFF** | 40% | 60% | EPU index + trade policy news | econ.rates_1d, alt.policy_news, alt.executive_actions, alt.ice_enforcement, alt.legislation_1d |
 | **ENERGY** | 100% | 0% | Crude, heating oil, BOHO spread | mkt.futures_1d, econ.commodities_1d |
-| **BIOFUEL** | 80% | 20% | D4 RIN prices + EPA policy news | supply.epa_rin_1d, alt.news_1d |
-| **PALM** | 80% | 20% | FCPO prices, inventory + export policy | mkt.futures_1d, alt.news_1d |
+| **BIOFUEL** | 80% | 20% | D4 RIN prices + EPA policy news | supply.epa_rin_1d, alt.policy_news |
+| **PALM** | 80% | 20% | FCPO prices, inventory + export policy | mkt.futures_1d, alt.profarmer_news, alt.policy_news |
 | **VOLATILITY** | 100% | 0% | VIX, stress indices, credit spreads | econ.vol_indices_1d, econ.rates_1d |
 | **SUBSTITUTES** | 100% | 0% | Canola, sunflower, rapeseed prices | mkt.futures_1d, econ.commodities_1d |
-| **TRUMP_EFFECT** | 50% | 50% | EPU + executive orders + policy news | econ.rates_1d, alt.news_1d, alt.legislation_1d |
+| **TRUMP_EFFECT** | 50% | 50% | EPU + executive actions + policy news | econ.rates_1d, alt.executive_actions, alt.policy_news, alt.econ_news, alt.legislation_1d |
 
 **6 Pure Quantitative**: crush, fx, fed, energy, volatility, substitutes
 **5 Require News/Sentiment**: china, tariff, biofuel, palm, trump_effect
@@ -509,9 +509,13 @@ econ.rates_1d                  -- FRED series
 mkt.fx_1d                      -- Exchange rates
 pos.cftc_1w                    -- COT positioning
 supply.epa_rin_1d              -- RIN prices
-supply.usda_export_sales_1w    -- Export sales
+supply.usda_exports_1w         -- Export sales
 supply.usda_wasde_1m           -- WASDE reports
-alt.news_1d                    -- Sentiment
+alt.econ_news                  -- FRED research/news
+alt.policy_news                -- Policy/trade news stream
+alt.profarmer_news             -- Ag market news stream
+alt.executive_actions          -- White House and executive actions
+alt.ice_enforcement            -- ICE enforcement releases
 ```
 
 ---

@@ -22,7 +22,11 @@ This document defines the idempotency contracts for all tables in the ZINC-FUSIO
 | `mkt.fx_1d` | (event_date, pair) | DO UPDATE | Updateable |
 | `mkt.options_1d` | (event_date, symbol, strike, expiry, option_type) | DO UPDATE | Updateable |
 | `econ.rates_1d` | (event_date, series_id) | DO UPDATE | Updateable |
-| `alt.news_1d` | (article_id) or (content_hash) | DO NOTHING | Append-only |
+| `alt.econ_news` | (url) | DO NOTHING | Append-only |
+| `alt.policy_news` | (row_hash) | DO NOTHING | Append-only |
+| `alt.profarmer_news` | (row_hash) or (url) | DO NOTHING | Append-only |
+| `alt.executive_actions` | (row_hash) | DO NOTHING | Append-only |
+| `alt.ice_enforcement` | (row_hash) | DO NOTHING | Append-only |
 | `alt.weather_1d` | (event_date, station_id) | DO UPDATE | Updateable |
 | `alt.legislation_1d` | (event_date, document_id) | DO NOTHING | Append-only |
 | `pos.cftc_1w` | (report_date, contract_code, report_type) | DO UPDATE | Updateable |
@@ -76,9 +80,9 @@ DO UPDATE SET
 ### DO NOTHING Pattern (Append-Only Tables)
 
 ```sql
-INSERT INTO alt.news_1d (article_id, event_date, title, content, source, content_hash, ingested_at)
-VALUES ($1, $2, $3, $4, $5, $6, NOW())
-ON CONFLICT (article_id) DO NOTHING;
+INSERT INTO alt.profarmer_news (event_date, headline, url, row_hash, ingested_at)
+VALUES ($1, $2, $3, $4, NOW())
+ON CONFLICT (row_hash) DO NOTHING;
 ```
 
 ### Versioned Pattern (Training Artifacts)

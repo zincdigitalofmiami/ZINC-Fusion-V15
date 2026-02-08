@@ -36,8 +36,11 @@ Note: Barchart feeds (futures/ETF/options/news) are disabled in production. Lega
 ### News / Policy / Alt (alt.*)
 
 - `federal-register` → `alt.legislation_1d`.
-- `whitehouse-press`, `conab-news`, `profarmer-daily`, `farmdoc-rins`,
-  `aei-trade`, `cbp-trade`, `ice-releases` → `alt.news_1d`.
+- `whitehouse-press` → `alt.executive_actions`.
+- `ice-releases` → `alt.ice_enforcement`.
+- `profarmer-daily` → `alt.profarmer_news`.
+- `conab-news`, `farmdoc-rins`, `aei-trade`, `cbp-trade` → `alt.policy_news`.
+- `fred-blog-daily` → `alt.econ_news`.
 - `noaa-weather-daily`, `openmeteo-weather-daily` → `alt.weather_1d`.
 
 Note: Weather features computed on-the-fly at training time (no features.weather_1d table).
@@ -52,7 +55,7 @@ Note: Weather features computed on-the-fly at training time (no features.weather
 - energy: `yahoo-eod` (CL/HO), `eia-today`
 - china: `conab-news`, `cbp-trade`, `usda-export-sales-weekly`, FRED China series
 - substitutes: `yahoo-eod` (RS/Canola)
-- tariff/trump_effect: `federal-register`, `whitehouse-press`, `alt.news_1d`
+- tariff/trump_effect: `federal-register`, `whitehouse-press`, `ice-releases`, `alt.policy_news`, `alt.econ_news`
 
 ## Safe Additions (No Schema Changes)
 
