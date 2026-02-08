@@ -12,14 +12,14 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ["--maxkb=500"]
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.0
     hooks:
       - id: ruff-check
-        args: ['--select', 'F401,F403,F405,F821,F841']
+        args: ["--select", "F401,F403,F405,F821,F841"]
         types_or: [python, pyi]
       - id: ruff-format
         types_or: [python, pyi]
@@ -37,7 +37,7 @@ repos:
         entry: python3 scripts/check_sql_table_references.py
         language: system
         files: '^(src|scripts|frontend/src|tests|sql)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$'
-        exclude: '^scripts/exploration/'
+        exclude: "^scripts/exploration/"
 
       - id: eslint-frontend
         name: ESLint frontend

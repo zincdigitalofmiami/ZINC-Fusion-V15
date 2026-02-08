@@ -14,7 +14,10 @@ interface DatabentoDailyQuote {
 }
 
 async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
+  // Subtract 1 day — Databento historical API lags ~24h for daily bars
   const end = new Date();
+  end.setUTCDate(end.getUTCDate() - 1);
+  end.setUTCHours(0, 0, 0, 0);
   const start = new Date(end.getTime() - 5 * 24 * 60 * 60 * 1000);
 
   const csv = await fetchDatabentoCsv({
@@ -27,7 +30,7 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
     encoding: "csv",
     pretty_ts: "true",
     pretty_px: "true",
-  });
+  }, 15_000);
 
   const bars = parseDatabentoOhlcvCsv(csv);
   if (!bars.length) return null;
@@ -51,16 +54,12 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
  * ZL daily bars for analytics.zl_price_1d (Databento only)
  */
 export const zlDaily = inngest.createFunction(
-  { id: "zl-daily", name: "ZL Daily (Databento)" },
+  { id: "zl-daily", name: "ZL Daily (Databento)", retries: 3 },
   { cron: "TZ=America/Chicago 5 */8 * * *" }, // Every 8 hours at :05 (0:05, 8:05, 16:05 CT)
-  async ({ step, logger }) => {
+  async ({ step, logger, attempt }) => {
     const zlQuote = await step.run("fetch-databento-zl", async () => {
-      try {
-        return await fetchDatabentoDailyZl();
-      } catch (err) {
-        logger.warn(`Databento ZL fetch failed: ${err}`);
-        return null;
-      }
+      logger.info(`ZL daily fetch attempt ${attempt}, requesting Databento ohlcv-1d`);
+      return await fetchDatabentoDailyZl();
     });
 
     if (!zlQuote) {

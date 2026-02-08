@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
+import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   createChart,
   CandlestickSeries,
@@ -13,75 +13,81 @@ import {
   UTCTimestamp,
   LineStyle,
   CandlestickData,
-} from 'lightweight-charts'
+} from "lightweight-charts";
 
 interface PriceData {
-  timestamp: string
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 interface ForecastPoint {
-  horizon_days: number
-  price_p30: number | null
-  price_p50: number | null
-  price_p70: number | null
+  horizon_days: number;
+  price_p30: number | null;
+  price_p50: number | null;
+  price_p70: number | null;
 }
 
 // TradingView exact settings (from user screenshots)
 const THEME = {
   // Candle body colors
-  upColor: '#26C6DA',
-  downColor: '#FF0000',
+  upColor: "#26C6DA",
+  downColor: "#FF0000",
   // Borders: 0% opacity (transparent per TradingView settings)
-  borderUpColor: 'transparent',
-  borderDownColor: 'transparent',
+  borderUpColor: "transparent",
+  borderDownColor: "transparent",
   // Wicks: White/light gray (NOT body color - per TradingView)
-  wickUpColor: '#FFFFFF',           // 100% white
-  wickDownColor: 'rgba(178,181,190,0.83)', // ~83% gray
+  wickUpColor: "#FFFFFF", // 100% white
+  wickDownColor: "rgba(178,181,190,0.83)", // ~83% gray
   // Grid: 4-7% opacity (TradingView default)
-  gridColor: 'rgba(255,255,255,0.04)',
+  gridColor: "rgba(255,255,255,0.04)",
   // Crosshair
-  crosshairColor: 'rgba(139,92,246,0.6)',
-  labelBgColor: 'rgba(20,10,40,0.9)',
-  textColor: 'rgba(255,255,255,0.4)',
+  crosshairColor: "rgba(139,92,246,0.6)",
+  labelBgColor: "rgba(20,10,40,0.9)",
+  textColor: "rgba(255,255,255,0.4)",
   // Forecast band (pink/magenta)
-  forecastBandColor: 'rgba(236, 72, 153, 0.15)',
-  forecastLineColor: 'rgba(236, 72, 153, 0.4)',
-  forecastCenterColor: 'rgba(236, 72, 153, 0.8)',
-}
+  forecastBandColor: "rgba(236, 72, 153, 0.15)",
+  forecastLineColor: "rgba(236, 72, 153, 0.4)",
+  forecastCenterColor: "rgba(236, 72, 153, 0.8)",
+};
 
 export function LightweightZlCandlestickChart({
-  height = '70vh',
+  height = "70vh",
 }: {
-  height?: string | number
+  height?: string | number;
 }) {
-  const chartContainerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const fitContentCalledRef = useRef(false)
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const fitContentCalledRef = useRef(false);
 
-  const [priceData, setPriceData] = useState<PriceData[]>([])
-  const [forecastData, setForecastData] = useState<ForecastPoint[]>([])
-  const [lastPrice, setLastPrice] = useState<number | null>(null)
-  const [priceChange, setPriceChange] = useState<number>(0)
-  const [volatility, setVolatility] = useState<string>('--')
-  const [highPrice, setHighPrice] = useState<number | null>(null)
-  const [lowPrice, setLowPrice] = useState<number | null>(null)
-  const [isLive, setIsLive] = useState<boolean>(false)
-  const [lastUpdate, setLastUpdate] = useState<string>('')
-  const [hasForecast, setHasForecast] = useState<boolean>(false)
+  // Refs that mirror state — the live-data interval reads from these so it
+  // never needs priceData/highPrice/lowPrice in its dependency array.
+  const priceDataRef = useRef<PriceData[]>([]);
+  const highPriceRef = useRef<number | null>(null);
+  const lowPriceRef = useRef<number | null>(null);
+
+  const [priceData, setPriceData] = useState<PriceData[]>([]);
+  const [forecastData, setForecastData] = useState<ForecastPoint[]>([]);
+  const [lastPrice, setLastPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number>(0);
+  const [volatility, setVolatility] = useState<string>("--");
+  const [highPrice, setHighPrice] = useState<number | null>(null);
+  const [lowPrice, setLowPrice] = useState<number | null>(null);
+  const [isLive, setIsLive] = useState<boolean>(false);
+  const [lastUpdate, setLastUpdate] = useState<string>("");
+  const [hasForecast, setHasForecast] = useState<boolean>(false);
 
   // Fetch historical data (daily bars)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/zl/price-1d?days=730') // ~2 years of daily data
-        if (!res.ok) throw new Error('Failed to fetch')
-        const json = await res.json()
+        const res = await fetch("/api/zl/price-1d?days=730"); // ~2 years of daily data
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json = await res.json();
         if (json.data && json.data.length > 0) {
           const parsed = json.data.map((d: PriceData) => ({
             ...d,
@@ -90,133 +96,162 @@ export function LightweightZlCandlestickChart({
             low: parseFloat(String(d.low)),
             close: parseFloat(String(d.close)),
             volume: parseFloat(String(d.volume)),
-          }))
-          setPriceData(parsed)
-          const latest = parsed[parsed.length - 1]
-          const prev = parsed[parsed.length - 2]
-          setLastPrice(latest.close)
+          }));
+          // Only update state if data actually changed (prevents chart recreation)
+          const oldData = priceDataRef.current;
+          const changed =
+            oldData.length !== parsed.length ||
+            oldData[oldData.length - 1]?.close !== parsed[parsed.length - 1]?.close;
+          priceDataRef.current = parsed;
+          if (changed) setPriceData(parsed);
+          const latest = parsed[parsed.length - 1];
+          const prev = parsed[parsed.length - 2];
+          setLastPrice(latest.close);
 
-          const highs = parsed.map((d: PriceData) => d.high)
-          const lows = parsed.map((d: PriceData) => d.low)
-          setHighPrice(Math.max(...highs))
-          setLowPrice(Math.min(...lows))
+          const highs = parsed.map((d: PriceData) => d.high);
+          const lows = parsed.map((d: PriceData) => d.low);
+          const h = Math.max(...highs);
+          const l = Math.min(...lows);
+          highPriceRef.current = h;
+          lowPriceRef.current = l;
+          setHighPrice(h);
+          setLowPrice(l);
 
           if (prev) {
-            setPriceChange(((latest.close - prev.close) / prev.close) * 100)
+            setPriceChange(((latest.close - prev.close) / prev.close) * 100);
           }
 
           // Calculate 20-day volatility
-          const last20 = parsed.slice(-20)
+          const last20 = parsed.slice(-20);
           if (last20.length >= 2) {
-            const returns: number[] = []
+            const returns: number[] = [];
             for (let i = 1; i < last20.length; i++) {
-              returns.push(Math.log(last20[i].close / last20[i - 1].close))
+              returns.push(Math.log(last20[i].close / last20[i - 1].close));
             }
-            const mean = returns.reduce((a: number, b: number) => a + b, 0) / returns.length
-            const variance = returns.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / returns.length
-            const dailyVol = Math.sqrt(variance)
-            const annualizedVol = dailyVol * Math.sqrt(252) * 100
-            setVolatility(annualizedVol.toFixed(1) + '%')
+            const mean =
+              returns.reduce((a: number, b: number) => a + b, 0) /
+              returns.length;
+            const variance =
+              returns.reduce(
+                (a: number, b: number) => a + Math.pow(b - mean, 2),
+                0,
+              ) / returns.length;
+            const dailyVol = Math.sqrt(variance);
+            const annualizedVol = dailyVol * Math.sqrt(252) * 100;
+            setVolatility(annualizedVol.toFixed(1) + "%");
           }
         }
       } catch (err) {
-        console.error('Fetch error:', err)
+        console.error("Fetch error:", err);
       }
-    }
-    fetchData()
-    const interval = setInterval(fetchData, 15000) // 15 seconds for responsive updates
-    return () => clearInterval(interval)
-  }, [])
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 15000); // 15 seconds for responsive updates
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch forecast data
   useEffect(() => {
     const fetchForecast = async () => {
       try {
-        const res = await fetch('/api/zl/forecast')
+        const res = await fetch("/api/zl/forecast");
         if (!res.ok) {
-          setHasForecast(false)
-          return
+          setHasForecast(false);
+          return;
         }
-        const json = await res.json()
+        const json = await res.json();
         if (json.forecasts && json.forecasts.length > 0) {
-          setForecastData(json.forecasts)
-          setHasForecast(true)
+          setForecastData(json.forecasts);
+          setHasForecast(true);
         } else {
-          setHasForecast(false)
+          setHasForecast(false);
         }
       } catch (err) {
-        console.error('Forecast fetch error:', err)
-        setHasForecast(false)
+        console.error("Forecast fetch error:", err);
+        setHasForecast(false);
       }
-    }
-    fetchForecast()
-    const interval = setInterval(fetchForecast, 300000) // 5 minutes
-    return () => clearInterval(interval)
-  }, [])
+    };
+    fetchForecast();
+    const interval = setInterval(fetchForecast, 300000); // 5 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch live data (forming candle) - every 10 seconds
+  // Reads from refs so the interval is created once and never reset.
   useEffect(() => {
     const fetchLive = async () => {
       try {
-        const res = await fetch('/api/zl/live')
-        if (!res.ok) return
-        const json = await res.json()
+        const res = await fetch("/api/zl/live");
+        if (!res.ok) return;
+        const json = await res.json();
 
         if (json.price) {
-          setLastPrice(json.price)
-          setIsLive(json.live === true)
+          setLastPrice(json.price);
+          setIsLive(json.live === true);
           if (json.updated_at) {
-            const updated = new Date(json.updated_at)
-            setLastUpdate(updated.toLocaleTimeString())
+            setLastUpdate(new Date(json.updated_at).toLocaleTimeString());
           }
           if (json.change_pct != null) {
-            setPriceChange(json.change_pct)
+            setPriceChange(json.change_pct);
           }
 
           // Update forming candle when we have real live 1m data
-          if (json.live && candleSeriesRef.current && priceData.length > 0) {
-            const lastBar = priceData[priceData.length - 1]
-            const time = Math.floor(new Date(lastBar.timestamp).getTime() / 1000) as UTCTimestamp
+          const data = priceDataRef.current;
+          if (json.live && candleSeriesRef.current && chartRef.current && data.length > 0) {
+            try {
+              const lastBar = data[data.length - 1];
+              const time = Math.floor(
+                new Date(lastBar.timestamp).getTime() / 1000,
+              ) as UTCTimestamp;
 
-            candleSeriesRef.current.update({
-              time,
-              open: lastBar.open,
-              high: Math.max(lastBar.high, json.high ?? lastBar.high),
-              low: Math.min(lastBar.low, json.low ?? lastBar.low),
-              close: json.price,
-            })
+              candleSeriesRef.current.update({
+                time,
+                open: lastBar.open,
+                high: Math.max(lastBar.high, json.high ?? lastBar.high),
+                low: Math.min(lastBar.low, json.low ?? lastBar.low),
+                close: json.price,
+              });
 
-            if (json.high && json.high > (highPrice || 0)) setHighPrice(json.high)
-            if (json.low && json.low < (lowPrice || Infinity)) setLowPrice(json.low)
+              if (json.high && json.high > (highPriceRef.current || 0)) {
+                highPriceRef.current = json.high;
+                setHighPrice(json.high);
+              }
+              if (json.low && json.low < (lowPriceRef.current || Infinity)) {
+                lowPriceRef.current = json.low;
+                setLowPrice(json.low);
+              }
+            } catch {
+              // Chart may have been disposed during recreation — safe to ignore
+            }
           }
         }
       } catch {
         // Silent fail for live updates
       }
-    }
+    };
 
-    fetchLive()
-    const liveInterval = setInterval(fetchLive, 10000)
-    return () => clearInterval(liveInterval)
-  }, [priceData, highPrice, lowPrice])
+    fetchLive();
+    const liveInterval = setInterval(fetchLive, 10000);
+    return () => clearInterval(liveInterval);
+  }, []);
 
   // Initialize chart
   useEffect(() => {
-    if (!chartContainerRef.current || priceData.length === 0) return
+    if (!chartContainerRef.current || priceData.length === 0) return;
 
     // Clean up previous chart
     if (chartRef.current) {
-      chartRef.current.remove()
-      chartRef.current = null
-      candleSeriesRef.current = null
-      fitContentCalledRef.current = false
+      chartRef.current.remove();
+      chartRef.current = null;
+      candleSeriesRef.current = null;
+      fitContentCalledRef.current = false;
     }
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
+        background: { type: ColorType.Solid, color: "transparent" },
         textColor: THEME.textColor,
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: "Inter, sans-serif",
         fontSize: 11,
         attributionLogo: false,
       },
@@ -239,36 +274,36 @@ export function LightweightZlCandlestickChart({
         },
       },
       rightPriceScale: {
-        borderColor: 'transparent',
+        borderColor: "transparent",
         autoScale: true,
         scaleMargins: {
-          top: 0.05,    // 5% padding at top (TradingView-tight)
+          top: 0.05, // 5% padding at top (TradingView-tight)
           bottom: 0.05, // 5% padding at bottom
         },
       },
       timeScale: {
-        borderColor: 'transparent',
+        borderColor: "transparent",
         timeVisible: false,
-        fixLeftEdge: false,  // Allow scroll back past data start
+        fixLeftEdge: false, // Allow scroll back past data start
         fixRightEdge: false, // Allow scroll forward past data end
-        rightOffset: 20,     // Space on right for forward scroll
+        rightOffset: 20, // Space on right for forward scroll
       },
       // Interactions: axis drag to scroll, double-click to reset
       handleScroll: {
-        mouseWheel: false,        // Page scroll not hijacked
-        pressedMouseMove: true,   // Allow drag to pan horizontally
-        horzTouchDrag: true,      // Touch horizontal pan
-        vertTouchDrag: false,     // Allow page scroll on vertical swipe
+        mouseWheel: false, // Page scroll not hijacked
+        pressedMouseMove: true, // Allow drag to pan horizontally
+        horzTouchDrag: true, // Touch horizontal pan
+        vertTouchDrag: false, // Allow page scroll on vertical swipe
       },
       handleScale: {
-        mouseWheel: false,        // No wheel zoom on plot area
-        pinch: true,              // Pinch to zoom on touch
+        mouseWheel: false, // No wheel zoom on plot area
+        pinch: true, // Pinch to zoom on touch
         axisPressedMouseMove: { time: true, price: true },
         axisDoubleClickReset: { time: true, price: true }, // Double-click axis to reset
       },
-    })
+    });
 
-    chartRef.current = chart
+    chartRef.current = chart;
 
     // Transform price data to LWC format
     const candleData: CandlestickData<UTCTimestamp>[] = priceData.map((d) => ({
@@ -277,29 +312,34 @@ export function LightweightZlCandlestickChart({
       high: d.high,
       low: d.low,
       close: d.close,
-    }))
+    }));
 
     // Sort chronologically
-    candleData.sort((a, b) => (a.time as number) - (b.time as number))
+    candleData.sort((a, b) => (a.time as number) - (b.time as number));
 
     // Add forecast band if available (rendered first, behind candles)
     if (hasForecast && forecastData.length > 0 && candleData.length > 0) {
-      const lastCandleTime = candleData[candleData.length - 1].time as number
-      const currentPrice = candleData[candleData.length - 1].close
+      const lastCandleTime = candleData[candleData.length - 1].time as number;
+      const currentPrice = candleData[candleData.length - 1].close;
 
       // Build forecast points
-      const forecastTimes: UTCTimestamp[] = [lastCandleTime as UTCTimestamp]
-      const forecastP30: number[] = [currentPrice]
-      const forecastP50: number[] = [currentPrice]
-      const forecastP70: number[] = [currentPrice]
+      const forecastTimes: UTCTimestamp[] = [lastCandleTime as UTCTimestamp];
+      const forecastP30: number[] = [currentPrice];
+      const forecastP50: number[] = [currentPrice];
+      const forecastP70: number[] = [currentPrice];
 
       for (const fc of forecastData) {
-        if (fc.price_p30 !== null && fc.price_p50 !== null && fc.price_p70 !== null) {
-          const futureTime = (lastCandleTime + fc.horizon_days * 86400) as UTCTimestamp
-          forecastTimes.push(futureTime)
-          forecastP30.push(fc.price_p30)
-          forecastP50.push(fc.price_p50)
-          forecastP70.push(fc.price_p70)
+        if (
+          fc.price_p30 !== null &&
+          fc.price_p50 !== null &&
+          fc.price_p70 !== null
+        ) {
+          const futureTime = (lastCandleTime +
+            fc.horizon_days * 86400) as UTCTimestamp;
+          forecastTimes.push(futureTime);
+          forecastP30.push(fc.price_p30);
+          forecastP50.push(fc.price_p50);
+          forecastP70.push(fc.price_p70);
         }
       }
 
@@ -307,30 +347,30 @@ export function LightweightZlCandlestickChart({
         // Upper band (p50 to p70)
         const upperBand = chart.addSeries(AreaSeries, {
           topColor: THEME.forecastBandColor,
-          bottomColor: 'transparent',
+          bottomColor: "transparent",
           lineColor: THEME.forecastLineColor,
           lineWidth: 1,
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-        })
+        });
         upperBand.setData(
-          forecastTimes.map((t, i) => ({ time: t, value: forecastP70[i] }))
-        )
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP70[i] })),
+        );
 
         // Lower band (p30 to p50)
         const lowerBand = chart.addSeries(AreaSeries, {
-          topColor: 'transparent',
+          topColor: "transparent",
           bottomColor: THEME.forecastBandColor,
           lineColor: THEME.forecastLineColor,
           lineWidth: 1,
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-        })
+        });
         lowerBand.setData(
-          forecastTimes.map((t, i) => ({ time: t, value: forecastP30[i] }))
-        )
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP30[i] })),
+        );
 
         // Center line (p50 - dashed)
         const centerLine = chart.addSeries(LineSeries, {
@@ -340,10 +380,10 @@ export function LightweightZlCandlestickChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
-        })
+        });
         centerLine.setData(
-          forecastTimes.map((t, i) => ({ time: t, value: forecastP50[i] }))
-        )
+          forecastTimes.map((t, i) => ({ time: t, value: forecastP50[i] })),
+        );
       }
     }
 
@@ -356,42 +396,42 @@ export function LightweightZlCandlestickChart({
       wickUpColor: THEME.wickUpColor,
       wickDownColor: THEME.wickDownColor,
       priceLineVisible: true,
-    })
+    });
 
-    candleSeries.setData(candleData)
-    candleSeriesRef.current = candleSeries
+    candleSeries.setData(candleData);
+    candleSeriesRef.current = candleSeries;
 
     // Set initial visible range to last 5 months (~150 bars) instead of all data
     if (!fitContentCalledRef.current && candleData.length > 0) {
-      const totalBars = candleData.length
-      const visibleBars = Math.min(150, totalBars) // 5 months or all if less
+      const totalBars = candleData.length;
+      const visibleBars = Math.min(150, totalBars); // 5 months or all if less
       chart.timeScale().setVisibleLogicalRange({
         from: totalBars - visibleBars,
         to: totalBars + 10, // Small offset for forward scroll space
-      })
-      fitContentCalledRef.current = true
+      });
+      fitContentCalledRef.current = true;
     }
 
     // Resize observer
     const resizeObserver = new ResizeObserver((entries) => {
-      if (entries.length === 0 || !entries[0].target) return
-      const newRect = entries[0].contentRect
-      chart.applyOptions({ width: newRect.width, height: newRect.height })
-    })
-    resizeObserver.observe(chartContainerRef.current)
+      if (entries.length === 0 || !entries[0].target) return;
+      const newRect = entries[0].contentRect;
+      chart.applyOptions({ width: newRect.width, height: newRect.height });
+    });
+    resizeObserver.observe(chartContainerRef.current);
 
     return () => {
-      resizeObserver.disconnect()
-      chart.remove()
-    }
-  }, [priceData, forecastData, hasForecast])
+      resizeObserver.disconnect();
+      chart.remove();
+    };
+  }, [priceData, forecastData, hasForecast]);
 
   return (
     <div
       className="relative w-full rounded-xl overflow-hidden border border-white/5 flex flex-col"
       style={{
-        background: 'linear-gradient(180deg, #131722 0%, #0d1117 100%)',
-        height: typeof height === 'number' ? `${height}px` : height,
+        background: "linear-gradient(180deg, #131722 0%, #0d1117 100%)",
+        height: typeof height === "number" ? `${height}px` : height,
       }}
     >
       {/* Header - compact */}
@@ -401,20 +441,26 @@ export function LightweightZlCandlestickChart({
             <div
               className={`w-2 h-2 rounded-full ${
                 isLive
-                  ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50'
-                  : 'bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50'
+                  ? "bg-green-400 animate-pulse shadow-lg shadow-green-400/50"
+                  : "bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50"
               }`}
             />
-            <span className="text-sm font-semibold text-white tracking-tight">ZL1!</span>
+            <span className="text-sm font-semibold text-white tracking-tight">
+              ZL1!
+            </span>
             {isLive && (
               <span className="px-1.5 py-0.5 text-[8px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded uppercase tracking-wider">
                 LIVE
               </span>
             )}
           </div>
-          <span className="text-[11px] text-white/30 font-medium">Soybean Oil • 1D</span>
+          <span className="text-[11px] text-white/30 font-medium">
+            Soybean Oil • 1D
+          </span>
           {lastUpdate && (
-            <span className="text-[9px] text-white/20 font-mono">{lastUpdate}</span>
+            <span className="text-[9px] text-white/20 font-mono">
+              {lastUpdate}
+            </span>
           )}
           {hasForecast && (
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-pink-500/10 border border-pink-500/20">
@@ -429,18 +475,24 @@ export function LightweightZlCandlestickChart({
             <div className="flex items-center gap-3 text-[11px]">
               <div className="flex items-center gap-1">
                 <span className="text-white/30">H</span>
-                <span className="text-white/60 font-mono">{highPrice.toFixed(2)}</span>
+                <span className="text-white/60 font-mono">
+                  {highPrice.toFixed(2)}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-white/30">L</span>
-                <span className="text-white/60 font-mono">{lowPrice.toFixed(2)}</span>
+                <span className="text-white/60 font-mono">
+                  {lowPrice.toFixed(2)}
+                </span>
               </div>
             </div>
           )}
           <div className="h-3 w-px bg-white/10" />
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5">
             <span className="text-[9px] text-white/30 uppercase">IV</span>
-            <span className="text-[11px] font-mono text-violet-400">{volatility}</span>
+            <span className="text-[11px] font-mono text-violet-400">
+              {volatility}
+            </span>
           </div>
           {lastPrice && (
             <div className="flex items-center gap-2">
@@ -449,9 +501,9 @@ export function LightweightZlCandlestickChart({
               </span>
               <span
                 className="text-xs font-medium tabular-nums"
-                style={{ color: priceChange >= 0 ? '#26C6DA' : '#EC0000' }}
+                style={{ color: priceChange >= 0 ? "#26C6DA" : "#EC0000" }}
               >
-                {priceChange >= 0 ? '+' : ''}
+                {priceChange >= 0 ? "+" : ""}
                 {priceChange.toFixed(2)}%
               </span>
             </div>
@@ -469,42 +521,58 @@ export function LightweightZlCandlestickChart({
             width={280}
             height={140}
             className="opacity-[0.10]"
-            style={{ filter: 'grayscale(100%)' }}
+            style={{ filter: "grayscale(100%)" }}
             priority
           />
         </div>
         <div
           ref={chartContainerRef}
-          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
         />
       </div>
 
       {/* Legend */}
       <div className="flex-shrink-0 flex items-center justify-center gap-6 px-4 py-1.5 border-t border-white/5 bg-black/20">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#26C6DA' }} />
+          <div
+            className="w-2.5 h-3 rounded-sm"
+            style={{ backgroundColor: "#26C6DA" }}
+          />
           <span className="text-[9px] text-white/40 uppercase">Bull</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-3 rounded-sm" style={{ backgroundColor: '#EC0000' }} />
+          <div
+            className="w-2.5 h-3 rounded-sm"
+            style={{ backgroundColor: "#EC0000" }}
+          />
           <span className="text-[9px] text-white/40 uppercase">Bear</span>
         </div>
         {hasForecast && (
           <>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-1.5 rounded-sm bg-pink-500/30 border border-pink-500/50" />
-              <span className="text-[9px] text-white/40 uppercase">P30-P70</span>
+              <span className="text-[9px] text-white/40 uppercase">
+                P30-P70
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <div
                 className="w-3 h-0.5 bg-pink-400"
-                style={{ borderTop: '2px dashed' }}
+                style={{ borderTop: "2px dashed" }}
               />
-              <span className="text-[9px] text-white/40 uppercase">P50 (Median)</span>
+              <span className="text-[9px] text-white/40 uppercase">
+                P50 (Median)
+              </span>
             </div>
           </>
         )}
       </div>
     </div>
-  )
+  );
 }
