@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/market-drivers",
-      "schedule": "10 6 * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
