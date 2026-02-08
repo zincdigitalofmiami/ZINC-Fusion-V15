@@ -13,6 +13,8 @@ const PUBLIC_PATH_PREFIXES = [
   '/api/quant',          // Public - Quant overview data
   '/api/epu',            // Public - Economic policy uncertainty
   '/api/refresh-drivers', // Public - Manual data refresh trigger
+  '/api/sentiment',      // Public - Sentiment, news, COT data
+  '/api/options',        // Public - Options data
   '/login',
 ]
 
