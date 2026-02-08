@@ -143,6 +143,30 @@ OUTPUT: Valid JSON only, no markdown.
 // GENERATE DRIVER-SPECIFIC INTEL
 // =============================================================================
 
+function parseDriverIntelJson(rawText: string): DriverIntel | null {
+  const text = rawText.trim()
+  const candidates = new Set<string>([text])
+
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
+  if (fenced?.[1]) candidates.add(fenced[1].trim())
+
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.add(text.slice(firstBrace, lastBrace + 1).trim())
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as DriverIntel
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  return null
+}
+
 export async function generateDriverIntel(data: DriverIntelData): Promise<DriverIntel | null> {
   const systemPrompt = {
     vix: VIX_EXPERT_PROMPT,
@@ -177,6 +201,7 @@ ${timestampsList}
 
 CRITICAL: Base your analysis ONLY on the data provided above. Do not invent numbers.
 Include "dataAsOf": "${data.asOfDate}" in your response to confirm you're analyzing current data.
+Keep each JSON field concise (1-2 sentences max) and keep the full response under 500 tokens.
 
 Provide your expert analysis as JSON.`
 
@@ -191,7 +216,12 @@ Provide your expert analysis as JSON.`
     const content = response.content[0]
     if (content.type !== 'text') return null
 
-    const parsed = JSON.parse(content.text) as DriverIntel
+    const parsed = parseDriverIntelJson(content.text)
+    if (!parsed) {
+      console.error(`AI Intel invalid JSON for ${data.driverName}`, content.text.slice(0, 160))
+      return null
+    }
+
     if (!parsed.whatsHappening) return null
 
     return parsed

@@ -133,6 +133,32 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
 // AI INTELLIGENCE GENERATOR
 // =============================================================================
 
+function parseAIIntelligenceJson(rawText: string): AIIntelligence | null {
+  const text = rawText.trim()
+  const candidates = new Set<string>([text])
+
+  // Common case: model wraps JSON in markdown fences.
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
+  if (fenced?.[1]) candidates.add(fenced[1].trim())
+
+  // Fallback: extract the first top-level JSON object from mixed text.
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.add(text.slice(firstBrace, lastBrace + 1).trim())
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as AIIntelligence
+    } catch {
+      // Continue trying other candidates.
+    }
+  }
+
+  return null
+}
+
 export async function generateAIIntelligence(data: MarketData): Promise<AIIntelligence | null> {
   // Validate we have real data (NO GUESSWORK)
   if (data.vix === undefined || data.boardCrush === undefined || data.cnyRate === undefined || data.tpu === undefined) {
@@ -205,8 +231,11 @@ Produce your comprehensive ZL market intelligence as JSON.`
       return null
     }
 
-    // Parse JSON response
-    const parsed = JSON.parse(content.text) as AIIntelligence
+    const parsed = parseAIIntelligenceJson(content.text)
+    if (!parsed) {
+      console.error('AI Intelligence: Invalid JSON response', content.text.slice(0, 160))
+      return null
+    }
 
     // Validate required fields
     if (!parsed.headline || !parsed.reasoning || !parsed.zlOutlook) {

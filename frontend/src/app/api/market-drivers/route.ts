@@ -4,6 +4,37 @@ import { generateAIIntelligence, type MarketData } from '@/lib/ai-intelligence'
 import { generateDriverIntel, generateFallbackDriverIntel } from '@/lib/ai-driver-intel'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // Allow heavyweight daily synthesis + prewarm headroom
+
+const CACHE_STALE_WHILE_REVALIDATE_SECONDS = 60 * 60
+
+// Must match frontend/vercel.json daily cron for deterministic once-daily refresh.
+const DAILY_REFRESH_UTC_HOUR = 6
+const DAILY_REFRESH_UTC_MINUTE = 10
+
+function getDailyRefreshMeta(now = new Date()) {
+  const nextRefresh = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    DAILY_REFRESH_UTC_HOUR,
+    DAILY_REFRESH_UTC_MINUTE,
+    0,
+    0
+  ))
+  if (now >= nextRefresh) nextRefresh.setUTCDate(nextRefresh.getUTCDate() + 1)
+
+  const sMaxAge = Math.max(60, Math.floor((nextRefresh.getTime() - now.getTime()) / 1000))
+  const headers = {
+    'Cache-Control': `public, s-maxage=${sMaxAge}, stale-while-revalidate=${CACHE_STALE_WHILE_REVALIDATE_SECONDS}`,
+    'X-Narrative-Next-Refresh-Utc': nextRefresh.toISOString(),
+  }
+
+  return {
+    nextRefreshUtc: nextRefresh.toISOString(),
+    headers,
+  }
+}
 
 // =============================================================================
 // DOMAIN-SPECIFIC THRESHOLDS
@@ -985,7 +1016,7 @@ export async function GET() {
           cny: { date: cnyDate, available: cnyRate !== null },
           tpu: { date: tpuDate, available: tpuValue !== null },
         },
-      }, { status: 503 })
+      }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
     }
 
     // ZL Price Data for comprehensive reports
@@ -1046,27 +1077,8 @@ export async function GET() {
       asOfDate,
     }
 
-    // Generate AI intelligence
-    const aiIntelligence = await generateAIIntelligence(marketData).catch(() => null)
-
-    const intelligence = aiIntelligence ? {
-      headline: aiIntelligence.headline,
-      summary: aiIntelligence.reasoning,
-      drivers: [
-        ...aiIntelligence.keyRisks.map(r => ({ label: 'Risk', outlook: 'PRESSURE' as const, detail: r })),
-        ...aiIntelligence.keySupports.map(s => ({ label: 'Support', outlook: 'SUPPORTIVE' as const, detail: s })),
-      ],
-      zlOutlook: aiIntelligence.zlOutlook,
-      zlColor: aiIntelligence.zlOutlook === 'BEARISH' ? '#EF4444' :
-               aiIntelligence.zlOutlook === 'CAUTIOUS' ? '#F97316' :
-               aiIntelligence.zlOutlook === 'NEUTRAL' ? '#EAB308' : '#22C55E',
-      tradingImplication: aiIntelligence.tradingImplication,
-      comprehensiveReport: aiIntelligence.comprehensiveReport,  // Institutional-grade full report
-      aiPowered: true,
-    } : { ...ruleBasedIntelligence, aiPowered: false }
-
-    // Generate per-driver AI intel
-    const [vixIntel, crushIntel, chinaIntel, tariffIntel] = await Promise.all([
+    const [aiIntelligence, vixIntel, crushIntel, chinaIntel, tariffIntel] = await Promise.all([
+      generateAIIntelligence(marketData).catch(() => null),
       generateDriverIntel({
         driverName: 'vix', score: vixResult.score, level: vixResult.level, regime: vixResult.regime,
         components: vixResult.components as unknown as Record<string, number | null>, asOfDate,
@@ -1084,6 +1096,22 @@ export async function GET() {
         components: tariffResult.components as unknown as Record<string, number | null>, asOfDate,
       }).catch(() => null),
     ])
+
+    const intelligence = aiIntelligence ? {
+      headline: aiIntelligence.headline,
+      summary: aiIntelligence.reasoning,
+      drivers: [
+        ...aiIntelligence.keyRisks.map(r => ({ label: 'Risk', outlook: 'PRESSURE' as const, detail: r })),
+        ...aiIntelligence.keySupports.map(s => ({ label: 'Support', outlook: 'SUPPORTIVE' as const, detail: s })),
+      ],
+      zlOutlook: aiIntelligence.zlOutlook,
+      zlColor: aiIntelligence.zlOutlook === 'BEARISH' ? '#EF4444' :
+               aiIntelligence.zlOutlook === 'CAUTIOUS' ? '#F97316' :
+               aiIntelligence.zlOutlook === 'NEUTRAL' ? '#EAB308' : '#22C55E',
+      tradingImplication: aiIntelligence.tradingImplication,
+      comprehensiveReport: aiIntelligence.comprehensiveReport,  // Institutional-grade full report
+      aiPowered: true,
+    } : { ...ruleBasedIntelligence, aiPowered: false }
 
     // Fallbacks - PASS FULL COMPONENTS for data-rich templates
     const vixWhatsHappening = vixIntel ?? generateFallbackDriverIntel({
@@ -1103,8 +1131,14 @@ export async function GET() {
       components: tariffResult.components as unknown as Record<string, number | null>, asOfDate
     })
 
+    const refreshMeta = getDailyRefreshMeta()
+
     return NextResponse.json({
       as_of_date: asOfDate,
+      narrative_refresh: {
+        cadence: 'daily',
+        next_refresh_utc: refreshMeta.nextRefreshUtc,
+      },
       drivers: {
         vix_stress: {
           name: 'VIX Stress',
@@ -1163,9 +1197,12 @@ export async function GET() {
       },
       intelligence,
       data_quality: dataFreshness,
-    })
+    }, { headers: refreshMeta.headers })
   } catch (error) {
     console.error('Market drivers query failed:', error)
-    return NextResponse.json({ error: 'Market drivers query failed', details: String(error) }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Market drivers query failed', details: String(error) },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    )
   }
 }

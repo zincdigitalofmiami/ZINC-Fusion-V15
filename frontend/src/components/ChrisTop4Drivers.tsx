@@ -412,8 +412,21 @@ export function ChrisTop4Drivers() {
   const fetchDrivers = useCallback(async () => {
     try {
       const res = await fetch('/api/market-drivers')
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
+      if (!res.ok) {
+        // Handle timeout (504) or server error (500) gracefully
+        const errorText = res.status === 504 ? 'Request timed out - AI analysis takes longer on first load'
+          : res.status === 500 ? 'Server error - using fallback data'
+          : `HTTP ${res.status}`
+        throw new Error(errorText)
+      }
+      const text = await res.text()
+      if (!text) throw new Error('Empty response from server')
+      let json
+      try {
+        json = JSON.parse(text)
+      } catch {
+        throw new Error('Invalid response format')
+      }
       if (json.error) throw new Error(json.error)
       setData(json)
       setError(null)
@@ -607,6 +620,7 @@ export function ChrisTop4Drivers() {
           )}
 
           {/* Driver Bullets */}
+          {data.intelligence.drivers && data.intelligence.drivers.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
             {data.intelligence.drivers.map((driver, idx) => (
               <div key={`${driver.label}-${idx}`} className="flex items-start gap-2 text-[11px]">
@@ -622,6 +636,7 @@ export function ChrisTop4Drivers() {
               </div>
             ))}
           </div>
+          )}
 
           {/* Comprehensive Report (Institutional Grade) */}
           {data.intelligence.comprehensiveReport && (
