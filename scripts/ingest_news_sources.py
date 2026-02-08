@@ -57,7 +57,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import feedparser
 import psycopg2
@@ -81,8 +81,10 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),  # Console output
-        logging.FileHandler(LOG_DIR / f"news_ingest_{datetime.now().strftime('%Y%m%d')}.log"),
-    ]
+        logging.FileHandler(
+            LOG_DIR / f"news_ingest_{datetime.now().strftime('%Y%m%d')}.log"
+        ),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -182,7 +184,6 @@ NEWS_SOURCES = [
         "url": "https://www.world-grain.com/rss",
         "specialist": "crush",
     },
-
     # =========================================================================
     # SPECIALIST 2: CHINA (Trade Flows)
     # =========================================================================
@@ -210,7 +211,6 @@ NEWS_SOURCES = [
         "url": "http://english.mofcom.gov.cn/",
         "specialist": "china",
     },
-
     # =========================================================================
     # SPECIALIST 3: FX (Currency Competitiveness)
     # =========================================================================
@@ -222,7 +222,6 @@ NEWS_SOURCES = [
         "url": "https://www.ecb.europa.eu/press/pr/html/index.en.html",
         "specialist": "fx",
     },
-
     # =========================================================================
     # SPECIALIST 4: FED (Monetary Policy)
     # =========================================================================
@@ -242,7 +241,6 @@ NEWS_SOURCES = [
         "url": "https://www.federalreserve.gov/newsevents/speeches.htm",
         "specialist": "fed",
     },
-
     # =========================================================================
     # SPECIALIST 5: TARIFF (Trade Policy)
     # =========================================================================
@@ -270,7 +268,6 @@ NEWS_SOURCES = [
         "url": "https://www.federalregister.gov/api/v1/documents.json?conditions[term]=tariff&conditions[type][]=RULE&per_page=20",
         "specialist": "tariff",
     },
-
     # =========================================================================
     # SPECIALIST 6: ENERGY (Crude Oil & Energy Complex)
     # =========================================================================
@@ -290,7 +287,6 @@ NEWS_SOURCES = [
         "url": "https://www.eia.gov/rss/petroleum.xml",
         "specialist": "energy",
     },
-
     # =========================================================================
     # SPECIALIST 7: BIOFUEL (Biodiesel & Renewable Fuel)
     # =========================================================================
@@ -310,7 +306,6 @@ NEWS_SOURCES = [
         "url": "http://www.biodieselmagazine.com/rss/",
         "specialist": "biofuel",
     },
-
     # =========================================================================
     # SPECIALIST 8: PALM (Palm Oil Substitution)
     # =========================================================================
@@ -354,7 +349,6 @@ NEWS_SOURCES = [
         "url": "https://tradingeconomics.com/commodity/palm-oil",
         "specialist": "palm",
     },
-
     # =========================================================================
     # SPECIALIST 9: VOLATILITY (Financial Stress)
     # =========================================================================
@@ -366,7 +360,6 @@ NEWS_SOURCES = [
         "url": "https://www.cboe.com/insights/",
         "specialist": "volatility",
     },
-
     # =========================================================================
     # SPECIALIST 10: SUBSTITUTES (Vegetable Oil Competition)
     # Covers: Canola, Sunflower, Rapeseed, other veg oils
@@ -427,7 +420,6 @@ NEWS_SOURCES = [
         "url": "https://tradingeconomics.com/commodity/rapeseed",
         "specialist": "substitutes",
     },
-
     # =========================================================================
     # SPECIALIST 11: TRUMP EFFECT (Political & Policy Volatility)
     # =========================================================================
@@ -488,6 +480,7 @@ HEADERS = {
 # DATABASE FUNCTIONS
 # =============================================================================
 
+
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
     database_url = os.getenv("DATABASE_URL")
@@ -497,40 +490,68 @@ def get_postgres_connection():
 
 
 def article_exists(conn, article_hash: str) -> bool:
-    """Check if article already exists by content hash."""
+    """Check if article already exists by content hash across all news tables."""
     with conn.cursor() as cur:
+        # Check across all alt news tables (union for dedup)
         cur.execute(
-            'SELECT 1 FROM alt.news_1d WHERE row_hash = %s LIMIT 1',
-            (article_hash,)
+            """
+            SELECT 1 FROM (
+                SELECT row_hash FROM alt.policy_news WHERE row_hash = %s
+                UNION ALL
+                SELECT row_hash FROM alt.executive_actions WHERE row_hash = %s
+                UNION ALL
+                SELECT row_hash FROM alt.econ_news WHERE row_hash = %s
+                UNION ALL
+                SELECT row_hash FROM alt.profarmer_news WHERE row_hash = %s
+            ) combined LIMIT 1
+        """,
+            (article_hash, article_hash, article_hash, article_hash),
         )
         return cur.fetchone() is not None
 
 
 def insert_article(conn, article: Dict[str, Any]) -> bool:
-    """Insert article into database."""
+    """Insert article into appropriate alt news table based on source type."""
     try:
         # Convert bucket_name to specialist_tags array
         bucket = article.get("bucket_name")
         specialist_tags = [bucket] if bucket else []
 
+        # Route to appropriate table based on source
+        source = article.get("source", "").lower()
+
+        # Determine target table
+        if "whitehouse" in source or "executive" in source:
+            table = "alt.executive_actions"
+        elif any(x in source for x in ["profarmer", "farmdoc", "agweb", "dtn"]):
+            table = "alt.profarmer_news"
+        elif any(x in source for x in ["fred", "ecb", "bloomberg", "wsj"]):
+            table = "alt.econ_news"
+        else:
+            # Default: policy/trade news
+            table = "alt.policy_news"
+
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO alt.news_1d
+            cur.execute(
+                f"""
+                INSERT INTO {table}
                 (event_date, published_at, headline, content, source, specialist_tags, zl_sentiment,
-                 is_trump_related, row_hash, url, ingested_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            """, (
-                article["event_date"],
-                article["published_at"],
-                article["headline"][:500] if article["headline"] else None,
-                article["content"][:10000] if article["content"] else None,
-                article["source"],
-                specialist_tags,
-                article.get("zl_sentiment"),
-                article.get("is_trump_related", False),
-                article["content_hash"],
-                article.get("url"),
-            ))
+                 row_hash, url, ingested_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """,
+                (
+                    article["event_date"],
+                    article["published_at"],
+                    article["headline"][:500] if article["headline"] else None,
+                    article["content"][:10000] if article["content"] else None,
+                    article["source"],
+                    specialist_tags,
+                    article.get("zl_sentiment"),
+                    article["content_hash"],
+                    article.get("url"),
+                ),
+            )
+            logger.info(f"Inserted article to {table}")
             return cur.rowcount > 0
     except Exception as e:
         logger.error(f"Failed to insert article: {e}")
@@ -538,43 +559,44 @@ def insert_article(conn, article: Dict[str, Any]) -> bool:
 
 
 def ensure_schema(conn):
-    """Verify required columns exist (no implicit DDL)."""
+    """Verify required columns exist across all alt news tables (no implicit DDL)."""
+    # Core columns required across all news tables (removing is_trump_related - field was removed)
     required = {
         "event_date",
-        "published_at",
         "headline",
-        "content",
         "source",
         "specialist_tags",
-        "zl_sentiment",
-        "is_trump_related",
         "row_hash",
-        "url",
         "ingested_at",
     }
 
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = 'alt' AND table_name = 'news_1d'
-            """
-        )
-        cols = {r[0] for r in cur.fetchall()}
+    tables = ["policy_news", "executive_actions", "econ_news", "profarmer_news"]
 
-    missing = sorted(required - cols)
-    if missing:
-        raise SystemExit(
-            "alt.news_1d missing required columns: "
-            + ", ".join(missing)
-            + ". Schema changes require explicit approval."
-        )
+    with conn.cursor() as cur:
+        for table in tables:
+            cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'alt' AND table_name = %s
+                """,
+                (table,),
+            )
+            cols = {r[0] for r in cur.fetchall()}
+
+            missing = sorted(required - cols)
+            if missing:
+                raise SystemExit(
+                    f"alt.{table} missing required columns: "
+                    + ", ".join(missing)
+                    + ". Schema changes require explicit approval."
+                )
 
 
 # =============================================================================
 # ARTICLE FETCHING
 # =============================================================================
+
 
 def compute_hash(headline: str, content: str, source: str) -> str:
     """Compute unique hash for article deduplication."""
@@ -620,7 +642,13 @@ def is_trump_related(text: str) -> bool:
     return bool(re.search(combined, text.lower()))
 
 
-def process_article(headline: str, content: str, source: Dict, url: str = None, pub_date: datetime = None) -> Dict[str, Any]:
+def process_article(
+    headline: str,
+    content: str,
+    source: Dict,
+    url: str = None,
+    pub_date: datetime = None,
+) -> Dict[str, Any]:
     """Process and classify a single article."""
     # Classify using rule-based system
     article_data = {
@@ -631,7 +659,9 @@ def process_article(headline: str, content: str, source: Dict, url: str = None, 
     classification = classify_article(article_data)
 
     # Determine specialist - use classification bucket or default
-    bucket = classification["alert_buckets"][0] if classification["alert_buckets"] else None
+    bucket = (
+        classification["alert_buckets"][0] if classification["alert_buckets"] else None
+    )
 
     # Check for Trump-related content
     trump_related = is_trump_related(f"{headline} {content}")
@@ -665,7 +695,9 @@ def fetch_rss_feed(source: Dict[str, Any], days_back: int = 30) -> List[Dict[str
         feed = feedparser.parse(source["url"], request_headers=HEADERS)
 
         if feed.bozo and not feed.entries:
-            logger.warning(f"  RSS parse failed: {source['name']} - {getattr(feed, 'bozo_exception', 'Unknown')}")
+            logger.warning(
+                f"  RSS parse failed: {source['name']} - {getattr(feed, 'bozo_exception', 'Unknown')}"
+            )
             return []
 
         for entry in feed.entries:
@@ -703,13 +735,15 @@ def fetch_rss_feed(source: Dict[str, Any], days_back: int = 30) -> List[Dict[str
             if not headline:
                 continue
 
-            articles.append(process_article(
-                headline=headline,
-                content=content,
-                source=source,
-                url=entry.get("link"),
-                pub_date=pub_date
-            ))
+            articles.append(
+                process_article(
+                    headline=headline,
+                    content=content,
+                    source=source,
+                    url=entry.get("link"),
+                    pub_date=pub_date,
+                )
+            )
 
         return articles
 
@@ -718,7 +752,9 @@ def fetch_rss_feed(source: Dict[str, Any], days_back: int = 30) -> List[Dict[str
         return []
 
 
-def fetch_api_source(source: Dict[str, Any], days_back: int = 30) -> List[Dict[str, Any]]:
+def fetch_api_source(
+    source: Dict[str, Any], days_back: int = 30
+) -> List[Dict[str, Any]]:
     """Fetch articles from JSON API (e.g., Federal Register)."""
     articles = []
 
@@ -739,13 +775,15 @@ def fetch_api_source(source: Dict[str, Any], days_back: int = 30) -> List[Dict[s
             if not headline:
                 continue
 
-            articles.append(process_article(
-                headline=headline,
-                content=content,
-                source=source,
-                url=url,
-                pub_date=pub_date
-            ))
+            articles.append(
+                process_article(
+                    headline=headline,
+                    content=content,
+                    source=source,
+                    url=url,
+                    pub_date=pub_date,
+                )
+            )
 
         return articles
 
@@ -754,7 +792,9 @@ def fetch_api_source(source: Dict[str, Any], days_back: int = 30) -> List[Dict[s
         return []
 
 
-def fetch_scrape_source(source: Dict[str, Any], days_back: int = 30) -> List[Dict[str, Any]]:
+def fetch_scrape_source(
+    source: Dict[str, Any], days_back: int = 30
+) -> List[Dict[str, Any]]:
     """Scrape articles from website."""
     articles = []
 
@@ -767,7 +807,7 @@ def fetch_scrape_source(source: Dict[str, Any], days_back: int = 30) -> List[Dic
         # Generic article extraction
         article_elements = soup.find_all(
             ["article", "div", "li"],
-            class_=re.compile(r"(article|post|news|item|entry|story)", re.I)
+            class_=re.compile(r"(article|post|news|item|entry|story)", re.I),
         )
 
         for elem in article_elements[:25]:  # Limit per scrape
@@ -781,7 +821,7 @@ def fetch_scrape_source(source: Dict[str, Any], days_back: int = 30) -> List[Dic
             # Find content/summary
             content_elem = elem.find(
                 ["p", "div", "span"],
-                class_=re.compile(r"(content|summary|excerpt|desc|text)", re.I)
+                class_=re.compile(r"(content|summary|excerpt|desc|text)", re.I),
             )
             content = content_elem.get_text(strip=True) if content_elem else ""
 
@@ -789,13 +829,15 @@ def fetch_scrape_source(source: Dict[str, Any], days_back: int = 30) -> List[Dic
             link_elem = elem.find("a", href=True)
             url = urljoin(source["url"], link_elem["href"]) if link_elem else None
 
-            articles.append(process_article(
-                headline=headline,
-                content=content,
-                source=source,
-                url=url,
-                pub_date=datetime.now()
-            ))
+            articles.append(
+                process_article(
+                    headline=headline,
+                    content=content,
+                    source=source,
+                    url=url,
+                    pub_date=datetime.now(),
+                )
+            )
 
         return articles
 
@@ -804,7 +846,9 @@ def fetch_scrape_source(source: Dict[str, Any], days_back: int = 30) -> List[Dic
         return []
 
 
-def fetch_scrapecreators(source: Dict[str, Any], days_back: int = 7) -> List[Dict[str, Any]]:
+def fetch_scrapecreators(
+    source: Dict[str, Any], days_back: int = 7
+) -> List[Dict[str, Any]]:
     """Fetch from ScrapeCreators API (Twitter/Truth Social)."""
     api_key = os.getenv("SCRAPECREATORS_API_KEY")
     if not api_key:
@@ -829,13 +873,15 @@ def fetch_scrapecreators(source: Dict[str, Any], days_back: int = 7) -> List[Dic
             # Use first 100 chars as headline
             headline = content[:100] + "..." if len(content) > 100 else content
 
-            articles.append(process_article(
-                headline=headline,
-                content=content,
-                source=source,
-                url=post.get("url"),
-                pub_date=pub_date
-            ))
+            articles.append(
+                process_article(
+                    headline=headline,
+                    content=content,
+                    source=source,
+                    url=post.get("url"),
+                    pub_date=pub_date,
+                )
+            )
 
         return articles
 
@@ -848,11 +894,12 @@ def fetch_scrapecreators(source: Dict[str, Any], days_back: int = 7) -> List[Dic
 # MAIN INGESTION
 # =============================================================================
 
+
 def ingest_news(
     mode: str = "full",
     days_back: int = 30,
     dry_run: bool = False,
-    specialist_filter: str = None
+    specialist_filter: str = None,
 ) -> Dict[str, Any]:
     """
     Ingest news from configured sources.
@@ -946,7 +993,9 @@ def ingest_news(
             stats["by_specialist"][specialist]["fetched"] += source_stats["fetched"]
             stats["by_specialist"][specialist]["inserted"] += source_stats["inserted"]
 
-            logger.info(f"   Fetched: {source_stats['fetched']}, Inserted: {source_stats['inserted']}, Dups: {source_stats['duplicates']}")
+            logger.info(
+                f"   Fetched: {source_stats['fetched']}, Inserted: {source_stats['inserted']}, Dups: {source_stats['duplicates']}"
+            )
 
             # Rate limiting
             time.sleep(1.5)
@@ -969,7 +1018,9 @@ def ingest_news(
     logger.info("")
     logger.info("By Specialist:")
     for spec, counts in sorted(stats["by_specialist"].items()):
-        logger.info(f"   {spec}: {counts['inserted']} new / {counts['fetched']} fetched")
+        logger.info(
+            f"   {spec}: {counts['inserted']} new / {counts['fetched']} fetched"
+        )
 
     # Write stats to JSON for monitoring
     stats_file = LOG_DIR / f"news_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -988,24 +1039,19 @@ def main():
         "--mode",
         choices=["quick", "p1", "full"],
         default="full",
-        help="quick=P0 only (fast), p1=P0+P1, full=all sources"
+        help="quick=P0 only (fast), p1=P0+P1, full=all sources",
     )
     parser.add_argument(
-        "--days",
-        type=int,
-        default=30,
-        help="Days of history to fetch (default: 30)"
+        "--days", type=int, default=30, help="Days of history to fetch (default: 30)"
     )
     parser.add_argument(
         "--specialist",
         type=str,
         default=None,
-        help="Only fetch for this specialist (e.g., 'crush', 'trump_effect')"
+        help="Only fetch for this specialist (e.g., 'crush', 'trump_effect')",
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Preview without inserting"
+        "--dry-run", action="store_true", help="Preview without inserting"
     )
 
     args = parser.parse_args()
@@ -1015,7 +1061,7 @@ def main():
             mode=args.mode,
             days_back=args.days,
             dry_run=args.dry_run,
-            specialist_filter=args.specialist
+            specialist_filter=args.specialist,
         )
         return 0 if stats["total_inserted"] > 0 or args.dry_run else 1
     except Exception as e:

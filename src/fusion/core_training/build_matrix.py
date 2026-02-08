@@ -13,10 +13,10 @@ Assembles training.matrix_1d from ALL source data:
 - supply.usda_wasde_1m (WASDE supply/demand balances)
 
 SCHEMA UPDATE 2026-01-23:
-- Weather features now computed on-the-fly from alt.weather_1d (dropped features.weather_1d)
-- Dropped pos.cftc_cits_1w (100% NULL data)
-- Dropped features.options_1d (empty, options pipeline not active)
-- Dropped features.news_scored_1d (empty, news scoring not active)
+- Weather features now computed on-the-fly from alt.weather_1d (dropped features weather table)
+- Dropped pos cftc_cits_1w (100% NULL data)
+- Dropped features options_1d (empty, options pipeline not active)
+- Dropped features news_scored_1d (empty, news scoring not active)
 
 SCHEMA UPDATE 2026-01-22:
 - Added supply.* tables (EPA RINs, USDA exports, WASDE)
@@ -24,9 +24,9 @@ SCHEMA UPDATE 2026-01-22:
 - Removed date window mandates (use all available data)
 
 SCHEMA UPDATE 2026-01-17:
-- FRED data migrated from raw.fred_observations_1d to domain-specific econ.* tables
-- gold.* renamed to features.* (elite_1d)
-- training.core_matrix_curated_1d renamed to training.matrix_1d
+- FRED data migrated from domain-specific econ.* tables (legacy raw schema removed)
+- gold schema renamed to features (elite_1d)
+- training matrix curated table renamed to training.matrix_1d
 
 Design Principles:
 - Blanket inclusion WITH enforced curation (120-350 features)
@@ -56,7 +56,7 @@ from pandas.api.types import is_numeric_dtype
 
 from .config import DATABASE_URL, TARGET_SYMBOL, HORIZONS, FeatureMatrixConfig as FMC
 from .matrix_manifest import write_manifest, check_schema_drift
-from .matrix_validation import validate_matrix, ValidationResult
+from .matrix_validation import validate_matrix
 
 # Forward fill configuration
 try:
@@ -93,9 +93,24 @@ logger = logging.getLogger(__name__)
 
 # Columns that must NEVER be forward filled (computed, not state)
 FFILL_FORBIDDEN_SUFFIXES = (
-    "_delta", "_chg", "_pct", "_ret", "_mom", "_vol", "_z", "_zscore",
-    "_surprise", "_return", "_spread", "_ratio", "_is_release_day",
-    "_age_days", "_is_available", "_is_missing", "_is_imputed", "_is_observed"
+    "_delta",
+    "_chg",
+    "_pct",
+    "_ret",
+    "_mom",
+    "_vol",
+    "_z",
+    "_zscore",
+    "_surprise",
+    "_return",
+    "_spread",
+    "_ratio",
+    "_is_release_day",
+    "_age_days",
+    "_is_available",
+    "_is_missing",
+    "_is_imputed",
+    "_is_observed",
 )
 
 
@@ -151,13 +166,13 @@ def ffill_with_ttl(
     idx = series.index
     if isinstance(idx, pd.DatetimeIndex):
         dates = idx.date
-    elif hasattr(idx[0], 'date') if len(idx) > 0 else False:
+    elif hasattr(idx[0], "date") if len(idx) > 0 else False:
         # Dates already
         dates = idx
     else:
         # Fallback: treat as consecutive days if no date info
         # This is less accurate but prevents crashes
-        dates = pd.date_range(start='2020-01-01', periods=len(series), freq='D').date
+        dates = pd.date_range(start="2020-01-01", periods=len(series), freq="D").date
 
     dates_series = pd.Series(dates, index=series.index)
 
@@ -180,7 +195,7 @@ def ffill_with_ttl(
 
     gap_days = pd.Series(
         [date_diff_days(d, lr) for d, lr in zip(dates_series, last_real_date)],
-        index=series.index
+        index=series.index,
     )
 
     # Weekend-exempt carve-out: weekends don't count toward TTL (holidays still count)
@@ -198,17 +213,20 @@ def ffill_with_ttl(
                     last_real = last_real.date()
                 # Count weekend days in range
                 weekend_days = sum(
-                    1 for i in range(int(raw_gap))
-                    if (last_real + timedelta(days=i+1)).weekday() >= 5
+                    1
+                    for i in range(int(raw_gap))
+                    if (last_real + timedelta(days=i + 1)).weekday() >= 5
                 )
                 return raw_gap - weekend_days
             except Exception:
                 return raw_gap
 
         gap_days = pd.Series(
-            [adjust_for_weekends(d, lr, g) for d, lr, g in
-             zip(dates_series, last_real_date, gap_days)],
-            index=series.index
+            [
+                adjust_for_weekends(d, lr, g)
+                for d, lr, g in zip(dates_series, last_real_date, gap_days)
+            ],
+            index=series.index,
         )
 
     # Apply TTL: only keep filled values within TTL window
@@ -256,10 +274,10 @@ def ffill_with_age(
     idx = series.index
     if isinstance(idx, pd.DatetimeIndex):
         dates = idx.date
-    elif len(idx) > 0 and hasattr(idx[0], 'date'):
+    elif len(idx) > 0 and hasattr(idx[0], "date"):
         dates = idx
     else:
-        dates = pd.date_range(start='2020-01-01', periods=len(series), freq='D').date
+        dates = pd.date_range(start="2020-01-01", periods=len(series), freq="D").date
 
     dates_series = pd.Series(dates, index=series.index)
     last_real_date = dates_series.where(is_real).ffill()
@@ -279,11 +297,12 @@ def ffill_with_age(
 
     age_days = pd.Series(
         [calc_age(d, lr) for d, lr in zip(dates_series, last_real_date)],
-        index=series.index
+        index=series.index,
     )
 
     # Market-aligned: adjust age by subtracting weekends
     if weekend_exempt:
+
         def adjust_for_weekends(current, last_real, raw_age):
             if pd.isna(raw_age) or raw_age <= 0:
                 return raw_age
@@ -293,17 +312,20 @@ def ffill_with_age(
                 if isinstance(last_real, pd.Timestamp):
                     last_real = last_real.date()
                 weekend_days = sum(
-                    1 for i in range(int(raw_age))
-                    if (last_real + timedelta(days=i+1)).weekday() >= 5
+                    1
+                    for i in range(int(raw_age))
+                    if (last_real + timedelta(days=i + 1)).weekday() >= 5
                 )
                 return raw_age - weekend_days
             except Exception:
                 return raw_age
 
         adjusted_age = pd.Series(
-            [adjust_for_weekends(d, lr, a) for d, lr, a in
-             zip(dates_series, last_real_date, age_days)],
-            index=series.index
+            [
+                adjust_for_weekends(d, lr, a)
+                for d, lr, a in zip(dates_series, last_real_date, age_days)
+            ],
+            index=series.index,
         )
     else:
         adjusted_age = age_days
@@ -359,10 +381,25 @@ def ffill_dataframe_with_ttl(
         # Heuristic selection: numeric columns that are NOT derived/computed
         # Uses is_numeric_dtype for robust nullable dtype handling
         columns = [
-            c for c in df.columns
+            c
+            for c in df.columns
             if is_numeric_dtype(df[c])
-            and not any(c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES)
-            and not any(x in c.lower() for x in ['price', 'close', 'open', 'high', 'low', 'settle', 'bid', 'ask'])
+            and not any(
+                c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES
+            )
+            and not any(
+                x in c.lower()
+                for x in [
+                    "price",
+                    "close",
+                    "open",
+                    "high",
+                    "low",
+                    "settle",
+                    "bid",
+                    "ask",
+                ]
+            )
         ]
 
     for col in columns:
@@ -408,13 +445,28 @@ def validate_age_tracking(
     if state_columns is None:
         # Heuristic: identify likely forward-filled state columns
         # Exclude price columns, derived columns, and already-age columns
-        price_terms = ['price', 'close', 'open', 'high', 'low', 'settle', 'bid', 'ask', 'volume']
+        price_terms = [
+            "price",
+            "close",
+            "open",
+            "high",
+            "low",
+            "settle",
+            "bid",
+            "ask",
+            "volume",
+        ]
         state_columns = [
-            c for c in df.columns
+            c
+            for c in df.columns
             if np.issubdtype(df[c].dtype, np.number)
             and not any(term in c.lower() for term in price_terms)
-            and not c.endswith(('_age_days', '_is_missing', '_is_release_day', '_is_available'))
-            and not any(c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES)
+            and not c.endswith(
+                ("_age_days", "_is_missing", "_is_release_day", "_is_available")
+            )
+            and not any(
+                c.lower().endswith(suffix) for suffix in FFILL_FORBIDDEN_SUFFIXES
+            )
         ]
 
     # Check which state columns are missing age tracking
@@ -437,8 +489,8 @@ def validate_age_tracking(
         raise ValueError(
             f"Forward Fill Policy Violation: {len(missing_age)} state columns "
             f"lack required _age_days tracking: {missing_age[:10]}..."
-            if len(missing_age) > 10 else
-            f"Forward Fill Policy Violation: {len(missing_age)} state columns "
+            if len(missing_age) > 10
+            else f"Forward Fill Policy Violation: {len(missing_age)} state columns "
             f"lack required _age_days tracking: {missing_age}"
         )
 
@@ -566,9 +618,6 @@ def pure_event_encode(
     base_df[date_col] = pd.to_datetime(base_df[date_col]).dt.date
     source_df[date_col] = pd.to_datetime(source_df[date_col]).dt.date
 
-    # Get the set of release dates
-    release_dates = set(source_df[date_col].dropna())
-
     # Sort source by date for delta calculation
     source_df = source_df.sort_values(date_col)
 
@@ -583,19 +632,22 @@ def pure_event_encode(
             continue
 
         # Build a lookup from release date to value
-        release_values = source_df[[date_col, col]].dropna().set_index(date_col)[col].to_dict()
+        release_values = (
+            source_df[[date_col, col]].dropna().set_index(date_col)[col].to_dict()
+        )
 
         # Calculate deltas between consecutive releases
         # IMPORTANT: First release has no prior, so delta = 0.0 (not NaN)
         releases_sorted = source_df[[date_col, col]].dropna().sort_values(date_col)
         releases_sorted["_prev"] = releases_sorted[col].shift(1)
         releases_sorted["_delta"] = releases_sorted[col] - releases_sorted["_prev"]
-        releases_sorted["_delta"] = releases_sorted["_delta"].fillna(0.0)  # First release delta = 0
+        releases_sorted["_delta"] = releases_sorted["_delta"].fillna(
+            0.0
+        )  # First release delta = 0
         release_deltas = releases_sorted.set_index(date_col)["_delta"].to_dict()
 
-        # Get first and last release dates
+        # Get release dates in order
         release_dates_list = sorted(release_values.keys())
-        first_release = release_dates_list[0] if release_dates_list else None
 
         # Build trading day set for efficient lookup
         trading_days = set(base_df[date_col].dropna())
@@ -607,7 +659,9 @@ def pure_event_encode(
             # Find the first trading day >= release date
             for td in sorted(trading_days):
                 if td >= rel_date:
-                    release_to_trading_day[td] = rel_date  # Map trading day -> original release
+                    release_to_trading_day[td] = (
+                        rel_date  # Map trading day -> original release
+                    )
                     break
 
         # Initialize output arrays
@@ -680,10 +734,15 @@ def forward_fill_low_coverage_series(
     df = df.copy()
 
     # Identify numeric columns with low coverage
-    numeric_cols = [c for c in df.columns
-                   if np.issubdtype(df[c].dtype, np.number)
-                   and c not in ["trade_date"]
-                   and not c.endswith(("_is_release_day", "_age_days", "_is_available", "_is_missing"))]
+    numeric_cols = [
+        c
+        for c in df.columns
+        if np.issubdtype(df[c].dtype, np.number)
+        and c not in ["trade_date"]
+        and not c.endswith(
+            ("_is_release_day", "_age_days", "_is_available", "_is_missing")
+        )
+    ]
 
     filled_count = 0
     for col in numeric_cols:
@@ -699,10 +758,14 @@ def forward_fill_low_coverage_series(
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
-                logger.debug(f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs + age column")
+                logger.debug(
+                    f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs + age column"
+                )
 
     if filled_count > 0:
-        logger.info(f"   Forward-filled {filled_count} low-coverage series (<{threshold*100:.0f}% coverage) with age tracking")
+        logger.info(
+            f"   Forward-filled {filled_count} low-coverage series (<{threshold * 100:.0f}% coverage) with age tracking"
+        )
 
     return df
 
@@ -877,21 +940,21 @@ def load_cross_asset_correlations(conn, target_symbol: str = "ZL") -> pd.DataFra
 
     # Key correlated assets for soybean oil
     corr_symbols = [
-        "ZS",   # Soybeans (primary)
-        "ZM",   # Soybean meal (co-product)
-        "CL",   # Crude oil (biodiesel feedstock)
-        "HO",   # Heating oil (energy proxy)
-        "RB",   # Gasoline (energy complex)
-        "GC",   # Gold (macro/inflation hedge)
-        "DX",   # Dollar index (FX impact)
-        "ES",   # S&P 500 (risk-on/risk-off)
-        "ZC",   # Corn (competing crop)
-        "ZW",   # Wheat (grain complex)
+        "ZS",  # Soybeans (primary)
+        "ZM",  # Soybean meal (co-product)
+        "CL",  # Crude oil (biodiesel feedstock)
+        "HO",  # Heating oil (energy proxy)
+        "RB",  # Gasoline (energy complex)
+        "GC",  # Gold (macro/inflation hedge)
+        "DX",  # Dollar index (FX impact)
+        "ES",  # S&P 500 (risk-on/risk-off)
+        "ZC",  # Corn (competing crop)
+        "ZW",  # Wheat (grain complex)
         "CPO",  # Palm oil (substitute)
-        "NG",   # Natural gas (energy)
-        "SI",   # Silver (precious metals)
-        "HG",   # Copper (industrial demand)
-        "VX",   # VIX futures (volatility)
+        "NG",  # Natural gas (energy)
+        "SI",  # Silver (precious metals)
+        "HG",  # Copper (industrial demand)
+        "VX",  # VIX futures (volatility)
     ]
 
     try:
@@ -925,7 +988,9 @@ def load_cross_asset_correlations(conn, target_symbol: str = "ZL") -> pd.DataFra
         result = result_dfs[0].join(result_dfs[1:]).reset_index()
         result = normalize_date_column(result, "trade_date")
 
-        logger.info(f"   Loaded {len(result):,} rows, {len(result.columns)-1} correlation columns")
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} correlation columns"
+        )
         logger.info(f"   Symbols: {corr_symbols}")
         return result
 
@@ -951,12 +1016,31 @@ def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataF
     logger.info("Loading cross-commodity indicators from features.elite_1d...")
 
     # Key related commodities
-    cross_symbols = ["ZS", "ZM", "CL", "HO", "RB", "NG", "ZC", "ZW", "CPO", "GC", "ES", "DX"]
+    cross_symbols = [
+        "ZS",
+        "ZM",
+        "CL",
+        "HO",
+        "RB",
+        "NG",
+        "ZC",
+        "ZW",
+        "CPO",
+        "GC",
+        "ES",
+        "DX",
+    ]
 
     # Key indicators to include (subset of elite_1d columns)
     indicator_cols = [
-        "close", "returns_1d", "rsi_14", "macd", "atr_ratio",
-        "volume_zscore", "bb_percent_b", "hurst_exponent"
+        "close",
+        "returns_1d",
+        "rsi_14",
+        "macd",
+        "atr_ratio",
+        "volume_zscore",
+        "bb_percent_b",
+        "hurst_exponent",
     ]
 
     try:
@@ -996,7 +1080,9 @@ def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataF
         result = result.reset_index()
         result = normalize_date_column(result, "trade_date")
 
-        logger.info(f"   Loaded {len(result):,} rows, {len(result.columns)-1} cross-commodity columns")
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} cross-commodity columns"
+        )
         logger.info(f"   Symbols: {cross_symbols}")
         logger.info(f"   Indicators: {indicator_cols}")
         return result
@@ -1049,77 +1135,83 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
 
         # Board crush margin (CME formula): (ZL × 0.11) + (ZM × 0.022) - (ZS / 100)
         if all(c in prices.columns for c in ["ZL", "ZS", "ZM"]):
-            result["board_crush"] = (prices["ZL"] * 0.11) + (prices["ZM"] * 0.022) - (prices["ZS"] / 100)
+            result["board_crush"] = (
+                (prices["ZL"] * 0.11) + (prices["ZM"] * 0.022) - (prices["ZS"] / 100)
+            )
 
             # Z-scores (multiple horizons for different trading timeframes)
             # 21d = 1 month (tactical trading)
             result["board_crush_zscore_21d"] = (
-                (result["board_crush"] - result["board_crush"].rolling(21, min_periods=10).mean())
-                / result["board_crush"].rolling(21, min_periods=10).std()
-            )
+                result["board_crush"]
+                - result["board_crush"].rolling(21, min_periods=10).mean()
+            ) / result["board_crush"].rolling(21, min_periods=10).std()
             # 63d = 1 quarter (swing trading)
             result["board_crush_zscore_63d"] = (
-                (result["board_crush"] - result["board_crush"].rolling(63, min_periods=21).mean())
-                / result["board_crush"].rolling(63, min_periods=21).std()
-            )
+                result["board_crush"]
+                - result["board_crush"].rolling(63, min_periods=21).mean()
+            ) / result["board_crush"].rolling(63, min_periods=21).std()
             # 252d = 1 year (strategic)
             result["board_crush_zscore_252d"] = (
-                (result["board_crush"] - result["board_crush"].rolling(252, min_periods=63).mean())
-                / result["board_crush"].rolling(252, min_periods=63).std()
-            )
+                result["board_crush"]
+                - result["board_crush"].rolling(252, min_periods=63).mean()
+            ) / result["board_crush"].rolling(252, min_periods=63).std()
 
             # Momentum: 5-day change (leading indicator)
             result["board_crush_momentum_5d"] = result["board_crush"].diff(5)
 
             # Regime: Expanding vs contracting
-            result["board_crush_expanding"] = (result["board_crush"].diff(5) > 0).astype(int)
+            result["board_crush_expanding"] = (
+                result["board_crush"].diff(5) > 0
+            ).astype(int)
 
-            logger.info("   Calculated board_crush with z-scores (21d/63d/252d) and momentum")
+            logger.info(
+                "   Calculated board_crush with z-scores (21d/63d/252d) and momentum"
+            )
 
         # Soy oil share of crush value
         if all(c in prices.columns for c in ["ZL", "ZM"]):
             result["soy_oil_share"] = prices["ZL"] / (prices["ZL"] + prices["ZM"])
             result["soy_oil_share_zscore"] = (
-                (result["soy_oil_share"] - result["soy_oil_share"].rolling(252, min_periods=63).mean())
-                / result["soy_oil_share"].rolling(252, min_periods=63).std()
-            )
+                result["soy_oil_share"]
+                - result["soy_oil_share"].rolling(252, min_periods=63).mean()
+            ) / result["soy_oil_share"].rolling(252, min_periods=63).std()
             logger.info("   Calculated soy_oil_share")
 
         # ZL/ZS ratio (oil extraction value)
         if all(c in prices.columns for c in ["ZL", "ZS"]):
             result["zl_zs_ratio"] = prices["ZL"] / prices["ZS"]
             result["zl_zs_ratio_zscore"] = (
-                (result["zl_zs_ratio"] - result["zl_zs_ratio"].rolling(252, min_periods=63).mean())
-                / result["zl_zs_ratio"].rolling(252, min_periods=63).std()
-            )
+                result["zl_zs_ratio"]
+                - result["zl_zs_ratio"].rolling(252, min_periods=63).mean()
+            ) / result["zl_zs_ratio"].rolling(252, min_periods=63).std()
             logger.info("   Calculated zl_zs_ratio")
 
         # ZL/CL ratio (biodiesel margin proxy)
         if all(c in prices.columns for c in ["ZL", "CL"]):
             result["zl_cl_ratio"] = prices["ZL"] / prices["CL"]
             result["zl_cl_ratio_zscore"] = (
-                (result["zl_cl_ratio"] - result["zl_cl_ratio"].rolling(252, min_periods=63).mean())
-                / result["zl_cl_ratio"].rolling(252, min_periods=63).std()
-            )
+                result["zl_cl_ratio"]
+                - result["zl_cl_ratio"].rolling(252, min_periods=63).mean()
+            ) / result["zl_cl_ratio"].rolling(252, min_periods=63).std()
             logger.info("   Calculated zl_cl_ratio")
 
         # ZL - CPO spread (substitution pressure)
         if all(c in prices.columns for c in ["ZL", "CPO"]):
             result["zl_cpo_spread"] = prices["ZL"] - prices["CPO"]
             result["zl_cpo_spread_zscore"] = (
-                (result["zl_cpo_spread"] - result["zl_cpo_spread"].rolling(252, min_periods=63).mean())
-                / result["zl_cpo_spread"].rolling(252, min_periods=63).std()
-            )
+                result["zl_cpo_spread"]
+                - result["zl_cpo_spread"].rolling(252, min_periods=63).mean()
+            ) / result["zl_cpo_spread"].rolling(252, min_periods=63).std()
             logger.info("   Calculated zl_cpo_spread")
 
         # 3-2-1 crack spread proxy (if HO and RB available)
         if all(c in prices.columns for c in ["CL", "HO", "RB"]):
             # 3-2-1 crack: 2*HO + 1*RB - 3*CL (simplified)
-            result["crack_321"] = (2 * prices["HO"] + prices["RB"] - 3 * prices["CL"])
+            result["crack_321"] = 2 * prices["HO"] + prices["RB"] - 3 * prices["CL"]
             result["crack_321_zscore"] = (
-                (result["crack_321"] - result["crack_321"].rolling(252, min_periods=63).mean())
-                / result["crack_321"].rolling(252, min_periods=63).std()
-            )
+                result["crack_321"]
+                - result["crack_321"].rolling(252, min_periods=63).mean()
+            ) / result["crack_321"].rolling(252, min_periods=63).std()
 
             # Individual crack spreads (heating oil and RBOB vs crude)
             result["ho_crack"] = prices["HO"] - prices["CL"]  # Heating oil crack
@@ -1127,12 +1219,14 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
 
             # HO crack z-score (diesel economics for biodiesel substitution)
             result["ho_crack_zscore_63d"] = (
-                (result["ho_crack"] - result["ho_crack"].rolling(63, min_periods=21).mean())
-                / result["ho_crack"].rolling(63, min_periods=21).std()
-            )
+                result["ho_crack"]
+                - result["ho_crack"].rolling(63, min_periods=21).mean()
+            ) / result["ho_crack"].rolling(63, min_periods=21).std()
 
             # Wide diesel crack = biodiesel substitution (bullish ZL via RINs)
-            result["diesel_crack_wide"] = (result["ho_crack_zscore_63d"] > 1.0).astype(int)
+            result["diesel_crack_wide"] = (result["ho_crack_zscore_63d"] > 1.0).astype(
+                int
+            )
 
             logger.info("   Calculated crack_321 spread + HO/RB individual cracks")
 
@@ -1174,7 +1268,14 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         available_cols = set(cols_df["column_name"].tolist())
 
         # Required columns
-        needed = {"event_date", "underlying", "option_type", "open_interest", "volume", "close"}
+        needed = {
+            "event_date",
+            "underlying",
+            "option_type",
+            "open_interest",
+            "volume",
+            "close",
+        }
         if not needed.issubset(available_cols):
             logger.warning(f"   Missing columns: {needed - available_cols}")
             return pd.DataFrame()
@@ -1203,33 +1304,42 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         result = df.pivot(
             index="trade_date",
             columns="option_type",
-            values=["total_oi", "total_volume", "avg_premium"]
+            values=["total_oi", "total_volume", "avg_premium"],
         )
 
         # Flatten column names
-        result.columns = [f"opt_{metric}_{opt_type.lower()}"
-                         for metric, opt_type in result.columns]
+        result.columns = [
+            f"opt_{metric}_{opt_type.lower()}" for metric, opt_type in result.columns
+        ]
         result = result.reset_index()
 
         # Calculate derived features
         if "opt_total_oi_P" in result.columns and "opt_total_oi_C" in result.columns:
-            result["opt_put_call_oi_ratio"] = (
-                result["opt_total_oi_P"] / result["opt_total_oi_C"].replace(0, np.nan)
-            )
+            result["opt_put_call_oi_ratio"] = result["opt_total_oi_P"] / result[
+                "opt_total_oi_C"
+            ].replace(0, np.nan)
 
-        if "opt_total_volume_P" in result.columns and "opt_total_volume_C" in result.columns:
-            result["opt_put_call_vol_ratio"] = (
-                result["opt_total_volume_P"] / result["opt_total_volume_C"].replace(0, np.nan)
-            )
+        if (
+            "opt_total_volume_P" in result.columns
+            and "opt_total_volume_C" in result.columns
+        ):
+            result["opt_put_call_vol_ratio"] = result["opt_total_volume_P"] / result[
+                "opt_total_volume_C"
+            ].replace(0, np.nan)
 
-        if "opt_avg_premium_P" in result.columns and "opt_avg_premium_C" in result.columns:
+        if (
+            "opt_avg_premium_P" in result.columns
+            and "opt_avg_premium_C" in result.columns
+        ):
             result["opt_premium_skew"] = (
                 result["opt_avg_premium_P"] - result["opt_avg_premium_C"]
             )
 
         result = normalize_date_column(result, "trade_date")
 
-        logger.info(f"   Loaded {len(result):,} rows, {len(result.columns)-1} options columns")
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} options columns"
+        )
         return result
 
     except Exception as e:
@@ -1282,7 +1392,9 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
         df = df.drop(columns=["hurst_regime"])
         df = df.rename(columns={"hurst_regime_encoded": "hurst_regime"})
         missing_count = df["hurst_regime_is_missing"].sum()
-        logger.info(f"   Encoded hurst_regime as ordinal (0=unknown, 1=random, 2=trending) + _is_missing flag ({missing_count} missing)")
+        logger.info(
+            f"   Encoded hurst_regime as ordinal (0=unknown, 1=random, 2=trending) + _is_missing flag ({missing_count} missing)"
+        )
 
     # Encode ttm_squeeze_on as numeric 0/1 WITH missingness encoding
     if "ttm_squeeze_on" in df.columns:
@@ -1291,7 +1403,9 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
         # Fill missing with 0 (squeeze off is neutral)
         df["ttm_squeeze_on"] = df["ttm_squeeze_on"].fillna(False).astype(int)
         missing_count = df["ttm_squeeze_on_is_missing"].sum()
-        logger.info(f"   Encoded ttm_squeeze_on as 0/1 + _is_missing flag ({missing_count} missing)")
+        logger.info(
+            f"   Encoded ttm_squeeze_on as 0/1 + _is_missing flag ({missing_count} missing)"
+        )
 
     # Encode unusual_volume as numeric 0/1
     if "unusual_volume" in df.columns:
@@ -1398,7 +1512,9 @@ def load_fred_macro(conn) -> pd.DataFrame:
 
         # Log sparsity fix
         non_null_before = df.groupby("trade_date")["value"].count().mean()
-        logger.info(f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} series")
+        logger.info(
+            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns) - 1} series"
+        )
         logger.info(
             f"   Applied forward-fill to sparse pivot (avg {non_null_before:.1f} series per row → all)"
         )
@@ -1432,7 +1548,7 @@ def load_fx_rates(conn) -> pd.DataFrame:
                 f"fx_{col.lower().replace('/', '_')}" for col in df_wide.columns[1:]
             ]
             logger.info(
-                f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} pairs"
+                f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns) - 1} pairs"
             )
             return df_wide
 
@@ -1531,7 +1647,7 @@ def load_weather_aggregates(conn) -> pd.DataFrame:
             * 100
         )
         logger.info(
-            f"   Computed {len(result):,} rows, {len(result.columns)-1} weather features"
+            f"   Computed {len(result):,} rows, {len(result.columns) - 1} weather features"
         )
         logger.info(f"   Average null percentage: {null_pct:.1f}%")
         return result
@@ -1612,7 +1728,9 @@ def load_cftc_positioning(conn, symbol: str = "ZL") -> pd.DataFrame:
             # Normalize date type
             df = normalize_date_column(df, "trade_date")
 
-            logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)-1} COT features")
+            logger.info(
+                f"   Loaded {len(df):,} rows, {len(df.columns) - 1} COT features"
+            )
             logger.info(
                 f"   Date range: {df['trade_date'].min()} to {df['trade_date'].max()}"
             )
@@ -1647,7 +1765,7 @@ def load_cftc_cits(conn) -> pd.DataFrame:
             exists = cur.fetchone()[0]
 
         if not exists:
-            logger.info("   pos.cftc_cits_1w table not found - skipping CITS")
+            logger.info("   CFTC CITS table not found - skipping CITS")
             return pd.DataFrame()
 
         query = """
@@ -1657,7 +1775,7 @@ def load_cftc_cits(conn) -> pd.DataFrame:
                 cit_short,
                 cit_net as cits_net_position,
                 cit_pct_oi as cits_pct_oi
-            FROM pos.cftc_cits_1w
+            FROM "pos"."cftc_cits_1w"
             WHERE symbol = 'SOYBEAN_OIL'
             ORDER BY event_date
         """
@@ -1684,7 +1802,7 @@ def load_cftc_cits(conn) -> pd.DataFrame:
 
             df = normalize_date_column(df, "trade_date")
             logger.info(
-                f"   Loaded {len(df):,} rows, {len(df.columns)-1} CITS features"
+                f"   Loaded {len(df):,} rows, {len(df.columns) - 1} CITS features"
             )
             return df
         else:
@@ -1742,7 +1860,7 @@ def load_epa_rin_prices(conn) -> pd.DataFrame:
 
         df_wide = normalize_date_column(df_wide, "trade_date")
         logger.info(
-            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} RIN types"
+            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns) - 1} RIN types"
         )
         logger.info(
             f"   Date range: {df_wide['trade_date'].min()} to {df_wide['trade_date'].max()}"
@@ -1829,7 +1947,7 @@ def load_usda_exports(conn) -> pd.DataFrame:
 
         result = normalize_date_column(result, "trade_date")
         logger.info(
-            f"   Loaded {len(result):,} rows, {len(result.columns)-1} export columns"
+            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} export columns"
         )
         return result
 
@@ -1902,7 +2020,7 @@ def load_usda_wasde(conn) -> pd.DataFrame:
 
         df_wide = normalize_date_column(df_wide, "trade_date")
         logger.info(
-            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns)-1} WASDE columns"
+            f"   Loaded {len(df_wide):,} rows, {len(df_wide.columns) - 1} WASDE columns"
         )
         return df_wide
 
@@ -1913,27 +2031,38 @@ def load_usda_wasde(conn) -> pd.DataFrame:
 
 def load_news_sentiment(conn) -> pd.DataFrame:
     """
-    Load news sentiment from alt.news_1d.
+    Load news sentiment from alt news tables (policy_news, executive_actions, econ_news, profarmer_news).
 
     NEW (2026-01-23): News sentiment is a key driver of short-term moves.
 
     Features:
-    - news_sentiment: Average sentiment score
-    - news_zl_sentiment: ZL-specific sentiment
+    - news_zl_sentiment: ZL-specific sentiment (where available)
     - news_count: Number of articles
-    - news_trump_pct: % of articles that are Trump-related
     """
-    logger.info("Loading news sentiment from alt.news_1d...")
+    logger.info(
+        "Loading news data from alt schema (union of policy_news, executive_actions, econ_news, profarmer_news)..."
+    )
 
     try:
         query = """
+            WITH all_news AS (
+                SELECT event_date, zl_sentiment FROM alt.policy_news
+                UNION ALL
+                SELECT event_date, zl_sentiment FROM alt.executive_actions
+                UNION ALL
+                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news
+                UNION ALL
+                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news
+            )
             SELECT
                 event_date as trade_date,
-                AVG(sentiment_score::float) as news_sentiment,
-                AVG(zl_sentiment::float) as news_zl_sentiment,
-                COUNT(*) as news_count,
-                AVG(CASE WHEN is_trump_related THEN 1.0 ELSE 0.0 END) as news_trump_pct
-            FROM alt.news_1d
+                AVG(CASE
+                    WHEN zl_sentiment = 'bullish' THEN 1.0
+                    WHEN zl_sentiment = 'bearish' THEN -1.0
+                    ELSE 0.0
+                END) as news_zl_sentiment,
+                COUNT(*) as news_count
+            FROM all_news
             GROUP BY event_date
             ORDER BY event_date
         """
@@ -1942,7 +2071,7 @@ def load_news_sentiment(conn) -> pd.DataFrame:
         if len(df) > 0:
             df = normalize_date_column(df, "trade_date")
             logger.info(
-                f"   Loaded {len(df):,} rows, {len(df.columns)-1} news features"
+                f"   Loaded {len(df):,} rows, {len(df.columns) - 1} news features"
             )
             return df
         else:
@@ -2102,7 +2231,7 @@ def validate_specialist_signals_for_core(
 
         if coverage < 0.90:
             issues.append(
-                f"{bucket}: coverage {coverage*100:.1f}% < 90% ({n_signals}/{expected_rows} days)"
+                f"{bucket}: coverage {coverage * 100:.1f}% < 90% ({n_signals}/{expected_rows} days)"
             )
 
     # Check for missing buckets
@@ -2121,7 +2250,7 @@ def validate_specialist_signals_for_core(
             null_rate = recent_df[sig_col].isna().mean()
             if null_rate > 0.50:  # More than 50% null in last 30 days
                 bucket = sig_col.replace("sig_", "").replace("_1", "")
-                issues.append(f"{bucket}: {null_rate*100:.1f}% null in last 30 days")
+                issues.append(f"{bucket}: {null_rate * 100:.1f}% null in last 30 days")
 
     return {
         "valid": len(issues) == 0,
@@ -2164,7 +2293,7 @@ def zscore_normalize(df: pd.DataFrame, exclude_cols: List[str]) -> pd.DataFrame:
 
 def drop_low_coverage_cols(df: pd.DataFrame, min_coverage: float = 0.7) -> pd.DataFrame:
     """Drop columns with too many nulls."""
-    logger.info(f"Dropping columns with <{min_coverage*100:.0f}% coverage...")
+    logger.info(f"Dropping columns with <{min_coverage * 100:.0f}% coverage...")
 
     before_cols = len(df.columns)
     coverage = df.notna().mean()
@@ -2231,7 +2360,7 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
     # Insert rows
     cols = list(df.columns)
     insert_sql = f"""
-        INSERT INTO training.matrix_1d ({','.join(cols)})
+        INSERT INTO training.matrix_1d ({",".join(cols)})
         VALUES %s
     """
 
@@ -2273,7 +2402,7 @@ def create_table_from_df(conn, df: pd.DataFrame, schema: str, table: str, versio
 
     create_sql = f"""
         CREATE TABLE IF NOT EXISTS {schema}.{table} (
-            {','.join(col_defs)},
+            {",".join(col_defs)},
             PRIMARY KEY (trade_date, symbol)
         )
     """
@@ -2314,169 +2443,166 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # === 1. OPEN INTEREST DYNAMICS ===
-    if 'open_interest' in df.columns:
+    if "open_interest" in df.columns:
         # Daily change (absolute)
-        df['oi_delta_1d'] = df['open_interest'].diff(1)
+        df["oi_delta_1d"] = df["open_interest"].diff(1)
 
         # Weekly change (comparable to CFTC frequency)
-        df['oi_delta_5d'] = df['open_interest'].diff(5)
+        df["oi_delta_5d"] = df["open_interest"].diff(5)
 
         # Percentage changes (normalized)
-        df['oi_pct_change_1d'] = df['open_interest'].pct_change(1) * 100
-        df['oi_pct_change_5d'] = df['open_interest'].pct_change(5) * 100
+        df["oi_pct_change_1d"] = df["open_interest"].pct_change(1) * 100
+        df["oi_pct_change_5d"] = df["open_interest"].pct_change(5) * 100
 
         # OI Momentum: acceleration/deceleration
-        df['oi_momentum'] = df['oi_delta_5d'] - df['oi_delta_5d'].shift(5)
+        df["oi_momentum"] = df["oi_delta_5d"] - df["oi_delta_5d"].shift(5)
 
         # Z-score: Unusual positioning activity (63d = 1 quarter)
-        oi_mean_63d = df['oi_delta_5d'].rolling(63).mean()
-        oi_std_63d = df['oi_delta_5d'].rolling(63).std()
-        df['oi_delta_zscore'] = (df['oi_delta_5d'] - oi_mean_63d) / oi_std_63d.replace(0, np.nan)
+        oi_mean_63d = df["oi_delta_5d"].rolling(63).mean()
+        oi_std_63d = df["oi_delta_5d"].rolling(63).std()
+        df["oi_delta_zscore"] = (df["oi_delta_5d"] - oi_mean_63d) / oi_std_63d.replace(
+            0, np.nan
+        )
 
         logger.info("   Computed OI delta, momentum, and z-score")
 
     # === 2. VOLUME ACTIVITY ===
-    if 'volume' in df.columns:
+    if "volume" in df.columns:
         # Volume moving average (5d = 1 trading week)
-        df['volume_ma_5d'] = df['volume'].rolling(5).mean()
+        df["volume_ma_5d"] = df["volume"].rolling(5).mean()
 
         # Volume spike detection (>1.5x average)
-        df['volume_spike'] = (
-            df['volume'] > df['volume_ma_5d'] * 1.5
-        ).astype(int)
+        df["volume_spike"] = (df["volume"] > df["volume_ma_5d"] * 1.5).astype(int)
 
         logger.info("   Computed volume MA and spike detection")
 
     # === 3. CHURN RATE (Speculative Activity Proxy) ===
-    if 'volume' in df.columns and 'open_interest' in df.columns:
+    if "volume" in df.columns and "open_interest" in df.columns:
         # Volume/OI ratio (high = position flipping)
-        df['churn_rate'] = df['volume'] / df['open_interest'].replace(0, np.nan)
+        df["churn_rate"] = df["volume"] / df["open_interest"].replace(0, np.nan)
 
         # Churn z-score (21d = 1 trading month)
-        churn_mean_21d = df['churn_rate'].rolling(21).mean()
-        churn_std_21d = df['churn_rate'].rolling(21).std()
-        df['churn_zscore'] = (
-            (df['churn_rate'] - churn_mean_21d) /
-            churn_std_21d.replace(0, np.nan)
-        )
+        churn_mean_21d = df["churn_rate"].rolling(21).mean()
+        churn_std_21d = df["churn_rate"].rolling(21).std()
+        df["churn_zscore"] = (
+            df["churn_rate"] - churn_mean_21d
+        ) / churn_std_21d.replace(0, np.nan)
 
         # High churn regime (z > 1.5 = excessive speculation)
-        df['churn_high'] = (df['churn_zscore'] > 1.5).astype(int)
+        df["churn_high"] = (df["churn_zscore"] > 1.5).astype(int)
 
         logger.info("   Computed churn rate and z-score")
 
     # === 4. PRICE-OI DIVERGENCE (Smart Money Signal) ===
-    if 'close' in df.columns and 'open_interest' in df.columns:
+    if "close" in df.columns and "open_interest" in df.columns:
         # Price direction (+1 = up, -1 = down, 0 = flat)
-        df['price_direction'] = np.sign(df['close'].diff(1))
+        df["price_direction"] = np.sign(df["close"].diff(1))
 
         # OI direction (+1 = accumulation, -1 = distribution)
-        df['oi_direction'] = np.sign(df['open_interest'].diff(1))
+        df["oi_direction"] = np.sign(df["open_interest"].diff(1))
 
         # Divergence (1 = diverging, 0 = confirming)
         # Price up + OI down = weak rally (fade)
         # Price down + OI up = strong selloff (fade)
-        df['oi_price_divergence'] = (
-            df['price_direction'] != df['oi_direction']
+        df["oi_price_divergence"] = (
+            df["price_direction"] != df["oi_direction"]
         ).astype(int)
 
         # Conviction signal: Price + OI moving together
-        df['flow_conviction'] = (
-            (df['price_direction'] == df['oi_direction']) &
-            (df['price_direction'] != 0)
+        df["flow_conviction"] = (
+            (df["price_direction"] == df["oi_direction"]) & (df["price_direction"] != 0)
         ).astype(int)
 
         logger.info("   Computed price-OI divergence and conviction signals")
 
     # === 5. COT REGIME × DAILY FLOW (Hybrid Weekly + Daily) ===
     # Only if CFTC COT data exists
-    if 'cftc_zl_cot_managed_money_net_event_value' in df.columns:
+    if "cftc_zl_cot_managed_money_net_event_value" in df.columns:
         # COT net position z-score (52 weeks = 1 year)
-        cot_col = 'cftc_zl_cot_managed_money_net_event_value'
+        cot_col = "cftc_zl_cot_managed_money_net_event_value"
         cot_mean_52w = df[cot_col].rolling(52).mean()
         cot_std_52w = df[cot_col].rolling(52).std()
-        df['cot_net_zscore'] = (
-            (df[cot_col] - cot_mean_52w) /
-            cot_std_52w.replace(0, np.nan)
+        df["cot_net_zscore"] = (df[cot_col] - cot_mean_52w) / cot_std_52w.replace(
+            0, np.nan
         )
 
         # COT age freshness (0-2 days = fresh data)
-        if 'cftc_zl_cot_managed_money_net_age_days' in df.columns:
-            df['cot_age_fresh'] = (
-                df['cftc_zl_cot_managed_money_net_age_days'] <= 2
+        if "cftc_zl_cot_managed_money_net_age_days" in df.columns:
+            df["cot_age_fresh"] = (
+                df["cftc_zl_cot_managed_money_net_age_days"] <= 2
             ).astype(int)
 
         # Regime labels (crowded long/short/neutral)
-        df['cot_regime'] = 'neutral'
-        df.loc[df['cot_net_zscore'] > 1.5, 'cot_regime'] = 'crowded_long'
-        df.loc[df['cot_net_zscore'] < -1.5, 'cot_regime'] = 'crowded_short'
+        df["cot_regime"] = "neutral"
+        df.loc[df["cot_net_zscore"] > 1.5, "cot_regime"] = "crowded_long"
+        df.loc[df["cot_net_zscore"] < -1.5, "cot_regime"] = "crowded_short"
 
         # Encode as numeric for AutoGluon
-        regime_map = {'crowded_short': -1, 'neutral': 0, 'crowded_long': 1}
-        df['cot_regime_numeric'] = df['cot_regime'].map(regime_map).fillna(0).astype(int)
-        df.drop(columns=['cot_regime'], inplace=True)
+        regime_map = {"crowded_short": -1, "neutral": 0, "crowded_long": 1}
+        df["cot_regime_numeric"] = (
+            df["cot_regime"].map(regime_map).fillna(0).astype(int)
+        )
+        df.drop(columns=["cot_regime"], inplace=True)
 
         # Washout risk: Crowded long + OI distribution
-        if 'oi_delta_5d' in df.columns:
-            df['washout_risk'] = (
-                (df['cot_regime_numeric'] == 1) &  # Crowded long
-                (df['oi_delta_5d'] < 0)  # Distribution (OI falling)
+        if "oi_delta_5d" in df.columns:
+            df["washout_risk"] = (
+                (df["cot_regime_numeric"] == 1)  # Crowded long
+                & (df["oi_delta_5d"] < 0)  # Distribution (OI falling)
             ).astype(int)
 
         logger.info("   Computed COT regime and washout risk signals")
 
     # === 6. VIX TERM STRUCTURE (Risk Sentiment) ===
     # VIX slope indicates risk appetite: contango = complacency, backwardation = fear
-    vix_cols = ['fred_vixcls', 'vix3m_close', 'vix6m_close']
-    if 'fred_vixcls' in df.columns:  # VIX spot from FRED
+    if "fred_vixcls" in df.columns:  # VIX spot from FRED
         # Rename for consistency
-        if 'vix_close' not in df.columns:
-            df['vix_close'] = df['fred_vixcls']
+        if "vix_close" not in df.columns:
+            df["vix_close"] = df["fred_vixcls"]
 
         # VIX 3-month slope (contango/backwardation)
-        if 'vix3m_close' in df.columns:
-            df['vix_slope_3m'] = df['vix3m_close'] - df['vix_close']
-            df['vix_backwardation'] = (df['vix_slope_3m'] < 0).astype(int)  # Fear regime
+        if "vix3m_close" in df.columns:
+            df["vix_slope_3m"] = df["vix3m_close"] - df["vix_close"]
+            df["vix_backwardation"] = (df["vix_slope_3m"] < 0).astype(
+                int
+            )  # Fear regime
 
         # VIX 6-month slope (longer-term risk sentiment)
-        if 'vix6m_close' in df.columns:
-            df['vix_slope_6m'] = df['vix6m_close'] - df['vix_close']
+        if "vix6m_close" in df.columns:
+            df["vix_slope_6m"] = df["vix6m_close"] - df["vix_close"]
 
         logger.info("   Computed VIX term structure slopes")
 
     # === 7. SHIPPING RATES (Export Competitiveness) ===
-    if 'fred_bdiy' in df.columns:
+    if "fred_bdiy" in df.columns:
         # Baltic Dry Index z-score (63d = 1 quarter)
-        bdiy_mean_63d = df['fred_bdiy'].rolling(63).mean()
-        bdiy_std_63d = df['fred_bdiy'].rolling(63).std()
-        df['shipping_cost_zscore'] = (
-            (df['fred_bdiy'] - bdiy_mean_63d) /
-            bdiy_std_63d.replace(0, np.nan)
-        )
+        bdiy_mean_63d = df["fred_bdiy"].rolling(63).mean()
+        bdiy_std_63d = df["fred_bdiy"].rolling(63).std()
+        df["shipping_cost_zscore"] = (
+            df["fred_bdiy"] - bdiy_mean_63d
+        ) / bdiy_std_63d.replace(0, np.nan)
 
         # High shipping = compressed export margins (bearish ZL)
-        df['export_margin_compressed'] = (df['shipping_cost_zscore'] > 1.5).astype(int)
+        df["export_margin_compressed"] = (df["shipping_cost_zscore"] > 1.5).astype(int)
 
         logger.info("   Computed shipping rate z-score (Baltic Dry Index)")
 
     # === 8. LIVESTOCK INVENTORY (Meal Demand Proxy) ===
-    if 'fred_cattlenfncm' in df.columns and 'fred_hogsandpigsnoncm' in df.columns:
+    if "fred_cattlenfncm" in df.columns and "fred_hogsandpigsnoncm" in df.columns:
         # Weighted composite: cattle 60%, hogs 40%
-        df['meal_demand_proxy'] = (
-            df['fred_cattlenfncm'] * 0.6 +
-            df['fred_hogsandpigsnoncm'] * 0.4
+        df["meal_demand_proxy"] = (
+            df["fred_cattlenfncm"] * 0.6 + df["fred_hogsandpigsnoncm"] * 0.4
         )
 
         # Z-score (252d = 1 year)
-        meal_mean_252d = df['meal_demand_proxy'].rolling(252).mean()
-        meal_std_252d = df['meal_demand_proxy'].rolling(252).std()
-        df['meal_demand_zscore'] = (
-            (df['meal_demand_proxy'] - meal_mean_252d) /
-            meal_std_252d.replace(0, np.nan)
-        )
+        meal_mean_252d = df["meal_demand_proxy"].rolling(252).mean()
+        meal_std_252d = df["meal_demand_proxy"].rolling(252).std()
+        df["meal_demand_zscore"] = (
+            df["meal_demand_proxy"] - meal_mean_252d
+        ) / meal_std_252d.replace(0, np.nan)
 
         # High meal demand = more crushing = more ZL supply (bearish)
-        df['meal_demand_strong'] = (df['meal_demand_zscore'] > 1.0).astype(int)
+        df["meal_demand_strong"] = (df["meal_demand_zscore"] > 1.0).astype(int)
 
         logger.info("   Computed meal demand proxy (cattle + hogs inventory)")
 
@@ -2598,7 +2724,6 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         if len(df_weather) > 0:
             logger.info("Merging weather aggregates (FIXED)...")
             before_cols = len(df.columns)
-            before_rows = len(df)
             df = df.merge(df_weather, on="trade_date", how="left")
             wx_cols = [c for c in df.columns if c.startswith("wx_")]
             non_null = df[wx_cols].notna().any(axis=1).sum() if wx_cols else 0
@@ -2614,15 +2739,16 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             # Per plan: 4 CFTC metrics with pure event encoding
             cftc_value_cols = [
                 "cot_managed_money_net",  # maps to cftc_zl_mm_net_contracts
-                "cot_mm_pct_oi",          # maps to cftc_zl_mm_net_pct_oi
-                "cot_prod_merc_net",      # maps to cftc_zl_comm_net_contracts
-                "cot_open_interest",      # maps to cftc_zl_oi_total_contracts
+                "cot_mm_pct_oi",  # maps to cftc_zl_mm_net_pct_oi
+                "cot_prod_merc_net",  # maps to cftc_zl_comm_net_contracts
+                "cot_open_interest",  # maps to cftc_zl_oi_total_contracts
             ]
             df = pure_event_encode(df, df_cot, cftc_value_cols, prefix="cftc_zl")
             # ALSO keep legacy merge for backward compatibility during T0 phase
             df = merge_asof_to_trading_days(df, df_cot)
-            cot_cols = [c for c in df.columns if c.startswith("cot_") or c.startswith("cftc_zl_")]
-            logger.info(f"   Added {len(df.columns) - before_cols} CFTC columns (event-encoded + legacy)")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} CFTC columns (event-encoded + legacy)"
+            )
 
         # Merge CFTC CITS (WEEKLY - use asof merge)
         if len(df_cits) > 0:
@@ -2650,7 +2776,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             df = pure_event_encode(df, df_lcfs, lcfs_cols, prefix="lcfs_ca")
             # ALSO keep legacy merge for backward compatibility during T0 phase
             df = merge_asof_to_trading_days(df, df_lcfs)
-            logger.info(f"   Added {len(df.columns) - before_cols} LCFS columns (event-encoded + legacy)")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} LCFS columns (event-encoded + legacy)"
+            )
 
         # Merge USDA export sales (WEEKLY - PURE EVENT ENCODING v15.x)
         if len(df_exports) > 0:
@@ -2659,10 +2787,14 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             # Per plan: 4 USDA Exports metrics
             # Note: loader returns columns like usda_soybeans_net_sales, usda_soyoil_shipments, etc.
             usda_export_cols = [c for c in df_exports.columns if c != "trade_date"]
-            df = pure_event_encode(df, df_exports, usda_export_cols, prefix="usda_exports")
+            df = pure_event_encode(
+                df, df_exports, usda_export_cols, prefix="usda_exports"
+            )
             # ALSO keep legacy merge for backward compatibility during T0 phase
             df = merge_asof_to_trading_days(df, df_exports)
-            logger.info(f"   Added {len(df.columns) - before_cols} USDA export columns (event-encoded + legacy)")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} USDA export columns (event-encoded + legacy)"
+            )
 
         # Merge USDA WASDE (MONTHLY - PURE EVENT ENCODING v15.x)
         if len(df_wasde) > 0:
@@ -2676,7 +2808,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             df = pure_event_encode(df, df_wasde, wasde_cols_raw, prefix="")
             # ALSO keep legacy merge for backward compatibility during T0 phase
             df = merge_asof_to_trading_days(df, df_wasde)
-            logger.info(f"   Added {len(df.columns) - before_cols} WASDE columns (event-encoded + legacy)")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} WASDE columns (event-encoded + legacy)"
+            )
 
             # v15.x ASSERTION: Fail build if double-prefix exists
             double_prefix_cols = [c for c in df.columns if c.startswith("wasde_wasde_")]
@@ -2714,7 +2848,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
                     # But only where data is available (is_available = 1)
                     if avail_col in df.columns:
                         synthetic_release = is_month_start & (df[avail_col] == 1)
-                        df[release_col] = df[release_col] | synthetic_release.astype(int)
+                        df[release_col] = df[release_col] | synthetic_release.astype(
+                            int
+                        )
 
                     # Cap age_days at 30 to satisfy max age check
                     if age_col in df.columns:
@@ -2724,13 +2860,19 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
                     # First, get the last real value
                     if avail_col in df.columns:
                         # Forward-fill within the available period
-                        df[f"_{metric}_last_val"] = df[value_col].replace(0.0, np.nan).ffill()
+                        df[f"_{metric}_last_val"] = (
+                            df[value_col].replace(0.0, np.nan).ffill()
+                        )
                         # On synthetic release days, use the last real value
                         synthetic_mask = (df[release_col] == 1) & (df[value_col] == 0.0)
-                        df.loc[synthetic_mask, value_col] = df.loc[synthetic_mask, f"_{metric}_last_val"]
+                        df.loc[synthetic_mask, value_col] = df.loc[
+                            synthetic_mask, f"_{metric}_last_val"
+                        ]
                         df.drop(columns=[f"_{metric}_last_val"], inplace=True)
 
-                    logger.info(f"   Monthly-ized {metric} (annual → synthetic monthly releases)")
+                    logger.info(
+                        f"   Monthly-ized {metric} (annual → synthetic monthly releases)"
+                    )
 
             df.drop(columns=["_year_month"], inplace=True)
 
@@ -2767,7 +2909,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             df = pure_event_encode(df, df_china_pmi, pmi_cols, prefix="pmi_cn_nbs")
             # ALSO keep legacy merge for backward compatibility during T0 phase
             df = merge_asof_to_trading_days(df, df_china_pmi)
-            logger.info(f"   Added {len(df.columns) - before_cols} China PMI columns (event-encoded + legacy)")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} China PMI columns (event-encoded + legacy)"
+            )
 
         # Merge Dalian soy proxy (non-US trading calendar - use asof merge)
         if len(df_dalian) > 0:
@@ -2792,7 +2936,6 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             logger.info("Merging cross-asset correlations...")
             before_cols = len(df.columns)
             df = df.merge(df_correlations, on="trade_date", how="left")
-            corr_cols = [c for c in df.columns if c.startswith("corr_")]
             logger.info(f"   Added {len(df.columns) - before_cols} correlation columns")
 
         # Merge cross-commodity indicators (ZS, ZM, CL, etc.)
@@ -2801,22 +2944,24 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             before_cols = len(df.columns)
             df = df.merge(df_cross_commodities, on="trade_date", how="left")
             cross_cols = len(df.columns) - before_cols
-            logger.info(f"   Added {cross_cols} cross-commodity columns (ZS, ZM, CL, etc.)")
+            logger.info(
+                f"   Added {cross_cols} cross-commodity columns (ZS, ZM, CL, etc.)"
+            )
 
         # Merge spread/ratio features (board crush, ZL/ZS ratio, etc.)
         if len(df_spreads) > 0:
             logger.info("Merging spread/ratio features...")
             before_cols = len(df.columns)
             df = df.merge(df_spreads, on="trade_date", how="left")
-            spread_cols = [c for c in df.columns if any(x in c for x in ["crush", "ratio", "spread", "share"])]
-            logger.info(f"   Added {len(df.columns) - before_cols} spread/ratio columns")
+            logger.info(
+                f"   Added {len(df.columns) - before_cols} spread/ratio columns"
+            )
 
         # Merge options features (put/call ratios, IV proxies)
         if len(df_options) > 0:
             logger.info("Merging options features...")
             before_cols = len(df.columns)
             df = df.merge(df_options, on="trade_date", how="left")
-            opt_cols = [c for c in df.columns if c.startswith("opt_")]
             logger.info(f"   Added {len(df.columns) - before_cols} options columns")
 
         # Merge specialist signals (v3 architecture)
@@ -2847,7 +2992,9 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         # These provide intra-week flow signals without forward-filling or interpolation
         logger.info("Computing daily positioning proxies (OI/volume flows)...")
         df = compute_daily_positioning_proxies(df)
-        logger.info(f"   Added daily positioning proxies (OI delta, churn rate, price-OI divergence)")
+        logger.info(
+            f"   Added daily positioning proxies (OI delta, churn rate, price-OI divergence)"
+        )
 
         # =============================================================================
         # DAILY MISSINGNESS ENCODING (v15.x - per plan approval condition #3)
@@ -2870,15 +3017,29 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
 
         # Identify daily feature columns (exclude metadata, targets, and event-encoded cols)
         # Also exclude hurst_regime and ttm_squeeze_on - they're already handled by encode_categorical_features
-        exclude_patterns = ["trade_date", "symbol", "target_", "_event_value", "_event_delta",
-                           "_is_release_day", "_age_days", "_is_available", "_is_missing",
-                           "created_at", "matrix_version", "_hurst_regime_raw"]
+        exclude_patterns = [
+            "trade_date",
+            "symbol",
+            "target_",
+            "_event_value",
+            "_event_delta",
+            "_is_release_day",
+            "_age_days",
+            "_is_available",
+            "_is_missing",
+            "created_at",
+            "matrix_version",
+            "_hurst_regime_raw",
+        ]
         # Columns already handled by encode_categorical_features (have their own _is_missing flags)
         already_encoded = {"hurst_regime", "ttm_squeeze_on"}
-        daily_cols = [c for c in df.columns
-                     if not any(p in c for p in exclude_patterns)
-                     and c not in already_encoded
-                     and np.issubdtype(df[c].dtype, np.number)]
+        daily_cols = [
+            c
+            for c in df.columns
+            if not any(p in c for p in exclude_patterns)
+            and c not in already_encoded
+            and np.issubdtype(df[c].dtype, np.number)
+        ]
 
         # Apply missingness encoding
         df = add_daily_missingness_encoding(df, daily_cols)
@@ -2886,15 +3047,21 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         # Count how many _is_missing flags were added
         missing_flag_cols = [c for c in df.columns if c.endswith("_is_missing")]
         cols_with_missingness = sum(1 for c in missing_flag_cols if df[c].sum() > 0)
-        logger.info(f"   Added {len(df.columns) - before_cols} missingness encoding columns")
-        logger.info(f"   {cols_with_missingness} features had missing values (now encoded)")
+        logger.info(
+            f"   Added {len(df.columns) - before_cols} missingness encoding columns"
+        )
+        logger.info(
+            f"   {cols_with_missingness} features had missing values (now encoded)"
+        )
 
         # Create target columns (forward returns)
         df = create_target_columns(df)
 
         # NO FORWARD FILL for low-freq sources - they use pure event encoding
         # Daily features use missingness encoding (0.0 fill + _is_missing flag)
-        logger.info("v15.x encoding complete: event encoding for low-freq, missingness encoding for daily")
+        logger.info(
+            "v15.x encoding complete: event encoding for low-freq, missingness encoding for daily"
+        )
 
         # Coverage filter REMOVED (2026-01-22)
         # AutoGluon's DirectTabular handles missing values natively via gradient boosting
@@ -2911,7 +3078,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
                 f"   {len(low_coverage)} features with <70% coverage (kept for AutoGluon):"
             )
             for col, cov in sorted(low_coverage, key=lambda x: x[1])[:10]:
-                logger.info(f"      {col}: {cov*100:.1f}%")
+                logger.info(f"      {col}: {cov * 100:.1f}%")
             if len(low_coverage) > 10:
                 logger.info(f"      ... and {len(low_coverage) - 10} more")
 

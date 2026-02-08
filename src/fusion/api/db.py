@@ -8,7 +8,7 @@ All training, inference, and operations use Prisma Postgres.
 import os
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import psycopg2
@@ -19,7 +19,7 @@ except ImportError:
     HAS_POSTGRES = False
 
 
-def _get_postgres_url() -> Optional[str]:
+def _get_postgres_url() -> str | None:
     """Get Postgres connection URL from environment or .env file."""
     url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
     if url:
@@ -92,14 +92,14 @@ class DatabaseConnection:
         self.close()
 
     def execute(
-        self, query: str, params: Optional[List[Any]] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, params: list[Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Execute a query and return results as list of dicts."""
         return self._execute_postgres(query, params)
 
     def _execute_postgres(
-        self, query: str, params: Optional[List[Any]] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, params: list[Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Execute query on Postgres."""
         # Convert ? placeholders to %s for psycopg2
         pg_query = query.replace("?", "%s")
@@ -115,7 +115,7 @@ class DatabaseConnection:
             return []
 
 
-def fetch_rows(query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+def fetch_rows(query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
     """
     Execute a query and return results.
 
@@ -155,7 +155,10 @@ TABLE_MAP = {
     "econ.inflation_1d": '"econ"."inflation_1d"',
     "econ.labor_1d": '"econ"."labor_1d"',
     # Alternative data
-    "alt.news_1d": '"alt"."news_1d"',
+    "alt.policy_news": '"alt"."policy_news"',
+    "alt.executive_actions": '"alt"."executive_actions"',
+    "alt.econ_news": '"alt"."econ_news"',
+    "alt.profarmer_news": '"alt"."profarmer_news"',
     "alt.weather_1d": '"alt"."weather_1d"',
     "alt.legislation_1d": '"alt"."legislation_1d"',
     # Positioning
@@ -167,22 +170,17 @@ TABLE_MAP = {
     # Features
     "features.elite_1d": '"features"."elite_1d"',
     "features.intel_drops": '"features"."intel_drops"',
-    "features.news_sentiment_1d": '"features"."news_sentiment_1d"',
     "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training
     "training.matrix_1d": '"training"."matrix_1d"',
     "training.oof_core_1d": '"training"."oof_core_1d"',
     "training.specialist_features": '"training"."specialist_features"',
     # Model registry
-    "model.training_runs": '"model"."training_runs"',
     "model.model_registry": '"model"."model_registry"',
-    "model.oof_predictions": '"model"."oof_predictions"',
-    "model.cv_folds": '"model"."cv_folds"',
     # Forecasts
     "forecasts.forecast_quantiles": '"forecasts"."forecast_quantiles"',
     # Analytics
     "analytics.driver_scores": '"analytics"."driver_scores"',
-    "analytics.specialist_drivers": '"analytics"."specialist_drivers"',
 }
 
 

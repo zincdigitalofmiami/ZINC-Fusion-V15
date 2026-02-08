@@ -5,20 +5,18 @@ Automatically loads news/alt data from ANY table with specialist_tags column.
 Each specialist gets articles tagged for them across all sources.
 
 Tables with specialist_tags:
-- alt.profarmer_news (978 rows)
-- alt.econ_news (1131 rows)
-- alt.news_1d (1301 rows)
-- alt.legislation_1d (1164 rows)
-- econ.news_event (1131 rows)
-- features.news_sentiment_1d (23 rows)
+- alt.profarmer_news
+- alt.econ_news
+- alt.policy_news
+- alt.executive_actions
+- alt.legislation_1d
 
 Rule: If a table has specialist_tags[], and an article has 'crush' in that array,
       then the CRUSH specialist gets that article in its feature matrix.
 """
 
 import pandas as pd
-import numpy as np
-from typing import Optional, List
+from typing import Optional
 from datetime import date
 import logging
 import os
@@ -63,7 +61,7 @@ def load_news_for_specialist(
 
     # Tables with specialist_tags column (discovered dynamically)
     tables_query = """
-    SELECT DISTINCT 
+    SELECT DISTINCT
         table_schema || '.' || table_name as full_table_name,
         table_schema,
         table_name
@@ -90,11 +88,11 @@ def load_news_for_specialist(
             # Build query based on available columns
             # Check what columns exist
             cols_query = f"""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_schema = '{schema}' 
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = '{schema}'
               AND table_name = '{table}'
-              AND column_name IN ('event_date', 'published_at', 'headline', 'content', 
+              AND column_name IN ('event_date', 'published_at', 'headline', 'content',
                                   'sentiment_score', 'summary', 'url', 'source')
             """
             available_cols = pd.read_sql(cols_query, conn)
@@ -155,9 +153,7 @@ def load_news_for_specialist(
     if not all_news:
         logger.warning(f"No news found for {specialist_bucket}")
         # Return empty dataframe with expected structure
-        result = pd.DataFrame(
-            columns=["trade_date", "article_count", "avg_sentiment"]
-        )
+        result = pd.DataFrame(columns=["trade_date", "article_count", "avg_sentiment"])
         result.set_index("trade_date", inplace=True)
         return result
 

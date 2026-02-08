@@ -19,17 +19,17 @@ import os
 import sys
 import argparse
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass
-import json
 
-import numpy as np
 import pandas as pd
 import psycopg2
 from psycopg2.extras import Json
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -80,10 +80,10 @@ TABLE_CONFIG = {
         "group_by": None,
         "date_col": "event_date",
     },
-    "alt.news_1d": {
+    "alt.policy_news": {
         "query": """
-            SELECT id, event_date, headline, sentiment_score
-            FROM alt.news_1d
+            SELECT id, event_date, headline, zl_sentiment
+            FROM alt.policy_news
         """,
         "detector": "news",
         "group_by": None,
@@ -189,20 +189,23 @@ TABLE_CONFIG = {
 # ANOMALY THRESHOLDS
 # =============================================================================
 
+
 @dataclass
 class AnomalyThresholds:
     """Thresholds for anomaly detection."""
-    zscore_extreme: float = 4.0      # >4 std = extreme outlier
-    zscore_warning: float = 3.0      # >3 std = warning
-    pct_change_spike: float = 0.15   # 15% single-day move
-    pct_change_extreme: float = 0.25 # 25% single-day move
-    gap_threshold: float = 0.05      # 5% gap up/down
-    volume_spike_mult: float = 5.0   # 5x average volume
+
+    zscore_extreme: float = 4.0  # >4 std = extreme outlier
+    zscore_warning: float = 3.0  # >3 std = warning
+    pct_change_spike: float = 0.15  # 15% single-day move
+    pct_change_extreme: float = 0.25  # 25% single-day move
+    gap_threshold: float = 0.05  # 5% gap up/down
+    volume_spike_mult: float = 5.0  # 5x average volume
 
 
 # =============================================================================
 # ANOMALY DETECTION CLASS
 # =============================================================================
+
 
 class AnomalyDetector:
     """Detects anomalies in data tables."""
@@ -217,58 +220,78 @@ class AnomalyDetector:
         if df.empty:
             return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        for symbol, group in df.groupby('symbol'):
-            group = group.sort_values('event_date').copy()
+        for symbol, group in df.groupby("symbol"):
+            group = group.sort_values("event_date").copy()
 
             for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
                 prior_row = group.iloc[i - 1] if i > 0 else None
 
                 # Price spike detection
-                if prior_row is not None and prior_row['close'] and prior_row['close'] > 0:
-                    pct_change = abs(row['close'] - prior_row['close']) / prior_row['close']
+                if (
+                    prior_row is not None
+                    and prior_row["close"]
+                    and prior_row["close"] > 0
+                ):
+                    pct_change = (
+                        abs(row["close"] - prior_row["close"]) / prior_row["close"]
+                    )
                     if pct_change > self.thresholds.pct_change_extreme:
-                        flags.append('price_extreme')
+                        flags.append("price_extreme")
                     elif pct_change > self.thresholds.pct_change_spike:
-                        flags.append('price_spike')
+                        flags.append("price_spike")
 
                 # Gap detection
-                if prior_row is not None and prior_row['close'] and prior_row['close'] > 0 and row['open']:
-                    gap = (row['open'] - prior_row['close']) / prior_row['close']
+                if (
+                    prior_row is not None
+                    and prior_row["close"]
+                    and prior_row["close"] > 0
+                    and row["open"]
+                ):
+                    gap = (row["open"] - prior_row["close"]) / prior_row["close"]
                     if gap > self.thresholds.gap_threshold:
-                        flags.append('gap_up')
+                        flags.append("gap_up")
                     elif gap < -self.thresholds.gap_threshold:
-                        flags.append('gap_down')
+                        flags.append("gap_down")
 
                 # Volume spike
-                if i >= 20 and row.get('volume'):
-                    avg_vol = group.iloc[i-20:i]['volume'].mean()
-                    if avg_vol and avg_vol > 0 and row['volume'] > avg_vol * self.thresholds.volume_spike_mult:
-                        flags.append('volume_spike')
+                if i >= 20 and row.get("volume"):
+                    avg_vol = group.iloc[i - 20 : i]["volume"].mean()
+                    if (
+                        avg_vol
+                        and avg_vol > 0
+                        and row["volume"] > avg_vol * self.thresholds.volume_spike_mult
+                    ):
+                        flags.append("volume_spike")
 
                 # Zero volume
-                if row.get('volume') == 0:
-                    flags.append('volume_zero')
+                if row.get("volume") == 0:
+                    flags.append("volume_zero")
 
                 # Invalid OHLC
-                if row.get('high') and row.get('low') and row['high'] < row['low']:
-                    flags.append('invalid_ohlc')
+                if row.get("high") and row.get("low") and row["high"] < row["low"]:
+                    flags.append("invalid_ohlc")
 
                 # Weekend data
-                if hasattr(row['event_date'], 'weekday') and row['event_date'].weekday() >= 5:
-                    flags.append('weekend_data')
+                if (
+                    hasattr(row["event_date"], "weekday")
+                    and row["event_date"].weekday() >= 5
+                ):
+                    flags.append("weekend_data")
 
                 if flags:
-                    anomalies.append({
-                        "date": str(row['event_date']),
-                        "symbol": symbol,
-                        "flags": flags,
-                    })
+                    anomalies.append(
+                        {
+                            "date": str(row["event_date"]),
+                            "symbol": symbol,
+                            "flags": flags,
+                        }
+                    )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],  # Cap at 100 for JSON size
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_weather(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -279,34 +302,36 @@ class AnomalyDetector:
             flags = []
 
             # Temperature checks
-            if pd.notna(row.get('tavg_c')):
-                if row['tavg_c'] > 50:
-                    flags.append('temp_extreme_high')
-                elif row['tavg_c'] < -50:
-                    flags.append('temp_extreme_low')
+            if pd.notna(row.get("tavg_c")):
+                if row["tavg_c"] > 50:
+                    flags.append("temp_extreme_high")
+                elif row["tavg_c"] < -50:
+                    flags.append("temp_extreme_low")
 
-            if pd.notna(row.get('tmax_c')) and pd.notna(row.get('tmin_c')):
-                if row['tmax_c'] - row['tmin_c'] > 40:
-                    flags.append('temp_spike')
+            if pd.notna(row.get("tmax_c")) and pd.notna(row.get("tmin_c")):
+                if row["tmax_c"] - row["tmin_c"] > 40:
+                    flags.append("temp_spike")
 
             # Precipitation checks
-            if pd.notna(row.get('prcp_mm')):
-                if row['prcp_mm'] < 0:
-                    flags.append('precip_negative')
-                elif row['prcp_mm'] > 200:
-                    flags.append('precip_extreme')
+            if pd.notna(row.get("prcp_mm")):
+                if row["prcp_mm"] < 0:
+                    flags.append("precip_negative")
+                elif row["prcp_mm"] > 200:
+                    flags.append("precip_extreme")
 
             if flags:
-                anomalies.append({
-                    "date": str(row.get('event_date')),
-                    "region": row.get('region'),
-                    "flags": flags,
-                })
+                anomalies.append(
+                    {
+                        "date": str(row.get("event_date")),
+                        "region": row.get("region"),
+                        "flags": flags,
+                    }
+                )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_fred(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -316,47 +341,59 @@ class AnomalyDetector:
         if df.empty:
             return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        for series_id, group in df.groupby('series_id'):
-            group = group.sort_values('event_date').copy()
+        for series_id, group in df.groupby("series_id"):
+            group = group.sort_values("event_date").copy()
 
             # Calculate rolling stats
             if len(group) >= 20:
-                group['rolling_mean'] = group['value'].rolling(20).mean()
-                group['rolling_std'] = group['value'].rolling(20).std()
+                group["rolling_mean"] = group["value"].rolling(20).mean()
+                group["rolling_std"] = group["value"].rolling(20).std()
 
             for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
                 prior_row = group.iloc[i - 1] if i > 0 else None
 
                 # Z-score spike
-                if pd.notna(row.get('rolling_mean')) and pd.notna(row.get('rolling_std')):
-                    if row['rolling_std'] > 0:
-                        zscore = abs(row['value'] - row['rolling_mean']) / row['rolling_std']
+                if pd.notna(row.get("rolling_mean")) and pd.notna(
+                    row.get("rolling_std")
+                ):
+                    if row["rolling_std"] > 0:
+                        zscore = (
+                            abs(row["value"] - row["rolling_mean"]) / row["rolling_std"]
+                        )
                         if zscore > self.thresholds.zscore_extreme:
-                            flags.append('value_spike')
+                            flags.append("value_spike")
 
                 # Large revision
-                if prior_row is not None and prior_row['value'] and prior_row['value'] != 0:
-                    pct_change = abs(row['value'] - prior_row['value']) / abs(prior_row['value'])
+                if (
+                    prior_row is not None
+                    and prior_row["value"]
+                    and prior_row["value"] != 0
+                ):
+                    pct_change = abs(row["value"] - prior_row["value"]) / abs(
+                        prior_row["value"]
+                    )
                     if pct_change > 0.10:
-                        flags.append('revision_large')
+                        flags.append("revision_large")
 
                 # Future dated
-                if hasattr(row['event_date'], 'date'):
-                    if row['event_date'].date() > datetime.now().date():
-                        flags.append('future_dated')
+                if hasattr(row["event_date"], "date"):
+                    if row["event_date"].date() > datetime.now().date():
+                        flags.append("future_dated")
 
                 if flags:
-                    anomalies.append({
-                        "date": str(row['event_date']),
-                        "series_id": series_id,
-                        "flags": flags,
-                    })
+                    anomalies.append(
+                        {
+                            "date": str(row["event_date"]),
+                            "series_id": series_id,
+                            "flags": flags,
+                        }
+                    )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_news(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -367,24 +404,29 @@ class AnomalyDetector:
             flags = []
 
             # Extreme sentiment
-            if pd.notna(row.get('sentiment_score')):
-                if abs(row['sentiment_score']) > 0.95:
-                    flags.append('sentiment_extreme')
+            if pd.notna(row.get("sentiment_score")):
+                if abs(row["sentiment_score"]) > 0.95:
+                    flags.append("sentiment_extreme")
 
             # Empty content
-            if pd.isna(row.get('headline')) or str(row.get('headline', '')).strip() == '':
-                flags.append('empty_content')
+            if (
+                pd.isna(row.get("headline"))
+                or str(row.get("headline", "")).strip() == ""
+            ):
+                flags.append("empty_content")
 
             if flags:
-                anomalies.append({
-                    "date": str(row.get('event_date')),
-                    "flags": flags,
-                })
+                anomalies.append(
+                    {
+                        "date": str(row.get("event_date")),
+                        "flags": flags,
+                    }
+                )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_cot(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -394,45 +436,60 @@ class AnomalyDetector:
         if df.empty:
             return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        for symbol, group in df.groupby('symbol'):
-            group = group.sort_values('event_date').copy()
+        for symbol, group in df.groupby("symbol"):
+            group = group.sort_values("event_date").copy()
 
             for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
                 prior_row = group.iloc[i - 1] if i > 0 else None
 
                 # Position spike
-                if prior_row is not None and prior_row.get('managed_money_net') and prior_row['managed_money_net'] != 0:
-                    pct_change = abs(row['managed_money_net'] - prior_row['managed_money_net']) / abs(prior_row['managed_money_net'])
+                if (
+                    prior_row is not None
+                    and prior_row.get("managed_money_net")
+                    and prior_row["managed_money_net"] != 0
+                ):
+                    pct_change = abs(
+                        row["managed_money_net"] - prior_row["managed_money_net"]
+                    ) / abs(prior_row["managed_money_net"])
                     if pct_change > 0.50:
-                        flags.append('position_spike')
+                        flags.append("position_spike")
 
                 # OI spike
-                if prior_row is not None and prior_row.get('open_interest') and prior_row['open_interest'] > 0:
-                    oi_change = abs(row['open_interest'] - prior_row['open_interest']) / prior_row['open_interest']
+                if (
+                    prior_row is not None
+                    and prior_row.get("open_interest")
+                    and prior_row["open_interest"] > 0
+                ):
+                    oi_change = (
+                        abs(row["open_interest"] - prior_row["open_interest"])
+                        / prior_row["open_interest"]
+                    )
                     if oi_change > 0.30:
-                        flags.append('oi_spike')
+                        flags.append("oi_spike")
 
                 # Zero OI
-                if row.get('open_interest') == 0:
-                    flags.append('zero_oi')
+                if row.get("open_interest") == 0:
+                    flags.append("zero_oi")
 
                 # Impossible position
-                if row.get('managed_money_net') and row.get('open_interest'):
-                    if abs(row['managed_money_net']) > row['open_interest']:
-                        flags.append('impossible_position')
+                if row.get("managed_money_net") and row.get("open_interest"):
+                    if abs(row["managed_money_net"]) > row["open_interest"]:
+                        flags.append("impossible_position")
 
                 if flags:
-                    anomalies.append({
-                        "date": str(row['event_date']),
-                        "symbol": symbol,
-                        "flags": flags,
-                    })
+                    anomalies.append(
+                        {
+                            "date": str(row["event_date"]),
+                            "symbol": symbol,
+                            "flags": flags,
+                        }
+                    )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_fx(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -442,40 +499,51 @@ class AnomalyDetector:
         if df.empty:
             return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        for pair, group in df.groupby('pair'):
-            group = group.sort_values('event_date').copy()
+        for pair, group in df.groupby("pair"):
+            group = group.sort_values("event_date").copy()
 
             for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
                 prior_row = group.iloc[i - 1] if i > 0 else None
 
                 # Rate spike
-                if prior_row is not None and prior_row.get('rate') and prior_row['rate'] > 0:
-                    pct_change = abs(row['rate'] - prior_row['rate']) / prior_row['rate']
+                if (
+                    prior_row is not None
+                    and prior_row.get("rate")
+                    and prior_row["rate"] > 0
+                ):
+                    pct_change = (
+                        abs(row["rate"] - prior_row["rate"]) / prior_row["rate"]
+                    )
                     if pct_change > 0.10:
-                        flags.append('rate_extreme')
+                        flags.append("rate_extreme")
                     elif pct_change > 0.05:
-                        flags.append('rate_spike')
+                        flags.append("rate_spike")
 
                 # Rate errors
-                if row.get('rate') is not None and row['rate'] <= 0:
-                    flags.append('rate_zero' if row['rate'] == 0 else 'rate_negative')
+                if row.get("rate") is not None and row["rate"] <= 0:
+                    flags.append("rate_zero" if row["rate"] == 0 else "rate_negative")
 
                 # Weekend rate
-                if hasattr(row['event_date'], 'weekday') and row['event_date'].weekday() >= 5:
-                    flags.append('weekend_rate')
+                if (
+                    hasattr(row["event_date"], "weekday")
+                    and row["event_date"].weekday() >= 5
+                ):
+                    flags.append("weekend_rate")
 
                 if flags:
-                    anomalies.append({
-                        "date": str(row['event_date']),
-                        "pair": pair,
-                        "flags": flags,
-                    })
+                    anomalies.append(
+                        {
+                            "date": str(row["event_date"]),
+                            "pair": pair,
+                            "flags": flags,
+                        }
+                    )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
     def detect_rin(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -485,45 +553,54 @@ class AnomalyDetector:
         if df.empty:
             return {"anomaly_count": 0, "anomalies": [], "quality_issues": []}
 
-        for rin_type, group in df.groupby('rin_type'):
-            group = group.sort_values('event_date').copy()
+        for rin_type, group in df.groupby("rin_type"):
+            group = group.sort_values("event_date").copy()
 
             for i, (idx, row) in enumerate(group.iterrows()):
                 flags = []
                 prior_row = group.iloc[i - 1] if i > 0 else None
 
                 # Price spike
-                if prior_row is not None and prior_row.get('price') and prior_row['price'] > 0:
-                    pct_change = abs(row['price'] - prior_row['price']) / prior_row['price']
+                if (
+                    prior_row is not None
+                    and prior_row.get("price")
+                    and prior_row["price"] > 0
+                ):
+                    pct_change = (
+                        abs(row["price"] - prior_row["price"]) / prior_row["price"]
+                    )
                     if pct_change > 0.20:
-                        flags.append('price_spike')
+                        flags.append("price_spike")
 
                 # Price errors
-                if row.get('price') is not None:
-                    if row['price'] < 0:
-                        flags.append('price_negative')
-                    elif row['price'] == 0:
-                        flags.append('price_zero')
-                    elif row['price'] > 3.00:
-                        flags.append('price_extreme_high')
+                if row.get("price") is not None:
+                    if row["price"] < 0:
+                        flags.append("price_negative")
+                    elif row["price"] == 0:
+                        flags.append("price_zero")
+                    elif row["price"] > 3.00:
+                        flags.append("price_extreme_high")
 
                 if flags:
-                    anomalies.append({
-                        "date": str(row['event_date']),
-                        "rin_type": rin_type,
-                        "flags": flags,
-                    })
+                    anomalies.append(
+                        {
+                            "date": str(row["event_date"]),
+                            "rin_type": rin_type,
+                            "flags": flags,
+                        }
+                    )
 
         return {
             "anomaly_count": len(anomalies),
             "anomalies": anomalies[:100],
-            "quality_issues": list(set(f for a in anomalies for f in a['flags'])),
+            "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
 
 # =============================================================================
 # LOGGING TO ops.data_quality_log
 # =============================================================================
+
 
 def log_quality_check(
     conn,
@@ -553,7 +630,9 @@ def log_quality_check(
     }
 
     if dry_run:
-        logger.info(f"  [DRY RUN] Would log: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies")
+        logger.info(
+            f"  [DRY RUN] Would log: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies"
+        )
         return
 
     insert_query = """
@@ -564,24 +643,30 @@ def log_quality_check(
     """
 
     with conn.cursor() as cur:
-        cur.execute(insert_query, (
-            table_name,
-            datetime.now(),
-            row_count,
-            null_count,
-            latest_date,
-            oldest_date,
-            Json(issues),
-            datetime.now(),
-        ))
+        cur.execute(
+            insert_query,
+            (
+                table_name,
+                datetime.now(),
+                row_count,
+                null_count,
+                latest_date,
+                oldest_date,
+                Json(issues),
+                datetime.now(),
+            ),
+        )
     conn.commit()
 
-    logger.info(f"  Logged: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies")
+    logger.info(
+        f"  Logged: {table_name} - {row_count} rows, {anomaly_results['anomaly_count']} anomalies"
+    )
 
 
 # =============================================================================
 # MAIN CHECK FUNCTIONS
 # =============================================================================
+
 
 def check_table(conn, table_name: str, dry_run: bool = False) -> Dict[str, Any]:
     """Run anomaly detection on a single table."""
@@ -649,12 +734,19 @@ def check_all_tables(conn, dry_run: bool = False) -> Dict[str, Any]:
 # MAIN
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Anomaly detection for landing tables")
     parser.add_argument("--check-all", action="store_true", help="Check all tables")
-    parser.add_argument("--table", type=str, help="Check specific table (e.g., mkt.futures_1d)")
-    parser.add_argument("--dry-run", action="store_true", help="Don't write to ops.data_quality_log")
-    parser.add_argument("--list-tables", action="store_true", help="List available tables")
+    parser.add_argument(
+        "--table", type=str, help="Check specific table (e.g., mkt.futures_1d)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Don't write to ops.data_quality_log"
+    )
+    parser.add_argument(
+        "--list-tables", action="store_true", help="List available tables"
+    )
     args = parser.parse_args()
 
     if args.list_tables:

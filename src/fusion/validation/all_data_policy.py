@@ -43,7 +43,7 @@ Usage:
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 import psycopg2
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,10 @@ REQUIRED_DATA_SOURCES = {
     "econ.money_1d": (1_000, "FRED money supply (M2, reserves)", "event_date"),
     # Alternative data (alt schema)
     "alt.weather_1d": (500, "NOAA weather (US/Brazil/Argentina)", "event_date"),
-    "alt.news_1d": (50, "News sentiment", "published_date"),
+    "alt.policy_news": (50, "Policy/trade news", "event_date"),
+    "alt.executive_actions": (50, "White House actions", "event_date"),
+    "alt.econ_news": (50, "Economic news", "event_date"),
+    "alt.profarmer_news": (50, "Pro Farmer news", "event_date"),
     # Position data (pos schema)
     "pos.cftc_1w": (500, "CFTC COT positioning", "as_of_date"),
     # Supply data (supply schema)
@@ -87,7 +90,10 @@ REQUIRED_DATA_SOURCES = {
 
 # Feature category expectations (for validation)
 FEATURE_CATEGORIES = {
-    "symbol_features": {"min": 400, "prefix_patterns": ["_open", "_high", "_low", "_close", "_volume"]},
+    "symbol_features": {
+        "min": 400,
+        "prefix_patterns": ["_open", "_high", "_low", "_close", "_volume"],
+    },
     "fred_features": {"min": 100, "prefix": None},  # No consistent prefix
     "fx_features": {"min": 25, "prefix": "fx_"},
     "cot_features": {"min": 15, "prefix": "cot_"},
@@ -102,6 +108,7 @@ FEATURE_CATEGORIES = {
 @dataclass
 class AllDataValidationResult:
     """Result from ALL DATA policy enforcement."""
+
     is_valid: bool
     horizon: int
     feature_count: int
@@ -114,10 +121,7 @@ class AllDataValidationResult:
 
 
 def enforce_all_data_policy(
-    conn,
-    horizon: int = 5,
-    strict: bool = True,
-    df=None
+    conn, horizon: int = 5, strict: bool = True, df=None
 ) -> AllDataValidationResult:
     """
     Enforce the ALL DATA policy.
@@ -157,7 +161,7 @@ def enforce_all_data_policy(
         for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
                 # Table path is now "schema.table" format
-                cur.execute(f'SELECT COUNT(*) FROM {table_path}')
+                cur.execute(f"SELECT COUNT(*) FROM {table_path}")
                 row_count = cur.fetchone()[0]
 
                 if row_count >= min_rows:
@@ -178,7 +182,9 @@ def enforce_all_data_policy(
                 logger.warning(f"  ⚠️ Could not check {table_path}: {e}")
                 conn.rollback()
 
-    logger.info(f"\n  Sources loaded: {len(sources_loaded)}/{len(REQUIRED_DATA_SOURCES)}")
+    logger.info(
+        f"\n  Sources loaded: {len(sources_loaded)}/{len(REQUIRED_DATA_SOURCES)}"
+    )
 
     # 2. Validate feature count if DataFrame provided
     min_features = {
@@ -205,7 +211,13 @@ def enforce_all_data_policy(
         cols = set(df.columns)
 
         # Symbol features (OHLCV)
-        symbol_cols = [c for c in cols if any(p in c for p in FEATURE_CATEGORIES["symbol_features"]["prefix_patterns"])]
+        symbol_cols = [
+            c
+            for c in cols
+            if any(
+                p in c for p in FEATURE_CATEGORIES["symbol_features"]["prefix_patterns"]
+            )
+        ]
         category_counts["symbol_features"] = len(symbol_cols)
 
         # Other categories
@@ -337,7 +349,9 @@ def validate_specialist_features(df, bucket: str, strict: bool = True) -> bool:
         logger.warning(msg)
         # Don't raise - just warn if too many features
 
-    logger.info(f"  ✅ Feature count OK ({feature_count} in range [{min_features}, {max_features}])")
+    logger.info(
+        f"  ✅ Feature count OK ({feature_count} in range [{min_features}, {max_features}])"
+    )
     return True
 
 
@@ -383,6 +397,7 @@ def get_all_data_loading_query(horizon: int) -> str:
 # DECORATOR FOR ENFORCING ALL DATA IN TRAINING FUNCTIONS
 # ==============================================================================
 
+
 def require_all_data(horizon: int = 5, strict: bool = True):
     """
     Decorator that enforces ALL DATA policy before training.
@@ -393,25 +408,31 @@ def require_all_data(horizon: int = 5, strict: bool = True):
             # Training code here
             pass
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # First arg should be connection
-            conn = kwargs.get('conn') or (args[0] if args else None)
+            conn = kwargs.get("conn") or (args[0] if args else None)
             if conn is None:
-                raise ValueError("require_all_data decorator requires 'conn' as first arg or kwarg")
+                raise ValueError(
+                    "require_all_data decorator requires 'conn' as first arg or kwarg"
+                )
 
             # Enforce policy
             enforce_all_data_policy(conn, horizon=horizon, strict=strict)
 
             # Run function
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 # ==============================================================================
 # SUMMARY LOG FOR TRAINING SCRIPTS
 # ==============================================================================
+
 
 def log_all_data_summary(conn, horizon: int) -> None:
     """
@@ -430,12 +451,14 @@ def log_all_data_summary(conn, horizon: int) -> None:
     with conn.cursor() as cur:
         for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
-                cur.execute(f'''
+                cur.execute(f"""
                     SELECT COUNT(*), MIN({date_col}), MAX({date_col})
                     FROM {table_path}
-                ''')
+                """)
                 count, min_date, max_date = cur.fetchone()
-                logger.info(f"  {table_path}: {count:,} rows ({min_date} to {max_date})")
+                logger.info(
+                    f"  {table_path}: {count:,} rows ({min_date} to {max_date})"
+                )
             except Exception:
                 logger.warning(f"  {table_path}: COULD NOT QUERY")
                 conn.rollback()

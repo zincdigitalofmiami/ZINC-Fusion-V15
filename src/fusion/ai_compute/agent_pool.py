@@ -27,23 +27,16 @@
 import json
 import logging
 import os
-import sys
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("/tmp/zinc_ai_compute.log")
-    ]
+    handlers=[logging.StreamHandler(), logging.FileHandler("/tmp/zinc_ai_compute.log")],
 )
 logger = logging.getLogger("ZINC-AI-Compute")
 
@@ -138,35 +131,36 @@ When FinBERT sees "fell/drop/decline" it says BEARISH. But:
 # BASE AGENT CLASS
 # =============================================================================
 
+
 class BaseAgent(ABC):
     """Base class for all AI Compute Agents"""
-    
+
     name: str = "base_agent"
     description: str = "Base agent class"
-    
+
     def __init__(self, model: str = "claude-sonnet-4-20250514"):
         self.model = model
         self.total_tokens = 0
         self.calls = 0
         self.errors = 0
-        
+
     @abstractmethod
     def get_system_prompt(self) -> str:
         """Return the system prompt for this agent"""
         pass
-    
+
     @abstractmethod
-    def process(self, input_data: Dict) -> Dict:
+    def process(self, input_data: dict) -> dict:
         """Process input and return results"""
         pass
-    
-    def get_stats(self) -> Dict:
+
+    def get_stats(self) -> dict:
         return {
             "agent": self.name,
             "model": self.model,
             "calls": self.calls,
             "errors": self.errors,
-            "total_tokens": self.total_tokens
+            "total_tokens": self.total_tokens,
         }
 
 
@@ -246,34 +240,35 @@ Be decisive. Be grounded. Understand the market. Power the intelligence."""
 class SentimentScorerAgent(BaseAgent):
     """
     Agent #1: Sentiment Scorer
-    
+
     Analyzes news articles with ZL market expertise.
     Corrects FinBERT's commodity-blind scoring.
     Provides factor breakdowns for dashboard visualization.
     """
-    
+
     name = "sentiment_scorer"
     description = "News sentiment analysis with soybean oil market expertise"
-    
+
     def __init__(self, api_key: str = None):
         super().__init__(model="claude-sonnet-4-20250514")
-        
+
         if api_key:
             self.api_key = api_key
         else:
             self.api_key = self._load_api_key()
-        
+
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY required")
-        
+
         try:
             import anthropic
+
             self.client = anthropic.Anthropic(api_key=self.api_key)
         except ImportError:
             raise RuntimeError("anthropic package not installed")
-        
+
         logger.info(f"SentimentScorerAgent initialized with {self.model}")
-    
+
     def _load_api_key(self) -> str:
         env_path = PROJECT_ROOT / ".env"
         if env_path.exists():
@@ -282,26 +277,26 @@ class SentimentScorerAgent(BaseAgent):
                     if line.startswith("ANTHROPIC_API_KEY="):
                         return line.split("=", 1)[1].strip().strip('"')
         return os.environ.get("ANTHROPIC_API_KEY")
-    
+
     def get_system_prompt(self) -> str:
         return SENTIMENT_SCORER_PROMPT
-    
-    def process(self, input_data: Dict) -> Dict:
+
+    def process(self, input_data: dict) -> dict:
         headline = input_data.get("headline", "")
         content = input_data.get("content", "")
         source = input_data.get("source", "")
         finbert_score = input_data.get("finbert_score", 0)
         finbert_label = input_data.get("finbert_label", "neutral")
-        
+
         user_msg = f"""Analyze this article for soybean oil (ZL) market impact:
 
 HEADLINE: {headline}
 SOURCE: {source}
 FINBERT SCORE: {finbert_score:.4f} ({finbert_label})
 
-CONTENT: {(content or '')[:1000]}
+CONTENT: {(content or "")[:1000]}
 
-Remember: FinBERT scored this as {finbert_label} ({finbert_score:.4f}). 
+Remember: FinBERT scored this as {finbert_label} ({finbert_score:.4f}).
 Check if this is correct given commodity market dynamics, or if FinBERT misunderstood.
 
 Return your JSON analysis:"""
@@ -311,24 +306,28 @@ Return your JSON analysis:"""
                 model=self.model,
                 max_tokens=800,
                 system=self.get_system_prompt(),
-                messages=[{"role": "user", "content": user_msg}]
+                messages=[{"role": "user", "content": user_msg}],
             )
-            
+
             self.calls += 1
-            self.total_tokens += response.usage.input_tokens + response.usage.output_tokens
-            
+            self.total_tokens += (
+                response.usage.input_tokens + response.usage.output_tokens
+            )
+
             text = response.content[0].text.strip()
-            
+
             if "```" in text:
                 text = text.split("```")[1]
                 if text.startswith("json"):
                     text = text[4:]
                 text = text.strip()
-            
+
             result = json.loads(text)
-            result["_tokens"] = response.usage.input_tokens + response.usage.output_tokens
+            result["_tokens"] = (
+                response.usage.input_tokens + response.usage.output_tokens
+            )
             return result
-            
+
         except json.JSONDecodeError as e:
             self.errors += 1
             logger.warning(f"JSON parse error: {e}")
@@ -337,8 +336,8 @@ Return your JSON analysis:"""
             self.errors += 1
             logger.warning(f"Agent error: {e}")
             return self._default_result(f"Error: {str(e)[:50]}")
-    
-    def _default_result(self, error: str) -> Dict:
+
+    def _default_result(self, error: str) -> dict:
         return {
             "is_zl_relevant": False,
             "sentiment": "neutral",
@@ -349,316 +348,209 @@ Return your JSON analysis:"""
             "factor_breakdown": {},
             "reasoning": error,
             "overlay_narrative": None,
-            "_error": True
+            "_error": True,
         }
 
 
 # =============================================================================
-# DATABASE OPERATIONS  
+# DATABASE OPERATIONS
 # =============================================================================
+
 
 def get_connection():
     env_path = PROJECT_ROOT / ".env"
     database_url = None
-    
+
     if env_path.exists():
         with open(env_path) as f:
             for line in f:
                 if line.startswith("DATABASE_URL="):
                     database_url = line.split("=", 1)[1].strip().strip('"')
                     break
-    
+
     if not database_url:
         raise ValueError("DATABASE_URL not found")
-    
+
     return psycopg2.connect(database_url)
 
 
-def fetch_articles_for_scoring(conn, limit: int = None, priority: str = "high_signal") -> List[Dict]:
-    if priority == "high_signal":
-        order_by = "ABS(s.sentiment_score) DESC"
-        where_extra = "AND ABS(s.sentiment_score) > 0.15"
-    elif priority == "recent":
-        order_by = "r.published_at DESC NULLS LAST"
-        where_extra = ""
-    elif priority == "trump":
-        order_by = "r.published_at DESC NULLS LAST"
-        where_extra = "AND (r.is_trump_related = TRUE OR s.canonical_bucket = 'trump_effect')"
-    else:
-        order_by = "s.scored_at ASC NULLS FIRST"
-        where_extra = ""
-    
-    limit_clause = f"LIMIT {limit}" if limit else ""
-    
-    query = f"""
-        SELECT 
-            r.id as raw_id,
-            r.headline,
-            r.content,
-            r.source,
-            r.published_at,
-            r.is_trump_related,
-            s.sentiment_score as finbert_score,
-            s.sentiment_direction as finbert_label,
-            s.canonical_bucket,
-            s.scoring_model
-        FROM alt.news_1d r
-        JOIN features.news_sentiment_1d s ON r.id = s.raw_id
-        WHERE s.scoring_model = 'finbert-only'
-        {where_extra}
-        ORDER BY {order_by}
-        {limit_clause}
+def fetch_articles_for_scoring(
+    conn, limit: int = None, priority: str = "high_signal"
+) -> list[dict]:
     """
-    
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(query)
-        return [dict(row) for row in cur.fetchall()]
+    DEPRECATED: The old monolithic news + sentiment tables no longer exist.
+    News was split into alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news.
+    Sentiment scoring tables were removed from the features schema.
+
+    Returns empty list until proper migration is implemented.
+    """
+    import logging
+
+    logging.warning(
+        "fetch_articles_for_scoring: Old monolithic news/sentiment tables "
+        "no longer exist. News data split into 4 domain-specific alt tables. "
+        "Returning empty list until migration implemented."
+    )
+    return []
 
 
-def update_article_with_ai_score(conn, raw_id: int, ai_result: Dict, finbert_data: Dict):
-    affected = set(ai_result.get("affected_specialists", []))
-    
-    ai_score = ai_result.get("impact_score", 0)
-    ai_conf = ai_result.get("confidence", 0.5)
-    fb_score = finbert_data.get("score", 0)
-    fb_conf = finbert_data.get("confidence", 0.5)
-    
-    if ai_result.get("is_zl_relevant", True) and ai_conf > 0:
-        w_ai = 0.70 * ai_conf
-        w_fb = 0.30 * fb_conf
-        total_w = w_ai + w_fb
-        
-        if total_w > 0:
-            ensemble_score = (ai_score * w_ai + fb_score * w_fb) / total_w
-        else:
-            ensemble_score = ai_score
-        
-        agreement = 0.1 if (ai_score * fb_score > 0) else -0.05
-        ensemble_conf = min(0.95, (ai_conf * 0.7 + fb_conf * 0.3) + agreement)
-    else:
-        ensemble_score = 0
-        ensemble_conf = ai_conf
-    
-    if ensemble_score > 0.05:
-        direction = "bullish"
-    elif ensemble_score < -0.05:
-        direction = "bearish"
-    else:
-        direction = "neutral"
-    
-    matched_categories = {
-        "finbert": finbert_data,
-        "ai_compute": {
-            "agent": "sentiment_scorer",
-            "model": "claude-sonnet-4-20250514", 
-            "score": ai_result.get("impact_score"),
-            "sentiment": ai_result.get("sentiment"),
-            "confidence": ai_result.get("confidence"),
-            "time_horizon": ai_result.get("time_horizon"),
-            "finbert_correction": ai_result.get("finbert_correction"),
-            "correlation_note": ai_result.get("correlation_note"),
-            "reasoning": ai_result.get("reasoning"),
-            "key_quote": ai_result.get("key_quote"),
-            "overlay_narrative": ai_result.get("overlay_narrative"),
-        },
-        "ensemble": {
-            "score": round(ensemble_score, 4),
-            "direction": direction,
-            "confidence": round(ensemble_conf, 4),
-            "method": "finbert+ai_compute"
-        },
-        "factor_breakdown": ai_result.get("factor_breakdown", {}),
-        "affected_specialists": list(affected)
-    }
-    
-    with conn.cursor() as cur:
-        cur.execute("""
-            UPDATE features.news_sentiment_1d
-            SET 
-                sentiment_score = %s,
-                sentiment_direction = %s,
-                sentiment_confidence = %s,
-                is_zl_relevant = %s,
-                zl_impact_score = %s,
-                affects_crush = %s,
-                affects_china = %s,
-                affects_fx = %s,
-                affects_fed = %s,
-                affects_tariff = %s,
-                affects_energy = %s,
-                affects_biofuel = %s,
-                affects_palm = %s,
-                affects_volatility = %s,
-                affects_substitutes = %s,
-                affects_trump_effect = %s,
-                matched_categories = %s,
-                scoring_model = %s,
-                scored_at = NOW()
-            WHERE raw_id = %s
-        """, (
-            ensemble_score,
-            direction,
-            ensemble_conf,
-            ai_result.get("is_zl_relevant", True),
-            ensemble_score,
-            "crush" in affected,
-            "china" in affected,
-            "fx" in affected,
-            "fed" in affected,
-            "tariff" in affected,
-            "energy" in affected,
-            "biofuel" in affected,
-            "palm" in affected,
-            "volatility" in affected,
-            "substitutes" in affected,
-            "trump_effect" in affected,
-            json.dumps(matched_categories),
-            "finbert+ai_compute",
-            raw_id
-        ))
+def update_article_with_ai_score(
+    conn, raw_id: int, ai_result: dict, finbert_data: dict
+):
+    """
+    DEPRECATED: The old sentiment table no longer exists.
+    News data was split into alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news.
+    The features-layer sentiment table was removed during the v2 schema migration.
+
+    Returns without action. Upstream fetch_articles_for_scoring() already returns empty list.
+    """
+    import logging
+
+    logging.warning(
+        "update_article_with_ai_score: Deprecated — old sentiment table no longer exists. "
+        "No-op until migration to new news tables is implemented."
+    )
+    return
 
 
 def refresh_specialist_training(conn):
-    logger.info("Refreshing training.specialist_trump_effect_1d...")
-    
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM training.specialist_trump_effect_1d WHERE symbol = 'ZL'")
-        
-        cur.execute("""
-            INSERT INTO training.specialist_trump_effect_1d (
-                as_of_date, symbol, signal, confidence, features, created_at
-            )
-            SELECT 
-                DATE(published_at) as as_of_date,
-                'ZL' as symbol,
-                AVG(sentiment_score) as signal,
-                AVG(sentiment_confidence) as confidence,
-                jsonb_build_object(
-                    'article_count', COUNT(*),
-                    'bullish_count', COUNT(*) FILTER (WHERE sentiment_direction = 'bullish'),
-                    'bearish_count', COUNT(*) FILTER (WHERE sentiment_direction = 'bearish'),
-                    'neutral_count', COUNT(*) FILTER (WHERE sentiment_direction = 'neutral'),
-                    'avg_impact', AVG(zl_impact_score),
-                    'ai_scored_count', COUNT(*) FILTER (WHERE scoring_model = 'finbert+ai_compute')
-                ) as features,
-                NOW() as created_at
-            FROM features.news_sentiment_1d
-            WHERE affects_trump_effect = TRUE
-              AND is_zl_relevant = TRUE
-              AND published_at IS NOT NULL
-            GROUP BY DATE(published_at)
-        """)
-        
-        conn.commit()
-        logger.info(f"Refreshed trump_effect training: {cur.rowcount} days")
+    """
+    DEPRECATED: The old sentiment table no longer exists (removed during v2 migration).
+    Trump effect training signals are now generated via scripts/refresh_trump_effect_features.py
+    which reads directly from alt.executive_actions and alt.policy_news.
+
+    Returns without action.
+    """
+    logger.warning(
+        "refresh_specialist_training: Deprecated — old sentiment table no longer exists. "
+        "Use scripts/refresh_trump_effect_features.py instead."
+    )
+    return
 
 
 # =============================================================================
 # MAIN RUNNER
 # =============================================================================
 
+
 def run_ai_scoring(
     batch_size: int = 100,
     priority: str = "high_signal",
     rate_limit_delay: float = 12.0,  # Free tier: 5 req/min = 12s between calls
-    max_articles: int = None
+    max_articles: int = None,
 ):
     logger.info("=" * 70)
     logger.info("ZINC-FUSION AI COMPUTE LAYER")
     logger.info("Agent: SentimentScorer | Model: claude-sonnet-4-20250514")
-    logger.info(f"Priority: {priority} | Batch: {batch_size} | Max: {max_articles or 'all'}")
+    logger.info(
+        f"Priority: {priority} | Batch: {batch_size} | Max: {max_articles or 'all'}"
+    )
     logger.info(f"Rate limit delay: {rate_limit_delay}s between calls")
     logger.info("=" * 70)
-    
+
     conn = get_connection()
     agent = SentimentScorerAgent()
-    
+
     try:
-        articles = fetch_articles_for_scoring(conn, limit=max_articles, priority=priority)
+        articles = fetch_articles_for_scoring(
+            conn, limit=max_articles, priority=priority
+        )
         logger.info(f"Found {len(articles)} articles to process")
-        
+
         if not articles:
             logger.info("No articles to score!")
             return
-        
+
         processed = 0
         start_time = time.time()
-        
+
         for i, article in enumerate(articles):
             raw_id = article["raw_id"]
             headline = article.get("headline", "")[:80]
-            
+
             input_data = {
                 "headline": article.get("headline", ""),
                 "content": article.get("content", ""),
                 "source": article.get("source", ""),
                 "finbert_score": float(article.get("finbert_score", 0) or 0),
-                "finbert_label": article.get("finbert_label", "neutral")
+                "finbert_label": article.get("finbert_label", "neutral"),
             }
-            
+
             result = agent.process(input_data)
-            
+
             finbert_data = {
                 "score": input_data["finbert_score"],
                 "label": input_data["finbert_label"],
-                "confidence": 0.7
+                "confidence": 0.7,
             }
-            
+
             update_article_with_ai_score(conn, raw_id, result, finbert_data)
             processed += 1
-            
+
             sentiment = result.get("sentiment", "?")
             score = result.get("impact_score", 0)
             overlay = (result.get("overlay_narrative") or "")[:70]
             correction = result.get("finbert_correction")
-            
-            logger.info(f"[{processed}/{len(articles)}] {sentiment:8s} ({score:+.2f}) | {headline}...")
+
+            logger.info(
+                f"[{processed}/{len(articles)}] {sentiment:8s} ({score:+.2f}) | {headline}..."
+            )
             if overlay:
                 logger.info(f"    └─ Overlay: {overlay}...")
             if correction:
                 logger.info(f"    └─ FinBERT Fix: {correction[:60]}...")
-            
+
             if processed % 10 == 0:
                 conn.commit()
-            
+
             time.sleep(rate_limit_delay)
-        
+
         conn.commit()
         refresh_specialist_training(conn)
-        
+
         elapsed = time.time() - start_time
         stats = agent.get_stats()
-        
+
         logger.info("=" * 70)
         logger.info("AI SCORING COMPLETE")
         logger.info("=" * 70)
         logger.info(f"Articles processed: {processed}")
-        logger.info(f"Time elapsed: {elapsed:.1f}s ({processed/elapsed*60:.1f} articles/min)")
+        logger.info(
+            f"Time elapsed: {elapsed:.1f}s ({processed / elapsed * 60:.1f} articles/min)"
+        )
         logger.info(f"API calls: {stats['calls']} | Errors: {stats['errors']}")
         logger.info(f"Total tokens: {stats['total_tokens']:,}")
-        
-        est_cost = (stats['total_tokens'] * 0.6 * 3 + stats['total_tokens'] * 0.4 * 15) / 1_000_000
+
+        est_cost = (
+            stats["total_tokens"] * 0.6 * 3 + stats["total_tokens"] * 0.4 * 15
+        ) / 1_000_000
         logger.info(f"Estimated cost: ${est_cost:.4f}")
-        
+
     finally:
         conn.close()
 
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="ZINC-Fusion AI Compute Layer")
     parser.add_argument("--batch", type=int, default=100, help="Batch size")
-    parser.add_argument("--priority", choices=["high_signal", "recent", "trump", "unscored"], 
-                        default="high_signal", help="Article priority")
+    parser.add_argument(
+        "--priority",
+        choices=["high_signal", "recent", "trump", "unscored"],
+        default="high_signal",
+        help="Article priority",
+    )
     parser.add_argument("--max", type=int, default=None, help="Max articles to process")
-    parser.add_argument("--delay", type=float, default=12.0, help="Delay between API calls (seconds)")
-    
+    parser.add_argument(
+        "--delay", type=float, default=12.0, help="Delay between API calls (seconds)"
+    )
+
     args = parser.parse_args()
-    
+
     run_ai_scoring(
         batch_size=args.batch,
         priority=args.priority,
         max_articles=args.max,
-        rate_limit_delay=args.delay
+        rate_limit_delay=args.delay,
     )

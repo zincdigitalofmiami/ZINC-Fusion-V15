@@ -427,7 +427,10 @@ class GrafanaRegistry:
             ("EPA RIN", "supply.epa_rin_1d", "event_date"),
             ("USDA Exports", "supply.usda_exports_1w", "event_date"),
             ("USDA WASDE", "supply.usda_wasde_1m", "event_date"),
-            ("News Articles", "alt.news_1d", "published_at"),
+            ("Policy News", "alt.policy_news", "event_date"),
+            ("Executive Actions", "alt.executive_actions", "event_date"),
+            ("Econ News", "alt.econ_news", "event_date"),
+            ("ProFarmer News", "alt.profarmer_news", "event_date"),
         ]
 
         conn = self._get_conn()

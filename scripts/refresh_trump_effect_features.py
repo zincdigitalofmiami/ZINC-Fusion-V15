@@ -36,7 +36,6 @@ Calculates:
 
 import os
 import json
-import math
 import psycopg2
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -51,35 +50,35 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Action type weights (higher = more market-moving)
 ACTION_WEIGHTS = {
-    'executive_order': 3.0,      # Most impactful - direct policy changes
-    'memorandum': 2.5,           # Policy directives
-    'presidential_document': 2.0, # General presidential actions
-    'proclamation': 1.5,         # Ceremonial but can have trade implications
-    'nomination': 1.0,           # Personnel changes, indirect effect
+    "executive_order": 3.0,  # Most impactful - direct policy changes
+    "memorandum": 2.5,  # Policy directives
+    "presidential_document": 2.0,  # General presidential actions
+    "proclamation": 1.5,  # Ceremonial but can have trade implications
+    "nomination": 1.0,  # Personnel changes, indirect effect
 }
 
 # Policy uncertainty thresholds (based on FRED EPU historical distribution)
 EPU_THRESHOLDS = {
-    'low': 80,      # Below 80 = calm policy environment
-    'normal': 120,  # 80-120 = typical uncertainty
-    'elevated': 160, # 120-160 = elevated uncertainty (amplifies signal)
-    'crisis': 200,  # Above 200 = crisis-level uncertainty
+    "low": 80,  # Below 80 = calm policy environment
+    "normal": 120,  # 80-120 = typical uncertainty
+    "elevated": 160,  # 120-160 = elevated uncertainty (amplifies signal)
+    "crisis": 200,  # Above 200 = crisis-level uncertainty
 }
 
 # VIX thresholds for market stress
 VIX_THRESHOLDS = {
-    'calm': 15,     # Below 15 = low volatility
-    'normal': 20,   # 15-20 = typical
-    'elevated': 25, # 20-25 = elevated (increases sensitivity)
-    'stress': 35,   # Above 35 = market stress (high sensitivity)
+    "calm": 15,  # Below 15 = low volatility
+    "normal": 20,  # 15-20 = typical
+    "elevated": 25,  # 20-25 = elevated (increases sensitivity)
+    "stress": 35,  # Above 35 = market stress (high sensitivity)
 }
 
 # Era multipliers (Trump eras have higher policy impact on commodities)
 ERA_MULTIPLIERS = {
-    'pre_trump': 0.3,   # Pre-Trump baseline
-    'trump1': 1.0,      # First term - active trade wars
-    'gap': 0.4,         # Biden era - less tariff volatility
-    'trump2': 1.2,      # Second term - anticipated high activity
+    "pre_trump": 0.3,  # Pre-Trump baseline
+    "trump1": 1.0,  # First term - active trade wars
+    "gap": 0.4,  # Biden era - less tariff volatility
+    "trump2": 1.2,  # Second term - anticipated high activity
 }
 
 
@@ -91,6 +90,7 @@ def get_connection():
 # NEURAL SIGNAL HELPER FUNCTIONS
 # =============================================================================
 
+
 def calculate_epu_factor(epu_value):
     """
     Calculate policy uncertainty amplification factor.
@@ -101,17 +101,21 @@ def calculate_epu_factor(epu_value):
     if epu_value is None:
         return 1.0  # Neutral if no data
 
-    if epu_value < EPU_THRESHOLDS['low']:
+    if epu_value < EPU_THRESHOLDS["low"]:
         return 0.8  # Low uncertainty = dampened effect
-    elif epu_value < EPU_THRESHOLDS['normal']:
+    elif epu_value < EPU_THRESHOLDS["normal"]:
         return 1.0  # Normal
-    elif epu_value < EPU_THRESHOLDS['elevated']:
+    elif epu_value < EPU_THRESHOLDS["elevated"]:
         # Linear interpolation between 1.0 and 1.3
-        pct = (epu_value - EPU_THRESHOLDS['normal']) / (EPU_THRESHOLDS['elevated'] - EPU_THRESHOLDS['normal'])
+        pct = (epu_value - EPU_THRESHOLDS["normal"]) / (
+            EPU_THRESHOLDS["elevated"] - EPU_THRESHOLDS["normal"]
+        )
         return 1.0 + (0.3 * pct)
-    elif epu_value < EPU_THRESHOLDS['crisis']:
+    elif epu_value < EPU_THRESHOLDS["crisis"]:
         # Linear interpolation between 1.3 and 1.5
-        pct = (epu_value - EPU_THRESHOLDS['elevated']) / (EPU_THRESHOLDS['crisis'] - EPU_THRESHOLDS['elevated'])
+        pct = (epu_value - EPU_THRESHOLDS["elevated"]) / (
+            EPU_THRESHOLDS["crisis"] - EPU_THRESHOLDS["elevated"]
+        )
         return 1.3 + (0.2 * pct)
     else:
         return 1.5  # Crisis level - maximum amplification
@@ -127,17 +131,21 @@ def calculate_vix_factor(vix_value):
     if vix_value is None:
         return 1.0  # Neutral if no data
 
-    if vix_value < VIX_THRESHOLDS['calm']:
+    if vix_value < VIX_THRESHOLDS["calm"]:
         return 0.9  # Calm markets = less reactive
-    elif vix_value < VIX_THRESHOLDS['normal']:
+    elif vix_value < VIX_THRESHOLDS["normal"]:
         return 1.0  # Normal
-    elif vix_value < VIX_THRESHOLDS['elevated']:
+    elif vix_value < VIX_THRESHOLDS["elevated"]:
         # Linear interpolation between 1.0 and 1.2
-        pct = (vix_value - VIX_THRESHOLDS['normal']) / (VIX_THRESHOLDS['elevated'] - VIX_THRESHOLDS['normal'])
+        pct = (vix_value - VIX_THRESHOLDS["normal"]) / (
+            VIX_THRESHOLDS["elevated"] - VIX_THRESHOLDS["normal"]
+        )
         return 1.0 + (0.2 * pct)
-    elif vix_value < VIX_THRESHOLDS['stress']:
+    elif vix_value < VIX_THRESHOLDS["stress"]:
         # Linear interpolation between 1.2 and 1.4
-        pct = (vix_value - VIX_THRESHOLDS['elevated']) / (VIX_THRESHOLDS['stress'] - VIX_THRESHOLDS['elevated'])
+        pct = (vix_value - VIX_THRESHOLDS["elevated"]) / (
+            VIX_THRESHOLDS["stress"] - VIX_THRESHOLDS["elevated"]
+        )
         return 1.2 + (0.2 * pct)
     else:
         return 1.4  # High stress - maximum sensitivity
@@ -161,7 +169,7 @@ def calculate_momentum_alignment(momentum, expected_direction):
 
     # Trump tariff policies generally bullish for domestic ZL
     # (Import tariffs = less foreign oil = higher domestic prices)
-    expected_bullish = expected_direction == 'bullish'
+    expected_bullish = expected_direction == "bullish"
     actual_bullish = momentum > 0
 
     aligned = expected_bullish == actual_bullish
@@ -209,7 +217,9 @@ def calculate_confidence_score(total_actions, era, has_epu, has_vix, has_momentu
     return final_confidence
 
 
-def calculate_neural_signal(base_signal, epu_factor, vix_factor, momentum_factor, era_multiplier):
+def calculate_neural_signal(
+    base_signal, epu_factor, vix_factor, momentum_factor, era_multiplier
+):
     """
     Combine all factors into final neural-enhanced signal.
 
@@ -221,7 +231,9 @@ def calculate_neural_signal(base_signal, epu_factor, vix_factor, momentum_factor
     if base_signal == 0:
         return 0.0
 
-    raw_signal = base_signal * epu_factor * vix_factor * momentum_factor * era_multiplier
+    raw_signal = (
+        base_signal * epu_factor * vix_factor * momentum_factor * era_multiplier
+    )
 
     # Apply sigmoid-like compression to keep in reasonable range
     # This prevents extreme values while preserving directionality
@@ -253,7 +265,7 @@ def main():
         SELECT event_date as action_date,
                specialist_tags[1] as action_type,
                headline as title
-        FROM alt.news_1d
+        FROM alt.executive_actions
         WHERE source LIKE 'whitehouse%'
           AND event_date IS NOT NULL
         ORDER BY event_date
@@ -288,10 +300,7 @@ def main():
     for action_date, action_type, title in all_actions:
         if action_date not in actions_by_date:
             actions_by_date[action_date] = []
-        actions_by_date[action_date].append({
-            'type': action_type,
-            'title': title
-        })
+        actions_by_date[action_date].append({"type": action_type, "title": title})
 
     # =========================================================================
     # STEP 2: Load NEURAL ENHANCERS (EPU, VIX, ZL prices)
@@ -355,19 +364,31 @@ def main():
     min_date, max_date = cur.fetchone()
     print(f"  Training window: {min_date} to {max_date}")
 
-    # Also get news sentiment for signal calculation
+    # News sentiment aggregation (union of all alt news tables)
+    # Note: sentiment_score field no longer exists; using article counts only
     cur.execute("""
+        WITH all_news AS (
+            SELECT event_date FROM alt.policy_news WHERE event_date >= '2017-01-01'
+            UNION ALL
+            SELECT event_date FROM alt.executive_actions WHERE event_date >= '2017-01-01'
+            UNION ALL
+            SELECT event_date FROM alt.econ_news WHERE event_date >= '2017-01-01'
+            UNION ALL
+            SELECT event_date FROM alt.profarmer_news WHERE event_date >= '2017-01-01'
+        )
         SELECT event_date as pub_date,
-               AVG(sentiment_score) as avg_sentiment,
                COUNT(*) as article_count
-        FROM alt.news_1d
-        WHERE event_date >= '2017-01-01'
+        FROM all_news
         GROUP BY event_date
     """)
-    news_sentiment = {row[0]: {'sentiment': float(row[1]) if row[1] else 0.0,
-                                'count': int(row[2])}
-                      for row in cur.fetchall()}
-    print(f"  News sentiment days: {len(news_sentiment)}")
+    news_sentiment = {
+        row[0]: {
+            "sentiment": 0.0,  # sentiment_score no longer available
+            "count": int(row[1]),
+        }
+        for row in cur.fetchall()
+    }
+    print(f"  News article count days: {len(news_sentiment)}")
 
     # =========================================================================
     # STEP 4: Calculate features for each date with NEURAL ENHANCEMENT
@@ -383,7 +404,7 @@ def main():
             check_date = target_date - timedelta(days=d)
             if check_date in actions_by_date:
                 for action in actions_by_date[check_date]:
-                    if action_type is None or action['type'] == action_type:
+                    if action_type is None or action["type"] == action_type:
                         count += 1
         return count
 
@@ -427,18 +448,20 @@ def main():
             era = "trump2"
 
         # Count actions by type
-        eo_7d = count_actions_in_window(current_date, 7, 'executive_order')
-        eo_30d = count_actions_in_window(current_date, 30, 'executive_order')
-        proc_7d = count_actions_in_window(current_date, 7, 'proclamation')
-        proc_30d = count_actions_in_window(current_date, 30, 'proclamation')
-        memo_7d = count_actions_in_window(current_date, 7, 'memorandum')
-        memo_30d = count_actions_in_window(current_date, 30, 'memorandum')
-        nom_7d = count_actions_in_window(current_date, 7, 'nomination')
-        nom_30d = count_actions_in_window(current_date, 30, 'nomination')
+        eo_7d = count_actions_in_window(current_date, 7, "executive_order")
+        eo_30d = count_actions_in_window(current_date, 30, "executive_order")
+        proc_7d = count_actions_in_window(current_date, 7, "proclamation")
+        proc_30d = count_actions_in_window(current_date, 30, "proclamation")
+        memo_7d = count_actions_in_window(current_date, 7, "memorandum")
+        memo_30d = count_actions_in_window(current_date, 30, "memorandum")
+        nom_7d = count_actions_in_window(current_date, 7, "nomination")
+        nom_30d = count_actions_in_window(current_date, 30, "nomination")
 
         # Presidential documents that don't fit other categories
-        pres_doc_7d = count_actions_in_window(current_date, 7, 'presidential_document')
-        pres_doc_30d = count_actions_in_window(current_date, 30, 'presidential_document')
+        pres_doc_7d = count_actions_in_window(current_date, 7, "presidential_document")
+        pres_doc_30d = count_actions_in_window(
+            current_date, 30, "presidential_document"
+        )
 
         # Totals
         total_7d = eo_7d + proc_7d + memo_7d + nom_7d + pres_doc_7d
@@ -446,22 +469,28 @@ def main():
 
         # Velocity and acceleration
         action_velocity = total_7d / 7.0
-        prev_week_velocity = count_actions_in_window(current_date - timedelta(days=7), 7) / 7.0
+        prev_week_velocity = (
+            count_actions_in_window(current_date - timedelta(days=7), 7) / 7.0
+        )
         action_acceleration = action_velocity - prev_week_velocity
 
         # Weighted score using ACTION_WEIGHTS config
         weighted_score = (
-            eo_7d * ACTION_WEIGHTS['executive_order'] +
-            memo_7d * ACTION_WEIGHTS['memorandum'] +
-            proc_7d * ACTION_WEIGHTS['proclamation'] +
-            pres_doc_7d * ACTION_WEIGHTS['presidential_document'] +
-            nom_7d * ACTION_WEIGHTS['nomination']
+            eo_7d * ACTION_WEIGHTS["executive_order"]
+            + memo_7d * ACTION_WEIGHTS["memorandum"]
+            + proc_7d * ACTION_WEIGHTS["proclamation"]
+            + pres_doc_7d * ACTION_WEIGHTS["presidential_document"]
+            + nom_7d * ACTION_WEIGHTS["nomination"]
         ) / 10.0
 
         # Sentiment from news (if available)
-        news_record = news_sentiment.get(current_date, {'sentiment': 0.0, 'count': 0})
-        avg_sentiment_7d = news_record['sentiment'] if era in ['trump1', 'trump2'] else None
-        avg_sentiment_30d = news_record['sentiment'] * 0.8 if era in ['trump1', 'trump2'] else None
+        news_record = news_sentiment.get(current_date, {"sentiment": 0.0, "count": 0})
+        avg_sentiment_7d = (
+            news_record["sentiment"] if era in ["trump1", "trump2"] else None
+        )
+        avg_sentiment_30d = (
+            news_record["sentiment"] * 0.8 if era in ["trump1", "trump2"] else None
+        )
 
         # =====================================================================
         # NEURAL ENHANCERS
@@ -487,8 +516,10 @@ def main():
         era_multiplier = ERA_MULTIPLIERS.get(era, 0.5)
 
         # Trump policies generally bullish for domestic ZL (tariffs reduce imports)
-        expected_direction = 'bullish' if era in ['trump1', 'trump2'] else 'neutral'
-        momentum_factor = calculate_momentum_alignment(zl_momentum_7d, expected_direction)
+        expected_direction = "bullish" if era in ["trump1", "trump2"] else "neutral"
+        momentum_factor = calculate_momentum_alignment(
+            zl_momentum_7d, expected_direction
+        )
 
         # Base signal (0 to 1 scale)
         base_signal = min(1.0, weighted_score / 2.0) if total_7d > 0 else 0.0
@@ -508,32 +539,41 @@ def main():
 
         # Store neural features for training sync
         neural_features[current_date] = {
-            'epu_7d': round(epu_7d, 2) if epu_7d else None,
-            'epu_30d': round(epu_30d, 2) if epu_30d else None,
-            'china_tpu_7d': round(china_tpu_7d, 2) if china_tpu_7d else None,
-            'vix_7d': round(vix_7d, 2) if vix_7d else None,
-            'vix_30d': round(vix_30d, 2) if vix_30d else None,
-            'zl_momentum_7d': round(zl_momentum_7d, 4) if zl_momentum_7d else None,
-            'epu_factor': round(epu_factor, 3),
-            'vix_factor': round(vix_factor, 3),
-            'momentum_factor': round(momentum_factor, 3),
-            'era_multiplier': era_multiplier,
-            'base_signal': round(base_signal, 4),
-            'neural_signal': neural_signal,
-            'neural_confidence': round(neural_confidence, 3),
+            "epu_7d": round(epu_7d, 2) if epu_7d else None,
+            "epu_30d": round(epu_30d, 2) if epu_30d else None,
+            "china_tpu_7d": round(china_tpu_7d, 2) if china_tpu_7d else None,
+            "vix_7d": round(vix_7d, 2) if vix_7d else None,
+            "vix_30d": round(vix_30d, 2) if vix_30d else None,
+            "zl_momentum_7d": round(zl_momentum_7d, 4) if zl_momentum_7d else None,
+            "epu_factor": round(epu_factor, 3),
+            "vix_factor": round(vix_factor, 3),
+            "momentum_factor": round(momentum_factor, 3),
+            "era_multiplier": era_multiplier,
+            "base_signal": round(base_signal, 4),
+            "neural_signal": neural_signal,
+            "neural_confidence": round(neural_confidence, 3),
         }
 
-        features_rows.append((
-            current_date,
-            eo_7d, eo_30d,
-            proc_7d, proc_30d,
-            nom_7d, nom_30d,
-            memo_7d, memo_30d,
-            total_7d, total_30d,
-            avg_sentiment_7d, avg_sentiment_30d,
-            action_velocity, action_acceleration,
-            weighted_score
-        ))
+        features_rows.append(
+            (
+                current_date,
+                eo_7d,
+                eo_30d,
+                proc_7d,
+                proc_30d,
+                nom_7d,
+                nom_30d,
+                memo_7d,
+                memo_30d,
+                total_7d,
+                total_30d,
+                avg_sentiment_7d,
+                avg_sentiment_30d,
+                action_velocity,
+                action_acceleration,
+                weighted_score,
+            )
+        )
 
         current_date += timedelta(days=1)
 
@@ -545,9 +585,11 @@ def main():
     recent_with_actions = [r for r in features_rows if r[9] > 0][-10:]  # total_7d > 0
     for row in recent_with_actions:
         nf = neural_features.get(row[0], {})
-        print(f"    {row[0]}: EO_7d={row[1]}, Total_7d={row[9]}, base={nf.get('base_signal', 0):.3f}, "
-              f"neural={nf.get('neural_signal', 0):.3f}, conf={nf.get('neural_confidence', 0):.2f}, "
-              f"EPU={nf.get('epu_7d') or 'N/A'}, VIX={nf.get('vix_7d') or 'N/A'}")
+        print(
+            f"    {row[0]}: EO_7d={row[1]}, Total_7d={row[9]}, base={nf.get('base_signal', 0):.3f}, "
+            f"neural={nf.get('neural_signal', 0):.3f}, conf={nf.get('neural_confidence', 0):.2f}, "
+            f"EPU={nf.get('epu_7d') or 'N/A'}, VIX={nf.get('vix_7d') or 'N/A'}"
+        )
 
     # =========================================================================
     # STEP 5: Update features.trump_effect_1d
@@ -564,8 +606,9 @@ def main():
     # Insert new data
     insert_count = 0
     for row in features_rows:
-        cur.execute("""
-            INSERT INTO features.trump_effect_1d 
+        cur.execute(
+            """
+            INSERT INTO features.trump_effect_1d
             (as_of_date, eo_count_7d, eo_count_30d,
              proclamation_count_7d, proclamation_count_30d,
              nomination_count_7d, nomination_count_30d,
@@ -591,7 +634,9 @@ def main():
                 action_velocity = EXCLUDED.action_velocity,
                 action_acceleration = EXCLUDED.action_acceleration,
                 weighted_action_score = EXCLUDED.weighted_action_score
-        """, row)
+        """,
+            row,
+        )
         insert_count += 1
 
         if insert_count % 500 == 0:
@@ -636,47 +681,49 @@ def main():
 
         # Get neural-enhanced signal and confidence
         nf = neural_features.get(as_of_date, {})
-        neural_signal = nf.get('neural_signal', 0.0)
-        neural_confidence = nf.get('neural_confidence', 0.3)
+        neural_signal = nf.get("neural_signal", 0.0)
+        neural_confidence = nf.get("neural_confidence", 0.3)
 
         # Build comprehensive features JSON with all neural components
-        features_json = json.dumps({
-            # Era and basic counts
-            'era': era,
-            'eo_count_7d': eo_count_7d,
-            'eo_count_30d': eo_count_30d,
-            'total_actions_7d': total_actions_7d,
-            'total_actions_30d': total_actions_30d,
+        features_json = json.dumps(
+            {
+                # Era and basic counts
+                "era": era,
+                "eo_count_7d": eo_count_7d,
+                "eo_count_30d": eo_count_30d,
+                "total_actions_7d": total_actions_7d,
+                "total_actions_30d": total_actions_30d,
+                # Action dynamics
+                "action_velocity": round(action_velocity, 4) if action_velocity else 0,
+                "action_acceleration": round(action_acceleration, 4)
+                if action_acceleration
+                else 0,
+                "weighted_action_score": round(weighted_score, 4)
+                if weighted_score
+                else 0,
+                # Neural enhancers
+                "epu_7d": nf.get("epu_7d"),
+                "epu_30d": nf.get("epu_30d"),
+                "china_tpu_7d": nf.get("china_tpu_7d"),
+                "vix_7d": nf.get("vix_7d"),
+                "vix_30d": nf.get("vix_30d"),
+                "zl_momentum_7d": nf.get("zl_momentum_7d"),
+                # Neural factors
+                "epu_factor": nf.get("epu_factor", 1.0),
+                "vix_factor": nf.get("vix_factor", 1.0),
+                "momentum_factor": nf.get("momentum_factor", 1.0),
+                "era_multiplier": nf.get("era_multiplier", 1.0),
+                # Signal components
+                "base_signal": nf.get("base_signal", 0.0),
+                "neural_signal": neural_signal,
+                "neural_confidence": neural_confidence,
+                # Metadata
+                "scoring_version": "neural-v2",
+            }
+        )
 
-            # Action dynamics
-            'action_velocity': round(action_velocity, 4) if action_velocity else 0,
-            'action_acceleration': round(action_acceleration, 4) if action_acceleration else 0,
-            'weighted_action_score': round(weighted_score, 4) if weighted_score else 0,
-
-            # Neural enhancers
-            'epu_7d': nf.get('epu_7d'),
-            'epu_30d': nf.get('epu_30d'),
-            'china_tpu_7d': nf.get('china_tpu_7d'),
-            'vix_7d': nf.get('vix_7d'),
-            'vix_30d': nf.get('vix_30d'),
-            'zl_momentum_7d': nf.get('zl_momentum_7d'),
-
-            # Neural factors
-            'epu_factor': nf.get('epu_factor', 1.0),
-            'vix_factor': nf.get('vix_factor', 1.0),
-            'momentum_factor': nf.get('momentum_factor', 1.0),
-            'era_multiplier': nf.get('era_multiplier', 1.0),
-
-            # Signal components
-            'base_signal': nf.get('base_signal', 0.0),
-            'neural_signal': neural_signal,
-            'neural_confidence': neural_confidence,
-
-            # Metadata
-            'scoring_version': 'neural-v2',
-        })
-
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO training.specialist_trump_effect_1d
             (as_of_date, symbol, signal, confidence, features, created_at)
             VALUES (%s, 'ZL', %s, %s, %s::jsonb, NOW())
@@ -684,7 +731,14 @@ def main():
                 signal = EXCLUDED.signal,
                 confidence = EXCLUDED.confidence,
                 features = EXCLUDED.features
-        """, (as_of_date, round(neural_signal, 4), round(neural_confidence, 3), features_json))
+        """,
+            (
+                as_of_date,
+                round(neural_signal, 4),
+                round(neural_confidence, 3),
+                features_json,
+            ),
+        )
         sync_count += 1
 
         if sync_count % 500 == 0:
@@ -692,7 +746,9 @@ def main():
             print(f"    Synced {sync_count} rows...")
 
     conn.commit()
-    print(f"  ✅ Synced {sync_count} NEURAL-ENHANCED rows to training.specialist_trump_effect_1d")
+    print(
+        f"  ✅ Synced {sync_count} NEURAL-ENHANCED rows to training.specialist_trump_effect_1d"
+    )
 
     # =========================================================================
     # STEP 7: Verification with Neural Signal Analysis
@@ -728,7 +784,9 @@ def main():
     """)
     print("\n  Recent days with actions (features table):")
     for row in cur.fetchall():
-        print(f"    {row[0]}: EO_7d={row[1]}, EO_30d={row[2]}, Total_7d={row[3]}, velocity={row[4]:.2f}")
+        print(
+            f"    {row[0]}: EO_7d={row[1]}, EO_30d={row[2]}, Total_7d={row[3]}, velocity={row[4]:.2f}"
+        )
 
     # Verify training table with NEURAL signal details
     cur.execute("""
@@ -757,8 +815,16 @@ def main():
     print(f"    Medium (0.3-0.5): {dist[2]} rows")
     print(f"    Low (0-0.3):   {dist[3]} rows")
     print(f"    Zero:          {dist[4]} rows")
-    print(f"    Avg active signal: {dist[5]:.4f}" if dist[5] else "    Avg active signal: N/A")
-    print(f"    Avg confidence:    {dist[6]:.3f}" if dist[6] else "    Avg confidence: N/A")
+    print(
+        f"    Avg active signal: {dist[5]:.4f}"
+        if dist[5]
+        else "    Avg active signal: N/A"
+    )
+    print(
+        f"    Avg confidence:    {dist[6]:.3f}"
+        if dist[6]
+        else "    Avg confidence: N/A"
+    )
 
     # Sample neural-enhanced training signals
     cur.execute("""
@@ -777,8 +843,10 @@ def main():
     for row in cur.fetchall():
         epu_str = f"EPU={row[4]}" if row[4] else "EPU=N/A"
         vix_str = f"VIX={row[5]}" if row[5] else "VIX=N/A"
-        print(f"    {row[0]}: signal={float(row[1]):.4f}, conf={float(row[2]):.3f}, "
-              f"era={row[3]}, {epu_str}, {vix_str}")
+        print(
+            f"    {row[0]}: signal={float(row[1]):.4f}, conf={float(row[2]):.3f}, "
+            f"era={row[3]}, {epu_str}, {vix_str}"
+        )
 
     # Show top 5 highest signals ever
     cur.execute("""
@@ -792,8 +860,10 @@ def main():
     """)
     print("\n  Top 5 strongest signals (all time):")
     for row in cur.fetchall():
-        print(f"    {row[0]}: signal={float(row[1]):.4f}, conf={float(row[2]):.3f}, "
-              f"era={row[3]}, actions_7d={row[4]}")
+        print(
+            f"    {row[0]}: signal={float(row[1]):.4f}, conf={float(row[2]):.3f}, "
+            f"era={row[3]}, actions_7d={row[4]}"
+        )
 
     cur.close()
     conn.close()
@@ -802,8 +872,12 @@ def main():
     print("🧠 NEURAL-ENHANCED TRUMP EFFECT FEATURES COMPLETE")
     print("=" * 70)
     print("\nKey improvements over baseline:")
-    print("  ✅ Policy Uncertainty (EPU) factor amplifies signals during high uncertainty")
-    print("  ✅ VIX stress factor increases signal sensitivity during market volatility")
+    print(
+        "  ✅ Policy Uncertainty (EPU) factor amplifies signals during high uncertainty"
+    )
+    print(
+        "  ✅ VIX stress factor increases signal sensitivity during market volatility"
+    )
     print("  ✅ ZL momentum alignment confirms/dampens signals based on price action")
     print("  ✅ Era multipliers weight Trump terms higher for trade policy impact")
     print("  ✅ Data-driven confidence scoring based on available sources")
