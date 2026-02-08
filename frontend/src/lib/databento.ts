@@ -22,25 +22,36 @@ function basicAuthHeader(apiKey: string): string {
   return `Basic ${token}`;
 }
 
-export async function fetchDatabentoCsv(params: Record<string, string>): Promise<string> {
+export async function fetchDatabentoCsv(
+  params: Record<string, string>,
+  timeoutMs = 5000,
+): Promise<string> {
   const apiKey = requireApiKey();
   const body = new URLSearchParams(params);
 
-  const res = await fetch(DATABENTO_BASE_URL, {
-    method: "POST",
-    headers: {
-      Authorization: basicAuthHeader(apiKey),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: body.toString(),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Databento API error ${res.status}: ${text}`);
+  try {
+    const res = await fetch(DATABENTO_BASE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: basicAuthHeader(apiKey),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Databento API error ${res.status}: ${text}`);
+    }
+
+    return await res.text();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await res.text();
 }
 
 function parseTimestamp(value: string): Date | null {
@@ -124,7 +135,7 @@ const INT64_MAX = 9223372036854775807n;
 /**
  * Parse Databento statistics schema CSV for open interest data.
  * Statistics schema contains multiple stat types; this filters for stat_type=9 (open interest).
- * 
+ *
  * Open interest value can appear in either:
  * - quantity field (if not sentinel INT64_MAX)
  * - price field (if quantity is sentinel, then price * 1e-9)

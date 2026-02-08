@@ -4,7 +4,7 @@ import { generateAIIntelligence, type MarketData } from '@/lib/ai-intelligence'
 import { generateDriverIntel, generateFallbackDriverIntel } from '@/lib/ai-driver-intel'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300 // Allow heavyweight daily synthesis + prewarm headroom
+export const maxDuration = 30 // DB queries ~2s + AI timeout 8s + headroom
 
 const CACHE_STALE_WHILE_REVALIDATE_SECONDS = 60 * 60
 
@@ -797,6 +797,18 @@ function generateMarketIntelligence(
 // MAIN API HANDLER - Full Sophistication Queries
 // =============================================================================
 
+// AI calls get a hard timeout so the endpoint returns fast with rule-based
+// fallbacks instead of hanging for 30-60s waiting for LLM responses.
+const AI_TIMEOUT_MS = 8_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  return Promise.race([
+    promise.then(v => { clearTimeout(timer); return v }),
+    new Promise<T>(resolve => { timer = setTimeout(() => resolve(fallback), ms) }),
+  ])
+}
+
 export async function GET() {
   try {
     // Parallel queries for all data sources
@@ -1078,23 +1090,23 @@ export async function GET() {
     }
 
     const [aiIntelligence, vixIntel, crushIntel, chinaIntel, tariffIntel] = await Promise.all([
-      generateAIIntelligence(marketData).catch(() => null),
-      generateDriverIntel({
+      withTimeout(generateAIIntelligence(marketData).catch(() => null), AI_TIMEOUT_MS, null),
+      withTimeout(generateDriverIntel({
         driverName: 'vix', score: vixResult.score, level: vixResult.level, regime: vixResult.regime,
         components: vixResult.components as unknown as Record<string, number | null>, asOfDate,
-      }).catch(() => null),
-      generateDriverIntel({
+      }).catch(() => null), AI_TIMEOUT_MS, null),
+      withTimeout(generateDriverIntel({
         driverName: 'crush', score: crushResult.score, level: crushResult.level, regime: crushResult.regime,
         components: crushResult.components as unknown as Record<string, number | null>, asOfDate,
-      }).catch(() => null),
-      generateDriverIntel({
+      }).catch(() => null), AI_TIMEOUT_MS, null),
+      withTimeout(generateDriverIntel({
         driverName: 'china', score: chinaResult.score, level: chinaResult.level, regime: chinaResult.regime,
         components: chinaResult.components as unknown as Record<string, number | null>, asOfDate,
-      }).catch(() => null),
-      generateDriverIntel({
+      }).catch(() => null), AI_TIMEOUT_MS, null),
+      withTimeout(generateDriverIntel({
         driverName: 'tariff', score: tariffResult.score, level: tariffResult.level, regime: tariffResult.regime,
         components: tariffResult.components as unknown as Record<string, number | null>, asOfDate,
-      }).catch(() => null),
+      }).catch(() => null), AI_TIMEOUT_MS, null),
     ])
 
     const intelligence = aiIntelligence ? {
