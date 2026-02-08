@@ -164,31 +164,30 @@ export function LightweightZlCandlestickChart({
 
         if (json.price) {
           setLastPrice(json.price)
-          setIsLive(json.source === 'databento' || json.source === 'databento_live')
+          setIsLive(json.live === true)
           if (json.updated_at) {
             const updated = new Date(json.updated_at)
             setLastUpdate(updated.toLocaleTimeString())
           }
-          if (json.change_pct !== null) {
+          if (json.change_pct != null) {
             setPriceChange(json.change_pct)
           }
 
-          // Update forming bar in chart
-          if (json.forming_bars?.['1d'] && candleSeriesRef.current && priceData.length > 0) {
-            const forming = json.forming_bars['1d']
+          // Update forming candle when we have real live 1m data
+          if (json.live && candleSeriesRef.current && priceData.length > 0) {
             const lastBar = priceData[priceData.length - 1]
             const time = Math.floor(new Date(lastBar.timestamp).getTime() / 1000) as UTCTimestamp
 
             candleSeriesRef.current.update({
               time,
-              open: forming.open,
-              high: forming.high,
-              low: forming.low,
-              close: forming.close,
+              open: lastBar.open,
+              high: Math.max(lastBar.high, json.high ?? lastBar.high),
+              low: Math.min(lastBar.low, json.low ?? lastBar.low),
+              close: json.price,
             })
 
-            if (forming.high > (highPrice || 0)) setHighPrice(forming.high)
-            if (forming.low < (lowPrice || Infinity)) setLowPrice(forming.low)
+            if (json.high && json.high > (highPrice || 0)) setHighPrice(json.high)
+            if (json.low && json.low < (lowPrice || Infinity)) setLowPrice(json.low)
           }
         }
       } catch {

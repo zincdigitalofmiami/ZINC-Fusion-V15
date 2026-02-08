@@ -5,9 +5,10 @@ const pool = dbPool;
 
 /**
  * GET /api/zl/price-1h?hours=168
- * Fetch 1-hour OHLCV bars for ZL
+ * Fetch 1-hour OHLCV bars for ZL from analytics.zl_price_1h
  *
- * Data source: mkt.futures_1h (Databento historical - most reliable)
+ * This is the ZL-specific 1h table, written by Inngest zl-1h and zlLive1m aggregation.
+ * NOT the multi-symbol mkt.futures_1h basket.
  *
  * Query params:
  * - hours: number of hours back (default 168 = 7 days)
@@ -22,19 +23,18 @@ export async function GET(req: NextRequest) {
 
     const result = await pool.query(
       `SELECT
-        event_time as timestamp,
+        timestamp,
         open,
         high,
         low,
         close,
         volume,
         source,
-        ingested_at as created_at
-      FROM mkt.futures_1h
-      WHERE symbol = 'ZL'
-        AND event_time >= NOW() - $1::interval
+        created_at
+      FROM analytics.zl_price_1h
+      WHERE timestamp >= NOW() - $1::interval
         AND close IS NOT NULL
-      ORDER BY event_time ASC`,
+      ORDER BY timestamp ASC`,
       [`${clampedHours} hours`]
     );
 

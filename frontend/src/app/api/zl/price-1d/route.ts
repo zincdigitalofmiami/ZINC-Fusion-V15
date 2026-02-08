@@ -5,10 +5,10 @@ const pool = dbPool;
 
 /**
  * GET /api/zl/price-1d?days=90
- * Fetch daily OHLCV bars for ZL
+ * Fetch daily OHLCV bars for ZL from analytics.zl_price_1d
  *
- * Data source priority:
- * 1. mkt.futures_1d (Databento historical - most reliable, runs via Inngest cron)
+ * This is the ZL-specific daily table, updated by Inngest zl-live-1d and zl-daily.
+ * NOT the 100+ symbol mkt.futures_1d basket.
  *
  * Query params:
  * - days: number of days back (default 90)
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     // Clamp days to reasonable range
     const clampedDays = Math.max(7, Math.min(days, 3650)); // 1 week to 10 years
 
-    // Query mkt.futures_1d directly (more reliable than analytics.zl_price_1d)
+    // Query analytics.zl_price_1d — ZL-specific, freshest daily data
     const result = await pool.query(
       `SELECT
         event_date as timestamp,
@@ -30,10 +30,9 @@ export async function GET(req: NextRequest) {
         low,
         close,
         volume,
-        'databento' as source
-      FROM mkt.futures_1d
-      WHERE symbol = 'ZL'
-        AND event_date >= CURRENT_DATE - $1::interval
+        COALESCE(source, 'databento') as source
+      FROM analytics.zl_price_1d
+      WHERE event_date >= CURRENT_DATE - $1::interval
         AND event_date <= CURRENT_DATE
         AND close IS NOT NULL
       ORDER BY event_date ASC`,

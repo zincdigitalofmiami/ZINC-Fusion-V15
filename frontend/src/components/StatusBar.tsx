@@ -7,6 +7,9 @@ interface ZlLiveData {
   change: number
   change_pct: number
   updated_at: string
+  live: boolean
+  source: string
+  age_seconds: number | null
 }
 
 interface StatusBarProps {
@@ -29,24 +32,28 @@ export default function StatusBar({
         const res = await fetch('/api/zl/live')
         if (!res.ok) throw new Error('Failed to fetch ZL live')
         const json = await res.json()
+        if (!json.price) {
+          setZlData(null)
+          return
+        }
         setZlData({
           price: json.price,
-          change: json.change,
-          change_pct: json.change_pct,
-          updated_at: json.updated_at
+          change: json.change ?? 0,
+          change_pct: json.change_pct ?? 0,
+          updated_at: json.updated_at,
+          live: json.live ?? false,
+          source: json.source ?? 'unknown',
+          age_seconds: json.age_seconds ?? null,
         })
-        
-        // Check if data is stale (>30 min old)
-        const updatedAt = new Date(json.updated_at)
-        const now = new Date()
-        setIsStale((now.getTime() - updatedAt.getTime()) > 30 * 60 * 1000)
+        // Stale = not live (market closed, no 1m data)
+        setIsStale(!json.live)
       } catch (err) {
         console.error('Failed to fetch ZL live:', err)
       }
     }
     fetchZlLive()
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchZlLive, 60000)
+    // Refresh every 15 seconds when live
+    const interval = setInterval(fetchZlLive, 15000)
     return () => clearInterval(interval)
   }, [])
 
@@ -92,12 +99,14 @@ export default function StatusBar({
             {zlChange.toFixed(2)} ({isPositive ? '+' : ''}
             {zlChangePercent.toFixed(2)}%)
           </span>
+          {zlData?.live && <span className="live-dot" title="Live 1m data">●</span>}
+          {zlData && !zlData.live && <span className="stale-dot" title={`Last update: ${zlData.source}`}>○</span>}
         </div>
         <div className={`regime-chip ${regime}`}>{regimeLabels[regime]}</div>
         <div className={`confidence-badge ${confidenceClass}`}>{confidence}% Conf</div>
       </div>
       <div className="status-right">
-        {isStale && <div className="stale-banner">Stale Data</div>}
+        {isStale && <div className="stale-banner">{zlData?.source === '1d' ? 'Last Close' : 'Market Closed'}</div>}
         <div className="last-update">{displayTime}</div>
         <div className="fast-actions">
           <button className="action-btn">↻</button>
