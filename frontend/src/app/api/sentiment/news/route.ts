@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { classifySentiment } from "@/lib/sentiment-scorer";
 
 export const dynamic = "force-dynamic";
 
@@ -109,15 +110,13 @@ export async function GET() {
       LIMIT 50
     `);
 
-    // Compute sentiment classification from zl_sentiment or specialist_tags
+    // Compute sentiment classification — keyword-based when zl_sentiment is NULL
     const headlines = rows.map((r) => {
-      let sentiment: "bullish" | "bearish" | "neutral" = "neutral";
-      if (r.zl_sentiment) {
-        const s = r.zl_sentiment.toLowerCase();
-        if (s.includes("bull") || s.includes("positive")) sentiment = "bullish";
-        else if (s.includes("bear") || s.includes("negative"))
-          sentiment = "bearish";
-      }
+      const sentiment = classifySentiment(
+        r.zl_sentiment,
+        r.headline,
+        r.summary || r.content,
+      );
       return {
         id: `${r.table_source}-${r.id}`,
         event_date: r.event_date,

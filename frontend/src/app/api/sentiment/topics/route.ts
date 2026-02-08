@@ -1,87 +1,105 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { scoreZlSentiment } from "@/lib/sentiment-scorer";
 
 export const dynamic = "force-dynamic";
 
 interface TagRow {
   tag: string;
-  cnt: number;
-  bullish: number;
-  bearish: number;
+  headline: string | null;
+  summary: string | null;
 }
 
 /**
  * GET /api/sentiment/topics
- * Aggregates specialist_tags across all news tables from the last 14 days
+ * Aggregates specialist_tags across all news tables from the last 30 days
  * to build topic clusters for the bubble visualization.
  * Returns tag name, mention count, and net sentiment.
+ * Sentiment is derived from keyword analysis of associated headlines.
  */
 export async function GET() {
   try {
+    // Fetch individual tag+headline rows so we can score sentiment per mention
     const rows = await query<TagRow>(`
       WITH all_tags AS (
         -- ProFarmer
-        SELECT unnest(specialist_tags) AS tag, NULL AS zl_sentiment
+        SELECT unnest(specialist_tags) AS tag, headline, summary
         FROM alt.profarmer_news
-        WHERE event_date >= NOW() - INTERVAL '14 days'
+        WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
         UNION ALL
 
         -- Policy
-        SELECT unnest(specialist_tags), zl_sentiment
+        SELECT unnest(specialist_tags), headline, NULL
         FROM alt.policy_news
-        WHERE event_date >= NOW() - INTERVAL '14 days'
+        WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
         UNION ALL
 
         -- Executive actions
-        SELECT unnest(specialist_tags), zl_sentiment
+        SELECT unnest(specialist_tags), headline, NULL
         FROM alt.executive_actions
-        WHERE event_date >= NOW() - INTERVAL '14 days'
+        WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
         UNION ALL
 
         -- Econ news
-        SELECT unnest(specialist_tags), NULL
+        SELECT unnest(specialist_tags), headline, summary
         FROM alt.econ_news
-        WHERE event_date >= NOW() - INTERVAL '14 days'
+        WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
         UNION ALL
 
         -- News events
-        SELECT unnest(specialist_tags), zl_sentiment
+        SELECT unnest(specialist_tags), headline, NULL
         FROM econ.news_event
-        WHERE event_date >= NOW() - INTERVAL '14 days'
+        WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
       )
-      SELECT
-        tag,
-        COUNT(*)::int AS cnt,
-        COUNT(*) FILTER (WHERE LOWER(zl_sentiment) LIKE '%bull%' OR LOWER(zl_sentiment) LIKE '%positive%')::int AS bullish,
-        COUNT(*) FILTER (WHERE LOWER(zl_sentiment) LIKE '%bear%' OR LOWER(zl_sentiment) LIKE '%negative%')::int AS bearish
+      SELECT tag, headline, summary
       FROM all_tags
       WHERE tag IS NOT NULL AND LENGTH(TRIM(tag)) > 0
-      GROUP BY tag
-      ORDER BY cnt DESC
-      LIMIT 25
     `);
 
-    // Convert to bubble nodes: volume proportional to mention count,
-    // sentiment = (bullish - bearish) / total scaled to -1..1
-    const maxCount = Math.max(...rows.map((r) => r.cnt), 1);
-    const topics = rows.map((r) => {
-      const total = r.bullish + r.bearish || 1;
-      const sentiment = (r.bullish - r.bearish) / total;
+    // Score and aggregate by tag
+    const tagMap = new Map<
+      string,
+      { cnt: number; bullish: number; bearish: number; neutral: number }
+    >();
+
+    for (const r of rows) {
+      const { sentiment } = scoreZlSentiment(r.headline, r.summary);
+      const entry = tagMap.get(r.tag) || {
+        cnt: 0,
+        bullish: 0,
+        bearish: 0,
+        neutral: 0,
+      };
+      entry.cnt++;
+      entry[sentiment]++;
+      tagMap.set(r.tag, entry);
+    }
+
+    // Sort by count descending, take top 25
+    const sorted = [...tagMap.entries()]
+      .sort((a, b) => b[1].cnt - a[1].cnt)
+      .slice(0, 25);
+
+    // Convert to bubble nodes
+    const maxCount = Math.max(...sorted.map(([, v]) => v.cnt), 1);
+    const topics = sorted.map(([tag, stats]) => {
+      const total = stats.bullish + stats.bearish || 1;
+      const sentiment = (stats.bullish - stats.bearish) / total;
       return {
-        id: r.tag.toLowerCase().replace(/\s+/g, "-"),
-        topic: r.tag,
-        volume: Math.max(30, Math.round((r.cnt / maxCount) * 100)),
+        id: tag.toLowerCase().replace(/\s+/g, "-"),
+        topic: tag,
+        volume: Math.max(30, Math.round((stats.cnt / maxCount) * 100)),
         sentiment: Math.round(sentiment * 100) / 100,
-        mentions: r.cnt,
+        mentions: stats.cnt,
       };
     });
 

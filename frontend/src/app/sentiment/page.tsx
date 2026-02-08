@@ -185,7 +185,7 @@ export default function SentimentPage() {
           Active Narrative Clusters
           {topics && topics.topics.length > 0 && (
             <span className="text-xs text-slate-500 font-normal ml-2">
-              Last 14 days
+              Last 30 days
             </span>
           )}
         </h3>
