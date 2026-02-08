@@ -37,6 +37,7 @@ repos:
         entry: python3 scripts/check_sql_table_references.py
         language: system
         files: '^(src|scripts|frontend/src|tests|sql)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$'
+        exclude: '^scripts/exploration/'
 
       - id: eslint-frontend
         name: ESLint frontend

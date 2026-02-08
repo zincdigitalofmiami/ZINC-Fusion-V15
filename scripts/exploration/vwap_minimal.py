@@ -2,10 +2,12 @@
 """
 Minimal VWAP test with just a few records
 """
+
 __test__ = False  # Pytest should not collect integration scripts.
 
 
 import os
+
 import psycopg2
 import ray
 
@@ -17,9 +19,9 @@ def calculate_vwap_batch_minimal(records):
     """Minimal VWAP calculation for testing"""
     results = []
     for record in records:
-        underlying, event_date, open_, high, low, close, volume = record
+        underlying, event_date, _open, _high, _low, close, volume = record
 
-        # Simple close × volume
+        # Simple close x volume
         close_vwap = close * volume if close and volume else None
 
         results.append((close_vwap, underlying, event_date))
