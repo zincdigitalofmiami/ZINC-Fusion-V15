@@ -1,0 +1,328 @@
+import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    const [
+      priceResult,
+      returnsResult,
+      rvolResult,
+      cotResult,
+      maResult,
+      rsiResult,
+      vixResult,
+      ovxResult,
+      crushResult,
+      signalsResult,
+    ] = await Promise.all([
+      // 1. Latest ZL price + volume + OI
+      query<{
+        event_date: string;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: string;
+        open_interest: string;
+      }>(
+        `SELECT event_date::text, open, high, low, close, volume, open_interest
+         FROM mkt.futures_1d
+         WHERE symbol = 'ZL' AND close IS NOT NULL
+         ORDER BY event_date DESC LIMIT 1`,
+      ),
+
+      // 2. Returns (5d, 21d, 63d)
+      query<{
+        close: number;
+        ret_5d: string;
+        ret_21d: string;
+        ret_63d: string;
+      }>(
+        `WITH p AS (
+           SELECT close,
+                  LAG(close,  5) OVER (ORDER BY event_date) as c5,
+                  LAG(close, 21) OVER (ORDER BY event_date) as c21,
+                  LAG(close, 63) OVER (ORDER BY event_date) as c63
+           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
+           ORDER BY event_date DESC LIMIT 70
+         )
+         SELECT close,
+                ROUND(((close - c5)  / NULLIF(c5, 0)  * 100)::numeric, 2) as ret_5d,
+                ROUND(((close - c21) / NULLIF(c21, 0) * 100)::numeric, 2) as ret_21d,
+                ROUND(((close - c63) / NULLIF(c63, 0) * 100)::numeric, 2) as ret_63d
+         FROM p LIMIT 1`,
+      ),
+
+      // 3. 21-day realized volatility (annualized)
+      query<{ rvol_21d: string }>(
+        `WITH lr AS (
+           SELECT LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as r
+           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
+           ORDER BY event_date DESC LIMIT 30
+         )
+         SELECT ROUND((STDDEV(r) * SQRT(252) * 100)::numeric, 2) as rvol_21d
+         FROM lr WHERE r IS NOT NULL`,
+      ),
+
+      // 4. COT z-score + percentile
+      query<{
+        mu: string;
+        sd: string;
+        n: string;
+        mm: string;
+        pct: number;
+        zscore: string;
+        percentile: string;
+        prod_net: string;
+        swap_net: string;
+      }>(
+        `WITH stats AS (
+           SELECT AVG(managed_money_net) as mu, STDDEV(managed_money_net) as sd,
+                  COUNT(*) as n
+           FROM pos.cftc_1w WHERE symbol = 'ZL'
+         ),
+         latest AS (
+           SELECT managed_money_net as mm, managed_money_net_pct_oi as pct,
+                  prod_merc_net, swap_net
+           FROM pos.cftc_1w WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT 1
+         ),
+         prank AS (
+           SELECT COUNT(*)::float / (SELECT COUNT(*) FROM pos.cftc_1w WHERE symbol = 'ZL') as pctile
+           FROM pos.cftc_1w WHERE symbol = 'ZL'
+           AND managed_money_net < (SELECT managed_money_net FROM pos.cftc_1w WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT 1)
+         )
+         SELECT ROUND(s.mu::numeric, 0) as mu, ROUND(s.sd::numeric, 0) as sd, s.n,
+                l.mm, l.pct, l.prod_merc_net as prod_net, l.swap_net,
+                ROUND(((l.mm - s.mu) / NULLIF(s.sd, 0))::numeric, 3) as zscore,
+                ROUND((p.pctile * 100)::numeric, 1) as percentile
+         FROM stats s, latest l, prank p`,
+      ),
+
+      // 5. Moving averages
+      query<{
+        close: string;
+        sma20: string;
+        sma50: string;
+        sma200: string;
+      }>(
+        `WITH ordered AS (
+           SELECT close,
+                  AVG(close) OVER (ORDER BY event_date ROWS BETWEEN  19 PRECEDING AND CURRENT ROW) as sma20,
+                  AVG(close) OVER (ORDER BY event_date ROWS BETWEEN  49 PRECEDING AND CURRENT ROW) as sma50,
+                  AVG(close) OVER (ORDER BY event_date ROWS BETWEEN 199 PRECEDING AND CURRENT ROW) as sma200
+           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
+           ORDER BY event_date DESC LIMIT 5
+         )
+         SELECT ROUND(close::numeric, 2) as close,
+                ROUND(sma20::numeric, 2) as sma20,
+                ROUND(sma50::numeric, 2) as sma50,
+                ROUND(sma200::numeric, 2) as sma200
+         FROM ordered LIMIT 1`,
+      ),
+
+      // 6. Compute RSI-14
+      query<{ rsi_14: string }>(
+        `WITH changes AS (
+           SELECT close - LAG(close) OVER (ORDER BY event_date) as chg
+           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
+           ORDER BY event_date DESC LIMIT 30
+         ),
+         gl AS (
+           SELECT CASE WHEN chg > 0 THEN chg ELSE 0 END as gain,
+                  CASE WHEN chg < 0 THEN ABS(chg) ELSE 0 END as loss
+           FROM changes WHERE chg IS NOT NULL
+         )
+         SELECT ROUND((100 - 100 / (1 + AVG(gain) / NULLIF(AVG(loss), 0)))::numeric, 1) as rsi_14
+         FROM gl`,
+      ),
+
+      // 7. VIX + z-score (1y)
+      query<{ vix: string; vix_avg_1y: string; vix_z: string }>(
+        `WITH stats AS (
+           SELECT AVG(value) as mu, STDDEV(value) as sd
+           FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS'
+           AND event_date > CURRENT_DATE - INTERVAL '1 year'
+         ),
+         latest AS (
+           SELECT value FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS'
+           ORDER BY event_date DESC LIMIT 1
+         )
+         SELECT ROUND(l.value::numeric, 2) as vix,
+                ROUND(s.mu::numeric, 2) as vix_avg_1y,
+                ROUND(((l.value - s.mu) / NULLIF(s.sd, 0))::numeric, 3) as vix_z
+         FROM stats s, latest l`,
+      ),
+
+      // 8. OVX (oil volatility)
+      query<{ ovx: string }>(
+        `SELECT ROUND(value::numeric, 2) as ovx
+         FROM econ.vol_indices_1d WHERE series_id = 'OVXCLS'
+         ORDER BY event_date DESC LIMIT 1`,
+      ),
+
+      // 9. Board crush + oil share z-scores
+      query<{
+        crush_now: string;
+        crush_z: string;
+        os_now: string;
+        os_z: string;
+        n: string;
+      }>(
+        `WITH stats AS (
+           SELECT AVG(board_crush) as mu, STDDEV(board_crush) as sd,
+                  AVG(oil_share) as os_mu, STDDEV(oil_share) as os_sd,
+                  COUNT(*) as n
+           FROM analytics.board_crush_1d
+         ),
+         latest AS (
+           SELECT board_crush as bc, oil_share as os
+           FROM analytics.board_crush_1d ORDER BY trade_date DESC LIMIT 1
+         )
+         SELECT ROUND(l.bc::numeric, 4) as crush_now,
+                ROUND(((l.bc::numeric - s.mu::numeric) / NULLIF(s.sd::numeric, 0))::numeric, 3) as crush_z,
+                ROUND(l.os::numeric, 4) as os_now,
+                ROUND(((l.os::numeric - s.os_mu::numeric) / NULLIF(s.os_sd::numeric, 0))::numeric, 3) as os_z,
+                s.n
+         FROM stats s, latest l`,
+      ),
+
+      // 10. Specialist signals (latest per bucket)
+      query<{
+        bucket: string;
+        signal_1: number;
+        signal_2: number;
+        confidence: number;
+        model_type: string;
+        as_of_date: string;
+        abstained: boolean;
+      }>(
+        `SELECT DISTINCT ON (bucket)
+                bucket, signal_1, signal_2, confidence, model_type,
+                as_of_date::text, abstained
+         FROM training.specialist_signals_1d
+         ORDER BY bucket, as_of_date DESC`,
+      ),
+    ]);
+
+    const price = priceResult[0];
+    const returns = returnsResult[0];
+    const rvol = rvolResult[0];
+    const cot = cotResult[0];
+    const ma = maResult[0];
+    const rsi = rsiResult[0];
+    const vixData = vixResult[0];
+    const ovxData = ovxResult[0];
+    const crush = crushResult[0];
+
+    // Compute composite sentiment score from specialist signals
+    const signals = signalsResult.filter((s) => !s.abstained);
+    const weightedSum = signals.reduce(
+      (acc, s) => acc + s.signal_1 * s.confidence,
+      0,
+    );
+    const totalConf = signals.reduce((acc, s) => acc + s.confidence, 0);
+    const compositeSignal = totalConf > 0 ? weightedSum / totalConf : 0;
+
+    // Trend status from MAs
+    const priceNum = price?.close ?? 0;
+    const aboveSma20 = priceNum > Number(ma?.sma20 ?? 0);
+    const aboveSma50 = priceNum > Number(ma?.sma50 ?? 0);
+    const aboveSma200 = priceNum > Number(ma?.sma200 ?? 0);
+    const trendScore =
+      (aboveSma20 ? 1 : 0) + (aboveSma50 ? 1 : 0) + (aboveSma200 ? 1 : 0);
+    const trend =
+      trendScore === 3
+        ? "strong_uptrend"
+        : trendScore === 2
+          ? "uptrend"
+          : trendScore === 1
+            ? "mixed"
+            : "downtrend";
+
+    return NextResponse.json({
+      as_of: price?.event_date ?? null,
+
+      price: {
+        close: price?.close ?? null,
+        open: price?.open ?? null,
+        high: price?.high ?? null,
+        low: price?.low ?? null,
+        volume: price ? Number(price.volume) : null,
+        open_interest: price ? Number(price.open_interest) : null,
+      },
+
+      returns: {
+        ret_5d: returns ? Number(returns.ret_5d) : null,
+        ret_21d: returns ? Number(returns.ret_21d) : null,
+        ret_63d: returns ? Number(returns.ret_63d) : null,
+      },
+
+      volatility: {
+        realized_21d: rvol ? Number(rvol.rvol_21d) : null,
+        vix: vixData ? Number(vixData.vix) : null,
+        vix_avg_1y: vixData ? Number(vixData.vix_avg_1y) : null,
+        vix_z: vixData ? Number(vixData.vix_z) : null,
+        ovx: ovxData ? Number(ovxData.ovx) : null,
+      },
+
+      technicals: {
+        rsi_14: rsi ? Number(rsi.rsi_14) : null,
+        sma20: ma ? Number(ma.sma20) : null,
+        sma50: ma ? Number(ma.sma50) : null,
+        sma200: ma ? Number(ma.sma200) : null,
+        trend,
+        above_sma20: aboveSma20,
+        above_sma50: aboveSma50,
+        above_sma200: aboveSma200,
+      },
+
+      positioning: {
+        mm_net: cot ? Number(cot.mm) : null,
+        mm_avg: cot ? Number(cot.mu) : null,
+        mm_std: cot ? Number(cot.sd) : null,
+        mm_zscore: cot ? Number(cot.zscore) : null,
+        mm_percentile: cot ? Number(cot.percentile) : null,
+        mm_pct_oi: cot ? Number(cot.pct) : null,
+        prod_net: cot ? Number(cot.prod_net) : null,
+        swap_net: cot ? Number(cot.swap_net) : null,
+        history_weeks: cot ? Number(cot.n) : null,
+      },
+
+      crush: {
+        board_crush: crush ? Number(crush.crush_now) : null,
+        crush_zscore: crush ? Number(crush.crush_z) : null,
+        oil_share: crush ? Number(crush.os_now) : null,
+        oil_share_zscore: crush ? Number(crush.os_z) : null,
+        sample_size: crush ? Number(crush.n) : null,
+      },
+
+      specialists: signals.map((s) => ({
+        bucket: s.bucket,
+        signal: Number(s.signal_1.toFixed(3)),
+        signal_2: s.signal_2 ? Number(s.signal_2.toFixed(3)) : null,
+        confidence: Number(s.confidence.toFixed(2)),
+        model_type: s.model_type,
+        as_of: s.as_of_date,
+      })),
+
+      composite: {
+        signal: Number(compositeSignal.toFixed(3)),
+        contributing_models: signals.length,
+        interpretation:
+          compositeSignal > 0.3
+            ? "bullish"
+            : compositeSignal < -0.3
+              ? "bearish"
+              : "neutral",
+      },
+    });
+  } catch (err) {
+    console.error("Metrics API error:", err);
+    return NextResponse.json(
+      { error: "Failed to compute metrics" },
+      { status: 500 },
+    );
+  }
+}
