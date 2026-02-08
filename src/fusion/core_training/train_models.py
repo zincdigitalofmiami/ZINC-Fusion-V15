@@ -27,18 +27,19 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 os.environ["AUTOGLUON_DISABLE_RAY"] = "1"
-os.environ["CUDA_VISIBLE_DEVICES"] = ""           # Block CUDA detection
-os.environ["USE_MPS"] = "0"                       # Disable MPS (HuggingFace)
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "0"   # No MPS fallback
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # Block CUDA detection
+os.environ["USE_MPS"] = "0"  # Disable MPS (HuggingFace)
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = (
+    "1"  # Enable fallback to CPU (spec-compliant)
+)
+os.environ["PYTORCH_MPS_ENABLED"] = "0"  # Disable MPS backend explicitly
 
 import logging
-import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
 
 import pandas as pd
-import numpy as np
 import psycopg2
 from psycopg2.extras import execute_values
 
@@ -47,11 +48,10 @@ from .config import (
     TARGET_SYMBOL,
     HORIZONS,
     QUANTILES,
-    TACTICAL_HORIZONS,
-    STRATEGIC_HORIZONS,
     TRAINING_CONFIG,
     OOF_COLUMN_NAMES,
 )
+from fusion.validation.all_data_policy import enforce_all_data_policy
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,7 @@ def import_autogluon():
 
         # Force torch to CPU before AutoGluon imports it
         import torch
+
         torch.set_default_device("cpu")
         if hasattr(torch.backends, "mps"):
             torch.backends.mps.is_available = lambda: False
@@ -152,11 +153,18 @@ def get_model_config(horizon: int) -> dict:
     """Get model configuration for horizon.
 
     CPU-only: explicit full model list, no presets, no time limits.
-    """
-    device = "cpu"
 
-    # Model Zoo (CPU-only) - 25 models across 4 categories
-    # NOTE: Chronos2/Chronos/Toto disabled (HuggingFace mutex lock on macOS ARM)
+    Per CORE_TRAINING_SPEC_LOCKED.md, this must include ALL Model Zoo entries:
+    - Baselines (5): Naive, SeasonalNaive, Average, SeasonalAverage, Zero
+    - Statistical (9): ETS, AutoETS, AutoARIMA, AutoCES, Theta, DynamicOptimizedTheta, NPTS, ADIDA, Croston, IMAPA
+    - Deep/ML (5): DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward
+    - Neural (2): TiDE, WaveNet
+    - Tabular TS (3): DirectTabular, PerStepTabular, RecursiveTabular
+    - Pretrained (3): Chronos2, Chronos, Toto (disabled on macOS ARM due to HuggingFace mutex)
+
+    AutoGluon trains all models and typically selects a WeightedEnsemble as best.
+    """
+
     hyperparameters = {
         # === BASELINES (5) ===
         "Naive": {},
@@ -168,16 +176,31 @@ def get_model_config(horizon: int) -> dict:
         "ETS": {},
         "AutoETS": {},
         "AutoARIMA": {},
+        "AutoCES": {},  # Added per spec
         "Theta": {},
         "DynamicOptimizedTheta": {},
         "NPTS": {},
         "ADIDA": {},
         "Croston": {},
         "IMAPA": {},
-        # === TABULAR (3) ===
+        # === DEEP / ML (5) ===
+        "DeepAR": {},
+        "TemporalFusionTransformer": {},
+        "DLinear": {},
+        "PatchTST": {},
+        "SimpleFeedForward": {},
+        # === NEURAL (2) ===
+        "TiDE": {},
+        "WaveNet": {},
+        # === TABULAR TS (3) ===
         "DirectTabular": {},
         "PerStepTabular": {},
         "RecursiveTabular": {},
+        # === PRETRAINED (disabled on macOS ARM - HuggingFace mutex lock issues) ===
+        # Uncomment on Linux/server environments where these run reliably:
+        # "Chronos2": {},
+        # "Chronos": {},
+        # "Toto": {},
     }
 
     return {
@@ -193,7 +216,9 @@ def filter_to_window(df: pd.DataFrame, window_start: Optional[str]) -> pd.DataFr
 
     min_date = pd.to_datetime(window_start).date()
     filtered = df[df["trade_date"] >= min_date].copy()
-    logger.info(f"   Filtered to window starting {window_start}: {len(filtered):,} rows")
+    logger.info(
+        f"   Filtered to window starting {window_start}: {len(filtered):,} rows"
+    )
     return filtered
 
 
@@ -233,7 +258,7 @@ def train_horizon(
 
     # Identify covariate columns
     exclude = {"item_id", "timestamp", target_col}
-    covariate_cols = [c for c in tsdf.columns if c not in exclude]
+    [c for c in tsdf.columns if c not in exclude]
 
     try:
         # Create predictor
@@ -250,7 +275,9 @@ def train_horizon(
         # Fit model (explicit hyperparameters only; no presets, no time limit)
         predictor.fit(
             train_data=tsdf,
-            hyperparameters=config["hyperparameters"],  # This now controls model selection
+            hyperparameters=config[
+                "hyperparameters"
+            ],  # This now controls model selection
             num_val_windows=TRAINING_CONFIG.num_val_windows,
             # Let AutoGluon handle observed covariates automatically
         )
@@ -379,10 +406,10 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
     # Insert
     cols = list(df_oof.columns)
     insert_sql = f"""
-        INSERT INTO training.oof_core_1d ({','.join(cols)})
+        INSERT INTO training.oof_core_1d ({",".join(cols)})
         VALUES %s
         ON CONFLICT (trade_date, symbol, horizon_days, window_id)
-        DO UPDATE SET 
+        DO UPDATE SET
             p30 = EXCLUDED.p30,
             p50 = EXCLUDED.p50,
             p70 = EXCLUDED.p70,
@@ -444,6 +471,13 @@ def run(
     try:
         conn = psycopg2.connect(DATABASE_URL)
         logger.info("✅ Database connected")
+
+        # Enforce ALL DATA policy before training (per CORE_TRAINING_SPEC_LOCKED.md)
+        logger.info("")
+        logger.info("Validating ALL DATA policy...")
+        for horizon in horizons:
+            enforce_all_data_policy(conn, horizon=horizon, strict=True)
+        logger.info("✅ ALL DATA policy passed for all horizons")
 
         # Load data once
         df = load_training_data(conn, symbol)

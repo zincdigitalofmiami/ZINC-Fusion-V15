@@ -127,33 +127,41 @@
 # Yahoo EOD (futures)
 .venv/bin/python scripts/ingest_yahoo_eod.py
 
-# FRED data
-.venv/bin/python scripts/ingest_fred_observations.py
+# FRED data (uses downloaded CSVs)
+.venv/bin/python scripts/ingest_downloads_fred.py
 
-# EPA RIN (CRITICAL - 43 days stale)
-.venv/bin/python scripts/ingest_epa_rin.py
+# EPA RIN (CRITICAL - check staleness)
+.venv/bin/python scripts/refresh_epa_rin.py
 
-# ProFarmer news
-.venv/bin/python scripts/scrape_profarmer.py
+# News sources (ProFarmer, FRED blog, policy)
+.venv/bin/python scripts/ingest_news_sources.py
 ```
 
 ### Step 2: Regenerate All Specialists
 ```bash
-.venv/bin/python -m fusion.specialists.run_all --regenerate
+# Generate specialist signals for all 11 buckets
+.venv/bin/python scripts/generate_specialist_signals.py --bucket all --strict
 ```
 
 ### Step 3: Rebuild Training Matrix
 ```bash
-.venv/bin/python -m fusion.training.build_matrix
+# Build core training matrix (training.matrix_1d)
+.venv/bin/python -m fusion.core_training.build_matrix --symbol ZL
 ```
 
 ### Step 4: Validate Pre-Flight
 ```bash
-.venv/bin/python -m fusion.validation.all_data_policy --strict
+# ALL DATA policy is now enforced automatically in train_models.py
+# Manual check (optional):
+.venv/bin/python -c "from fusion.validation.all_data_policy import enforce_all_data_policy; import psycopg2, os; conn=psycopg2.connect(os.getenv('DATABASE_URL')); enforce_all_data_policy(conn, horizon=5, strict=True)"
 ```
 
 ### Step 5: Run Core Training
 ```bash
+# Smoke test (single horizon)
+.venv/bin/python -m fusion.core_training.run_pipeline --skip-matrix --horizons 5
+
+# Full run (all horizons)
 .venv/bin/python -m fusion.core_training.run_pipeline --skip-matrix
 ```
 
