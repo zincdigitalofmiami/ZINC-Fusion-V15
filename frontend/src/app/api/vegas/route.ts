@@ -1,7 +1,7 @@
 /**
  * Vegas Intel API Routes
  * Serves data from Glide sync (vegas.vegas_* tables)
- * 
+ *
  * Data Flow: Glide API (READ ONLY) → vegas.vegas_* → This API → Frontend
  */
 import { NextResponse } from 'next/server'
@@ -112,18 +112,12 @@ export async function GET(request: Request) {
 interface VegasEventRow {
   event_id: string
   name: string
-  description: string | null
   category: string | null
   venue: string | null
   start_date: string
   end_date: string | null
   attendance: number | null
   days_until: number
-  // ZFusion scoring fields
-  rank: number | null
-  local_rank: number | null
-  predicted_event_spend: number | null
-  spend_hospitality: number | null
   // Venue geo
   latitude: number | null
   longitude: number | null
@@ -143,22 +137,17 @@ const EVENT_COLORS: Record<string, string> = {
 
 async function getEvents(): Promise<NextResponse> {
   try {
-    // Get upcoming events with ZFusion scoring, ordered by F&B spend impact
+    // Get upcoming events ordered by attendance (actual schema columns only)
     const results = await query<VegasEventRow>(`
       SELECT
         e.event_id,
         e.name,
-        e.description,
-        e.category,
+        e.event_type as category,
         e.venue,
         e.start_date::text,
         e.end_date::text,
         e.attendance,
         (e.start_date - CURRENT_DATE)::int as days_until,
-        e.rank,
-        e.local_rank,
-        e.predicted_event_spend::numeric::integer as predicted_event_spend,
-        e.spend_hospitality::numeric::integer as spend_hospitality,
         v.latitude::float as latitude,
         v.longitude::float as longitude,
         v.formatted_address
@@ -167,14 +156,14 @@ async function getEvents(): Promise<NextResponse> {
       LEFT JOIN vegas.vegas_venues v ON v.venue_id = ev.venue_id
       WHERE e.is_active = true
         AND e.start_date >= CURRENT_DATE
-      ORDER BY e.spend_hospitality DESC NULLS LAST, e.start_date ASC
+      ORDER BY e.attendance DESC NULLS LAST, e.start_date ASC
       LIMIT 50
     `)
 
     const events = results.map(e => ({
       id: e.event_id,
       name: e.name,
-      description: e.description,
+      description: null,
       category: e.category,
       venue: e.venue,
       attendance: e.attendance || 0,
@@ -182,12 +171,10 @@ async function getEvents(): Promise<NextResponse> {
       endDate: e.end_date,
       daysUntil: e.days_until,
       color: EVENT_COLORS[e.category || ''] || '#6b7280',
-      // ZFusion scoring
-      rank: e.rank,
-      localRank: e.local_rank,
-      predictedSpend: e.predicted_event_spend,
-      hospitalitySpend: e.spend_hospitality,
-      // Venue geo
+      rank: null,
+      localRank: null,
+      predictedSpend: null,
+      hospitalitySpend: null,
       latitude: e.latitude,
       longitude: e.longitude,
       address: e.formatted_address,
@@ -204,31 +191,31 @@ async function getStats(): Promise<NextResponse> {
   try {
     // Get counts from all vegas tables
     const stats = await query<{ table_name: string; count: number; last_sync: string }>(`
-      SELECT 
+      SELECT
         'restaurants' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
       FROM vegas.vegas_restaurants
       UNION ALL
-      SELECT 
+      SELECT
         'casinos' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
       FROM vegas.vegas_casinos
       UNION ALL
-      SELECT 
+      SELECT
         'fryers' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
       FROM vegas.vegas_fryers
       UNION ALL
-      SELECT 
+      SELECT
         'export_list' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
       FROM vegas.vegas_export_list
       UNION ALL
-      SELECT 
+      SELECT
         'shifts' as table_name,
         COUNT(*) as count,
         MAX(ingested_at)::text as last_sync
@@ -434,18 +421,12 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
       event_id: string
       category: string
       attendance: number
-      rank: number
-      local_rank: number
-      spend_hospitality: number
       start_date: string
     }>(`
       SELECT
         event_id,
-        category,
+        event_type as category,
         attendance,
-        rank,
-        local_rank,
-        spend_hospitality::numeric::integer as spend_hospitality,
         start_date::text
       FROM vegas.vegas_events
       WHERE event_id = $1
@@ -476,8 +457,8 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
       WHERE impact_date = $1::date
     `, [event.start_date])
 
-    // Get the category-specific spend (use event's hospitality spend as fallback)
-    let categorySpend = event.spend_hospitality || 0
+    // Get the category-specific spend
+    let categorySpend = 0
     if (spendResults.length > 0) {
       const spendMap: Record<string, number> = {
         'concerts': spendResults[0].spend_concerts,
@@ -490,11 +471,10 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
       categorySpend = spendMap[eventCategory] || categorySpend
     }
 
-    // Calculate PHQ multiplier (0.5-2.0 based on rank signals)
-    // Higher rank = more important event = higher multiplier
-    const rankScore = Math.min(100, event.rank || 50) / 100
-    const localRankScore = Math.min(100, event.local_rank || 50) / 100
-    const phqMultiplier = 0.5 + (rankScore * 0.75) + (localRankScore * 0.75) // 0.5 to 2.0 range
+    // Calculate PHQ multiplier based on attendance (rank/local_rank not yet in schema)
+    // Scale attendance to a 0.5-2.0 multiplier range
+    const attendanceScore = Math.min(100000, event.attendance || 5000) / 100000
+    const phqMultiplier = 0.5 + (attendanceScore * 1.5) // 0.5 to 2.0 range
 
     // Get all restaurants with their cuisine types and calculate ZFusion scores
     const restaurantFields = VEGAS_GLIDE_FIELDS.restaurants
@@ -552,9 +532,9 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
         id: event.event_id,
         category: eventCategory,
         attendance: event.attendance,
-        rank: event.rank,
-        localRank: event.local_rank,
-        hospitalitySpend: event.spend_hospitality,
+        rank: null,
+        localRank: null,
+        hospitalitySpend: null,
         categorySpend,
         phqMultiplier: Math.round(phqMultiplier * 100) / 100,
       },

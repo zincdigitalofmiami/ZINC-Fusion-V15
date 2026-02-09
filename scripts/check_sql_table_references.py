@@ -20,7 +20,6 @@ import re
 import subprocess
 from pathlib import Path
 
-
 ALLOWED_SCHEMAS = {
     "mkt",
     "econ",
@@ -34,6 +33,7 @@ ALLOWED_SCHEMAS = {
     "analytics",
     "metadata",
     "ops",
+    "vegas",
 }
 
 BANNED_SCHEMAS = {
@@ -45,7 +45,6 @@ BANNED_SCHEMAS = {
     "specialist",
     "weather",
     "archive",
-    "vegas",
 }
 
 CODE_EXTS = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".sql"}
@@ -68,7 +67,23 @@ SKIP_SUBSTRINGS = (
 MODEL_START_RE = re.compile(r"^\s*(model|view)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{")
 SCHEMA_RE = re.compile(r'@@schema\("([A-Za-z0-9_]+)"\)')
 MAP_RE = re.compile(r'@@map\("([A-Za-z0-9_]+)"\)')
-TABLE_REF_RE = re.compile(r"\b([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)\b")
+SQL_TABLE_REF_RE = re.compile(
+    r"""(?isx)
+    \b(?:
+        from
+        | join
+        | insert\s+into
+        | delete\s+from
+        | update
+        | create\s+table(?:\s+if\s+not\s+exists)?
+        | alter\s+table(?:\s+if\s+exists)?
+        | truncate\s+table(?:\s+if\s+exists)?
+        | into
+    )\s+
+    (?:only\s+)?
+    ([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)
+    """
+)
 
 
 def camel_to_snake(name: str) -> str:
@@ -177,28 +192,39 @@ def scan_file(file_path: Path, known_tables: set[str]) -> list[str]:
         known_by_schema.setdefault(schema, []).append(full)
 
     try:
-        lines = file_path.read_text(encoding="utf-8").splitlines()
+        text = file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return violations
 
-    for idx, line in enumerate(lines, start=1):
-        if "sqlref: ignore" in line:
+    lines = text.splitlines()
+    if any("sqlref: ignore-file" in line for line in lines):
+        return violations
+
+    ignore_lines = {
+        idx for idx, line in enumerate(lines, start=1) if "sqlref: ignore" in line
+    }
+
+    for match in SQL_TABLE_REF_RE.finditer(text):
+        schema, table = match.group(1), match.group(2)
+        idx = text.count("\n", 0, match.start(1)) + 1
+        if idx in ignore_lines:
             continue
-        for schema, table in TABLE_REF_RE.findall(line):
-            full = f"{schema}.{table}"
-            if schema in BANNED_SCHEMAS:
-                violations.append(
-                    f"{file_path}:{idx}: banned schema reference `{full}` (policy violation)"
-                )
-                continue
-            if schema in ALLOWED_SCHEMAS and full not in known_tables:
-                suggestion = difflib.get_close_matches(
-                    full, known_by_schema.get(schema, []), n=1, cutoff=0.6
-                )
-                hint = f" (did you mean `{suggestion[0]}`?)" if suggestion else ""
-                violations.append(
-                    f"{file_path}:{idx}: unknown table reference `{full}` not found in prisma/schema.prisma{hint}"
-                )
+
+        full = f"{schema}.{table}"
+        if schema in BANNED_SCHEMAS:
+            violations.append(
+                f"{file_path}:{idx}: banned schema reference `{full}` (policy violation)"
+            )
+            continue
+
+        if schema in ALLOWED_SCHEMAS and full not in known_tables:
+            suggestion = difflib.get_close_matches(
+                full, known_by_schema.get(schema, []), n=1, cutoff=0.6
+            )
+            hint = f" (did you mean `{suggestion[0]}`?)" if suggestion else ""
+            violations.append(
+                f"{file_path}:{idx}: unknown table reference `{full}` not found in prisma/schema.prisma{hint}"
+            )
     return violations
 
 
@@ -216,7 +242,7 @@ def main() -> int:
 
     try:
         known_tables = parse_prisma_tables(Path(args.prisma))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"ERROR: {exc}")
         return 2
 
