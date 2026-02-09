@@ -43,11 +43,26 @@ import {
   profarmerDaily,
   profarmerBackfill,
   databentoFuturesDaily,
+  databentoFutures1h,
   databentoStatisticsDaily,
   databentoFxDaily,
   databentoOptionsDaily,
+  databentoEtfDaily,
+  databentoEtfBackfill,
+  databentoEtfVwapDaily,
+  databentoEtfVwapBackfill,
   boardCrushDaily,
+  boardCrushBackfill,
   eiaBiodieselMonthly,
+  eiaBiodieselBackfill,
+  fxDatabentoSpotDaily,
+  optionsStalenessCheck,
+  mpobPalmMonthly,
+  conabProductionMonthly,
+  argentinaCrushMonthly,
+  fredBlogDaily,
+  zl1mBackfill,
+  zl1mScheduledBackfill,
 } from "@/inngest/functions";
 
 /**
@@ -142,13 +157,33 @@ export const { GET, POST, PUT } = serve({
     profarmerBackfill,
     // Databento market data
     databentoFuturesDaily,
+    databentoFutures1h,
     databentoStatisticsDaily,
     databentoFxDaily,
     databentoOptionsDaily,
+    databentoEtfDaily,
+    databentoEtfBackfill,
+    databentoEtfVwapDaily,
+    databentoEtfVwapBackfill,
+    // FX Databento
+    fxDatabentoSpotDaily,
     // Analytics calculations
     boardCrushDaily,
+    boardCrushBackfill,
     // EIA biofuel data
     eiaBiodieselMonthly,
+    eiaBiodieselBackfill,
+    // Monitoring
+    optionsStalenessCheck,
+    // Critical supply data (monthly)
+    mpobPalmMonthly,
+    conabProductionMonthly,
+    argentinaCrushMonthly,
+    // FRED blog news
+    fredBlogDaily,
+    // ZL 1m backfill
+    zl1mBackfill,
+    zl1mScheduledBackfill,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

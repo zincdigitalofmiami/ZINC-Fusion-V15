@@ -1,13 +1,13 @@
 /**
  * EIA Petroleum Prices Ingestion (ACTUAL DATA via API v2)
- * 
+ *
  * Hits EIA API v2 for REAL petroleum spot prices:
  * - EPCBRENT: Brent Crude Oil ($/BBL)
  * - EPCWTI: WTI Crude Oil ($/BBL)
  * - EPD2DXL0: No.2 Diesel Retail ($/GAL)
  * - EPMRU: Regular Gasoline ($/GAL)
  * - EPMPU: Premium Gasoline ($/GAL)
- * 
+ *
  * API: https://api.eia.gov/v2/petroleum/pri/spt/data/
  * Routes to: energy specialist
  * Table: econ.rates_1d (reusing FRED pattern)
@@ -53,6 +53,7 @@ export const eiaDaily = inngest.createFunction(
   {
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
+    retries: 3,
   },
   { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
   async ({ step }) => {
@@ -75,7 +76,7 @@ export const eiaDaily = inngest.createFunction(
       url.searchParams.set("length", "500"); // Enough for 30 days * 5 products
 
       const response = await fetch(url.toString());
-      
+
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`EIA API error: ${response.status} - ${text}`);
@@ -121,18 +122,19 @@ export const eiaDaily = inngest.createFunction(
           continue;
         }
 
-        // Insert - reusing fred_observations_1d pattern
         await pool.query(
-          `INSERT INTO econ.rates_1d 
-           (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          `INSERT INTO econ.rates_1d
+           (series_id, event_date, value, source, row_hash)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (series_id, event_date) DO UPDATE SET
+             value = EXCLUDED.value,
+             row_hash = EXCLUDED.row_hash`,
           [
             mapping.seriesId,
             dataPoint.period,
             dataPoint.value,
-            dataPoint.units,
+            "EIA",
             rowHash,
-            ["energy"],
           ]
         );
         inserted++;

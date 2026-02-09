@@ -49,3 +49,5 @@ export { conabProductionMonthly } from "./conab-production-monthly";
 export { databentoEtfDaily, databentoEtfBackfill } from "./databento-etf-daily";
 export { databentoEtfVwapDaily, databentoEtfVwapBackfill } from "./databento-etf-vwap";
 export { zl1mBackfill, zl1mScheduledBackfill } from "./zl-1m-backfill";
+export { fredBlogDaily } from "./fred-blog-daily";
+export { argentinaCrushMonthly } from "./argentina-crush-monthly";

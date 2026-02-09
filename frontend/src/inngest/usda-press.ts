@@ -1,11 +1,11 @@
 /**
  * USDA/NASS Crush & Price Data Ingestion (ACTUAL DATA via QuickStats API)
- * 
+ *
  * Hits NASS QuickStats API for REAL soybean data:
  * - CRUSHED: Monthly soybean crush volumes by state/region
  * - PRICE RECEIVED: Monthly soybean prices received by farmers
  * - PRODUCTION: Annual/seasonal production estimates
- * 
+ *
  * API: https://quickstats.nass.usda.gov/api/api_GET
  * Routes to: crush specialist
  * Table: econ.rates_1d (reusing FRED pattern for time series)
@@ -118,6 +118,7 @@ export const usdaDaily = inngest.createFunction(
   {
     id: "nass-crush-weekly",
     name: "NASS Soybean Crush & Prices (QuickStats API)",
+    retries: 3,
   },
   { cron: "0 10 * * 1" }, // Mondays at 10am (NASS releases data monthly)
   async ({ step }) => {
@@ -187,18 +188,19 @@ export const usdaDaily = inngest.createFunction(
           continue;
         }
 
-        // Insert - reusing fred_observations_1d pattern
         await pool.query(
-          `INSERT INTO econ.rates_1d 
-           (series_id, observation_date, value, units, row_hash, specialist_tags, ingested_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          `INSERT INTO econ.rates_1d
+           (series_id, event_date, value, source, row_hash)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (series_id, event_date) DO UPDATE SET
+             value = EXCLUDED.value,
+             row_hash = EXCLUDED.row_hash`,
           [
             seriesId,
             obsDate,
             value,
-            dataPoint.unit_desc,
+            "NASS",
             rowHash,
-            ["crush"],
           ]
         );
         inserted++;
