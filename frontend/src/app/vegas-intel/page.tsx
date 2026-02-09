@@ -47,8 +47,6 @@ interface VegasEvent {
   endDate: string | null
   daysUntil: number
   color: string
-  rank: number | null
-  localRank: number | null
 }
 
 interface Opportunity {
@@ -471,7 +469,7 @@ function EventRow({ event }: { event: VegasEvent }) {
         </div>
       </div>
 
-      {/* Right: Attendance + Rank/Local circles */}
+      {/* Right: Attendance + Days Until + Duration */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -492,41 +490,42 @@ function EventRow({ event }: { event: VegasEvent }) {
             color: 'rgba(255,255,255,0.4)',
             textTransform: 'uppercase',
           }}>
-            Predicted Attendance
+            Attendance
           </div>
         </div>
 
-        {/* Rank Circle */}
-        <RankCircle value={event.rank} label="Rank" color="#ec4899" />
+        {/* Days Until Circle */}
+        <CountdownCircle value={event.daysUntil} label="Days" />
 
-        {/* Local Circle */}
-        <RankCircle value={event.localRank} label="Local" color="#06b6d4" />
+        {/* Duration Circle */}
+        <CountdownCircle value={duration} label={duration === 1 ? 'Day' : 'Days'} color="#06b6d4" />
       </div>
     </div>
   )
 }
 
 // =============================================================================
-// RANK CIRCLE - PredictHQ Style
+// COUNTDOWN CIRCLE - Shows days until / duration with urgency coloring
 // =============================================================================
 
-function RankCircle({
+function CountdownCircle({
   value,
   label,
-  color
+  color,
 }: {
-  value: number | null
+  value: number
   label: string
-  color: string
+  color?: string
 }) {
-  const displayValue = value ?? '-'
+  // Urgency-based color for "Days Until" (no explicit color passed)
+  const circleColor = color || (value <= 7 ? '#ef4444' : value <= 21 ? '#f59e0b' : '#22c55e')
 
   return (
     <div style={{
       width: '52px',
       height: '52px',
       borderRadius: '50%',
-      border: `3px solid ${color}`,
+      border: `3px solid ${circleColor}`,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -539,7 +538,7 @@ function RankCircle({
         color: 'rgba(255,255,255,0.9)',
         lineHeight: 1,
       }}>
-        {displayValue}
+        {value}
       </div>
       <div style={{
         fontSize: '8px',

@@ -133,6 +133,7 @@ const EVENT_COLORS: Record<string, string> = {
   'festivals': '#ff6b35',       // orange
   'performing-arts': '#f59e0b', // amber
   'community': '#06b6d4',       // cyan
+  'school-holidays': '#ec4899', // pink
 }
 
 async function getEvents(): Promise<NextResponse> {
@@ -163,7 +164,6 @@ async function getEvents(): Promise<NextResponse> {
     const events = results.map(e => ({
       id: e.event_id,
       name: e.name,
-      description: null,
       category: e.category,
       venue: e.venue,
       attendance: e.attendance || 0,
@@ -171,10 +171,6 @@ async function getEvents(): Promise<NextResponse> {
       endDate: e.end_date,
       daysUntil: e.days_until,
       color: EVENT_COLORS[e.category || ''] || '#6b7280',
-      rank: null,
-      localRank: null,
-      predictedSpend: null,
-      hospitalitySpend: null,
       latitude: e.latitude,
       longitude: e.longitude,
       address: e.formatted_address,
@@ -532,9 +528,6 @@ async function getZFusionScores(eventId: string): Promise<NextResponse> {
         id: event.event_id,
         category: eventCategory,
         attendance: event.attendance,
-        rank: null,
-        localRank: null,
-        hospitalitySpend: null,
         categorySpend,
         phqMultiplier: Math.round(phqMultiplier * 100) / 100,
       },
