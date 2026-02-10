@@ -20,6 +20,7 @@ Output:
 from __future__ import annotations
 
 import os
+import uuid
 
 # =============================================================================
 # CPU-ONLY SAFEGUARDS (set before any ML imports)
@@ -332,6 +333,9 @@ def extract_oof_predictions(
                 else preds
             )
 
+            # Deterministic UUID from string run_id (stable across retries)
+            run_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, run_id))
+
             for idx, row in window_preds.iterrows():
                 oof_row = {
                     "trade_date": (
@@ -347,6 +351,7 @@ def extract_oof_predictions(
                         f"cutoff_{window_id}", datetime.utcnow().date()
                     ),
                     "trained_at": datetime.utcnow(),
+                    "run_id": run_uuid,
                 }
                 oof_rows.append(oof_row)
 
@@ -417,7 +422,8 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
             cutoff_date = EXCLUDED.cutoff_date,
             run_hash = EXCLUDED.run_hash,
             matrix_version = EXCLUDED.matrix_version,
-            trained_at = EXCLUDED.trained_at
+            trained_at = EXCLUDED.trained_at,
+            run_id = EXCLUDED.run_id
     """
 
     values = [tuple(row) for row in df_oof.itertuples(index=False, name=None)]

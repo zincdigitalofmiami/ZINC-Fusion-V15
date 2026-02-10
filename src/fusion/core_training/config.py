@@ -293,6 +293,7 @@ OOF_COLUMNS = [
     ("trained_at", "TIMESTAMP NOT NULL DEFAULT NOW()", "Training timestamp"),
     ("run_hash", "VARCHAR(64) NOT NULL", "Hash of matrix + config"),
     ("matrix_version", "VARCHAR(64)", "Hash of matrix_1d"),
+    ("run_id", "UUID NOT NULL", "Training run UUID"),
 ]
 
 # Column names only (for validation)

@@ -15,28 +15,29 @@ const pool = dbPool;
 const FRED_API_KEY = process.env.FRED_API_KEY;
 
 // Authoritative 21 FRED FX pairs for mkt.fx_1d
+// Pair names use SLASH format established by 20260118_fx_consolidation migration.
 // Note: NZDUSD comes from Databento (no FRED series)
 const PAIRS: Array<{ pair: string; seriesId: string }> = [
-  // Major pairs
-  { pair: "AUDUSD", seriesId: "DEXUSAL" },
-  { pair: "EURUSD", seriesId: "DEXUSEU" },
-  { pair: "GBPUSD", seriesId: "DEXUSUK" },
-  { pair: "USDBRL", seriesId: "DEXBZUS" },
-  { pair: "USDCAD", seriesId: "DEXCAUS" },
-  { pair: "USDCHF", seriesId: "DEXSZUS" },
-  { pair: "USDCNY", seriesId: "DEXCHUS" },
-  { pair: "USDJPY", seriesId: "DEXJPUS" },
-  { pair: "USDKRW", seriesId: "DEXKOUS" },
-  { pair: "USDMXN", seriesId: "DEXMXUS" },
-  { pair: "USDSGD", seriesId: "DEXSIUS" },
+  // Major pairs (slash format per migration convention)
+  { pair: "AUD/USD", seriesId: "DEXUSAL" },
+  { pair: "EUR/USD", seriesId: "DEXUSEU" },
+  { pair: "GBP/USD", seriesId: "DEXUSUK" },
+  { pair: "BRL/USD", seriesId: "DEXBZUS" },
+  { pair: "CAD/USD", seriesId: "DEXCAUS" },
+  { pair: "CHF/USD", seriesId: "DEXSZUS" },
+  { pair: "CNY/USD", seriesId: "DEXCHUS" },
+  { pair: "USD/JPY", seriesId: "DEXJPUS" },
+  { pair: "KRW/USD", seriesId: "DEXKOUS" },
+  { pair: "MXN/USD", seriesId: "DEXMXUS" },
+  { pair: "SGD/USD", seriesId: "DEXSIUS" },
   // Extended pairs
-  { pair: "USDHKD", seriesId: "DEXHKUS" },
-  { pair: "USDINR", seriesId: "DEXINUS" },
-  { pair: "USDMYR", seriesId: "DEXMAUS" },
-  { pair: "USDNOK", seriesId: "DEXNOUS" },
-  { pair: "USDSEK", seriesId: "DEXSDUS" },
-  { pair: "USDTHB", seriesId: "DEXTHUS" },
-  { pair: "USDTWD", seriesId: "DEXTAUS" },
+  { pair: "HKD/USD", seriesId: "DEXHKUS" },
+  { pair: "INR/USD", seriesId: "DEXINUS" },
+  { pair: "MYR/USD", seriesId: "DEXMAUS" },
+  { pair: "NOK/USD", seriesId: "DEXNOUS" },
+  { pair: "SEK/USD", seriesId: "DEXSDUS" },
+  { pair: "THB/USD", seriesId: "DEXTHUS" },
+  { pair: "TWD/USD", seriesId: "DEXTAUS" },
   // DXY indices (Fed trade-weighted dollar)
   { pair: "DXY_BROAD", seriesId: "DTWEXBGS" },
   { pair: "DXY_AFE", seriesId: "DTWEXAFEGS" },
