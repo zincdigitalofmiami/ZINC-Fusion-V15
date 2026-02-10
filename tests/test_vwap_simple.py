@@ -2,10 +2,13 @@
 """
 Simple VWAP test to debug the issue
 """
+
 __test__ = False  # Pytest should not collect integration scripts.
 
 
 import os
+import sys
+
 import psycopg2
 
 DATABASE_URL = os.environ.get("DATABASE_URL")

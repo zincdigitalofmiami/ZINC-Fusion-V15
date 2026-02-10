@@ -1,9 +1,9 @@
 /**
  * MANUALLY POPULATE THE 3 MOST CRITICAL SUPPLY TABLES
- * 
+ *
  * These are MORE IMPORTANT than news/alt data:
  * 1. Brazil soybean production (CONAB) - #1 producer
- * 2. Argentina crush (CIARA) - #1 soy oil exporter  
+ * 2. Argentina crush (CIARA) - #1 soy oil exporter
  * 3. Malaysia palm oil (MPOB) - #1 palm producer
  */
 
@@ -19,14 +19,14 @@ async function fetchUSDAPSD(countryCode, commodityCode) {
     countryCode,
     commodityCode,
   });
-  
+
   const url = `https://apps.fas.usda.gov/OpenData/api/psd/commodityDataByGeoLoc?${params}`;
-  
+
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`USDA PSD API error: ${response.status} ${response.statusText}`);
   }
-  
+
   const data = await response.json();
   return data.filter(d => d.marketYear >= "2020/2021");
 }
@@ -47,16 +47,16 @@ async function main() {
   try {
     const brData = await fetchUSDAPSD('BR', '2222'); // Brazil, Soybeans
     console.log(`   Fetched ${brData.length} Brazil records`);
-    
+
     let inserted = 0;
     for (const record of brData) {
       const year = record.marketYear.split('/')[0];
       const reportMonth = new Date(`${year}-07-01`);
       const rowHash = createHash('sha256').update(`BR|${record.marketYear}|${record.attributeDescription}`).digest('hex');
-      
+
       const value = parseFloat(record.value);
       if (isNaN(value)) continue;
-      
+
       if (record.attributeDescription === 'Production') {
         await pool.query(
           `INSERT INTO supply.conab_production_1m
@@ -81,16 +81,16 @@ async function main() {
   try {
     const arData = await fetchUSDAPSD('AR', '2222'); // Argentina, Soybeans
     console.log(`   Fetched ${arData.length} Argentina records`);
-    
+
     let inserted = 0;
     for (const record of arData) {
       const year = record.marketYear.split('/')[0];
       const reportMonth = new Date(`${year}-03-01`);
       const rowHash = createHash('sha256').update(`AR|${record.marketYear}|${record.attributeDescription}`).digest('hex');
-      
+
       const value = parseFloat(record.value);
       if (isNaN(value)) continue;
-      
+
       if (record.attributeDescription === 'Crush') {
         await pool.query(
           `INSERT INTO supply.argentina_crush_1m
@@ -115,16 +115,16 @@ async function main() {
   try {
     const myData = await fetchUSDAPSD('MY', '4243'); // Malaysia, Palm Oil
     console.log(`   Fetched ${myData.length} Malaysia records`);
-    
+
     let inserted = 0;
     for (const record of myData) {
       const year = record.marketYear.split('/')[0];
       const reportMonth = new Date(`${year}-10-01`);
       const rowHash = createHash('sha256').update(`MY|${record.marketYear}|${record.attributeDescription}`).digest('hex');
-      
+
       const value = parseFloat(record.value);
       if (isNaN(value)) continue;
-      
+
       if (record.attributeDescription === 'Production') {
         await pool.query(
           `INSERT INTO supply.mpob_palm_1m

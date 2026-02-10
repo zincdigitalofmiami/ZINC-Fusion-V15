@@ -1,6 +1,6 @@
 /**
  * ForwardCurve - TradingView-style Futures Term Structure
- * 
+ *
  * Shows price curve across contract months (contango/backwardation)
  * Colored dots: teal for upward slope, red for backwardation sections
  */
@@ -20,7 +20,7 @@ import TV from '@/lib/colors';
 
 interface ContractPoint {
   contract: string;    // "ZLH2026", "ZLK2026", etc
-  month: string;       // "Mar 26", "May 26", etc  
+  month: string;       // "Mar 26", "May 26", etc
   price: number;
   year: number;
 }
@@ -48,7 +48,7 @@ function CustomDot(props: CustomDotProps) {
   // Determine if this point is in contango (higher than previous)
   const prevPoint = index > 0 ? data[index - 1] : null;
   const isContango = prevPoint ? payload.price >= prevPoint.price : true;
-  
+
   return (
     <circle
       cx={cx}
@@ -84,7 +84,7 @@ export function ForwardCurve({ data, spotPrice, height = 180 }: ForwardCurveProp
             What the market thinks the asset will be worth in the future
           </p>
         </div>
-        <div 
+        <div
           className="px-2 py-1 rounded text-xs font-medium"
           style={{
             backgroundColor: isContango ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
@@ -100,15 +100,15 @@ export function ForwardCurve({ data, spotPrice, height = 180 }: ForwardCurveProp
           {/* Gradient background based on structure */}
           <defs>
             <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop 
-                offset="0%" 
-                stopColor={isContango ? TV.bull.primary : TV.bear.primary} 
-                stopOpacity={0.1} 
+              <stop
+                offset="0%"
+                stopColor={isContango ? TV.bull.primary : TV.bear.primary}
+                stopOpacity={0.1}
               />
-              <stop 
-                offset="100%" 
-                stopColor={isContango ? TV.bull.primary : TV.bear.primary} 
-                stopOpacity={0} 
+              <stop
+                offset="100%"
+                stopColor={isContango ? TV.bull.primary : TV.bear.primary}
+                stopOpacity={0}
               />
             </linearGradient>
           </defs>
@@ -191,7 +191,7 @@ export function ForwardCurve({ data, spotPrice, height = 180 }: ForwardCurveProp
 
 export function MiniForwardCurve({ data }: { data: ContractPoint[] }) {
   const isContango = data.length > 1 && data[data.length - 1].price > data[0].price;
-  
+
   return (
     <div className="w-full h-12">
       <ResponsiveContainer width="100%" height="100%">

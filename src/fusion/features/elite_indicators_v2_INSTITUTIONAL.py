@@ -14,9 +14,7 @@ Date: 2026-01-31
 
 import pandas as pd
 import numpy as np
-from typing import Optional
 import talib
-import pandas_ta as pta
 from hurst import compute_Hc
 
 
@@ -51,7 +49,9 @@ class EliteIndicatorsV2:
         # CRITICAL: TA-Lib requires float64 arrays
         # Use pd.to_numeric to handle None/NULL values from database
         for col in required:
-            self.df[col] = pd.to_numeric(self.df[col], errors="coerce").astype(np.float64)
+            self.df[col] = pd.to_numeric(self.df[col], errors="coerce").astype(
+                np.float64
+            )
 
         # Volume can be 0 for no trades, fill NaN with 0
         self.df["volume"] = self.df["volume"].fillna(0)

@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -55,7 +55,7 @@ function calculateBoardCrush(components: CrushComponents): CrushResult {
  * Target: analytics.board_crush_1d
  */
 export const boardCrushDaily = inngest.createFunction(
-  { id: "board-crush-daily", name: "Board Crush Daily Calculator" },
+  { id: "board-crush-daily", name: "Board Crush Daily Calculator", concurrency: [DB_CONCURRENCY] },
   { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
   async ({ step, logger }) => {
     // Step 1: Fetch latest closes for ZS, ZL, ZM from mkt.futures_1d
@@ -200,7 +200,7 @@ export const boardCrushBackfill = inngest.createFunction(
     id: "board-crush-backfill",
     name: "Board Crush Historical Backfill",
     retries: 2,
-    concurrency: { limit: 1 },
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
   { event: "board-crush.backfill" },
   async ({ event, step, logger }) => {

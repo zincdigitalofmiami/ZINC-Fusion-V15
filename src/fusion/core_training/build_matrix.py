@@ -42,25 +42,25 @@ Phase 6 fits scalers on training windows only to prevent future data leakage.
 
 from __future__ import annotations
 
-import logging
 import hashlib
-from datetime import datetime, date
-from typing import Optional, Tuple, List, Dict, Any
-from datetime import date, timedelta
+import logging
+from datetime import date, datetime, timedelta
+from typing import Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import psycopg2
-from psycopg2.extras import execute_values
 from pandas.api.types import is_numeric_dtype
+from psycopg2.extras import execute_values
 
-from .config import DATABASE_URL, TARGET_SYMBOL, HORIZONS, FeatureMatrixConfig as FMC
-from .matrix_manifest import write_manifest, check_schema_drift
+from .config import DATABASE_URL, HORIZONS, TARGET_SYMBOL
+from .config import FeatureMatrixConfig as FMC
+from .matrix_manifest import check_schema_drift, write_manifest
 from .matrix_validation import validate_matrix
 
 # Forward fill configuration
 try:
-    from fusion.config.forward_fill_config import get_ttl_days, FRED_CONFIG
+    from fusion.config.forward_fill_config import FRED_CONFIG, get_ttl_days
 except ImportError:
     # Fallback defaults if config not available
     get_ttl_days = lambda x: 5  # noqa: E731
@@ -194,7 +194,10 @@ def ffill_with_ttl(
             return np.nan
 
     gap_days = pd.Series(
-        [date_diff_days(d, lr) for d, lr in zip(dates_series, last_real_date)],
+        [
+            date_diff_days(d, lr)
+            for d, lr in zip(dates_series, last_real_date, strict=False)
+        ],
         index=series.index,
     )
 
@@ -224,7 +227,9 @@ def ffill_with_ttl(
         gap_days = pd.Series(
             [
                 adjust_for_weekends(d, lr, g)
-                for d, lr, g in zip(dates_series, last_real_date, gap_days)
+                for d, lr, g in zip(
+                    dates_series, last_real_date, gap_days, strict=False
+                )
             ],
             index=series.index,
         )
@@ -242,7 +247,7 @@ def ffill_with_age(
     series: pd.Series,
     ttl_days: int = 5,
     weekend_exempt: bool = False,
-) -> Tuple[pd.Series, pd.Series]:
+) -> tuple[pd.Series, pd.Series]:
     """
     Forward-fill with TTL AND return age_days for model visibility.
 
@@ -296,7 +301,7 @@ def ffill_with_age(
             return np.nan
 
     age_days = pd.Series(
-        [calc_age(d, lr) for d, lr in zip(dates_series, last_real_date)],
+        [calc_age(d, lr) for d, lr in zip(dates_series, last_real_date, strict=False)],
         index=series.index,
     )
 
@@ -323,7 +328,9 @@ def ffill_with_age(
         adjusted_age = pd.Series(
             [
                 adjust_for_weekends(d, lr, a)
-                for d, lr, a in zip(dates_series, last_real_date, age_days)
+                for d, lr, a in zip(
+                    dates_series, last_real_date, age_days, strict=False
+                )
             ],
             index=series.index,
         )
@@ -341,7 +348,7 @@ def ffill_with_age(
 def ffill_dataframe_with_ttl(
     df: pd.DataFrame,
     ttl_days: int = 5,
-    columns: Optional[List[str]] = None,
+    columns: list[str] | None = None,
     weekend_exempt: bool = False,
     track_age: bool = True,
 ) -> pd.DataFrame:
@@ -420,9 +427,9 @@ def ffill_dataframe_with_ttl(
 
 def validate_age_tracking(
     df: pd.DataFrame,
-    state_columns: Optional[List[str]] = None,
+    state_columns: list[str] | None = None,
     raise_on_missing: bool = True,
-) -> List[str]:
+) -> list[str]:
     """
     Validate that all forward-filled state columns have corresponding age tracking.
 
@@ -572,7 +579,7 @@ def merge_asof_to_trading_days(
 def pure_event_encode(
     base_df: pd.DataFrame,
     source_df: pd.DataFrame,
-    value_cols: List[str],
+    value_cols: list[str],
     prefix: str,
     date_col: str = "trade_date",
 ) -> pd.DataFrame:
@@ -772,7 +779,7 @@ def forward_fill_low_coverage_series(
 
 def add_daily_missingness_encoding(
     df: pd.DataFrame,
-    cols: List[str],
+    cols: list[str],
 ) -> pd.DataFrame:
     """
     Add missingness encoding for daily features.
@@ -2166,7 +2173,7 @@ def load_specialist_signals(conn, include_signals: bool = True) -> pd.DataFrame:
 def validate_specialist_signals_for_core(
     signals_df: pd.DataFrame,
     conn,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Task 4.5: Validate specialist signals before Core training integration.
 
@@ -2271,7 +2278,7 @@ def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def zscore_normalize(df: pd.DataFrame, exclude_cols: List[str]) -> pd.DataFrame:
+def zscore_normalize(df: pd.DataFrame, exclude_cols: list[str]) -> pd.DataFrame:
     """
     DEPRECATED - DO NOT USE
 
@@ -2305,7 +2312,7 @@ def drop_low_coverage_cols(df: pd.DataFrame, min_coverage: float = 0.7) -> pd.Da
     return df
 
 
-def enforce_feature_guardrails(df: pd.DataFrame) -> Tuple[pd.DataFrame, bool]:
+def enforce_feature_guardrails(df: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
     """
     Enforce 120-350 feature guardrail.
 
@@ -2609,7 +2616,7 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
+def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
     """
     Execute Phase 3: Build Core Feature Matrix.
 
@@ -2993,7 +3000,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         logger.info("Computing daily positioning proxies (OI/volume flows)...")
         df = compute_daily_positioning_proxies(df)
         logger.info(
-            f"   Added daily positioning proxies (OI delta, churn rate, price-OI divergence)"
+            "   Added daily positioning proxies (OI delta, churn rate, price-OI divergence)"
         )
 
         # =============================================================================

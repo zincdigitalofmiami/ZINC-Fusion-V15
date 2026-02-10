@@ -19,7 +19,7 @@ async function test() {
   console.log('🔐 Logging in...');
   await page.goto('https://www.profarmer.com/r/sign-in', { waitUntil: 'networkidle2' });
   await sleep(1500);
-  
+
   await page.evaluate(() => {
     const forms = document.querySelectorAll('form');
     for (const form of forms) {
@@ -30,7 +30,7 @@ async function test() {
       }
     }
   });
-  
+
   await page.keyboard.type(user, { delay: 80 });
   await page.keyboard.press('Tab');
   await sleep(500);

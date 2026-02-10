@@ -59,7 +59,7 @@ jobs:
             fi
           fi
 
-          mapfile -t PY_FILES < <(git diff --name-only --diff-filter=ACMRT "${RANGE}" | grep -E '\.pyi?$' || true)
+          mapfile -t PY_FILES < <(git diff --name-only --diff-filter=ACMRT "${RANGE}" | grep -E '^(src|scripts|tests)/.*\.pyi?$' | grep -Ev '^scripts/_deprecated/' || true)
           if (( ${#PY_FILES[@]} == 0 )); then
             echo "No Python changes detected; skipping Ruff."
             exit 0

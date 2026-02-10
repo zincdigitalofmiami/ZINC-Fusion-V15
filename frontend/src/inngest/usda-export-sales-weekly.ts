@@ -11,7 +11,7 @@
 
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -243,7 +243,7 @@ function parseDestinationSection(
 }
 
 export const usdaExportSalesWeekly = inngest.createFunction(
-  { id: "usda-export-sales-weekly", name: "USDA Export Sales (Weekly)", retries: 3 },
+  { id: "usda-export-sales-weekly", name: "USDA Export Sales (Weekly)", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 18 * * 4" }, // Thursdays 12PM CT
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");

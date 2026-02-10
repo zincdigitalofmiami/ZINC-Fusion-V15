@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS supply.mpob_palm_1m (
   ingested_at           TIMESTAMPTZ DEFAULT NOW(),
   row_hash              VARCHAR(64) UNIQUE,
   raw_payload           JSONB,
-  
+
   UNIQUE(report_month, country)
 );
 
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS supply.argentina_crush_1m (
   ingested_at           TIMESTAMPTZ DEFAULT NOW(),
   row_hash              VARCHAR(64) UNIQUE,
   raw_payload           JSONB,
-  
+
   UNIQUE(report_month)
 );
 
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS supply.conab_production_1m (
   ingested_at           TIMESTAMPTZ DEFAULT NOW(),
   row_hash              VARCHAR(64) UNIQUE,
   raw_payload           JSONB,
-  
+
   UNIQUE(report_month, crop_year, commodity)
 );
 
@@ -78,7 +78,7 @@ CREATE INDEX idx_conab_production_crop_year ON supply.conab_production_1m(crop_y
 -- VERIFICATION
 -- ============================================================================
 
-SELECT 
+SELECT
   'supply.mpob_palm_1m' as table_name,
   (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='supply' AND table_name='mpob_palm_1m') as exists
 UNION ALL

@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 # Try to import arch for GARCH models
 try:
     from arch import arch_model
+
     ARCH_AVAILABLE = True
 except ImportError:
     ARCH_AVAILABLE = False
@@ -46,6 +47,7 @@ MAX_ABS_DAILY_RETURN = 0.20
 # =============================================================================
 # VOLATILITY SIGNAL GENERATOR
 # =============================================================================
+
 
 class VolatilitySignalGenerator(BaseSignalGenerator):
     """
@@ -83,17 +85,41 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
     # =========================================================================
     VOL_INDICES = {
         # VIX Complex
-        "fred_vixcls": {"name": "VIX", "asset": "spx", "desc": "S&P 500 30-day implied vol"},
-        "fred_vix3mcls": {"name": "VIX3M", "asset": "spx", "desc": "S&P 500 3-month implied vol"},
-        "fred_vix9dcls": {"name": "VIX9D", "asset": "spx", "desc": "S&P 500 9-day implied vol"},
-        "fred_vxvcls": {"name": "VXV", "asset": "spx", "desc": "S&P 500 3-month implied vol (CBOE VIX3M)"},
+        "fred_vixcls": {
+            "name": "VIX",
+            "asset": "spx",
+            "desc": "S&P 500 30-day implied vol",
+        },
+        "fred_vix3mcls": {
+            "name": "VIX3M",
+            "asset": "spx",
+            "desc": "S&P 500 3-month implied vol",
+        },
+        "fred_vix9dcls": {
+            "name": "VIX9D",
+            "asset": "spx",
+            "desc": "S&P 500 9-day implied vol",
+        },
+        "fred_vxvcls": {
+            "name": "VXV",
+            "asset": "spx",
+            "desc": "S&P 500 3-month implied vol (CBOE VIX3M)",
+        },
         # Commodity Vol
         "fred_ovxcls": {"name": "OVX", "asset": "oil", "desc": "Crude oil volatility"},
         "fred_gvzcls": {"name": "GVZ", "asset": "gold", "desc": "Gold volatility"},
         "fred_evzcls": {"name": "EVZ", "asset": "eur", "desc": "Euro FX volatility"},
         # EM/FX Vol
-        "fred_vxeemcls": {"name": "VXEEM", "asset": "em", "desc": "Emerging markets vol"},
-        "fred_vxfxicls": {"name": "VXFXI", "asset": "china", "desc": "China FXI volatility"},
+        "fred_vxeemcls": {
+            "name": "VXEEM",
+            "asset": "em",
+            "desc": "Emerging markets vol",
+        },
+        "fred_vxfxicls": {
+            "name": "VXFXI",
+            "asset": "china",
+            "desc": "China FXI volatility",
+        },
     }
 
     # PATCHED 2026-02-02: Changed to continuous GARCH output
@@ -109,26 +135,26 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 "close",
                 "returns_1d",
                 # VIX TERM STRUCTURE - Active series only
-                "fred_vixcls",      # VIX spot (30-day)
-                "fred_vix3mcls",    # VIX 3-month (aliased from VXVCLS)
-                "fred_vxvcls",      # VXVCLS raw (same as VIX3M)
+                "fred_vixcls",  # VIX spot (30-day)
+                "fred_vix3mcls",  # VIX 3-month (aliased from VXVCLS)
+                "fred_vxvcls",  # VXVCLS raw (same as VIX3M)
                 # COMMODITY VOL
-                "fred_ovxcls",      # OVX (oil vol - energy spillover)
-                "fred_gvzcls",      # GVZ (gold vol - safe haven)
+                "fred_ovxcls",  # OVX (oil vol - energy spillover)
+                "fred_gvzcls",  # GVZ (gold vol - safe haven)
             ],
             secondary_features=[
                 # EM VOL (still active)
-                "fred_vxeemcls",    # EM volatility
+                "fred_vxeemcls",  # EM volatility
                 # ELITE INDICATORS ON VIX (computed in _compute_elite_vol_indicators)
-                "vix_rsi_14",       # VIX RSI
-                "vix_zscore_21d",   # VIX z-score
-                "vix_term_slope",   # VIX - VIX3M
-                "realized_vs_implied", # RV - IV spread
+                "vix_rsi_14",  # VIX RSI
+                "vix_zscore_21d",  # VIX z-score
+                "vix_term_slope",  # VIX - VIX3M
+                "realized_vs_implied",  # RV - IV spread
                 # PRECIOUS METALS ETF (computed in _compute_elite_vol_indicators)
-                "gld_momentum_21d",   # Gold ETF momentum (safe haven proxy)
-                "slv_momentum_21d",   # Silver ETF momentum
+                "gld_momentum_21d",  # Gold ETF momentum (safe haven proxy)
+                "slv_momentum_21d",  # Silver ETF momentum
                 "gold_silver_ratio",  # GLD/SLV ratio (risk-on/off regime)
-                "gold_silver_zscore", # Z-score of ratio
+                "gold_silver_zscore",  # Z-score of ratio
                 # NOTE: Discontinued series removed:
                 # - fred_vix9dcls (VIX9D) - not available in FRED
                 # - fred_evzcls (Euro FX vol) - discontinued March 2025
@@ -189,7 +215,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         # Term structure slope
         if "fred_vixcls" in data.columns and "fred_vix3mcls" in data.columns:
             elite["vix_term_slope"] = data["fred_vixcls"] - data["fred_vix3mcls"]
-            elite["vix_term_slope_zscore"] = self.compute_zscore(elite["vix_term_slope"], 63)
+            elite["vix_term_slope_zscore"] = self.compute_zscore(
+                elite["vix_term_slope"], 63
+            )
 
         # Vol of Vol
         if "fred_vxvcls" in data.columns:
@@ -226,8 +254,8 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # Historical range ~40-100, elevated >80 = fear, depressed <60 = greed
             elite["gold_silver_regime"] = pd.cut(
                 gs_ratio,
-                bins=[0, 55, 65, 75, 85, float('inf')],
-                labels=[1, 2, 3, 4, 5]  # 1=extreme risk-on, 5=extreme fear
+                bins=[0, 55, 65, 75, 85, float("inf")],
+                labels=[1, 2, 3, 4, 5],  # 1=extreme risk-on, 5=extreme fear
             ).astype(float)
 
         return elite
@@ -267,12 +295,14 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # GJR-GARCH(1,1) with Student-t
             model = arch_model(
                 returns_pct,
-                mean='Constant',
-                vol='GARCH',
-                p=1, o=1, q=1,  # o=1 for asymmetric term
-                dist='t'
+                mean="Constant",
+                vol="GARCH",
+                p=1,
+                o=1,
+                q=1,  # o=1 for asymmetric term
+                dist="t",
             )
-            result = model.fit(disp='off', show_warning=False)
+            result = model.fit(disp="off", show_warning=False)
             return result
 
         except Exception as e:
@@ -347,10 +377,12 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # Return NaN/NA, not zeros/False — those are data fabrication
             # pd.NA for boolean = "unknown", not "False" (which would imply contango)
             return (
-                pd.Series(np.nan, index=data.index),           # term_slope
-                pd.Series(pd.NA, index=data.index, dtype="boolean"),  # is_backwardation (unknown, not False)
-                pd.Series(np.nan, index=data.index),           # term_zscore
-                pd.Series(np.nan, index=data.index),           # term_slope_normalized
+                pd.Series(np.nan, index=data.index),  # term_slope
+                pd.Series(
+                    pd.NA, index=data.index, dtype="boolean"
+                ),  # is_backwardation (unknown, not False)
+                pd.Series(np.nan, index=data.index),  # term_zscore
+                pd.Series(np.nan, index=data.index),  # term_slope_normalized
             )
 
         vix = data[vix_col]
@@ -372,7 +404,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         logger.info(f"   VIX term structure: using {vix_col} and {vix3m_col}")
         return term_slope, is_backwardation, term_zscore, term_slope_normalized
 
-    def _validate_required_series(self, data: pd.DataFrame, min_recent_days: int = 5) -> dict:
+    def _validate_required_series(
+        self, data: pd.DataFrame, min_recent_days: int = 5
+    ) -> dict:
         """
         Validate required series are present and fresh.
 
@@ -400,7 +434,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 vxv_col = col
                 break
         if vxv_col is None:
-            warnings.append("VXVCLS/VIX3M not in data columns - term structure will be NaN")
+            warnings.append(
+                "VXVCLS/VIX3M not in data columns - term structure will be NaN"
+            )
         else:
             recent_vxv = data[vxv_col].iloc[-min_recent_days:].notna().sum()
             if recent_vxv == 0:
@@ -431,7 +467,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         # Validate data contract before computing
         validation = self._validate_required_series(data)
         if not validation["valid"]:
-            raise ValueError(f"Volatility specialist data contract violated: {validation['issues']}")
+            raise ValueError(
+                f"Volatility specialist data contract violated: {validation['issues']}"
+            )
 
         signals = []
 
@@ -441,8 +479,16 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         data = self.add_all_elite_indicators(data, "close", "zl")
 
         # Add elite indicators for all volatility indices
-        for vol_col in ["fred_vixcls", "fred_vix3mcls", "fred_ovxcls", "fred_gvzcls",
-                        "fred_vxvcls", "fred_vxeemcls", "fred_vxfxicls", "fred_evzcls"]:
+        for vol_col in [
+            "fred_vixcls",
+            "fred_vix3mcls",
+            "fred_ovxcls",
+            "fred_gvzcls",
+            "fred_vxvcls",
+            "fred_vxeemcls",
+            "fred_vxfxicls",
+            "fred_evzcls",
+        ]:
             if vol_col in data.columns and data[vol_col].notna().sum() > 30:
                 vol_data = data.copy()
                 vol_data["close"] = data[vol_col]
@@ -477,7 +523,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             vix_adjustment = 0.3 * vix_zscore.clip(-2, 2)
 
         # VIX term structure (NEW)
-        term_slope, is_backwardation, term_zscore, term_slope_normalized = self._compute_vix_term_structure(data)
+        term_slope, is_backwardation, term_zscore, term_slope_normalized = (
+            self._compute_vix_term_structure(data)
+        )
         has_term_structure = term_slope.notna().any()
 
         # Term structure adjustment: backwardation adds to fear signal
@@ -486,7 +534,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # Backwardation (positive slope) = fear = add to regime
             # Strong backwardation (>2 pts) = significant
             term_adjustment = 0.25 * term_zscore.clip(-2, 2)
-            logger.info(f"   VIX term structure active: {is_backwardation.sum()} backwardation days")
+            logger.info(
+                f"   VIX term structure active: {is_backwardation.sum()} backwardation days"
+            )
 
         # Regime change probability (based on vol velocity + term structure shifts)
         # NO FILLNA - if data is missing, velocity is NaN (not zero)
@@ -499,7 +549,8 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             combined_velocity = vol_velocity.copy()
             valid_term = term_velocity.notna()
             combined_velocity.loc[valid_term] = (
-                vol_velocity.loc[valid_term].fillna(0) + 0.3 * term_velocity.loc[valid_term]
+                vol_velocity.loc[valid_term].fillna(0)
+                + 0.3 * term_velocity.loc[valid_term]
             )
         else:
             combined_velocity = vol_velocity
@@ -521,11 +572,13 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 try:
                     # Get conditional volatility (sqrt of variance)
                     # Scale back from percentage returns (we multiplied by 100 in _fit_garch)
-                    cond_vol = garch_result.conditional_volatility / 100  # Back to decimal
+                    cond_vol = (
+                        garch_result.conditional_volatility / 100
+                    )  # Back to decimal
 
                     # Align with data index (GARCH was fit on recent 504 days)
                     garch_cond_vol = pd.Series(np.nan, index=data.index)
-                    aligned_idx = recent_returns.dropna().index[-len(cond_vol):]
+                    aligned_idx = recent_returns.dropna().index[-len(cond_vol) :]
                     garch_cond_vol.loc[aligned_idx] = cond_vol.values
 
                     # No forward-fill (policy) - leave gaps outside training window
@@ -535,10 +588,14 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                         garch_cond_vol, window=252, min_periods=126
                     )
 
-                    logger.info(f"   GARCH conditional vol: mean={garch_cond_vol.mean():.6f}, "
-                               f"std={garch_cond_vol.std():.6f}, non-null={garch_cond_vol.notna().sum()}")
+                    logger.info(
+                        f"   GARCH conditional vol: mean={garch_cond_vol.mean():.6f}, "
+                        f"std={garch_cond_vol.std():.6f}, non-null={garch_cond_vol.notna().sum()}"
+                    )
                 except Exception as e:
-                    logger.warning(f"   Failed to extract GARCH conditional variance: {e}")
+                    logger.warning(
+                        f"   Failed to extract GARCH conditional variance: {e}"
+                    )
                     garch_cond_vol = None
                     garch_cond_vol_zscore = None
 
@@ -566,11 +623,17 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                     regime_level = 3
 
             # Regime change probability
-            change_prob = regime_change_prob.loc[idx] if not pd.isna(regime_change_prob.loc[idx]) else 0.0
+            change_prob = (
+                regime_change_prob.loc[idx]
+                if not pd.isna(regime_change_prob.loc[idx])
+                else 0.0
+            )
 
             # Confidence based on data quality
             confidence = 0.7
-            if "fred_vixcls" in data.columns and not pd.isna(data.loc[idx, "fred_vixcls"]):
+            if "fred_vixcls" in data.columns and not pd.isna(
+                data.loc[idx, "fred_vixcls"]
+            ):
                 confidence += 0.1
             if has_term_structure:
                 confidence += 0.05  # Boost for term structure data
@@ -579,7 +642,9 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
 
             # PATCHED 2026-02-02: signal_1 is now CONTINUOUS GARCH variance z-score
             # Prefer GARCH conditional variance, fallback to realized vol z-score
-            if garch_cond_vol_zscore is not None and not pd.isna(garch_cond_vol_zscore.loc[idx]):
+            if garch_cond_vol_zscore is not None and not pd.isna(
+                garch_cond_vol_zscore.loc[idx]
+            ):
                 signal_1_value = float(garch_cond_vol_zscore.loc[idx])
                 signal_source = "garch_conditional_variance"
             else:
@@ -596,19 +661,31 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 "regime_label": self.REGIME_LABELS[regime_level],
                 # Volatility components
                 "vol_zscore": float(combined_zscore),
-                "realized_vol": float(realized_vol.loc[idx]) if not pd.isna(realized_vol.loc[idx]) else None,
-                "garch_cond_vol": float(garch_cond_vol.loc[idx]) if garch_cond_vol is not None and not pd.isna(garch_cond_vol.loc[idx]) else None,
+                "realized_vol": float(realized_vol.loc[idx])
+                if not pd.isna(realized_vol.loc[idx])
+                else None,
+                "garch_cond_vol": float(garch_cond_vol.loc[idx])
+                if garch_cond_vol is not None and not pd.isna(garch_cond_vol.loc[idx])
+                else None,
                 "garch_fitted": garch_result is not None,
                 "run_hash": run_hash,
             }
 
             # Add term structure metadata if available
             if has_term_structure:
-                meta["vix_term_slope"] = float(term_slope.loc[idx]) if not pd.isna(term_slope.loc[idx]) else None
-                meta["vix_term_slope_normalized"] = float(term_slope_normalized.loc[idx]) if not pd.isna(term_slope_normalized.loc[idx]) else None
+                meta["vix_term_slope"] = (
+                    float(term_slope.loc[idx])
+                    if not pd.isna(term_slope.loc[idx])
+                    else None
+                )
+                meta["vix_term_slope_normalized"] = (
+                    float(term_slope_normalized.loc[idx])
+                    if not pd.isna(term_slope_normalized.loc[idx])
+                    else None
+                )
                 meta["is_backwardation"] = bool(is_backwardation.loc[idx])
 
-            as_of = idx.date() if hasattr(idx, 'date') else idx
+            as_of = idx.date() if hasattr(idx, "date") else idx
             # P0-3: Skip dates before EARLIEST_VALID_DATE
             if as_of < date(1990, 1, 1):
                 continue
@@ -616,21 +693,25 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             # P0-1: Compute max staleness for this date
             max_staleness = self.compute_max_staleness(data, as_of)
 
-            signals.append(SignalOutput(
-                as_of_date=as_of,
-                bucket="volatility",
-                signal_1=signal_1_value,  # CONTINUOUS: GARCH cond vol z-score or realized vol z-score
-                signal_2=float(change_prob),   # Regime transition probability
-                confidence=float(min(confidence, 0.95)),
-                model_type="garch",  # PATCHED 2026-02-02: Restored to "garch"
-                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
-                metadata=meta,
-            ))
+            signals.append(
+                SignalOutput(
+                    as_of_date=as_of,
+                    bucket="volatility",
+                    signal_1=signal_1_value,  # CONTINUOUS: GARCH cond vol z-score or realized vol z-score
+                    signal_2=float(change_prob),  # Regime transition probability
+                    confidence=float(min(confidence, 0.95)),
+                    model_type="garch",  # PATCHED 2026-02-02: Restored to "garch"
+                    max_input_age_days=max_staleness,  # P0-1: Staleness tracking
+                    metadata=meta,
+                )
+            )
 
         # Operational metrics for data quality monitoring
-        term_nan_count = term_slope.isna().sum() if term_slope is not None else len(data)
+        term_nan_count = (
+            term_slope.isna().sum() if term_slope is not None else len(data)
+        )
         term_nan_pct = (term_nan_count / len(data) * 100) if len(data) > 0 else 0
-        backwardation_na_count = is_backwardation.isna().sum() if is_backwardation is not None else len(data)
+        (is_backwardation.isna().sum() if is_backwardation is not None else len(data))
 
         if term_nan_pct > 10:
             logger.warning(
@@ -640,8 +721,10 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
 
         # Count GARCH vs fallback signals
         garch_signal_count = sum(
-            1 for s in signals
-            if s.metadata and s.metadata.get("signal_source") == "garch_conditional_variance"
+            1
+            for s in signals
+            if s.metadata
+            and s.metadata.get("signal_source") == "garch_conditional_variance"
         )
 
         logger.info(

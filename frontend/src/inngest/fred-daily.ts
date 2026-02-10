@@ -13,7 +13,7 @@
  * @date 2026-02-07
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
@@ -645,7 +645,7 @@ async function quarantineRecord(
   severity: string = "error"
 ): Promise<void> {
   await client.query(
-    `INSERT INTO ops.quarantined_record 
+    `INSERT INTO ops.quarantined_record
        (ingest_run_id, source_table, raw_payload, validation_errors, severity)
      VALUES ($1, $2, $3, $4, $5)`,
     [runId, sourceTable, JSON.stringify(payload), errors, severity]
@@ -913,6 +913,7 @@ function createFredSegmentJob(config: FredSegmentConfig) {
       id: config.id,
       name: config.displayName,
       retries: config.retries ?? DEFAULT_JOB_RETRIES,
+      concurrency: [DB_CONCURRENCY],
     },
     { cron: config.cron },
     async ({ step, logger }) => {

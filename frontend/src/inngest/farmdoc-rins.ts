@@ -1,16 +1,16 @@
 /**
  * Farmdoc RINs RSS Data Ingestion
- * 
+ *
  * INGESTION CONTRACT
  * SOURCE: https://farmdocdaily.illinois.edu/category/areas/biofuels/rins/feed/
  * Tags: biofuel, energy
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
  * @version 1.0.0
  * @date 2026-01-11
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
@@ -48,7 +48,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const farmdocRinsDaily = inngest.createFunction(
-  { id: "farmdoc-rins-daily", name: "Farmdoc RINs RSS Data Ingestion", retries: 3 },
+  { id: "farmdoc-rins-daily", name: "Farmdoc RINs RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();

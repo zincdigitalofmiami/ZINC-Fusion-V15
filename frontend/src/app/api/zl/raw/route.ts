@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await query<PriceRow>(`
-      SELECT 
+      SELECT
         event_date::text as date,
         open,
         high,

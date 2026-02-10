@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
 import dbPool from "@/lib/db";
@@ -293,7 +293,7 @@ async function fetchRinPricesFromQlik(maxRetries: number = 3): Promise<{ lastRel
 }
 
 export const epaRinPricesDaily = inngest.createFunction(
-  { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Data Ingestion", retries: 3 },
+  { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30
   async ({ step, logger }) => {
     const client = await pool.connect();

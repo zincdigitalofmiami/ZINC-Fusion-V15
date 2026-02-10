@@ -1,7 +1,7 @@
 /**
  * Glide Field Mappings - OFFICIAL SCHEMA
  * Source: Glide Tables SDK export (2026-01-14)
- * 
+ *
  * These cryptic IDs are Glide's internal column identifiers.
  * DO NOT change unless Glide schema changes.
  */
@@ -14,34 +14,34 @@ export const RESTAURANT_FIELDS = {
   name: 'MHXYO',
   casinoId: '2Ca0T',           // Links to casinos table
   techId: 'g5WAm',             // Links to technicians
-  
+
   // Oil/Product info
   oilType: 'U0Jf2',            // e.g., "StableMAX - Bulk", "SoyMAX - 35# Jib"
   oilForm: '0RcWz',
   tpmThreshold: 'zPYNY',       // TPM threshold number
-  
+
   // Status
   status: 's8tNr',             // "Open", etc.
   active: 'lA5EU',
   replacementAgreement: 'g9zbE',
-  
+
   // Schedule
   scheduleParameters: 'Po4Zg', // "Daily", "Certain Days", etc.
   days: 'lf0gF',               // "Monday,Tuesday,..." comma-separated
-  
+
   // Contacts
   primaryContactName: 'doeXs',
   primaryContactEmail: 'a3ffP',
   secondaryContactName: 'Ie35Z',  // Often chef name
   secondaryContactEmail: 'maCR5',
-  
+
   // Assignment/Override
   assignmentString: 'h90Ts',
   assignmentOverrideTechJson: 'Xz5zq',
   assignmentOverrideDay: 'k4SLM',
   assignmentDateToClearTechOverRide: 'uwU2A',
   assignmentIsLongTermAndExcludeFromWf: 'Ny3eQ',
-  
+
   // Other
   notes: '08Hj9',
   groupIdStamped: 'cDEde',
@@ -58,7 +58,7 @@ export const CASINO_FIELDS = {
 } as const;
 
 // =============================================================================
-// FRYERS TABLE - native-table-r2BIqSLhezVbOKGeRJj8  
+// FRYERS TABLE - native-table-r2BIqSLhezVbOKGeRJj8
 // =============================================================================
 export const FRYER_FIELDS = {
   name: 'Name',                // "Fryer 1", "Fryer 2", etc.

@@ -37,8 +37,6 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from arch import arch_model
-from arch.univariate import GARCH, EGARCH, ConstantMean, ZeroMean
-from arch.univariate.volatility import GARCH as GARCHVol
 
 logger = logging.getLogger(__name__)
 
@@ -47,36 +45,40 @@ logger = logging.getLogger(__name__)
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class GARCHResult:
     """Results from GARCH model fitting."""
+
     model_type: str
-    omega: float           # Constant in variance equation
-    alpha: float           # ARCH term (yesterday's shock)
-    beta: float            # GARCH term (yesterday's variance)
-    gamma: Optional[float] # Asymmetry term (GJR-GARCH only)
-    persistence: float     # alpha + beta (should be < 1)
+    omega: float  # Constant in variance equation
+    alpha: float  # ARCH term (yesterday's shock)
+    beta: float  # GARCH term (yesterday's variance)
+    gamma: Optional[float]  # Asymmetry term (GJR-GARCH only)
+    persistence: float  # alpha + beta (should be < 1)
     unconditional_vol: float  # Long-run volatility (annualized)
     aic: float
     bic: float
     log_likelihood: float
-    fitted_model: object   # The fitted arch model
+    fitted_model: object  # The fitted arch model
 
 
 @dataclass
 class VolatilityForecast:
     """Volatility forecast results."""
+
     horizon: int
-    daily_vol: np.ndarray      # Daily volatility path
-    annualized_vol: np.ndarray # Annualized volatility path
-    mean_vol: float            # Average daily vol over horizon
-    terminal_vol: float        # Vol at end of horizon
-    vol_of_vol: float          # Volatility of volatility (uncertainty)
+    daily_vol: np.ndarray  # Daily volatility path
+    annualized_vol: np.ndarray  # Annualized volatility path
+    mean_vol: float  # Average daily vol over horizon
+    terminal_vol: float  # Vol at end of horizon
+    vol_of_vol: float  # Volatility of volatility (uncertainty)
 
 
 @dataclass
 class RiskMetrics:
     """Risk-adjusted return metrics."""
+
     sharpe_ratio: float
     sortino_ratio: float
     calmar_ratio: Optional[float]  # If max drawdown available
@@ -84,20 +86,21 @@ class RiskMetrics:
     annualized_return: float
     annualized_vol: float
     max_drawdown: Optional[float]
-    var_95: float              # 95% Value at Risk
-    cvar_95: float             # 95% Conditional VaR (Expected Shortfall)
+    var_95: float  # 95% Value at Risk
+    cvar_95: float  # 95% Conditional VaR (Expected Shortfall)
 
 
 # =============================================================================
 # GARCH MODEL FITTING
 # =============================================================================
 
+
 def fit_garch(
     returns: Union[pd.Series, np.ndarray],
-    model_type: str = 'gjr-garch',
+    model_type: str = "gjr-garch",
     p: int = 1,
     q: int = 1,
-    dist: str = 't',  # Student-t for fat tails
+    dist: str = "t",  # Student-t for fat tails
     rescale: bool = True,
 ) -> GARCHResult:
     """
@@ -132,53 +135,47 @@ def fit_garch(
         returns_scaled = returns
 
     # Build model based on type
-    if model_type.lower() == 'garch':
+    if model_type.lower() == "garch":
         model = arch_model(
-            returns_scaled,
-            mean='Constant',
-            vol='GARCH',
-            p=p, q=q,
-            dist=dist
+            returns_scaled, mean="Constant", vol="GARCH", p=p, q=q, dist=dist
         )
-    elif model_type.lower() == 'gjr-garch':
+    elif model_type.lower() == "gjr-garch":
         model = arch_model(
             returns_scaled,
-            mean='Constant',
-            vol='GARCH',
-            p=p, o=1, q=q,  # o=1 adds asymmetric term
-            dist=dist
+            mean="Constant",
+            vol="GARCH",
+            p=p,
+            o=1,
+            q=q,  # o=1 adds asymmetric term
+            dist=dist,
         )
-    elif model_type.lower() == 'egarch':
+    elif model_type.lower() == "egarch":
         model = arch_model(
-            returns_scaled,
-            mean='Constant',
-            vol='EGARCH',
-            p=p, q=q,
-            dist=dist
+            returns_scaled, mean="Constant", vol="EGARCH", p=p, q=q, dist=dist
         )
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
 
     # Fit model
     try:
-        res = model.fit(disp='off', show_warning=False)
+        res = model.fit(disp="off", show_warning=False)
     except Exception as e:
         logger.error(f"GARCH fitting failed: {e}")
         raise
 
     # Extract parameters
     params = res.params
-    omega = params.get('omega', 0) / (scale_factor ** 2)  # Rescale back
+    omega = params.get("omega", 0) / (scale_factor**2)  # Rescale back
 
-    if model_type.lower() == 'egarch':
-        alpha = params.get('alpha[1]', 0)
-        beta = params.get('beta[1]', 0)
-        gamma = params.get('gamma[1]', None)
+    if model_type.lower() == "egarch":
+        alpha = params.get("alpha[1]", 0)
+        beta = params.get("beta[1]", 0)
+        gamma = params.get("gamma[1]", None)
         persistence = np.abs(beta)  # EGARCH persistence
     else:
-        alpha = params.get('alpha[1]', 0)
-        beta = params.get('beta[1]', 0)
-        gamma = params.get('gamma[1]', None) if 'gamma[1]' in params else None
+        alpha = params.get("alpha[1]", 0)
+        beta = params.get("beta[1]", 0)
+        gamma = params.get("gamma[1]", None) if "gamma[1]" in params else None
         persistence = alpha + beta + (gamma / 2 if gamma else 0)
 
     # Unconditional (long-run) variance
@@ -207,7 +204,7 @@ def fit_garch(
 def forecast_volatility(
     garch_result: GARCHResult,
     horizon: int = 21,
-    method: str = 'analytic',
+    method: str = "analytic",
 ) -> VolatilityForecast:
     """
     Forecast volatility using fitted GARCH model.
@@ -250,6 +247,7 @@ def forecast_volatility(
 # =============================================================================
 # RISK-ADJUSTED RETURN METRICS
 # =============================================================================
+
 
 def calculate_sharpe_ratio(
     returns: Union[pd.Series, np.ndarray],
@@ -337,7 +335,7 @@ def calculate_sortino_ratio(
     if len(downside_returns) == 0:
         return np.inf  # No downside - perfect
 
-    downside_std = np.sqrt(np.mean(downside_returns ** 2))
+    downside_std = np.sqrt(np.mean(downside_returns**2))
 
     if downside_std == 0:
         return np.nan
@@ -409,8 +407,12 @@ def calculate_risk_metrics(
     # Information ratio (if benchmark provided)
     if benchmark_returns is not None:
         tracking_error = np.std(returns - benchmark_returns) * np.sqrt(periods_per_year)
-        excess_return = annualized_return - np.mean(benchmark_returns) * periods_per_year
-        information_ratio = excess_return / tracking_error if tracking_error > 0 else None
+        excess_return = (
+            annualized_return - np.mean(benchmark_returns) * periods_per_year
+        )
+        information_ratio = (
+            excess_return / tracking_error if tracking_error > 0 else None
+        )
     else:
         information_ratio = None
 
@@ -435,10 +437,11 @@ def calculate_risk_metrics(
 # INTEGRATION WITH MONTE CARLO
 # =============================================================================
 
+
 def garch_volatility_for_monte_carlo(
     returns: Union[pd.Series, np.ndarray],
     horizon: int,
-    model_type: str = 'gjr-garch',
+    model_type: str = "gjr-garch",
 ) -> Tuple[np.ndarray, float, float]:
     """
     Get GARCH volatility forecast for Monte Carlo simulation.
@@ -485,27 +488,30 @@ def garch_volatility_for_monte_carlo(
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
+
 def quick_garch_summary(returns: pd.Series) -> Dict:
     """
     Quick GARCH analysis for a return series.
 
     Returns dict suitable for JSON storage or logging.
     """
-    result = fit_garch(returns, model_type='gjr-garch')
+    result = fit_garch(returns, model_type="gjr-garch")
     metrics = calculate_risk_metrics(returns)
 
     return {
-        'garch_type': result.model_type,
-        'persistence': round(result.persistence, 4),
-        'unconditional_vol': round(result.unconditional_vol, 4),
-        'alpha': round(result.alpha, 4),
-        'beta': round(result.beta, 4),
-        'gamma': round(result.gamma, 4) if result.gamma else None,
-        'aic': round(result.aic, 2),
-        'sharpe_ratio': round(metrics.sharpe_ratio, 3),
-        'sortino_ratio': round(metrics.sortino_ratio, 3),
-        'annualized_vol': round(metrics.annualized_vol, 4),
-        'max_drawdown': round(metrics.max_drawdown, 4) if metrics.max_drawdown else None,
-        'var_95': round(metrics.var_95, 4),
-        'cvar_95': round(metrics.cvar_95, 4),
+        "garch_type": result.model_type,
+        "persistence": round(result.persistence, 4),
+        "unconditional_vol": round(result.unconditional_vol, 4),
+        "alpha": round(result.alpha, 4),
+        "beta": round(result.beta, 4),
+        "gamma": round(result.gamma, 4) if result.gamma else None,
+        "aic": round(result.aic, 2),
+        "sharpe_ratio": round(metrics.sharpe_ratio, 3),
+        "sortino_ratio": round(metrics.sortino_ratio, 3),
+        "annualized_vol": round(metrics.annualized_vol, 4),
+        "max_drawdown": round(metrics.max_drawdown, 4)
+        if metrics.max_drawdown
+        else None,
+        "var_95": round(metrics.var_95, 4),
+        "cvar_95": round(metrics.cvar_95, 4),
     }

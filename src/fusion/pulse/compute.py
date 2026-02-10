@@ -39,9 +39,9 @@ def linear_regression(x: List[float], y: List[float]) -> Tuple[float, float]:
     sum_x = sum(x)
     sum_y = sum(y)
     sum_xy = sum(xi * yi for xi, yi in zip(x, y))
-    sum_x2 = sum(xi ** 2 for xi in x)
+    sum_x2 = sum(xi**2 for xi in x)
 
-    denominator = n * sum_x2 - sum_x ** 2
+    denominator = n * sum_x2 - sum_x**2
     if abs(denominator) < 1e-10:
         return (0.0, sum_y / n if n > 0 else 0.0)
 
@@ -140,7 +140,7 @@ def rolling_mean(series: List[float], window: int) -> List[float]:
     result = []
     for i in range(len(series)):
         start = max(0, i - window + 1)
-        window_data = series[start:i + 1]
+        window_data = series[start : i + 1]
         result.append(sum(window_data) / len(window_data))
 
     return result
@@ -163,7 +163,7 @@ def rolling_std(series: List[float], window: int) -> List[float]:
     result = []
     for i in range(len(series)):
         start = max(0, i - window + 1)
-        window_data = series[start:i + 1]
+        window_data = series[start : i + 1]
         if len(window_data) < 2:
             result.append(0.0)
             continue
@@ -245,85 +245,100 @@ def compute_quant_payload(external_sources: Dict[str, Any]) -> Dict[str, Any]:
         True
     """
     payload = {
-        'computed_at': datetime.utcnow().isoformat(),
-        'metrics': {},
-        'correlations': {},
-        'trends': {},
-        'signals': []
+        "computed_at": datetime.utcnow().isoformat(),
+        "metrics": {},
+        "correlations": {},
+        "trends": {},
+        "signals": [],
     }
 
     # Extract key series if available
     series_data = {}
 
     # FRED rates
-    if 'fred_rates' in external_sources:
-        for series_id, values in external_sources['fred_rates'].items():
+    if "fred_rates" in external_sources:
+        for series_id, values in external_sources["fred_rates"].items():
             if isinstance(values, list) and values:
                 series_data[series_id] = values
 
                 # Compute metrics for each series
                 if len(values) >= 5:
-                    payload['metrics'][series_id] = {
-                        'current': values[-1] if values else None,
-                        'change_5d': values[-1] - values[-5] if len(values) >= 5 else None,
-                        'momentum_14d': compute_momentum(values, 14) if len(values) >= 15 else None,
-                        'zscore_20d': zscore(values[-1], sum(values[-20:]) / min(len(values), 20),
-                                            compute_volatility(values[-20:], False)) if len(values) >= 20 else None
+                    payload["metrics"][series_id] = {
+                        "current": values[-1] if values else None,
+                        "change_5d": values[-1] - values[-5]
+                        if len(values) >= 5
+                        else None,
+                        "momentum_14d": compute_momentum(values, 14)
+                        if len(values) >= 15
+                        else None,
+                        "zscore_20d": zscore(
+                            values[-1],
+                            sum(values[-20:]) / min(len(values), 20),
+                            compute_volatility(values[-20:], False),
+                        )
+                        if len(values) >= 20
+                        else None,
                     }
 
     # EIA crude data
-    if 'eia_crude' in external_sources:
-        for series_id, values in external_sources['eia_crude'].items():
+    if "eia_crude" in external_sources:
+        for series_id, values in external_sources["eia_crude"].items():
             if isinstance(values, list) and values:
-                series_data[f'eia_{series_id}'] = values
-                payload['metrics'][f'eia_{series_id}'] = {
-                    'current': values[-1],
-                    'volatility_20d': compute_volatility(
-                        [(values[i] - values[i-1]) / values[i-1] if values[i-1] != 0 else 0
-                         for i in range(1, min(21, len(values)))]
-                    ) if len(values) >= 2 else None
+                series_data[f"eia_{series_id}"] = values
+                payload["metrics"][f"eia_{series_id}"] = {
+                    "current": values[-1],
+                    "volatility_20d": compute_volatility(
+                        [
+                            (values[i] - values[i - 1]) / values[i - 1]
+                            if values[i - 1] != 0
+                            else 0
+                            for i in range(1, min(21, len(values)))
+                        ]
+                    )
+                    if len(values) >= 2
+                    else None,
                 }
 
     # Compute cross-series correlations
     series_names = list(series_data.keys())
     for i, name1 in enumerate(series_names):
-        for name2 in series_names[i+1:]:
+        for name2 in series_names[i + 1 :]:
             s1, s2 = series_data[name1], series_data[name2]
             min_len = min(len(s1), len(s2))
             if min_len >= 10:
                 corr = correlation(s1[-min_len:], s2[-min_len:])
                 if corr is not None:
-                    payload['correlations'][f'{name1}_vs_{name2}'] = round(corr, 3)
+                    payload["correlations"][f"{name1}_vs_{name2}"] = round(corr, 3)
 
     # Compute trends
     for name, values in series_data.items():
         if len(values) >= 20:
             x = list(range(len(values[-20:])))
             slope, _ = linear_regression(x, values[-20:])
-            payload['trends'][name] = {
-                'slope_20d': round(slope, 4),
-                'direction': 'up' if slope > 0 else 'down' if slope < 0 else 'flat'
+            payload["trends"][name] = {
+                "slope_20d": round(slope, 4),
+                "direction": "up" if slope > 0 else "down" if slope < 0 else "flat",
             }
 
     # Generate signals based on thresholds
-    for name, metrics in payload['metrics'].items():
-        zscore_val = metrics.get('zscore_20d')
+    for name, metrics in payload["metrics"].items():
+        zscore_val = metrics.get("zscore_20d")
         if zscore_val is not None:
             if abs(zscore_val) > 2.0:
-                payload['signals'].append({
-                    'series': name,
-                    'signal_type': 'extreme_zscore',
-                    'value': round(zscore_val, 2),
-                    'direction': 'high' if zscore_val > 0 else 'low'
-                })
+                payload["signals"].append(
+                    {
+                        "series": name,
+                        "signal_type": "extreme_zscore",
+                        "value": round(zscore_val, 2),
+                        "direction": "high" if zscore_val > 0 else "low",
+                    }
+                )
 
     return payload
 
 
 def compute_driver_weights(
-    domain: str,
-    signal_snapshot: Dict[str, Any],
-    recent_changes: Dict[str, float]
+    domain: str, signal_snapshot: Dict[str, Any], recent_changes: Dict[str, float]
 ) -> Dict[str, float]:
     """
     Compute driver weights for a domain based on current signals.
@@ -340,52 +355,55 @@ def compute_driver_weights(
     """
     # Base weights by domain (from historical analysis)
     base_weights = {
-        'CRUSH': {
-            'crush_margin': 0.25,
-            'supply': 0.20,
-            'demand': 0.20,
-            'spreads': 0.15,
-            'basis': 0.10,
-            'technical': 0.10
+        "CRUSH": {
+            "crush_margin": 0.25,
+            "supply": 0.20,
+            "demand": 0.20,
+            "spreads": 0.15,
+            "basis": 0.10,
+            "technical": 0.10,
         },
-        'CHINA': {
-            'import_demand': 0.30,
-            'port_stocks': 0.20,
-            'fx_usd_cny': 0.15,
-            'policy': 0.15,
-            'margins': 0.10,
-            'technical': 0.10
+        "CHINA": {
+            "import_demand": 0.30,
+            "port_stocks": 0.20,
+            "fx_usd_cny": 0.15,
+            "policy": 0.15,
+            "margins": 0.10,
+            "technical": 0.10,
         },
-        'ENERGY': {
-            'crude_price': 0.35,
-            'refinery_margins': 0.20,
-            'inventories': 0.15,
-            'demand': 0.15,
-            'geopolitics': 0.10,
-            'technical': 0.05
+        "ENERGY": {
+            "crude_price": 0.35,
+            "refinery_margins": 0.20,
+            "inventories": 0.15,
+            "demand": 0.15,
+            "geopolitics": 0.10,
+            "technical": 0.05,
         },
-        'BIOFUEL': {
-            'rin_prices': 0.30,
-            'rd_margins': 0.25,
-            'policy': 0.20,
-            'feedstock': 0.15,
-            'capacity': 0.10
+        "BIOFUEL": {
+            "rin_prices": 0.30,
+            "rd_margins": 0.25,
+            "policy": 0.20,
+            "feedstock": 0.15,
+            "capacity": 0.10,
         },
-        'FED': {
-            'rates': 0.35,
-            'inflation': 0.25,
-            'employment': 0.15,
-            'yield_curve': 0.15,
-            'speeches': 0.10
-        }
+        "FED": {
+            "rates": 0.35,
+            "inflation": 0.25,
+            "employment": 0.15,
+            "yield_curve": 0.15,
+            "speeches": 0.10,
+        },
     }
 
-    weights = base_weights.get(domain, {
-        'fundamental': 0.40,
-        'technical': 0.30,
-        'sentiment': 0.20,
-        'positioning': 0.10
-    })
+    weights = base_weights.get(
+        domain,
+        {
+            "fundamental": 0.40,
+            "technical": 0.30,
+            "sentiment": 0.20,
+            "positioning": 0.10,
+        },
+    )
 
     # Adjust weights based on recent volatility in each driver
     # Higher volatility = higher weight (more influential right now)

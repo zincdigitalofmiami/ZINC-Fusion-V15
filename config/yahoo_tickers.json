@@ -1,7 +1,7 @@
 {
   "_comment": "Canonical symbol → Yahoo Finance ticker mapping",
   "_updated": "2026-01-26",
-  
+
   "futures": {
     "_comment": "CME/CBOT futures - use =F suffix",
     "ZL": "ZL=F",
@@ -28,7 +28,7 @@
     "YM": "YM=F",
     "RTY": "RTY=F"
   },
-  
+
   "fx": {
     "_comment": "Currency pairs - use =X suffix",
     "USDBRL": "BRL=X",
@@ -39,7 +39,7 @@
     "USDCAD": "CAD=X",
     "AUDUSD": "AUDUSD=X"
   },
-  
+
   "indices": {
     "_comment": "Market indices - use ^ prefix",
     "DXY": "DX-Y.NYB",
@@ -47,7 +47,7 @@
     "SPX": "^GSPC",
     "NDX": "^NDX"
   },
-  
+
   "equities": {
     "_comment": "Trump/policy proxy tickers for trump_effect specialist",
     "DJT": "DJT",

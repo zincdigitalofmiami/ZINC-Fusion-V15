@@ -18,7 +18,7 @@ export default function StrategyPage() {
         {/* Main Posture Card */}
         <div className="col-span-2 relative group overflow-hidden bg-[#0a0a0a] border border-white/5 rounded-xl p-6">
           <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent pointer-events-none" />
-          
+
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs mb-2 uppercase tracking-wider">
@@ -92,7 +92,7 @@ export default function StrategyPage() {
             Driver Attribution
           </h3>
         </div>
-        
+
         <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
           <FusionBrain />

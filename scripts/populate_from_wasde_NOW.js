@@ -1,6 +1,6 @@
 /**
  * POPULATE CRITICAL SUPPLY TABLES FROM EXISTING WASDE DATA
- * 
+ *
  * We already have Brazil and Argentina data in supply.usda_wasde_1m!
  * Just need to copy it to the specialist-focused tables.
  */
@@ -20,12 +20,12 @@ async function main() {
 
   // 1. BRAZIL PRODUCTION → conab_production_1m
   console.log('1️⃣  BRAZIL SOYBEAN PRODUCTION → supply.conab_production_1m\n');
-  
+
   const brResult = await pool.query(`
     INSERT INTO supply.conab_production_1m (
       report_month, crop_year, commodity, production_mt, source, row_hash, raw_payload
     )
-    SELECT 
+    SELECT
       event_date as report_month,
       TO_CHAR(event_date, 'YYYY') || '/' || TO_CHAR(event_date + INTERVAL '1 year', 'YYYY') as crop_year,
       commodity,
@@ -42,7 +42,7 @@ async function main() {
       raw_payload = EXCLUDED.raw_payload
     RETURNING report_month, production_mt
   `);
-  
+
   console.log(`   ✅ Inserted ${brResult.rowCount} Brazil production records\n`);
   brResult.rows.slice(0, 5).forEach(r => {
     console.log(`      ${r.report_month.toISOString().split('T')[0]}: ${(r.production_mt / 1000000).toFixed(2)} MMT`);
@@ -50,13 +50,13 @@ async function main() {
 
   // 2. ARGENTINA CRUSH → argentina_crush_1m
   console.log('\n2️⃣  ARGENTINA SOYBEAN CRUSH → supply.argentina_crush_1m\n');
-  
+
   const arCrushResult = await pool.query(`
     INSERT INTO supply.argentina_crush_1m (
-      report_month, crush_volume_mt, oil_production_mt, meal_production_mt, 
+      report_month, crush_volume_mt, oil_production_mt, meal_production_mt,
       source, row_hash, raw_payload
     )
-    SELECT 
+    SELECT
       event_date as report_month,
       MAX(CASE WHEN commodity = 'Soybeans' AND metric = 'consumption' THEN value END) as crush_volume_mt,
       MAX(CASE WHEN commodity = 'Soybean Oil' AND metric = 'production' THEN value END) as oil_production_mt,
@@ -76,7 +76,7 @@ async function main() {
       meal_production_mt = EXCLUDED.meal_production_mt
     RETURNING report_month, crush_volume_mt, oil_production_mt
   `);
-  
+
   console.log(`   ✅ Inserted ${arCrushResult.rowCount} Argentina crush records\n`);
   arCrushResult.rows.slice(0, 5).forEach(r => {
     console.log(`      ${r.report_month.toISOString().split('T')[0]}: ${(r.crush_volume_mt / 1000000).toFixed(2)} MMT crush, ${(r.oil_production_mt / 1000000).toFixed(2)} MMT oil`);

@@ -6,7 +6,7 @@ This is the single command to run before any training run.
 
 Usage:
     python -m src.fusion.validators.run_all
-    
+
 Exit codes:
     0 = All checks passed
     1 = Critical failures (schema violations)
@@ -25,34 +25,31 @@ from .quarantine_verifier import QuarantineVerifier
 
 def main():
     """Run all pre-training validators."""
-    
-    conn_string = os.environ.get(
-        "DATABASE_URL",
-        os.environ.get("POSTGRES_URL")
-    )
-    
+
+    conn_string = os.environ.get("DATABASE_URL", os.environ.get("POSTGRES_URL"))
+
     if not conn_string:
         print("ERROR: DATABASE_URL or POSTGRES_URL environment variable required")
         sys.exit(1)
-    
+
     print("\n" + "=" * 70)
     print("ZINC-FUSION-V15 PRE-TRAINING VALIDATION SUITE")
     print("=" * 70)
     print(f"Timestamp: {datetime.now().isoformat()}")
     print("=" * 70)
-    
+
     results = {
         "schema": None,
         "freshness": None,
         "quarantine": None,
     }
-    
+
     # =========================================================================
     # 1. SCHEMA CONTRACT VALIDATION (Critical)
     # =========================================================================
     print("\n\n[1/3] SCHEMA CONTRACT VALIDATION")
     print("-" * 70)
-    
+
     try:
         validator = SchemaContractValidator(conn_string)
         schema_ok = validator.validate_all()
@@ -62,13 +59,13 @@ def main():
     except Exception as e:
         print(f"ERROR: Schema validation failed with exception: {e}")
         results["schema"] = False
-    
+
     # =========================================================================
     # 2. DATA FRESHNESS CHECK (Warning)
     # =========================================================================
     print("\n\n[2/3] DATA FRESHNESS CHECK")
     print("-" * 70)
-    
+
     try:
         monitor = FreshnessMonitor(conn_string)
         freshness_ok = monitor.check_all()
@@ -78,13 +75,13 @@ def main():
     except Exception as e:
         print(f"ERROR: Freshness check failed with exception: {e}")
         results["freshness"] = False
-    
+
     # =========================================================================
     # 3. QUARANTINE PIPELINE CHECK (Critical)
     # =========================================================================
     print("\n\n[3/3] QUARANTINE PIPELINE CHECK")
     print("-" * 70)
-    
+
     try:
         verifier = QuarantineVerifier(conn_string)
         quarantine_ok = verifier.verify_all()
@@ -93,23 +90,29 @@ def main():
     except Exception as e:
         print(f"ERROR: Quarantine check failed with exception: {e}")
         results["quarantine"] = False
-    
+
     # =========================================================================
     # FINAL SUMMARY
     # =========================================================================
     print("\n\n" + "=" * 70)
     print("VALIDATION SUMMARY")
     print("=" * 70)
-    
+
     critical_pass = results["schema"] and results["quarantine"]
     warnings_only = not results["freshness"]
-    
-    print(f"\n  Schema Contract:    {'✅ PASS' if results['schema'] else '❌ FAIL (CRITICAL)'}")
-    print(f"  Data Freshness:     {'✅ PASS' if results['freshness'] else '⚠️  STALE (WARNING)'}")
-    print(f"  Quarantine Pipeline: {'✅ PASS' if results['quarantine'] else '❌ FAIL (CRITICAL)'}")
-    
+
+    print(
+        f"\n  Schema Contract:    {'✅ PASS' if results['schema'] else '❌ FAIL (CRITICAL)'}"
+    )
+    print(
+        f"  Data Freshness:     {'✅ PASS' if results['freshness'] else '⚠️  STALE (WARNING)'}"
+    )
+    print(
+        f"  Quarantine Pipeline: {'✅ PASS' if results['quarantine'] else '❌ FAIL (CRITICAL)'}"
+    )
+
     print("\n" + "=" * 70)
-    
+
     if critical_pass and not warnings_only:
         print("✅ ALL CHECKS PASSED - Safe to proceed with training")
         print("=" * 70 + "\n")

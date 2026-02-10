@@ -10,28 +10,28 @@ export function ContractImpactCalculator() {
   const [contracts, setContracts] = useState(1);
   const [horizon, setHorizon] = useState<Horizon>('63d');
   const POUNDS_PER_CONTRACT = 60000;
-  
+
   // Data sourced from COMPLETE_DATA_INVENTORY.md (Horizons & Models)
   const SCENARIOS = {
-      '5d': { 
+      '5d': {
           label: '1 Week',
           model: 'Ensemble (Chronos2 + DeepAR)',
-          current: 48.25, p10: 47.90, p50: 48.40, p90: 48.95, trend: 'Neutral' 
+          current: 48.25, p10: 47.90, p50: 48.40, p90: 48.95, trend: 'Neutral'
       },
-      '21d': { 
+      '21d': {
           label: '1 Month',
           model: 'WeightedEnsemble (L1)',
-          current: 48.25, p10: 46.50, p50: 49.10, p90: 51.20, trend: 'Bullish' 
+          current: 48.25, p10: 46.50, p50: 49.10, p90: 51.20, trend: 'Bullish'
       },
-      '63d': { 
+      '63d': {
           label: '3 Months',
           model: 'DirectTabular (Quarterly)',
-          current: 48.25, p10: 45.00, p50: 49.80, p90: 53.10, trend: 'Bullish' 
+          current: 48.25, p10: 45.00, p50: 49.80, p90: 53.10, trend: 'Bullish'
       },
-      '126d': { 
+      '126d': {
           label: '6 Months',
           model: 'Chronos2SmallFineTuned',
-          current: 48.25, p10: 42.00, p50: 47.50, p90: 55.00, trend: 'High Vol' 
+          current: 48.25, p10: 42.00, p50: 47.50, p90: 55.00, trend: 'High Vol'
       }
   };
 
@@ -52,7 +52,7 @@ export function ContractImpactCalculator() {
     const sign = val >= 0 ? '+' : '';
     return `${sign}${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val)}`;
   };
-  
+
   const getPnlColor = (val: number) => {
       if (val > 0) return 'text-emerald-400';
       if (val < 0) return 'text-red-400';
@@ -71,7 +71,7 @@ export function ContractImpactCalculator() {
                 <p className="text-xs text-slate-500">PnL Simulation vs Confidence Bands</p>
             </div>
         </div>
-        
+
         {/* Horizon Selector */}
         <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/5 relative">
             {(['5d', '21d', '63d', '126d'] as Horizon[]).map((h) => (
@@ -79,8 +79,8 @@ export function ContractImpactCalculator() {
                     key={h}
                     onClick={() => setHorizon(h)}
                     className={`relative px-3 py-1 text-[10px] font-mono rounded-md transition-all z-10 ${
-                        horizon === h 
-                        ? 'bg-blue-600 text-white shadow-lg' 
+                        horizon === h
+                        ? 'bg-blue-600 text-white shadow-lg'
                         : 'text-slate-500 hover:text-slate-300'
                     }`}
                 >
@@ -106,11 +106,11 @@ export function ContractImpactCalculator() {
             <span className="text-slate-400">Position Size</span>
             <span className="text-white font-mono text-lg">{contracts} Lot{contracts > 1 ? 's' : ''} <span className="text-slate-500 text-xs">({(contracts * 0.6).toFixed(1)}M lbs)</span></span>
         </div>
-        <input 
-            type="range" 
-            min="1" 
-            max="50" 
-            value={contracts} 
+        <input
+            type="range"
+            min="1"
+            max="50"
+            value={contracts}
             onChange={(e) => setContracts(Number(e.target.value))}
             className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
@@ -123,7 +123,7 @@ export function ContractImpactCalculator() {
       {/* Scenarios */}
       <div className="space-y-3">
          {/* P90 Upside */}
-         <motion.div 
+         <motion.div
             key={`${horizon}-p90`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -139,7 +139,7 @@ export function ContractImpactCalculator() {
          </motion.div>
 
          {/* P50 Base */}
-         <motion.div 
+         <motion.div
             key={`${horizon}-p50`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -156,7 +156,7 @@ export function ContractImpactCalculator() {
          </motion.div>
 
          {/* P10 Downside */}
-         <motion.div 
+         <motion.div
             key={`${horizon}-p10`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

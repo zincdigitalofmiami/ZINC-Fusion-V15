@@ -1,23 +1,23 @@
 /**
  * Federal Register Daily Data Ingestion
- * 
+ *
  * INGESTION CONTRACT:
  * - Logs each run in ops.ingest_run
  * - Computes row_hash for idempotency
  * - Assigns specialist_tags per RAW_SOURCE_SPECIALIST_MAPPING.md
  * - Append-only inserts (no upserts)
  * - Quarantines invalid records to ops.quarantined_record
- * 
+ *
  * SOURCE: https://www.federalregister.gov/api/v1/
  * - No API key required (public API)
  * - Rate limit: ~1000 requests/hour
- * 
+ *
  * Document types fetched:
  * - RULE (Final rules)
  * - PRORULE (Proposed rules)
  * - NOTICE (Notices)
  * - PRESDOCU (Presidential documents - Executive Orders, Proclamations)
- * 
+ *
  * Tag assignment logic (per RAW_SOURCE_SPECIALIST_MAPPING.md):
  * - section_301, section_232, tariff → tariff
  * - trade_deal, trade_agreement → tariff, trump_effect
@@ -26,13 +26,13 @@
  * - rfs, rin, biodiesel, renewable_fuel → biofuel
  * - china, prc (trade context) → china, tariff
  * - epa, environment, emissions → biofuel
- * 
+ *
  * @author Claude (ZINC-FUSION-V15)
  * @version 1.1.0
  * @date 2026-01-11
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
@@ -63,19 +63,19 @@ const TAG_RULES: TagRule[] = [
   { pattern: /countervailing[\s_-]?dut/i, tags: ["tariff"] },
   { pattern: /trade[\s_-]?(deal|agreement|negotiation)/i, tags: ["tariff", "trump_effect"] },
   { pattern: /usmca|nafta/i, tags: ["tariff", "trump_effect"] },
-  
+
   // China-specific (CHINA + TARIFF)
   { pattern: /\bchina\b|\bprc\b|chinese/i, tags: ["china", "tariff"] },
   { pattern: /cofco|sinograin/i, tags: ["china"] },
-  
+
   // Presidential/Regime (TRUMP_EFFECT specialist)
   { pattern: /executive[\s_-]?order/i, tags: ["trump_effect"] },
   { pattern: /presidential[\s_-]?(action|memorandum|proclamation|determination)/i, tags: ["trump_effect"] },
   { pattern: /doge|government[\s_-]?efficiency/i, tags: ["trump_effect"] },
-  
+
   // Immigration (TRUMP_EFFECT + LEGISLATION)
   { pattern: /immigration|ice[\s_-]enforcement|deportation|visa|border[\s_-]?(security|control)/i, tags: ["trump_effect", "legislation"] },
-  
+
   // Biofuel (BIOFUEL specialist)
   { pattern: /renewable[\s_-]?fuel[\s_-]?standard|rfs/i, tags: ["biofuel"] },
   { pattern: /\brin\b|renewable[\s_-]?identification[\s_-]?number/i, tags: ["biofuel"] },
@@ -90,24 +90,24 @@ const TAG_RULES: TagRule[] = [
   { pattern: /epa.*fuel|fuel.*epa/i, tags: ["biofuel"] },
   { pattern: /blending[\s_-]?mandate|blender/i, tags: ["biofuel"] },
   { pattern: /feedstock[\s_-]?restriction|domestic[\s_-]?feedstock/i, tags: ["biofuel", "45z_credit"] },
-  
+
   // Energy (ENERGY specialist)
   { pattern: /petroleum|crude[\s_-]?oil|refiner/i, tags: ["energy"] },
   { pattern: /natural[\s_-]?gas|lng/i, tags: ["energy"] },
   { pattern: /opec|oil[\s_-]?export/i, tags: ["energy"] },
-  
+
   // Agriculture (CRUSH specialist)
   { pattern: /soybean|soy[\s_-]?oil|soy[\s_-]?meal/i, tags: ["crush"] },
   { pattern: /usda|department[\s_-]?of[\s_-]?agriculture/i, tags: ["crush"] },
   { pattern: /grain|corn|wheat/i, tags: ["crush", "substitutes"] },
-  
+
   // Monetary policy (FED specialist)
   { pattern: /federal[\s_-]?reserve|fomc|monetary[\s_-]?policy/i, tags: ["fed"] },
   { pattern: /interest[\s_-]?rate|treasury[\s_-]?yield/i, tags: ["fed"] },
-  
+
   // Sanctions (TARIFF + CHINA)
   { pattern: /sanctions|ofac|export[\s_-]?control/i, tags: ["tariff", "china"] },
-  
+
   // Default - all Federal Register docs are legislation
   { pattern: /.*/, tags: ["legislation"] },
 ];
@@ -217,7 +217,7 @@ async function quarantineRecord(
   severity: string = "error"
 ): Promise<void> {
   await client.query(
-    `INSERT INTO ops.quarantined_record 
+    `INSERT INTO ops.quarantined_record
        (ingest_run_id, source_table, raw_payload, validation_errors, severity)
      VALUES ($1, $2, $3, $4, $5)`,
     [runId, sourceTable, JSON.stringify(payload), errors, severity]
@@ -266,14 +266,14 @@ interface FedRegApiResponse {
  */
 async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
   const documents: FedRegDocument[] = [];
-  
+
   // Calculate date range (last 7 days)
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
-  
+
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
-  
+
   // Build URL with filters
   const baseUrl = "https://www.federalregister.gov/api/v1/documents.json";
   const params = new URLSearchParams({
@@ -282,35 +282,35 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
     "conditions[publication_date][gte]": formatDate(startDate),
     "conditions[publication_date][lte]": formatDate(endDate),
   });
-  
+
   // Add document types
   ["RULE", "PRORULE", "NOTICE", "PRESDOCU"].forEach(type => {
     params.append("conditions[type][]", type);
   });
-  
+
   // Fetch with pagination and timeout
   let url: string | null = `${baseUrl}?${params.toString()}`;
   let pageCount = 0;
   const maxPages = 3; // Reduced from 10 to prevent timeouts
-  
+
   while (url && pageCount < maxPages) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s per page
-    
+
     try {
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
-      
+
       if (!response.ok) {
         throw new Error(`Federal Register API error: ${response.status} ${response.statusText}`);
       }
-      
+
       const json: FedRegApiResponse = await response.json();
       documents.push(...json.results);
-      
+
       url = json.next_page_url;
       pageCount++;
-      
+
       // Rate limit: wait 100ms between requests
       if (url) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -325,7 +325,7 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
       throw err;
     }
   }
-  
+
   return documents;
 }
 
@@ -335,15 +335,16 @@ async function fetchRecentDocuments(): Promise<FedRegDocument[]> {
 
 /**
  * Federal Register Daily Data Ingestion
- * 
+ *
  * Runs daily at 11:00 AM UTC (5AM CT) Mon-Fri.
  * Ingests recent Federal Register documents with ingestion contract compliance.
  */
 export const federalRegisterDaily = inngest.createFunction(
-  { 
-    id: "federal-register-daily", 
+  {
+    id: "federal-register-daily",
     name: "Federal Register Daily Data Ingestion",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
@@ -443,7 +444,7 @@ export const federalRegisterDaily = inngest.createFunction(
 
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
-            
+
             await quarantineRecord(
               client,
               runId!,
@@ -512,7 +513,7 @@ export const federalRegisterDaily = inngest.createFunction(
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
+
       // Update ingest run as failed
       if (runId) {
         await updateIngestRun(

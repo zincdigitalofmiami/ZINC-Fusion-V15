@@ -34,24 +34,26 @@ statistical properties of trading activity, such as price movement and volume ch
 
 
 class Seasonality(Enum):
-    MONTH = 'month'
-    QUARTER = 'quarter'
+    MONTH = "month"
+    QUARTER = "quarter"
 
 
 class SeasonalModel(Enum):
-    ADDITIVE = 'additive'
-    MULTIPLICATIVE = 'multiplicative'
+    ADDITIVE = "additive"
+    MULTIPLICATIVE = "multiplicative"
 
 
 class Frequency(Enum):
-    WEEK = 'week'
-    MONTH = 'month'
-    QUARTER = 'quarter'
-    YEAR = 'year'
+    WEEK = "week"
+    MONTH = "month"
+    QUARTER = "quarter"
+    YEAR = "year"
 
 
 @plot_function
-def moving_average(x: pd.Series, w: Union[Window, int, str] = Window(None, 0)) -> pd.Series:
+def moving_average(
+    x: pd.Series, w: Union[Window, int, str] = Window(None, 0)
+) -> pd.Series:
     """
     Moving average over specified window
 
@@ -91,7 +93,9 @@ def moving_average(x: pd.Series, w: Union[Window, int, str] = Window(None, 0)) -
 
 
 @plot_function
-def bollinger_bands(x: pd.Series, w: Union[Window, int, str] = Window(None, 0), k: float = 2) -> pd.DataFrame:
+def bollinger_bands(
+    x: pd.Series, w: Union[Window, int, str] = Window(None, 0), k: float = 2
+) -> pd.DataFrame:
     """
     Bollinger bands with given window and width
 
@@ -139,7 +143,9 @@ def bollinger_bands(x: pd.Series, w: Union[Window, int, str] = Window(None, 0), 
 
 
 @plot_function
-def smoothed_moving_average(x: pd.Series, w: Union[Window, int, str] = Window(None, 0)) -> pd.Series:
+def smoothed_moving_average(
+    x: pd.Series, w: Union[Window, int, str] = Window(None, 0)
+) -> pd.Series:
     """
     Smoothed moving average over specified window
 
@@ -191,14 +197,22 @@ def smoothed_moving_average(x: pd.Series, w: Union[Window, int, str] = Window(No
         if isinstance(window_size, int):
             window_num_elem = window_size
         else:
-            window_num_elem = len(x[(x.index > (x.index[i] - window_size).date()) & (x.index <= x.index[i])])
-        smoothed_moving_averages.iloc[i] = ((window_num_elem - 1) *
-                                            smoothed_moving_averages.iloc[i - 1] + x.iloc[i]) / window_num_elem
+            window_num_elem = len(
+                x[
+                    (x.index > (x.index[i] - window_size).date())
+                    & (x.index <= x.index[i])
+                ]
+            )
+        smoothed_moving_averages.iloc[i] = (
+            (window_num_elem - 1) * smoothed_moving_averages.iloc[i - 1] + x.iloc[i]
+        ) / window_num_elem
     return smoothed_moving_averages
 
 
 @plot_function
-def relative_strength_index(x: pd.Series, w: Union[Window, int, str] = 14) -> pd.DataFrame:
+def relative_strength_index(
+    x: pd.Series, w: Union[Window, int, str] = 14
+) -> pd.DataFrame:
     """
     Relative Strength Index
 
@@ -245,7 +259,9 @@ def relative_strength_index(x: pd.Series, w: Union[Window, int, str] = 14) -> pd
         if moving_avg_losses.iloc[index] == 0:
             rsi.iloc[index] = 100
         else:
-            relative_strength = moving_avg_gains.iloc[index] / moving_avg_losses.iloc[index]
+            relative_strength = (
+                moving_avg_gains.iloc[index] / moving_avg_losses.iloc[index]
+            )
             rsi.iloc[index] = 100 - (100 / (1 + relative_strength))
 
     return rsi
@@ -426,13 +442,17 @@ def _freq_to_period(x: pd.Series, freq: Frequency = Frequency.YEAR):
     """
     if not isinstance(x.index, pd.DatetimeIndex):
         raise MqValueError("Series must have a pandas.DateTimeIndex.")
-    pfreq = getattr(getattr(x, 'index', None), 'inferred_freq', None)
+    pfreq = getattr(getattr(x, "index", None), "inferred_freq", None)
     # Some older versions of statsmodels don't handle some of the newer pandas frequencies, so we manually adjust them
-    pfreq = 'MS' if pfreq in ('ME', 'M') else pfreq  # Convert Month[End] into MonthlyStart
-    pfreq = 'QS' if pfreq in ('QE-DEC', 'QE') else pfreq  # Convert Quarter[End] into QuarterlyStart
+    pfreq = (
+        "MS" if pfreq in ("ME", "M") else pfreq
+    )  # Convert Month[End] into MonthlyStart
+    pfreq = (
+        "QS" if pfreq in ("QE-DEC", "QE") else pfreq
+    )  # Convert Quarter[End] into QuarterlyStart
     period = None if pfreq is None else statsmodels.tsa.seasonal.freq_to_period(pfreq)
     if period in [7, None]:  # daily
-        x = x.asfreq('D', method='ffill')
+        x = x.asfreq("D", method="ffill")
         if freq == Frequency.YEAR:
             return x, 365
         elif freq == Frequency.QUARTER:
@@ -443,15 +463,15 @@ def _freq_to_period(x: pd.Series, freq: Frequency = Frequency.YEAR):
             return x, 7
     elif period == 5:  # business day
         if freq == Frequency.YEAR:
-            return x.asfreq('D', method='ffill'), 365
+            return x.asfreq("D", method="ffill"), 365
         if freq == Frequency.QUARTER:
-            return x.asfreq('D', method='ffill'), 91
+            return x.asfreq("D", method="ffill"), 91
         elif freq == Frequency.MONTH:
-            return x.asfreq('D', method='ffill'), 30
+            return x.asfreq("D", method="ffill"), 30
         else:  # freq == Frequency.WEEKLY:
-            return x.asfreq('B', method='ffill'), 5
+            return x.asfreq("B", method="ffill"), 5
     elif period == 52:  # weekly frequency
-        x = x.asfreq('W', method='ffill')
+        x = x.asfreq("W", method="ffill")
         if freq == Frequency.YEAR:
             return x, period
         elif freq == Frequency.QUARTER:
@@ -459,31 +479,45 @@ def _freq_to_period(x: pd.Series, freq: Frequency = Frequency.YEAR):
         elif freq == Frequency.MONTH:
             return x, 4
         else:
-            raise MqValueError(f'Frequency {freq.value} not compatible with series with frequency {pfreq}.')
+            raise MqValueError(
+                f"Frequency {freq.value} not compatible with series with frequency {pfreq}."
+            )
     elif period == 12:  # monthly frequency
-        x = x.asfreq('ME', method='ffill')
+        x = x.asfreq("ME", method="ffill")
         if freq == Frequency.YEAR:
             return x, period
         elif freq == Frequency.QUARTER:
             return x, 3
         else:
-            raise MqValueError(f'Frequency {freq.value} not compatible with series with frequency {pfreq}.')
+            raise MqValueError(
+                f"Frequency {freq.value} not compatible with series with frequency {pfreq}."
+            )
     return x, period
 
 
-def _seasonal_decompose(x: pd.Series, method: SeasonalModel = SeasonalModel.ADDITIVE,
-                        freq: Frequency = Frequency.YEAR):
+def _seasonal_decompose(
+    x: pd.Series,
+    method: SeasonalModel = SeasonalModel.ADDITIVE,
+    freq: Frequency = Frequency.YEAR,
+):
     x, period = _freq_to_period(x, freq)
     if x.shape[0] < 2 * period:
         # Replace ValueError in seasonal_decompose with more descriptive error
-        raise MqValueError(f"Series must have two complete cycles to be analyzed. Series has only {x.shape[0]} dpts.")
-    decompose_obj = statsmodels.tsa.seasonal.seasonal_decompose(x, period=period, model=method.value)
+        raise MqValueError(
+            f"Series must have two complete cycles to be analyzed. Series has only {x.shape[0]} dpts."
+        )
+    decompose_obj = statsmodels.tsa.seasonal.seasonal_decompose(
+        x, period=period, model=method.value
+    )
     return decompose_obj
 
 
 @plot_function
-def seasonally_adjusted(x: pd.Series, method: SeasonalModel = SeasonalModel.ADDITIVE,
-                        freq: Frequency = Frequency.YEAR) -> pd.Series:
+def seasonally_adjusted(
+    x: pd.Series,
+    method: SeasonalModel = SeasonalModel.ADDITIVE,
+    freq: Frequency = Frequency.YEAR,
+) -> pd.Series:
     """
     Seasonally adjusted series
 
@@ -528,8 +562,11 @@ def seasonally_adjusted(x: pd.Series, method: SeasonalModel = SeasonalModel.ADDI
 
 
 @plot_function
-def trend(x: pd.Series, method: SeasonalModel = SeasonalModel.ADDITIVE, freq: Frequency = Frequency.YEAR) -> \
-        pd.Series:
+def trend(
+    x: pd.Series,
+    method: SeasonalModel = SeasonalModel.ADDITIVE,
+    freq: Frequency = Frequency.YEAR,
+) -> pd.Series:
     """
     Trend of series with seasonality and residuals removed.
 

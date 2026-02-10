@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -103,7 +103,7 @@ async function syncTableToPostgres(
  * Runs every 6 hours to keep data fresh
  */
 export const glideVegasSync = inngest.createFunction(
-  { id: "glide-vegas-sync", name: "Glide Vegas Sync" },
+  { id: "glide-vegas-sync", name: "Glide Vegas Sync", concurrency: [DB_CONCURRENCY] },
   { cron: "0 */6 * * *" }, // Every 6 hours
   async ({ step }) => {
     const results: { table: string; status: string; count?: number }[] = [];

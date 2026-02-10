@@ -36,13 +36,13 @@ export async function GET(req: NextRequest) {
         AND event_date <= CURRENT_DATE
         AND close IS NOT NULL
       ORDER BY event_date ASC`,
-      [`${clampedDays} days`]
+      [`${clampedDays} days`],
     );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
         { error: "No daily data available", days: clampedDays },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     console.error("ZL price-1d API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch ZL daily data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

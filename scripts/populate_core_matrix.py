@@ -19,8 +19,7 @@ Usage:
 import os
 import sys
 import argparse
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -35,7 +34,7 @@ load_dotenv()
 # =============================================================================
 
 HORIZONS = [5, 21, 63, 126]
-SYMBOL = 'ZL'
+SYMBOL = "ZL"
 
 # Calendar features
 WASDE_DAYS = list(range(7, 15))  # 7th-14th of month
@@ -67,7 +66,7 @@ def load_zl_prices(conn, start_date: str) -> pd.DataFrame:
         ORDER BY event_date
     """
     df = pd.read_sql(query, conn, params=[SYMBOL, start_date])
-    df['as_of_date'] = pd.to_datetime(df['as_of_date'])
+    df["as_of_date"] = pd.to_datetime(df["as_of_date"])
     return df
 
 
@@ -84,11 +83,11 @@ def load_related_prices(conn, start_date: str) -> pd.DataFrame:
         ORDER BY event_date
     """
     df = pd.read_sql(query, conn, params=[start_date])
-    df['as_of_date'] = pd.to_datetime(df['as_of_date'])
+    df["as_of_date"] = pd.to_datetime(df["as_of_date"])
 
     # Pivot to wide format
-    pivot = df.pivot(index='as_of_date', columns='symbol', values='close')
-    pivot.columns = [f'{col.lower()}_close' for col in pivot.columns]
+    pivot = df.pivot(index="as_of_date", columns="symbol", values="close")
+    pivot.columns = [f"{col.lower()}_close" for col in pivot.columns]
     return pivot.reset_index()
 
 
@@ -105,7 +104,7 @@ def compute_targets(df: pd.DataFrame) -> pd.DataFrame:
 
     for h in HORIZONS:
         # Shift backwards to get future price (negative shift = future value)
-        df[f'target_{h}d'] = df['zl_close'].shift(-h)
+        df[f"target_{h}d"] = df["zl_close"].shift(-h)
 
     return df
 
@@ -115,9 +114,9 @@ def compute_returns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Simple returns
-    df['zl_return_1d'] = df['zl_close'].pct_change(1)
-    df['zl_return_5d'] = df['zl_close'].pct_change(5)
-    df['zl_return_21d'] = df['zl_close'].pct_change(21)
+    df["zl_return_1d"] = df["zl_close"].pct_change(1)
+    df["zl_return_5d"] = df["zl_close"].pct_change(5)
+    df["zl_return_21d"] = df["zl_close"].pct_change(21)
 
     return df
 
@@ -127,11 +126,11 @@ def compute_volatility(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Daily returns for vol calculation
-    daily_ret = df['zl_close'].pct_change()
+    daily_ret = df["zl_close"].pct_change()
 
     # Rolling std * sqrt(252) for annualized vol
-    df['zl_vol_21d'] = daily_ret.rolling(21).std() * np.sqrt(252)
-    df['zl_vol_63d'] = daily_ret.rolling(63).std() * np.sqrt(252)
+    df["zl_vol_21d"] = daily_ret.rolling(21).std() * np.sqrt(252)
+    df["zl_vol_63d"] = daily_ret.rolling(63).std() * np.sqrt(252)
 
     return df
 
@@ -146,21 +145,23 @@ def compute_crush_spread(df: pd.DataFrame, related: pd.DataFrame) -> pd.DataFram
     df = df.copy()
 
     # Merge related prices
-    df = df.merge(related, on='as_of_date', how='left')
+    df = df.merge(related, on="as_of_date", how="left")
 
     # Board crush (standard conversion factors)
     # ZM: meal in $/ton, convert to $/bu: * 0.022
     # ZL: oil in cents/lb, convert to $/bu: * 11
     # ZS: soybeans in cents/bu
-    if 'zm_close' in df.columns and 'zs_close' in df.columns:
-        df['board_crush'] = (df['zm_close'] * 0.022) + (df['zl_close'] * 11) - df['zs_close']
+    if "zm_close" in df.columns and "zs_close" in df.columns:
+        df["board_crush"] = (
+            (df["zm_close"] * 0.022) + (df["zl_close"] * 11) - df["zs_close"]
+        )
 
         # Oil share of crush value
-        total_products = (df['zl_close'] * 11) + (df['zm_close'] * 0.022)
-        df['oil_share'] = (df['zl_close'] * 11) / total_products
+        total_products = (df["zl_close"] * 11) + (df["zm_close"] * 0.022)
+        df["oil_share"] = (df["zl_close"] * 11) / total_products
     else:
-        df['board_crush'] = None
-        df['oil_share'] = None
+        df["board_crush"] = None
+        df["oil_share"] = None
 
     return df
 
@@ -169,29 +170,27 @@ def compute_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute calendar-based features."""
     df = df.copy()
 
-    df['day_of_week'] = df['as_of_date'].dt.dayofweek  # 0=Monday
-    df['month'] = df['as_of_date'].dt.month
+    df["day_of_week"] = df["as_of_date"].dt.dayofweek  # 0=Monday
+    df["month"] = df["as_of_date"].dt.month
 
     # WASDE week: 7th-14th of month
-    df['is_wasde_week'] = df['as_of_date'].dt.day.isin(WASDE_DAYS)
+    df["is_wasde_week"] = df["as_of_date"].dt.day.isin(WASDE_DAYS)
 
     # FOMC week: 3rd week of FOMC months
-    df['is_fomc_week'] = (
-        (df['month'].isin(FOMC_MONTHS)) &
-        (df['as_of_date'].dt.day >= 15) &
-        (df['as_of_date'].dt.day <= 21)
+    df["is_fomc_week"] = (
+        (df["month"].isin(FOMC_MONTHS))
+        & (df["as_of_date"].dt.day >= 15)
+        & (df["as_of_date"].dt.day <= 21)
     )
 
     # Expiry week: 3rd week of month
-    df['is_expiry_week'] = (
-        (df['as_of_date'].dt.day >= 15) &
-        (df['as_of_date'].dt.day <= 21)
+    df["is_expiry_week"] = (df["as_of_date"].dt.day >= 15) & (
+        df["as_of_date"].dt.day <= 21
     )
 
     # Quarter end
-    df['is_quarter_end'] = (
-        (df['month'].isin([3, 6, 9, 12])) &
-        (df['as_of_date'].dt.day >= 25)
+    df["is_quarter_end"] = (df["month"].isin([3, 6, 9, 12])) & (
+        df["as_of_date"].dt.day >= 25
     )
 
     return df
@@ -202,24 +201,23 @@ def compute_regimes(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Vol regime based on 21d vol percentile
-    if 'zl_vol_21d' in df.columns:
-        vol_pct = df['zl_vol_21d'].rank(pct=True)
-        df['vol_regime'] = pd.cut(
-            vol_pct,
-            bins=[0, 0.33, 0.67, 1.0],
-            labels=['low', 'normal', 'high']
+    if "zl_vol_21d" in df.columns:
+        vol_pct = df["zl_vol_21d"].rank(pct=True)
+        df["vol_regime"] = pd.cut(
+            vol_pct, bins=[0, 0.33, 0.67, 1.0], labels=["low", "normal", "high"]
         ).astype(str)
     else:
-        df['vol_regime'] = 'normal'
+        df["vol_regime"] = "normal"
 
     # Trend regime based on 21d return
-    if 'zl_return_21d' in df.columns:
-        df['trend_regime'] = np.where(
-            df['zl_return_21d'] > 0.02, 'bull',
-            np.where(df['zl_return_21d'] < -0.02, 'bear', 'range')
+    if "zl_return_21d" in df.columns:
+        df["trend_regime"] = np.where(
+            df["zl_return_21d"] > 0.02,
+            "bull",
+            np.where(df["zl_return_21d"] < -0.02, "bear", "range"),
         )
     else:
-        df['trend_regime'] = 'range'
+        df["trend_regime"] = "range"
 
     return df
 
@@ -234,7 +232,7 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
         FROM supply.usda_wasde_1m
         ORDER BY event_date
     """
-    wasde_dates = pd.read_sql(wasde_query, conn)['wasde_date'].tolist()
+    wasde_dates = pd.read_sql(wasde_query, conn)["wasde_date"].tolist()
 
     # Get latest COT dates
     cot_query = """
@@ -242,7 +240,7 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
         FROM pos.cftc_1w
         ORDER BY event_date
     """
-    cot_dates = pd.read_sql(cot_query, conn)['cot_date'].tolist()
+    cot_dates = pd.read_sql(cot_query, conn)["cot_date"].tolist()
 
     def days_since_last(date, reference_dates):
         """Calculate days since most recent reference date."""
@@ -251,10 +249,10 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
             return None
         return (date.date() - max(past_dates)).days
 
-    df['wasde_staleness_days'] = df['as_of_date'].apply(
+    df["wasde_staleness_days"] = df["as_of_date"].apply(
         lambda d: days_since_last(d, wasde_dates)
     )
-    df['cot_staleness_days'] = df['as_of_date'].apply(
+    df["cot_staleness_days"] = df["as_of_date"].apply(
         lambda d: days_since_last(d, cot_dates)
     )
 
@@ -264,15 +262,31 @@ def compute_staleness(df: pd.DataFrame, conn) -> pd.DataFrame:
 def prepare_final_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Select and order columns for insertion."""
     columns = [
-        'as_of_date',
-        'target_5d', 'target_21d', 'target_63d', 'target_126d',
-        'zl_close', 'zl_return_1d', 'zl_return_5d', 'zl_return_21d',
-        'zl_vol_21d', 'zl_vol_63d',
-        'zs_close', 'zm_close', 'board_crush', 'oil_share',
-        'day_of_week', 'month',
-        'is_wasde_week', 'is_fomc_week', 'is_expiry_week', 'is_quarter_end',
-        'vol_regime', 'trend_regime',
-        'wasde_staleness_days', 'cot_staleness_days'
+        "as_of_date",
+        "target_5d",
+        "target_21d",
+        "target_63d",
+        "target_126d",
+        "zl_close",
+        "zl_return_1d",
+        "zl_return_5d",
+        "zl_return_21d",
+        "zl_vol_21d",
+        "zl_vol_63d",
+        "zs_close",
+        "zm_close",
+        "board_crush",
+        "oil_share",
+        "day_of_week",
+        "month",
+        "is_wasde_week",
+        "is_fomc_week",
+        "is_expiry_week",
+        "is_quarter_end",
+        "vol_regime",
+        "trend_regime",
+        "wasde_staleness_days",
+        "cot_staleness_days",
     ]
 
     # Ensure all columns exist
@@ -322,28 +336,35 @@ def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
     values = [tuple(convert_value(v) for v in row) for row in df_clean.values]
 
     insert_sql = f"""
-        INSERT INTO training.matrix_1d ({', '.join(columns)}, created_at, updated_at)
+        INSERT INTO training.matrix_1d ({", ".join(columns)}, created_at, updated_at)
         VALUES %s
     """
 
     # Add timestamps to each row
     from datetime import timezone
+
     now = datetime.now(timezone.utc)
     values_with_timestamps = [v + (now, now) for v in values]
 
     # Use execute_values for efficient batch insert
-    template = '(' + ', '.join(['%s'] * len(columns)) + ', %s, %s)'
-    execute_values(cursor, insert_sql, values_with_timestamps, template=template, page_size=1000)
+    template = "(" + ", ".join(["%s"] * len(columns)) + ", %s, %s)"
+    execute_values(
+        cursor, insert_sql, values_with_timestamps, template=template, page_size=1000
+    )
 
     conn.commit()
     print(f"\n✅ Inserted {len(df)} rows into training.matrix_1d")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Populate training.matrix_1d')
-    parser.add_argument('--start', default='2000-01-01', help='Start date (default: 2000-01-01)')
-    parser.add_argument('--dry-run', action='store_true', help='Preview without inserting')
-    parser.add_argument('--execute', action='store_true', help='Actually insert data')
+    parser = argparse.ArgumentParser(description="Populate training.matrix_1d")
+    parser.add_argument(
+        "--start", default="2000-01-01", help="Start date (default: 2000-01-01)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
+    parser.add_argument("--execute", action="store_true", help="Actually insert data")
     args = parser.parse_args()
 
     if not args.dry_run and not args.execute:
@@ -391,22 +412,26 @@ def main():
         df = prepare_final_dataframe(df)
 
         # Remove rows where targets are NaN (future dates we can't compute)
-        max_horizon = max(HORIZONS)
-        df_valid = df.dropna(subset=['target_5d'])  # At minimum need 5d target
+        max(HORIZONS)
+        df_valid = df.dropna(subset=["target_5d"])  # At minimum need 5d target
         print(f"      Valid rows (with targets): {len(df_valid)}")
-        print(f"      Dropped {len(df) - len(df_valid)} rows (insufficient future data)")
+        print(
+            f"      Dropped {len(df) - len(df_valid)} rows (insufficient future data)"
+        )
 
         # Summary stats
         print("\n" + "=" * 60)
         print("SUMMARY")
         print("=" * 60)
         print(f"Total rows to insert: {len(df_valid)}")
-        print(f"Date range: {df_valid['as_of_date'].min()} to {df_valid['as_of_date'].max()}")
+        print(
+            f"Date range: {df_valid['as_of_date'].min()} to {df_valid['as_of_date'].max()}"
+        )
         print(f"\nTarget coverage:")
         for h in HORIZONS:
-            col = f'target_{h}d'
+            col = f"target_{h}d"
             count = df_valid[col].notna().sum()
-            print(f"  {col}: {count} rows ({count/len(df_valid)*100:.1f}%)")
+            print(f"  {col}: {count} rows ({count / len(df_valid) * 100:.1f}%)")
 
         # Insert
         insert_to_database(conn, df_valid, dry_run=args.dry_run)
@@ -415,5 +440,5 @@ def main():
         conn.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

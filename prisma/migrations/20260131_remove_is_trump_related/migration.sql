@@ -1,5 +1,5 @@
 -- Remove redundant is_trump_related boolean column from all tables
--- This column was error-prone and redundant since specialist_tags array 
+-- This column was error-prone and redundant since specialist_tags array
 -- is the proper source of truth
 
 -- Drop from all tables that had it

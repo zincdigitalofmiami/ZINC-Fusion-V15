@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Settings, 
-  Database, 
-  Cpu, 
-  Activity, 
-  GitBranch, 
-  Users, 
-  Shield, 
-  LogOut 
+import {
+  X,
+  Settings,
+  Database,
+  Cpu,
+  Activity,
+  GitBranch,
+  Users,
+  Shield,
+  LogOut
 } from 'lucide-react';
 
 interface QuantAdminSidebarProps {
@@ -48,7 +48,7 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
                 <h2 className="text-lg font-bold text-white tracking-tight">QUANT ADMIN</h2>
                 <div className="text-[10px] text-slate-500 font-mono uppercase">System Control Plane</div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
               >
@@ -58,11 +58,11 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
 
             {/* Menu Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-               
+
                <div className="px-3 py-2 text-xs font-bold text-slate-600 uppercase tracking-widest mt-2 mb-1">
                    Core Infrastructure
                </div>
-               
+
                <MenuItem icon={<Database size={16} />} label="Database Health" status="Healthy" />
                <MenuItem icon={<Cpu size={16} />} label="Model Registry" status="Active" href={process.env.NEXT_PUBLIC_MLFLOW_UI_URL || "http://localhost:5000"} external />
                <MenuItem icon={<Activity size={16} />} label="Job Status" status="Idle" />
@@ -74,13 +74,13 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
                <MenuItem icon={<GitBranch size={16} />} label="Feature Flags" />
                <MenuItem icon={<Settings size={16} />} label="Global Config" />
                <MenuItem icon={<Shield size={16} />} label="Access Control" />
-               
+
                <div className="px-3 py-2 text-xs font-bold text-slate-600 uppercase tracking-widest mt-6 mb-1">
                    User Management
                </div>
-               
+
                <MenuItem icon={<Users size={16} />} label="Team Profiles" />
-               
+
             </div>
 
             {/* Footer / User Profile */}
@@ -94,8 +94,8 @@ export function QuantAdminSidebar({ isOpen, onClose, onLogout }: QuantAdminSideb
                         <div className="text-xs text-slate-500">Head of Quant Strategy</div>
                     </div>
                 </div>
-                
-                <button 
+
+                <button
                     onClick={onLogout}
                     className="w-full flex items-center justify-center gap-2 p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/20 transition-colors"
                 >

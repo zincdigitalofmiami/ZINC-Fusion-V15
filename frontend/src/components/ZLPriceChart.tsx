@@ -16,7 +16,7 @@ interface PriceData {
 export function ZLPriceChart({ height = 350 }: { height?: number }) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
-  
+
   const [priceData, setPriceData] = useState<PriceData[]>([])
   const [lastPrice, setLastPrice] = useState<number | null>(null)
 
@@ -39,7 +39,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       }
     }
     fetchData()
-    
+
     // Refresh every 15 minutes (900000ms) to update current day bar
     const interval = setInterval(fetchData, 900000)
     return () => clearInterval(interval)
@@ -85,12 +85,12 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
         borderVisible: false,
       },
     })
-    
+
     chartRef.current = chart
 
     // 2. Add Area Series (Pink #ef4444 with gradient)
     const areaSeries = chart.addSeries(AreaSeries, {
-      lineColor: '#ef4444', 
+      lineColor: '#ef4444',
       topColor: 'rgba(239, 68, 68, 0.4)',
       bottomColor: 'rgba(239, 68, 68, 0.0)',
       lineWidth: 2,
@@ -105,14 +105,14 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
       dataMap.set(time, { time, value: d.close })
     }
     const sortedData = Array.from(dataMap.values()).sort((a, b) => a.time - b.time)
-    
+
     areaSeries.setData(sortedData)
 
     // 4. Add horizontal price line (dotted behind, solid forward to axis)
     if (sortedData.length > 0 && lastPrice !== null) {
       const lastDataTime = sortedData[sortedData.length - 1].time
       const firstDataTime = sortedData[0].time
-      
+
       // Calculate future time - extend to reach right axis edge
       const timeSpan = lastDataTime - firstDataTime
       const futureTime = (lastDataTime + Math.floor(timeSpan * 1.0)) as UTCTimestamp
@@ -166,7 +166,7 @@ export function ZLPriceChart({ height = 350 }: { height?: number }) {
 
   return (
     <div className="relative w-full border border-white/5 bg-[#0b0f1a] rounded-xl overflow-hidden">
-      
+
       {/* Chart Container */}
       <div ref={chartContainerRef} className="w-full relative" style={{ height }}>
         {/* Watermark */}

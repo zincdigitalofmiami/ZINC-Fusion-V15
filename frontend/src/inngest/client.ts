@@ -8,3 +8,23 @@ export const inngest = new Inngest({
 	eventKey,
 	signingKey,
 });
+
+/**
+ * Shared concurrency limit for all DB-touching Inngest functions.
+ *
+ * Prisma Postgres allows 50 connections.  Each Vercel Lambda gets a pg.Pool
+ * with max=2.  This env-scoped key caps concurrent *function executions*
+ * at 10 so the worst-case connection demand is 10 × 2 = 20 — well within the
+ * 50-connection ceiling even when dashboard API routes are also active.
+ *
+ * Scope is "env" (not "account") so preview deploys get their own independent
+ * limit and don't compete with production.
+ *
+ * Usage:  spread into the concurrency array of every createFunction call:
+ *   concurrency: [DB_CONCURRENCY, ...otherLimits]
+ */
+export const DB_CONCURRENCY = {
+	scope: "env" as const,
+	key: '"db-pool"',
+	limit: 10,
+};

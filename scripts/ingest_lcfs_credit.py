@@ -25,11 +25,10 @@ import io
 import logging
 import os
 import re
-import tempfile
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import date, datetime
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 import pandas as pd
 import psycopg2
@@ -37,7 +36,9 @@ import requests
 from dotenv import load_dotenv
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 CARB_WEEKLY_PAGE = "https://ww2.arb.ca.gov/resources/documents/weekly-lcfs-credit-transfer-activity-reports"
@@ -58,11 +59,18 @@ def _find_activity_xlsx_url(html: str) -> str:
     # Prefer the explicit activity log link.
     hrefs = re.findall(r'href="([^"]+\.xlsx)"', html, flags=re.IGNORECASE)
     for href in hrefs:
-        if "weekly" in href.lower() and "lcfs" in href.lower() and "credit" in href.lower() and "activity" in href.lower():
+        if (
+            "weekly" in href.lower()
+            and "lcfs" in href.lower()
+            and "credit" in href.lower()
+            and "activity" in href.lower()
+        ):
             if href.startswith("http"):
                 return href
             return f"https://ww2.arb.ca.gov{href}"
-    raise ValueError("Could not find Weekly LCFS Credit Activity .xlsx link on CARB page")
+    raise ValueError(
+        "Could not find Weekly LCFS Credit Activity .xlsx link on CARB page"
+    )
 
 
 def _download(url: str, timeout_s: int = 60) -> bytes:
@@ -104,7 +112,9 @@ def _extract_activity_rows(xlsx_bytes: bytes) -> pd.DataFrame:
             best = df
 
     if best is None or best_score < 3:
-        raise ValueError("Could not locate an activity log sheet with date/price/volume columns")
+        raise ValueError(
+            "Could not locate an activity log sheet with date/price/volume columns"
+        )
 
     # Standardize common column names
     df = best.copy()
@@ -117,18 +127,26 @@ def _extract_activity_rows(xlsx_bytes: bytes) -> pd.DataFrame:
                 return raw
         return None
 
-    col_date = pick_col(lambda c: c == "date completed" or c.startswith("date completed"))
+    col_date = pick_col(
+        lambda c: c == "date completed" or c.startswith("date completed")
+    )
     col_price = pick_col(lambda c: c == "price" or c.endswith("price") or "price" in c)
-    col_volume = pick_col(lambda c: c == "volume" or c.endswith("volume") or "volume" in c)
+    col_volume = pick_col(
+        lambda c: c == "volume" or c.endswith("volume") or "volume" in c
+    )
 
     if not col_date or not col_price or not col_volume:
-        raise ValueError(f"Missing required columns in activity sheet: date={col_date}, price={col_price}, volume={col_volume}")
+        raise ValueError(
+            f"Missing required columns in activity sheet: date={col_date}, price={col_price}, volume={col_volume}"
+        )
 
     raw_dates = df[col_date]
     # CARB XLSX frequently encodes dates as Excel serial numbers.
     date_num = pd.to_numeric(raw_dates, errors="coerce")
     if date_num.notna().mean() > 0.5 and date_num.median(skipna=True) > 1000:
-        event_date = pd.to_datetime(date_num, unit="D", origin="1899-12-30", errors="coerce").dt.date
+        event_date = pd.to_datetime(
+            date_num, unit="D", origin="1899-12-30", errors="coerce"
+        ).dt.date
     else:
         event_date = pd.to_datetime(raw_dates, errors="coerce").dt.date
 
@@ -154,6 +172,7 @@ def _read_xlsx_as_dataframes(xlsx_bytes: bytes) -> Dict[str, pd.DataFrame]:
 
     This is intentionally narrow to support CARB's activity log.
     """
+
     def _ns(tag: str) -> str:
         return f"{{http://schemas.openxmlformats.org/spreadsheetml/2006/main}}{tag}"
 
@@ -188,18 +207,24 @@ def _read_xlsx_as_dataframes(xlsx_bytes: bytes) -> Dict[str, pd.DataFrame]:
             wb_root = ET.fromstring(wb_xml)
             for sheet in wb_root.findall(f".//{_ns('sheet')}"):
                 name = sheet.attrib.get("name", "")
-                sheet_names.append(name or f"sheet{len(sheet_names)+1}")
+                sheet_names.append(name or f"sheet{len(sheet_names) + 1}")
         except KeyError:
             sheet_names = []
 
         # worksheet files
-        sheet_files = sorted([p for p in zf.namelist() if p.startswith("xl/worksheets/sheet") and p.endswith(".xml")])
+        sheet_files = sorted(
+            [
+                p
+                for p in zf.namelist()
+                if p.startswith("xl/worksheets/sheet") and p.endswith(".xml")
+            ]
+        )
         if not sheet_files:
             raise ValueError("No worksheet XML files found in XLSX")
 
         result: Dict[str, pd.DataFrame] = {}
         for i, sheet_path in enumerate(sheet_files):
-            name = sheet_names[i] if i < len(sheet_names) else f"sheet{i+1}"
+            name = sheet_names[i] if i < len(sheet_names) else f"sheet{i + 1}"
             ws_root = ET.fromstring(zf.read(sheet_path))
 
             row_dicts: list[Dict[int, Optional[str]]] = []
@@ -219,7 +244,9 @@ def _read_xlsx_as_dataframes(xlsx_bytes: bytes) -> Dict[str, pd.DataFrame]:
                     raw = v.text
                     if cell_type == "s" and raw.isdigit():
                         sidx = int(raw)
-                        row_values[col_idx] = shared_strings[sidx] if sidx < len(shared_strings) else raw
+                        row_values[col_idx] = (
+                            shared_strings[sidx] if sidx < len(shared_strings) else raw
+                        )
                     else:
                         row_values[col_idx] = raw
                 row_dicts.append(row_values)
@@ -237,7 +264,9 @@ def _read_xlsx_as_dataframes(xlsx_bytes: bytes) -> Dict[str, pd.DataFrame]:
             if header_row_idx is None:
                 continue
 
-            header = [str(v).strip() if v is not None else "" for v in rows[header_row_idx]]
+            header = [
+                str(v).strip() if v is not None else "" for v in rows[header_row_idx]
+            ]
             data_rows = rows[header_row_idx + 1 :]
             df = pd.DataFrame(data_rows, columns=header)
             # Drop fully empty rows
@@ -250,9 +279,8 @@ def _read_xlsx_as_dataframes(xlsx_bytes: bytes) -> Dict[str, pd.DataFrame]:
 def compute_daily_vwap(activity: pd.DataFrame) -> pd.DataFrame:
     df = activity.copy()
     df["dollar"] = df["price"] * df["volume"]
-    agg = (
-        df.groupby("event_date", as_index=False)
-        .agg(volume_mt=("volume", "sum"), dollar=("dollar", "sum"))
+    agg = df.groupby("event_date", as_index=False).agg(
+        volume_mt=("volume", "sum"), dollar=("dollar", "sum")
     )
     agg["price_usd_per_mt"] = agg["dollar"] / agg["volume_mt"].replace(0, pd.NA)
     agg = agg.drop(columns=["dollar"])
@@ -272,7 +300,9 @@ def upsert_prices(
 
     if dry_run:
         logger.info(f"[DRY RUN] Would upsert {len(df)} rows into supply.lcfs_1d")
-        logger.info(f"  Date range: {df['event_date'].min()} → {df['event_date'].max()}")
+        logger.info(
+            f"  Date range: {df['event_date'].min()} → {df['event_date'].max()}"
+        )
         logger.info(f"  Sample: {df.head(3).to_dict(orient='records')}")
         return 0
 
@@ -296,23 +326,37 @@ def upsert_prices(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ingest LCFS credit price series from CARB activity log")
+    parser = argparse.ArgumentParser(
+        description="Ingest LCFS credit price series from CARB activity log"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
-    parser.add_argument("--start", type=str, default=None, help="Start date (YYYY-MM-DD) filter")
-    parser.add_argument("--end", type=str, default=None, help="End date (YYYY-MM-DD) filter")
+    parser.add_argument(
+        "--start", type=str, default=None, help="Start date (YYYY-MM-DD) filter"
+    )
+    parser.add_argument(
+        "--end", type=str, default=None, help="End date (YYYY-MM-DD) filter"
+    )
     args = parser.parse_args()
 
-    start_d: Optional[date] = datetime.strptime(args.start, "%Y-%m-%d").date() if args.start else None
-    end_d: Optional[date] = datetime.strptime(args.end, "%Y-%m-%d").date() if args.end else None
+    start_d: Optional[date] = (
+        datetime.strptime(args.start, "%Y-%m-%d").date() if args.start else None
+    )
+    end_d: Optional[date] = (
+        datetime.strptime(args.end, "%Y-%m-%d").date() if args.end else None
+    )
 
     logger.info("Fetching CARB weekly LCFS activity page...")
-    page_html = _download(CARB_WEEKLY_PAGE, timeout_s=60).decode("utf-8", errors="ignore")
+    page_html = _download(CARB_WEEKLY_PAGE, timeout_s=60).decode(
+        "utf-8", errors="ignore"
+    )
     xlsx_url = _find_activity_xlsx_url(page_html)
     logger.info(f"Found activity XLSX: {xlsx_url}")
 
     logger.info("Downloading activity XLSX...")
     xlsx_bytes = _download(xlsx_url, timeout_s=120)
-    ingestion_batch_id = hashlib.sha256(f"{xlsx_url}|{len(xlsx_bytes)}".encode()).hexdigest()[:16]
+    ingestion_batch_id = hashlib.sha256(
+        f"{xlsx_url}|{len(xlsx_bytes)}".encode()
+    ).hexdigest()[:16]
 
     logger.info("Parsing activity XLSX...")
     activity = _extract_activity_rows(xlsx_bytes)
@@ -323,11 +367,15 @@ def main() -> int:
     if end_d:
         daily = daily[daily["event_date"] <= end_d]
 
-    logger.info(f"Computed {len(daily)} daily LCFS price rows (batch {ingestion_batch_id})")
+    logger.info(
+        f"Computed {len(daily)} daily LCFS price rows (batch {ingestion_batch_id})"
+    )
 
     conn = get_connection()
     try:
-        written = upsert_prices(conn, daily, ingestion_batch_id=ingestion_batch_id, dry_run=args.dry_run)
+        written = upsert_prices(
+            conn, daily, ingestion_batch_id=ingestion_batch_id, dry_run=args.dry_run
+        )
         if not args.dry_run:
             logger.info(f"Wrote {written} rows to supply.lcfs_1d")
     finally:
@@ -338,4 +386,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

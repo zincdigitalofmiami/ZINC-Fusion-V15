@@ -47,14 +47,13 @@ from dotenv import load_dotenv
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -65,8 +64,16 @@ HORIZONS = [5, 21, 63, 126]
 
 # Specialist buckets (11 specialists)
 SPECIALIST_BUCKETS = [
-    "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes",
+    "crush",
+    "china",
+    "fx",
+    "fed",
+    "tariff",
+    "energy",
+    "biofuel",
+    "palm",
+    "volatility",
+    "substitutes",
     "trump_effect",  # 11th specialist: Trump/policy regime dynamics
 ]
 
@@ -131,10 +138,16 @@ def run_l2_core(horizon: int, mode: str, dry_run: bool) -> bool:
     logger.info("L2: CORE BASELINE (CHRONOS-2 + AUTOGLUON)")
     logger.info("=" * 60)
 
-    return run_script("train_core_chronos.py", [
-        "--horizon", str(horizon),
-        "--mode", mode,
-    ], dry_run)
+    return run_script(
+        "train_core_chronos.py",
+        [
+            "--horizon",
+            str(horizon),
+            "--mode",
+            mode,
+        ],
+        dry_run,
+    )
 
 
 def run_l3_specialists(horizon: int, mode: str, dry_run: bool) -> bool:
@@ -144,11 +157,18 @@ def run_l3_specialists(horizon: int, mode: str, dry_run: bool) -> bool:
     logger.info("=" * 60)
 
     # Train all specialists for this horizon
-    return run_script("train_specialist.py", [
-        "--bucket", "all",
-        "--horizon", str(horizon),
-        "--mode", mode,
-    ], dry_run)
+    return run_script(
+        "train_specialist.py",
+        [
+            "--bucket",
+            "all",
+            "--horizon",
+            str(horizon),
+            "--mode",
+            mode,
+        ],
+        dry_run,
+    )
 
 
 def run_l4_meta_ensemble(horizon: int, dry_run: bool) -> bool:
@@ -157,9 +177,14 @@ def run_l4_meta_ensemble(horizon: int, dry_run: bool) -> bool:
     logger.info("L4: META-ENSEMBLE + ATTRIBUTION")
     logger.info("=" * 60)
 
-    return run_script("train_meta_ensemble.py", [
-        "--horizon", str(horizon),
-    ], dry_run)
+    return run_script(
+        "train_meta_ensemble.py",
+        [
+            "--horizon",
+            str(horizon),
+        ],
+        dry_run,
+    )
 
 
 def run_l5a_monte_carlo(horizon: int, dry_run: bool) -> bool:
@@ -168,9 +193,14 @@ def run_l5a_monte_carlo(horizon: int, dry_run: bool) -> bool:
     logger.info("L5-A: MONTE CARLO SIMULATION")
     logger.info("=" * 60)
 
-    return run_script("run_monte_carlo.py", [
-        "--horizon", str(horizon),
-    ], dry_run)
+    return run_script(
+        "run_monte_carlo.py",
+        [
+            "--horizon",
+            str(horizon),
+        ],
+        dry_run,
+    )
 
 
 def run_l5d_analogs(horizon: int, dry_run: bool) -> bool:
@@ -179,9 +209,14 @@ def run_l5d_analogs(horizon: int, dry_run: bool) -> bool:
     logger.info("L5-D: HISTORICAL ANALOGS")
     logger.info("=" * 60)
 
-    return run_script("find_analogs.py", [
-        "--horizon", str(horizon),
-    ], dry_run)
+    return run_script(
+        "find_analogs.py",
+        [
+            "--horizon",
+            str(horizon),
+        ],
+        dry_run,
+    )
 
 
 def run_l5c_synthesis(horizon: int, dry_run: bool) -> bool:
@@ -190,9 +225,14 @@ def run_l5c_synthesis(horizon: int, dry_run: bool) -> bool:
     logger.info("L5-C: LLM SYNTHESIS")
     logger.info("=" * 60)
 
-    return run_script("generate_synthesis.py", [
-        "--horizon", str(horizon),
-    ], dry_run)
+    return run_script(
+        "generate_synthesis.py",
+        [
+            "--horizon",
+            str(horizon),
+        ],
+        dry_run,
+    )
 
 
 def run_full_pipeline(
@@ -240,7 +280,9 @@ def run_full_pipeline(
     ]
 
     if not skip_llm:
-        steps.append(("L5-C: LLM Synthesis", lambda: run_l5c_synthesis(horizon, dry_run)))
+        steps.append(
+            ("L5-C: LLM Synthesis", lambda: run_l5c_synthesis(horizon, dry_run))
+        )
 
     results = {}
 
@@ -287,24 +329,20 @@ def main():
         "--horizon",
         type=str,
         required=True,
-        help="Horizon in days (5, 21, 63, 126) or 'all'"
+        help="Horizon in days (5, 21, 63, 126) or 'all'",
     )
     parser.add_argument(
         "--mode",
         type=str,
         choices=["ultrafast", "quick", "full"],
         default="quick",
-        help="Training mode: 'ultrafast' (~15min), 'quick' (~1hr), or 'full' (~4hrs)"
+        help="Training mode: 'ultrafast' (~15min), 'quick' (~1hr), or 'full' (~4hrs)",
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Validate pipeline without training"
+        "--dry-run", action="store_true", help="Validate pipeline without training"
     )
     parser.add_argument(
-        "--skip-llm",
-        action="store_true",
-        help="Skip L5-C LLM synthesis"
+        "--skip-llm", action="store_true", help="Skip L5-C LLM synthesis"
     )
 
     args = parser.parse_args()

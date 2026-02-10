@@ -9,7 +9,7 @@
  * @date 2026-01-31
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
 import dbPool from "@/lib/db";
@@ -40,19 +40,19 @@ function mapCategoriesToSpecialists(categories: string[]): string[] {
   const mapping: Record<string, string[]> = {
     "monetary policy": ["fed"],
     "interest rates": ["fed"],
-    "inflation": ["fed", "energy"],
-    "employment": ["fed"],
-    "gdp": ["fed", "crush"],
-    "trade": ["tariff", "china"],
-    "china": ["china", "tariff"],
-    "oil": ["energy", "biofuel"],
-    "energy": ["energy", "biofuel"],
-    "agriculture": ["crush", "biofuel"],
-    "commodities": ["crush", "energy"],
+    inflation: ["fed", "energy"],
+    employment: ["fed"],
+    gdp: ["fed", "crush"],
+    trade: ["tariff", "china"],
+    china: ["china", "tariff"],
+    oil: ["energy", "biofuel"],
+    energy: ["energy", "biofuel"],
+    agriculture: ["crush", "biofuel"],
+    commodities: ["crush", "energy"],
     "exchange rates": ["fx"],
-    "currency": ["fx"],
+    currency: ["fx"],
     "financial markets": ["volatility", "fed"],
-    "recession": ["volatility", "fed"],
+    recession: ["volatility", "fed"],
   };
 
   const tags = new Set<string>();
@@ -60,7 +60,7 @@ function mapCategoriesToSpecialists(categories: string[]): string[] {
     const lower = cat.toLowerCase();
     for (const [keyword, specialists] of Object.entries(mapping)) {
       if (lower.includes(keyword)) {
-        specialists.forEach(s => tags.add(s));
+        specialists.forEach((s) => tags.add(s));
       }
     }
   }
@@ -76,17 +76,40 @@ function mapCategoriesToSpecialists(categories: string[]): string[] {
 /**
  * Extract topics from categories (economic topics)
  */
-function extractTopics(categories: string[], title: string, content: string): string[] {
+function extractTopics(
+  categories: string[],
+  title: string,
+  content: string,
+): string[] {
   const topicKeywords = [
-    "inflation", "employment", "gdp", "trade", "monetary policy",
-    "interest rates", "recession", "housing", "manufacturing",
-    "consumer spending", "labor market", "fiscal policy", "debt",
-    "banking", "credit", "stock market", "bonds", "commodities",
-    "oil", "energy", "agriculture", "technology", "healthcare"
+    "inflation",
+    "employment",
+    "gdp",
+    "trade",
+    "monetary policy",
+    "interest rates",
+    "recession",
+    "housing",
+    "manufacturing",
+    "consumer spending",
+    "labor market",
+    "fiscal policy",
+    "debt",
+    "banking",
+    "credit",
+    "stock market",
+    "bonds",
+    "commodities",
+    "oil",
+    "energy",
+    "agriculture",
+    "technology",
+    "healthcare",
   ];
 
   const topics = new Set<string>();
-  const searchText = `${title} ${categories.join(' ')} ${content}`.toLowerCase();
+  const searchText =
+    `${title} ${categories.join(" ")} ${content}`.toLowerCase();
 
   for (const topic of topicKeywords) {
     if (searchText.includes(topic)) {
@@ -95,7 +118,7 @@ function extractTopics(categories: string[], title: string, content: string): st
   }
 
   // Also add categories as topics
-  categories.forEach(c => topics.add(c.toLowerCase()));
+  categories.forEach((c) => topics.add(c.toLowerCase()));
 
   return Array.from(topics).slice(0, 10); // Limit to 10 topics
 }
@@ -103,17 +126,43 @@ function extractTopics(categories: string[], title: string, content: string): st
 /**
  * Extract subjects (entities/regions mentioned)
  */
-function extractSubjects(title: string, content: string, categories: string[]): string[] {
+function extractSubjects(
+  title: string,
+  content: string,
+  categories: string[],
+): string[] {
   const subjectPatterns = [
-    "united states", "china", "europe", "eu", "japan", "brazil",
-    "federal reserve", "fed", "treasury", "congress", "white house",
-    "opec", "imf", "world bank", "ecb", "boj",
-    "s&p 500", "dow jones", "nasdaq", "nyse",
-    "oil", "gold", "copper", "corn", "soybeans", "wheat"
+    "united states",
+    "china",
+    "europe",
+    "eu",
+    "japan",
+    "brazil",
+    "federal reserve",
+    "fed",
+    "treasury",
+    "congress",
+    "white house",
+    "opec",
+    "imf",
+    "world bank",
+    "ecb",
+    "boj",
+    "s&p 500",
+    "dow jones",
+    "nasdaq",
+    "nyse",
+    "oil",
+    "gold",
+    "copper",
+    "corn",
+    "soybeans",
+    "wheat",
   ];
 
   const subjects = new Set<string>();
-  const searchText = `${title} ${content} ${categories.join(' ')}`.toLowerCase();
+  const searchText =
+    `${title} ${content} ${categories.join(" ")}`.toLowerCase();
 
   for (const subject of subjectPatterns) {
     if (searchText.includes(subject)) {
@@ -129,17 +178,25 @@ function extractSubjects(title: string, content: string, categories: string[]): 
  */
 function checkTrumpRelated(title: string, content: string): boolean {
   const trumpKeywords = [
-    "trump", "tariff", "trade war", "maga", "america first",
-    "executive order", "trump administration"
+    "trump",
+    "tariff",
+    "trade war",
+    "maga",
+    "america first",
+    "executive order",
+    "trump administration",
   ];
   const searchText = `${title} ${content}`.toLowerCase();
-  return trumpKeywords.some(kw => searchText.includes(kw));
+  return trumpKeywords.some((kw) => searchText.includes(kw));
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
+async function createIngestRun(
+  client: PoolClient,
+  jobName: string,
+): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
+    [jobName],
   );
   return result.rows[0].id;
 }
@@ -152,12 +209,12 @@ async function updateIngestRun(
   inserted: number,
   skipped: number,
   quarantined: number,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<void> {
   await client.query(
     `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
      rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
+    [runId, status, attempted, inserted, skipped, quarantined, errorMessage],
   );
 }
 
@@ -172,8 +229,8 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
     const response = await fetch(FRED_BLOG_FEED, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ZincFusion/1.0)',
-        'Accept': 'application/rss+xml, application/xml, text/xml',
+        "User-Agent": "Mozilla/5.0 (compatible; ZincFusion/1.0)",
+        Accept: "application/rss+xml, application/xml, text/xml",
       },
     });
 
@@ -192,33 +249,38 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
       const itemXml = match[1];
 
       const getTag = (tag: string): string => {
-        const tagMatch = itemXml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`));
+        const tagMatch = itemXml.match(
+          new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`),
+        );
         if (tagMatch) {
           return tagMatch[1]
-            .replace(/<!\[CDATA\[/g, '')
-            .replace(/\]\]>/g, '')
+            .replace(/<!\[CDATA\[/g, "")
+            .replace(/\]\]>/g, "")
             .trim();
         }
-        return '';
+        return "";
       };
 
-      const title = getTag('title');
-      const link = getTag('link');
-      const pubDate = getTag('pubDate');
-      const description = getTag('description');
-      const contentEncoded = getTag('content:encoded') || getTag('content');
-      const creator = getTag('dc:creator') || getTag('author');
+      const title = getTag("title");
+      const link = getTag("link");
+      const pubDate = getTag("pubDate");
+      const description = getTag("description");
+      const contentEncoded = getTag("content:encoded") || getTag("content");
+      const creator = getTag("dc:creator") || getTag("author");
 
       // Extract categories
-      const categoryMatches = itemXml.match(/<category[^>]*>([^<]+)<\/category>/g) || [];
-      const categories = categoryMatches.map(c =>
-        c.replace(/<\/?category[^>]*>/g, '').trim()
+      const categoryMatches =
+        itemXml.match(/<category[^>]*>([^<]+)<\/category>/g) || [];
+      const categories = categoryMatches.map((c) =>
+        c.replace(/<\/?category[^>]*>/g, "").trim(),
       );
 
       if (title && link) {
         // Generate article ID from URL
-        const urlParts = link.split('/').filter(Boolean);
-        const articleId = urlParts[urlParts.length - 1] || createHash('md5').update(link).digest('hex').slice(0, 16);
+        const urlParts = link.split("/").filter(Boolean);
+        const articleId =
+          urlParts[urlParts.length - 1] ||
+          createHash("md5").update(link).digest("hex").slice(0, 16);
 
         // Parse date/time from RSS
         let eventDate: string | null = null;
@@ -227,7 +289,7 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
           const parsed = new Date(pubDate);
           if (!isNaN(parsed.getTime())) {
             publishedAt = parsed.toISOString();
-            eventDate = publishedAt.split('T')[0];
+            eventDate = publishedAt.split("T")[0];
           }
         }
 
@@ -263,101 +325,124 @@ async function fetchFredBlogFeed(): Promise<FredBlogArticle[]> {
 }
 
 export const fredBlogDaily = inngest.createFunction(
-  { id: "fred-blog-daily", name: "FRED Blog Scraper", retries: 3 },
+  {
+    id: "fred-blog-daily",
+    name: "FRED Blog Scraper",
+    retries: 3,
+    concurrency: [DB_CONCURRENCY],
+  },
   { cron: "0 */4 * * *" }, // Every 4 hours
   async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        return await createIngestRun(client, "fred-blog-daily");
+      } finally {
+        client.release();
+      }
+    });
+    logger.info(`FRED Blog ingest run: ${runId}`);
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "fred-blog-daily"));
-      logger.info(`FRED Blog ingest run: ${runId}`);
+    const articles = await step.run("fetch-feed", async () => {
+      return await fetchFredBlogFeed();
+    });
 
-      const articles = await step.run("fetch-feed", async () => {
-        return await fetchFredBlogFeed();
-      });
+    logger.info(`FRED Blog: ${articles.length} articles found in feed`);
 
-      logger.info(`FRED Blog: ${articles.length} articles found in feed`);
+    const stats = await step.run("process-articles", async () => {
+      const client = await pool.connect();
+      let attempted = 0;
+      let inserted = 0;
+      let skipped = 0;
+      let quarantined = 0;
 
-      for (const article of articles) {
-        attempted++;
-        if (!article.eventDate) {
-          quarantined++;
-          logger.warn(`Missing event_date for article: ${article.title}`);
-          continue;
-        }
+      try {
+        for (const article of articles) {
+          attempted++;
+          if (!article.eventDate) {
+            quarantined++;
+            logger.warn(`Missing event_date for article: ${article.title}`);
+            continue;
+          }
 
-        // Check for duplicate
-        const exists = await client.query(
-          `SELECT 1 FROM alt.econ_news WHERE url = $1 LIMIT 1`,
-          [article.url]
-        );
-
-        if (exists.rows.length > 0) {
-          skipped++;
-          continue;
-        }
-
-        const specialistTags = mapCategoriesToSpecialists(article.categories);
-
-        try {
-          await client.query(
-            `INSERT INTO alt.econ_news (
-               article_id, event_date, published_at, headline, summary, content,
-               source, url, author, specialist_tags, raw_payload,
-               topics, subjects, meta_description
-             ) VALUES ($1, $2::date, $3::timestamptz, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14)`,
-            [
-              article.articleId,
-              article.eventDate,
-              article.publishedAt,
-              article.title,
-              article.summary,
-              article.content,
-              "fred_blog",
-              article.url,
-              article.author,
-              specialistTags,
-              JSON.stringify({ 
-                categories: article.categories,
-                summary: article.summary
-              }),
-              article.topics,
-              article.subjects,
-              article.metaDescription,
-            ]
+          // Check for duplicate
+          const exists = await client.query(
+            `SELECT 1 FROM alt.econ_news WHERE url = $1 LIMIT 1`,
+            [article.url],
           );
-          inserted++;
-          logger.info(`Inserted: ${article.title.slice(0, 50)}...`);
-        } catch (err) {
-          quarantined++;
-          logger.warn(`Insert failed for ${article.title}: ${err}`);
+
+          if (exists.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          const specialistTags = mapCategoriesToSpecialists(article.categories);
+
+          try {
+            await client.query(
+              `INSERT INTO alt.econ_news (
+                 article_id, event_date, published_at, headline, summary, content,
+                 source, url, author, specialist_tags, raw_payload,
+                 topics, subjects, meta_description
+               ) VALUES ($1, $2::date, $3::timestamptz, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14)`,
+              [
+                article.articleId,
+                article.eventDate,
+                article.publishedAt,
+                article.title,
+                article.summary,
+                article.content,
+                "fred_blog",
+                article.url,
+                article.author,
+                specialistTags,
+                JSON.stringify({
+                  categories: article.categories,
+                  summary: article.summary,
+                }),
+                article.topics,
+                article.subjects,
+                article.metaDescription,
+              ],
+            );
+            inserted++;
+            logger.info(`Inserted: ${article.title.slice(0, 50)}...`);
+          } catch (err) {
+            quarantined++;
+            logger.warn(`Insert failed for ${article.title}: ${err}`);
+          }
         }
-      }
 
-      await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
-
-      return {
-        status: "success",
-        runId,
-        attempted,
-        inserted,
-        skipped,
-        quarantined,
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+        return { attempted, inserted, skipped, quarantined };
+      } finally {
+        client.release();
       }
-      logger.error(`FRED Blog ingest failed: ${msg}`);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
+    });
+
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await updateIngestRun(
+          client,
+          runId,
+          "success",
+          stats.attempted,
+          stats.inserted,
+          stats.skipped,
+          stats.quarantined,
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    return {
+      status: "success",
+      runId,
+      attempted: stats.attempted,
+      inserted: stats.inserted,
+      skipped: stats.skipped,
+      quarantined: stats.quarantined,
+    };
+  },
 );

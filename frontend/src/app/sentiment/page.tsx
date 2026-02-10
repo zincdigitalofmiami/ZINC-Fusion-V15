@@ -171,10 +171,14 @@ function signalBg(s: number): string {
 
 function trendLabel(trend: string): { text: string; color: string } {
   switch (trend) {
-    case "strong_uptrend": return { text: "STRONG UPTREND", color: "text-emerald-400" };
-    case "uptrend": return { text: "UPTREND", color: "text-emerald-500/80" };
-    case "mixed": return { text: "MIXED", color: "text-amber-400" };
-    default: return { text: "DOWNTREND", color: "text-red-400" };
+    case "strong_uptrend":
+      return { text: "STRONG UPTREND", color: "text-emerald-400" };
+    case "uptrend":
+      return { text: "UPTREND", color: "text-emerald-500/80" };
+    case "mixed":
+      return { text: "MIXED", color: "text-amber-400" };
+    default:
+      return { text: "DOWNTREND", color: "text-red-400" };
   }
 }
 
@@ -312,37 +316,83 @@ export default function SentimentPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
           <MetricCell
             label="ZL Close"
-            value={metrics?.price.close != null ? `¢${metrics.price.close.toFixed(2)}` : "—"}
-            sub={metrics?.price.volume ? `Vol ${formatNumber(metrics.price.volume)}` : undefined}
+            value={
+              metrics?.price.close != null
+                ? `¢${metrics.price.close.toFixed(2)}`
+                : "—"
+            }
+            sub={
+              metrics?.price.volume
+                ? `Vol ${formatNumber(metrics.price.volume)}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="5d Return"
-            value={metrics?.returns.ret_5d != null ? `${metrics.returns.ret_5d > 0 ? "+" : ""}${metrics.returns.ret_5d}%` : "—"}
-            color={metrics?.returns.ret_5d != null ? (metrics.returns.ret_5d > 0 ? "text-emerald-400" : "text-red-400") : undefined}
+            value={
+              metrics?.returns.ret_5d != null
+                ? `${metrics.returns.ret_5d > 0 ? "+" : ""}${metrics.returns.ret_5d}%`
+                : "—"
+            }
+            color={
+              metrics?.returns.ret_5d != null
+                ? metrics.returns.ret_5d > 0
+                  ? "text-emerald-400"
+                  : "text-red-400"
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="21d Return"
-            value={metrics?.returns.ret_21d != null ? `${metrics.returns.ret_21d > 0 ? "+" : ""}${metrics.returns.ret_21d}%` : "—"}
-            color={metrics?.returns.ret_21d != null ? (metrics.returns.ret_21d > 0 ? "text-emerald-400" : "text-red-400") : undefined}
+            value={
+              metrics?.returns.ret_21d != null
+                ? `${metrics.returns.ret_21d > 0 ? "+" : ""}${metrics.returns.ret_21d}%`
+                : "—"
+            }
+            color={
+              metrics?.returns.ret_21d != null
+                ? metrics.returns.ret_21d > 0
+                  ? "text-emerald-400"
+                  : "text-red-400"
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="63d Return"
-            value={metrics?.returns.ret_63d != null ? `${metrics.returns.ret_63d > 0 ? "+" : ""}${metrics.returns.ret_63d}%` : "—"}
-            color={metrics?.returns.ret_63d != null ? (metrics.returns.ret_63d > 0 ? "text-emerald-400" : "text-red-400") : undefined}
+            value={
+              metrics?.returns.ret_63d != null
+                ? `${metrics.returns.ret_63d > 0 ? "+" : ""}${metrics.returns.ret_63d}%`
+                : "—"
+            }
+            color={
+              metrics?.returns.ret_63d != null
+                ? metrics.returns.ret_63d > 0
+                  ? "text-emerald-400"
+                  : "text-red-400"
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="21d RVol"
-            value={metrics?.volatility.realized_21d != null ? `${metrics.volatility.realized_21d}%` : "—"}
+            value={
+              metrics?.volatility.realized_21d != null
+                ? `${metrics.volatility.realized_21d}%`
+                : "—"
+            }
             sub="annualized"
             loading={loading && !metrics}
           />
           <MetricCell
             label="RSI-14"
-            value={metrics?.technicals.rsi_14 != null ? metrics.technicals.rsi_14.toFixed(1) : "—"}
+            value={
+              metrics?.technicals.rsi_14 != null
+                ? metrics.technicals.rsi_14.toFixed(1)
+                : "—"
+            }
             color={rsiInfo?.color}
             sub={rsiInfo?.text}
             loading={loading && !metrics}
@@ -355,45 +405,86 @@ export default function SentimentPage() {
             label="Trend"
             value={trendInfo?.text ?? "—"}
             color={trendInfo?.color}
-            sub={metrics ? `${[
-              metrics.technicals.above_sma20 ? "▲20" : "▼20",
-              metrics.technicals.above_sma50 ? "▲50" : "▼50",
-              metrics.technicals.above_sma200 ? "▲200" : "▼200",
-            ].join(" ")}` : undefined}
+            sub={
+              metrics
+                ? `${[
+                    metrics.technicals.above_sma20 ? "▲20" : "▼20",
+                    metrics.technicals.above_sma50 ? "▲50" : "▼50",
+                    metrics.technicals.above_sma200 ? "▲200" : "▼200",
+                  ].join(" ")}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="MM Z-Score"
-            value={metrics?.positioning.mm_zscore != null ? (metrics.positioning.mm_zscore > 0 ? "+" : "") + metrics.positioning.mm_zscore.toFixed(3) : "—"}
+            value={
+              metrics?.positioning.mm_zscore != null
+                ? (metrics.positioning.mm_zscore > 0 ? "+" : "") +
+                  metrics.positioning.mm_zscore.toFixed(3)
+                : "—"
+            }
             color={zColor(metrics?.positioning.mm_zscore ?? null)}
-            sub={metrics?.positioning.mm_percentile != null ? `P${metrics.positioning.mm_percentile.toFixed(0)}` : undefined}
+            sub={
+              metrics?.positioning.mm_percentile != null
+                ? `P${metrics.positioning.mm_percentile.toFixed(0)}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="VIX"
-            value={metrics?.volatility.vix != null ? metrics.volatility.vix.toFixed(2) : "—"}
+            value={
+              metrics?.volatility.vix != null
+                ? metrics.volatility.vix.toFixed(2)
+                : "—"
+            }
             color={zColor(metrics?.volatility.vix_z ?? null)}
-            sub={metrics?.volatility.vix_z != null ? `z=${metrics.volatility.vix_z > 0 ? "+" : ""}${metrics.volatility.vix_z.toFixed(2)}` : undefined}
+            sub={
+              metrics?.volatility.vix_z != null
+                ? `z=${metrics.volatility.vix_z > 0 ? "+" : ""}${metrics.volatility.vix_z.toFixed(2)}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="OVX"
-            value={metrics?.volatility.ovx != null ? metrics.volatility.ovx.toFixed(2) : "—"}
+            value={
+              metrics?.volatility.ovx != null
+                ? metrics.volatility.ovx.toFixed(2)
+                : "—"
+            }
             sub="Oil Vol Index"
             loading={loading && !metrics}
           />
           <MetricCell
             label="Board Crush"
-            value={metrics?.crush.board_crush != null ? metrics.crush.board_crush.toFixed(3) : "—"}
+            value={
+              metrics?.crush.board_crush != null
+                ? metrics.crush.board_crush.toFixed(3)
+                : "—"
+            }
             color={zColor(metrics?.crush.crush_zscore ?? null)}
-            sub={metrics?.crush.crush_zscore != null ? `z=${metrics.crush.crush_zscore > 0 ? "+" : ""}${metrics.crush.crush_zscore.toFixed(2)}` : undefined}
+            sub={
+              metrics?.crush.crush_zscore != null
+                ? `z=${metrics.crush.crush_zscore > 0 ? "+" : ""}${metrics.crush.crush_zscore.toFixed(2)}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
           <MetricCell
             label="Oil Share"
-            value={metrics?.crush.oil_share != null ? `${(metrics.crush.oil_share * 100).toFixed(1)}%` : "—"}
+            value={
+              metrics?.crush.oil_share != null
+                ? `${(metrics.crush.oil_share * 100).toFixed(1)}%`
+                : "—"
+            }
             color={zColor(metrics?.crush.oil_share_zscore ?? null)}
-            sub={metrics?.crush.oil_share_zscore != null ? `z=${metrics.crush.oil_share_zscore > 0 ? "+" : ""}${metrics.crush.oil_share_zscore.toFixed(2)}` : undefined}
+            sub={
+              metrics?.crush.oil_share_zscore != null
+                ? `z=${metrics.crush.oil_share_zscore > 0 ? "+" : ""}${metrics.crush.oil_share_zscore.toFixed(2)}`
+                : undefined
+            }
             loading={loading && !metrics}
           />
         </div>
@@ -402,21 +493,41 @@ export default function SentimentPage() {
         {metrics && (
           <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Moving Average Structure</span>
-              <span className={`text-xs font-bold ${trendInfo?.color}`}>{trendInfo?.text}</span>
+              <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+                Moving Average Structure
+              </span>
+              <span className={`text-xs font-bold ${trendInfo?.color}`}>
+                {trendInfo?.text}
+              </span>
             </div>
             <div className="flex gap-2 items-end h-16">
               {[
-                { label: "SMA200", val: metrics.technicals.sma200, above: metrics.technicals.above_sma200 },
-                { label: "SMA50", val: metrics.technicals.sma50, above: metrics.technicals.above_sma50 },
-                { label: "SMA20", val: metrics.technicals.sma20, above: metrics.technicals.above_sma20 },
+                {
+                  label: "SMA200",
+                  val: metrics.technicals.sma200,
+                  above: metrics.technicals.above_sma200,
+                },
+                {
+                  label: "SMA50",
+                  val: metrics.technicals.sma50,
+                  above: metrics.technicals.above_sma50,
+                },
+                {
+                  label: "SMA20",
+                  val: metrics.technicals.sma20,
+                  above: metrics.technicals.above_sma20,
+                },
                 { label: "PRICE", val: metrics.price.close, above: true },
               ].map((ma) => (
                 <div key={ma.label} className="flex-1 text-center">
-                  <div className={`text-lg font-bold font-mono ${ma.label === "PRICE" ? "text-white" : ma.above ? "text-emerald-500/70" : "text-red-500/70"}`}>
+                  <div
+                    className={`text-lg font-bold font-mono ${ma.label === "PRICE" ? "text-white" : ma.above ? "text-emerald-500/70" : "text-red-500/70"}`}
+                  >
                     {ma.val?.toFixed(2) ?? "—"}
                   </div>
-                  <div className={`text-[10px] mt-1 ${ma.label === "PRICE" ? "text-white font-bold" : "text-slate-500"}`}>
+                  <div
+                    className={`text-[10px] mt-1 ${ma.label === "PRICE" ? "text-white font-bold" : "text-slate-500"}`}
+                  >
                     {ma.label}
                   </div>
                 </div>
@@ -435,8 +546,11 @@ export default function SentimentPage() {
             <span className="text-xs text-slate-500 font-normal ml-2">
               {metrics.composite.contributing_models} models
             </span>
-            <span className={`ml-auto text-sm font-bold ${signalColor(metrics.composite.signal)}`}>
-              Composite: {metrics.composite.signal > 0 ? "+" : ""}{metrics.composite.signal.toFixed(3)}
+            <span
+              className={`ml-auto text-sm font-bold ${signalColor(metrics.composite.signal)}`}
+            >
+              Composite: {metrics.composite.signal > 0 ? "+" : ""}
+              {metrics.composite.signal.toFixed(3)}
               <span className="text-[10px] text-slate-500 font-normal ml-2 uppercase">
                 {metrics.composite.interpretation}
               </span>
@@ -454,10 +568,15 @@ export default function SentimentPage() {
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
                       {s.bucket.replace("_", " ")}
                     </span>
-                    <span className="text-[9px] text-slate-600 font-mono">{s.model_type}</span>
+                    <span className="text-[9px] text-slate-600 font-mono">
+                      {s.model_type}
+                    </span>
                   </div>
-                  <div className={`text-xl font-bold font-mono ${signalColor(s.signal)}`}>
-                    {s.signal > 0 ? "+" : ""}{s.signal.toFixed(2)}
+                  <div
+                    className={`text-xl font-bold font-mono ${signalColor(s.signal)}`}
+                  >
+                    {s.signal > 0 ? "+" : ""}
+                    {s.signal.toFixed(2)}
                   </div>
                   <div className="flex items-center gap-1 mt-1">
                     <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
@@ -466,7 +585,9 @@ export default function SentimentPage() {
                         style={{ width: `${s.confidence * 100}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-slate-600">{(s.confidence * 100).toFixed(0)}%</span>
+                    <span className="text-[9px] text-slate-600">
+                      {(s.confidence * 100).toFixed(0)}%
+                    </span>
                   </div>
                 </div>
               ))}
@@ -655,7 +776,9 @@ export default function SentimentPage() {
             </div>
             <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-6 text-center shadow-lg shadow-black/50">
               <Gauge className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-              <div className={`text-2xl font-bold ${metrics?.volatility.ovx != null && metrics.volatility.ovx > 50 ? "text-red-400" : metrics?.volatility.ovx != null && metrics.volatility.ovx > 35 ? "text-amber-400" : "text-emerald-400"}`}>
+              <div
+                className={`text-2xl font-bold ${metrics?.volatility.ovx != null && metrics.volatility.ovx > 50 ? "text-red-400" : metrics?.volatility.ovx != null && metrics.volatility.ovx > 35 ? "text-amber-400" : "text-emerald-400"}`}
+              >
                 {loading && !metrics
                   ? "—"
                   : metrics?.volatility.ovx != null
@@ -677,20 +800,29 @@ export default function SentimentPage() {
               </h4>
               <div className="flex items-center gap-4 mb-3">
                 <div className="text-center">
-                  <div className={`text-3xl font-bold font-mono ${zColor(metrics.positioning.mm_zscore)}`}>
-                    {metrics.positioning.mm_zscore > 0 ? "+" : ""}{metrics.positioning.mm_zscore.toFixed(2)}σ
+                  <div
+                    className={`text-3xl font-bold font-mono ${zColor(metrics.positioning.mm_zscore)}`}
+                  >
+                    {metrics.positioning.mm_zscore > 0 ? "+" : ""}
+                    {metrics.positioning.mm_zscore.toFixed(2)}σ
                   </div>
-                  <div className="text-[10px] text-slate-600 mt-0.5">Z-Score</div>
+                  <div className="text-[10px] text-slate-600 mt-0.5">
+                    Z-Score
+                  </div>
                 </div>
                 <div className="flex-1 space-y-1.5">
                   <div className="flex justify-between text-[10px]">
                     <span className="text-slate-600">Percentile</span>
-                    <span className="text-slate-400 font-mono">P{metrics.positioning.mm_percentile?.toFixed(0)}</span>
+                    <span className="text-slate-400 font-mono">
+                      P{metrics.positioning.mm_percentile?.toFixed(0)}
+                    </span>
                   </div>
                   <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 rounded-full transition-all duration-700"
-                      style={{ width: `${metrics.positioning.mm_percentile ?? 50}%` }}
+                      style={{
+                        width: `${metrics.positioning.mm_percentile ?? 50}%`,
+                      }}
                     />
                   </div>
                   <div className="flex justify-between text-[9px] text-slate-600">
@@ -701,15 +833,23 @@ export default function SentimentPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
                 <div>
-                  <div className="text-slate-400 font-mono">{formatNumber(metrics.positioning.mm_net ?? 0)}</div>
+                  <div className="text-slate-400 font-mono">
+                    {formatNumber(metrics.positioning.mm_net ?? 0)}
+                  </div>
                   <div className="text-slate-600">Current</div>
                 </div>
                 <div>
-                  <div className="text-slate-400 font-mono">{formatNumber(metrics.positioning.mm_avg ?? 0)}</div>
-                  <div className="text-slate-600">Mean ({metrics.positioning.history_weeks}w)</div>
+                  <div className="text-slate-400 font-mono">
+                    {formatNumber(metrics.positioning.mm_avg ?? 0)}
+                  </div>
+                  <div className="text-slate-600">
+                    Mean ({metrics.positioning.history_weeks}w)
+                  </div>
                 </div>
                 <div>
-                  <div className="text-slate-400 font-mono">±{formatNumber(metrics.positioning.mm_std ?? 0)}</div>
+                  <div className="text-slate-400 font-mono">
+                    ±{formatNumber(metrics.positioning.mm_std ?? 0)}
+                  </div>
                   <div className="text-slate-600">Std Dev</div>
                 </div>
               </div>
@@ -908,9 +1048,7 @@ function MetricCell({ label, value, color, sub, loading }: MetricCellProps) {
       <div className={`text-lg font-bold font-mono ${color ?? "text-white"}`}>
         {value}
       </div>
-      {sub && (
-        <div className="text-[9px] text-slate-600 mt-0.5">{sub}</div>
-      )}
+      {sub && <div className="text-[9px] text-slate-600 mt-0.5">{sub}</div>}
     </div>
   );
 }

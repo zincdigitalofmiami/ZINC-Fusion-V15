@@ -10,7 +10,6 @@ import json
 import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from dataclasses import asdict
 
 import asyncpg
 
@@ -18,7 +17,8 @@ from .extractors import ExtractedFeatures
 
 
 # Database connection settings
-DATABASE_URL = os.environ.get('DATABASE_URL', os.environ.get('POSTGRES_URL'))
+DATABASE_URL = os.environ.get("DATABASE_URL", os.environ.get("POSTGRES_URL"))
+
 
 def _parse_json(value: Any, default: Any) -> Any:
     """Normalize jsonb values across drivers (asyncpg vs psycopg2)."""
@@ -57,7 +57,7 @@ async def insert_intel_drop(
     narrative: str,
     quant_payload: Dict[str, Any],
     receipts: Optional[Dict[str, Any]] = None,
-    source_model: Optional[str] = None
+    source_model: Optional[str] = None,
 ) -> int:
     """
     Insert a single Intel Drop into the database.
@@ -124,7 +124,7 @@ async def insert_intel_drop(
         quant_payload,
         receipts,
         source_model,
-        datetime.utcnow()
+        datetime.utcnow(),
     )
 
     return result
@@ -136,7 +136,7 @@ async def insert_intel_drop_from_features(
     narrative: str,
     quant_payload: Dict[str, Any],
     receipts: Optional[Dict[str, Any]] = None,
-    source_model: Optional[str] = None
+    source_model: Optional[str] = None,
 ) -> int:
     """
     Insert Intel Drop from ExtractedFeatures.
@@ -168,13 +168,12 @@ async def insert_intel_drop_from_features(
         narrative=narrative,
         quant_payload=quant_payload,
         receipts=receipts,
-        source_model=source_model
+        source_model=source_model,
     )
 
 
 async def insert_intel_drop_rows(
-    conn: asyncpg.Connection,
-    rows: List[Dict[str, Any]]
+    conn: asyncpg.Connection, rows: List[Dict[str, Any]]
 ) -> List[int]:
     """
     Batch insert multiple Intel Drop rows.
@@ -190,21 +189,21 @@ async def insert_intel_drop_rows(
     for row in rows:
         row_id = await insert_intel_drop(
             conn=conn,
-            domain=row['domain'],
-            horizon=row['horizon'],
-            as_of_ts=row['as_of_ts'],
-            direction=row['direction'],
-            pressure_cents=row['pressure_cents'],
-            edge=row['edge'],
-            driver_weights=row.get('driver_weights', {}),
-            top_drivers=row.get('top_drivers', []),
-            regime_tags=row.get('regime_tags', []),
-            quality_flags=row.get('quality_flags', []),
-            data_gaps=row.get('data_gaps', []),
-            narrative=row['narrative'],
-            quant_payload=row.get('quant_payload', {}),
-            receipts=row.get('receipts'),
-            source_model=row.get('source_model')
+            domain=row["domain"],
+            horizon=row["horizon"],
+            as_of_ts=row["as_of_ts"],
+            direction=row["direction"],
+            pressure_cents=row["pressure_cents"],
+            edge=row["edge"],
+            driver_weights=row.get("driver_weights", {}),
+            top_drivers=row.get("top_drivers", []),
+            regime_tags=row.get("regime_tags", []),
+            quality_flags=row.get("quality_flags", []),
+            data_gaps=row.get("data_gaps", []),
+            narrative=row["narrative"],
+            quant_payload=row.get("quant_payload", {}),
+            receipts=row.get("receipts"),
+            source_model=row.get("source_model"),
         )
         ids.append(row_id)
     return ids
@@ -214,7 +213,7 @@ async def get_latest_intel_drops(
     conn: asyncpg.Connection,
     domain: Optional[str] = None,
     horizon: Optional[str] = None,
-    limit: int = 10
+    limit: int = 10,
 ) -> List[Dict[str, Any]]:
     """
     Get the most recent Intel Drops.
@@ -244,31 +243,30 @@ async def get_latest_intel_drops(
 
     return [
         {
-            'id': row['id'],
-            'as_of_ts': row['as_of_ts'].isoformat() if row['as_of_ts'] else None,
-            'domain': row['domain'],
-            'horizon': row['horizon'],
-            'direction': row['direction'],
-            'pressure_cents': row['pressure_cents'],
-            'edge': row['edge'],
-            'driver_weights': _parse_json(row['driver_weights'], {}),
-            'top_drivers': _parse_json(row['top_drivers'], []),
-            'regime_tags': row['regime_tags'],
-            'quality_flags': row['quality_flags'],
-            'data_gaps': row['data_gaps'],
-            'narrative': row['narrative'],
-            'quant_payload': _parse_json(row['quant_payload'], {}),
-            'receipts': _parse_json(row['receipts'], None),
-            'source_model': row['source_model'],
-            'created_at': row['created_at'].isoformat() if row['created_at'] else None
+            "id": row["id"],
+            "as_of_ts": row["as_of_ts"].isoformat() if row["as_of_ts"] else None,
+            "domain": row["domain"],
+            "horizon": row["horizon"],
+            "direction": row["direction"],
+            "pressure_cents": row["pressure_cents"],
+            "edge": row["edge"],
+            "driver_weights": _parse_json(row["driver_weights"], {}),
+            "top_drivers": _parse_json(row["top_drivers"], []),
+            "regime_tags": row["regime_tags"],
+            "quality_flags": row["quality_flags"],
+            "data_gaps": row["data_gaps"],
+            "narrative": row["narrative"],
+            "quant_payload": _parse_json(row["quant_payload"], {}),
+            "receipts": _parse_json(row["receipts"], None),
+            "source_model": row["source_model"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
         }
         for row in rows
     ]
 
 
 async def get_intel_drop_by_id(
-    conn: asyncpg.Connection,
-    drop_id: int
+    conn: asyncpg.Connection, drop_id: int
 ) -> Optional[Dict[str, Any]]:
     """
     Get a single Intel Drop by ID.
@@ -294,31 +292,28 @@ async def get_intel_drop_by_id(
         return None
 
     return {
-        'id': row['id'],
-        'as_of_ts': row['as_of_ts'].isoformat() if row['as_of_ts'] else None,
-        'domain': row['domain'],
-        'horizon': row['horizon'],
-        'direction': row['direction'],
-        'pressure_cents': row['pressure_cents'],
-        'edge': row['edge'],
-        'driver_weights': _parse_json(row['driver_weights'], {}),
-        'top_drivers': _parse_json(row['top_drivers'], []),
-        'regime_tags': row['regime_tags'],
-        'quality_flags': row['quality_flags'],
-        'data_gaps': row['data_gaps'],
-        'narrative': row['narrative'],
-        'quant_payload': _parse_json(row['quant_payload'], {}),
-        'receipts': _parse_json(row['receipts'], None),
-        'source_model': row['source_model'],
-        'created_at': row['created_at'].isoformat() if row['created_at'] else None
+        "id": row["id"],
+        "as_of_ts": row["as_of_ts"].isoformat() if row["as_of_ts"] else None,
+        "domain": row["domain"],
+        "horizon": row["horizon"],
+        "direction": row["direction"],
+        "pressure_cents": row["pressure_cents"],
+        "edge": row["edge"],
+        "driver_weights": _parse_json(row["driver_weights"], {}),
+        "top_drivers": _parse_json(row["top_drivers"], []),
+        "regime_tags": row["regime_tags"],
+        "quality_flags": row["quality_flags"],
+        "data_gaps": row["data_gaps"],
+        "narrative": row["narrative"],
+        "quant_payload": _parse_json(row["quant_payload"], {}),
+        "receipts": _parse_json(row["receipts"], None),
+        "source_model": row["source_model"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
     }
 
 
 async def get_domain_history(
-    conn: asyncpg.Connection,
-    domain: str,
-    horizon: str = '1W',
-    days: int = 30
+    conn: asyncpg.Connection, domain: str, horizon: str = "1W", days: int = 30
 ) -> List[Dict[str, Any]]:
     """
     Get historical Intel Drops for a domain.
@@ -347,26 +342,24 @@ async def get_domain_history(
 
     return [
         {
-            'id': row['id'],
-            'as_of_ts': row['as_of_ts'].isoformat() if row['as_of_ts'] else None,
-            'domain': row['domain'],
-            'horizon': row['horizon'],
-            'direction': row['direction'],
-            'pressure_cents': row['pressure_cents'],
-            'edge': row['edge'],
-            'driver_weights': _parse_json(row['driver_weights'], {}),
-            'top_drivers': _parse_json(row['top_drivers'], []),
-            'regime_tags': row['regime_tags'],
-            'created_at': row['created_at'].isoformat() if row['created_at'] else None
+            "id": row["id"],
+            "as_of_ts": row["as_of_ts"].isoformat() if row["as_of_ts"] else None,
+            "domain": row["domain"],
+            "horizon": row["horizon"],
+            "direction": row["direction"],
+            "pressure_cents": row["pressure_cents"],
+            "edge": row["edge"],
+            "driver_weights": _parse_json(row["driver_weights"], {}),
+            "top_drivers": _parse_json(row["top_drivers"], []),
+            "regime_tags": row["regime_tags"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
         }
         for row in rows
     ]
 
 
 async def get_consensus_view(
-    conn: asyncpg.Connection,
-    as_of_ts: Optional[datetime] = None,
-    horizon: str = '1W'
+    conn: asyncpg.Connection, as_of_ts: Optional[datetime] = None, horizon: str = "1W"
 ) -> Dict[str, Any]:
     """
     Get consensus view across all domains for a timestamp.
@@ -381,9 +374,12 @@ async def get_consensus_view(
     """
     if as_of_ts is None:
         # Get latest timestamp
-        latest = await conn.fetchval("""
+        latest = await conn.fetchval(
+            """
             SELECT MAX(as_of_ts) FROM features.intel_drops WHERE horizon = $1
-        """, horizon)
+        """,
+            horizon,
+        )
         as_of_ts = latest
 
     query = """
@@ -397,7 +393,7 @@ async def get_consensus_view(
     rows = await conn.fetch(query, as_of_ts, horizon)
 
     if not rows:
-        return {'as_of_ts': as_of_ts.isoformat() if as_of_ts else None, 'domains': {}}
+        return {"as_of_ts": as_of_ts.isoformat() if as_of_ts else None, "domains": {}}
 
     domains = {}
     total_direction = 0
@@ -405,27 +401,27 @@ async def get_consensus_view(
     total_edge = 0.0
 
     for row in rows:
-        domains[row['domain']] = {
-            'direction': row['direction'],
-            'pressure_cents': row['pressure_cents'],
-            'edge': row['edge'],
-            'top_drivers': row['top_drivers'],
-            'regime_tags': row['regime_tags']
+        domains[row["domain"]] = {
+            "direction": row["direction"],
+            "pressure_cents": row["pressure_cents"],
+            "edge": row["edge"],
+            "top_drivers": row["top_drivers"],
+            "regime_tags": row["regime_tags"],
         }
-        total_direction += row['direction']
-        total_pressure += row['pressure_cents']
-        total_edge += row['edge']
+        total_direction += row["direction"]
+        total_pressure += row["pressure_cents"]
+        total_edge += row["edge"]
 
     n = len(rows)
 
     return {
-        'as_of_ts': as_of_ts.isoformat() if as_of_ts else None,
-        'horizon': horizon,
-        'num_domains': n,
-        'consensus_direction': total_direction / n if n > 0 else 0,
-        'consensus_pressure': total_pressure / n if n > 0 else 0,
-        'average_edge': total_edge / n if n > 0 else 0,
-        'domains': domains
+        "as_of_ts": as_of_ts.isoformat() if as_of_ts else None,
+        "horizon": horizon,
+        "num_domains": n,
+        "consensus_direction": total_direction / n if n > 0 else 0,
+        "consensus_pressure": total_pressure / n if n > 0 else 0,
+        "average_edge": total_edge / n if n > 0 else 0,
+        "domains": domains,
     }
 
 
@@ -439,21 +435,21 @@ def insert_intel_drop_sync(row: Dict[str, Any]) -> int:
         try:
             return await insert_intel_drop(
                 conn=conn,
-                domain=row['domain'],
-                horizon=row['horizon'],
-                as_of_ts=row['as_of_ts'],
-                direction=row['direction'],
-                pressure_cents=row['pressure_cents'],
-                edge=row['edge'],
-                driver_weights=row.get('driver_weights', {}),
-                top_drivers=row.get('top_drivers', []),
-                regime_tags=row.get('regime_tags', []),
-                quality_flags=row.get('quality_flags', []),
-                data_gaps=row.get('data_gaps', []),
-                narrative=row['narrative'],
-                quant_payload=row.get('quant_payload', {}),
-                receipts=row.get('receipts'),
-                source_model=row.get('source_model')
+                domain=row["domain"],
+                horizon=row["horizon"],
+                as_of_ts=row["as_of_ts"],
+                direction=row["direction"],
+                pressure_cents=row["pressure_cents"],
+                edge=row["edge"],
+                driver_weights=row.get("driver_weights", {}),
+                top_drivers=row.get("top_drivers", []),
+                regime_tags=row.get("regime_tags", []),
+                quality_flags=row.get("quality_flags", []),
+                data_gaps=row.get("data_gaps", []),
+                narrative=row["narrative"],
+                quant_payload=row.get("quant_payload", {}),
+                receipts=row.get("receipts"),
+                source_model=row.get("source_model"),
             )
         finally:
             await conn.close()
@@ -462,9 +458,7 @@ def insert_intel_drop_sync(row: Dict[str, Any]) -> int:
 
 
 def get_latest_intel_drops_sync(
-    domain: Optional[str] = None,
-    horizon: Optional[str] = None,
-    limit: int = 10
+    domain: Optional[str] = None, horizon: Optional[str] = None, limit: int = 10
 ) -> List[Dict[str, Any]]:
     """Synchronous wrapper for get_latest_intel_drops."""
     import asyncio

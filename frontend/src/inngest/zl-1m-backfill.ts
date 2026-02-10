@@ -7,7 +7,7 @@
  * Uses Databento's timeseries.get_range API with ohlcv-1m schema.
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import dbPool from "@/lib/db";
 
@@ -110,7 +110,7 @@ export const zl1mBackfill = inngest.createFunction(
     id: "zl-1m-backfill",
     name: "ZL 1m/5m Historical Backfill",
     retries: 2,
-    concurrency: { limit: 1 }, // Only one backfill at a time
+    concurrency: [DB_CONCURRENCY, { limit: 1 }], // DB pool + only one backfill at a time
   },
   { event: "zl.backfill.1m" },
   async ({ event, step, logger }) => {
@@ -221,6 +221,7 @@ export const zl1mScheduledBackfill = inngest.createFunction(
     id: "zl-1m-scheduled-backfill",
     name: "ZL 1m/5m Scheduled Gap Fill",
     retries: 2,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 6 * * *" }, // Daily at 6 AM UTC
   async ({ step, logger }) => {

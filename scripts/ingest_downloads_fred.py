@@ -9,7 +9,6 @@ FRED_SERIES_ROUTING map from src/fusion/db/fred_routing.py.
 import os
 import sys
 from pathlib import Path
-from datetime import datetime
 
 import pandas as pd
 import psycopg2
@@ -18,13 +17,14 @@ from psycopg2.extras import execute_batch
 # Load environment
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.fusion.db.fred_routing import get_fred_table, get_fred_schema_table
+from src.fusion.db.fred_routing import get_fred_schema_table
 
 
 def get_postgres_connection():
@@ -47,7 +47,9 @@ FILE_MAPPINGS = {
 }
 
 
-def ingest_file(conn, filepath: Path, series_id: str, date_col: str, value_col: str) -> int:
+def ingest_file(
+    conn, filepath: Path, series_id: str, date_col: str, value_col: str
+) -> int:
     """Ingest a single CSV file into the database."""
     try:
         df = pd.read_csv(filepath)
@@ -91,7 +93,7 @@ def ingest_file(conn, filepath: Path, series_id: str, date_col: str, value_col: 
                 ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 

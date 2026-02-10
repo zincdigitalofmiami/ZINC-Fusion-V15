@@ -36,12 +36,12 @@ export async function GET() {
 
   } catch (error) {
     console.error('Vegas fryers error:', error)
-    return NextResponse.json({ 
-      count: 0, 
+    return NextResponse.json({
+      count: 0,
       total_fryers: 0,
       total_capacity_lbs: 0,
       data: [],
-      error: 'Failed to fetch fryers' 
+      error: 'Failed to fetch fryers'
     }, { status: 500 })
   }
 }

@@ -22,11 +22,10 @@ Usage:
 """
 
 import os
-import sys
 import logging
 import argparse
 from datetime import datetime, timedelta
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict
 from dataclasses import dataclass
 
 import psycopg2
@@ -35,14 +34,13 @@ from dotenv import load_dotenv
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
 # CV Parameters (LOCKED)
 NUM_FOLDS = 5
@@ -53,6 +51,7 @@ HORIZONS = [5, 21, 63, 126]  # days
 @dataclass
 class CVFold:
     """Represents a single CV fold assignment for a date."""
+
     as_of_date: datetime
     horizon: int
     fold_id: int
@@ -87,7 +86,7 @@ def generate_folds_for_horizon(
     end_date: datetime,
     horizon: int,
     num_folds: int = NUM_FOLDS,
-    purge_gap: int = PURGE_GAP
+    purge_gap: int = PURGE_GAP,
 ) -> List[CVFold]:
     """
     Generate purged walk-forward CV folds for a single horizon.
@@ -115,7 +114,6 @@ def generate_folds_for_horizon(
     fold_size = total_days // num_folds
 
     # Minimum training size (at least 252 trading days)
-    min_train_days = 252
 
     current_date = start_date
     while current_date <= end_date:
@@ -129,7 +127,9 @@ def generate_folds_for_horizon(
 
             # For walk-forward: fold_id N uses all data up to fold_end_day
             # and validates on the last portion
-            val_start_day = fold_end_day - (fold_size // 2)  # Last half of fold is validation
+            val_start_day = fold_end_day - (
+                fold_size // 2
+            )  # Last half of fold is validation
             val_end_day = fold_end_day
 
             # Purge zone: purge_gap days before validation
@@ -137,8 +137,7 @@ def generate_folds_for_horizon(
             purge_end_day = val_start_day
 
             # Embargo zone: horizon days after validation start
-            embargo_start_day = val_start_day
-            embargo_end_day = val_start_day + horizon
+            val_start_day + horizon
 
             # Determine if this date is train, val, or excluded
             is_train = False
@@ -156,20 +155,24 @@ def generate_folds_for_horizon(
                 is_val = True
             # After val_end_day: excluded (embargo for future folds)
 
-            folds.append(CVFold(
-                as_of_date=current_date,
-                horizon=horizon,
-                fold_id=fold_id,
-                is_train=is_train,
-                is_val=is_val
-            ))
+            folds.append(
+                CVFold(
+                    as_of_date=current_date,
+                    horizon=horizon,
+                    fold_id=fold_id,
+                    is_train=is_train,
+                    is_val=is_val,
+                )
+            )
 
         current_date += timedelta(days=1)
 
     return folds
 
 
-def generate_all_folds(start_date: datetime, end_date: datetime) -> Dict[int, List[CVFold]]:
+def generate_all_folds(
+    start_date: datetime, end_date: datetime
+) -> Dict[int, List[CVFold]]:
     """Generate CV folds for all horizons."""
     all_folds = {}
 
@@ -201,10 +204,7 @@ def insert_folds(conn, folds: List[CVFold], dry_run: bool = False) -> int:
         DO UPDATE SET is_train = EXCLUDED.is_train, is_val = EXCLUDED.is_val
     """
 
-    batch = [
-        (f.as_of_date, f.horizon, f.fold_id, f.is_train, f.is_val)
-        for f in folds
-    ]
+    batch = [(f.as_of_date, f.horizon, f.fold_id, f.is_train, f.is_val) for f in folds]
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
@@ -251,14 +251,19 @@ def validate_folds(conn) -> bool:
                 all_valid = False
 
             # Validate no overlap in is_train and is_val
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT COUNT(*)
                 FROM cv_folds
                 WHERE horizon = %s AND is_train = TRUE AND is_val = TRUE
-            """, (horizon,))
+            """,
+                (horizon,),
+            )
             overlap = cur.fetchone()[0]
             if overlap > 0:
-                logger.error(f"  ERROR: {overlap} rows have both is_train=TRUE and is_val=TRUE")
+                logger.error(
+                    f"  ERROR: {overlap} rows have both is_train=TRUE and is_val=TRUE"
+                )
                 all_valid = False
 
     if all_valid:
@@ -322,9 +327,15 @@ def run_generation(dry_run: bool = False, validate_only: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate CV folds for ZINC-FUSION-V15")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without inserting")
-    parser.add_argument("--validate", action="store_true", help="Validate existing folds only")
+    parser = argparse.ArgumentParser(
+        description="Generate CV folds for ZINC-FUSION-V15"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
+    parser.add_argument(
+        "--validate", action="store_true", help="Validate existing folds only"
+    )
 
     args = parser.parse_args()
     run_generation(dry_run=args.dry_run, validate_only=args.validate)

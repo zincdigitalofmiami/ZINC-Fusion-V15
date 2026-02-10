@@ -27,9 +27,9 @@ export function MarketCommentary() {
                 Executive Summary
             </h4>
             <p className="text-slate-400 text-sm leading-relaxed">
-                The ZL complex remains in an <span className="text-slate-200 font-semibold">Accumulate</span> regime. 
-                Despite short-term volatility from EPA discussions, the 3-month outlook is supported by robust 
-                China demand signals and tightening South American supply lines. 
+                The ZL complex remains in an <span className="text-slate-200 font-semibold">Accumulate</span> regime.
+                Despite short-term volatility from EPA discussions, the 3-month outlook is supported by robust
+                China demand signals and tightening South American supply lines.
                 Our models suggest a <span className="text-emerald-400">65% probability</span> of upside breakout above 50c/lb by mid-Q1.
             </p>
         </div>

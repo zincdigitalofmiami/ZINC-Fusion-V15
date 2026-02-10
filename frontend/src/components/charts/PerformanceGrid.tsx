@@ -1,6 +1,6 @@
 /**
  * PerformanceGrid - TradingView-style Returns Grid
- * 
+ *
  * Shows 1W | 1M | 3M | 6M | YTD | 1Y performance in a clean grid
  */
 'use client';
@@ -27,16 +27,16 @@ export function PerformanceGrid({ data, columns = 3 }: PerformanceGridProps) {
   );
 
   return (
-    <div 
+    <div
       className="grid gap-2"
-      style={{ 
+      style={{
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
       }}
     >
       {sortedData.map(item => {
         const isPositive = item.value >= 0;
-        const bgColor = isPositive 
-          ? 'rgba(38, 166, 154, 0.1)' 
+        const bgColor = isPositive
+          ? 'rgba(38, 166, 154, 0.1)'
           : 'rgba(239, 83, 80, 0.1)';
         const textColor = isPositive ? TV.bull.primary : TV.bear.primary;
 
@@ -46,7 +46,7 @@ export function PerformanceGrid({ data, columns = 3 }: PerformanceGridProps) {
             className="flex flex-col items-center justify-center p-3 rounded"
             style={{ backgroundColor: bgColor }}
           >
-            <div 
+            <div
               className="text-lg font-bold"
               style={{ color: textColor }}
             >
@@ -79,7 +79,7 @@ export function PerformanceRow({ data }: { data: PerformanceData[] }) {
 
         return (
           <div key={item.period} className="text-center">
-            <div 
+            <div
               className="text-sm font-bold"
               style={{ color: textColor }}
             >

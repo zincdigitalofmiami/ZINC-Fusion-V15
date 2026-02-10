@@ -84,12 +84,7 @@ OUTPUT_SCHEMAS = ["model", "forecasts", "analytics"]
 GOVERNANCE_SCHEMAS = ["metadata", "ops"]
 
 # All schemas (canonical list)
-SCHEMAS = (
-    LANDING_SCHEMAS
-    + DERIVED_SCHEMAS
-    + OUTPUT_SCHEMAS
-    + GOVERNANCE_SCHEMAS
-)
+SCHEMAS = LANDING_SCHEMAS + DERIVED_SCHEMAS + OUTPUT_SCHEMAS + GOVERNANCE_SCHEMAS
 
 # BANNED schemas - fail hard if detected in new code
 BANNED_SCHEMAS = [

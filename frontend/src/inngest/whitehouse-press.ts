@@ -31,7 +31,7 @@
  * Table: alt.executive_actions
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 import dbPool from "@/lib/db";
@@ -261,6 +261,7 @@ export const whitehouseDaily = inngest.createFunction(
   {
     id: "whitehouse-comprehensive-daily",
     name: "White House Comprehensive (20+ URLs)",
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 7,11,15,19 * * *" }, // 4x daily
   async ({ step }) => {

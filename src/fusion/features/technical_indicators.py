@@ -21,8 +21,8 @@ warnings.filterwarnings("ignore")
 
 # Import available TA libraries
 try:
-    import ta
-    from ta import trend, momentum, volatility, volume
+    import ta  # noqa: F401
+    from ta import trend, momentum, volatility, volume  # noqa: F401
 
     HAS_TA = True
 except ImportError:
@@ -36,7 +36,7 @@ except ImportError:
     HAS_TALIB = False
 
 try:
-    import pandas_ta as pta
+    import pandas_ta as pta  # noqa: F401
 
     HAS_PANDAS_TA = True
 except ImportError:
@@ -50,7 +50,7 @@ except ImportError:
     HAS_FINTA = False
 
 try:
-    from stockstats import StockDataFrame
+    from stockstats import StockDataFrame  # noqa: F401
 
     HAS_STOCKSTATS = True
 except ImportError:
@@ -78,7 +78,6 @@ class ZincFusionIndicators:
 
     def _validate_columns(self):
         """Ensure required OHLCV columns exist."""
-        required = ["open", "high", "low", "close", "volume"]
         # Try common variations
         col_map = {
             "open": ["open", "Open", "OPEN", "o"],
@@ -850,7 +849,7 @@ class ZincFusionIndicators:
             # Board crush calculation per CME formula ($/bushel):
             # = (meal × 0.022) + (oil × 0.11) − soybeans/100
             # ZL in ¢/lb × 0.11 (11 lbs oil/bu), ZM in $/ton × 0.022, ZS in ¢/bu ÷ 100
-            oil_value = df["close"] * 0.11       # ZL × 0.11
+            oil_value = df["close"] * 0.11  # ZL × 0.11
             meal_value = df["zm_close"] * 0.022  # ZM × 0.022
             df["board_crush"] = (oil_value + meal_value) - (df["zs_close"] / 100)
 
@@ -1169,12 +1168,13 @@ def compute_indicators_for_all_symbols(
 # =============================================================================
 
 if __name__ == "__main__":
-    import pyarrow.parquet as pq
-
     print("🚀 ZINC Fusion V15 Technical Indicators Module")
     print("=" * 60)
 
     # Test with existing data from Prisma Postgres
+    import os
+    import sys
+
     import psycopg2
     from dotenv import load_dotenv
 
@@ -1182,7 +1182,7 @@ if __name__ == "__main__":
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        print("❌ DATABASE_URL not set")
+        print("DATABASE_URL not set")
         sys.exit(1)
 
     try:

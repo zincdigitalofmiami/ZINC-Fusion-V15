@@ -29,10 +29,9 @@ Usage:
 import logging
 import math
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import date, timedelta
+from typing import List, Optional
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -67,9 +66,11 @@ DEADLINE_RISK_STEEPNESS = 30  # Controls sigmoid steepness
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class DeadlineInfo:
     """Information about a single policy deadline."""
+
     name: str
     deadline_date: date
     days_to_expiry: int
@@ -83,6 +84,7 @@ class DeadlineInfo:
 @dataclass
 class TariffDeadlineFeatures:
     """Complete tariff deadline feature set for a given date."""
+
     as_of_date: date
     days_to_section301_expiry: int
     days_to_china_ag_expiry: int
@@ -96,6 +98,7 @@ class TariffDeadlineFeatures:
 # =============================================================================
 # CORE CALCULATIONS
 # =============================================================================
+
 
 def calculate_deadline_risk_score(days_to_expiry: int) -> float:
     """
@@ -154,16 +157,18 @@ def get_active_deadlines(as_of_date: date) -> List[DeadlineInfo]:
 
         if days_to_expiry >= 0:  # Only future deadlines
             risk_score = calculate_deadline_risk_score(days_to_expiry)
-            active.append(DeadlineInfo(
-                name=name,
-                deadline_date=deadline_date,
-                days_to_expiry=days_to_expiry,
-                policy_type=info["policy_type"],
-                description=info["description"],
-                impact_weight=info["impact_weight"],
-                risk_score=risk_score,
-                is_imminent=(days_to_expiry < 60),
-            ))
+            active.append(
+                DeadlineInfo(
+                    name=name,
+                    deadline_date=deadline_date,
+                    days_to_expiry=days_to_expiry,
+                    policy_type=info["policy_type"],
+                    description=info["description"],
+                    impact_weight=info["impact_weight"],
+                    risk_score=risk_score,
+                    is_imminent=(days_to_expiry < 60),
+                )
+            )
 
     return sorted(active, key=lambda x: x.days_to_expiry)
 
@@ -171,6 +176,7 @@ def get_active_deadlines(as_of_date: date) -> List[DeadlineInfo]:
 # =============================================================================
 # FEATURE ENGINE
 # =============================================================================
+
 
 class TariffDeadlineFeatureEngine:
     """
@@ -196,15 +202,17 @@ class TariffDeadlineFeatureEngine:
             return []
 
         try:
-            import psycopg2
             cursor = self.db_connection.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT deadline_name, deadline_date, days_to_expiry,
                        policy_type, description, renewal_probability
                 FROM alt.tariff_deadlines
                 WHERE is_active = true AND deadline_date >= %s
                 ORDER BY deadline_date
-            """, (as_of_date,))
+            """,
+                (as_of_date,),
+            )
 
             rows = cursor.fetchall()
             deadlines = []
@@ -213,16 +221,18 @@ class TariffDeadlineFeatureEngine:
                 days_to_expiry = (deadline_date - as_of_date).days
                 risk_score = calculate_deadline_risk_score(days_to_expiry)
 
-                deadlines.append(DeadlineInfo(
-                    name=row[0],
-                    deadline_date=deadline_date,
-                    days_to_expiry=days_to_expiry,
-                    policy_type=row[3] or "TRADE",
-                    description=row[4] or "",
-                    impact_weight=1.0,  # Could be enhanced with renewal_probability
-                    risk_score=risk_score,
-                    is_imminent=(days_to_expiry < 60),
-                ))
+                deadlines.append(
+                    DeadlineInfo(
+                        name=row[0],
+                        deadline_date=deadline_date,
+                        days_to_expiry=days_to_expiry,
+                        policy_type=row[3] or "TRADE",
+                        description=row[4] or "",
+                        impact_weight=1.0,  # Could be enhanced with renewal_probability
+                        risk_score=risk_score,
+                        is_imminent=(days_to_expiry < 60),
+                    )
+                )
 
             cursor.close()
             return deadlines
@@ -275,23 +285,35 @@ class TariffDeadlineFeatureEngine:
 
         # Find specific deadlines
         section301_deadline = next(
-            (d for d in deadlines if "section_301" in d.name.lower() or "301" in d.name),
-            None
+            (
+                d
+                for d in deadlines
+                if "section_301" in d.name.lower() or "301" in d.name
+            ),
+            None,
         )
         china_ag_deadline = next(
-            (d for d in deadlines if "china" in d.name.lower() and "ag" in d.name.lower()),
-            None
+            (
+                d
+                for d in deadlines
+                if "china" in d.name.lower() and "ag" in d.name.lower()
+            ),
+            None,
         )
 
-        days_to_section301 = section301_deadline.days_to_expiry if section301_deadline else 365
-        days_to_china_ag = china_ag_deadline.days_to_expiry if china_ag_deadline else 365
+        days_to_section301 = (
+            section301_deadline.days_to_expiry if section301_deadline else 365
+        )
+        days_to_china_ag = (
+            china_ag_deadline.days_to_expiry if china_ag_deadline else 365
+        )
 
         # Composite risk score (weighted average)
         total_weight = sum(d.impact_weight for d in deadlines)
         if total_weight > 0:
-            composite_risk = sum(
-                d.risk_score * d.impact_weight for d in deadlines
-            ) / total_weight
+            composite_risk = (
+                sum(d.risk_score * d.impact_weight for d in deadlines) / total_weight
+            )
         else:
             composite_risk = 0.0
 
@@ -325,15 +347,17 @@ class TariffDeadlineFeatureEngine:
         current = start_date
         while current <= end_date:
             features = self.compute_features_for_date(current)
-            records.append({
-                "trade_date": features.as_of_date,
-                "days_to_section301_expiry": features.days_to_section301_expiry,
-                "days_to_china_ag_expiry": features.days_to_china_ag_expiry,
-                "min_days_to_any_deadline": features.min_days_to_any_deadline,
-                "deadline_risk_score": features.deadline_risk_score,
-                "deadline_vol_multiplier": features.deadline_vol_multiplier,
-                "imminent_deadline_count": features.imminent_deadline_count,
-            })
+            records.append(
+                {
+                    "trade_date": features.as_of_date,
+                    "days_to_section301_expiry": features.days_to_section301_expiry,
+                    "days_to_china_ag_expiry": features.days_to_china_ag_expiry,
+                    "min_days_to_any_deadline": features.min_days_to_any_deadline,
+                    "deadline_risk_score": features.deadline_risk_score,
+                    "deadline_vol_multiplier": features.deadline_vol_multiplier,
+                    "imminent_deadline_count": features.imminent_deadline_count,
+                }
+            )
             current += timedelta(days=1)
 
         return pd.DataFrame(records)
@@ -342,6 +366,7 @@ class TariffDeadlineFeatureEngine:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 def get_current_deadline_features() -> TariffDeadlineFeatures:
     """Get deadline features for today."""

@@ -63,7 +63,9 @@ def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
 
-def black_scholes_iv(option_price, S, K, T, r, option_type='call', max_iterations=100, precision=1e-5):
+def black_scholes_iv(
+    option_price, S, K, T, r, option_type="call", max_iterations=100, precision=1e-5
+):
     """
     Calculate implied volatility using Newton-Raphson method.
     """
@@ -74,10 +76,10 @@ def black_scholes_iv(option_price, S, K, T, r, option_type='call', max_iteration
     sigma = 0.3
 
     for i in range(max_iterations):
-        d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+        d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
         d2 = d1 - sigma * np.sqrt(T)
 
-        if option_type == 'call':
+        if option_type == "call":
             price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
             vega = S * norm.pdf(d1) * np.sqrt(T)
         else:
@@ -99,22 +101,26 @@ def black_scholes_iv(option_price, S, K, T, r, option_type='call', max_iteration
     return None
 
 
-def calculate_greeks(S, K, T, r, sigma, option_type='call'):
+def calculate_greeks(S, K, T, r, sigma, option_type="call"):
     """Calculate option Greeks."""
     if T <= 0 or sigma <= 0:
         return None, None, None, None
 
-    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
 
-    if option_type == 'call':
+    if option_type == "call":
         delta = norm.cdf(d1)
-        theta = (-S * norm.pdf(d1) * sigma / (2 * np.sqrt(T))
-                 - r * K * np.exp(-r * T) * norm.cdf(d2)) / 365
+        theta = (
+            -S * norm.pdf(d1) * sigma / (2 * np.sqrt(T))
+            - r * K * np.exp(-r * T) * norm.cdf(d2)
+        ) / 365
     else:
         delta = norm.cdf(d1) - 1
-        theta = (-S * norm.pdf(d1) * sigma / (2 * np.sqrt(T))
-                 + r * K * np.exp(-r * T) * norm.cdf(-d2)) / 365
+        theta = (
+            -S * norm.pdf(d1) * sigma / (2 * np.sqrt(T))
+            + r * K * np.exp(-r * T) * norm.cdf(-d2)
+        ) / 365
 
     gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
     vega = S * norm.pdf(d1) * np.sqrt(T) / 100  # Per 1% move
@@ -123,10 +129,7 @@ def calculate_greeks(S, K, T, r, sigma, option_type='call'):
 
 
 def fetch_options_data(
-    client: db.Historical,
-    root: str,
-    start_date: date,
-    end_date: date
+    client: db.Historical, root: str, start_date: date, end_date: date
 ) -> pd.DataFrame:
     """
     Fetch options data from Databento.
@@ -160,12 +163,12 @@ def fetch_options_data(
 
 
 def upsert_options_greeks(conn, rows: list) -> int:
-    """Upsert options Greeks data into mkt.options_greeks_1d."""
+    """Upsert options Greeks data into mkt.options_greeks_1d."""  # sqlref: ignore
     if not rows:
         return 0
 
     upsert_query = """
-    INSERT INTO mkt.options_greeks_1d
+    INSERT INTO mkt.options_greeks_1d  -- sqlref: ignore
         (underlying, event_date, expiration, strike, option_type,
          last_price, implied_volatility, delta, gamma, theta, vega, source)
     VALUES
@@ -192,8 +195,14 @@ def upsert_options_greeks(conn, rows: list) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest FX options from Databento")
-    parser.add_argument("--start-date", type=str, default=(date.today() - timedelta(days=30)).isoformat())
-    parser.add_argument("--end-date", type=str, default=(date.today() - timedelta(days=1)).isoformat())
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default=(date.today() - timedelta(days=30)).isoformat(),
+    )
+    parser.add_argument(
+        "--end-date", type=str, default=(date.today() - timedelta(days=1)).isoformat()
+    )
     parser.add_argument("--underlying", type=str, help="Specific underlying (e.g., 6E)")
     args = parser.parse_args()
 

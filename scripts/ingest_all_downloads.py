@@ -11,9 +11,6 @@ Routes data to v2 schema tables:
 import os
 import sys
 from pathlib import Path
-from datetime import datetime
-import re
-import glob
 
 import pandas as pd
 import psycopg2
@@ -22,13 +19,14 @@ from psycopg2.extras import execute_batch
 # Load environment
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.fusion.db.fred_routing import get_fred_table, get_fred_schema_table
+from src.fusion.db.fred_routing import get_fred_schema_table
 
 
 def get_postgres_connection():
@@ -42,7 +40,7 @@ def get_postgres_connection():
 def parse_unix_timestamp(ts):
     """Parse unix timestamp (seconds since epoch) to datetime."""
     try:
-        return pd.to_datetime(ts, unit='s')
+        return pd.to_datetime(ts, unit="s")
     except:
         return pd.NaT
 
@@ -72,7 +70,10 @@ def parse_date_flexible(date_str):
 # INGEST FUNCTIONS
 # ============================================================================
 
-def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_col: str) -> int:
+
+def ingest_fred_file(
+    conn, filepath: Path, series_id: str, date_col: str, value_col: str
+) -> int:
     """Ingest FRED-style CSV into fred_observations_1d."""
     try:
         df = pd.read_csv(filepath)
@@ -82,7 +83,10 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
             return 0
 
         # Handle unix timestamps
-        if df[date_col].dtype in ['int64', 'float64'] and df[date_col].abs().max() > 1e8:
+        if (
+            df[date_col].dtype in ["int64", "float64"]
+            and df[date_col].abs().max() > 1e8
+        ):
             df["as_of_date"] = df[date_col].apply(parse_unix_timestamp)
         else:
             df["as_of_date"] = pd.to_datetime(df[date_col], errors="coerce")
@@ -112,7 +116,7 @@ def ingest_fred_file(conn, filepath: Path, series_id: str, date_col: str, value_
                 ON CONFLICT (series_id, event_date) DO NOTHING
                 """,
                 records,
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 
@@ -143,7 +147,10 @@ def ingest_futures_ohlc(conn, filepath: Path, symbol: str) -> int:
             return 0
 
         # Parse date
-        if df[date_col].dtype in ['int64', 'float64'] and df[date_col].abs().max() > 1e8:
+        if (
+            df[date_col].dtype in ["int64", "float64"]
+            and df[date_col].abs().max() > 1e8
+        ):
             df["as_of_date"] = df[date_col].apply(parse_unix_timestamp)
         else:
             df["as_of_date"] = df[date_col].apply(parse_date_flexible)
@@ -168,7 +175,7 @@ def ingest_futures_ohlc(conn, filepath: Path, symbol: str) -> int:
         if volume_col:
             df["volume"] = pd.to_numeric(
                 df[volume_col].astype(str).str.replace(",", "").str.replace(" ", ""),
-                errors="coerce"
+                errors="coerce",
             )
         else:
             df["volume"] = None
@@ -187,7 +194,7 @@ def ingest_futures_ohlc(conn, filepath: Path, symbol: str) -> int:
                 row.get("low") if pd.notna(row.get("low")) else None,
                 row["close"],
                 row.get("volume") if pd.notna(row.get("volume")) else None,
-                "CSV"
+                "CSV",
             )
             for _, row in df.iterrows()
         ]
@@ -202,7 +209,7 @@ def ingest_futures_ohlc(conn, filepath: Path, symbol: str) -> int:
                 ON CONFLICT (event_date, symbol) DO NOTHING
                 """,
                 records,
-                page_size=500
+                page_size=500,
             )
             inserted = cur.rowcount
 
@@ -274,10 +281,12 @@ def ingest_multi_commodity_dataset(conn, filepath: Path) -> int:
                 (
                     symbol,
                     row["as_of_date"],
-                    None, None, None,  # open, high, low
+                    None,
+                    None,
+                    None,  # open, high, low
                     row["close"],
                     row["volume"] if pd.notna(row.get("volume")) else None,
-                    "CSV"
+                    "CSV",
                 )
                 for _, row in df_sym.iterrows()
             ]
@@ -292,7 +301,7 @@ def ingest_multi_commodity_dataset(conn, filepath: Path) -> int:
                     ON CONFLICT (event_date, symbol) DO NOTHING
                     """,
                     records,
-                    page_size=500
+                    page_size=500,
                 )
                 inserted = cur.rowcount
                 total_inserted += inserted

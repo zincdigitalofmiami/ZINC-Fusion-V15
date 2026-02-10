@@ -18,8 +18,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from datetime import date, timedelta
-from typing import Dict, List
+from typing import Dict
 import pandas as pd
 import numpy as np
 import psycopg2
@@ -142,7 +141,7 @@ def check_coverage(conn, bucket: str, lookback_days: int = 180) -> float:
         Coverage percentage (0-1)
     """
     query = f"""
-    SELECT 
+    SELECT
         COUNT(*) as n_signals,
         (SELECT COUNT(DISTINCT event_date)
          FROM mkt.futures_1d
@@ -404,7 +403,9 @@ def check_regime_health(conn, bucket: str) -> Dict:
 
     # Check for missing expected states
     observed_states = set(int(s) for s in signals)
-    missing_states = set(expected_levels) - observed_states if expected_levels else set()
+    missing_states = (
+        set(expected_levels) - observed_states if expected_levels else set()
+    )
 
     # Validate transitions are reasonable (not too low or too high)
     # Target: 5-15% transition rate (not constant, not noise)
@@ -467,8 +468,12 @@ def validate_all_specialists(conn, strict: bool = False) -> Dict[str, Dict[str, 
             # For regime classifiers: use transition_rate
             regime_health = check_regime_health(conn, bucket)
             results[bucket]["regime_health"] = regime_health
-            results[bucket]["health_ok"] = regime_health.get("transition_rate_ok", False)
-            results[bucket]["health_metric"] = f"transition_rate={regime_health.get('transition_rate', 0):.3f}"
+            results[bucket]["health_ok"] = regime_health.get(
+                "transition_rate_ok", False
+            )
+            results[bucket]["health_metric"] = (
+                f"transition_rate={regime_health.get('transition_rate', 0):.3f}"
+            )
         else:
             # For continuous/warmup-aware signals: use max_run
             exclude_warmup = signal_type == "warmup_aware"
@@ -477,7 +482,11 @@ def validate_all_specialists(conn, strict: bool = False) -> Dict[str, Dict[str, 
             max_run = run_health.get("max_run", 0)
             # max_run ≤ 7 is healthy for continuous signals
             results[bucket]["health_ok"] = max_run is not None and max_run <= 7
-            warmup_note = f" (excl {run_health.get('warmup_excluded_days', 0)}d warmup)" if exclude_warmup else ""
+            warmup_note = (
+                f" (excl {run_health.get('warmup_excluded_days', 0)}d warmup)"
+                if exclude_warmup
+                else ""
+            )
             results[bucket]["health_metric"] = f"max_run={max_run}{warmup_note}"
 
         # Overall readiness (now includes health check)
@@ -571,7 +580,11 @@ def main():
                     print(f"  ❌ Health: {status.get('health_metric', 'N/A')}")
 
         # Regime classifier details
-        regime_specialists = {b: s for b, s in results.items() if s.get("signal_type") == "discrete_regime"}
+        regime_specialists = {
+            b: s
+            for b, s in results.items()
+            if s.get("signal_type") == "discrete_regime"
+        }
         if regime_specialists:
             print("\n" + "-" * 90)
             print("REGIME CLASSIFIER DETAILS:")
@@ -579,14 +592,18 @@ def main():
                 rh = status.get("regime_health", {})
                 if rh.get("metric_applicable"):
                     print(f"\n{bucket}:")
-                    print(f"  Transition rate: {rh.get('transition_rate', 0):.3f} (target: 0.03-0.20)")
+                    print(
+                        f"  Transition rate: {rh.get('transition_rate', 0):.3f} (target: 0.03-0.20)"
+                    )
                     print(f"  State entropy: {rh.get('state_entropy', 0):.3f}")
                     print(f"  State distribution: {rh.get('state_distribution', {})}")
                     if rh.get("missing_states"):
                         print(f"  ⚠️  Missing states: {rh.get('missing_states')}")
 
         # Warmup-aware details
-        warmup_specialists = {b: s for b, s in results.items() if s.get("signal_type") == "warmup_aware"}
+        warmup_specialists = {
+            b: s for b, s in results.items() if s.get("signal_type") == "warmup_aware"
+        }
         if warmup_specialists:
             print("\n" + "-" * 90)
             print("WARMUP-AWARE SPECIALIST DETAILS:")

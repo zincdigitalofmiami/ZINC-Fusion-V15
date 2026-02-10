@@ -21,8 +21,12 @@
  * @date 2026-02-03
  */
 
-import { inngest } from "./client";
-import { fetchDatabentoCsv } from "@/lib/databento";
+import { inngest, DB_CONCURRENCY } from "./client";
+import {
+  fetchDatabentoCsv,
+  parseDatabentoOhlcvCsv,
+  type DatabentoOhlcvBar,
+} from "@/lib/databento";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -81,72 +85,36 @@ interface DailyVwap {
 }
 
 /**
- * Parse Databento trades CSV and calculate daily VWAP
+ * Calculate daily VWAP from 1-minute OHLCV bars.
+ * Uses typical price = (high + low + close) / 3 weighted by volume.
+ *
+ * Why ohlcv-1m instead of trades?
+ * SPY has tens of millions of trades/day (hundreds of MB), but only ~390
+ * 1-minute bars. Same VWAP accuracy, orders of magnitude less data.
  */
-function calculateVwapFromTrades(csv: string, symbol: string): DailyVwap[] {
-  const lines = csv
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith("#"));
+function calculateVwapFromBars(
+  bars: DatabentoOhlcvBar[],
+  symbol: string,
+): DailyVwap[] {
+  const dailyData = new Map<
+    string,
+    { priceVolume: number; volume: number; count: number }
+  >();
 
-  if (lines.length < 2) return [];
+  for (const bar of bars) {
+    const dateStr = bar.tsEvent.toISOString().split("T")[0];
+    const typicalPrice = (bar.high + bar.low + bar.close) / 3;
+    if (typicalPrice <= 0 || bar.volume <= 0) continue;
 
-  const header = lines[0].split(",");
-  const idx = {
-    ts_event: header.indexOf("ts_event"),
-    price: header.indexOf("price"),
-    size: header.indexOf("size"),
-  };
-
-  if (idx.ts_event === -1 || idx.price === -1 || idx.size === -1) {
-    throw new Error(`Trades CSV missing required columns for ${symbol}`);
-  }
-
-  // Accumulate trades by date
-  const dailyData = new Map<string, { priceVolume: number; volume: number; count: number }>();
-
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(",");
-    if (parts.length < header.length) continue;
-
-    // Parse timestamp
-    const tsStr = parts[idx.ts_event]?.trim();
-    if (!tsStr) continue;
-
-    let ts: Date;
-    if (/^\d+$/.test(tsStr)) {
-      // Nanosecond timestamp
-      const ms = Math.floor(Number(tsStr) / 1_000_000);
-      ts = new Date(ms);
-    } else {
-      ts = new Date(tsStr);
-    }
-    if (isNaN(ts.getTime())) continue;
-
-    const dateStr = ts.toISOString().split("T")[0];
-
-    // Parse price (fixed-point scaled by 1e-9)
-    const priceRaw = Number(parts[idx.price]);
-    if (!Number.isFinite(priceRaw)) continue;
-    const price = priceRaw > 1e6 ? priceRaw * 1e-9 : priceRaw; // Handle both formats
-
-    // Parse size
-    const size = Number(parts[idx.size]);
-    if (!Number.isFinite(size) || size <= 0) continue;
-
-    if (price <= 0) continue;
-
-    // Accumulate VWAP components
     if (!dailyData.has(dateStr)) {
       dailyData.set(dateStr, { priceVolume: 0, volume: 0, count: 0 });
     }
     const day = dailyData.get(dateStr)!;
-    day.priceVolume += price * size;
-    day.volume += size;
+    day.priceVolume += typicalPrice * bar.volume;
+    day.volume += bar.volume;
     day.count += 1;
   }
 
-  // Calculate VWAP for each day
   const results: DailyVwap[] = [];
   for (const [dateStr, data] of dailyData.entries()) {
     if (data.volume > 0) {
@@ -165,33 +133,36 @@ function calculateVwapFromTrades(csv: string, symbol: string): DailyVwap[] {
 }
 
 /**
- * Fetch trades for a symbol and date
+ * Fetch 1-minute OHLCV bars for a symbol and date.
+ * ~390 bars/day vs tens of millions of trades — avoids timeout and memory issues.
  */
-async function fetchTradesForDate(
+async function fetchOhlcv1mForDate(
   symbol: string,
   dataset: string,
-  date: Date
-): Promise<string> {
-  // Trades data for full trading day
+  date: Date,
+): Promise<DatabentoOhlcvBar[]> {
   const startDate = new Date(date);
   startDate.setUTCHours(0, 0, 0, 0);
 
   const endDate = new Date(date);
   endDate.setUTCHours(23, 59, 59, 999);
 
-  const csv = await fetchDatabentoCsv({
-    dataset,
-    schema: "trades", // Trade executions
-    symbols: symbol,
-    stype_in: "raw_symbol",
-    start: startDate.toISOString(),
-    end: endDate.toISOString(),
-    encoding: "csv",
-    pretty_ts: "true",
-    pretty_px: "true",
-  });
+  const csv = await fetchDatabentoCsv(
+    {
+      dataset,
+      schema: "ohlcv-1m",
+      symbols: symbol,
+      stype_in: "raw_symbol",
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      encoding: "csv",
+      pretty_ts: "true",
+      pretty_px: "true",
+    },
+    60_000, // 60s timeout (1min bars are small)
+  );
 
-  return csv;
+  return parseDatabentoOhlcvCsv(csv);
 }
 
 /**
@@ -220,7 +191,7 @@ async function updateVwap(vwapData: DailyVwap[]): Promise<number> {
         vwapData.map((v) => v.vwap),
         vwapData.map((v) => v.symbol),
         vwapData.map((v) => v.eventDate.toISOString().split("T")[0]),
-      ]
+      ],
     );
 
     return result.rowCount || 0;
@@ -241,9 +212,11 @@ async function getLatestDateNeedingVwap(symbol: string): Promise<Date | null> {
        WHERE symbol = $1 AND vwap IS NULL
        ORDER BY event_date DESC
        LIMIT 1`,
-      [symbol]
+      [symbol],
     );
-    return result.rows[0]?.event_date ? new Date(result.rows[0].event_date) : null;
+    return result.rows[0]?.event_date
+      ? new Date(result.rows[0].event_date)
+      : null;
   } finally {
     client.release();
   }
@@ -258,6 +231,7 @@ export const databentoEtfVwapDaily = inngest.createFunction(
     id: "databento-etf-vwap-daily",
     name: "Databento ETF VWAP Daily (from Trades)",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/New_York 30 20 * * 1-5" }, // 8:30 PM ET (30min after OHLCV)
   async ({ step, logger }) => {
@@ -280,14 +254,22 @@ export const databentoEtfVwapDaily = inngest.createFunction(
             return;
           }
 
-          logger.info(`Fetching trades for ${config.symbol} on ${latestDate.toISOString().split("T")[0]}`);
+          logger.info(
+            `Fetching 1m bars for ${config.symbol} on ${latestDate.toISOString().split("T")[0]}`,
+          );
 
-          // Fetch trades and calculate VWAP
-          const tradesCsv = await fetchTradesForDate(config.symbol, config.dataset, latestDate);
-          const vwapData = calculateVwapFromTrades(tradesCsv, config.symbol);
+          // Fetch 1-minute OHLCV bars and calculate VWAP
+          const bars = await fetchOhlcv1mForDate(
+            config.symbol,
+            config.dataset,
+            latestDate,
+          );
+          const vwapData = calculateVwapFromBars(bars, config.symbol);
 
           if (vwapData.length === 0) {
-            logger.warn(`No trades data for ${config.symbol} on ${latestDate.toISOString().split("T")[0]}`);
+            logger.warn(
+              `No 1m bar data for ${config.symbol} on ${latestDate.toISOString().split("T")[0]}`,
+            );
             results.push({ symbol: config.symbol, status: "no_data" });
             return;
           }
@@ -295,17 +277,24 @@ export const databentoEtfVwapDaily = inngest.createFunction(
           // Update database
           const updated = await updateVwap(vwapData);
 
-          const totalTrades = vwapData.reduce((sum, v) => sum + v.tradeCount, 0);
+          const totalTrades = vwapData.reduce(
+            (sum, v) => sum + v.tradeCount,
+            0,
+          );
           logger.info(
             `✓ ${config.symbol}: ${updated} days updated, ${totalTrades.toLocaleString()} trades, ` +
-            `avg VWAP $${(vwapData.reduce((sum, v) => sum + v.vwap, 0) / vwapData.length).toFixed(2)}`
+              `avg VWAP $${(vwapData.reduce((sum, v) => sum + v.vwap, 0) / vwapData.length).toFixed(2)}`,
           );
 
           results.push({ symbol: config.symbol, status: "success", updated });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           logger.error(`Failed ${config.symbol}: ${errorMsg}`);
-          results.push({ symbol: config.symbol, status: "error", error: errorMsg });
+          results.push({
+            symbol: config.symbol,
+            status: "error",
+            error: errorMsg,
+          });
         }
       });
     }
@@ -317,7 +306,7 @@ export const databentoEtfVwapDaily = inngest.createFunction(
       successCount: results.filter((r) => r.status === "success").length,
       errorCount: results.filter((r) => r.status === "error").length,
     };
-  }
+  },
 );
 
 /**
@@ -329,16 +318,22 @@ export const databentoEtfVwapBackfill = inngest.createFunction(
     id: "databento-etf-vwap-backfill",
     name: "Databento ETF VWAP Backfill",
     retries: 1,
+    concurrency: [DB_CONCURRENCY],
   },
   { event: "etf/vwap-backfill.requested" },
   async ({ step, logger, event }) => {
-    const targetSymbols = (event.data?.symbols as string[] | undefined) || 
+    const targetSymbols =
+      (event.data?.symbols as string[] | undefined) ||
       DATABENTO_ETF_SYMBOLS.map((s) => s.symbol);
     const daysBack = (event.data?.days as number | undefined) || 30; // Default: last 30 days
 
-    logger.info(`VWAP Backfill: ${targetSymbols.length} symbols, last ${daysBack} days`);
+    logger.info(
+      `VWAP Backfill: ${targetSymbols.length} symbols, last ${daysBack} days`,
+    );
 
-    const symbolConfigs = DATABENTO_ETF_SYMBOLS.filter((s) => targetSymbols.includes(s.symbol));
+    const symbolConfigs = DATABENTO_ETF_SYMBOLS.filter((s) =>
+      targetSymbols.includes(s.symbol),
+    );
     const results: Array<{
       symbol: string;
       status: "success" | "error" | "no_data";
@@ -354,26 +349,32 @@ export const databentoEtfVwapBackfill = inngest.createFunction(
     for (const config of symbolConfigs) {
       await step.run(`backfill-${config.symbol}`, async () => {
         try {
-          logger.info(`Backfilling VWAP for ${config.symbol} (${daysBack} days)`);
+          logger.info(
+            `Backfilling VWAP for ${config.symbol} (${daysBack} days)`,
+          );
 
-          // Fetch trades
-          const tradesCsv = await fetchDatabentoCsv({
-            dataset: config.dataset,
-            schema: "trades",
-            symbols: config.symbol,
-            stype_in: "raw_symbol",
-            start: startDate.toISOString(),
-            end: endDate.toISOString(),
-            encoding: "csv",
-            pretty_ts: "true",
-            pretty_px: "true",
-          });
+          // Fetch 1-minute OHLCV bars (much smaller than tick trades)
+          const csv = await fetchDatabentoCsv(
+            {
+              dataset: config.dataset,
+              schema: "ohlcv-1m",
+              symbols: config.symbol,
+              stype_in: "raw_symbol",
+              start: startDate.toISOString(),
+              end: endDate.toISOString(),
+              encoding: "csv",
+              pretty_ts: "true",
+              pretty_px: "true",
+            },
+            300_000, // 5 min timeout for multi-day backfill
+          );
 
-          // Calculate VWAP
-          const vwapData = calculateVwapFromTrades(tradesCsv, config.symbol);
+          // Calculate VWAP from 1-minute bars
+          const bars = parseDatabentoOhlcvCsv(csv);
+          const vwapData = calculateVwapFromBars(bars, config.symbol);
 
           if (vwapData.length === 0) {
-            logger.warn(`No trades data for ${config.symbol}`);
+            logger.warn(`No 1m bar data for ${config.symbol}`);
             results.push({ symbol: config.symbol, status: "no_data" });
             return;
           }
@@ -386,7 +387,11 @@ export const databentoEtfVwapBackfill = inngest.createFunction(
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           logger.error(`Backfill failed for ${config.symbol}: ${errorMsg}`);
-          results.push({ symbol: config.symbol, status: "error", error: errorMsg });
+          results.push({
+            symbol: config.symbol,
+            status: "error",
+            error: errorMsg,
+          });
         }
       });
     }
@@ -398,5 +403,5 @@ export const databentoEtfVwapBackfill = inngest.createFunction(
       successCount: results.filter((r) => r.status === "success").length,
       errorCount: results.filter((r) => r.status === "error").length,
     };
-  }
+  },
 );

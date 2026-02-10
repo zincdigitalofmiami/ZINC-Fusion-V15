@@ -16,7 +16,7 @@ interface NeuralSphereProps {
  * NeuralSphere - A rotating neural network sphere visualization
  * Based on AlgoSensei template design
  */
-export function NeuralSphere({ 
+export function NeuralSphere({
   size = 400,
   color = '#2962ff',
   particleColor = '#00d4ff',
@@ -75,26 +75,26 @@ export function NeuralSphere({
     // Floating particles
     const particlesGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
-    
+
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       const r = 1.2 + Math.random() * 0.5;
-      
+
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = r * Math.cos(phi);
     }
-    
+
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    
+
     const particlesMaterial = new THREE.PointsMaterial({
       color: pColor,
       size: 0.02,
       transparent: true,
       opacity: 0.6,
     });
-    
+
     const particles = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particles);
 
@@ -102,15 +102,15 @@ export function NeuralSphere({
     let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      
+
       sphere.rotation.x += rotationSpeed;
       sphere.rotation.y += rotationSpeed * 1.5;
-      
+
       innerSphere.rotation.x -= rotationSpeed * 0.5;
       innerSphere.rotation.y -= rotationSpeed;
-      
+
       particles.rotation.y += rotationSpeed * 0.5;
-      
+
       renderer.render(scene, camera);
     };
     animate();
@@ -132,15 +132,15 @@ export function NeuralSphere({
   }, [size, color, particleColor, wireframeOpacity, particleCount, rotationSpeed]);
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        width: size, 
+    <div
+      ref={containerRef}
+      style={{
+        width: size,
         height: size,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-      }} 
+      }}
     />
   );
 }

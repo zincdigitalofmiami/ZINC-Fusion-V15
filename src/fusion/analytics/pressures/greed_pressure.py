@@ -38,13 +38,11 @@ Note: HIGH score = HIGH greed (bullish sentiment, potential top)
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,23 +60,24 @@ GREED = 75
 EXTREME_GREED = 75
 
 # VIX thresholds for sentiment (inverted from volatility pressure)
-VIX_EXTREME_FEAR = 35.0    # VIX > 35 = extreme fear (score 0-15)
-VIX_FEAR = 25.0            # VIX 25-35 = fear (score 15-35)
-VIX_NEUTRAL = 18.0         # VIX 18-25 = neutral (score 35-65)
-VIX_GREED = 14.0           # VIX 14-18 = greed (score 65-85)
-VIX_EXTREME_GREED = 12.0   # VIX < 12 = extreme greed (score 85-100)
+VIX_EXTREME_FEAR = 35.0  # VIX > 35 = extreme fear (score 0-15)
+VIX_FEAR = 25.0  # VIX 25-35 = fear (score 15-35)
+VIX_NEUTRAL = 18.0  # VIX 18-25 = neutral (score 35-65)
+VIX_GREED = 14.0  # VIX 14-18 = greed (score 65-85)
+VIX_EXTREME_GREED = 12.0  # VIX < 12 = extreme greed (score 85-100)
 
 # Credit spread thresholds (HY OAS in bps)
 SPREAD_EXTREME_FEAR = 700  # > 700 bps = extreme fear
-SPREAD_FEAR = 500          # 500-700 = fear
-SPREAD_NEUTRAL = 400       # 350-500 = neutral
-SPREAD_GREED = 300         # 300-350 = greed
-SPREAD_EXTREME_GREED = 250 # < 250 = extreme greed
+SPREAD_FEAR = 500  # 500-700 = fear
+SPREAD_NEUTRAL = 400  # 350-500 = neutral
+SPREAD_GREED = 300  # 300-350 = greed
+SPREAD_EXTREME_GREED = 250  # < 250 = extreme greed
 
 
 @dataclass
 class SentimentRegime:
     """Sentiment regime classification."""
+
     name: str
     description: str
     contrarian_signal: str
@@ -90,32 +89,32 @@ SENTIMENT_REGIMES = {
         name="Extreme Fear",
         description="Panic dominates. Investors liquidating regardless of fundamentals.",
         contrarian_signal="Historically a buying opportunity. Capitulation marks bottoms.",
-        historical_precedent="Similar to March 2020 COVID crash, Q4 2018 selloff."
+        historical_precedent="Similar to March 2020 COVID crash, Q4 2018 selloff.",
     ),
     "fear": SentimentRegime(
         name="Fear",
         description="Risk aversion elevated. Defensive positioning prevails.",
         contrarian_signal="Approaching potential value zone. Smart money begins accumulating.",
-        historical_precedent="Typical correction or early bear market phase."
+        historical_precedent="Typical correction or early bear market phase.",
     ),
     "neutral": SentimentRegime(
         name="Neutral",
         description="Balanced sentiment. Neither excessive fear nor complacency.",
         contrarian_signal="No clear contrarian signal. Trade with fundamentals.",
-        historical_precedent="Normal market conditions."
+        historical_precedent="Normal market conditions.",
     ),
     "greed": SentimentRegime(
         name="Greed",
         description="Risk appetite elevated. Optimism building.",
         contrarian_signal="Caution warranted. Complacency building.",
-        historical_precedent="Late bull market phase. Consider reducing exposure."
+        historical_precedent="Late bull market phase. Consider reducing exposure.",
     ),
     "extreme_greed": SentimentRegime(
         name="Extreme Greed",
         description="Euphoria. FOMO driving decisions, fundamentals ignored.",
         contrarian_signal="Major warning sign. Historically precedes pullbacks.",
-        historical_precedent="Similar to late 2021 meme stock mania, 1999 dot-com."
-    )
+        historical_precedent="Similar to late 2021 meme stock mania, 1999 dot-com.",
+    ),
 }
 
 
@@ -154,7 +153,9 @@ def score_vix_sentiment(vix: float) -> Tuple[float, str]:
         return 95, "Extreme greed - VIX at historic lows"
 
 
-def score_momentum(current: float, ma_short: float, ma_long: float) -> Tuple[float, str]:
+def score_momentum(
+    current: float, ma_short: float, ma_long: float
+) -> Tuple[float, str]:
     """
     Score momentum vs moving averages.
 
@@ -165,7 +166,7 @@ def score_momentum(current: float, ma_short: float, ma_long: float) -> Tuple[flo
 
     # Calculate deviations from MAs
     short_dev = (current - ma_short) / ma_short * 100  # % above/below 20d MA
-    long_dev = (current - ma_long) / ma_long * 100     # % above/below 125d MA
+    long_dev = (current - ma_long) / ma_long * 100  # % above/below 125d MA
 
     # Base score on long-term MA position
     if long_dev > 10:
@@ -275,9 +276,7 @@ def determine_sentiment_regime(score: float) -> str:
 
 
 def generate_greed_narrative(
-    score: float,
-    regime: str,
-    components: Dict[str, float]
+    score: float, regime: str, components: Dict[str, float]
 ) -> Tuple[str, str, List[str]]:
     """
     Generate domain-expert narrative for sentiment.
@@ -372,11 +371,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     all_scores = []
 
     # ==== 1. VIX SENTIMENT ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     vix_row = cur.fetchone()
 
     if vix_row:
@@ -387,11 +389,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         all_scores.append(vix_score)
 
     # ==== 2. MARKET MOMENTUM (SPY) - Databento ETF ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'SPY' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 150
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     spy_data = cur.fetchall()
     if len(spy_data) < 125:
         raise ValueError("Insufficient SPY data for market momentum")
@@ -407,11 +412,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     all_scores.append(spy_score)
 
     # ==== 3. CREDIT SPREADS ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'BAMLH0A0HYM2' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     spread_row = cur.fetchone()
 
     if spread_row:
@@ -423,7 +431,8 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== 4. SAFE HAVEN DEMAND (Gold) - RE-ENABLED with Databento GLD data ====
     # Rising gold = fear (flight to safety), falling gold = greed (risk-on)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             close,
             returns_21d,
@@ -432,12 +441,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         FROM mkt.etf_1d
         WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     gld_row = cur.fetchone()
 
     if gld_row and gld_row[1] is not None:
         gld_ret_21d = float(gld_row[1])  # 21-day log return
-        gld_momentum = float(gld_row[2]) if gld_row[2] else 0.0
+        float(gld_row[2]) if gld_row[2] else 0.0
         gld_zl_corr = float(gld_row[3]) if gld_row[3] else 0.0
 
         # Score using the existing score_safe_haven logic (inverted: gold up = fear)
@@ -451,7 +462,8 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         all_scores.append(50.0)
 
     # ==== 5. SPECIALIST CONSENSUS ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT bucket, signal_1, confidence
         FROM (
             SELECT DISTINCT ON (bucket) bucket, signal_1, confidence
@@ -459,7 +471,9 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             WHERE as_of_date <= %s
             ORDER BY bucket, as_of_date DESC
         ) latest
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signals = cur.fetchall()
 
     if signals:
@@ -477,18 +491,21 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             all_scores.append(consensus_score)
 
     # ==== 6. ZL MOMENTUM ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM analytics.zl_price_1d
         WHERE event_date <= %s
         ORDER BY event_date DESC LIMIT 63
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     zl_data = cur.fetchall()
 
     if len(zl_data) > 20:
         zl_values = [float(r[1]) for r in zl_data if r[1] is not None]
         current_zl = zl_values[0]
         zl_ma20 = np.mean(zl_values[:20])
-        zl_ma50 = np.mean(zl_values[:min(50, len(zl_values))])
+        zl_ma50 = np.mean(zl_values[: min(50, len(zl_values))])
 
         zl_score, zl_desc = score_momentum(current_zl, zl_ma20, zl_ma50)
         components["zl_momentum"] = round(zl_score, 1)
@@ -497,7 +514,8 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== 7. COMMODITY MOMENTUM (DBA) - RE-ENABLED with Databento data ====
     # DBA = Invesco DB Agriculture Fund - broad ag commodity momentum
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             close,
             returns_21d,
@@ -506,7 +524,9 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         FROM mkt.etf_1d
         WHERE symbol = 'DBA' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     dba_row = cur.fetchone()
 
     if dba_row and dba_row[2] is not None:
@@ -545,11 +565,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     regime = determine_sentiment_regime(score)
 
     # ==== SPARKLINE (historical approximation via VIX) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 10
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     vix_hist = cur.fetchall()
 
     sparkline = []
@@ -614,7 +637,11 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         "narrative": narrative,
         "key_drivers": drivers,
         "color": color,
-        "icon": "trending-up" if score > 60 else "trending-down" if score < 40 else "minus",
+        "icon": "trending-up"
+        if score > 60
+        else "trending-down"
+        if score < 40
+        else "minus",
         "sparkline": [round(v, 1) for v in sparkline],
         "percentile_30d": round(score, 1),
         "percentile_1y": round(score, 1),
@@ -623,10 +650,18 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         "as_of_date": as_of_date.isoformat(),
         "components": components,
         "domain_context": {
-            "regime_name": SENTIMENT_REGIMES.get(regime, SENTIMENT_REGIMES["neutral"]).name,
-            "regime_description": SENTIMENT_REGIMES.get(regime, SENTIMENT_REGIMES["neutral"]).description,
-            "contrarian_signal": SENTIMENT_REGIMES.get(regime, SENTIMENT_REGIMES["neutral"]).contrarian_signal,
-            "historical_precedent": SENTIMENT_REGIMES.get(regime, SENTIMENT_REGIMES["neutral"]).historical_precedent,
+            "regime_name": SENTIMENT_REGIMES.get(
+                regime, SENTIMENT_REGIMES["neutral"]
+            ).name,
+            "regime_description": SENTIMENT_REGIMES.get(
+                regime, SENTIMENT_REGIMES["neutral"]
+            ).description,
+            "contrarian_signal": SENTIMENT_REGIMES.get(
+                regime, SENTIMENT_REGIMES["neutral"]
+            ).contrarian_signal,
+            "historical_precedent": SENTIMENT_REGIMES.get(
+                regime, SENTIMENT_REGIMES["neutral"]
+            ).historical_precedent,
             "indicator_count": len(all_scores),
-        }
+        },
     }

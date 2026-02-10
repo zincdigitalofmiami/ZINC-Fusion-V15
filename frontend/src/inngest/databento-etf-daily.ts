@@ -25,7 +25,7 @@
  * @date 2026-02-03
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
@@ -347,6 +347,7 @@ export const databentoEtfDaily = inngest.createFunction(
     id: "databento-etf-daily",
     name: "Databento ETF Daily (OHLCV + Statistics)",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/New_York 0 20 * * 1-5" }, // 8 PM ET on weekdays (after market close)
   async ({ step, logger }) => {
@@ -462,6 +463,7 @@ export const databentoEtfBackfill = inngest.createFunction(
     id: "databento-etf-backfill",
     name: "Databento ETF Historical Backfill (10yr)",
     retries: 1,
+    concurrency: [DB_CONCURRENCY],
   },
   { event: "etf/backfill.requested" },
   async ({ step, logger, event }) => {

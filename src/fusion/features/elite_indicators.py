@@ -36,15 +36,15 @@ Sources:
 
 import pandas as pd
 import numpy as np
-from typing import Optional, Tuple
 import warnings
 
 warnings.filterwarnings("ignore")
 
 # Import TA library (primary)
 try:
-    import ta
-    from ta import momentum, trend, volatility, volume
+    import ta  # noqa: F401
+    from ta import momentum, trend, volatility, volume  # noqa: F401
+
     HAS_TA = True
 except ImportError:
     HAS_TA = False
@@ -111,7 +111,7 @@ class EliteIndicators:
                 return np.nan
 
             ts = np.array(ts)
-            n = len(ts)
+            len(ts)
 
             # Calculate returns
             returns = np.diff(ts) / ts[:-1]
@@ -173,13 +173,15 @@ class EliteIndicators:
             # Clamp to valid range
             return np.clip(slope, 0.0, 1.0)
 
-        self.df["hurst_exponent"] = close.rolling(window).apply(calculate_hurst, raw=False)
+        self.df["hurst_exponent"] = close.rolling(window).apply(
+            calculate_hurst, raw=False
+        )
 
         # Regime classification
         self.df["hurst_regime"] = pd.cut(
             self.df["hurst_exponent"],
             bins=[0, 0.4, 0.6, 1.0],
-            labels=["mean_reverting", "random", "trending"]
+            labels=["mean_reverting", "random", "trending"],
         )
 
         return self.df
@@ -187,9 +189,9 @@ class EliteIndicators:
     def _division_safe_rsi(self, series: pd.Series, period: int) -> pd.Series:
         """
         Division-safe RSI computation.
-        
+
         GUARANTEED: No NaN after warm-up period.
-        
+
         Edge cases (per locked spec):
         - avg_loss = 0 AND avg_gain > 0 → RSI = 100 (all gains)
         - avg_gain = 0 AND avg_loss > 0 → RSI = 0 (all losses)
@@ -198,31 +200,31 @@ class EliteIndicators:
         delta = series.diff()
         gain = delta.where(delta > 0, 0.0)
         loss = (-delta).where(delta < 0, 0.0)
-        
+
         avg_gain = gain.rolling(period).mean()
         avg_loss = loss.rolling(period).mean()
-        
+
         # Initialize RSI with NaN
         rsi = pd.Series(np.nan, index=series.index)
-        
+
         # Apply division-safe logic element-wise
         for i in range(period, len(series)):
             ag = avg_gain.iloc[i]
             al = avg_loss.iloc[i]
-            
+
             # Handle edge cases explicitly
             if pd.isna(ag) or pd.isna(al):
                 rsi.iloc[i] = np.nan  # Still in warm-up or bad data
             elif al == 0 and ag > 0:
                 rsi.iloc[i] = 100.0  # All gains, no losses
             elif ag == 0 and al > 0:
-                rsi.iloc[i] = 0.0    # All losses, no gains
+                rsi.iloc[i] = 0.0  # All losses, no gains
             elif ag == 0 and al == 0:
-                rsi.iloc[i] = 50.0   # Flat tape (no movement)
+                rsi.iloc[i] = 50.0  # Flat tape (no movement)
             else:
                 rs = ag / al
                 rsi.iloc[i] = 100.0 - (100.0 / (1.0 + rs))
-        
+
         return rsi
 
     def add_connors_rsi(self) -> pd.DataFrame:
@@ -235,7 +237,7 @@ class EliteIndicators:
         3. Percentile rank of 1-day ROC over 100 days
 
         GUARANTEED: No NaN after warm-up (max lookback = 100 days).
-        
+
         Overbought: > 90, Oversold: < 10 (NOT 70/30!)
         """
         close = self.df[self.close_col]
@@ -246,12 +248,12 @@ class EliteIndicators:
         # Component 2: Up/Down streak RSI(2)
         streak = pd.Series(0.0, index=close.index, dtype=float)
         for i in range(1, len(close)):
-            if pd.isna(close.iloc[i]) or pd.isna(close.iloc[i-1]):
+            if pd.isna(close.iloc[i]) or pd.isna(close.iloc[i - 1]):
                 streak.iloc[i] = 0.0
-            elif close.iloc[i] > close.iloc[i-1]:
-                streak.iloc[i] = max(streak.iloc[i-1], 0) + 1
-            elif close.iloc[i] < close.iloc[i-1]:
-                streak.iloc[i] = min(streak.iloc[i-1], 0) - 1
+            elif close.iloc[i] > close.iloc[i - 1]:
+                streak.iloc[i] = max(streak.iloc[i - 1], 0) + 1
+            elif close.iloc[i] < close.iloc[i - 1]:
+                streak.iloc[i] = min(streak.iloc[i - 1], 0) - 1
             else:
                 streak.iloc[i] = 0.0  # Flat day resets streak
 
@@ -261,7 +263,7 @@ class EliteIndicators:
         # Component 3: ROC percentile rank over 100 days
         # Bounded output: 0-100, no division issues
         roc_1d = close.pct_change(1) * 100
-        
+
         def safe_percentile_rank(x):
             """Percentile rank that never returns NaN after warm-up."""
             if len(x) < 2:
@@ -273,7 +275,7 @@ class EliteIndicators:
             # Count how many past values current exceeds
             count = (current > past).sum()
             return (count / len(past)) * 100.0
-        
+
         roc_percentile = roc_1d.rolling(100, min_periods=20).apply(
             safe_percentile_rank, raw=False
         )
@@ -283,7 +285,7 @@ class EliteIndicators:
         rsi_3_safe = rsi_3.fillna(50.0)
         rsi_streak_safe = rsi_streak.fillna(50.0)
         roc_pct_safe = roc_percentile.fillna(50.0)
-        
+
         self.df["connors_rsi"] = (rsi_3_safe + rsi_streak_safe + roc_pct_safe) / 3.0
 
         # Signals at 90/10 levels (NOT 70/30)
@@ -340,23 +342,28 @@ class EliteIndicators:
         md.iloc[0] = close.iloc[0]
 
         for i in range(1, len(close)):
-            if pd.isna(close.iloc[i]) or pd.isna(md.iloc[i-1]) or md.iloc[i-1] == 0:
+            if pd.isna(close.iloc[i]) or pd.isna(md.iloc[i - 1]) or md.iloc[i - 1] == 0:
                 md.iloc[i] = close.iloc[i]
             else:
-                ratio = close.iloc[i] / md.iloc[i-1]
-                k = period * (ratio ** 4)
+                ratio = close.iloc[i] / md.iloc[i - 1]
+                k = period * (ratio**4)
                 if k > 0:
-                    md.iloc[i] = md.iloc[i-1] + (close.iloc[i] - md.iloc[i-1]) / k
+                    md.iloc[i] = md.iloc[i - 1] + (close.iloc[i] - md.iloc[i - 1]) / k
                 else:
-                    md.iloc[i] = md.iloc[i-1]
+                    md.iloc[i] = md.iloc[i - 1]
 
         self.df["mcginley_dynamic"] = md
         self.df["mcginley_signal"] = (close > md).astype(int) - (close < md).astype(int)
 
         return self.df
 
-    def add_ttm_squeeze(self, bb_period: int = 20, bb_std: float = 2.0,
-                        kc_period: int = 20, kc_mult: float = 1.5) -> pd.DataFrame:
+    def add_ttm_squeeze(
+        self,
+        bb_period: int = 20,
+        bb_std: float = 2.0,
+        kc_period: int = 20,
+        kc_mult: float = 1.5,
+    ) -> pd.DataFrame:
         """
         TTM Squeeze - John Carter's famous indicator.
 
@@ -375,11 +382,9 @@ class EliteIndicators:
         bb_lower = bb_mid - bb_std * bb_std_val
 
         # Keltner Channels (using ATR)
-        tr = pd.concat([
-            high - low,
-            abs(high - close.shift(1)),
-            abs(low - close.shift(1))
-        ], axis=1).max(axis=1)
+        tr = pd.concat(
+            [high - low, abs(high - close.shift(1)), abs(low - close.shift(1))], axis=1
+        ).max(axis=1)
         atr = tr.rolling(kc_period).mean()
 
         kc_mid = close.rolling(kc_period).mean()
@@ -412,8 +417,9 @@ class EliteIndicators:
 
         return self.df
 
-    def add_schaff_trend_cycle(self, fast: int = 23, slow: int = 50,
-                               cycle: int = 10) -> pd.DataFrame:
+    def add_schaff_trend_cycle(
+        self, fast: int = 23, slow: int = 50, cycle: int = 10
+    ) -> pd.DataFrame:
         """
         Schaff Trend Cycle (STC) - MACD through double Stochastic.
 
@@ -430,7 +436,9 @@ class EliteIndicators:
         # First Stochastic of MACD
         lowest_macd = macd.rolling(cycle).min()
         highest_macd = macd.rolling(cycle).max()
-        stoch1 = 100 * (macd - lowest_macd) / (highest_macd - lowest_macd).replace(0, np.nan)
+        stoch1 = (
+            100 * (macd - lowest_macd) / (highest_macd - lowest_macd).replace(0, np.nan)
+        )
 
         # Smooth first stochastic
         pf = stoch1.ewm(span=3, adjust=False).mean()
@@ -469,7 +477,9 @@ class EliteIndicators:
 
         # Symmetric smoothing (weighted MA)
         def swma(series):
-            return (series + 2*series.shift(1) + 2*series.shift(2) + series.shift(3)) / 6
+            return (
+                series + 2 * series.shift(1) + 2 * series.shift(2) + series.shift(3)
+            ) / 6
 
         vigor_smooth = swma(vigor)
         range_smooth = swma(range_hl)
@@ -503,7 +513,9 @@ class EliteIndicators:
         force_raw = close.diff() * volume
 
         # Smooth with EMA (min_periods=5 for early data with volume gaps)
-        self.df["elder_force_index"] = force_raw.ewm(span=period, min_periods=5, adjust=False).mean()
+        self.df["elder_force_index"] = force_raw.ewm(
+            span=period, min_periods=5, adjust=False
+        ).mean()
 
         # Zero-line crossover signals
         efi = self.df["elder_force_index"]
@@ -541,9 +553,11 @@ class EliteIndicators:
         kama.iloc[9] = close.iloc[:10].mean()
         for i in range(10, len(close)):
             if pd.notna(sc.iloc[i]):
-                kama.iloc[i] = kama.iloc[i-1] + sc.iloc[i] * (close.iloc[i] - kama.iloc[i-1])
+                kama.iloc[i] = kama.iloc[i - 1] + sc.iloc[i] * (
+                    close.iloc[i] - kama.iloc[i - 1]
+                )
             else:
-                kama.iloc[i] = kama.iloc[i-1]
+                kama.iloc[i] = kama.iloc[i - 1]
 
         self.df["kama_10"] = kama
 
@@ -552,14 +566,14 @@ class EliteIndicators:
         sqrt_period = int(np.sqrt(20))
 
         wma_half = close.rolling(half_period).apply(
-            lambda x: np.average(x, weights=range(1, len(x)+1)), raw=True
+            lambda x: np.average(x, weights=range(1, len(x) + 1)), raw=True
         )
         wma_full = close.rolling(20).apply(
-            lambda x: np.average(x, weights=range(1, len(x)+1)), raw=True
+            lambda x: np.average(x, weights=range(1, len(x) + 1)), raw=True
         )
         raw_hma = 2 * wma_half - wma_full
         self.df["hma_20"] = raw_hma.rolling(sqrt_period).apply(
-            lambda x: np.average(x, weights=range(1, len(x)+1)), raw=True
+            lambda x: np.average(x, weights=range(1, len(x) + 1)), raw=True
         )
 
         # ALMA(50) - Arnaud Legoux Moving Average
@@ -570,33 +584,47 @@ class EliteIndicators:
         m = int(offset * (period - 1))
         s = period / sigma
 
-        weights = np.array([np.exp(-((i - m) ** 2) / (2 * s * s)) for i in range(period)])
+        weights = np.array(
+            [np.exp(-((i - m) ** 2) / (2 * s * s)) for i in range(period)]
+        )
         weights = weights / weights.sum()
 
         self.df["alma_50"] = close.rolling(period, min_periods=25).apply(
-            lambda x: np.dot(x, weights[-len(x):] / weights[-len(x):].sum()), raw=True
+            lambda x: np.dot(x, weights[-len(x) :] / weights[-len(x) :].sum()), raw=True
         )
 
         # McGinley(100) - "Systemic Floor" for 126d horizon
         md100 = pd.Series(index=close.index, dtype=float)
         md100.iloc[0] = close.iloc[0]
         for i in range(1, len(close)):
-            if pd.isna(close.iloc[i]) or pd.isna(md100.iloc[i-1]) or md100.iloc[i-1] == 0:
+            if (
+                pd.isna(close.iloc[i])
+                or pd.isna(md100.iloc[i - 1])
+                or md100.iloc[i - 1] == 0
+            ):
                 md100.iloc[i] = close.iloc[i]
             else:
-                ratio = close.iloc[i] / md100.iloc[i-1]
-                k = 100 * (ratio ** 4)
+                ratio = close.iloc[i] / md100.iloc[i - 1]
+                k = 100 * (ratio**4)
                 if k > 0:
-                    md100.iloc[i] = md100.iloc[i-1] + (close.iloc[i] - md100.iloc[i-1]) / k
+                    md100.iloc[i] = (
+                        md100.iloc[i - 1] + (close.iloc[i] - md100.iloc[i - 1]) / k
+                    )
                 else:
-                    md100.iloc[i] = md100.iloc[i-1]
+                    md100.iloc[i] = md100.iloc[i - 1]
         self.df["mcginley_100"] = md100
 
         # MA Distances (stationarized - % deviation from MA)
         # These are bounded/stationary features better for transformer tokenization
-        self.df["price_vs_kama10_pct"] = (close - self.df["kama_10"]) / self.df["kama_10"] * 100
-        self.df["price_vs_hma20_pct"] = (close - self.df["hma_20"]) / self.df["hma_20"] * 100
-        self.df["price_vs_alma50_pct"] = (close - self.df["alma_50"]) / self.df["alma_50"] * 100
+        self.df["price_vs_kama10_pct"] = (
+            (close - self.df["kama_10"]) / self.df["kama_10"] * 100
+        )
+        self.df["price_vs_hma20_pct"] = (
+            (close - self.df["hma_20"]) / self.df["hma_20"] * 100
+        )
+        self.df["price_vs_alma50_pct"] = (
+            (close - self.df["alma_50"]) / self.df["alma_50"] * 100
+        )
         self.df["price_vs_mcg100_pct"] = (close - md100) / md100 * 100
 
         return self.df
@@ -615,8 +643,12 @@ class EliteIndicators:
             delta = series.diff()
             gain = delta.where(delta > 0, 0)
             loss = (-delta).where(delta < 0, 0)
-            avg_gain = gain.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
-            avg_loss = loss.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+            avg_gain = gain.ewm(
+                alpha=1 / period, min_periods=period, adjust=False
+            ).mean()
+            avg_loss = loss.ewm(
+                alpha=1 / period, min_periods=period, adjust=False
+            ).mean()
             rs = avg_gain / avg_loss.replace(0, np.nan)
             return 100 - (100 / (1 + rs))
 
@@ -652,8 +684,12 @@ class EliteIndicators:
         ema_5 = close.ewm(span=5, adjust=False).mean()
         ema_13 = close.ewm(span=13, adjust=False).mean()
         self.df["macd_fast"] = ema_5 - ema_13
-        self.df["macd_fast_signal"] = self.df["macd_fast"].ewm(span=4, adjust=False).mean()
-        self.df["macd_fast_histogram"] = self.df["macd_fast"] - self.df["macd_fast_signal"]
+        self.df["macd_fast_signal"] = (
+            self.df["macd_fast"].ewm(span=4, adjust=False).mean()
+        )
+        self.df["macd_fast_histogram"] = (
+            self.df["macd_fast"] - self.df["macd_fast_signal"]
+        )
 
         return self.df
 
@@ -699,11 +735,9 @@ class EliteIndicators:
         close = self.df[self.close_col]
 
         # True Range
-        tr = pd.concat([
-            high - low,
-            abs(high - close.shift(1)),
-            abs(low - close.shift(1))
-        ], axis=1).max(axis=1)
+        tr = pd.concat(
+            [high - low, abs(high - close.shift(1)), abs(low - close.shift(1))], axis=1
+        ).max(axis=1)
 
         # ATR(10) and ATR(50) with min_periods for sparse data
         self.df["atr_10"] = tr.rolling(10, min_periods=5).mean()
@@ -724,36 +758,30 @@ class EliteIndicators:
         # - If C = O → ln(C/O) = 0 (no intraday move)
         # - Clamp negative variance to 0
         # =====================================================================
-        
+
         # Safe log(H/L): if H == L, result is 0 (not NaN or -inf)
         hl_ratio = high / low
-        log_hl_safe = np.where(
-            (high == low) | (hl_ratio <= 0),
-            0.0,
-            np.log(hl_ratio)
-        )
-        log_hl_sq = log_hl_safe ** 2
-        
+        log_hl_safe = np.where((high == low) | (hl_ratio <= 0), 0.0, np.log(hl_ratio))
+        log_hl_sq = log_hl_safe**2
+
         # Safe log(C/O): if C == O, result is 0
         co_ratio = close / open_p
         log_co_safe = np.where(
-            (close == open_p) | (co_ratio <= 0) | (open_p == 0),
-            0.0,
-            np.log(co_ratio)
+            (close == open_p) | (co_ratio <= 0) | (open_p == 0), 0.0, np.log(co_ratio)
         )
-        log_co_sq = log_co_safe ** 2
-        
+        log_co_sq = log_co_safe**2
+
         # GK daily variance (can be negative due to formula, clamp to 0)
         gk_coeff = 2 * np.log(2) - 1  # ≈ 0.386
         gk_daily = 0.5 * log_hl_sq - gk_coeff * log_co_sq
         gk_daily = np.maximum(gk_daily, 0.0)  # Clamp negative to 0
-        
+
         # Convert to pandas Series for rolling
         gk_daily_series = pd.Series(gk_daily, index=self.df.index)
-        
+
         # Rolling mean, then annualize and convert to percentage
         gk_rolling = gk_daily_series.rolling(20, min_periods=10).mean()
-        
+
         # sqrt of negative should not happen after clamp, but protect anyway
         gk_rolling_safe = np.maximum(gk_rolling, 0.0)
         self.df["garman_klass_vol"] = np.sqrt(gk_rolling_safe * 252) * 100
@@ -761,7 +789,7 @@ class EliteIndicators:
         # Yang-Zhang Volatility (handles overnight gaps)
         log_oc = np.log(open_p / close.shift(1))  # Overnight
         log_co = np.log(close / open_p)  # Open-to-close
-        log_cc = np.log(close / close.shift(1))  # Close-to-close
+        np.log(close / close.shift(1))  # Close-to-close
 
         # Rogers-Satchell component
         log_ho = np.log(high / open_p)
@@ -819,41 +847,33 @@ class EliteIndicators:
         # - If V = 0 → MFV = 0 (no flow if nothing traded)
         # - If ΣV over window = 0 → CMF = 0 (neutral)
         # =====================================================================
-        
+
         # Money Flow Multiplier: (2*C - H - L) / (H - L)
         # Safe version: if H == L, MFM = 0 (neutral positioning)
         hl_range = high - low
         mfm_raw = (2 * close - high - low) / hl_range
-        
+
         # Where H == L, set MFM to 0 (neutral - no informative close location)
-        mf_multiplier = np.where(
-            hl_range == 0,
-            0.0,
-            mfm_raw
-        )
+        mf_multiplier = np.where(hl_range == 0, 0.0, mfm_raw)
         mf_multiplier = pd.Series(mf_multiplier, index=self.df.index)
-        
+
         # Handle any NaN from division (shouldn't happen after fix, but safety)
         mf_multiplier = mf_multiplier.fillna(0.0)
-        
+
         # Money Flow Volume: MFM * V
         # If V = 0, MFV = 0 by definition
         volume_safe = volume.fillna(0.0)
         mf_volume = mf_multiplier * volume_safe
-        
+
         # Rolling sums
         mfv_sum = mf_volume.rolling(21, min_periods=10).sum()
         vol_sum = volume_safe.rolling(21, min_periods=10).sum()
-        
+
         # CMF = MFV_sum / Vol_sum
         # If vol_sum == 0, CMF = 0 (neutral - cannot infer flow without trades)
-        cmf = np.where(
-            vol_sum == 0,
-            0.0,
-            mfv_sum / vol_sum
-        )
+        cmf = np.where(vol_sum == 0, 0.0, mfv_sum / vol_sum)
         self.df["cmf_21"] = pd.Series(cmf, index=self.df.index)
-        
+
         # Fill any remaining NaN from warm-up with 0 after min_periods
         # (warm-up NaN is expected, but scattered NaN is not)
 
@@ -908,18 +928,50 @@ class EliteIndicators:
 
         # Count indicators added
         base_cols = {"ts_event", "trade_date", "target"}
-        indicator_cols = [c for c in self.df.columns if c not in base_cols
-                         and not c.endswith("_open") and not c.endswith("_high")
-                         and not c.endswith("_low") and not c.endswith("_close")
-                         and not c.endswith("_volume")]
+        indicator_cols = [
+            c
+            for c in self.df.columns
+            if c not in base_cols
+            and not c.endswith("_open")
+            and not c.endswith("_high")
+            and not c.endswith("_low")
+            and not c.endswith("_close")
+            and not c.endswith("_volume")
+        ]
 
         # Filter to just the new elite indicators
-        elite_indicators = [c for c in indicator_cols if any(x in c for x in [
-            "hurst", "connors", "fisher", "mcginley", "ttm_squeeze", "schaff",
-            "rvi", "elder_force", "kama", "hma", "alma", "rsi", "cumulative",
-            "macd", "cci", "atr", "garman", "yang_zhang", "bb_percent",
-            "cmf", "volume_zscore", "unusual_volume", "stc"
-        ])]
+        elite_indicators = [
+            c
+            for c in indicator_cols
+            if any(
+                x in c
+                for x in [
+                    "hurst",
+                    "connors",
+                    "fisher",
+                    "mcginley",
+                    "ttm_squeeze",
+                    "schaff",
+                    "rvi",
+                    "elder_force",
+                    "kama",
+                    "hma",
+                    "alma",
+                    "rsi",
+                    "cumulative",
+                    "macd",
+                    "cci",
+                    "atr",
+                    "garman",
+                    "yang_zhang",
+                    "bb_percent",
+                    "cmf",
+                    "volume_zscore",
+                    "unusual_volume",
+                    "stc",
+                ]
+            )
+        ]
 
         print(f"\n   Computed {len(elite_indicators)} elite technical indicators")
 
@@ -929,30 +981,57 @@ class EliteIndicators:
         """Return summary of computed indicators by tier."""
         return {
             "tier_1_institutional": [
-                "hurst_exponent", "hurst_regime",
-                "connors_rsi", "connors_rsi_overbought", "connors_rsi_oversold",
-                "fisher_transform", "fisher_signal", "fisher_overbought", "fisher_oversold",
-                "mcginley_dynamic", "mcginley_signal",
-                "ttm_squeeze_on", "ttm_squeeze_momentum", "ttm_squeeze_count",
-                "schaff_trend_cycle", "stc_bullish", "stc_bearish",
-                "rvi", "rvi_signal", "rvi_histogram",
-                "elder_force_index", "efi_bullish", "efi_bearish"
+                "hurst_exponent",
+                "hurst_regime",
+                "connors_rsi",
+                "connors_rsi_overbought",
+                "connors_rsi_oversold",
+                "fisher_transform",
+                "fisher_signal",
+                "fisher_overbought",
+                "fisher_oversold",
+                "mcginley_dynamic",
+                "mcginley_signal",
+                "ttm_squeeze_on",
+                "ttm_squeeze_momentum",
+                "ttm_squeeze_count",
+                "schaff_trend_cycle",
+                "stc_bullish",
+                "stc_bearish",
+                "rvi",
+                "rvi_signal",
+                "rvi_histogram",
+                "elder_force_index",
+                "efi_bullish",
+                "efi_bearish",
             ],
             "tier_2_optimized": [
-                "kama_10", "hma_20", "alma_50",
-                "rsi_2", "rsi_14", "cumulative_rsi", "rsi2_buy_signal", "rsi2_sell_signal",
-                "macd", "macd_signal", "macd_histogram",
-                "macd_fast", "macd_fast_signal", "macd_fast_histogram",
-                "cci_14", "cci_50"
+                "kama_10",
+                "hma_20",
+                "alma_50",
+                "rsi_2",
+                "rsi_14",
+                "cumulative_rsi",
+                "rsi2_buy_signal",
+                "rsi2_sell_signal",
+                "macd",
+                "macd_signal",
+                "macd_histogram",
+                "macd_fast",
+                "macd_fast_signal",
+                "macd_fast_histogram",
+                "cci_14",
+                "cci_50",
             ],
             "tier_3_volatility": [
-                "atr_10", "atr_50", "atr_ratio",
-                "garman_klass_vol", "yang_zhang_vol",
-                "bb_percent_b"
+                "atr_10",
+                "atr_50",
+                "atr_ratio",
+                "garman_klass_vol",
+                "yang_zhang_vol",
+                "bb_percent_b",
             ],
-            "tier_4_volume": [
-                "cmf_21", "volume_zscore", "unusual_volume"
-            ]
+            "tier_4_volume": ["cmf_21", "volume_zscore", "unusual_volume"],
         }
 
 

@@ -79,7 +79,9 @@ SIGNAL_GENERATORS = {
 def get_generator(bucket: str) -> BaseSignalGenerator:
     """Factory function to get signal generator for a bucket."""
     if bucket not in SIGNAL_GENERATORS:
-        raise ValueError(f"Unknown bucket: {bucket}. Valid: {list(SIGNAL_GENERATORS.keys())}")
+        raise ValueError(
+            f"Unknown bucket: {bucket}. Valid: {list(SIGNAL_GENERATORS.keys())}"
+        )
     return SIGNAL_GENERATORS[bucket]()
 
 

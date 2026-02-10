@@ -19,14 +19,14 @@
   --bg-card-elevated-strong: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
   --bg-input: rgba(255, 255, 255, 0.05);
   --bg-chart: #131722;
-  
+
   /* Border Colors */
   --border: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.2);
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-card: rgba(255, 255, 255, 0.1);
   --border-card-hover: rgba(255, 255, 255, 0.2);
-  
+
   /* Text Colors */
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.8);
@@ -34,13 +34,13 @@
   --text-subtle: rgba(255, 255, 255, 0.6);
   --text-faint: rgba(255, 255, 255, 0.5);
   --text-ghost: rgba(255, 255, 255, 0.4);
-  
+
   /* Accent Colors */
   --accent-blue: #2962FF;
   --accent-blue-bg: rgba(41, 98, 255, 0.2);
   --accent-blue-border: rgba(41, 98, 255, 0.4);
   --accent-blue-light: rgba(41, 98, 255, 0.08);
-  
+
   /* Signal Colors */
   --signal-positive: #2962FF;
   --signal-negative: #ef5350;
@@ -48,7 +48,7 @@
   --signal-warning: #ffb464;
   --signal-yellow: #ffd54f;
   --signal-green: #81c784;
-  
+
   /* Signal Backgrounds */
   --signal-positive-bg: rgba(41, 98, 255, 0.2);
   --signal-negative-bg: rgba(239, 83, 80, 0.2);
@@ -56,13 +56,13 @@
   --signal-warning-bg: rgba(255, 180, 100, 0.2);
   --signal-negative-bg-light: rgba(239, 83, 80, 0.1);
   --signal-warning-bg-light: rgba(255, 180, 100, 0.08);
-  
+
   /* Signal Borders */
   --signal-positive-border: rgba(41, 98, 255, 0.4);
   --signal-negative-border: rgba(239, 83, 80, 0.4);
   --signal-warning-border: rgba(255, 180, 100, 0.4);
   --signal-negative-border-strong: rgba(239, 83, 80, 0.3);
-  
+
   /* Regime Chip Colors */
   --regime-stable-bg: rgba(41, 98, 255, 0.2);
   --regime-stable-border: rgba(41, 98, 255, 0.4);
@@ -79,18 +79,18 @@
   --regime-crisis-bg: rgba(255, 100, 100, 0.2);
   --regime-crisis-border: rgba(255, 100, 100, 0.4);
   --regime-crisis-text: #ffaaaa;
-  
+
   /* Confidence Badge */
   --confidence-high-bg: rgba(100, 255, 100, 0.2);
   --confidence-high-text: #aaffaa;
-  
+
   /* Gauge Gradient (Sell → Strong Buy) */
   --gauge-sell: #ef5350;
   --gauge-sell-light: #ffb74d;
   --gauge-neutral: #ffd54f;
   --gauge-buy: #81c784;
   --gauge-strong-buy: #2962FF;
-  
+
   /* Border Radius */
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -98,7 +98,7 @@
   --radius-xl: 10px;
   --radius-2xl: 12px;
   --radius-3xl: 16px;
-  
+
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
@@ -112,7 +112,7 @@
   --space-15: 60px;
   --space-20: 80px;
   --space-30: 120px;
-  
+
   /* Layout */
   --max-width: 1400px;
   --max-width-lg: 1600px;
@@ -120,7 +120,7 @@
   --status-bar-height: 48px;
   --header-height: 80px;
   --content-top: 128px;
-  
+
   /* Transitions */
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s ease;
@@ -1327,12 +1327,12 @@ html, body {
   left: 0;
   right: 0;
   height: 60%;
-  background: linear-gradient(45deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.1) 20%, 
-    rgba(255, 255, 255, 0.2) 40%, 
-    rgba(255, 255, 255, 0.3) 60%, 
-    rgba(255, 255, 255, 0.2) 80%, 
+  background: linear-gradient(45deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 40%,
+    rgba(255, 255, 255, 0.3) 60%,
+    rgba(255, 255, 255, 0.2) 80%,
     transparent 100%);
   clip-path: polygon(0% 100%, 10% 80%, 25% 85%, 40% 60%, 55% 70%, 70% 40%, 85% 45%, 100% 20%);
 }

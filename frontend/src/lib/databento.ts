@@ -88,7 +88,13 @@ export function parseDatabentoOhlcvCsv(csv: string): DatabentoOhlcvBar[] {
     volume: header.indexOf("volume"),
   };
 
-  if (idx.ts_event === -1 || idx.open === -1 || idx.high === -1 || idx.low === -1 || idx.close === -1) {
+  if (
+    idx.ts_event === -1 ||
+    idx.open === -1 ||
+    idx.high === -1 ||
+    idx.low === -1 ||
+    idx.close === -1
+  ) {
     throw new Error("Databento CSV missing required OHLCV columns");
   }
 
@@ -106,7 +112,12 @@ export function parseDatabentoOhlcvCsv(csv: string): DatabentoOhlcvBar[] {
     const close = Number(parts[idx.close]);
     const volume = idx.volume >= 0 ? Number(parts[idx.volume]) || 0 : 0;
 
-    if (!Number.isFinite(open) || !Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) {
+    if (
+      !Number.isFinite(open) ||
+      !Number.isFinite(high) ||
+      !Number.isFinite(low) ||
+      !Number.isFinite(close)
+    ) {
       continue;
     }
 
@@ -140,7 +151,9 @@ const INT64_MAX = 9223372036854775807n;
  * - quantity field (if not sentinel INT64_MAX)
  * - price field (if quantity is sentinel, then price * 1e-9)
  */
-export function parseDatabentoStatisticsCsv(csv: string): DatabentoStatisticsBar[] {
+export function parseDatabentoStatisticsCsv(
+  csv: string,
+): DatabentoStatisticsBar[] {
   const lines = csv
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -157,11 +170,15 @@ export function parseDatabentoStatisticsCsv(csv: string): DatabentoStatisticsBar
   };
 
   if (idx.ts_event === -1) {
-    throw new Error("Databento statistics CSV missing required ts_event column");
+    throw new Error(
+      "Databento statistics CSV missing required ts_event column",
+    );
   }
 
   if (idx.stat_type === -1) {
-    throw new Error("Databento statistics CSV missing required stat_type column");
+    throw new Error(
+      "Databento statistics CSV missing required stat_type column",
+    );
   }
 
   const bars: DatabentoStatisticsBar[] = [];
@@ -258,7 +275,10 @@ const EMPTY_STATS: OptionsStatisticsRecord = {
 };
 
 /** stat_type -> [key of OptionsStatisticsRecord, "price" | "quantity"] */
-const STAT_MAP: Record<number, [keyof OptionsStatisticsRecord, "price" | "quantity"]> = {
+const STAT_MAP: Record<
+  number,
+  [keyof OptionsStatisticsRecord, "price" | "quantity"]
+> = {
   1: ["openingPriceStat", "price"],
   2: ["indicativeOpening", "price"],
   3: ["settlement", "price"],
@@ -282,7 +302,7 @@ const STAT_MAP: Record<number, [keyof OptionsStatisticsRecord, "price" | "quanti
  * Key = `${symbol}_${dateStr}` (YYYY-MM-DD).
  */
 export function parseDatabentoStatisticsCsvOptions(
-  csv: string
+  csv: string,
 ): Map<string, OptionsStatisticsRecord> {
   const map = new Map<string, OptionsStatisticsRecord>();
 
@@ -328,13 +348,15 @@ export function parseDatabentoStatisticsCsvOptions(
       const qtyStr = parts[idx.quantity]?.trim();
       if (qtyStr) {
         const q = parseInt(qtyStr, 10);
-        if (Number.isFinite(q) && q >= 0 && q < INT32_MAX_QTY) (rec as Record<string, number | null>)[field] = q;
+        if (Number.isFinite(q) && q >= 0 && q < INT32_MAX_QTY)
+          (rec as Record<string, number | null>)[field] = q;
       }
     } else if (idx.price >= 0) {
       const priceStr = parts[idx.price]?.trim();
       if (priceStr) {
         const p = Number(priceStr) * 1e-9;
-        if (Number.isFinite(p)) (rec as Record<string, number | null>)[field] = p;
+        if (Number.isFinite(p))
+          (rec as Record<string, number | null>)[field] = p;
       }
     }
   }

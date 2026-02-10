@@ -29,13 +29,11 @@ Key Indicators:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import date
+from typing import Dict, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,12 +43,12 @@ load_dotenv()
 # ==============================================================================
 
 # Weekly news velocity thresholds (relative to baseline)
-NEWS_QUIET = 0.5          # 50% of baseline
+NEWS_QUIET = 0.5  # 50% of baseline
 NEWS_LIGHT = 0.75
 NEWS_NORMAL = 1.0
-NEWS_ACTIVE = 1.5         # 50% above baseline
-NEWS_HEAVY = 2.0          # 2x baseline
-NEWS_FIREHOSE = 3.0       # 3x baseline
+NEWS_ACTIVE = 1.5  # 50% above baseline
+NEWS_HEAVY = 2.0  # 2x baseline
+NEWS_FIREHOSE = 3.0  # 3x baseline
 
 # Executive action thresholds (per week)
 EXEC_QUIET = 0
@@ -63,6 +61,7 @@ EXEC_EXTREME = 20
 @dataclass
 class NewsRegime:
     """News flow regime classification."""
+
     name: str
     description: str
     implication: str
@@ -72,28 +71,28 @@ NEWS_REGIMES = {
     "quiet": NewsRegime(
         name="Quiet News",
         description="Light news flow. Markets focused on fundamentals.",
-        implication="Technical and seasonal factors may dominate."
+        implication="Technical and seasonal factors may dominate.",
     ),
     "normal": NewsRegime(
         name="Normal News",
         description="Standard news velocity. No unusual concentration.",
-        implication="Markets digesting information normally."
+        implication="Markets digesting information normally.",
     ),
     "active": NewsRegime(
         name="Active News",
         description="Above-average news velocity. Multiple narratives in play.",
-        implication="Watch for sentiment shifts. Headlines may drive."
+        implication="Watch for sentiment shifts. Headlines may drive.",
     ),
     "heavy": NewsRegime(
         name="Heavy News",
         description="High news velocity. Markets processing heavy information flow.",
-        implication="Volatility likely elevated. Information overload risk."
+        implication="Volatility likely elevated. Information overload risk.",
     ),
     "storm": NewsRegime(
         name="News Storm",
         description="Extreme news velocity. Crisis-level coverage.",
-        implication="Expect large moves. Liquidity may thin. Headlines drive."
-    )
+        implication="Expect large moves. Liquidity may thin. Headlines drive.",
+    ),
 }
 
 # ==============================================================================
@@ -101,10 +100,10 @@ NEWS_REGIMES = {
 # ==============================================================================
 
 # EPU spike detection (recent vs baseline ratio)
-EPU_SPIKE_MILD = 1.2      # 20% above baseline
+EPU_SPIKE_MILD = 1.2  # 20% above baseline
 EPU_SPIKE_MODERATE = 1.5  # 50% above
-EPU_SPIKE_SEVERE = 2.0    # 2x baseline
-EPU_SPIKE_CRISIS = 3.0    # 3x baseline
+EPU_SPIKE_SEVERE = 2.0  # 2x baseline
+EPU_SPIKE_CRISIS = 3.0  # 3x baseline
 
 # Gold momentum thresholds (20-day change)
 GOLD_CALM = -0.02
@@ -116,6 +115,7 @@ GOLD_FEAR_BID = 0.10
 @dataclass
 class GeopoliticalRegime:
     """Geopolitical risk regime."""
+
     name: str
     description: str
     commodity_impact: str
@@ -125,23 +125,23 @@ GEOPOLITICAL_REGIMES = {
     "stable": GeopoliticalRegime(
         name="Stable World",
         description="No major geopolitical flashpoints. Risk appetite normal.",
-        commodity_impact="Fundamentals drive. Supply/demand in focus."
+        commodity_impact="Fundamentals drive. Supply/demand in focus.",
     ),
     "tension": GeopoliticalRegime(
         name="Rising Tensions",
         description="Geopolitical noise increasing. Markets watching headlines.",
-        commodity_impact="Risk premium building. Supply disruption fears."
+        commodity_impact="Risk premium building. Supply disruption fears.",
     ),
     "elevated": GeopoliticalRegime(
         name="Elevated Risk",
         description="Significant geopolitical uncertainty. Multiple hotspots.",
-        commodity_impact="Supply premium elevated. Safe havens bid."
+        commodity_impact="Supply premium elevated. Safe havens bid.",
     ),
     "crisis": GeopoliticalRegime(
         name="Geopolitical Crisis",
         description="Crisis mode. Active conflict risk or major standoff.",
-        commodity_impact="Major supply disruption risk. Energy spiking."
-    )
+        commodity_impact="Major supply disruption risk. Energy spiking.",
+    ),
 }
 
 
@@ -270,25 +270,49 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== 1. TOTAL NEWS VELOCITY ====
     # This week
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s)
         as total_week
-    """, (as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date))
+    """,
+        (
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+        ),
+    )
     total_week = cur.fetchone()[0] or 0
 
     # Baseline (previous month weekly average)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days')
         as total_month
-    """, (as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date))
+    """,
+        (
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+        ),
+    )
     total_month = cur.fetchone()[0] or 1
     baseline_weekly = total_month / 4
 
@@ -300,12 +324,15 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== 2. TRUMP/POLICY CONCENTRATION ====
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT COUNT(*) FROM alt.profarmer_news
             WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
             AND (headline ILIKE '%%trump%%' OR headline ILIKE '%%tariff%%' OR
                  headline ILIKE '%%policy%%' OR content ILIKE '%%trump%%')
-        """, (as_of_date, as_of_date))
+        """,
+            (as_of_date, as_of_date),
+        )
         trump_count = cur.fetchone()[0] or 0
     except Exception:
         trump_count = 0
@@ -316,10 +343,13 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components["trump_news_count"] = trump_count
 
     # ==== 3. EXECUTIVE VELOCITY ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.executive_actions
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     exec_count = cur.fetchone()[0] or 0
 
     exec_score, exec_desc = score_executive_velocity(exec_count)
@@ -401,7 +431,7 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             "regime_name": regime_info.name,
             "regime_description": regime_info.description,
             "implication": regime_info.implication,
-        }
+        },
     }
 
 
@@ -424,11 +454,14 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
     components = {}
 
     # ==== 1. EPU SPIKE ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 30
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     epu_data = cur.fetchall()
 
     epu_score = 50
@@ -443,11 +476,14 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["epu_baseline_avg"] = round(baseline_avg, 0)
 
     # ==== 2. OVX (Oil Volatility) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'OVXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     ovx_row = cur.fetchone()
 
     ovx_score = 50
@@ -469,11 +505,14 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["ovx_value"] = round(current_ovx, 1)
 
     # ==== 3. GOLD FEAR (GLD ETF) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     gld_data = cur.fetchall()
     if len(gld_data) < 21:
         raise ValueError("Insufficient GLD data for gold fear score")
@@ -500,17 +539,22 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["gld_change_20d"] = round(gld_change_20d * 100, 2)
 
     # ==== 4. EM FX STRESS ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.rates_1d
         WHERE series_id = 'DTWEXEMEGS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     em_data = cur.fetchall()
 
     em_score = 50
     if len(em_data) >= 20:
         em_values = [float(r[1]) for r in em_data if r[1] is not None]
-        em_change = (em_values[0] - em_values[-1]) / em_values[-1] if em_values[-1] > 0 else 0
+        em_change = (
+            (em_values[0] - em_values[-1]) / em_values[-1] if em_values[-1] > 0 else 0
+        )
 
         # EM weakness (rising index) = stress
         if em_change > 0.05:
@@ -528,7 +572,12 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["em_change_20d"] = round(em_change * 100, 2)
 
     # ==== COMPOSITE ====
-    score = (epu_score * 0.35) + (ovx_score * 0.25) + (gold_score * 0.25) + (em_score * 0.15)
+    score = (
+        (epu_score * 0.35)
+        + (ovx_score * 0.25)
+        + (gold_score * 0.25)
+        + (em_score * 0.15)
+    )
     score = float(np.clip(score, 0, 100))
 
     # ==== REGIME ====
@@ -600,5 +649,5 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
             "regime_name": regime_info.name,
             "regime_description": regime_info.description,
             "commodity_impact": regime_info.commodity_impact,
-        }
+        },
     }

@@ -45,13 +45,11 @@ Priority Components (Soy-Centric Weighting):
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -61,45 +59,58 @@ load_dotenv()
 # ==============================================================================
 
 # FXI performance thresholds (20-day % change)
-FXI_CRISIS = -0.15        # 15% drop = crisis
-FXI_SEVERE = -0.10        # 10% drop = severe stress
-FXI_STRESS = -0.05        # 5% drop = stress
-FXI_WEAK = -0.02          # 2% drop = weak
-FXI_NEUTRAL = 0.02        # +/- 2% = neutral
-FXI_STRONG = 0.05         # 5% gain = strong
-FXI_RALLY = 0.10          # 10% gain = rally
+FXI_CRISIS = -0.15  # 15% drop = crisis
+FXI_SEVERE = -0.10  # 10% drop = severe stress
+FXI_STRESS = -0.05  # 5% drop = stress
+FXI_WEAK = -0.02  # 2% drop = weak
+FXI_NEUTRAL = 0.02  # +/- 2% = neutral
+FXI_STRONG = 0.05  # 5% gain = strong
+FXI_RALLY = 0.10  # 10% gain = rally
 
 # CNY thresholds (USD/CNY rate - higher = weaker yuan)
-CNY_STRONG = 7.00         # Below 7 = strong yuan
-CNY_STABLE = 7.15         # 7.00-7.15 = stable
-CNY_WEAK = 7.30           # 7.15-7.30 = weak
-CNY_STRESS = 7.45         # 7.30-7.45 = stress
-CNY_CRISIS = 7.60         # Above 7.45 = crisis
+CNY_STRONG = 7.00  # Below 7 = strong yuan
+CNY_STABLE = 7.15  # 7.00-7.15 = stable
+CNY_WEAK = 7.30  # 7.15-7.30 = weak
+CNY_STRESS = 7.45  # 7.30-7.45 = stress
+CNY_CRISIS = 7.60  # Above 7.45 = crisis
 
 # CNY rate of change thresholds (positive = yuan weakening)
-CNY_DEVALUING_FAST = 0.02   # 2% weaker in 20 days
-CNY_DEVALUING = 0.01        # 1% weaker
-CNY_STRENGTHENING = -0.01   # 1% stronger
+CNY_DEVALUING_FAST = 0.02  # 2% weaker in 20 days
+CNY_DEVALUING = 0.01  # 1% weaker
+CNY_STRENGTHENING = -0.01  # 1% stronger
 CNY_STRENGTHENING_FAST = -0.02  # 2% stronger
 
 # Shipping (BDRY) thresholds - 20 day change
-SHIP_COLLAPSE = -0.25     # 25% drop - soy trade frozen
-SHIP_WEAK = -0.10         # 10% drop - demand concerns
-SHIP_STABLE = 0.10        # +/- 10% = normal trade flow
-SHIP_STRONG = 0.20        # 20% gain - robust demand
+SHIP_COLLAPSE = -0.25  # 25% drop - soy trade frozen
+SHIP_WEAK = -0.10  # 10% drop - demand concerns
+SHIP_STABLE = 0.10  # +/- 10% = normal trade flow
+SHIP_STRONG = 0.20  # 20% gain - robust demand
 
 # Soy-specific news keywords for China trade war monitoring
 SOY_CHINA_KEYWORDS = [
-    'china soy', 'chinese soy', 'soybean export', 'soy export',
-    'export sales', 'import demand', 'trade war', 'tariff',
-    'retaliatory', 'brazil soy', 'us soy', 'soybean import',
-    'china buying', 'china purchase', 'cancellation', 'cancelled'
+    "china soy",
+    "chinese soy",
+    "soybean export",
+    "soy export",
+    "export sales",
+    "import demand",
+    "trade war",
+    "tariff",
+    "retaliatory",
+    "brazil soy",
+    "us soy",
+    "soybean import",
+    "china buying",
+    "china purchase",
+    "cancellation",
+    "cancelled",
 ]
 
 
 @dataclass
 class ChinaRegime:
     """China tension regime classification."""
+
     name: str
     description: str
     soy_impact: str
@@ -111,32 +122,32 @@ CHINA_REGIMES = {
         name="Soy Export Crisis",
         description="Trade war escalation. Tariffs active, retaliatory duties on US soy.",
         soy_impact="ZL BEARISH. Export demand cliff. China buying Brazil instead. Cancellations likely. Gulf basis collapsing.",
-        trading_action="Sell rallies. Watch USDA export sales for cancellations. Brazil FOB premiums."
+        trading_action="Sell rallies. Watch USDA export sales for cancellations. Brazil FOB premiums.",
     ),
     "high_tension": ChinaRegime(
         name="High Trade War Risk",
         description="Active tariff threats. China demand uncertain. Shipping weak.",
         soy_impact="ZL CAUTIOUS. Export pace slowing. Brazil gaining market share. Basis under pressure.",
-        trading_action="Reduce long exposure. Hedge new crop sales. Watch weekly export inspections."
+        trading_action="Reduce long exposure. Hedge new crop sales. Watch weekly export inspections.",
     ),
     "elevated": ChinaRegime(
         name="Elevated Trade Tension",
         description="Headlines active. Trade negotiations uncertain. Some demand concerns.",
         soy_impact="ZL NEUTRAL-CAUTIOUS. Export sales pace needs monitoring. Some basis volatility.",
-        trading_action="Watch export sales reports closely. Position for volatility."
+        trading_action="Watch export sales reports closely. Position for volatility.",
     ),
     "normal": ChinaRegime(
         name="Normal Trade Flow",
         description="Standard US-China soy trade dynamics. No acute tension.",
         soy_impact="ZL trading on fundamentals. Normal export pace. Basis stable.",
-        trading_action="Trade fundamentals - weather, crush margins, WASDE."
+        trading_action="Trade fundamentals - weather, crush margins, WASDE.",
     ),
     "constructive": ChinaRegime(
         name="Constructive Demand",
         description="Trade relations stable/improving. China actively buying US soy.",
         soy_impact="ZL SUPPORTIVE. Strong export sales. Good shipping pace. Basis firm.",
-        trading_action="Bullish demand backdrop. Look for buying opportunities on dips."
-    )
+        trading_action="Bullish demand backdrop. Look for buying opportunities on dips.",
+    ),
 }
 
 
@@ -275,9 +286,13 @@ def score_china_news(china_articles: int, total_articles: int) -> Tuple[float, s
         count_boost = 0
 
     if concentration > 0.30:
-        return min(100, 80 + count_boost), f"Heavy China focus ({china_articles} articles)"
+        return min(
+            100, 80 + count_boost
+        ), f"Heavy China focus ({china_articles} articles)"
     elif concentration > 0.20:
-        return min(100, 65 + count_boost), f"Elevated China coverage ({china_articles} articles)"
+        return min(
+            100, 65 + count_boost
+        ), f"Elevated China coverage ({china_articles} articles)"
     elif concentration > 0.10:
         return 50, f"Normal China coverage ({china_articles} articles)"
     else:
@@ -291,7 +306,7 @@ def generate_china_narrative(
     news_score: float,
     specialist_signal: float,
     score: float,
-    regime: str
+    regime: str,
 ) -> Tuple[str, str, List[str]]:
     """Generate domain-expert narrative for China tension."""
     regime_info = CHINA_REGIMES.get(regime, CHINA_REGIMES["normal"])
@@ -364,11 +379,14 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     components = {}
 
     # ==== 1. FXI PERFORMANCE (Databento ETF) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 30
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     fxi_data = cur.fetchall()
     if len(fxi_data) < 21:
         raise ValueError("Insufficient FXI data to compute China tension")
@@ -386,11 +404,14 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     components["fxi_change_5d"] = round(change_5d * 100, 2)
 
     # ==== 2. CNY LEVEL/TREND ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.rates_1d
         WHERE series_id = 'DEXCHUS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     cny_data = cur.fetchall()
 
     cny_score = 50
@@ -398,7 +419,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     if len(cny_data) >= 20:
         cny_values = [float(r[1]) for r in cny_data if r[1] is not None]
         current_rate = cny_values[0]
-        d20_ago = cny_values[min(20, len(cny_values)-1)]
+        d20_ago = cny_values[min(20, len(cny_values) - 1)]
 
         change_20d = (current_rate - d20_ago) / d20_ago if d20_ago > 0 else 0
 
@@ -408,11 +429,14 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         components["cny_change_20d"] = round(change_20d * 100, 2)
 
     # ==== 3. SHIPPING (BDRY) - Databento ETF ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 30
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     ship_data = cur.fetchall()
     if len(ship_data) < 21:
         raise ValueError("Insufficient BDRY data to compute shipping stress")
@@ -426,12 +450,15 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # ==== 4. CHINA SPECIALIST ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'china' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signal_row = cur.fetchone()
 
     specialist_score = 50
@@ -447,14 +474,18 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         components["specialist_signal"] = round(specialist_signal, 3)
 
     # ==== 5. SOY-SPECIFIC CHINA NEWS (Trade War Focus) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.profarmer_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     total_news = cur.fetchone()[0] or 1
 
     # Soy-specific China/trade war keywords
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.profarmer_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
         AND (
@@ -466,7 +497,9 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
             OR content ILIKE '%%soybean export%%'
             OR content ILIKE '%%chinese import%%'
         )
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     soy_china_news = cur.fetchone()[0] or 0
 
     news_score, news_desc = score_china_news(soy_china_news, total_news)
@@ -482,8 +515,13 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     # FXI 20% - secondary sentiment
     # Soy News 15% - ProFarmer trade war coverage
     # Specialist 10% - ML signal
-    score = (ship_score * 0.30) + (cny_score * 0.25) + (fxi_score * 0.20) + \
-            (news_score * 0.15) + (specialist_score * 0.10)
+    score = (
+        (ship_score * 0.30)
+        + (cny_score * 0.25)
+        + (fxi_score * 0.20)
+        + (news_score * 0.15)
+        + (specialist_score * 0.10)
+    )
     score = float(np.clip(score, 0, 100))
 
     # ==== REGIME ====
@@ -547,8 +585,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== NARRATIVE ====
     headline, narrative, drivers = generate_china_narrative(
-        fxi_score, cny_score, ship_score, news_score,
-        specialist_signal, score, regime
+        fxi_score, cny_score, ship_score, news_score, specialist_signal, score, regime
     )
 
     return {
@@ -570,12 +607,16 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         "components": components,
         "domain_context": {
             "regime_name": CHINA_REGIMES.get(regime, CHINA_REGIMES["normal"]).name,
-            "regime_description": CHINA_REGIMES.get(regime, CHINA_REGIMES["normal"]).description,
+            "regime_description": CHINA_REGIMES.get(
+                regime, CHINA_REGIMES["normal"]
+            ).description,
             "soy_impact": CHINA_REGIMES.get(regime, CHINA_REGIMES["normal"]).soy_impact,
-            "trading_action": CHINA_REGIMES.get(regime, CHINA_REGIMES["normal"]).trading_action,
+            "trading_action": CHINA_REGIMES.get(
+                regime, CHINA_REGIMES["normal"]
+            ).trading_action,
             "fxi_assessment": fxi_desc,
             "cny_assessment": cny_desc,
             "ship_assessment": ship_desc,
             "news_assessment": news_desc,
-        }
+        },
     }

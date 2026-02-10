@@ -98,7 +98,7 @@ def generate_signals_for_bucket(
 
     Returns list of signal dictionaries ready for database insertion.
     """
-    from fusion.specialists import get_generator, SignalOutput
+    from fusion.specialists import get_generator
     from fusion.specialists.data_loaders import load_specialist_data
 
     try:
@@ -308,7 +308,6 @@ def write_signals_to_db(
 
 def generate_run_report(signals: Dict[str, List[Dict]], run_hash: str) -> Dict:
     """Task 4.6: Generate run report for specialist signal generation."""
-    import numpy as np
 
     report = {
         "run_hash": run_hash,

@@ -2,6 +2,7 @@
 """
 Generate dashboard metrics, accuracy, and SHAP summaries.
 """
+
 import os
 import argparse
 from datetime import datetime
@@ -25,7 +26,9 @@ def get_connection():
     return psycopg2.connect(db_url)
 
 
-def upsert_dashboard_metrics(conn, metrics: Dict[str, float], as_of_date: datetime | None = None):
+def upsert_dashboard_metrics(
+    conn, metrics: Dict[str, float], as_of_date: datetime | None = None
+):
     with conn.cursor() as cur:
         for name, value in metrics.items():
             cur.execute(
@@ -58,14 +61,20 @@ def compute_core_accuracy(conn) -> Dict[str, float]:
             continue
         df = pd.DataFrame(rows, columns=["p50", "target"])
         eps = 1e-6
-        mape = float(np.mean(np.abs((df["target"] - df["p50"]) / (df["target"].abs() + eps))))
+        mape = float(
+            np.mean(np.abs((df["target"] - df["p50"]) / (df["target"].abs() + eps)))
+        )
         mae = float(np.mean(np.abs(df["target"] - df["p50"])))
         directional = float(np.mean(np.sign(df["target"]) == np.sign(df["p50"])))
         coverage = float(np.mean((df["target"] >= df["p50"])))  # rough proxy
         # Sharpe on realized target returns (annualized)
         mean_ret = df["target"].mean()
         std_ret = df["target"].std(ddof=1)
-        sharpe = float((mean_ret / std_ret) * np.sqrt(252 / horizon)) if std_ret > 0 else np.nan
+        sharpe = (
+            float((mean_ret / std_ret) * np.sqrt(252 / horizon))
+            if std_ret > 0
+            else np.nan
+        )
         metrics[f"core_mape_{horizon}d"] = mape
         metrics[f"core_mae_{horizon}d"] = mae
         metrics[f"core_directional_{horizon}d"] = directional
@@ -97,13 +106,16 @@ def insert_shap_summary(conn, horizon: int, shap_rows: List[Dict]):
             VALUES %s
         """
         from psycopg2.extras import execute_values
+
         execute_values(cur, execute_sql, values)
     conn.commit()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate dashboard metrics + SHAP summary")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="Generate dashboard metrics + SHAP summary"
+    )
+    parser.parse_args()
 
     conn = get_connection()
     try:

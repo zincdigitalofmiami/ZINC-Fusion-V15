@@ -1,6 +1,6 @@
 /**
  * ContractHighlights - TradingView-style Contract Info Card
- * 
+ *
  * Shows Volume, Open Interest, Contract Size, Front Month
  */
 'use client';
@@ -124,7 +124,7 @@ export function RelatedCommodities({ commodities }: RelatedCommoditiesProps) {
                 <span className="text-[10px] text-[#787b86]">USX/BUA</span>
               </div>
 
-              <div 
+              <div
                 className="text-xs mt-1"
                 style={{ color: isPositive ? TV.bull.primary : TV.bear.primary }}
               >

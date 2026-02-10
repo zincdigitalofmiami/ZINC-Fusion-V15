@@ -33,9 +33,10 @@ MODELS_DIR = Path(__file__).parent.parent.parent.parent / "models" / "specialist
 # Try to import statsmodels for ARDL
 try:
     from statsmodels.tsa.ardl import ARDL
-    from statsmodels.tsa.stattools import adfuller, kpss
-    from statsmodels.regression.linear_model import OLS
-    import statsmodels.api as sm
+    from statsmodels.tsa.stattools import adfuller, kpss  # noqa: F401
+    from statsmodels.regression.linear_model import OLS  # noqa: F401
+    import statsmodels.api as sm  # noqa: F401
+
     ARDL_AVAILABLE = True
 except ImportError:
     ARDL_AVAILABLE = False
@@ -45,6 +46,7 @@ except ImportError:
 # =============================================================================
 # FX SIGNAL GENERATOR - REAL ARDL WITH CARRY TRADE
 # =============================================================================
+
 
 class FxSignalGenerator(BaseSignalGenerator):
     """
@@ -74,27 +76,122 @@ class FxSignalGenerator(BaseSignalGenerator):
     # =========================================================================
     ALL_FX_PAIRS = {
         # AG-CRITICAL (Tier 1) - Direct soy/oil trade impact
-        "fred_dexbzus": {"name": "BRL/USD", "region": "latam", "weight": 0.20, "ag_relevance": "Brazil #1 soy competitor"},
-        "fred_dexchus": {"name": "CNY/USD", "region": "asia", "weight": 0.25, "ag_relevance": "China #1 importer"},
-        "fred_dexmxus": {"name": "MXN/USD", "region": "latam", "weight": 0.10, "ag_relevance": "Mexico USMCA partner"},
-        "fred_dexcaus": {"name": "CAD/USD", "region": "americas", "weight": 0.08, "ag_relevance": "Canada canola"},
-        "fred_dexusal": {"name": "AUD/USD", "region": "apac", "weight": 0.05, "ag_relevance": "Australia competitor"},
-        "fred_dexars": {"name": "ARS/USD", "region": "latam", "weight": 0.07, "ag_relevance": "Argentina soy producer"},
+        "fred_dexbzus": {
+            "name": "BRL/USD",
+            "region": "latam",
+            "weight": 0.20,
+            "ag_relevance": "Brazil #1 soy competitor",
+        },
+        "fred_dexchus": {
+            "name": "CNY/USD",
+            "region": "asia",
+            "weight": 0.25,
+            "ag_relevance": "China #1 importer",
+        },
+        "fred_dexmxus": {
+            "name": "MXN/USD",
+            "region": "latam",
+            "weight": 0.10,
+            "ag_relevance": "Mexico USMCA partner",
+        },
+        "fred_dexcaus": {
+            "name": "CAD/USD",
+            "region": "americas",
+            "weight": 0.08,
+            "ag_relevance": "Canada canola",
+        },
+        "fred_dexusal": {
+            "name": "AUD/USD",
+            "region": "apac",
+            "weight": 0.05,
+            "ag_relevance": "Australia competitor",
+        },
+        "fred_dexars": {
+            "name": "ARS/USD",
+            "region": "latam",
+            "weight": 0.07,
+            "ag_relevance": "Argentina soy producer",
+        },
         # ASIA-PACIFIC (Tier 2) - Regional demand
-        "fred_dexjpus": {"name": "JPY/USD", "region": "asia", "weight": 0.05, "ag_relevance": "Japan importer"},
-        "fred_dexkous": {"name": "KRW/USD", "region": "asia", "weight": 0.03, "ag_relevance": "Korea importer"},
-        "fred_dexinus": {"name": "INR/USD", "region": "asia", "weight": 0.03, "ag_relevance": "India palm/soy demand"},
-        "fred_dexmaus": {"name": "MYR/USD", "region": "asia", "weight": 0.04, "ag_relevance": "Malaysia palm producer"},
-        "fred_dextaus": {"name": "TWD/USD", "region": "asia", "weight": 0.02, "ag_relevance": "Taiwan importer"},
-        "fred_dexthus": {"name": "THB/USD", "region": "asia", "weight": 0.02, "ag_relevance": "Thailand palm/rice"},
-        "fred_dexsius": {"name": "SGD/USD", "region": "asia", "weight": 0.01, "ag_relevance": "Singapore trade hub"},
-        "fred_dexhkus": {"name": "HKD/USD", "region": "asia", "weight": 0.01, "ag_relevance": "HK China proxy"},
+        "fred_dexjpus": {
+            "name": "JPY/USD",
+            "region": "asia",
+            "weight": 0.05,
+            "ag_relevance": "Japan importer",
+        },
+        "fred_dexkous": {
+            "name": "KRW/USD",
+            "region": "asia",
+            "weight": 0.03,
+            "ag_relevance": "Korea importer",
+        },
+        "fred_dexinus": {
+            "name": "INR/USD",
+            "region": "asia",
+            "weight": 0.03,
+            "ag_relevance": "India palm/soy demand",
+        },
+        "fred_dexmaus": {
+            "name": "MYR/USD",
+            "region": "asia",
+            "weight": 0.04,
+            "ag_relevance": "Malaysia palm producer",
+        },
+        "fred_dextaus": {
+            "name": "TWD/USD",
+            "region": "asia",
+            "weight": 0.02,
+            "ag_relevance": "Taiwan importer",
+        },
+        "fred_dexthus": {
+            "name": "THB/USD",
+            "region": "asia",
+            "weight": 0.02,
+            "ag_relevance": "Thailand palm/rice",
+        },
+        "fred_dexsius": {
+            "name": "SGD/USD",
+            "region": "asia",
+            "weight": 0.01,
+            "ag_relevance": "Singapore trade hub",
+        },
+        "fred_dexhkus": {
+            "name": "HKD/USD",
+            "region": "asia",
+            "weight": 0.01,
+            "ag_relevance": "HK China proxy",
+        },
         # EUROPE (Tier 3) - EU rapeseed/sunflower
-        "fred_dexuseu": {"name": "EUR/USD", "region": "europe", "weight": 0.04, "ag_relevance": "EU rapeseed market"},
-        "fred_dexusuk": {"name": "GBP/USD", "region": "europe", "weight": 0.02, "ag_relevance": "UK trade"},
-        "fred_dexsfus": {"name": "CHF/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Swiss safe haven"},
-        "fred_dexnous": {"name": "NOK/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Norway oil correlation"},
-        "fred_dexszus": {"name": "SEK/USD", "region": "europe", "weight": 0.01, "ag_relevance": "Sweden trade"},
+        "fred_dexuseu": {
+            "name": "EUR/USD",
+            "region": "europe",
+            "weight": 0.04,
+            "ag_relevance": "EU rapeseed market",
+        },
+        "fred_dexusuk": {
+            "name": "GBP/USD",
+            "region": "europe",
+            "weight": 0.02,
+            "ag_relevance": "UK trade",
+        },
+        "fred_dexsfus": {
+            "name": "CHF/USD",
+            "region": "europe",
+            "weight": 0.01,
+            "ag_relevance": "Swiss safe haven",
+        },
+        "fred_dexnous": {
+            "name": "NOK/USD",
+            "region": "europe",
+            "weight": 0.01,
+            "ag_relevance": "Norway oil correlation",
+        },
+        "fred_dexszus": {
+            "name": "SEK/USD",
+            "region": "europe",
+            "weight": 0.01,
+            "ag_relevance": "Sweden trade",
+        },
     }
 
     # Trade-weighted indices
@@ -110,50 +207,50 @@ class FxSignalGenerator(BaseSignalGenerator):
         primary_fx = [
             "close",
             # DOLLAR INDICES
-            "fred_dxy",             # DXY - Broad dollar benchmark
-            "fred_dtwexbgs",        # Broad Trade-Weighted USD
-            "fred_dtwexemegs",      # Emerging Markets TWI
+            "fred_dxy",  # DXY - Broad dollar benchmark
+            "fred_dtwexbgs",  # Broad Trade-Weighted USD
+            "fred_dtwexemegs",  # Emerging Markets TWI
             # AG-CRITICAL FX (Tier 1)
-            "fred_dexbzus",         # BRL/USD - Brazil
-            "fred_dexchus",         # CNY/USD - China
-            "fred_dexmxus",         # MXN/USD - Mexico
-            "fred_dexcaus",         # CAD/USD - Canada
-            "fred_dexusal",         # AUD/USD - Australia
-            "fred_dexars",          # ARS/USD - Argentina
+            "fred_dexbzus",  # BRL/USD - Brazil
+            "fred_dexchus",  # CNY/USD - China
+            "fred_dexmxus",  # MXN/USD - Mexico
+            "fred_dexcaus",  # CAD/USD - Canada
+            "fred_dexusal",  # AUD/USD - Australia
+            "fred_dexars",  # ARS/USD - Argentina
             # ASIA-PACIFIC (Tier 2)
-            "fred_dexjpus",         # JPY/USD - Japan
-            "fred_dexkous",         # KRW/USD - Korea
-            "fred_dexinus",         # INR/USD - India
-            "fred_dexmaus",         # MYR/USD - Malaysia
+            "fred_dexjpus",  # JPY/USD - Japan
+            "fred_dexkous",  # KRW/USD - Korea
+            "fred_dexinus",  # INR/USD - India
+            "fred_dexmaus",  # MYR/USD - Malaysia
             # CARRY TRADE INPUTS
-            "fred_fedfunds",        # US Fed Funds rate
-            "fred_dgs2",            # US 2Y Treasury
-            "fred_dgs10",           # US 10Y Treasury
+            "fred_fedfunds",  # US Fed Funds rate
+            "fred_dgs2",  # US 2Y Treasury
+            "fred_dgs10",  # US 10Y Treasury
         ]
 
         secondary_fx = [
             # ASIA-PACIFIC Extended
-            "fred_dextaus",         # TWD/USD - Taiwan
-            "fred_dexthus",         # THB/USD - Thailand
-            "fred_dexsius",         # SGD/USD - Singapore
-            "fred_dexhkus",         # HKD/USD - Hong Kong
+            "fred_dextaus",  # TWD/USD - Taiwan
+            "fred_dexthus",  # THB/USD - Thailand
+            "fred_dexsius",  # SGD/USD - Singapore
+            "fred_dexhkus",  # HKD/USD - Hong Kong
             # EUROPE
-            "fred_dexuseu",         # EUR/USD - EU
-            "fred_dexusuk",         # GBP/USD - UK
-            "fred_dexsfus",         # CHF/USD - Swiss
-            "fred_dexnous",         # NOK/USD - Norway
-            "fred_dexszus",         # SEK/USD - Sweden
+            "fred_dexuseu",  # EUR/USD - EU
+            "fred_dexusuk",  # GBP/USD - UK
+            "fred_dexsfus",  # CHF/USD - Swiss
+            "fred_dexnous",  # NOK/USD - Norway
+            "fred_dexszus",  # SEK/USD - Sweden
             # ADVANCED TWI
-            "fred_dtwexafegs",      # Advanced Foreign Economies TWI
+            "fred_dtwexafegs",  # Advanced Foreign Economies TWI
             # FOREIGN INTEREST RATES
-            "fred_ir3tib01cnm156n", # China 3M interbank rate
+            "fred_ir3tib01cnm156n",  # China 3M interbank rate
             # ELITE INDICATORS ON FX (computed)
-            "dxy_rsi_14",           # DXY RSI
-            "dxy_macd",             # DXY MACD
-            "dxy_atr_14",           # DXY ATR
-            "brl_zscore_63d",       # BRL z-score
-            "cny_zscore_63d",       # CNY z-score
-            "fx_correlation_matrix",# Cross-pair correlations
+            "dxy_rsi_14",  # DXY RSI
+            "dxy_macd",  # DXY MACD
+            "dxy_atr_14",  # DXY ATR
+            "brl_zscore_63d",  # BRL z-score
+            "cny_zscore_63d",  # CNY z-score
+            "fx_correlation_matrix",  # Cross-pair correlations
         ]
 
         config = SignalConfig(
@@ -161,7 +258,7 @@ class FxSignalGenerator(BaseSignalGenerator):
             model_type="ardl",
             primary_features=primary_fx,
             secondary_features=secondary_fx,
-            lookback_days=2520,   # 10 years for deep context
+            lookback_days=2520,  # 10 years for deep context
             min_data_points=756,  # 3 years minimum
         )
         super().__init__(config)
@@ -195,7 +292,12 @@ class FxSignalGenerator(BaseSignalGenerator):
             missing.append("fred_dxy")
 
         # REQUIRE AG-CRITICAL Tier 1 pairs
-        tier1_required = ["fred_dexbzus", "fred_dexchus", "fred_dexmxus", "fred_dexcaus"]
+        tier1_required = [
+            "fred_dexbzus",
+            "fred_dexchus",
+            "fred_dexmxus",
+            "fred_dexcaus",
+        ]
         for fx in tier1_required:
             if fx not in data.columns:
                 missing.append(fx)
@@ -234,7 +336,9 @@ class FxSignalGenerator(BaseSignalGenerator):
                 fx_returns = fx_series.pct_change(fill_method=None)
 
             # Rolling correlation with ZL
-            rolling_corr = zl_returns.rolling(self.correlation_window, min_periods=126).corr(fx_returns)
+            rolling_corr = zl_returns.rolling(
+                self.correlation_window, min_periods=126
+            ).corr(fx_returns)
             zl_correlations[fx_col] = rolling_corr
 
         self.zl_fx_correlations = zl_correlations
@@ -242,7 +346,7 @@ class FxSignalGenerator(BaseSignalGenerator):
         # Compute cross-correlations between FX pairs (for regime detection)
         cross_correlations = {}
         for i, fx1 in enumerate(available_fx):
-            for fx2 in available_fx[i+1:]:
+            for fx2 in available_fx[i + 1 :]:
                 fx1_ret = data[fx1].pct_change(fill_method=None)
                 fx2_ret = data[fx2].pct_change(fill_method=None)
                 corr_key = f"{fx1}_x_{fx2}"
@@ -296,7 +400,9 @@ class FxSignalGenerator(BaseSignalGenerator):
             for window in [21, 63, 126]:
                 mean = fx.rolling(window).mean()
                 std = fx.rolling(window).std()
-                elite_indicators[f"{prefix}_zscore_{window}d"] = (fx - mean) / std.replace(0, np.nan)
+                elite_indicators[f"{prefix}_zscore_{window}d"] = (
+                    fx - mean
+                ) / std.replace(0, np.nan)
 
             # Momentum
             elite_indicators[f"{prefix}_mom_5d"] = fx.pct_change(5, fill_method=None)
@@ -321,7 +427,9 @@ class FxSignalGenerator(BaseSignalGenerator):
         zl_returns = zl.pct_change(fill_method=None)
 
         dynamic_weights = {}
-        available_fx = [col for col in self.base_trade_weights.keys() if col in data.columns]
+        available_fx = [
+            col for col in self.base_trade_weights.keys() if col in data.columns
+        ]
 
         if not available_fx:
             return {}
@@ -346,7 +454,9 @@ class FxSignalGenerator(BaseSignalGenerator):
             base_weight = self.base_trade_weights[col]
 
             # Correlation-adjusted weight: base * (1 + corr_zscore)
-            corr_zscore = (correlations[col] - correlations[col].rolling(252).mean()) / correlations[col].rolling(252).std().replace(0, 1)
+            corr_zscore = (
+                correlations[col] - correlations[col].rolling(252).mean()
+            ) / correlations[col].rolling(252).std().replace(0, 1)
             corr_zscore = corr_zscore.clip(-2, 2)  # Limit extremes
 
             # Dynamic weight = base * correlation adjustment factor
@@ -471,7 +581,9 @@ class FxSignalGenerator(BaseSignalGenerator):
             composite -= normalized[country] * carry.fillna(0)
 
         # Z-score normalize using 5-year window for deep context
-        composite_zscore = (composite - composite.rolling(1260).mean()) / composite.rolling(1260).std().replace(0, 1)
+        composite_zscore = (
+            composite - composite.rolling(1260).mean()
+        ) / composite.rolling(1260).std().replace(0, 1)
 
         logger.info(f"   Carry trade computed for: {list(carries.keys())}")
 
@@ -484,13 +596,13 @@ class FxSignalGenerator(BaseSignalGenerator):
     ) -> Tuple[pd.Series, Dict[str, pd.Series]]:
         """
         Proxy carry signal built from available US rate/credit/curve risk proxies.
-        
+
         Key rules:
           - If T10Y2Y isn't present but DGS10 and DGS2 are, derive it.
           - Do NOT fill warmup NaNs with 0 (that creates fake "no signal").
           - Filter components by coverage before combining.
           - Combine by averaging only available z-scored components.
-        
+
         Returns:
             (proxy_carry_signal, proxy_components)
         """
@@ -503,7 +615,9 @@ class FxSignalGenerator(BaseSignalGenerator):
                 logger.info("   Derived fred_t10y2y from DGS10 - DGS2")
 
         # Helper: rolling z-score with warmup handling (NO fillna(0))
-        def rolling_zscore(s: pd.Series, window: int = 504, min_periods: int = 126) -> pd.Series:
+        def rolling_zscore(
+            s: pd.Series, window: int = 504, min_periods: int = 126
+        ) -> pd.Series:
             s = pd.to_numeric(s, errors="coerce")
             mu = s.rolling(window=window, min_periods=min_periods).mean()
             sd = s.rolling(window=window, min_periods=min_periods).std(ddof=0)
@@ -528,7 +642,9 @@ class FxSignalGenerator(BaseSignalGenerator):
 
         if not components:
             # No inputs = explicit failure (NaN), not fake zeros
-            logger.warning("   No proxy data available for carry trade - returning NaN signal")
+            logger.warning(
+                "   No proxy data available for carry trade - returning NaN signal"
+            )
             return pd.Series(index=df.index, dtype="float64"), {}
 
         comp_df = pd.DataFrame(components, index=df.index)
@@ -537,15 +653,19 @@ class FxSignalGenerator(BaseSignalGenerator):
         coverage = comp_df.notna().mean().sort_values(ascending=False)
         good_cols = coverage[coverage > 0.80].index.tolist()
         dropped_cols = [c for c in comp_df.columns if c not in good_cols]
-        
+
         if dropped_cols:
-            logger.info(f"   Carry proxy dropping low-coverage components: {dropped_cols}")
-        
+            logger.info(
+                f"   Carry proxy dropping low-coverage components: {dropped_cols}"
+            )
+
         comp_df = comp_df[good_cols]
 
         # If nothing survives coverage, return NaN (explicit failure)
         if comp_df.shape[1] == 0:
-            logger.warning("   No carry proxy components survived coverage filter - returning NaN signal")
+            logger.warning(
+                "   No carry proxy components survived coverage filter - returning NaN signal"
+            )
             return pd.Series(index=df.index, dtype="float64"), {}
 
         # Z-score each component with warmup; do NOT fill NaNs
@@ -559,7 +679,9 @@ class FxSignalGenerator(BaseSignalGenerator):
         n_avail = z_df.notna().sum(axis=1)
         signal = signal.where(n_avail >= min_components)
 
-        logger.info(f"   Carry trade proxy computed using: {good_cols} (coverage: {dict(coverage[good_cols].round(3))})")
+        logger.info(
+            f"   Carry trade proxy computed using: {good_cols} (coverage: {dict(coverage[good_cols].round(3))})"
+        )
 
         # Return components dict for debugging
         return signal, {col: comp_df[col] for col in good_cols}
@@ -607,7 +729,7 @@ class FxSignalGenerator(BaseSignalGenerator):
             # Step 2b: Coverage filter - don't let sparse exotic pairs nuke the dataset
             # Major FX pairs allowlist for determinism (prefer these over random survivors)
             MAJOR_FX_PAIRS = [
-                "fred_dxy",      # Dollar index
+                "fred_dxy",  # Dollar index
                 "fred_dexbzus",  # BRL/USD (Brazil - key soy exporter)
                 "fred_dexchus",  # CNY/USD (China - key soy importer)
                 "fred_dexjpus",  # JPY/USD (Japan)
@@ -623,8 +745,12 @@ class FxSignalGenerator(BaseSignalGenerator):
             coverage = fx_returns.notna().mean().sort_values(ascending=False)
 
             # Log what we're seeing
-            logger.info(f"   ARDL FX coverage - best: {dict(coverage.head(5).round(3))}")
-            logger.info(f"   ARDL FX coverage - worst: {dict(coverage.tail(5).round(3))}")
+            logger.info(
+                f"   ARDL FX coverage - best: {dict(coverage.head(5).round(3))}"
+            )
+            logger.info(
+                f"   ARDL FX coverage - worst: {dict(coverage.tail(5).round(3))}"
+            )
 
             # Keep only columns with >80% coverage
             MIN_COVERAGE = 0.80
@@ -635,7 +761,9 @@ class FxSignalGenerator(BaseSignalGenerator):
             other_good = [c for c in good_cols if c not in MAJOR_FX_PAIRS]
 
             # Use majors first, then fill with other good columns
-            final_cols = majors_available + other_good[:max(0, 10 - len(majors_available))]
+            final_cols = (
+                majors_available + other_good[: max(0, 10 - len(majors_available))]
+            )
 
             dropped_cols = [c for c in fx_returns.columns if c not in final_cols]
             if dropped_cols:
@@ -645,8 +773,8 @@ class FxSignalGenerator(BaseSignalGenerator):
             fx_returns = fx_returns[final_cols].dropna()
 
             # Hard guardrails - don't silently fit nonsense
-            MIN_ROWS = 250   # ~1 trading year
-            MIN_COLS = 3     # ARDL with 1-2 cols is usually junk
+            MIN_ROWS = 250  # ~1 trading year
+            MIN_COLS = 3  # ARDL with 1-2 cols is usually junk
 
             if fx_returns.shape[1] < MIN_COLS:
                 logger.warning(
@@ -664,15 +792,25 @@ class FxSignalGenerator(BaseSignalGenerator):
 
             # === VERIFICATION CHECKPOINT 1: Input frame sanity ===
             final_coverage = coverage[final_cols]
-            logger.info(f"   ARDL input: {fx_returns.shape[0]} rows, {fx_returns.shape[1]} cols")
-            logger.info(f"   ARDL cols: {final_cols[:5]}{'...' if len(final_cols) > 5 else ''}")
-            logger.info(f"   ARDL coverage min/median/max: {final_coverage.min():.3f} / {final_coverage.median():.3f} / {final_coverage.max():.3f}")
-            logger.info(f"   ARDL date range: {fx_returns.index.min().date()} to {fx_returns.index.max().date()}")
+            logger.info(
+                f"   ARDL input: {fx_returns.shape[0]} rows, {fx_returns.shape[1]} cols"
+            )
+            logger.info(
+                f"   ARDL cols: {final_cols[:5]}{'...' if len(final_cols) > 5 else ''}"
+            )
+            logger.info(
+                f"   ARDL coverage min/median/max: {final_coverage.min():.3f} / {final_coverage.median():.3f} / {final_coverage.max():.3f}"
+            )
+            logger.info(
+                f"   ARDL date range: {fx_returns.index.min().date()} to {fx_returns.index.max().date()}"
+            )
 
             # Step 3: Align indices
             common_idx = zl_returns.index.intersection(fx_returns.index)
             if len(common_idx) < MIN_ROWS:
-                logger.warning(f"ARDL FALLBACK: Insufficient aligned data {len(common_idx)} < {MIN_ROWS}")
+                logger.warning(
+                    f"ARDL FALLBACK: Insufficient aligned data {len(common_idx)} < {MIN_ROWS}"
+                )
                 return None
 
             y = zl_returns.loc[common_idx].copy()
@@ -689,7 +827,9 @@ class FxSignalGenerator(BaseSignalGenerator):
             X = X[mask]
 
             if len(y) < 500:
-                logger.warning(f"Insufficient clean data for ARDL: {len(y)} < 500 required")
+                logger.warning(
+                    f"Insufficient clean data for ARDL: {len(y)} < 500 required"
+                )
                 return None
 
             # Step 5: Winsorize extreme values (clip at 3 std)
@@ -717,7 +857,7 @@ class FxSignalGenerator(BaseSignalGenerator):
 
             # Step 8: Test for stationarity (ADF test)
             try:
-                adf_result = adfuller(y.dropna(), autolag='AIC')
+                adf_result = adfuller(y.dropna(), autolag="AIC")
                 logger.info(f"   ADF test p-value: {adf_result[1]:.4f}")
                 if adf_result[1] > 0.05:
                     logger.warning("   ZL returns may not be stationary")
@@ -731,7 +871,7 @@ class FxSignalGenerator(BaseSignalGenerator):
             best_lags = (1, 1)
 
             # Use numpy error handling to catch numerical issues
-            with np.errstate(divide='ignore', over='ignore', invalid='ignore'):
+            with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
                 for ar_lag in range(1, min(max_lags, 11)):
                     for dl_lag in range(1, min(max_lags, 11)):
                         try:
@@ -740,7 +880,7 @@ class FxSignalGenerator(BaseSignalGenerator):
                                 lags=ar_lag,
                                 exog=X.values,
                                 order=dl_lag,  # Same lag for all exog
-                                trend='c',
+                                trend="c",
                             )
                             result = model.fit()
 
@@ -756,7 +896,7 @@ class FxSignalGenerator(BaseSignalGenerator):
             if best_model is not None:
                 # === VERIFICATION CHECKPOINT 2: Model actually fits ===
                 params = best_model.params
-                
+
                 # Validate coefficients are numerically stable
                 if not np.isfinite(params).all():
                     logger.warning("   ARDL FALLBACK: Non-finite coefficients")
@@ -764,7 +904,9 @@ class FxSignalGenerator(BaseSignalGenerator):
 
                 max_coef = np.abs(params).max()
                 if max_coef > 1e6:
-                    logger.warning(f"   ARDL FALLBACK: Extreme coefficients (max={max_coef:.2e})")
+                    logger.warning(
+                        f"   ARDL FALLBACK: Extreme coefficients (max={max_coef:.2e})"
+                    )
                     return None
 
                 # === VERIFICATION CHECKPOINT 3: Residual sanity ===
@@ -773,16 +915,24 @@ class FxSignalGenerator(BaseSignalGenerator):
                     resid_std = resid.std()
                     resid_mean = resid.mean()
                     if resid_std < 1e-10:
-                        logger.warning(f"   ARDL FALLBACK: Residual std ~0 ({resid_std:.2e}) - degenerate fit")
+                        logger.warning(
+                            f"   ARDL FALLBACK: Residual std ~0 ({resid_std:.2e}) - degenerate fit"
+                        )
                         return None
-                    logger.info(f"   ARDL residuals: mean={resid_mean:.4f}, std={resid_std:.4f}")
+                    logger.info(
+                        f"   ARDL residuals: mean={resid_mean:.4f}, std={resid_std:.4f}"
+                    )
                 except Exception as e:
                     logger.warning(f"   ARDL residual check failed: {e}")
 
                 # Log coefficient summary
                 coef_stats = f"min={params.min():.4f}, max={params.max():.4f}, mean={params.mean():.4f}"
-                logger.info(f"   ARDL FIT OK: AR({best_lags[0]}), DL({best_lags[1]}), AIC={best_aic:.2f}")
-                logger.info(f"   ARDL observations: {best_model.nobs}, coefficients: {coef_stats}")
+                logger.info(
+                    f"   ARDL FIT OK: AR({best_lags[0]}), DL({best_lags[1]}), AIC={best_aic:.2f}"
+                )
+                logger.info(
+                    f"   ARDL observations: {best_model.nobs}, coefficients: {coef_stats}"
+                )
                 self.ardl_lags = best_lags
 
                 # Save model
@@ -798,6 +948,7 @@ class FxSignalGenerator(BaseSignalGenerator):
         except Exception as e:
             logger.warning(f"ARDL fitting failed: {e}")
             import traceback
+
             logger.debug(traceback.format_exc())
             return None
 
@@ -826,17 +977,25 @@ class FxSignalGenerator(BaseSignalGenerator):
         try:
             # Step 1: Extract model parameters
             params = ardl_result.params
-            param_names = ardl_result.model.exog_names if hasattr(ardl_result.model, 'exog_names') else None
+            (
+                ardl_result.model.exog_names
+                if hasattr(ardl_result.model, "exog_names")
+                else None
+            )
 
             # Validate params are numerically stable
             if not np.isfinite(params).all():
-                logger.warning("   ARDL params contain non-finite values, skipping signal")
+                logger.warning(
+                    "   ARDL params contain non-finite values, skipping signal"
+                )
                 return pd.Series(0.0, index=data.index)
 
             # Check for extreme coefficient values (sign of ill-conditioning)
             max_coef = np.abs(params).max()
             if max_coef > 1e6:
-                logger.warning(f"   ARDL params contain extreme values (max={max_coef:.2e}), skipping signal")
+                logger.warning(
+                    f"   ARDL params contain extreme values (max={max_coef:.2e}), skipping signal"
+                )
                 return pd.Series(0.0, index=data.index)
 
             # Step 2: Extract exogenous variable coefficients
@@ -852,10 +1011,14 @@ class FxSignalGenerator(BaseSignalGenerator):
             actual_params = len(params)
 
             if actual_params != expected_params:
-                logger.info(f"   ARDL param count mismatch: expected {expected_params}, got {actual_params}")
+                logger.info(
+                    f"   ARDL param count mismatch: expected {expected_params}, got {actual_params}"
+                )
                 # Fall back to using all exog coefficients (skip const and AR terms)
                 exog_start = 1 + ar_lags
-                exog_coefs = params[exog_start:] if exog_start < len(params) else params[1:]
+                exog_coefs = (
+                    params[exog_start:] if exog_start < len(params) else params[1:]
+                )
             else:
                 # Extract exogenous coefficients (after const and AR terms)
                 exog_start = 1 + ar_lags
@@ -885,7 +1048,9 @@ class FxSignalGenerator(BaseSignalGenerator):
                 for col in fx_weights:
                     fx_weights[col] = 1.0 / len(fx_weights)
 
-            weights_str = ', '.join(f'{k.replace("fred_", "")}: {v:.3f}' for k, v in fx_weights.items())
+            weights_str = ", ".join(
+                f"{k.replace('fred_', '')}: {v:.3f}" for k, v in fx_weights.items()
+            )
             logger.info(f"   ARDL coefficient weights: {{{weights_str}}}")
 
             # Step 5: Construct coefficient-weighted FX pressure signal
@@ -915,17 +1080,24 @@ class FxSignalGenerator(BaseSignalGenerator):
             # P0 Fix: cumsum creates non-stationary series, causing z-score drift
             # Instead: z-score the stationary daily returns directly
             pressure_mean = pressure.rolling(self.zscore_window, min_periods=252).mean()
-            pressure_std = pressure.rolling(self.zscore_window, min_periods=252).std().replace(0, 1)
+            pressure_std = (
+                pressure.rolling(self.zscore_window, min_periods=252)
+                .std()
+                .replace(0, 1)
+            )
             pressure_zscore = (pressure - pressure_mean) / pressure_std
 
             # Replace any remaining non-finite values
-            pressure_zscore = pressure_zscore.replace([np.inf, -np.inf], np.nan).fillna(0)
+            pressure_zscore = pressure_zscore.replace([np.inf, -np.inf], np.nan).fillna(
+                0
+            )
 
             return pressure_zscore
 
         except Exception as e:
             logger.warning(f"ARDL signal extraction failed: {e}")
             import traceback
+
             logger.debug(traceback.format_exc())
             return pd.Series(0.0, index=data.index)
 
@@ -947,9 +1119,20 @@ class FxSignalGenerator(BaseSignalGenerator):
         data = self.add_all_elite_indicators(data, "close", "zl")
 
         # Add elite indicators for DXY and all major FX pairs
-        for fx_col in ["fred_dxy", "fred_dexbzus", "fred_dexchus", "fred_dexmxus", 
-                       "fred_dexcaus", "fred_dexusal", "fred_dexjpus", "fred_dexkous",
-                       "fred_dexinus", "fred_dexmaus", "fred_dexuseu", "fred_dexusuk"]:
+        for fx_col in [
+            "fred_dxy",
+            "fred_dexbzus",
+            "fred_dexchus",
+            "fred_dexmxus",
+            "fred_dexcaus",
+            "fred_dexusal",
+            "fred_dexjpus",
+            "fred_dexkous",
+            "fred_dexinus",
+            "fred_dexmaus",
+            "fred_dexuseu",
+            "fred_dexusuk",
+        ]:
             if fx_col in data.columns and data[fx_col].notna().sum() > 30:
                 fx_data = data.copy()
                 fx_data["close"] = data[fx_col]
@@ -986,11 +1169,15 @@ class FxSignalGenerator(BaseSignalGenerator):
             series = data[col]
             # DXY is already USD strength; others need inversion
             if col == "fred_dxy":
-                fx_zscores[col] = self.compute_zscore(series, window=self.zscore_window, min_periods=252)
+                fx_zscores[col] = self.compute_zscore(
+                    series, window=self.zscore_window, min_periods=252
+                )
             else:
                 # FRED FX is foreign/USD, invert to USD/foreign for consistency
                 inverted = 1 / series
-                fx_zscores[col] = self.compute_zscore(inverted, window=self.zscore_window, min_periods=252)
+                fx_zscores[col] = self.compute_zscore(
+                    inverted, window=self.zscore_window, min_periods=252
+                )
 
         # Compute dynamically-weighted composite
         composite = pd.Series(0.0, index=data.index)
@@ -1062,8 +1249,7 @@ class FxSignalGenerator(BaseSignalGenerator):
 
             # Count available FX pairs for confidence
             available_count = sum(
-                1 for col, zs in fx_zscores.items()
-                if not pd.isna(zs.loc[idx])
+                1 for col, zs in fx_zscores.items() if not pd.isna(zs.loc[idx])
             )
             base_confidence = min(available_count / 5, 1.0) * 0.6 + 0.2
 
@@ -1082,12 +1268,16 @@ class FxSignalGenerator(BaseSignalGenerator):
             confidence = min(base_confidence, 0.95)
 
             # Carry signal for signal_2
-            carry_val = carry_signal.loc[idx] if not pd.isna(carry_signal.loc[idx]) else 0.0
+            carry_val = (
+                carry_signal.loc[idx] if not pd.isna(carry_signal.loc[idx]) else 0.0
+            )
 
             # Build metadata
             meta = {
                 "fx_pairs_used": available_fx,
-                "zl_dxy_corr": float(zl_fx_corr.loc[idx]) if not pd.isna(zl_fx_corr.loc[idx]) else None,
+                "zl_dxy_corr": float(zl_fx_corr.loc[idx])
+                if not pd.isna(zl_fx_corr.loc[idx])
+                else None,
                 "run_hash": run_hash,
                 "ardl_fitted": ardl_model is not None,
                 "carry_computed": has_carry,
@@ -1099,7 +1289,11 @@ class FxSignalGenerator(BaseSignalGenerator):
 
             # Add dynamic weights snapshot
             for col in available_fx:
-                weight_val = dynamic_weights[col].loc[idx] if not pd.isna(dynamic_weights[col].loc[idx]) else self.base_trade_weights.get(col, 0)
+                weight_val = (
+                    dynamic_weights[col].loc[idx]
+                    if not pd.isna(dynamic_weights[col].loc[idx])
+                    else self.base_trade_weights.get(col, 0)
+                )
                 meta[f"weight_{col.replace('fred_', '')}"] = float(weight_val)
 
             # Add ARDL diagnostics
@@ -1116,7 +1310,7 @@ class FxSignalGenerator(BaseSignalGenerator):
                     if not pd.isna(carry.loc[idx]):
                         meta[f"carry_{country}"] = float(carry.loc[idx])
 
-            as_of = idx.date() if hasattr(idx, 'date') else idx
+            as_of = idx.date() if hasattr(idx, "date") else idx
             # P0-3: Skip dates before EARLIEST_VALID_DATE
             if as_of < date(1990, 1, 1):
                 continue
@@ -1124,26 +1318,31 @@ class FxSignalGenerator(BaseSignalGenerator):
             # P0-1: Compute max staleness for this date
             max_staleness = self.compute_max_staleness(data, as_of, available_fx)
 
-            signals.append(SignalOutput(
-                as_of_date=as_of,
-                bucket="fx",
-                signal_1=float(final_signal.loc[idx]),
-                signal_2=float(carry_val),
-                confidence=float(confidence),
-                model_type="ardl",
-                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
-                metadata=meta,
-            ))
+            signals.append(
+                SignalOutput(
+                    as_of_date=as_of,
+                    bucket="fx",
+                    signal_1=float(final_signal.loc[idx]),
+                    signal_2=float(carry_val),
+                    confidence=float(confidence),
+                    model_type="ardl",
+                    max_input_age_days=max_staleness,  # P0-1: Staleness tracking
+                    metadata=meta,
+                )
+            )
 
         ardl_status = "with ARDL" if ardl_model else "no ARDL"
         carry_status = "with carry" if has_carry else "no carry"
-        logger.info(f"FxSignalGenerator: Generated {len(signals)} signals ({ardl_status}, {carry_status})")
+        logger.info(
+            f"FxSignalGenerator: Generated {len(signals)} signals ({ardl_status}, {carry_status})"
+        )
         return signals
 
 
 # =============================================================================
 # FED SIGNAL GENERATOR
 # =============================================================================
+
 
 class FedSignalGenerator(BaseSignalGenerator):
     """
@@ -1172,23 +1371,23 @@ class FedSignalGenerator(BaseSignalGenerator):
             primary_features=[
                 "close",
                 # YIELD CURVE COMPLEX - Full term structure
-                "fred_dff",         # Daily Fed Funds rate (replaces monthly FEDFUNDS)
-                "fred_dgs3mo",      # 3-month Treasury (near-term)
-                "fred_dgs2",        # 2Y Treasury (policy expectations)
-                "fred_dgs10",       # 10Y Treasury (long-term)
+                "fred_dff",  # Daily Fed Funds rate (replaces monthly FEDFUNDS)
+                "fred_dgs3mo",  # 3-month Treasury (near-term)
+                "fred_dgs2",  # 2Y Treasury (policy expectations)
+                "fred_dgs10",  # 10Y Treasury (long-term)
                 # FINANCIAL CONDITIONS - NFCI is weekly, will have NaN on non-release days
-                "fred_nfci",        # Chicago NFCI (financial stress) - WEEKLY
+                "fred_nfci",  # Chicago NFCI (financial stress) - WEEKLY
             ],
             secondary_features=[
                 # Extended yield curve
-                "fred_dgs1",        # 1Y Treasury
-                "fred_dgs5",        # 5Y Treasury
-                "fred_dgs30",       # 30Y Treasury
+                "fred_dgs1",  # 1Y Treasury
+                "fred_dgs5",  # 5Y Treasury
+                "fred_dgs30",  # 30Y Treasury
                 # Inflation expectations (from econ.inflation_1d)
-                "fred_t10yie",      # 10Y breakeven inflation
-                "fred_t5yie",       # 5Y breakeven inflation
+                "fred_t10yie",  # 10Y breakeven inflation
+                "fred_t5yie",  # 5Y breakeven inflation
                 # Real yields (TIPS)
-                "fred_dfii10",      # 10Y TIPS real yield
+                "fred_dfii10",  # 10Y TIPS real yield
                 # Credit spreads (replaces discontinued TEDRATE)
                 "fred_bamlh0a0hym2",  # High yield spread (daily)
             ],
@@ -1273,7 +1472,7 @@ class FedSignalGenerator(BaseSignalGenerator):
         # Try to get breakeven inflation
         breakeven_col = None
         for col in data.columns:
-            if 't10yie' in col.lower() or 'breakeven' in col.lower():
+            if "t10yie" in col.lower() or "breakeven" in col.lower():
                 breakeven_col = col
                 break
 
@@ -1314,8 +1513,15 @@ class FedSignalGenerator(BaseSignalGenerator):
 
         # Add elite indicators for key rate series
         # NOTE: Using fred_dff (daily) instead of fred_fedfunds (monthly, stale)
-        for rate_col in ["fred_dff", "fred_dgs2", "fred_dgs10", "fred_dgs30",
-                         "fred_dgs3mo", "fred_nfci", "fred_t10yie"]:
+        for rate_col in [
+            "fred_dff",
+            "fred_dgs2",
+            "fred_dgs10",
+            "fred_dgs30",
+            "fred_dgs3mo",
+            "fred_nfci",
+            "fred_t10yie",
+        ]:
             if rate_col in data.columns and data[rate_col].notna().sum() > 30:
                 rate_data = data.copy()
                 rate_data["close"] = data[rate_col]
@@ -1348,12 +1554,16 @@ class FedSignalGenerator(BaseSignalGenerator):
             weights["dgs10"] = 0.20
 
         # Yield curve dynamics (NEW)
-        curve_2s10s, curve_3m10y, curve_momentum, is_inverted = self._compute_curve_dynamics(data)
+        curve_2s10s, curve_3m10y, curve_momentum, is_inverted = (
+            self._compute_curve_dynamics(data)
+        )
         has_curve = not curve_2s10s.isna().all()
 
         if has_curve:
             # Inverted curve is tighter conditions (higher score)
-            components["curve_2s10s"] = -self.compute_zscore(curve_2s10s, window=252, min_periods=126)
+            components["curve_2s10s"] = -self.compute_zscore(
+                curve_2s10s, window=252, min_periods=126
+            )
             weights["curve_2s10s"] = 0.20
 
         # Real rate (NEW)
@@ -1362,7 +1572,9 @@ class FedSignalGenerator(BaseSignalGenerator):
 
         if has_real_rate:
             # Higher real rate = tighter conditions = bearish commodities
-            components["real_rate"] = self.compute_zscore(real_rate, window=252, min_periods=126)
+            components["real_rate"] = self.compute_zscore(
+                real_rate, window=252, min_periods=126
+            )
             weights["real_rate"] = 0.15
 
         # NFCI (already a conditions index)
@@ -1402,7 +1614,9 @@ class FedSignalGenerator(BaseSignalGenerator):
         score_momentum = regime_score.diff(21)
         if has_curve:
             # Flattening curve (negative momentum) = tightening signal
-            curve_zscore_mom = self.compute_zscore(curve_momentum, window=63, min_periods=21)
+            curve_zscore_mom = self.compute_zscore(
+                curve_momentum, window=63, min_periods=21
+            )
             # Only add curve momentum where both are available (no fillna)
             combined_momentum = score_momentum.copy()
             valid_both = score_momentum.notna() & curve_zscore_mom.notna()
@@ -1418,8 +1632,7 @@ class FedSignalGenerator(BaseSignalGenerator):
 
             # Confidence based on component availability
             available_count = sum(
-                1 for name, zs in components.items()
-                if not pd.isna(zs.loc[idx])
+                1 for name, zs in components.items() if not pd.isna(zs.loc[idx])
             )
             base_confidence = min(available_count / 5, 1.0) * 0.7 + 0.2
 
@@ -1431,7 +1644,11 @@ class FedSignalGenerator(BaseSignalGenerator):
 
             confidence = min(base_confidence, 0.95)
 
-            change = combined_momentum.loc[idx] if not pd.isna(combined_momentum.loc[idx]) else 0.0
+            change = (
+                combined_momentum.loc[idx]
+                if not pd.isna(combined_momentum.loc[idx])
+                else 0.0
+            )
 
             # Build metadata
             meta = {
@@ -1441,35 +1658,52 @@ class FedSignalGenerator(BaseSignalGenerator):
 
             # Add curve dynamics to metadata if available
             if has_curve:
-                meta["curve_2s10s"] = float(curve_2s10s.loc[idx]) if not pd.isna(curve_2s10s.loc[idx]) else None
+                meta["curve_2s10s"] = (
+                    float(curve_2s10s.loc[idx])
+                    if not pd.isna(curve_2s10s.loc[idx])
+                    else None
+                )
                 meta["curve_inverted"] = bool(is_inverted.loc[idx])
-                meta["curve_momentum"] = float(curve_momentum.loc[idx]) if not pd.isna(curve_momentum.loc[idx]) else None
+                meta["curve_momentum"] = (
+                    float(curve_momentum.loc[idx])
+                    if not pd.isna(curve_momentum.loc[idx])
+                    else None
+                )
 
             if has_real_rate:
-                meta["real_rate"] = float(real_rate.loc[idx]) if not pd.isna(real_rate.loc[idx]) else None
+                meta["real_rate"] = (
+                    float(real_rate.loc[idx])
+                    if not pd.isna(real_rate.loc[idx])
+                    else None
+                )
 
-            as_of = idx.date() if hasattr(idx, 'date') else idx
+            as_of = idx.date() if hasattr(idx, "date") else idx
             # P0-3: Skip dates before EARLIEST_VALID_DATE
             if as_of < date(1990, 1, 1):
                 continue
 
             # P0-1: Compute max staleness for this date
             rate_cols = [
-                c for c in (self.config.primary_features + self.config.secondary_features)
+                c
+                for c in (self.config.primary_features + self.config.secondary_features)
                 if c in data.columns
             ]
             max_staleness = self.compute_max_staleness(data, as_of, rate_cols)
 
-            signals.append(SignalOutput(
-                as_of_date=as_of,
-                bucket="fed",
-                signal_1=float(regime_score.loc[idx]),
-                signal_2=float(change),
-                confidence=float(confidence),
-                model_type="ridge",
-                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
-                metadata=meta,
-            ))
+            signals.append(
+                SignalOutput(
+                    as_of_date=as_of,
+                    bucket="fed",
+                    signal_1=float(regime_score.loc[idx]),
+                    signal_2=float(change),
+                    confidence=float(confidence),
+                    model_type="ridge",
+                    max_input_age_days=max_staleness,  # P0-1: Staleness tracking
+                    metadata=meta,
+                )
+            )
 
-        logger.info(f"FedSignalGenerator: Generated {len(signals)} signals (curve: {has_curve}, real_rate: {has_real_rate})")
+        logger.info(
+            f"FedSignalGenerator: Generated {len(signals)} signals (curve: {has_curve}, real_rate: {has_real_rate})"
+        )
         return signals

@@ -35,13 +35,11 @@ TPU Thresholds:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,27 +48,28 @@ load_dotenv()
 # EPU THRESHOLDS (Baker-Bloom-Davis calibration)
 # ==============================================================================
 
-EPU_VERY_LOW = 80       # Unusually calm
-EPU_LOW = 120           # Stable policy
-EPU_NORMAL = 180        # Typical
-EPU_ELEVATED = 300      # Significant debates
-EPU_HIGH = 500          # Major upheaval
-EPU_CRISIS = 700        # Crisis mode
+EPU_VERY_LOW = 80  # Unusually calm
+EPU_LOW = 120  # Stable policy
+EPU_NORMAL = 180  # Typical
+EPU_ELEVATED = 300  # Significant debates
+EPU_HIGH = 500  # Major upheaval
+EPU_CRISIS = 700  # Crisis mode
 
 # ==============================================================================
 # TPU (Trade Policy Uncertainty) THRESHOLDS
 # ==============================================================================
 
-TPU_CALM = 40           # Trade calm
-TPU_NORMAL = 100        # Normal uncertainty
-TPU_ELEVATED = 200      # Tariff threats
-TPU_HIGH = 400          # Active tariff war
-TPU_EXTREME = 700       # 2018-2019 peak levels
+TPU_CALM = 40  # Trade calm
+TPU_NORMAL = 100  # Normal uncertainty
+TPU_ELEVATED = 200  # Tariff threats
+TPU_HIGH = 400  # Active tariff war
+TPU_EXTREME = 700  # 2018-2019 peak levels
 
 
 @dataclass
 class PolicyRegime:
     """Policy uncertainty regime."""
+
     name: str
     description: str
     market_impact: str
@@ -82,32 +81,32 @@ TRUMP_EFFECT_REGIMES = {
         name="Stable Policy Environment",
         description="Low policy uncertainty. Markets have clarity on regulatory direction.",
         market_impact="Risk assets favored. Low volatility premiums.",
-        typical_triggers="Consistent messaging, bipartisan consensus, minimal executive actions."
+        typical_triggers="Consistent messaging, bipartisan consensus, minimal executive actions.",
     ),
     "normal_noise": PolicyRegime(
         name="Normal Policy Noise",
         description="Typical policy uncertainty. Some debates but no major disruptions.",
         market_impact="Standard pricing of policy risk. Watch for catalyst events.",
-        typical_triggers="Ongoing legislative debates, routine executive actions."
+        typical_triggers="Ongoing legislative debates, routine executive actions.",
     ),
     "elevated_uncertainty": PolicyRegime(
         name="Elevated Uncertainty",
         description="Significant policy-driven market concern. Headlines impacting positioning.",
         market_impact="Risk premiums rising. Hedging activity increasing.",
-        typical_triggers="Major executive orders, regulatory proposals, international disputes."
+        typical_triggers="Major executive orders, regulatory proposals, international disputes.",
     ),
     "high_uncertainty": PolicyRegime(
         name="High Policy Uncertainty",
         description="Major policy uncertainty. Markets struggling to price outcomes.",
         market_impact="Elevated vol across assets. Flight to quality. Reduced risk-taking.",
-        typical_triggers="Trade war escalation, major tariff announcements, regulatory overhauls."
+        typical_triggers="Trade war escalation, major tariff announcements, regulatory overhauls.",
     ),
     "policy_crisis": PolicyRegime(
         name="Policy Crisis Mode",
         description="Crisis-level uncertainty. Policy outcomes highly unpredictable.",
         market_impact="Extreme volatility. Liquidity concerns. Risk-off dominates.",
-        typical_triggers="Constitutional crises, major international conflicts, pandemic response."
-    )
+        typical_triggers="Constitutional crises, major international conflicts, pandemic response.",
+    ),
 }
 
 TARIFF_REGIMES = {
@@ -115,40 +114,52 @@ TARIFF_REGIMES = {
         name="Soy Trade Calm",
         description="No active tariff threats to soy. Trade policy stable.",
         market_impact="ZL BULLISH BACKDROP. Normal export flows. China buying at normal pace. Gulf basis stable.",
-        typical_triggers="Trade agreements stable. No new soy-specific tariff proposals."
+        typical_triggers="Trade agreements stable. No new soy-specific tariff proposals.",
     ),
     "normal_uncertainty": PolicyRegime(
         name="Normal Soy Trade Noise",
         description="Some trade policy chatter but no imminent soy tariff threats.",
         market_impact="ZL NEUTRAL. Soy exports flowing. Minor basis volatility. Watch headlines.",
-        typical_triggers="Routine trade reviews. Background negotiation noise."
+        typical_triggers="Routine trade reviews. Background negotiation noise.",
     ),
     "tariff_threats": PolicyRegime(
         name="Soy Tariff Threats Active",
         description="Tariff threats targeting ag/soy sector. Markets pricing potential duties.",
         market_impact="ZL CAUTIOUS. Export sales pace questioned. Basis widening. China may front-run or hold off.",
-        typical_triggers="Specific soy tariff proposals. Retaliatory tariff threats from China."
+        typical_triggers="Specific soy tariff proposals. Retaliatory tariff threats from China.",
     ),
     "tariff_war": PolicyRegime(
         name="Soy Tariff War",
         description="Tariffs on soybeans implemented. China retaliating. Trade war active.",
         market_impact="ZL BEARISH. Export demand collapsed. Brazil taking US market share. Basis imploding.",
-        typical_triggers="25%+ soy tariffs. China buying Brazil exclusively. Gulf elevators empty."
+        typical_triggers="25%+ soy tariffs. China buying Brazil exclusively. Gulf elevators empty.",
     ),
     "extreme_disruption": PolicyRegime(
         name="Soy Export Crisis",
         description="Maximum tariff damage. US soy locked out of China. Trade war at peak.",
         market_impact="ZL CRISIS. Export program frozen. Farmer selling into vacuum. Emergency gov programs likely.",
-        typical_triggers="Full embargo-level tariffs. China 100% Brazil sourcing. 2018-2019 peak redux."
-    )
+        typical_triggers="Full embargo-level tariffs. China 100% Brazil sourcing. 2018-2019 peak redux.",
+    ),
 }
 
 # Soy-specific tariff keywords for ProFarmer monitoring
 SOY_TARIFF_KEYWORDS = [
-    'soy tariff', 'soybean tariff', 'bean tariff', 'ag tariff',
-    'agricultural tariff', 'retaliatory', 'china tariff', 'trade war soy',
-    'soy duty', 'import duty', '25 percent', '25%', 'tariff threat',
-    'soybean export', 'export sales', 'trade retaliation'
+    "soy tariff",
+    "soybean tariff",
+    "bean tariff",
+    "ag tariff",
+    "agricultural tariff",
+    "retaliatory",
+    "china tariff",
+    "trade war soy",
+    "soy duty",
+    "import duty",
+    "25 percent",
+    "25%",
+    "tariff threat",
+    "soybean export",
+    "export sales",
+    "trade retaliation",
 ]
 
 
@@ -280,10 +291,7 @@ def score_china_stress(fxi_change_20d: float) -> Tuple[float, str]:
 
 
 def generate_trump_effect_narrative(
-    epu_value: float,
-    exec_count: int,
-    score: float,
-    regime: str
+    epu_value: float, exec_count: int, score: float, regime: str
 ) -> Tuple[str, str, List[str]]:
     """Generate narrative for Trump Effect Pressure."""
     regime_info = TRUMP_EFFECT_REGIMES.get(regime, TRUMP_EFFECT_REGIMES["normal_noise"])
@@ -302,7 +310,7 @@ def generate_trump_effect_narrative(
     parts = [
         f"Economic Policy Uncertainty Index at {epu_value:.0f}.",
         regime_info.description,
-        regime_info.market_impact
+        regime_info.market_impact,
     ]
     narrative = " ".join(parts)
 
@@ -318,10 +326,7 @@ def generate_trump_effect_narrative(
 
 
 def generate_tariff_narrative(
-    tpu_value: float,
-    soy_tariff_news: int,
-    score: float,
-    regime: str
+    tpu_value: float, soy_tariff_news: int, score: float, regime: str
 ) -> Tuple[str, str, List[str]]:
     """Generate soy-centric narrative for Tariff Pressure."""
     regime_info = TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"])
@@ -340,7 +345,7 @@ def generate_tariff_narrative(
     parts = [
         f"Trade Policy Uncertainty at {tpu_value:.0f}.",
         regime_info.description,
-        regime_info.market_impact
+        regime_info.market_impact,
     ]
     narrative = " ".join(parts)
 
@@ -376,11 +381,14 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components = {}
 
     # ==== 1. EPU INDEX ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 60
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     epu_data = cur.fetchall()
 
     current_epu = 150  # Default
@@ -394,11 +402,14 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["epu_value"] = round(current_epu, 0)
 
     # ==== 2. TPU INDEX ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'EPUTRADE' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     tpu_row = cur.fetchone()
 
     tpu_score = 50
@@ -410,10 +421,13 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["tpu_value"] = round(current_tpu, 0)
 
     # ==== 3. EXECUTIVE VELOCITY ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.executive_actions
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     exec_count = cur.fetchone()[0] or 0
 
     exec_adj, exec_desc = score_executive_velocity(exec_count)
@@ -421,11 +435,14 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["executive_count_7d"] = exec_count
 
     # ==== 4. CHINA STRESS (FXI) - Databento ETF ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     fxi_data = cur.fetchall()
     if len(fxi_data) < 21:
         raise ValueError("Insufficient FXI data to compute China stress")
@@ -440,12 +457,15 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["china_stress_desc"] = china_desc
 
     # ==== 5. SPECIALIST SIGNAL ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'trump_effect' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signal_row = cur.fetchone()
 
     signal_adj = 0
@@ -458,7 +478,12 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
 
     # ==== COMPOSITE SCORE ====
     # Weights: EPU 40%, TPU 25%, Executive 20%, China 15%
-    score = (epu_score * 0.40) + (tpu_score * 0.25) + (50 + exec_adj) * 0.20 + (50 + china_adj) * 0.15
+    score = (
+        (epu_score * 0.40)
+        + (tpu_score * 0.25)
+        + (50 + exec_adj) * 0.20
+        + (50 + china_adj) * 0.15
+    )
     score += signal_adj * 0.10
     score = float(np.clip(score, 0, 100))
 
@@ -530,10 +555,16 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         "as_of_date": as_of_date.isoformat(),
         "components": components,
         "domain_context": {
-            "regime_name": TRUMP_EFFECT_REGIMES.get(regime, TRUMP_EFFECT_REGIMES["normal_noise"]).name,
-            "regime_description": TRUMP_EFFECT_REGIMES.get(regime, TRUMP_EFFECT_REGIMES["normal_noise"]).description,
-            "market_impact": TRUMP_EFFECT_REGIMES.get(regime, TRUMP_EFFECT_REGIMES["normal_noise"]).market_impact,
-        }
+            "regime_name": TRUMP_EFFECT_REGIMES.get(
+                regime, TRUMP_EFFECT_REGIMES["normal_noise"]
+            ).name,
+            "regime_description": TRUMP_EFFECT_REGIMES.get(
+                regime, TRUMP_EFFECT_REGIMES["normal_noise"]
+            ).description,
+            "market_impact": TRUMP_EFFECT_REGIMES.get(
+                regime, TRUMP_EFFECT_REGIMES["normal_noise"]
+            ).market_impact,
+        },
     }
 
 
@@ -556,11 +587,14 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components = {}
 
     # ==== 1. TPU INDEX ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'EPUTRADE' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 60
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     tpu_data = cur.fetchall()
 
     current_tpu = 100
@@ -574,11 +608,14 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["tpu_value"] = round(current_tpu, 0)
 
     # ==== 2. TRADE EMV ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT value FROM econ.vol_indices_1d
         WHERE series_id = 'EMVTRADEPOLEMV' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     emv_row = cur.fetchone()
 
     emv_score = 50
@@ -590,10 +627,13 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["emv_value"] = round(current_emv, 0)
 
     # ==== 3. LEGISLATION VELOCITY ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.legislation_1d
         WHERE event_date >= %s - INTERVAL '14 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     legis_count = cur.fetchone()[0] or 0
 
     if legis_count == 0:
@@ -611,12 +651,15 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components["legislation_count_14d"] = legis_count
 
     # ==== 4. TARIFF SPECIALIST ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'tariff' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signal_row = cur.fetchone()
 
     signal_adj = 0
@@ -627,7 +670,8 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["specialist_signal"] = round(signal_adj, 1)
 
     # ==== 5. SOY-SPECIFIC TARIFF NEWS (ProFarmer) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.profarmer_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
         AND (
@@ -640,7 +684,9 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             OR content ILIKE '%%soybean tariff%%'
             OR content ILIKE '%%25 percent%%'
         )
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     soy_tariff_news = cur.fetchone()[0] or 0
 
     # Score soy tariff news
@@ -649,9 +695,9 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     elif soy_tariff_news >= 5:
         news_adj = 15  # Heavy coverage
     elif soy_tariff_news >= 2:
-        news_adj = 8   # Moderate coverage
+        news_adj = 8  # Moderate coverage
     elif soy_tariff_news >= 1:
-        news_adj = 3   # Light coverage
+        news_adj = 3  # Light coverage
     else:
         news_adj = -5  # No tariff news = calm
 
@@ -661,9 +707,13 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     # ==== COMPOSITE ====
     # SOY-CENTRIC WEIGHTS:
     # TPU 35%, EMV 20%, Legislation 10%, Specialist 15%, Soy Tariff News 20%
-    score = (tpu_score * 0.35) + (emv_score * 0.20) + \
-            (50 + legis_adj) * 0.10 + (50 + signal_adj) * 0.15 + \
-            (50 + news_adj) * 0.20  # Soy tariff news weighted heavily
+    score = (
+        (tpu_score * 0.35)
+        + (emv_score * 0.20)
+        + (50 + legis_adj) * 0.10
+        + (50 + signal_adj) * 0.15
+        + (50 + news_adj) * 0.20
+    )  # Soy tariff news weighted heavily
     score = float(np.clip(score, 0, 100))
 
     # ==== SPARKLINE ====
@@ -712,7 +762,9 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         color = "#0891B2"
 
     # ==== NARRATIVE ====
-    headline, narrative, drivers = generate_tariff_narrative(current_tpu, soy_tariff_news, score, regime)
+    headline, narrative, drivers = generate_tariff_narrative(
+        current_tpu, soy_tariff_news, score, regime
+    )
 
     return {
         "name": "Tariff Pressure",
@@ -732,13 +784,24 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         "as_of_date": as_of_date.isoformat(),
         "components": components,
         "domain_context": {
-            "regime_name": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).name,
-            "regime_description": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).description,
-            "market_impact": TARIFF_REGIMES.get(regime, TARIFF_REGIMES["normal_uncertainty"]).market_impact,
-            "soy_tariff_news_summary": f"{soy_tariff_news} soy tariff articles in last 7 days" if soy_tariff_news > 0 else "No soy tariff news - trade policy calm",
-            "zl_outlook": "BEARISH - tariff damage active" if score >= 70 else
-                         "CAUTIOUS - tariff risk elevated" if score >= 50 else
-                         "NEUTRAL - normal trade noise" if score >= 35 else
-                         "SUPPORTIVE - trade policy calm",
-        }
+            "regime_name": TARIFF_REGIMES.get(
+                regime, TARIFF_REGIMES["normal_uncertainty"]
+            ).name,
+            "regime_description": TARIFF_REGIMES.get(
+                regime, TARIFF_REGIMES["normal_uncertainty"]
+            ).description,
+            "market_impact": TARIFF_REGIMES.get(
+                regime, TARIFF_REGIMES["normal_uncertainty"]
+            ).market_impact,
+            "soy_tariff_news_summary": f"{soy_tariff_news} soy tariff articles in last 7 days"
+            if soy_tariff_news > 0
+            else "No soy tariff news - trade policy calm",
+            "zl_outlook": "BEARISH - tariff damage active"
+            if score >= 70
+            else "CAUTIOUS - tariff risk elevated"
+            if score >= 50
+            else "NEUTRAL - normal trade noise"
+            if score >= 35
+            else "SUPPORTIVE - trade policy calm",
+        },
     }

@@ -17,16 +17,17 @@ Fetches daily open interest for futures and updates mkt.futures_1d.
 """
 
 import warnings
+
 warnings.warn(
     "ingest_databento_statistics.py is DEPRECATED. "
     "Use Inngest job 'databento-statistics-daily.ts' instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 import os
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import databento as db
@@ -72,45 +73,42 @@ def get_db_connection():
 
 
 def fetch_databento_statistics(
-    client: db.Historical,
-    symbol: str,
-    start_date: date,
-    end_date: date
+    client: db.Historical, symbol: str, start_date: date, end_date: date
 ) -> pd.DataFrame:
     """
     Fetch daily statistics (open interest) for a symbol.
-    
+
     Returns DataFrame with:
     - ts_event
     - open_interest
     """
     print(f"  Fetching statistics for {symbol} from {start_date} to {end_date}...")
-    
+
     try:
         data = client.timeseries.get_range(
             dataset=DATASET,
             schema=SCHEMA,
             symbols=[symbol],
-            stype_in='continuous',  # Required for continuous contract symbols
+            stype_in="continuous",  # Required for continuous contract symbols
             start=start_date.isoformat(),
             end=end_date.isoformat(),
         )
-        
+
         df = data.to_df()
-        
+
         if df.empty:
             print(f"    No data returned")
             return pd.DataFrame()
-        
+
         df = df.reset_index()
-        
+
         # Filter for open_interest records (statistics schema has multiple stat types)
-        if 'stat_type' in df.columns:
-            df = df[df['stat_type'] == 1]  # 1 = open_interest in Databento
-        
+        if "stat_type" in df.columns:
+            df = df[df["stat_type"] == 1]  # 1 = open_interest in Databento
+
         print(f"    Received {len(df)} records")
         return df
-        
+
     except Exception as e:
         print(f"    ERROR: {e}")
         return pd.DataFrame()
@@ -119,22 +117,28 @@ def fetch_databento_statistics(
 def update_open_interest(conn, symbol: str, oi_data: pd.DataFrame) -> int:
     """
     Update open_interest in mkt.futures_1d for existing Databento rows.
-    
+
     Only updates rows where source='databento'.
     """
     canonical_symbol = symbol.split(".")[0]
-    
+
     rows = []
     for _, row in oi_data.iterrows():
         event_date = pd.to_datetime(row["ts_event"]).date()
         oi = int(row["open_interest"]) if pd.notna(row.get("open_interest")) else None
-        
+
         if oi is not None:
-            rows.append({"event_date": event_date, "symbol": canonical_symbol, "open_interest": oi})
-    
+            rows.append(
+                {
+                    "event_date": event_date,
+                    "symbol": canonical_symbol,
+                    "open_interest": oi,
+                }
+            )
+
     if not rows:
         return 0
-    
+
     update_query = """
     UPDATE mkt.futures_1d
     SET open_interest = %(open_interest)s,
@@ -143,13 +147,13 @@ def update_open_interest(conn, symbol: str, oi_data: pd.DataFrame) -> int:
       AND symbol = %(symbol)s
       AND source = 'databento'
     """
-    
+
     cur = conn.cursor()
     execute_batch(cur, update_query, rows, page_size=1000)
     conn.commit()
     updated = cur.rowcount
     cur.close()
-    
+
     return updated
 
 
@@ -158,17 +162,17 @@ def get_latest_oi_date_in_db(conn, symbol: str) -> date:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT MAX(event_date) FROM mkt.futures_1d 
+        SELECT MAX(event_date) FROM mkt.futures_1d
         WHERE symbol = %s AND source = 'databento' AND open_interest IS NOT NULL
         """,
-        (symbol,)
+        (symbol,),
     )
     result = cur.fetchone()[0]
     cur.close()
-    
+
     if result is None:
         return date(2020, 1, 1)
-    
+
     return result
 
 
@@ -177,42 +181,44 @@ def main():
     print("=" * 70)
     print("DATABENTO STATISTICS (OPEN INTEREST) INGESTION")
     print("=" * 70)
-    
+
     client = get_databento_client()
     conn = get_db_connection()
-    
+
     end_date = date.today()
-    
+
     total_updated = 0
-    
+
     for symbol in SYMBOLS:
         canonical = symbol.split(".")[0]
         print(f"\n[{canonical}] {symbol}")
-        
+
         # Get latest OI date in DB
         latest_oi_date = get_latest_oi_date_in_db(conn, canonical)
-        start_date = latest_oi_date + timedelta(days=1) if latest_oi_date else date(2020, 1, 1)
-        
+        start_date = (
+            latest_oi_date + timedelta(days=1) if latest_oi_date else date(2020, 1, 1)
+        )
+
         print(f"  Latest OI in DB: {latest_oi_date}")
         print(f"  Fetching from: {start_date}")
-        
+
         if start_date > end_date:
             print(f"  Up to date")
             continue
-        
+
         # Fetch statistics
         df = fetch_databento_statistics(client, symbol, start_date, end_date)
-        
+
         if df.empty:
             continue
-        
+
         # Update OI in database
         updated = update_open_interest(conn, symbol, df)
         total_updated += updated
         print(f"  Updated {updated} rows with OI")
-    
+
     conn.close()
-    
+
     print("\n" + "=" * 70)
     print(f"COMPLETE: {total_updated} rows updated with open_interest")
     print("=" * 70)

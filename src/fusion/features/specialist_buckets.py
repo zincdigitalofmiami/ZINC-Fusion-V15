@@ -24,7 +24,7 @@ Buckets:
 
 import pandas as pd
 import numpy as np
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List
 from dataclasses import dataclass
 import warnings
 
@@ -329,8 +329,8 @@ class CrushBucketIndicators:
         Reference: CME Soybean Crush Reference Guide
         Hedge ratio: 10 Soybeans : 11 Meal : 9 Oil
         """
-        oil_value = zl * 0.11       # 11 lbs oil per bushel, ZL in ¢/lb
-        meal_value = zm * 0.022     # 44 lbs meal / 2000 lbs per ton
+        oil_value = zl * 0.11  # 11 lbs oil per bushel, ZL in ¢/lb
+        meal_value = zm * 0.022  # 44 lbs meal / 2000 lbs per ton
         return (oil_value + meal_value) - (zs / 100)
 
     @staticmethod
@@ -343,8 +343,8 @@ class CrushBucketIndicators:
         - oil_value = ZL × 0.11 (11 lbs oil per bushel, ZL in ¢/lb)
         - meal_value = ZM × 0.022 (44 lbs meal / 2000 lbs per ton)
         """
-        oil_value = zl * 0.11       # 11 lbs oil per bushel, ZL in ¢/lb
-        meal_value = zm * 0.022     # 44 lbs meal / 2000 lbs per ton
+        oil_value = zl * 0.11  # 11 lbs oil per bushel, ZL in ¢/lb
+        meal_value = zm * 0.022  # 44 lbs meal / 2000 lbs per ton
         return oil_value / (oil_value + meal_value)
 
     @staticmethod

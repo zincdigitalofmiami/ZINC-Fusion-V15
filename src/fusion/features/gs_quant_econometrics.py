@@ -26,8 +26,17 @@ from gs_quant.common import Currency
 from gs_quant.markets.securities import Asset
 from .analysis import LagMode, lag
 from .datetime import align, interpolate
-from .helper import CurveType, Interpolate, Window, normalize_window, apply_ramp, plot_session_function, \
-    plot_function, Returns, SeriesType
+from .helper import (
+    CurveType,
+    Interpolate,
+    Window,
+    normalize_window,
+    apply_ramp,
+    plot_session_function,
+    plot_function,
+    Returns,
+    SeriesType,
+)
 from .statistics import std, product, sum_, mean, MeanType
 from ..data import DataContext
 from ..datetime import DayCountConvention, day_count_fraction
@@ -49,13 +58,13 @@ class AnnualizationFactor(IntEnum):
 
 
 class SharpeAssets(Enum):
-    USD = 'MAP35DA6K5B1YXGX'
-    AUD = 'MAFRZWJ790MQY0EW'
-    CHF = 'MAS0NN4ZX7NYXB36'
-    EUR = 'MA95W0N1214395N8'
-    GBP = 'MA41ZEFTWR8Q7HBM'
-    JPY = 'MA8GXV3SJ0TXH1JV'
-    SEK = 'MAGNZZY0GJ4TATNG'
+    USD = "MAP35DA6K5B1YXGX"
+    AUD = "MAFRZWJ790MQY0EW"
+    CHF = "MAS0NN4ZX7NYXB36"
+    EUR = "MA95W0N1214395N8"
+    GBP = "MA41ZEFTWR8Q7HBM"
+    JPY = "MA8GXV3SJ0TXH1JV"
+    SEK = "MAGNZZY0GJ4TATNG"
 
 
 def excess_returns_pure(price_series: pd.Series, spot_curve: pd.Series) -> pd.Series:
@@ -63,18 +72,32 @@ def excess_returns_pure(price_series: pd.Series, spot_curve: pd.Series) -> pd.Se
 
     e_returns = [curve.iloc[0]]
     for i in range(1, len(curve)):
-        multiplier = 1 + curve.iloc[i] / curve.iloc[i - 1] - bench_curve.iloc[i] / bench_curve.iloc[i - 1]
+        multiplier = (
+            1
+            + curve.iloc[i] / curve.iloc[i - 1]
+            - bench_curve.iloc[i] / bench_curve.iloc[i - 1]
+        )
         e_returns.append(e_returns[-1] * multiplier)
     return pd.Series(e_returns, index=curve.index)
 
 
-def excess_returns(price_series: pd.Series, benchmark_or_rate: Union[Asset, Currency, float], *,
-                   day_count_convention=DayCountConvention.ACTUAL_360) -> pd.Series:
+def excess_returns(
+    price_series: pd.Series,
+    benchmark_or_rate: Union[Asset, Currency, float],
+    *,
+    day_count_convention=DayCountConvention.ACTUAL_360,
+) -> pd.Series:
     if isinstance(benchmark_or_rate, float):
         er = [price_series.iloc[0]]
         for j in range(1, len(price_series)):
-            fraction = day_count_fraction(price_series.index[j - 1], price_series.index[j], day_count_convention)
-            er.append(er[-1] + price_series.iloc[j] - price_series.iloc[j - 1] * (1 + benchmark_or_rate * fraction))
+            fraction = day_count_fraction(
+                price_series.index[j - 1], price_series.index[j], day_count_convention
+            )
+            er.append(
+                er[-1]
+                + price_series.iloc[j]
+                - price_series.iloc[j - 1] * (1 + benchmark_or_rate * fraction)
+            )
         return pd.Series(er, index=price_series.index)
 
     if isinstance(benchmark_or_rate, Currency):
@@ -89,50 +112,82 @@ def excess_returns(price_series: pd.Series, benchmark_or_rate: Union[Asset, Curr
         q = GsDataApi.build_market_data_query([marquee_id], QueryType.SPOT)
         df = GsDataApi.get_market_data(q)
     if df.empty:
-        raise MqValueError(f'could not retrieve risk-free rate {marquee_id}')
-    df = df[~df.index.duplicated(keep='first')]  # handle bad data (duplicate rows)
+        raise MqValueError(f"could not retrieve risk-free rate {marquee_id}")
+    df = df[~df.index.duplicated(keep="first")]  # handle bad data (duplicate rows)
 
-    return excess_returns_pure(price_series, df['spot'])
+    return excess_returns_pure(price_series, df["spot"])
 
 
-def _annualized_return(levels: pd.Series, rolling: Union[int, pd.DateOffset],
-                       interpolation_method: Interpolate = Interpolate.NAN) -> pd.Series:
+def _annualized_return(
+    levels: pd.Series,
+    rolling: Union[int, pd.DateOffset],
+    interpolation_method: Interpolate = Interpolate.NAN,
+) -> pd.Series:
     if isinstance(rolling, pd.DateOffset):
         starting = [tstamp - rolling for tstamp in levels.index]
         levels = interpolate(levels, method=interpolation_method)
         points = list(
-            map(lambda d, v, i: pow(v / levels.get(i, np.nan),
-                                    365.25 / (d - i).days) - 1,
+            map(
+                lambda d, v, i: (
+                    pow(v / levels.get(i, np.nan), 365.25 / (d - i).days) - 1
+                ),
                 levels.index[1:],
-                levels.values[1:], starting[1:]))
+                levels.values[1:],
+                starting[1:],
+            )
+        )
     else:
         if interpolation_method is not Interpolate.NAN:
-            raise MqValueError(f'If w is not a relative date, method must be nan. You specified method: '
-                               f'{interpolation_method.value}.')
+            raise MqValueError(
+                f"If w is not a relative date, method must be nan. You specified method: "
+                f"{interpolation_method.value}."
+            )
         starting = [0] * rolling
         starting.extend([a for a in range(1, len(levels) - rolling + 1)])
         points = list(
-            map(lambda d, v, i: pow(v / levels.iloc[i], 365.25 / (d - levels.index[i]).days) - 1, levels.index[1:],
-                levels.values[1:], starting[1:]))
+            map(
+                lambda d, v, i: (
+                    pow(v / levels.iloc[i], 365.25 / (d - levels.index[i]).days) - 1
+                ),
+                levels.index[1:],
+                levels.values[1:],
+                starting[1:],
+            )
+        )
     points.insert(0, 0)
     return pd.Series(points, index=levels.index)
 
 
-def get_ratio_pure(er: pd.Series, w: Union[Window, int, str],
-                   interpolation_method: Interpolate = Interpolate.NAN) -> pd.Series:
+def get_ratio_pure(
+    er: pd.Series,
+    w: Union[Window, int, str],
+    interpolation_method: Interpolate = Interpolate.NAN,
+) -> pd.Series:
     w = normalize_window(er, w or None)  # continue to support 0 as an input for window
     ann_return = _annualized_return(er, w.w, interpolation_method=interpolation_method)
-    long_enough = (er.index[-1] - w.w) >= er.index[0] if isinstance(w.w, pd.DateOffset) else w.w < len(er)
+    long_enough = (
+        (er.index[-1] - w.w) >= er.index[0]
+        if isinstance(w.w, pd.DateOffset)
+        else w.w < len(er)
+    )
     ann_vol = volatility(er, w).iloc[1:] if long_enough else volatility(er)
     result = ann_return / ann_vol * 100
     return apply_ramp(result, w)
 
 
-def _get_ratio(input_series: pd.Series, benchmark_or_rate: Union[Asset, float, str], w: Union[Window, int, str], *,
-               day_count_convention: DayCountConvention, curve_type: CurveType = CurveType.PRICES,
-               interpolation_method: Interpolate = Interpolate.NAN) -> pd.Series:
+def _get_ratio(
+    input_series: pd.Series,
+    benchmark_or_rate: Union[Asset, float, str],
+    w: Union[Window, int, str],
+    *,
+    day_count_convention: DayCountConvention,
+    curve_type: CurveType = CurveType.PRICES,
+    interpolation_method: Interpolate = Interpolate.NAN,
+) -> pd.Series:
     if curve_type == CurveType.PRICES:
-        er = excess_returns(input_series, benchmark_or_rate, day_count_convention=day_count_convention)
+        er = excess_returns(
+            input_series, benchmark_or_rate, day_count_convention=day_count_convention
+        )
     else:
         assert curve_type == CurveType.EXCESS_RETURNS
         er = input_series
@@ -158,7 +213,9 @@ class RiskFreeRateCurrency(Enum):
 
 
 @plot_session_function
-def excess_returns_(price_series: pd.Series, currency: RiskFreeRateCurrency = RiskFreeRateCurrency.USD) -> pd.Series:
+def excess_returns_(
+    price_series: pd.Series, currency: RiskFreeRateCurrency = RiskFreeRateCurrency.USD
+) -> pd.Series:
     """
     Calculate excess returns
 
@@ -180,13 +237,21 @@ def excess_returns_(price_series: pd.Series, currency: RiskFreeRateCurrency = Ri
 
     >>> er = excess_returns(generate_series(100), USD)
     """
-    return excess_returns(price_series, Currency(currency.value), day_count_convention=DayCountConvention.ACTUAL_360)
+    return excess_returns(
+        price_series,
+        Currency(currency.value),
+        day_count_convention=DayCountConvention.ACTUAL_360,
+    )
 
 
 @plot_session_function
-def sharpe_ratio(series: pd.Series, currency: RiskFreeRateCurrency = RiskFreeRateCurrency.USD,
-                 w: Union[Window, int, str] = None, curve_type: CurveType = CurveType.PRICES,
-                 method: Interpolate = Interpolate.NAN) -> pd.Series:
+def sharpe_ratio(
+    series: pd.Series,
+    currency: RiskFreeRateCurrency = RiskFreeRateCurrency.USD,
+    w: Union[Window, int, str] = None,
+    curve_type: CurveType = CurveType.PRICES,
+    method: Interpolate = Interpolate.NAN,
+) -> pd.Series:
     """
     Calculate Sharpe ratio
 
@@ -224,12 +289,20 @@ def sharpe_ratio(series: pd.Series, currency: RiskFreeRateCurrency = RiskFreeRat
 
     :func:`volatility`
     """
-    return _get_ratio(series, Currency(currency.value), w, day_count_convention=DayCountConvention.ACTUAL_360,
-                      curve_type=curve_type, interpolation_method=method)
+    return _get_ratio(
+        series,
+        Currency(currency.value),
+        w,
+        day_count_convention=DayCountConvention.ACTUAL_360,
+        curve_type=curve_type,
+        interpolation_method=method,
+    )
 
 
 @plot_function
-def returns(series: pd.Series, obs: Union[Window, int, str] = 1, type: Returns = Returns.SIMPLE) -> pd.Series:
+def returns(
+    series: pd.Series, obs: Union[Window, int, str] = 1, type: Returns = Returns.SIMPLE
+) -> pd.Series:
     """
     Calculate returns from price series
 
@@ -298,13 +371,15 @@ def returns(series: pd.Series, obs: Union[Window, int, str] = 1, type: Returns =
     elif type == Returns.ABSOLUTE:
         ret_series = series - shifted_series
     else:
-        raise MqValueError('Unknown returns type (use simple / logarithmic / absolute)')
+        raise MqValueError("Unknown returns type (use simple / logarithmic / absolute)")
 
     return ret_series
 
 
 @plot_function
-def prices(series: pd.Series, initial: int = 1, type: Returns = Returns.SIMPLE) -> pd.Series:
+def prices(
+    series: pd.Series, initial: int = 1, type: Returns = Returns.SIMPLE
+) -> pd.Series:
     """
     Calculate price levels from returns series
 
@@ -371,7 +446,7 @@ def prices(series: pd.Series, initial: int = 1, type: Returns = Returns.SIMPLE) 
     elif type == Returns.ABSOLUTE:
         return sum_(series) + initial
     else:
-        raise MqValueError('Unknown returns type (use simple / Logarithmic / absolute)')
+        raise MqValueError("Unknown returns type (use simple / Logarithmic / absolute)")
 
 
 @plot_function
@@ -405,8 +480,10 @@ def index(x: pd.Series, initial: int = 1) -> pd.Series:
     """
     i = x.first_valid_index()
     if not x[i]:
-        raise MqValueError('Divide by zero error. Ensure that the first value of series passed to index(...) '
-                           'is non-zero')
+        raise MqValueError(
+            "Divide by zero error. Ensure that the first value of series passed to index(...) "
+            "is non-zero"
+        )
     return pd.Series(dtype=float) if i is None else initial * x / x[i]
 
 
@@ -448,7 +525,7 @@ def _get_annualization_factor(x):
     for idx, value in x.iloc[1:].items():
         d = (idx - prev_idx).days
         if d == 0:
-            raise MqValueError('multiple data points on same date')
+            raise MqValueError("multiple data points on same date")
         distances.append(d)
         prev_idx = idx
 
@@ -466,7 +543,10 @@ def _get_annualization_factor(x):
     elif 360 <= average_distance < 386:
         factor = AnnualizationFactor.ANNUALLY
     else:
-        raise MqValueError('Cannot infer annualization factor, average distance: ' + str(average_distance))
+        raise MqValueError(
+            "Cannot infer annualization factor, average distance: "
+            + str(average_distance)
+        )
     return factor
 
 
@@ -515,9 +595,13 @@ def annualize(x: pd.Series) -> pd.Series:
 
 
 @plot_function
-def volatility(x: pd.Series, w: Union[Window, int, str] = Window(None, 0),
-               returns_type: Optional[Returns] = Returns.SIMPLE, annualization_factor: Optional[int] = None,
-               assume_zero_mean: bool = False) -> pd.Series:
+def volatility(
+    x: pd.Series,
+    w: Union[Window, int, str] = Window(None, 0),
+    returns_type: Optional[Returns] = Returns.SIMPLE,
+    annualization_factor: Optional[int] = None,
+    assume_zero_mean: bool = False,
+) -> pd.Series:
     """
     Realized volatility of price or return series
 
@@ -633,16 +717,26 @@ def volatility(x: pd.Series, w: Union[Window, int, str] = Window(None, 0),
 
     ret = returns(x, type=returns_type) if returns_type is not None else x
     window = Window(w.w, 0)
-    vol = mean(ret, window, MeanType.QUADRATIC) if assume_zero_mean else std(ret, window)
+    vol = (
+        mean(ret, window, MeanType.QUADRATIC) if assume_zero_mean else std(ret, window)
+    )
 
-    annualized_vol = vol * math.sqrt(annualization_factor) if annualization_factor is not None else annualize(vol)
+    annualized_vol = (
+        vol * math.sqrt(annualization_factor)
+        if annualization_factor is not None
+        else annualize(vol)
+    )
 
     return apply_ramp(annualized_vol.mul(100), w)
 
 
 @plot_function
-def vol_swap_volatility(prices: pd.Series, n_days: Union[int, Window] = None, annualization_factor: int = 252,
-                        assume_zero_mean: bool = True) -> pd.Series:
+def vol_swap_volatility(
+    prices: pd.Series,
+    n_days: Union[int, Window] = None,
+    annualization_factor: int = 252,
+    assume_zero_mean: bool = True,
+) -> pd.Series:
     """
     Rolling volatility of a price series for volatility swap pricing
 
@@ -705,17 +799,26 @@ def vol_swap_volatility(prices: pd.Series, n_days: Union[int, Window] = None, an
         n_days = len(prices)
     if isinstance(n_days, Window):
         if n_days.r != n_days.w - 1:
-            raise MqTypeError('Ramp-up must be the size of the window minus 1, e.g. Window(4, 3).')
+            raise MqTypeError(
+                "Ramp-up must be the size of the window minus 1, e.g. Window(4, 3)."
+            )
         window = n_days
     else:
         window = Window(n_days, n_days - 1)
-    return volatility(prices, window, Returns.LOGARITHMIC, annualization_factor, assume_zero_mean)
+    return volatility(
+        prices, window, Returns.LOGARITHMIC, annualization_factor, assume_zero_mean
+    )
 
 
 @plot_function
-def correlation(x: pd.Series, y: pd.Series,
-                w: Union[Window, int, str] = Window(None, 0), type_: SeriesType = SeriesType.PRICES,
-                returns_type: Returns = Returns.SIMPLE, assume_zero_mean: bool = False) -> pd.Series:
+def correlation(
+    x: pd.Series,
+    y: pd.Series,
+    w: Union[Window, int, str] = Window(None, 0),
+    type_: SeriesType = SeriesType.PRICES,
+    returns_type: Returns = Returns.SIMPLE,
+    assume_zero_mean: bool = False,
+) -> pd.Series:
     """
     Rolling correlation of two price series
 
@@ -791,16 +894,18 @@ def correlation(x: pd.Series, y: pd.Series,
         ret_1 = x
         ret_2 = y
 
-    aligned = pd.DataFrame({'r1': ret_1, 'r2': ret_2}).dropna()
-    clean_ret1 = aligned['r1']
-    clean_ret2 = aligned['r2']
+    aligned = pd.DataFrame({"r1": ret_1, "r2": ret_2}).dropna()
+    clean_ret1 = aligned["r1"]
+    clean_ret2 = aligned["r2"]
 
     if assume_zero_mean:
+
         def daily_vols(returns):
             vols = volatility(returns, w, returns_type=None, assume_zero_mean=True)
             annualization_factor = _get_annualization_factor(returns)
             result = vols.div(math.sqrt(annualization_factor) * 100)
             return result
+
         zero_mean_cov = mean(clean_ret1 * clean_ret2, w)
         vols_1 = daily_vols(clean_ret1)
         vols_2 = daily_vols(clean_ret2)
@@ -808,12 +913,20 @@ def correlation(x: pd.Series, y: pd.Series,
     else:
         if isinstance(w.w, pd.DateOffset):
             if isinstance(clean_ret1.index, pd.DatetimeIndex):
-                values = [clean_ret1.loc[(clean_ret1.index > idx - w.w) & (clean_ret1.index <= idx)].corr(clean_ret2)
-                          for idx in clean_ret1.index]
+                values = [
+                    clean_ret1.loc[
+                        (clean_ret1.index > idx - w.w) & (clean_ret1.index <= idx)
+                    ].corr(clean_ret2)
+                    for idx in clean_ret1.index
+                ]
             else:
-                values = [clean_ret1.loc[(clean_ret1.index > (idx - w.w).date()) &
-                                         (clean_ret1.index <= idx)].corr(clean_ret2)
-                          for idx in clean_ret1.index]
+                values = [
+                    clean_ret1.loc[
+                        (clean_ret1.index > (idx - w.w).date())
+                        & (clean_ret1.index <= idx)
+                    ].corr(clean_ret2)
+                    for idx in clean_ret1.index
+                ]
             corr = pd.Series(values, index=clean_ret1.index)
         else:
             corr = clean_ret1.rolling(w.w, 0).corr(clean_ret2)
@@ -822,8 +935,12 @@ def correlation(x: pd.Series, y: pd.Series,
 
 
 @plot_function
-def corr_swap_correlation(x: pd.Series, y: pd.Series, n_days: Union[int, Window] = None,
-                          assume_zero_mean: bool = True) -> pd.Series:
+def corr_swap_correlation(
+    x: pd.Series,
+    y: pd.Series,
+    n_days: Union[int, Window] = None,
+    assume_zero_mean: bool = True,
+) -> pd.Series:
     """
     Rolling correlation of two price series for correlation swap pricing
 
@@ -889,15 +1006,24 @@ def corr_swap_correlation(x: pd.Series, y: pd.Series, n_days: Union[int, Window]
         n_days = min(len(x), len(y))
     if isinstance(n_days, Window):
         if n_days.r != n_days.w - 1:
-            raise MqTypeError('Ramp-up must be the size of the window minus 1, e.g. Window(4, 3).')
+            raise MqTypeError(
+                "Ramp-up must be the size of the window minus 1, e.g. Window(4, 3)."
+            )
         window = n_days
     else:
         window = Window(n_days - 1, n_days - 2)
-    return correlation(x, y, window, SeriesType.PRICES, Returns.LOGARITHMIC, assume_zero_mean)
+    return correlation(
+        x, y, window, SeriesType.PRICES, Returns.LOGARITHMIC, assume_zero_mean
+    )
 
 
 @plot_function
-def beta(x: pd.Series, b: pd.Series, w: Union[Window, int, str] = Window(None, 0), prices: bool = True) -> pd.Series:
+def beta(
+    x: pd.Series,
+    b: pd.Series,
+    w: Union[Window, int, str] = Window(None, 0),
+    prices: bool = True,
+) -> pd.Series:
     """
     Rolling beta of price series and benchmark
 
@@ -975,11 +1101,15 @@ def beta(x: pd.Series, b: pd.Series, w: Union[Window, int, str] = Window(None, 0
                     start = idx
                     break
 
-            sub_benchmark_values = benchmark_values[start:i + 1]
+            sub_benchmark_values = benchmark_values[start : i + 1]
             var_results[i] = np.var(sub_benchmark_values, ddof=1)
-            cov_results[i] = np.cov(ret_values[start:i + 1], sub_benchmark_values, ddof=1)[0][1]
+            cov_results[i] = np.cov(
+                ret_values[start : i + 1], sub_benchmark_values, ddof=1
+            )[0][1]
 
-        result = pd.Series(cov_results / var_results, index=series_index, dtype=np.double)
+        result = pd.Series(
+            cov_results / var_results, index=series_index, dtype=np.double
+        )
     else:
         cov = ret_series.rolling(w.w, 0).cov(ret_benchmark)
         result = cov / ret_benchmark.rolling(w.w, 0).var()
@@ -990,7 +1120,9 @@ def beta(x: pd.Series, b: pd.Series, w: Union[Window, int, str] = Window(None, 0
 
 
 @plot_function
-def max_drawdown(x: pd.Series, w: Union[Window, int, str] = Window(None, 0)) -> pd.Series:
+def max_drawdown(
+    x: pd.Series, w: Union[Window, int, str] = Window(None, 0)
+) -> pd.Series:
     """
     Compute the maximum peak to trough drawdown over a rolling window as a ratio.
 
@@ -1017,12 +1149,24 @@ def max_drawdown(x: pd.Series, w: Union[Window, int, str] = Window(None, 0)) -> 
     w = normalize_window(x, w)
     if isinstance(w.w, pd.DateOffset):
         if pd.api.types.is_datetime64_dtype(x.index):
-            scores = pd.Series([x[idx] / x.loc[(x.index > (idx - w.w)) & (x.index <= idx)].max() - 1
-                                for idx in x.index], index=x.index)
-            result = pd.Series([scores.loc[(scores.index > (idx - w.w)) & (scores.index <= idx)].min()
-                                for idx in scores.index], index=scores.index)
+            scores = pd.Series(
+                [
+                    x[idx] / x.loc[(x.index > (idx - w.w)) & (x.index <= idx)].max() - 1
+                    for idx in x.index
+                ],
+                index=x.index,
+            )
+            result = pd.Series(
+                [
+                    scores.loc[
+                        (scores.index > (idx - w.w)) & (scores.index <= idx)
+                    ].min()
+                    for idx in scores.index
+                ],
+                index=scores.index,
+            )
         else:
-            raise TypeError('Please pass in list of dates as index')
+            raise TypeError("Please pass in list of dates as index")
     else:
         rolling_max = x.rolling(w.w, 0).max()
         result = (x / rolling_max - 1).rolling(w.w, 0).min()

@@ -35,13 +35,13 @@ export async function GET(req: NextRequest) {
       WHERE timestamp >= NOW() - $1::interval
         AND close IS NOT NULL
       ORDER BY timestamp ASC`,
-      [`${clampedHours} hours`]
+      [`${clampedHours} hours`],
     );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
         { error: "No 1h data available", hours: clampedHours },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching ZL 1h data:", error);
     return NextResponse.json(
       { error: "Failed to fetch ZL 1h data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

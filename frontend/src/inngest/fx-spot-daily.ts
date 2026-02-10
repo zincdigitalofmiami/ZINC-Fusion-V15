@@ -7,7 +7,7 @@
 
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -110,14 +110,14 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
-  
+
   try {
     const res = await fetch(url.toString(), {
       headers: { "User-Agent": "ZINC-Fusion/1.0" },
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    
+
     if (!res.ok) {
       throw new Error(`FRED fetch failed for ${seriesId}: ${res.status}`);
     }
@@ -134,7 +134,7 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 }
 
 export const fxSpotDaily = inngest.createFunction(
-  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3 },
+  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

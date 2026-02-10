@@ -366,7 +366,7 @@ def modify_signals(
         deviations. The minimum is 1 standard deviation.
     blacklist : dict or None
         dictionary of cross-sections and their respective date ranges that should be
-        excluded from the calculation of the modified signals. The keys are cross-section 
+        excluded from the calculation of the modified signals. The keys are cross-section
         identifiers (e.g., 'AUD') and the values are lists of date ranges (e.g., ['2012-01-03', '2012-01-03']).
 
     Returns

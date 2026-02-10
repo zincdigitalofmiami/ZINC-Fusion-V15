@@ -33,13 +33,13 @@ export default function LoginPage() {
 
       // Success!
       setStatus('success')
-      
+
       // Small delay to ensure cookie is persisted before redirect
       await new Promise(resolve => setTimeout(resolve, 150))
-      
+
       const nextPath = new URLSearchParams(window.location.search).get('next')
       const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/dashboard'
-      
+
       // Hard redirect to ensure middleware sees the new cookie
       window.location.href = destination
 
@@ -89,13 +89,13 @@ export default function LoginPage() {
                 padding: '12px 20px',
                 borderRadius: 10,
                 border: 'none',
-                background: status === 'success' 
-                  ? '#22c55e' 
-                  : (isDisabled || !password.trim()) 
-                    ? 'var(--surface-3)' 
+                background: status === 'success'
+                  ? '#22c55e'
+                  : (isDisabled || !password.trim())
+                    ? 'var(--surface-3)'
                     : 'var(--accent)',
-                color: (isDisabled || !password.trim()) && status !== 'success' 
-                  ? 'var(--text-muted)' 
+                color: (isDisabled || !password.trim()) && status !== 'success'
+                  ? 'var(--text-muted)'
                   : 'white',
                 fontWeight: 600,
                 cursor: (isDisabled || !password.trim()) ? 'not-allowed' : 'pointer',
@@ -108,15 +108,15 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div 
-              style={{ 
-                marginTop: 12, 
+            <div
+              style={{
+                marginTop: 12,
                 padding: '10px 14px',
                 borderRadius: 8,
                 background: 'rgba(239, 83, 80, 0.1)',
                 border: '1px solid rgba(239, 83, 80, 0.3)',
-                color: '#ef5350', 
-                fontSize: 13 
+                color: '#ef5350',
+                fontSize: 13
               }}
             >
               {error}
@@ -124,15 +124,15 @@ export default function LoginPage() {
           )}
 
           {status === 'success' && (
-            <div 
-              style={{ 
-                marginTop: 12, 
+            <div
+              style={{
+                marginTop: 12,
                 padding: '10px 14px',
                 borderRadius: 8,
                 background: 'rgba(34, 197, 94, 0.1)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',
-                color: '#22c55e', 
-                fontSize: 13 
+                color: '#22c55e',
+                fontSize: 13
               }}
             >
               Redirecting to dashboard...

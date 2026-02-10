@@ -39,10 +39,7 @@ dev = [
     "pre-commit>=3.6",
     "black>=24.0",
 ]
-autogluon = [
-    "autogluon.timeseries>=1.2",
-    "autogluon.tabular>=1.2",
-]
+autogluon = ["autogluon.timeseries>=1.2", "autogluon.tabular>=1.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -65,30 +62,30 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
-    "SIM",  # flake8-simplify
-    "N",    # pep8-naming
-    "RUF",  # ruff-specific
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "N",   # pep8-naming
+    "RUF", # ruff-specific
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
-    "B008",   # function call in default arg (FastAPI Depends)
-    "N806",   # variable in function should be lowercase (ML convention: X, y)
-    "N803",   # argument name should be lowercase (ML convention)
-    "UP007",  # use X | Y instead of Union (keep for 3.11 compat)
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function call in default arg (FastAPI Depends)
+    "N806",  # variable in function should be lowercase (ML convention: X, y)
+    "N803",  # argument name should be lowercase (ML convention)
+    "UP007", # use X | Y instead of Union (keep for 3.11 compat)
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["fusion"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]  # allow assert in tests
-"scripts/*" = ["T201"]  # allow print in scripts
+"tests/*" = ["S101"]   # allow assert in tests
+"scripts/*" = ["T201"] # allow print in scripts
 
 # === BLACK (formatting) ===
 [tool.black]
@@ -115,9 +112,4 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
-exclude = [
-    "AutogluonModels",
-    "archive",
-    "data",
-    "models",
-]
+exclude = ["AutogluonModels", "archive", "data", "models"]

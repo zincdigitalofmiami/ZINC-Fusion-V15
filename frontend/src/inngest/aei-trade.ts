@@ -8,7 +8,7 @@
  * @date 2026-01-13
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
@@ -46,7 +46,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const aeiTradeDaily = inngest.createFunction(
-  { id: "aei-trade-daily", name: "AEI Trade Policy RSS Data Ingestion", retries: 3 },
+  { id: "aei-trade-daily", name: "AEI Trade Policy RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     const client = await pool.connect();

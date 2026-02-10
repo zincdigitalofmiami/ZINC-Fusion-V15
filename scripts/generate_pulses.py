@@ -15,7 +15,6 @@ Usage:
 
 import argparse
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -24,7 +23,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dotenv import load_dotenv
 
@@ -38,17 +37,16 @@ from fusion.pulse import (
     HORIZONS,
     extract_all_features,
     compute_quant_payload,
-    compute_driver_weights
 )
 from fusion.pulse.storage import get_connection, insert_intel_drop
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger('generate_pulses')
+logger = logging.getLogger("generate_pulses")
 
 
 class PulseGenerator:
@@ -69,7 +67,7 @@ class PulseGenerator:
         horizons: Optional[List[str]] = None,
         dry_run: bool = False,
         force_refresh: bool = False,
-        model: str = 'gpt-4'
+        model: str = "gpt-4",
     ):
         self.domains = domains or DOMAINS
         self.horizons = horizons or HORIZONS
@@ -81,10 +79,10 @@ class PulseGenerator:
         self.retrieval = RetrievalLayer()
 
         self.stats = {
-            'domains_processed': 0,
-            'pulses_generated': 0,
-            'pulses_stored': 0,
-            'errors': []
+            "domains_processed": 0,
+            "pulses_generated": 0,
+            "pulses_stored": 0,
+            "errors": [],
         }
 
     async def close(self):
@@ -105,42 +103,39 @@ class PulseGenerator:
 
         # Fetch from retrieval layer
         result = await self.retrieval.fetch_domain_sources(
-            domain=domain,
-            force_refresh=self.force_refresh
+            domain=domain, force_refresh=self.force_refresh
         )
 
         # Log any missing sources
-        if result['missing_sources']:
+        if result["missing_sources"]:
             logger.warning(
                 f"[{domain}] Missing sources: {', '.join(result['missing_sources'])}"
             )
 
         # Compute quant payload from fetched data
-        quant_payload = compute_quant_payload(result['sources'])
+        quant_payload = compute_quant_payload(result["sources"])
 
         # Build signal snapshot for prompt
-        signal_snapshot = self._build_signal_snapshot(domain, result['sources'])
+        signal_snapshot = self._build_signal_snapshot(domain, result["sources"])
 
         # Build event stream from available sources (no synthetic events)
-        event_stream = self._build_event_stream(domain, result['sources'])
+        event_stream = self._build_event_stream(domain, result["sources"])
 
         # Receipt IDs for evidence
-        receipt_ids = list(result['sources'].keys())
+        receipt_ids = list(result["sources"].keys())
 
         return {
-            'signal_snapshot': signal_snapshot,
-            'event_stream': event_stream,
-            'receipt_ids': receipt_ids,
-            'quant_payload': quant_payload,
-            'raw_sources': result['sources'],
-            'missing': result['missing_sources'],
-            'errors': result['errors']
+            "signal_snapshot": signal_snapshot,
+            "event_stream": event_stream,
+            "receipt_ids": receipt_ids,
+            "quant_payload": quant_payload,
+            "raw_sources": result["sources"],
+            "missing": result["missing_sources"],
+            "errors": result["errors"],
         }
 
     def _build_signal_snapshot(
-        self,
-        domain: str,
-        sources: Dict[str, Any]
+        self, domain: str, sources: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Build signal snapshot for prompt from fetched sources.
@@ -149,60 +144,53 @@ class PulseGenerator:
 
         # Extract FRED data
         for key, data in sources.items():
-            if key.startswith('fred_'):
-                series_id = key.replace('fred_', '')
-                if isinstance(data, dict) and 'values' in data:
-                    values = data['values']
+            if key.startswith("fred_"):
+                series_id = key.replace("fred_", "")
+                if isinstance(data, dict) and "values" in data:
+                    values = data["values"]
                     if values:
                         latest = values[0]  # Most recent
                         snapshot[series_id] = {
-                            'value': latest.get('value'),
-                            'date': latest.get('date'),
-                            'source': 'FRED'
+                            "value": latest.get("value"),
+                            "date": latest.get("date"),
+                            "source": "FRED",
                         }
 
         # Extract VIX data
-        if 'cboe_vix' in sources:
-            vix_data = sources['cboe_vix'].get('vix_data', [])
+        if "cboe_vix" in sources:
+            vix_data = sources["cboe_vix"].get("vix_data", [])
             if vix_data:
                 latest = vix_data[-1]
-                snapshot['VIX'] = {
-                    'close': latest.get('close'),
-                    'date': latest.get('date'),
-                    'source': 'CBOE'
+                snapshot["VIX"] = {
+                    "close": latest.get("close"),
+                    "date": latest.get("date"),
+                    "source": "CBOE",
                 }
 
         # Extract Fed rates
-        if 'nyfed_rates' in sources:
-            snapshot['NY_FED'] = sources['nyfed_rates']
+        if "nyfed_rates" in sources:
+            snapshot["NY_FED"] = sources["nyfed_rates"]
 
         return snapshot
 
-    def _build_event_stream(
-        self,
-        domain: str,
-        sources: Dict[str, Any]
-    ) -> List[str]:
+    def _build_event_stream(self, domain: str, sources: Dict[str, Any]) -> List[str]:
         """
         Build event stream from news sources.
         """
         events = []
 
         # Extract from Federal Register for policy domains
-        if 'federal_register' in sources:
-            docs = sources['federal_register'].get('documents', [])
+        if "federal_register" in sources:
+            docs = sources["federal_register"].get("documents", [])
             for doc in docs[:3]:  # Top 3 recent
-                title = doc.get('title', '')
+                title = doc.get("title", "")
                 if title:
                     events.append(f"Federal Register: {title[:100]}")
 
         return events
 
     async def generate_pulse(
-        self,
-        domain: str,
-        data: Dict[str, Any],
-        as_of_ts: datetime
+        self, domain: str, data: Dict[str, Any], as_of_ts: datetime
     ) -> Optional[Dict[str, Any]]:
         """
         Generate a pulse for a domain using AI.
@@ -221,14 +209,16 @@ class PulseGenerator:
         prompt = self.engine.build_prompt(
             domain=domain,
             as_of_ts=as_of_ts.isoformat(),
-            signal_snapshot=data['signal_snapshot'],
-            event_stream=data['event_stream'],
-            receipt_ids=data['receipt_ids'],
-            benchmark_summaries=[]
+            signal_snapshot=data["signal_snapshot"],
+            event_stream=data["event_stream"],
+            receipt_ids=data["receipt_ids"],
+            benchmark_summaries=[],
         )
 
         if self.dry_run:
-            logger.info(f"[DRY RUN] Would call {self.model} with prompt ({len(prompt)} chars)")
+            logger.info(
+                f"[DRY RUN] Would call {self.model} with prompt ({len(prompt)} chars)"
+            )
             return None
 
         # Call AI model
@@ -238,11 +228,9 @@ class PulseGenerator:
             return pulse_data
         except Exception as e:
             logger.error(f"[{domain}] AI generation failed: {e}")
-            self.stats['errors'].append({
-                'domain': domain,
-                'stage': 'generation',
-                'error': str(e)
-            })
+            self.stats["errors"].append(
+                {"domain": domain, "stage": "generation", "error": str(e)}
+            )
             return None
 
     async def _call_ai_model(self, prompt: str, domain: str) -> str:
@@ -253,57 +241,57 @@ class PulseGenerator:
         """
         import httpx
 
-        openai_key = os.environ.get('OPENAI_API_KEY')
-        anthropic_key = os.environ.get('ANTHROPIC_API_KEY')
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
 
-        if openai_key and self.model.startswith('gpt'):
+        if openai_key and self.model.startswith("gpt"):
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    'https://api.openai.com/v1/chat/completions',
+                    "https://api.openai.com/v1/chat/completions",
                     headers={
-                        'Authorization': f'Bearer {openai_key}',
-                        'Content-Type': 'application/json'
+                        "Authorization": f"Bearer {openai_key}",
+                        "Content-Type": "application/json",
                     },
                     json={
-                        'model': self.model,
-                        'messages': [
-                            {'role': 'system', 'content': self.engine.system_prompt},
-                            {'role': 'user', 'content': prompt}
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": self.engine.system_prompt},
+                            {"role": "user", "content": prompt},
                         ],
-                        'temperature': 0.7,
-                        'max_tokens': 4000
+                        "temperature": 0.7,
+                        "max_tokens": 4000,
                     },
-                    timeout=120.0
+                    timeout=120.0,
                 )
                 response.raise_for_status()
                 data = response.json()
-                return data['choices'][0]['message']['content']
+                return data["choices"][0]["message"]["content"]
 
         elif anthropic_key:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    'https://api.anthropic.com/v1/messages',
+                    "https://api.anthropic.com/v1/messages",
                     headers={
-                        'x-api-key': anthropic_key,
-                        'Content-Type': 'application/json',
-                        'anthropic-version': '2023-06-01'
+                        "x-api-key": anthropic_key,
+                        "Content-Type": "application/json",
+                        "anthropic-version": "2023-06-01",
                     },
                     json={
-                        'model': 'claude-3-5-sonnet-20241022',
-                        'max_tokens': 4000,
-                        'system': self.engine.system_prompt,
-                        'messages': [
-                            {'role': 'user', 'content': prompt}
-                        ]
+                        "model": "claude-3-5-sonnet-20241022",
+                        "max_tokens": 4000,
+                        "system": self.engine.system_prompt,
+                        "messages": [{"role": "user", "content": prompt}],
                     },
-                    timeout=120.0
+                    timeout=120.0,
                 )
                 response.raise_for_status()
                 data = response.json()
-                return data['content'][0]['text']
+                return data["content"][0]["text"]
 
         else:
-            raise ValueError("No AI API key available (OPENAI_API_KEY or ANTHROPIC_API_KEY)")
+            raise ValueError(
+                "No AI API key available (OPENAI_API_KEY or ANTHROPIC_API_KEY)"
+            )
 
     async def store_pulse(
         self,
@@ -311,7 +299,7 @@ class PulseGenerator:
         horizon: str,
         pulse_data: Dict[str, Any],
         data: Dict[str, Any],
-        as_of_ts: datetime
+        as_of_ts: datetime,
     ) -> Optional[int]:
         """
         Store pulse to database.
@@ -342,7 +330,7 @@ class PulseGenerator:
                 return None
 
             # Build narrative (use tl_dr or full narrative from pulse)
-            narrative = pulse_data.get('narrative', pulse_data.get('tl_dr', ''))
+            narrative = pulse_data.get("narrative", pulse_data.get("tl_dr", ""))
 
             # Store
             row_id = await insert_intel_drop(
@@ -357,11 +345,11 @@ class PulseGenerator:
                 top_drivers=feature.top_drivers,
                 regime_tags=feature.regime_tags,
                 quality_flags=feature.quality_flags,
-                data_gaps=data.get('missing', []),
+                data_gaps=data.get("missing", []),
                 narrative=narrative,
-                quant_payload=data.get('quant_payload', {}),
-                receipts={'sources': data.get('receipt_ids', [])},
-                source_model=self.model
+                quant_payload=data.get("quant_payload", {}),
+                receipts={"sources": data.get("receipt_ids", [])},
+                source_model=self.model,
             )
 
             await conn.close()
@@ -370,12 +358,14 @@ class PulseGenerator:
 
         except Exception as e:
             logger.error(f"[{domain}/{horizon}] Storage failed: {e}")
-            self.stats['errors'].append({
-                'domain': domain,
-                'horizon': horizon,
-                'stage': 'storage',
-                'error': str(e)
-            })
+            self.stats["errors"].append(
+                {
+                    "domain": domain,
+                    "horizon": horizon,
+                    "stage": "storage",
+                    "error": str(e),
+                }
+            )
             return None
 
     async def run(self) -> Dict[str, Any]:
@@ -399,7 +389,7 @@ class PulseGenerator:
                 pulse_data = await self.generate_pulse(domain, data, as_of_ts)
 
                 if pulse_data:
-                    self.stats['pulses_generated'] += 1
+                    self.stats["pulses_generated"] += 1
 
                     # Store for each horizon
                     for horizon in self.horizons:
@@ -407,29 +397,29 @@ class PulseGenerator:
                             domain, horizon, pulse_data, data, as_of_ts
                         )
                         if row_id:
-                            self.stats['pulses_stored'] += 1
+                            self.stats["pulses_stored"] += 1
 
-                self.stats['domains_processed'] += 1
+                self.stats["domains_processed"] += 1
 
             except Exception as e:
                 logger.error(f"[{domain}] Failed: {e}")
-                self.stats['errors'].append({
-                    'domain': domain,
-                    'stage': 'processing',
-                    'error': str(e)
-                })
+                self.stats["errors"].append(
+                    {"domain": domain, "stage": "processing", "error": str(e)}
+                )
 
         await self.close()
 
         # Summary
         logger.info("=" * 60)
         logger.info("PULSE GENERATION COMPLETE")
-        logger.info(f"  Domains processed: {self.stats['domains_processed']}/{len(self.domains)}")
+        logger.info(
+            f"  Domains processed: {self.stats['domains_processed']}/{len(self.domains)}"
+        )
         logger.info(f"  Pulses generated: {self.stats['pulses_generated']}")
         logger.info(f"  Pulses stored: {self.stats['pulses_stored']}")
         logger.info(f"  Errors: {len(self.stats['errors'])}")
-        if self.stats['errors']:
-            for err in self.stats['errors'][:5]:
+        if self.stats["errors"]:
+            for err in self.stats["errors"][:5]:
                 logger.error(f"    - {err['domain']}: {err['error']}")
 
         return self.stats
@@ -438,33 +428,22 @@ class PulseGenerator:
 async def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Generate pulses for ZINC-FUSION-V15 specialist domains'
+        description="Generate pulses for ZINC-FUSION-V15 specialist domains"
     )
     parser.add_argument(
-        '--domain', '-d',
-        type=str,
-        help='Single domain to process (default: all)'
+        "--domain", "-d", type=str, help="Single domain to process (default: all)"
     )
     parser.add_argument(
-        '--horizon', '-H',
-        type=str,
-        help='Single horizon to process (default: all)'
+        "--horizon", "-H", type=str, help="Single horizon to process (default: all)"
     )
     parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Preview without storing to database'
+        "--dry-run", action="store_true", help="Preview without storing to database"
     )
     parser.add_argument(
-        '--force-refresh',
-        action='store_true',
-        help='Skip cache and fetch fresh data'
+        "--force-refresh", action="store_true", help="Skip cache and fetch fresh data"
     )
     parser.add_argument(
-        '--model',
-        type=str,
-        default='gpt-4',
-        help='AI model to use (default: gpt-4)'
+        "--model", type=str, default="gpt-4", help="AI model to use (default: gpt-4)"
     )
 
     args = parser.parse_args()
@@ -493,15 +472,15 @@ async def main():
         horizons=horizons,
         dry_run=args.dry_run,
         force_refresh=args.force_refresh,
-        model=args.model
+        model=args.model,
     )
 
     stats = await generator.run()
 
     # Exit with error if any failures
-    if stats['errors']:
+    if stats["errors"]:
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

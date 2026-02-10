@@ -1,5 +1,5 @@
 -- Split alt.news_1d into 3 focused tables for better semantic clarity
--- 
+--
 -- alt.news_1d breakdown:
 -- - 87% FRED Blog (Federal Reserve economic research)
 -- - 7% WhiteHouse (Executive orders, proclamations, etc.)
@@ -89,10 +89,10 @@ CREATE UNIQUE INDEX idx_policy_news_hash ON alt.policy_news(row_hash) WHERE row_
 -- ============================================================================
 
 -- 2.1 Migrate FRED Blog
-INSERT INTO alt.fed_research 
-  (article_id, event_date, published_at, headline, content, url, author, source, 
+INSERT INTO alt.fed_research
+  (article_id, event_date, published_at, headline, content, url, author, source,
    zl_sentiment, specialist_tags, ingested_at, knowledge_time, row_hash, raw_payload, ingestion_batch_id)
-SELECT 
+SELECT
   article_id, event_date, published_at, headline, content, url, author, source,
   zl_sentiment, specialist_tags, ingested_at, knowledge_time, row_hash, raw_payload, ingestion_batch_id
 FROM alt.news_1d
@@ -102,10 +102,10 @@ WHERE source = 'fred_blog';
 INSERT INTO alt.executive_actions
   (article_id, event_date, published_at, headline, content, url, author, source, document_type,
    zl_sentiment, specialist_tags, ingested_at, knowledge_time, row_hash, raw_payload, ingestion_batch_id)
-SELECT 
+SELECT
   article_id, event_date, published_at, headline, content, url, author, source,
   -- Extract document type from source name
-  CASE 
+  CASE
     WHEN source LIKE '%executiveOrders%' THEN 'Executive Order'
     WHEN source LIKE '%proclamations%' THEN 'Proclamation'
     WHEN source LIKE '%memoranda%' THEN 'Presidential Memorandum'
@@ -122,7 +122,7 @@ WHERE source LIKE 'whitehouse_%';
 INSERT INTO alt.policy_news
   (article_id, event_date, published_at, headline, content, url, author, source,
    zl_sentiment, specialist_tags, ingested_at, knowledge_time, row_hash, raw_payload, ingestion_batch_id)
-SELECT 
+SELECT
   article_id, event_date, published_at, headline, content, url, author, source,
   zl_sentiment, specialist_tags, ingested_at, knowledge_time, row_hash, raw_payload, ingestion_batch_id
 FROM alt.news_1d
@@ -139,38 +139,38 @@ DECLARE
   new_count INTEGER;
 BEGIN
   SELECT COUNT(*) INTO orig_count FROM alt.news_1d;
-  SELECT 
+  SELECT
     (SELECT COUNT(*) FROM alt.fed_research) +
     (SELECT COUNT(*) FROM alt.executive_actions) +
     (SELECT COUNT(*) FROM alt.policy_news)
   INTO new_count;
-  
+
   RAISE NOTICE 'Original alt.news_1d: % rows', orig_count;
   RAISE NOTICE 'New tables total: % rows', new_count;
-  
+
   IF orig_count != new_count THEN
     RAISE EXCEPTION 'Row count mismatch! Original: %, New: %', orig_count, new_count;
   END IF;
-  
+
   RAISE NOTICE 'Migration verified: All rows migrated successfully';
 END $$;
 
 -- Show summary
-SELECT 
+SELECT
   'alt.fed_research' as table_name,
   COUNT(*) as rows,
   MIN(event_date) as earliest,
   MAX(event_date) as latest
 FROM alt.fed_research
 UNION ALL
-SELECT 
+SELECT
   'alt.executive_actions',
   COUNT(*),
   MIN(event_date),
   MAX(event_date)
 FROM alt.executive_actions
 UNION ALL
-SELECT 
+SELECT
   'alt.policy_news',
   COUNT(*),
   MIN(event_date),

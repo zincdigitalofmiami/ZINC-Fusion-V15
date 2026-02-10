@@ -52,111 +52,266 @@ class SourceConfig:
 # FRED Economic Data (econ.* tables)
 FRED_CONFIG: Dict[str, SourceConfig] = {
     # Daily rates - tight TTL
-    "DGS2": SourceConfig("DGS2", "daily", 3, weekend_exempt=True, is_critical=True,
-                         description="2-Year Treasury Constant Maturity Rate"),
-    "DGS10": SourceConfig("DGS10", "daily", 3, weekend_exempt=True, is_critical=True,
-                          description="10-Year Treasury Constant Maturity Rate"),
-    "DFF": SourceConfig("DFF", "daily", 3, weekend_exempt=True, is_critical=True,
-                        description="Federal Funds Effective Rate"),
-    "SOFR": SourceConfig("SOFR", "daily", 3, weekend_exempt=True, is_critical=True,
-                         description="Secured Overnight Financing Rate"),
-    "T10Y2Y": SourceConfig("T10Y2Y", "daily", 3, weekend_exempt=True, is_critical=True,
-                           description="10Y-2Y Treasury Spread"),
-
+    "DGS2": SourceConfig(
+        "DGS2",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="2-Year Treasury Constant Maturity Rate",
+    ),
+    "DGS10": SourceConfig(
+        "DGS10",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="10-Year Treasury Constant Maturity Rate",
+    ),
+    "DFF": SourceConfig(
+        "DFF",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Federal Funds Effective Rate",
+    ),
+    "SOFR": SourceConfig(
+        "SOFR",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Secured Overnight Financing Rate",
+    ),
+    "T10Y2Y": SourceConfig(
+        "T10Y2Y",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="10Y-2Y Treasury Spread",
+    ),
     # Daily volatility indices - tight TTL
-    "VIXCLS": SourceConfig("VIXCLS", "daily", 3, weekend_exempt=True, is_critical=True,
-                           description="CBOE VIX Close"),
-    "OVXCLS": SourceConfig("OVXCLS", "daily", 3, weekend_exempt=True, is_critical=True,
-                           description="CBOE Crude Oil VIX"),
-
+    "VIXCLS": SourceConfig(
+        "VIXCLS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="CBOE VIX Close",
+    ),
+    "OVXCLS": SourceConfig(
+        "OVXCLS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="CBOE Crude Oil VIX",
+    ),
     # Daily FX - tight TTL
-    "DEXBZUS": SourceConfig("DEXBZUS", "daily", 3, weekend_exempt=True, is_critical=True,
-                            description="Brazil/US FX Rate"),
-    "DEXCHUS": SourceConfig("DEXCHUS", "daily", 3, weekend_exempt=True, is_critical=True,
-                            description="China/US FX Rate"),
-    "DEXMXUS": SourceConfig("DEXMXUS", "daily", 3, weekend_exempt=True, is_critical=True,
-                            description="Mexico/US FX Rate"),
-    "DTWEXBGS": SourceConfig("DTWEXBGS", "daily", 3, weekend_exempt=True, is_critical=True,
-                             description="Trade Weighted US Dollar Index"),
-
+    "DEXBZUS": SourceConfig(
+        "DEXBZUS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Brazil/US FX Rate",
+    ),
+    "DEXCHUS": SourceConfig(
+        "DEXCHUS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="China/US FX Rate",
+    ),
+    "DEXMXUS": SourceConfig(
+        "DEXMXUS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Mexico/US FX Rate",
+    ),
+    "DTWEXBGS": SourceConfig(
+        "DTWEXBGS",
+        "daily",
+        3,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Trade Weighted US Dollar Index",
+    ),
     # Weekly series - moderate TTL
-    "ICSA": SourceConfig("ICSA", "weekly", 10, use_event_encoding=True,
-                         description="Initial Claims"),
-
+    "ICSA": SourceConfig(
+        "ICSA", "weekly", 10, use_event_encoding=True, description="Initial Claims"
+    ),
     # Monthly series - use event encoding, not level ffill
-    "CPIAUCSL": SourceConfig("CPIAUCSL", "monthly", None, use_event_encoding=True,
-                             is_critical=True, description="CPI All Urban Consumers"),
-    "PPIACO": SourceConfig("PPIACO", "monthly", None, use_event_encoding=True,
-                           description="Producer Price Index All Commodities"),
-    "UNRATE": SourceConfig("UNRATE", "monthly", None, use_event_encoding=True,
-                           description="Unemployment Rate"),
-    "PAYEMS": SourceConfig("PAYEMS", "monthly", None, use_event_encoding=True,
-                           description="Nonfarm Payrolls"),
-    "M2SL": SourceConfig("M2SL", "monthly", 60, use_event_encoding=True,
-                         description="M2 Money Stock"),
-
+    "CPIAUCSL": SourceConfig(
+        "CPIAUCSL",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        is_critical=True,
+        description="CPI All Urban Consumers",
+    ),
+    "PPIACO": SourceConfig(
+        "PPIACO",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        description="Producer Price Index All Commodities",
+    ),
+    "UNRATE": SourceConfig(
+        "UNRATE",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        description="Unemployment Rate",
+    ),
+    "PAYEMS": SourceConfig(
+        "PAYEMS",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        description="Nonfarm Payrolls",
+    ),
+    "M2SL": SourceConfig(
+        "M2SL", "monthly", 60, use_event_encoding=True, description="M2 Money Stock"
+    ),
     # Monthly EPU indices - event encoding
-    "USEPUINDXD": SourceConfig("USEPUINDXD", "daily", 3, is_critical=True,
-                               description="US Economic Policy Uncertainty Daily"),
-    "USEPUINDXM": SourceConfig("USEPUINDXM", "monthly", None, use_event_encoding=True,
-                               description="US Economic Policy Uncertainty Monthly"),
-    "EPUTRADE": SourceConfig("EPUTRADE", "monthly", None, use_event_encoding=True,
-                             description="Trade Policy Uncertainty"),
+    "USEPUINDXD": SourceConfig(
+        "USEPUINDXD",
+        "daily",
+        3,
+        is_critical=True,
+        description="US Economic Policy Uncertainty Daily",
+    ),
+    "USEPUINDXM": SourceConfig(
+        "USEPUINDXM",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        description="US Economic Policy Uncertainty Monthly",
+    ),
+    "EPUTRADE": SourceConfig(
+        "EPUTRADE",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        description="Trade Policy Uncertainty",
+    ),
 }
 
 
 # CFTC Positioning (pos.* tables)
 CFTC_CONFIG: Dict[str, SourceConfig] = {
-    "cftc_1w": SourceConfig("pos.cftc_1w", "weekly", 10, use_event_encoding=True,
-                            is_critical=True, description="CFTC Commitment of Traders"),
+    "cftc_1w": SourceConfig(
+        "pos.cftc_1w",
+        "weekly",
+        10,
+        use_event_encoding=True,
+        is_critical=True,
+        description="CFTC Commitment of Traders",
+    ),
 }
 
 
 # USDA Supply Data (supply.* tables)
 USDA_CONFIG: Dict[str, SourceConfig] = {
-    "wasde_1m": SourceConfig("supply.usda_wasde_1m", "monthly", None,
-                             use_event_encoding=True, is_critical=True,
-                             description="WASDE Monthly Report"),
-    "usda_exports_1w": SourceConfig("supply.usda_exports_1w", "weekly", 21,
-                                    use_event_encoding=True,
-                                    description="USDA Export Sales Weekly"),
+    "wasde_1m": SourceConfig(
+        "supply.usda_wasde_1m",
+        "monthly",
+        None,
+        use_event_encoding=True,
+        is_critical=True,
+        description="WASDE Monthly Report",
+    ),
+    "usda_exports_1w": SourceConfig(
+        "supply.usda_exports_1w",
+        "weekly",
+        21,
+        use_event_encoding=True,
+        description="USDA Export Sales Weekly",
+    ),
 }
 
 
 # EPA/Biofuel Data (supply.* tables)
 BIOFUEL_CONFIG: Dict[str, SourceConfig] = {
-    "epa_rin_1d": SourceConfig("supply.epa_rin_1d", "daily", 14, is_critical=True,
-                               description="EPA RIN Prices"),
-    "lcfs_1d": SourceConfig("supply.lcfs_1d", "weekly", 21, is_critical=True,
-                            description="California LCFS Credits"),
+    "epa_rin_1d": SourceConfig(
+        "supply.epa_rin_1d", "daily", 14, is_critical=True, description="EPA RIN Prices"
+    ),
+    "lcfs_1d": SourceConfig(
+        "supply.lcfs_1d",
+        "weekly",
+        21,
+        is_critical=True,
+        description="California LCFS Credits",
+    ),
 }
 
 
 # Market Data (mkt.* tables) - NO forward fill for prices
 MARKET_CONFIG: Dict[str, SourceConfig] = {
-    "futures_1d": SourceConfig("mkt.futures_1d", "daily", None, weekend_exempt=True,
-                               is_critical=True, description="Daily Futures - NO FFILL"),
-    "etf_1d": SourceConfig("mkt.etf_1d", "daily", None, weekend_exempt=True,
-                           is_critical=True, description="Daily ETFs - NO FFILL"),
-    "options_1d": SourceConfig("mkt.options_1d", "daily", None, weekend_exempt=True,
-                               description="Daily Options - NO FFILL"),
-    "fx_1d": SourceConfig("mkt.fx_1d", "daily", None, weekend_exempt=True,
-                          is_critical=True, description="Daily FX - NO FFILL"),
+    "futures_1d": SourceConfig(
+        "mkt.futures_1d",
+        "daily",
+        None,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Daily Futures - NO FFILL",
+    ),
+    "etf_1d": SourceConfig(
+        "mkt.etf_1d",
+        "daily",
+        None,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Daily ETFs - NO FFILL",
+    ),
+    "options_1d": SourceConfig(
+        "mkt.options_1d",
+        "daily",
+        None,
+        weekend_exempt=True,
+        description="Daily Options - NO FFILL",
+    ),
+    "fx_1d": SourceConfig(
+        "mkt.fx_1d",
+        "daily",
+        None,
+        weekend_exempt=True,
+        is_critical=True,
+        description="Daily FX - NO FFILL",
+    ),
 }
 
 
 # PMI / Activity Data
 PMI_CONFIG: Dict[str, SourceConfig] = {
-    "cn_caixin_pmi": SourceConfig("cn_caixin_pmi", "monthly", 60, use_event_encoding=True,
-                                  is_critical=True, description="China Caixin Manufacturing PMI"),
-    "us_ism_pmi": SourceConfig("us_ism_pmi", "monthly", 60, use_event_encoding=True,
-                               description="US ISM Manufacturing PMI"),
+    "cn_caixin_pmi": SourceConfig(
+        "cn_caixin_pmi",
+        "monthly",
+        60,
+        use_event_encoding=True,
+        is_critical=True,
+        description="China Caixin Manufacturing PMI",
+    ),
+    "us_ism_pmi": SourceConfig(
+        "us_ism_pmi",
+        "monthly",
+        60,
+        use_event_encoding=True,
+        description="US ISM Manufacturing PMI",
+    ),
 }
 
 
 # =============================================================================
 # Specialist-Level Configuration
 # =============================================================================
+
 
 @dataclass(frozen=True)
 class SpecialistConfig:
@@ -242,11 +397,18 @@ SPECIALIST_CONFIGS: Dict[str, SpecialistConfig] = {
 # Helper Functions
 # =============================================================================
 
+
 def get_ttl_days(source: str) -> Optional[int]:
     """Get TTL in days for a source. Returns None if forward fill not allowed."""
     # Check each config dict
-    for config_dict in [FRED_CONFIG, CFTC_CONFIG, USDA_CONFIG, BIOFUEL_CONFIG,
-                        MARKET_CONFIG, PMI_CONFIG]:
+    for config_dict in [
+        FRED_CONFIG,
+        CFTC_CONFIG,
+        USDA_CONFIG,
+        BIOFUEL_CONFIG,
+        MARKET_CONFIG,
+        PMI_CONFIG,
+    ]:
         if source in config_dict:
             return config_dict[source].ttl_days
     return None
@@ -254,8 +416,14 @@ def get_ttl_days(source: str) -> Optional[int]:
 
 def get_source_config(source: str) -> Optional[SourceConfig]:
     """Get full configuration for a source."""
-    for config_dict in [FRED_CONFIG, CFTC_CONFIG, USDA_CONFIG, BIOFUEL_CONFIG,
-                        MARKET_CONFIG, PMI_CONFIG]:
+    for config_dict in [
+        FRED_CONFIG,
+        CFTC_CONFIG,
+        USDA_CONFIG,
+        BIOFUEL_CONFIG,
+        MARKET_CONFIG,
+        PMI_CONFIG,
+    ]:
         if source in config_dict:
             return config_dict[source]
     return None

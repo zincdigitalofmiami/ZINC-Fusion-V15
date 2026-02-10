@@ -22,8 +22,8 @@ from .base import Hunter, Discovery, HuntResult
 from .crush import CrushHunter
 
 __all__ = [
-    'Hunter',
-    'Discovery', 
-    'HuntResult',
-    'CrushHunter',
+    "Hunter",
+    "Discovery",
+    "HuntResult",
+    "CrushHunter",
 ]

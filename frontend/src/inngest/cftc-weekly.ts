@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
 import dbPool from "@/lib/db";
@@ -74,7 +74,7 @@ const CFTC_CONTRACTS = [
  * Runs every Friday at 4:00 PM ET (after CFTC release)
  */
 export const cftcWeekly = inngest.createFunction(
-  { id: "cftc-weekly", name: "CFTC Weekly COT", retries: 3 },
+  { id: "cftc-weekly", name: "CFTC Weekly COT", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 21 * * 5" }, // 4PM ET = 9PM UTC, Fridays only
   async ({ step, logger }) => {
     const results: { symbol: string; status: string; date?: string }[] = [];

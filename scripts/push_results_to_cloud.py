@@ -18,7 +18,6 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from datetime import datetime
 
 import pandas as pd
 import psycopg2

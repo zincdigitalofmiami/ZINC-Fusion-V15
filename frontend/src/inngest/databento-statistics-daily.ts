@@ -1,14 +1,14 @@
 /**
  * Databento Statistics Daily (Open Interest) Ingestion
- * 
+ *
  * Fetches open interest statistics from Databento GLBX.MDP3 dataset.
  * Uses stat_type=9 (open interest) from statistics schema.
- * 
+ *
  * Upserts open_interest into mkt.futures_1d, creating stub rows if OHLCV job failed.
  * Always fetches last 5 days for robustness (handles timing edge cases).
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
 import dbPool from "@/lib/db";
 
@@ -77,10 +77,10 @@ async function upsertOpenInterest(
        VALUES ($1, $2, $3, 'databento', NOW())
        ON CONFLICT (event_date, symbol) DO UPDATE SET
          open_interest = EXCLUDED.open_interest,
-         source = CASE 
-           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL 
-           THEN EXCLUDED.source 
-           ELSE mkt.futures_1d.source 
+         source = CASE
+           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
+           THEN EXCLUDED.source
+           ELSE mkt.futures_1d.source
          END,
          ingested_at = NOW()
        WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL`,
@@ -96,6 +96,7 @@ export const databentoStatisticsDaily = inngest.createFunction(
     id: "databento-statistics-daily",
     name: "Databento Statistics Daily (Open Interest)",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
   async ({ step, logger }) => {

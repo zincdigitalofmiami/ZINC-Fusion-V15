@@ -20,7 +20,7 @@
  * Tags: trump_effect
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -121,7 +121,7 @@ async function scrapePage(url: string, sourceKey: string): Promise<ICEItem[]> {
 }
 
 export const iceReleasesDaily = inngest.createFunction(
-  { id: "ice-comprehensive-daily", name: "ICE.gov Comprehensive (20+ URLs)", retries: 3 },
+  { id: "ice-comprehensive-daily", name: "ICE.gov Comprehensive (20+ URLs)", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 8,14,20 * * *" }, // 3x daily
   async ({ step }) => {
     const allItems: ICEItem[] = [];

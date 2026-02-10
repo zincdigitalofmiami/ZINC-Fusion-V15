@@ -10,14 +10,12 @@ Audits current database state for Databento live integration:
 - Roll date analysis (detect price jumps >5% on same day)
 """
 
-
 from __future__ import annotations
 
 __test__ = False  # Pytest should not collect integration scripts.
 
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -32,13 +30,13 @@ def run_query(engine, query: str) -> pd.DataFrame:
 def audit_source_distribution(engine) -> Dict[str, Any]:
     """Check source tag distribution across all ZL price tables."""
     results = {}
-    
+
     for table in ["zl_price_15m", "zl_price_1h", "zl_price_1d"]:
         query = f"""
-        SELECT 
-            source, 
-            COUNT(*) as count, 
-            MIN(timestamp) as min_ts, 
+        SELECT
+            source,
+            COUNT(*) as count,
+            MIN(timestamp) as min_ts,
             MAX(timestamp) as max_ts
         FROM analytics.{table}
         GROUP BY source
@@ -46,14 +44,14 @@ def audit_source_distribution(engine) -> Dict[str, Any]:
         """
         df = run_query(engine, query)
         results[table] = df.to_dict("records")
-    
+
     return results
 
 
 def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
     """Detect price jumps >5% between consecutive bars."""
     query = f"""
-    SELECT 
+    SELECT
         timestamp,
         close,
         LAG(close) OVER (ORDER BY timestamp) as prev_close,
@@ -65,7 +63,7 @@ def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
     LIMIT 20
     """
     df = run_query(engine, query)
-    
+
     # Filter for jumps >5%
     discontinuities = df[df["pct_change"] > 5.0].to_dict("records")
     return discontinuities
@@ -74,7 +72,7 @@ def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
 def check_volume_consistency(engine, days: int = 7) -> Dict[str, Any]:
     """Check volume consistency per day."""
     query = f"""
-    SELECT 
+    SELECT
         DATE_TRUNC('day', timestamp) as day,
         COUNT(*) as bars_per_day,
         SUM(volume) as total_volume,
@@ -93,10 +91,14 @@ def check_volume_consistency(engine, days: int = 7) -> Dict[str, Any]:
 def check_date_coverage(engine) -> Dict[str, Any]:
     """Check for gaps in date coverage."""
     results = {}
-    
-    for table, ts_col in [("zl_price_15m", "timestamp"), ("zl_price_1h", "timestamp"), ("zl_price_1d", "event_date")]:
+
+    for table, ts_col in [
+        ("zl_price_15m", "timestamp"),
+        ("zl_price_1h", "timestamp"),
+        ("zl_price_1d", "event_date"),
+    ]:
         query = f"""
-        SELECT 
+        SELECT
             {ts_col} as ts,
             LAG({ts_col}) OVER (ORDER BY {ts_col}) as prev_ts,
             {ts_col} - LAG({ts_col}) OVER (ORDER BY {ts_col}) as gap
@@ -105,7 +107,7 @@ def check_date_coverage(engine) -> Dict[str, Any]:
         LIMIT 1000
         """
         df = run_query(engine, query)
-        
+
         # Find gaps > expected interval
         if table == "zl_price_15m":
             expected_gap = timedelta(minutes=15)
@@ -113,7 +115,7 @@ def check_date_coverage(engine) -> Dict[str, Any]:
             expected_gap = timedelta(hours=1)
         else:
             expected_gap = timedelta(days=1)
-        
+
         gaps = df[df["gap"] > expected_gap * 2].to_dict("records")
         results[table] = {
             "total_rows": len(df),
@@ -121,7 +123,7 @@ def check_date_coverage(engine) -> Dict[str, Any]:
             "latest": df["ts"].max().isoformat() if len(df) > 0 else None,
             "earliest": df["ts"].min().isoformat() if len(df) > 0 else None,
         }
-    
+
     return results
 
 
@@ -129,7 +131,7 @@ def analyze_roll_dates(engine, days: int = 90) -> List[Dict[str, Any]]:
     """Detect potential roll dates (price jumps >5% on same day)."""
     query = f"""
     WITH daily_stats AS (
-        SELECT 
+        SELECT
             DATE_TRUNC('day', timestamp) as day,
             MIN(close) as day_low,
             MAX(close) as day_high,
@@ -140,7 +142,7 @@ def analyze_roll_dates(engine, days: int = 90) -> List[Dict[str, Any]]:
         WHERE timestamp >= NOW() - INTERVAL '{days} days'
         GROUP BY DATE_TRUNC('day', timestamp)
     )
-    SELECT 
+    SELECT
         day,
         day_open,
         day_close,
@@ -165,10 +167,10 @@ def check_symbol_metadata(engine) -> Dict[str, Any]:
     ORDER BY source
     """
     df = run_query(engine, query)
-    
+
     # Check latest data timestamps
     query2 = """
-    SELECT 
+    SELECT
         source,
         COUNT(*) as count,
         MIN(timestamp) as earliest,
@@ -178,7 +180,7 @@ def check_symbol_metadata(engine) -> Dict[str, Any]:
     ORDER BY latest DESC
     """
     df2 = run_query(engine, query2)
-    
+
     return {
         "sources": df["source"].tolist() if len(df) > 0 else [],
         "source_stats": df2.to_dict("records"),
@@ -188,29 +190,31 @@ def check_symbol_metadata(engine) -> Dict[str, Any]:
 def main():
     """Run all audit checks and generate report."""
     engine = get_read_engine()
-    
+
     print("=" * 80)
     print("Databento Current State Audit")
     print("=" * 80)
     print()
-    
+
     results = {}
-    
+
     # 1. Source distribution
     print("1. Checking source distribution...")
     results["source_distribution"] = audit_source_distribution(engine)
     for table, data in results["source_distribution"].items():
         print(f"   {table}:")
         for row in data:
-            print(f"     {row['source']}: {row['count']} rows ({row['min_ts']} to {row['max_ts']})")
+            print(
+                f"     {row['source']}: {row['count']} rows ({row['min_ts']} to {row['max_ts']})"
+            )
     print()
-    
+
     # 2. Symbol metadata
     print("2. Checking symbol metadata...")
     results["symbol_metadata"] = check_symbol_metadata(engine)
     print(f"   Sources found: {results['symbol_metadata']['sources']}")
     print()
-    
+
     # 3. Price discontinuities
     print("3. Detecting price discontinuities (last 7 days)...")
     discontinuities = detect_price_discontinuities(engine, days=7)
@@ -218,11 +222,13 @@ def main():
     if discontinuities:
         print(f"   Found {len(discontinuities)} discontinuities >5%:")
         for disc in discontinuities[:5]:
-            print(f"     {disc['timestamp']}: {disc['pct_change']:.2f}% change ({disc['prev_close']:.2f} -> {disc['close']:.2f})")
+            print(
+                f"     {disc['timestamp']}: {disc['pct_change']:.2f}% change ({disc['prev_close']:.2f} -> {disc['close']:.2f})"
+            )
     else:
         print("   No major discontinuities found")
     print()
-    
+
     # 4. Volume consistency
     print("4. Checking volume consistency (last 7 days)...")
     volume_stats = check_volume_consistency(engine, days=7)
@@ -230,9 +236,11 @@ def main():
     if volume_stats:
         print(f"   Analyzed {len(volume_stats)} days")
         for day in volume_stats[:3]:
-            print(f"     {day['day']}: {day['bars_per_day']} bars, {day['total_volume']:.0f} total volume")
+            print(
+                f"     {day['day']}: {day['bars_per_day']} bars, {day['total_volume']:.0f} total volume"
+            )
     print()
-    
+
     # 5. Date coverage
     print("5. Checking date coverage gaps...")
     coverage = check_date_coverage(engine)
@@ -247,7 +255,7 @@ def main():
         else:
             print("     No significant gaps found")
     print()
-    
+
     # 6. Roll date analysis
     print("6. Analyzing roll dates (last 90 days)...")
     roll_dates = analyze_roll_dates(engine, days=90)
@@ -255,17 +263,19 @@ def main():
     if roll_dates:
         print(f"   Found {len(roll_dates)} days with >5% intraday change:")
         for roll in roll_dates[:5]:
-            print(f"     {roll['day']}: {roll['intraday_pct_change']:.2f}% change ({roll['day_open']:.2f} -> {roll['day_close']:.2f})")
+            print(
+                f"     {roll['day']}: {roll['intraday_pct_change']:.2f}% change ({roll['day_open']:.2f} -> {roll['day_close']:.2f})"
+            )
     else:
         print("   No significant roll date patterns detected")
     print()
-    
+
     # Save results
     output_file = "test_results_current_state.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"Results saved to {output_file}")
-    
+
     # Summary
     print()
     print("=" * 80)

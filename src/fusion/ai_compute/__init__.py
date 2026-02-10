@@ -25,7 +25,7 @@ from .agent_pool import (
 
 __all__ = [
     "BaseAgent",
-    "SentimentScorerAgent", 
+    "SentimentScorerAgent",
     "MARKET_INTELLIGENCE",
     "run_ai_scoring",
     "get_connection",

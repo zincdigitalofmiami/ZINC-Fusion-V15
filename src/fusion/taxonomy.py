@@ -7,7 +7,7 @@ This is the single source of truth for driver IDs, schemas, and naming rules.
 LOCKED — DO NOT MODIFY WITHOUT EXPLICIT APPROVAL.
 """
 
-from typing import Literal, get_args
+from typing import Literal
 
 # =============================================================================
 # DRIVER TAXONOMY (16 TOTAL: 11 Economic + 5 Neural)
@@ -101,10 +101,7 @@ GOVERNANCE_SCHEMAS: tuple[str, ...] = ("metadata", "ops")
 
 # All schemas (canonical list)
 SCHEMAS: tuple[str, ...] = (
-    LANDING_SCHEMAS
-    + DERIVED_SCHEMAS
-    + OUTPUT_SCHEMAS
-    + GOVERNANCE_SCHEMAS
+    LANDING_SCHEMAS + DERIVED_SCHEMAS + OUTPUT_SCHEMAS + GOVERNANCE_SCHEMAS
 )
 
 # BANNED schemas - fail hard if detected in new code
@@ -333,7 +330,9 @@ def validate_config_compliance() -> dict[str, bool]:
     """
     checks = {}
 
-    # Specialist config checks
+    # Specialist config checks (import from autogluon_config at call time)
+    from fusion.autogluon_config import SPECIALIST_CONFIG, DRIFT_THRESHOLDS  # noqa: F401
+
     cfg = SPECIALIST_CONFIG
     checks["specialist_bag_folds_sufficient"] = cfg.num_bag_folds >= 5
     checks["specialist_stack_levels_limited"] = cfg.num_stack_levels <= 1

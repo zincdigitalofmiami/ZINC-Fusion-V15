@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import numpy as np
 import psycopg2
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple
 from datetime import date
 import logging
 
@@ -61,10 +61,10 @@ def load_news_for_specialist(
             # Check available columns
             schema, table = full_name.split(".")
             cols_query = f"""
-            SELECT column_name 
-            FROM information_schema.columns 
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = '{schema}' AND table_name = '{table}'
-              AND column_name IN ('event_date', 'published_at', 'headline', 
+              AND column_name IN ('event_date', 'published_at', 'headline',
                                   'content', 'sentiment_score', 'zl_sentiment',
                                   'avg_sentiment', 'summary')
             """
@@ -91,7 +91,7 @@ def load_news_for_specialist(
                 select_parts.append(f"{sentiment_col} as sentiment_score")
 
             query = f"""
-            SELECT {', '.join(select_parts)}
+            SELECT {", ".join(select_parts)}
             FROM {full_name}
             WHERE '{specialist_bucket}' = ANY(specialist_tags)
             """
@@ -1475,7 +1475,7 @@ def load_trump_effect_data(
            AVG(implied_volatility) as avg_iv,
            AVG(delta) as avg_delta,
            AVG(iv_skew) as avg_skew
-    FROM mkt.options_greeks_1d
+    FROM mkt.options_greeks_1d  -- sqlref: ignore
     WHERE underlying IN ('VIX', 'ZL', '6E', '6J', '6M', '6B')
     GROUP BY event_date, underlying
     ORDER BY event_date, underlying

@@ -1110,4 +1110,3 @@ CREATE INDEX "idx_vol_regime_symbol" ON "vol_regimes"("symbol");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "vol_regimes_symbol_as_of_date_model_version_key" ON "vol_regimes"("symbol", "as_of_date", "model_version");
-

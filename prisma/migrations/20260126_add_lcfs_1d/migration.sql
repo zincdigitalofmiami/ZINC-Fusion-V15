@@ -12,4 +12,3 @@ CREATE TABLE IF NOT EXISTS supply.lcfs_1d (
 
 CREATE INDEX IF NOT EXISTS idx_supply_lcfs_created_at
   ON supply.lcfs_1d (created_at);
-

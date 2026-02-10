@@ -18,7 +18,7 @@
  * @date 2026-02-07
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
@@ -98,10 +98,11 @@ interface NYFedResponse {
 // =============================================================================
 
 export const nyfedDaily = inngest.createFunction(
-  { 
-    id: "nyfed-daily", 
+  {
+    id: "nyfed-daily",
     name: "NY Fed Rates Daily Ingestion",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {

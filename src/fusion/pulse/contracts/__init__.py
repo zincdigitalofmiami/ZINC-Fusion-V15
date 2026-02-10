@@ -3,7 +3,8 @@
 
 from pathlib import Path
 
-PROMPTS_DIR = Path(__file__).parent / 'prompts'
+PROMPTS_DIR = Path(__file__).parent / "prompts"
+
 
 def get_prompt(domain: str) -> str:
     """Get the prompt template for a domain."""
@@ -12,6 +13,7 @@ def get_prompt(domain: str) -> str:
         return filepath.read_text()
     return ""
 
+
 def get_system_prompt() -> str:
     """Get the shared system prompt."""
     filepath = PROMPTS_DIR / "system.txt"
@@ -19,17 +21,18 @@ def get_system_prompt() -> str:
         return filepath.read_text()
     return ""
 
+
 # All 11 specialist domains
 DOMAINS = [
-    'CRUSH',
-    'CHINA', 
-    'FX',
-    'FED',
-    'TARIFF',
-    'ENERGY',
-    'BIOFUEL',
-    'PALM',
-    'VOLATILITY',
-    'SUBSTITUTES',
-    'TRUMP_EFFECT'
+    "CRUSH",
+    "CHINA",
+    "FX",
+    "FED",
+    "TARIFF",
+    "ENERGY",
+    "BIOFUEL",
+    "PALM",
+    "VOLATILITY",
+    "SUBSTITUTES",
+    "TRUMP_EFFECT",
 ]

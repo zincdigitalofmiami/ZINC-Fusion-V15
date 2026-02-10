@@ -81,7 +81,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
         <div className="absolute inset-0 flex items-end justify-between pl-10 pr-4 pb-0 pt-0 h-full">
             {/* Start Bar */}
             <div className="relative flex flex-col items-center group w-12 h-full">
-                 <motion.div 
+                 <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: `${scale(prevPrice)}%` }}
                     className="w-full bg-slate-700/50 rounded-t-sm border border-slate-600 absolute bottom-0"
@@ -96,7 +96,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
             {steps.map((step, i) => (
                 <div key={step.id} className="relative flex flex-col items-center group flex-1 mx-1 h-full">
                     {/* The Bar */}
-                    <motion.div 
+                    <motion.div
                          initial={{ opacity: 0, scaleY: 0 }}
                          animate={{ opacity: 1, scaleY: 1 }}
                          transition={{ delay: i * 0.1 }}
@@ -105,19 +105,19 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
                              height: `${Math.abs(scale(step.end) - scale(step.start))}%`
                          }}
                          className={`w-full absolute rounded-sm border ${
-                             step.type === 'positive' 
-                                ? 'bg-emerald-500/20 border-emerald-500' 
+                             step.type === 'positive'
+                                ? 'bg-emerald-500/20 border-emerald-500'
                                 : 'bg-red-500/20 border-red-500'
                          }`}
                     />
                     {/* Connector Line */}
                     {i < steps.length - 1 && (
-                         <div 
+                         <div
                             className="absolute bg-white/10 h-[1px] w-[200%] right-[-100%] z-0 border-t border-dashed border-white/20"
                             style={{ bottom: `${scale(step.end)}%` }}
                          />
                     )}
-                    
+
                     {/* Label */}
                     <div className="absolute -bottom-6 text-[10px] text-slate-500 font-mono truncate max-w-full text-center opacity-70">
                         {step.label.split(' ')[0]}
@@ -133,7 +133,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
 
             {/* End Bar */}
             <div className="relative flex flex-col items-center group w-12 h-full">
-                 <motion.div 
+                 <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: `${scale(currentPrice)}%` }}
                     className="w-full bg-blue-600/50 rounded-t-sm border border-blue-500 absolute bottom-0"

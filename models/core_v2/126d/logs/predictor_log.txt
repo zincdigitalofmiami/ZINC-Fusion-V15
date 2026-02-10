@@ -9,7 +9,7 @@ Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; 
 CPU Count:          12
 Pytorch Version:    2.9.1
 CUDA Version:       CUDA is not available
-GPU Memory:         
+GPU Memory:
 Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
 GPU Count:          0
 Memory Avail:       9.60 GB / 24.00 GB (40.0%)
@@ -49,7 +49,7 @@ Fitting with arguments:
  'verbosity': 2}
 
 train_data with frequency 'IRREG' has been resampled to frequency 'B'.
-Provided train_data has 14502 rows (NaN fraction=43.6%), 1 time series. Median time series length is 14502 (min=14502, max=14502). 
+Provided train_data has 14502 rows (NaN fraction=43.6%), 1 time series. Median time series length is 14502 (min=14502, max=14502).
 
 Provided data contains following columns:
 	target: 'target_ret_126d'
@@ -68,76 +68,76 @@ AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
 
 Starting training. Start time is 2026-01-24 19:30:04
 Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'ADIDA', 'IMAPA']
-Training timeseries model Naive. 
+Training timeseries model Naive.
 	-0.9262       = Validation score (-WQL)
 	0.25    s     = Training runtime
 	0.02    s     = Validation (prediction) runtime
-Training timeseries model SeasonalNaive. 
+Training timeseries model SeasonalNaive.
 	-0.9381       = Validation score (-WQL)
 	0.24    s     = Training runtime
 	0.02    s     = Validation (prediction) runtime
-Training timeseries model Average. 
+Training timeseries model Average.
 	-0.9015       = Validation score (-WQL)
 	0.23    s     = Training runtime
 	0.02    s     = Validation (prediction) runtime
-Training timeseries model SeasonalAverage. 
+Training timeseries model SeasonalAverage.
 	-0.9097       = Validation score (-WQL)
 	0.29    s     = Training runtime
 	0.02    s     = Validation (prediction) runtime
-Training timeseries model Zero. 
+Training timeseries model Zero.
 	-0.8953       = Validation score (-WQL)
 	0.65    s     = Training runtime
 	0.03    s     = Validation (prediction) runtime
-Training timeseries model RecursiveTabular. 
+Training timeseries model RecursiveTabular.
 	-0.9251       = Validation score (-WQL)
 	10.47   s     = Training runtime
 	0.15    s     = Validation (prediction) runtime
-Training timeseries model DirectTabular. 
+Training timeseries model DirectTabular.
 	-0.8518       = Validation score (-WQL)
 	25.41   s     = Training runtime
 	0.10    s     = Validation (prediction) runtime
-Training timeseries model ETS. 
+Training timeseries model ETS.
 	-0.9223       = Validation score (-WQL)
 	1.09    s     = Training runtime
 	0.18    s     = Validation (prediction) runtime
-Training timeseries model NPTS. 
+Training timeseries model NPTS.
 	-0.9023       = Validation score (-WQL)
 	1.74    s     = Training runtime
 	0.50    s     = Validation (prediction) runtime
-Training timeseries model Croston. 
+Training timeseries model Croston.
 	-1.1293       = Validation score (-WQL)
 	0.64    s     = Training runtime
 	0.04    s     = Validation (prediction) runtime
-Training timeseries model PerStepTabular. 
+Training timeseries model PerStepTabular.
 	-0.6935       = Validation score (-WQL)
 	359.50  s     = Training runtime
 	3.28    s     = Validation (prediction) runtime
-Training timeseries model Theta. 
+Training timeseries model Theta.
 	-0.9355       = Validation score (-WQL)
 	4.38    s     = Training runtime
 	1.20    s     = Validation (prediction) runtime
-Training timeseries model DynamicOptimizedTheta. 
+Training timeseries model DynamicOptimizedTheta.
 	-0.9363       = Validation score (-WQL)
 	2.38    s     = Training runtime
 	0.23    s     = Validation (prediction) runtime
-Training timeseries model AutoETS. 
+Training timeseries model AutoETS.
 	-0.9223       = Validation score (-WQL)
 	3.30    s     = Training runtime
 	0.16    s     = Validation (prediction) runtime
-Training timeseries model AutoARIMA. 
+Training timeseries model AutoARIMA.
 	-0.9223       = Validation score (-WQL)
 	2.22    s     = Training runtime
 	0.15    s     = Validation (prediction) runtime
-Training timeseries model ADIDA. 
+Training timeseries model ADIDA.
 	-0.9716       = Validation score (-WQL)
 	3.45    s     = Training runtime
 	0.05    s     = Validation (prediction) runtime
-Training timeseries model IMAPA. 
+Training timeseries model IMAPA.
 	-0.9716       = Validation score (-WQL)
 	0.88    s     = Training runtime
 	0.06    s     = Validation (prediction) runtime
 Fitting 1 ensemble(s), in 1 layers.
-Training ensemble model WeightedEnsemble. 
+Training ensemble model WeightedEnsemble.
 	Ensemble weights: {'AutoARIMA': 0.33, 'NPTS': 0.14, 'PerStepTabular': 0.53}
 	-0.6052       = Validation score (-WQL)
 	1.09    s     = Training runtime

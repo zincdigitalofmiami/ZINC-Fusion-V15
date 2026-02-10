@@ -16,7 +16,7 @@ Usage in @ray.remote functions:
         finally:
             release_connection(conn)
 """
-import os
+
 import atexit
 from psycopg2 import pool
 
@@ -48,9 +48,7 @@ def get_worker_pool(database_url: str, minconn: int = 1, maxconn: int = 2):
                 pass
 
         _worker_pool = pool.ThreadedConnectionPool(
-            minconn=minconn,
-            maxconn=maxconn,
-            dsn=database_url
+            minconn=minconn, maxconn=maxconn, dsn=database_url
         )
         _pool_dsn = database_url
 

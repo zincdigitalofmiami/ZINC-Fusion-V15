@@ -110,8 +110,8 @@ def get_existing_dates(conn, cutoff_date: str = "2020-01-01") -> set:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT DISTINCT event_date 
-        FROM supply.usda_wasde_1m 
+        SELECT DISTINCT event_date
+        FROM supply.usda_wasde_1m
         WHERE event_date < %s
     """,
         (cutoff_date,),
@@ -148,9 +148,9 @@ def insert_rows(conn, rows: list, batch_size: int = 1000) -> int:
             )
 
         sql = f"""
-            INSERT INTO supply.usda_wasde_1m 
+            INSERT INTO supply.usda_wasde_1m
             (event_date, commodity, country, metric, value, unit, source, ingested_at)
-            VALUES {', '.join(values_list)}
+            VALUES {", ".join(values_list)}
             ON CONFLICT DO NOTHING
         """
 
@@ -158,7 +158,7 @@ def insert_rows(conn, rows: list, batch_size: int = 1000) -> int:
             cur.execute(sql, params)
             inserted += cur.rowcount
         except Exception as e:
-            print(f"Error inserting batch {i//batch_size}: {e}")
+            print(f"Error inserting batch {i // batch_size}: {e}")
             conn.rollback()
             raise
 

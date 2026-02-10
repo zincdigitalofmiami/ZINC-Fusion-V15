@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
 import { XMLParser } from "fast-xml-parser";
@@ -273,7 +273,7 @@ async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn
 }
 
 export const usdaWasdeMonthly = inngest.createFunction(
-  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3 },
+  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours to catch monthly WASDE releases
   async ({ step, logger }) => {
     const client = await pool.connect();

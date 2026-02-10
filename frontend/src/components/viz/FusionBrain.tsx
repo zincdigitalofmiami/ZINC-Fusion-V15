@@ -39,7 +39,7 @@ export function FusionBrain() {
     if (!containerRef.current || nodes.length === 0) return;
 
     const { clientWidth, clientHeight } = containerRef.current;
-    
+
     // Initial center position
     nodes.forEach(node => {
         node.x = clientWidth / 2 + (Math.random() - 0.5) * 50;
@@ -82,7 +82,7 @@ export function FusionBrain() {
         </div>
       )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1e293b]/20 via-[#0a0a0a] to-[#0a0a0a]" />
-      
+
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>
           <filter id="glow">
@@ -139,7 +139,7 @@ export function FusionBrain() {
             hoveredNode && hoveredNode !== node.id && "opacity-30 blur-[1px]"
           )}
           style={{
-            x: node.x, 
+            x: node.x,
             y: node.y,
             width: node.val * 3, // slightly larger visual target
             height: node.val * 3,
@@ -158,14 +158,14 @@ export function FusionBrain() {
           {/* Node Visual */}
           <div className={cn(
             "relative w-full h-full rounded-full border-2 flex items-center justify-center backdrop-blur-md transition-all duration-500",
-            node.status === 'critical' 
-              ? "bg-red-500/10 border-red-500 text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.3)]" 
+            node.status === 'critical'
+              ? "bg-red-500/10 border-red-500 text-red-400 shadow-[0_0_30px_rgba(239,68,68,0.3)]"
               : node.status === 'active'
                 ? "bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
                 : "bg-slate-800/40 border-slate-700 text-slate-500 hover:border-slate-500"
           )}>
             <node.icon size={24} strokeWidth={1.5} />
-            
+
             {/* Orbiting Particles for Active Nodes */}
             {node.status === 'active' && (
               <div className="absolute inset-0 animate-spin-slow pointer-events-none">
@@ -175,10 +175,10 @@ export function FusionBrain() {
           </div>
 
           {/* Label */}
-          <motion.div 
+          <motion.div
             className={cn(
                 "absolute top-full mt-2 text-xs font-mono font-medium tracking-wider pointer-events-none whitespace-nowrap px-2 py-1 rounded bg-black/50 backdrop-blur-sm border border-white/10",
-                node.status === 'critical' ? 'text-red-400 border-red-900/50' : 
+                node.status === 'critical' ? 'text-red-400 border-red-900/50' :
                 node.status === 'active' ? 'text-blue-400 border-blue-900/50' : 'text-slate-500'
             )}
             initial={{ opacity: 0, y: -10 }}

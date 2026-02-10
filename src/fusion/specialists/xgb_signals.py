@@ -19,12 +19,10 @@ import pandas as pd
 import numpy as np
 import logging
 import joblib
-import hashlib
 
 # ML Imports - REAL MODELS
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import TimeSeriesSplit
 
 # XGBoost - install if missing
 try:
@@ -169,7 +167,9 @@ class MLModelMixin:
             logger.warning(f"   Too few usable features: {len(usable_features)}")
             return False
 
-        logger.info(f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage")
+        logger.info(
+            f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage"
+        )
 
         X_filtered = X[usable_features]
         self.feature_names = usable_features  # Only train on usable features
@@ -462,36 +462,50 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
         # OPTIONS FEATURES (if available) - NO GREEKS, just raw volume/ratios
         # Put/call ratio and volume z-scores for ZL, ZS, ZM
-        for ul in ['zl', 'zs', 'zm']:
-            pc_col = f'{ul}_put_call_ratio'
+        for ul in ["zl", "zs", "zm"]:
+            pc_col = f"{ul}_put_call_ratio"
             if pc_col in data.columns:
-                features[f'{ul}_pc_ratio_zscore'] = self.compute_zscore(data[pc_col], window=63)
+                features[f"{ul}_pc_ratio_zscore"] = self.compute_zscore(
+                    data[pc_col], window=63
+                )
 
-            call_vol_col = f'{ul}_call_volume'
+            call_vol_col = f"{ul}_call_volume"
             if call_vol_col in data.columns:
-                features[f'{ul}_call_vol_zscore'] = self.compute_zscore(data[call_vol_col], window=63)
+                features[f"{ul}_call_vol_zscore"] = self.compute_zscore(
+                    data[call_vol_col], window=63
+                )
 
-            put_vol_col = f'{ul}_put_volume'
+            put_vol_col = f"{ul}_put_volume"
             if put_vol_col in data.columns:
-                features[f'{ul}_put_vol_zscore'] = self.compute_zscore(data[put_vol_col], window=63)
+                features[f"{ul}_put_vol_zscore"] = self.compute_zscore(
+                    data[put_vol_col], window=63
+                )
 
             # Premium z-scores (average option premium)
-            call_prem_col = f'{ul}_call_premium'
+            call_prem_col = f"{ul}_call_premium"
             if call_prem_col in data.columns:
-                features[f'{ul}_call_prem_zscore'] = self.compute_zscore(data[call_prem_col], window=63)
+                features[f"{ul}_call_prem_zscore"] = self.compute_zscore(
+                    data[call_prem_col], window=63
+                )
 
-            put_prem_col = f'{ul}_put_premium'
+            put_prem_col = f"{ul}_put_premium"
             if put_prem_col in data.columns:
-                features[f'{ul}_put_prem_zscore'] = self.compute_zscore(data[put_prem_col], window=63)
+                features[f"{ul}_put_prem_zscore"] = self.compute_zscore(
+                    data[put_prem_col], window=63
+                )
 
             # Open interest z-scores
-            call_oi_col = f'{ul}_call_oi'
+            call_oi_col = f"{ul}_call_oi"
             if call_oi_col in data.columns:
-                features[f'{ul}_call_oi_zscore'] = self.compute_zscore(data[call_oi_col], window=63)
+                features[f"{ul}_call_oi_zscore"] = self.compute_zscore(
+                    data[call_oi_col], window=63
+                )
 
-            put_oi_col = f'{ul}_put_oi'
+            put_oi_col = f"{ul}_put_oi"
             if put_oi_col in data.columns:
-                features[f'{ul}_put_oi_zscore'] = self.compute_zscore(data[put_oi_col], window=63)
+                features[f"{ul}_put_oi_zscore"] = self.compute_zscore(
+                    data[put_oi_col], window=63
+                )
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
@@ -516,7 +530,9 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
 
         if last_valid_idx is None:
-            logger.warning("CrushSignalGenerator: No valid data after dropna(subset=primary_features)")
+            logger.warning(
+                "CrushSignalGenerator: No valid data after dropna(subset=primary_features)"
+            )
             return signals
 
         current_date = (
@@ -546,7 +562,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # signal_2 should use same timing as signal_1 (features at T for signal at T)
         crush_momentum = board_crush.pct_change(periods=21) * 100
         oil_share = oil_value / (oil_value + meal_value)
-        oil_share_zscore = self.compute_zscore(oil_share, window=126, min_periods=63)
+        self.compute_zscore(oil_share, window=126, min_periods=63)
 
         # Generate predictions for each valid date
         for idx in data.index:
@@ -628,10 +644,8 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if pd.isna(secondary_val):
                     signal_2_val = 0.0
                     confidence = confidence * 0.7  # Penalty for missing secondary
-                    secondary_missing = True
                 else:
                     signal_2_val = float(secondary_val)
-                    secondary_missing = False
 
                 signals.append(
                     SignalOutput(
@@ -830,7 +844,9 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         X_valid = X_full.dropna(subset=core_cols) if core_cols else X_full.dropna()
         last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
         if last_valid_idx is None:
-            logger.warning("SubstitutesSignalGenerator: No valid data after dropna(subset=primary_features)")
+            logger.warning(
+                "SubstitutesSignalGenerator: No valid data after dropna(subset=primary_features)"
+            )
             return signals
 
         current_date = (
@@ -931,10 +947,8 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                     signal_2_val = 0.0
                     # Penalty for missing secondary
                     base_confidence = base_confidence * 0.7
-                    secondary_missing = True
                 else:
                     signal_2_val = float(richness_val)
-                    secondary_missing = False
 
                 signals.append(
                     SignalOutput(
@@ -1310,12 +1324,10 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 # CONTRACT: signal_2 must never be None
                 if has_brazil and not pd.isna(brazil_zscore.loc[idx]):
                     signal_2_val = float(brazil_zscore.loc[idx])
-                    secondary_missing = False
                 else:
                     signal_2_val = 0.0
                     # Penalty for missing secondary
                     base_confidence = base_confidence * 0.7
-                    secondary_missing = True
 
                 signals.append(
                     SignalOutput(

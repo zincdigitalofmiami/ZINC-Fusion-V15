@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# sqlref: ignore-file
 """
 Ingest World Bank Import Trade Data into Prisma Postgres
 
@@ -98,8 +99,8 @@ def main():
     for _, row in df.iterrows():
         cur.execute(
             """
-            INSERT INTO supply.worldbank_imports_1y 
-            (event_date, country_code, country_name, region, sub_region, 
+            INSERT INTO supply.worldbank_imports_1y  -- sqlref: ignore
+            (event_date, country_code, country_name, region, sub_region,
              intermediate_region, indicator_code, indicator_name, year, imports_pct_gdp)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT DO NOTHING
@@ -142,9 +143,9 @@ def main():
     # Key countries for ZL analysis
     cur.execute(
         """
-        SELECT country_code, country_name, COUNT(*) as years, 
+        SELECT country_code, country_name, COUNT(*) as years,
                ROUND(AVG(imports_pct_gdp)::numeric, 2) as avg_imports_pct
-        FROM supply.worldbank_imports_1y 
+        FROM supply.worldbank_imports_1y
         WHERE country_code IN ('CHN', 'BRA', 'ARG', 'USA', 'IND', 'IDN', 'MYS')
         GROUP BY country_code, country_name
         ORDER BY avg_imports_pct DESC

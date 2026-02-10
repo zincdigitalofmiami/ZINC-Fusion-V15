@@ -27,13 +27,11 @@ Key Metrics:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from datetime import date, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import date
+from typing import Dict, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -43,24 +41,25 @@ load_dotenv()
 # ==============================================================================
 
 # Baltic Dry momentum thresholds (% change)
-BDI_COLLAPSE = -0.30      # 30% drop - shipping crisis
-BDI_WEAK = -0.15          # 15% drop - weak trade
-BDI_NORMAL_LOW = -0.05    # 5% drop - slight weakness
-BDI_NORMAL_HIGH = 0.05    # 5% gain - slight strength
-BDI_STRONG = 0.15         # 15% gain - strong trade
-BDI_BOOM = 0.30           # 30% gain - trade boom
+BDI_COLLAPSE = -0.30  # 30% drop - shipping crisis
+BDI_WEAK = -0.15  # 15% drop - weak trade
+BDI_NORMAL_LOW = -0.05  # 5% drop - slight weakness
+BDI_NORMAL_HIGH = 0.05  # 5% gain - slight strength
+BDI_STRONG = 0.15  # 15% gain - strong trade
+BDI_BOOM = 0.30  # 30% gain - trade boom
 
 # Brazil Real thresholds (USD/BRL % change - POSITIVE = BRL weakness)
-BRL_CRISIS = 0.15         # 15% BRL weakening = crisis
-BRL_STRESS = 0.08         # 8% weakening = stress
-BRL_WEAK = 0.03           # 3% weakening = mild stress
-BRL_STRONG = -0.03        # 3% strengthening = positive
-BRL_BOOM = -0.08          # 8% strengthening = very positive
+BRL_CRISIS = 0.15  # 15% BRL weakening = crisis
+BRL_STRESS = 0.08  # 8% weakening = stress
+BRL_WEAK = 0.03  # 3% weakening = mild stress
+BRL_STRONG = -0.03  # 3% strengthening = positive
+BRL_BOOM = -0.08  # 8% strengthening = very positive
 
 
 @dataclass
 class TradeRegime:
     """Trade flow regime classification."""
+
     name: str
     description: str
     ag_impact: str
@@ -70,28 +69,28 @@ TRADE_REGIMES = {
     "disrupted": TradeRegime(
         name="Trade Disrupted",
         description="Global trade flows severely impacted. Shipping rates collapsed.",
-        ag_impact="Export demand at risk. Basis may blow out. Logistics challenged."
+        ag_impact="Export demand at risk. Basis may blow out. Logistics challenged.",
     ),
     "stressed": TradeRegime(
         name="Trade Stressed",
         description="Trade under pressure. Shipping weak, demand concerns.",
-        ag_impact="Export pace may slow. Watch for cancellations."
+        ag_impact="Export pace may slow. Watch for cancellations.",
     ),
     "normal": TradeRegime(
         name="Normal Trade",
         description="Global trade flowing normally. No major disruptions.",
-        ag_impact="Standard export operations. Fundamentals driving."
+        ag_impact="Standard export operations. Fundamentals driving.",
     ),
     "strong": TradeRegime(
         name="Strong Trade",
         description="Robust global demand. Shipping rates firm.",
-        ag_impact="Export demand supportive. Logistics efficient."
+        ag_impact="Export demand supportive. Logistics efficient.",
     ),
     "booming": TradeRegime(
         name="Trade Booming",
         description="Exceptional trade activity. Strong global demand.",
-        ag_impact="Export pace accelerating. Strong basis support."
-    )
+        ag_impact="Export pace accelerating. Strong basis support.",
+    ),
 }
 
 # ==============================================================================
@@ -99,19 +98,20 @@ TRADE_REGIMES = {
 # ==============================================================================
 
 # SPY-TLT correlation thresholds (typically negative)
-SPY_TLT_PANIC = 0.30      # Highly positive = stress
-SPY_TLT_STRESS = 0.10     # Slightly positive = concerning
-SPY_TLT_NORMAL = -0.15    # Typical negative correlation
-SPY_TLT_HEALTHY = -0.35   # Strong negative = diversification works
+SPY_TLT_PANIC = 0.30  # Highly positive = stress
+SPY_TLT_STRESS = 0.10  # Slightly positive = concerning
+SPY_TLT_NORMAL = -0.15  # Typical negative correlation
+SPY_TLT_HEALTHY = -0.35  # Strong negative = diversification works
 
 # DXY change thresholds
-DXY_RALLY = 0.03          # 3% USD rally = risk-off
-DXY_SELLOFF = -0.03       # 3% USD selloff = risk-on
+DXY_RALLY = 0.03  # 3% USD rally = risk-off
+DXY_SELLOFF = -0.03  # 3% USD selloff = risk-on
 
 
 @dataclass
 class CorrelationRegime:
     """Correlation/risk regime classification."""
+
     name: str
     description: str
     positioning: str
@@ -121,23 +121,23 @@ CORRELATION_REGIMES = {
     "risk_off": CorrelationRegime(
         name="Risk-Off",
         description="Assets moving in lockstep. Diversification not working.",
-        positioning="Defensive positioning. Cash, quality assets. Reduce leverage."
+        positioning="Defensive positioning. Cash, quality assets. Reduce leverage.",
     ),
     "transitioning": CorrelationRegime(
         name="Transitioning",
         description="Market in transition. Correlations elevated but not extreme.",
-        positioning="Monitor closely. Consider reducing risk."
+        positioning="Monitor closely. Consider reducing risk.",
     ),
     "normal": CorrelationRegime(
         name="Normal",
         description="Standard market correlation structure. Diversification effective.",
-        positioning="Normal positioning. Risk-reward balanced."
+        positioning="Normal positioning. Risk-reward balanced.",
     ),
     "risk_on": CorrelationRegime(
         name="Risk-On",
         description="Low correlations. Investors differentiating. Risk appetite strong.",
-        positioning="Growth assets favored. Higher risk tolerance."
-    )
+        positioning="Growth assets favored. Higher risk tolerance.",
+    ),
 }
 
 
@@ -258,6 +258,7 @@ def score_dxy_strength(change_20d: float) -> Tuple[float, str]:
     else:
         return 20, "USD weakening (risk-on)"
 
+
 def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     """
     Calculate Trade Pressure.
@@ -277,11 +278,14 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components = {}
 
     # ==== 1. SHIPPING (BDRY) - Databento ETF ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     bdry_data = cur.fetchall()
     if len(bdry_data) < 21:
         raise ValueError("Insufficient BDRY data to compute shipping stress")
@@ -295,28 +299,38 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # ==== 2. BRAZIL FX ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.rates_1d
         WHERE series_id = 'DEXBZUS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     brl_data = cur.fetchall()
 
     brl_score = 50
     if len(brl_data) >= 20:
         brl_values = [float(r[1]) for r in brl_data if r[1] is not None]
-        brl_change = (brl_values[0] - brl_values[-1]) / brl_values[-1] if brl_values[-1] > 0 else 0
+        brl_change = (
+            (brl_values[0] - brl_values[-1]) / brl_values[-1]
+            if brl_values[-1] > 0
+            else 0
+        )
         brl_score, brl_desc = score_brl_stress(brl_change)
         components["brl_score"] = round(brl_score, 1)
         components["brl_change_20d"] = round(brl_change * 100, 2)
 
     # ==== 3. CHINA SPECIALIST ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'china' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     china_signal = cur.fetchone()
 
     china_score = 50
@@ -330,12 +344,15 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== 4. TRADE NEWS ====
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT COUNT(*) FROM alt.profarmer_news
             WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
             AND (headline ILIKE '%%trade%%' OR headline ILIKE '%%export%%' OR
                  headline ILIKE '%%china%%' OR headline ILIKE '%%brazil%%')
-        """, (as_of_date, as_of_date))
+        """,
+            (as_of_date, as_of_date),
+        )
         news_count = cur.fetchone()[0] or 0
     except Exception:
         news_count = 0
@@ -345,7 +362,12 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     components["trade_news_count"] = news_count
 
     # ==== COMPOSITE ====
-    score = (shipping_score * 0.35) + (brl_score * 0.25) + (china_score * 0.25) + (news_score * 0.15)
+    score = (
+        (shipping_score * 0.35)
+        + (brl_score * 0.25)
+        + (china_score * 0.25)
+        + (news_score * 0.15)
+    )
     score = float(np.clip(score, 0, 100))
 
     # ==== REGIME ====
@@ -417,7 +439,7 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             "regime_name": regime_info.name,
             "regime_description": regime_info.description,
             "ag_impact": regime_info.ag_impact,
-        }
+        },
     }
 
 
@@ -439,7 +461,8 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     components = {}
 
     # ==== 1. SPY-TLT + SPY-GLD CORRELATIONS (Databento ETFs) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date,
                MAX(CASE WHEN symbol = 'SPY' THEN close END) AS spy_close,
                MAX(CASE WHEN symbol = 'TLT' THEN close END) AS tlt_close,
@@ -448,13 +471,19 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
         WHERE symbol IN ('SPY', 'TLT', 'GLD') AND event_date <= %s AND close IS NOT NULL
         GROUP BY event_date
         ORDER BY event_date DESC LIMIT 100
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     corr_rows = cur.fetchall()
     if len(corr_rows) < 30:
         raise ValueError("Insufficient ETF data for correlation pressure")
 
     corr_rows = list(reversed(corr_rows))
-    aligned = [(r[1], r[2], r[3]) for r in corr_rows if r[1] is not None and r[2] is not None and r[3] is not None]
+    aligned = [
+        (r[1], r[2], r[3])
+        for r in corr_rows
+        if r[1] is not None and r[2] is not None and r[3] is not None
+    ]
     if len(aligned) < 30:
         raise ValueError("Insufficient aligned ETF data for correlation pressure")
 
@@ -483,11 +512,14 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     components["spy_gld_corr"] = round(spy_gld_corr, 3)
 
     # ==== 3. DXY STRENGTH (FRED DXY index) ====
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.activity_1d
         WHERE series_id = 'DXY' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     dxy_data = cur.fetchall()
     if len(dxy_data) < 21:
         raise ValueError("Insufficient DXY data for correlation pressure")
@@ -570,5 +602,5 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
             "regime_name": regime_info.name,
             "regime_description": regime_info.description,
             "positioning": regime_info.positioning,
-        }
+        },
     }

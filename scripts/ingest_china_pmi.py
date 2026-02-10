@@ -39,7 +39,9 @@ import requests
 from dotenv import load_dotenv
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 NBS_LIST_URL = "https://www.stats.gov.cn/english/PressRelease/"
@@ -143,14 +145,18 @@ def _extract_manufacturing_pmi(page_html: str) -> float:
         return float(m.group(1))
 
     # Fallback: try to pull the PMI value from the table section where the month appears as "December | 50.1 | ..."
-    m2 = re.search(r"\|\s*December\s*\|\s*(\d{1,3}\.\d)\s*\|", page_html, flags=re.IGNORECASE)
+    m2 = re.search(
+        r"\|\s*December\s*\|\s*(\d{1,3}\.\d)\s*\|", page_html, flags=re.IGNORECASE
+    )
     if m2:
         return float(m2.group(1))
 
     raise ValueError("Could not extract Manufacturing PMI value from page")
 
 
-def _extract_monthly_pmi_from_table(page_html: str, source_url: str) -> List[PmiObservation]:
+def _extract_monthly_pmi_from_table(
+    page_html: str, source_url: str
+) -> List[PmiObservation]:
     """
     Extract a year of monthly PMI values from the embedded table on the PMI release page.
 
@@ -171,7 +177,9 @@ def _extract_monthly_pmi_from_table(page_html: str, source_url: str) -> List[Pmi
         return []
 
     after = page_html[idx:]
-    table_match = re.search(r"(<table[^>]*>.*?</table>)", after, flags=re.IGNORECASE | re.DOTALL)
+    table_match = re.search(
+        r"(<table[^>]*>.*?</table>)", after, flags=re.IGNORECASE | re.DOTALL
+    )
     if not table_match:
         # Fallback: some fetchers provide a pipe-delimited table (markdown-ish),
         # not raw <table> HTML. Parse rows like:
@@ -225,10 +233,14 @@ def _extract_monthly_pmi_from_table(page_html: str, source_url: str) -> List[Pmi
                 )
             )
 
-        return sorted({o.event_date: o for o in obs}.values(), key=lambda o: o.event_date)
+        return sorted(
+            {o.event_date: o for o in obs}.values(), key=lambda o: o.event_date
+        )
 
     table_html = table_match.group(1)
-    rows_html = re.findall(r"<tr[^>]*>(.*?)</tr>", table_html, flags=re.IGNORECASE | re.DOTALL)
+    rows_html = re.findall(
+        r"<tr[^>]*>(.*?)</tr>", table_html, flags=re.IGNORECASE | re.DOTALL
+    )
     if not rows_html:
         return []
 
@@ -243,7 +255,9 @@ def _extract_monthly_pmi_from_table(page_html: str, source_url: str) -> List[Pmi
         return txt
 
     for row_html in rows_html:
-        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, flags=re.IGNORECASE | re.DOTALL)
+        cells = re.findall(
+            r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, flags=re.IGNORECASE | re.DOTALL
+        )
         if len(cells) < 2:
             continue
         token = clean(cells[0])
@@ -273,7 +287,14 @@ def _extract_monthly_pmi_from_table(page_html: str, source_url: str) -> List[Pmi
         except ValueError:
             continue
 
-        obs.append(PmiObservation(event_date=event_date, value=value, source_url=source_url, published_at=published))
+        obs.append(
+            PmiObservation(
+                event_date=event_date,
+                value=value,
+                source_url=source_url,
+                published_at=published,
+            )
+        )
 
     return sorted({o.event_date: o for o in obs}.values(), key=lambda o: o.event_date)
 
@@ -311,7 +332,9 @@ def fetch_observations(
                 if urls:
                     break
             if not urls:
-                raise ValueError("No PMI release links found on NBS Latest Releases pages")
+                raise ValueError(
+                    "No PMI release links found on NBS Latest Releases pages"
+                )
             url = urls[0]
         page = _fetch(url, timeout_s=60)
 
@@ -325,7 +348,14 @@ def fetch_observations(
         ref_year, ref_month = _month_year_from_title(page)
         event_date = _event_date_for_reference_month(ref_year, ref_month)
         value = _extract_manufacturing_pmi(page)
-        obs.append(PmiObservation(event_date=event_date, value=value, source_url=url, published_at=_published_date(page)))
+        obs.append(
+            PmiObservation(
+                event_date=event_date,
+                value=value,
+                source_url=url,
+                published_at=_published_date(page),
+            )
+        )
 
     if min_event_date:
         obs = [o for o in obs if o.event_date >= min_event_date]
@@ -335,16 +365,22 @@ def fetch_observations(
     return obs
 
 
-def upsert_observations(conn, observations: Iterable[PmiObservation], dry_run: bool = False) -> int:
+def upsert_observations(
+    conn, observations: Iterable[PmiObservation], dry_run: bool = False
+) -> int:
     rows = list(observations)
     if not rows:
         logger.warning("No PMI observations to upsert")
         return 0
 
     if dry_run:
-        logger.info(f"[DRY RUN] Would upsert {len(rows)} rows into econ.activity_1d (series_id={SERIES_ID})")
+        logger.info(
+            f"[DRY RUN] Would upsert {len(rows)} rows into econ.activity_1d (series_id={SERIES_ID})"
+        )
         logger.info(f"  Date range: {rows[0].event_date} → {rows[-1].event_date}")
-        logger.info(f"  Sample: {[{'event_date': r.event_date.isoformat(), 'value': r.value, 'url': r.source_url} for r in rows[-3:]]}")
+        logger.info(
+            f"  Sample: {[{'event_date': r.event_date.isoformat(), 'value': r.value, 'url': r.source_url} for r in rows[-3:]]}"
+        )
         return 0
 
     sql = """
@@ -363,7 +399,13 @@ def upsert_observations(conn, observations: Iterable[PmiObservation], dry_run: b
         return hashlib.sha256(payload.encode()).hexdigest()[:64]  # type: ignore[name-defined]
 
     records = [
-        (SERIES_ID, r.event_date, r.value, SOURCE_NAME, row_hash(r.event_date, r.value, r.source_url))
+        (
+            SERIES_ID,
+            r.event_date,
+            r.value,
+            SOURCE_NAME,
+            row_hash(r.event_date, r.value, r.source_url),
+        )
         for r in rows
     ]
 
@@ -374,11 +416,25 @@ def upsert_observations(conn, observations: Iterable[PmiObservation], dry_run: b
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ingest China Manufacturing PMI (NBS) into econ.activity_1d")
+    parser = argparse.ArgumentParser(
+        description="Ingest China Manufacturing PMI (NBS) into econ.activity_1d"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Do not write to DB")
-    parser.add_argument("--start", type=str, default=None, help="Minimum event_date (YYYY-MM-DD) filter")
-    parser.add_argument("--url", type=str, default=None, help="Override source PMI release URL (optional)")
-    parser.add_argument("--html-path", type=str, default=None, help="Parse PMI from a saved HTML file (optional)")
+    parser.add_argument(
+        "--start", type=str, default=None, help="Minimum event_date (YYYY-MM-DD) filter"
+    )
+    parser.add_argument(
+        "--url",
+        type=str,
+        default=None,
+        help="Override source PMI release URL (optional)",
+    )
+    parser.add_argument(
+        "--html-path",
+        type=str,
+        default=None,
+        help="Parse PMI from a saved HTML file (optional)",
+    )
     args = parser.parse_args()
 
     min_event_date: Optional[date] = None
@@ -386,14 +442,18 @@ def main() -> int:
         min_event_date = datetime.strptime(args.start, "%Y-%m-%d").date()
 
     html_path = Path(args.html_path) if args.html_path else None
-    obs = fetch_observations(min_event_date=min_event_date, source_url=args.url, html_path=html_path)
+    obs = fetch_observations(
+        min_event_date=min_event_date, source_url=args.url, html_path=html_path
+    )
     logger.info(f"Fetched {len(obs)} PMI observations from NBS")
 
     conn = get_connection()
     try:
         written = upsert_observations(conn, obs, dry_run=args.dry_run)
         if not args.dry_run:
-            logger.info(f"Wrote {written} rows to econ.activity_1d (series_id={SERIES_ID})")
+            logger.info(
+                f"Wrote {written} rows to econ.activity_1d (series_id={SERIES_ID})"
+            )
     finally:
         conn.close()
 

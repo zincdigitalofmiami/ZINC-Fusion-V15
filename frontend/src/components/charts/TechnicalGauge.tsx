@@ -1,6 +1,6 @@
 /**
  * TechnicalGauge - TradingView-style Semicircle Meter
- * 
+ *
  * Shows buy/sell signal strength with gradient arc
  * Strong Sell ← Sell ← Neutral → Buy → Strong Buy
  */
@@ -45,7 +45,7 @@ export function TechnicalGauge({
   buyCount,
   size = 'md',
 }: TechnicalGaugeProps) {
-  
+
   const dimensions = useMemo(() => {
     switch (size) {
       case 'sm': return { width: 160, height: 100, strokeWidth: 8, fontSize: 12 };
@@ -57,12 +57,12 @@ export function TechnicalGauge({
   // Calculate needle angle (0 = left, 180 = right)
   // value 0 = strong sell (left), 100 = strong buy (right)
   const needleAngle = (value / 100) * 180;
-  
+
   // Arc calculations
   const cx = dimensions.width / 2;
   const cy = dimensions.height - 10;
   const radius = Math.min(cx, cy) - dimensions.strokeWidth;
-  
+
   // Needle endpoint
   const needleLength = radius - 15;
   const needleRadians = (needleAngle - 180) * (Math.PI / 180);
@@ -86,7 +86,7 @@ export function TechnicalGauge({
             <stop offset="75%" stopColor="#26a69a" />
             <stop offset="100%" stopColor="#22ab94" />
           </linearGradient>
-          
+
           {/* Drop shadow for needle */}
           <filter id="needleShadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#000" floodOpacity="0.5" />
@@ -143,7 +143,7 @@ export function TechnicalGauge({
           strokeLinecap="round"
           filter="url(#needleShadow)"
         />
-        
+
         {/* Needle center dot */}
         <circle cx={cx} cy={cy} r={6} fill="#d1d4dc" />
         <circle cx={cx} cy={cy} r={3} fill="#131722" />
@@ -167,7 +167,7 @@ export function TechnicalGauge({
       </svg>
 
       {/* Signal label */}
-      <div 
+      <div
         className="text-lg font-bold mt-1"
         style={{ color: signalColors[signal] }}
       >
@@ -223,7 +223,7 @@ interface MiniGaugeProps {
 
 export function MiniTechnicalGauge({ value, signal, label }: MiniGaugeProps) {
   const needleAngle = (value / 100) * 180;
-  
+
   return (
     <div className="flex items-center gap-3">
       <svg width={60} height={35} viewBox="0 0 60 35">
@@ -234,7 +234,7 @@ export function MiniTechnicalGauge({ value, signal, label }: MiniGaugeProps) {
             <stop offset="100%" stopColor="#22ab94" />
           </linearGradient>
         </defs>
-        
+
         {/* Arc */}
         <path
           d="M 5 30 A 25 25 0 0 1 55 30"
@@ -243,7 +243,7 @@ export function MiniTechnicalGauge({ value, signal, label }: MiniGaugeProps) {
           strokeWidth={4}
           strokeLinecap="round"
         />
-        
+
         {/* Needle */}
         {(() => {
           const cx = 30;
@@ -260,9 +260,9 @@ export function MiniTechnicalGauge({ value, signal, label }: MiniGaugeProps) {
           );
         })()}
       </svg>
-      
+
       <div>
-        <div 
+        <div
           className="text-sm font-bold"
           style={{ color: signalColors[signal] }}
         >

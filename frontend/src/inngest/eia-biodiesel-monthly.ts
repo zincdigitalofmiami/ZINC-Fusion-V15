@@ -14,7 +14,7 @@
  * Table: supply.eia_biodiesel_1m
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -54,6 +54,7 @@ export const eiaBiodieselMonthly = inngest.createFunction(
     id: "eia-biodiesel-monthly",
     name: "EIA Biodiesel Production Monthly",
     retries: 2,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 10 18 * *" }, // 10 AM UTC on 18th of month
   async ({ step, logger }) => {
@@ -258,7 +259,7 @@ export const eiaBiodieselBackfill = inngest.createFunction(
     id: "eia-biodiesel-backfill",
     name: "EIA Biodiesel Historical Backfill",
     retries: 2,
-    concurrency: { limit: 1 },
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
   { event: "eia.biodiesel.backfill" },
   async ({ event, step, logger }) => {

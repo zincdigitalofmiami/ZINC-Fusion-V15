@@ -49,22 +49,19 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # GARCH volatility forecasting
 from src.fusion.forecasting.volatility import (
-    fit_garch,
-    forecast_volatility,
     garch_volatility_for_monte_carlo,
     calculate_risk_metrics,
 )
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
 # Horizons
 HORIZONS = [5, 21, 63, 126]
@@ -77,17 +74,18 @@ RANDOM_SEED = 42
 
 # Regime volatility multipliers (from L5-A spec)
 REGIME_MULTIPLIERS = {
-    'high': 1.5,
-    'elevated': 1.25,
-    'normal': 1.0,
-    'low': 0.7,
-    'suppressed': 0.5,
+    "high": 1.5,
+    "elevated": 1.25,
+    "normal": 1.0,
+    "low": 0.7,
+    "suppressed": 0.5,
 }
 
 
 @dataclass
 class RiskMetrics:
     """Risk metrics from Monte Carlo simulation."""
+
     as_of_date: datetime
     horizon: int
     var_01: float  # 1% VaR (99% confidence)
@@ -114,20 +112,23 @@ def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
     logger.info(f"Loading meta-ensemble predictions for horizon={horizon}d")
 
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT as_of_date, p10, p50, p90
             FROM "model"."meta_ensemble"
             WHERE horizon = %s
             ORDER BY as_of_date DESC
             LIMIT 1000
-        """, (horizon,))
+        """,
+            (horizon,),
+        )
 
         rows = cur.fetchall()
 
     if not rows:
         return None  # Let caller handle gracefully
 
-    df = pd.DataFrame(rows, columns=['as_of_date', 'p10', 'p50', 'p90'])
+    df = pd.DataFrame(rows, columns=["as_of_date", "p10", "p50", "p90"])
     logger.info(f"  Loaded {len(df):,} predictions")
 
     return df
@@ -138,13 +139,16 @@ def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
     logger.info(f"Loading {lookback_days} days of ZL returns for GARCH...")
 
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT event_date, close
             FROM "mkt"."futures_1d"
             WHERE symbol = 'ZL'
             ORDER BY event_date DESC
             LIMIT %s
-        """, (lookback_days + 1,))
+        """,
+            (lookback_days + 1,),
+        )
 
         rows = cur.fetchall()
 
@@ -152,9 +156,9 @@ def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
         logger.warning(f"Only {len(rows)} days of data - GARCH may be unstable")
         return None
 
-    df = pd.DataFrame(rows, columns=['as_of_date', 'close'])
-    df = df.sort_values('as_of_date')
-    returns = df['close'].pct_change().dropna().values
+    df = pd.DataFrame(rows, columns=["as_of_date", "close"])
+    df = df.sort_values("as_of_date")
+    returns = df["close"].pct_change().dropna().values
 
     logger.info(f"  Loaded {len(returns)} daily returns")
     return returns
@@ -164,13 +168,16 @@ def load_current_regime(conn, as_of_date: Optional[datetime] = None) -> str:
     """Load the current volatility regime from vol_regimes table."""
     with conn.cursor() as cur:
         if as_of_date:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT regime
                 FROM "analytics"."vol_regimes"
                 WHERE as_of_date <= %s
                 ORDER BY as_of_date DESC
                 LIMIT 1
-            """, (as_of_date,))
+            """,
+                (as_of_date,),
+            )
         else:
             cur.execute("""
                 SELECT regime
@@ -182,10 +189,10 @@ def load_current_regime(conn, as_of_date: Optional[datetime] = None) -> str:
         row = cur.fetchone()
 
     if row:
-        regime = row[0].lower() if row[0] else 'normal'
+        regime = row[0].lower() if row[0] else "normal"
         return regime
     else:
-        return 'normal'
+        return "normal"
 
 
 def simulate_paths_asymmetric(
@@ -193,8 +200,8 @@ def simulate_paths_asymmetric(
     p50: float,
     p90: float,
     horizon: int,
-    vol_regime: str = 'normal',
-    n_sims: int = N_SIMULATIONS
+    vol_regime: str = "normal",
+    n_sims: int = N_SIMULATIONS,
 ) -> np.ndarray:
     """
     Simulate price paths using asymmetric diffusion (L5-A spec).
@@ -221,7 +228,7 @@ def simulate_paths_asymmetric(
 
     # Asymmetric volatilities (total spread over horizon)
     sigma_down = (p50 - p10) / abs(stats.norm.ppf(0.10))  # Downside vol
-    sigma_up = (p90 - p50) / z_90                          # Upside vol
+    sigma_up = (p90 - p50) / z_90  # Upside vol
 
     # Regime adjustment
     vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
@@ -259,8 +266,8 @@ def simulate_paths_garch(
     p90: float,
     horizon: int,
     historical_returns: np.ndarray,
-    vol_regime: str = 'normal',
-    n_sims: int = N_SIMULATIONS
+    vol_regime: str = "normal",
+    n_sims: int = N_SIMULATIONS,
 ) -> np.ndarray:
     """
     Simulate price paths using GARCH volatility forecasting.
@@ -285,9 +292,11 @@ def simulate_paths_garch(
     # Fit GARCH model to historical returns
     try:
         garch_vol, upside_mult, downside_mult = garch_volatility_for_monte_carlo(
-            historical_returns, horizon=horizon, model_type='gjr-garch'
+            historical_returns, horizon=horizon, model_type="gjr-garch"
         )
-        logger.info(f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}")
+        logger.info(
+            f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}"
+        )
     except Exception as e:
         logger.warning(f"  GARCH fitting failed, falling back to asymmetric: {e}")
         return simulate_paths_asymmetric(p10, p50, p90, horizon, vol_regime, n_sims)
@@ -311,7 +320,9 @@ def simulate_paths_garch(
         daily_vol = garch_vol[t] * vol_mult
 
         # Asymmetric adjustment based on shock direction
-        vol = np.where(shocks[:, t] > 0, daily_vol * upside_mult, daily_vol * downside_mult)
+        vol = np.where(
+            shocks[:, t] > 0, daily_vol * upside_mult, daily_vol * downside_mult
+        )
 
         # Price change (multiplicative)
         returns = shocks[:, t] * vol
@@ -326,7 +337,9 @@ def compute_path_percentiles(paths: np.ndarray) -> Dict:
 
     path_percentiles = {}
     for p in PERCENTILES:
-        path_percentiles[p] = [float(np.percentile(paths[:, t], p)) for t in range(n_steps)]
+        path_percentiles[p] = [
+            float(np.percentile(paths[:, t], p)) for t in range(n_steps)
+        ]
 
     return path_percentiles
 
@@ -375,9 +388,7 @@ def fit_distribution(p10: float, p50: float, p90: float) -> Tuple[float, float]:
 
 
 def run_simulation(
-    mu: float,
-    s: float,
-    n_simulations: int = N_SIMULATIONS
+    mu: float, s: float, n_simulations: int = N_SIMULATIONS
 ) -> np.ndarray:
     """Run Monte Carlo simulation using logistic distribution.
 
@@ -392,9 +403,7 @@ def run_simulation(
 
 
 def calculate_risk_metrics(
-    simulated_returns: np.ndarray,
-    as_of_date: datetime,
-    horizon: int
+    simulated_returns: np.ndarray, as_of_date: datetime, horizon: int
 ) -> RiskMetrics:
     """Calculate risk metrics from simulated returns."""
 
@@ -437,7 +446,7 @@ def calculate_risk_metrics(
         prob_up_5pct=prob_up_5pct,
         prob_down_5pct=prob_down_5pct,
         regime=regime,
-        tail_risk_flag=tail_risk_flag
+        tail_risk_flag=tail_risk_flag,
     )
 
 
@@ -485,8 +494,19 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
     """
 
     batch = [
-        (m.as_of_date, m.horizon, float(m.var_01), float(m.var_05), float(m.var_10), float(m.cvar_05),
-         float(m.prob_up), float(m.prob_up_5pct), float(m.prob_down_5pct), m.regime, bool(m.tail_risk_flag))
+        (
+            m.as_of_date,
+            m.horizon,
+            float(m.var_01),
+            float(m.var_05),
+            float(m.var_10),
+            float(m.cvar_05),
+            float(m.prob_up),
+            float(m.prob_up_5pct),
+            float(m.prob_down_5pct),
+            m.regime,
+            bool(m.tail_risk_flag),
+        )
         for m in metrics
     ]
 
@@ -497,66 +517,92 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
     return len(batch)
 
 
-def save_path_percentiles(conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, model_version: str):
+def save_path_percentiles(
+    conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, model_version: str
+):
     """Save path percentiles to probability_distributions table."""
     with conn.cursor() as cur:
         # Clear existing
-        cur.execute("""
+        cur.execute(
+            """
             DELETE FROM "model"."probability_distributions"
             WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
-        """, (as_of_date, horizon))
+        """,
+            (as_of_date, horizon),
+        )
 
         # Insert percentiles
         batch = []
         for percentile, values in path_percentiles.items():
             # Store terminal value
-            batch.append((
-                'ZL',
-                as_of_date,
-                horizon,
-                float(percentile),
-                values[-1],  # Terminal value
-                model_version,
-                datetime.now(),
-            ))
+            batch.append(
+                (
+                    "ZL",
+                    as_of_date,
+                    horizon,
+                    float(percentile),
+                    values[-1],  # Terminal value
+                    model_version,
+                    datetime.now(),
+                )
+            )
 
-        execute_batch(cur, """
+        execute_batch(
+            cur,
+            """
             INSERT INTO "model"."probability_distributions"
             (symbol, as_of_date, horizon, percentile, value, model_version, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, batch)
+        """,
+            batch,
+        )
 
     conn.commit()
 
 
-def save_monte_carlo_run(conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, n_sims: int, model_version: str):
+def save_monte_carlo_run(
+    conn,
+    as_of_date: datetime,
+    horizon: int,
+    path_percentiles: Dict,
+    n_sims: int,
+    model_version: str,
+):
     """Save Monte Carlo run summary to monte_carlo_runs table."""
     with conn.cursor() as cur:
         # Clear existing
-        cur.execute("""
+        cur.execute(
+            """
             DELETE FROM "model"."monte_carlo_runs"
             WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
-        """, (as_of_date, horizon))
+        """,
+            (as_of_date, horizon),
+        )
 
         # Insert summary with full path data for visualization
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO "model"."monte_carlo_runs"
             (symbol, as_of_date, horizon, num_sims, percentiles, model_version, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (
-            'ZL',
-            as_of_date,
-            horizon,
-            n_sims,
-            Json(path_percentiles),
-            model_version,
-            datetime.now(),
-        ))
+        """,
+            (
+                "ZL",
+                as_of_date,
+                horizon,
+                n_sims,
+                Json(path_percentiles),
+                model_version,
+                datetime.now(),
+            ),
+        )
 
     conn.commit()
 
 
-def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True) -> List[RiskMetrics]:
+def run_monte_carlo(
+    horizon: int, dry_run: bool = False, use_garch: bool = True
+) -> List[RiskMetrics]:
     """Run Monte Carlo simulation for a given horizon (L5-A).
 
     Args:
@@ -580,29 +626,37 @@ def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True)
 
         if predictions_df is None:
             if dry_run:
-                logger.info("[DRY RUN] No upstream meta-ensemble predictions available yet")
+                logger.info(
+                    "[DRY RUN] No upstream meta-ensemble predictions available yet"
+                )
                 logger.info("[DRY RUN] Would run Monte Carlo once L4 is trained")
                 return
-            raise ValueError(f"No meta-ensemble predictions found for horizon={horizon}")
+            raise ValueError(
+                f"No meta-ensemble predictions found for horizon={horizon}"
+            )
 
         # Load current regime
         regime = load_current_regime(conn)
-        logger.info(f"  Current regime: {regime} (multiplier: {REGIME_MULTIPLIERS.get(regime, 1.0)})")
+        logger.info(
+            f"  Current regime: {regime} (multiplier: {REGIME_MULTIPLIERS.get(regime, 1.0)})"
+        )
 
         # Load historical returns for GARCH (if enabled)
         historical_returns = None
         if use_garch:
             historical_returns = load_historical_returns(conn, lookback_days=500)
             if historical_returns is None:
-                logger.warning("  Insufficient historical data, falling back to asymmetric diffusion")
+                logger.warning(
+                    "  Insufficient historical data, falling back to asymmetric diffusion"
+                )
                 use_garch = False
 
         all_metrics = []
         model_version = f"mc_l5a_{horizon}d_{'garch' if use_garch else 'asym'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         for idx, row in predictions_df.iterrows():
-            as_of_date = row['as_of_date']
-            p10, p50, p90 = float(row['p10']), float(row['p50']), float(row['p90'])
+            as_of_date = row["as_of_date"]
+            p10, p50, p90 = float(row["p10"]), float(row["p50"]), float(row["p90"])
 
             # L5-A: Path simulation (GARCH or asymmetric)
             if use_garch and idx == 0:  # Only fit GARCH once for latest prediction
@@ -637,14 +691,23 @@ def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True)
                 path_percentiles = compute_path_percentiles(paths)
 
                 if not dry_run:
-                    save_path_percentiles(conn, as_of_date, horizon, path_percentiles, model_version)
-                    save_monte_carlo_run(conn, as_of_date, horizon, path_percentiles, N_SIMULATIONS, model_version)
+                    save_path_percentiles(
+                        conn, as_of_date, horizon, path_percentiles, model_version
+                    )
+                    save_monte_carlo_run(
+                        conn,
+                        as_of_date,
+                        horizon,
+                        path_percentiles,
+                        N_SIMULATIONS,
+                        model_version,
+                    )
 
         # Log summary
         latest_metrics = all_metrics[0]
-        logger.info(f"\n{'='*40}")
+        logger.info(f"\n{'=' * 40}")
         logger.info(f"LATEST RISK METRICS ({latest_metrics.as_of_date.date()})")
-        logger.info(f"{'='*40}")
+        logger.info(f"{'=' * 40}")
         logger.info(f"  VaR 1%:  {latest_metrics.var_01:+.2%}")
         logger.info(f"  VaR 5%:  {latest_metrics.var_05:+.2%}")
         logger.info(f"  VaR 10%: {latest_metrics.var_10:+.2%}")
@@ -663,9 +726,9 @@ def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True)
         saved = save_risk_metrics(conn, all_metrics)
         logger.info(f"\n  Saved {saved:,} risk metrics to analytics.risk_metrics")
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         return all_metrics
 
@@ -675,10 +738,13 @@ def run_monte_carlo(horizon: int, dry_run: bool = False, use_garch: bool = True)
 
 def main():
     parser = argparse.ArgumentParser(description="Run Monte Carlo risk simulation")
-    parser.add_argument("--horizon", type=str, required=True,
-                       help="Horizon in days (5, 21, 63, 126) or 'all'")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Preview without saving")
+    parser.add_argument(
+        "--horizon",
+        type=str,
+        required=True,
+        help="Horizon in days (5, 21, 63, 126) or 'all'",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
 
     args = parser.parse_args()
 

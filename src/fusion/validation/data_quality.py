@@ -21,10 +21,8 @@ Usage:
 """
 
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional
 from datetime import datetime
 import logging
 

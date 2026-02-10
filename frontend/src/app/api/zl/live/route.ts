@@ -35,9 +35,17 @@ interface PriceTier {
 // ---------------------------------------------------------------------------
 async function getFrom1m(): Promise<PriceTier | null> {
   const rows = await query<{
-    timestamp: string; close: number; open: number; high: number; low: number;
-    volume: number; previous_close: number | null; change: number | null;
-    change_percent: number | null; day_high: number | null; day_low: number | null;
+    timestamp: string;
+    close: number;
+    open: number;
+    high: number;
+    low: number;
+    volume: number;
+    previous_close: number | null;
+    change: number | null;
+    change_percent: number | null;
+    day_high: number | null;
+    day_low: number | null;
   }>(`
     SELECT timestamp, close, open, high, low, volume,
            previous_close, change, change_percent, day_high, day_low
@@ -47,12 +55,18 @@ async function getFrom1m(): Promise<PriceTier | null> {
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
-    price: r.close, open: r.open,
-    high: r.day_high ?? r.high, low: r.day_low ?? r.low,
-    volume: r.volume, timestamp: r.timestamp,
-    previous_close: r.previous_close, change: r.change,
+    price: r.close,
+    open: r.open,
+    high: r.day_high ?? r.high,
+    low: r.day_low ?? r.low,
+    volume: r.volume,
+    timestamp: r.timestamp,
+    previous_close: r.previous_close,
+    change: r.change,
     change_pct: r.change_percent,
-    age_seconds: Math.round((Date.now() - new Date(r.timestamp).getTime()) / 1000),
+    age_seconds: Math.round(
+      (Date.now() - new Date(r.timestamp).getTime()) / 1000,
+    ),
     source: "1m",
   };
 }
@@ -62,7 +76,12 @@ async function getFrom1m(): Promise<PriceTier | null> {
 // ---------------------------------------------------------------------------
 async function getFrom15m(): Promise<PriceTier | null> {
   const rows = await query<{
-    timestamp: string; close: number; open: number; high: number; low: number; volume: number;
+    timestamp: string;
+    close: number;
+    open: number;
+    high: number;
+    low: number;
+    volume: number;
   }>(`
     SELECT timestamp, close, open, high, low, volume
     FROM analytics.zl_price_15m
@@ -71,10 +90,18 @@ async function getFrom15m(): Promise<PriceTier | null> {
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
-    price: r.close, open: r.open, high: r.high, low: r.low,
-    volume: r.volume, timestamp: r.timestamp,
-    previous_close: null, change: null, change_pct: null,
-    age_seconds: Math.round((Date.now() - new Date(r.timestamp).getTime()) / 1000),
+    price: r.close,
+    open: r.open,
+    high: r.high,
+    low: r.low,
+    volume: r.volume,
+    timestamp: r.timestamp,
+    previous_close: null,
+    change: null,
+    change_pct: null,
+    age_seconds: Math.round(
+      (Date.now() - new Date(r.timestamp).getTime()) / 1000,
+    ),
     source: "15m",
   };
 }
@@ -84,7 +111,12 @@ async function getFrom15m(): Promise<PriceTier | null> {
 // ---------------------------------------------------------------------------
 async function getFrom1h(): Promise<PriceTier | null> {
   const rows = await query<{
-    timestamp: string; close: number; open: number; high: number; low: number; volume: number;
+    timestamp: string;
+    close: number;
+    open: number;
+    high: number;
+    low: number;
+    volume: number;
   }>(`
     SELECT timestamp, close, open, high, low, volume
     FROM analytics.zl_price_1h
@@ -93,10 +125,18 @@ async function getFrom1h(): Promise<PriceTier | null> {
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
-    price: r.close, open: r.open, high: r.high, low: r.low,
-    volume: r.volume, timestamp: r.timestamp,
-    previous_close: null, change: null, change_pct: null,
-    age_seconds: Math.round((Date.now() - new Date(r.timestamp).getTime()) / 1000),
+    price: r.close,
+    open: r.open,
+    high: r.high,
+    low: r.low,
+    volume: r.volume,
+    timestamp: r.timestamp,
+    previous_close: null,
+    change: null,
+    change_pct: null,
+    age_seconds: Math.round(
+      (Date.now() - new Date(r.timestamp).getTime()) / 1000,
+    ),
     source: "1h",
   };
 }
@@ -106,8 +146,13 @@ async function getFrom1h(): Promise<PriceTier | null> {
 // ---------------------------------------------------------------------------
 async function getFrom1d(): Promise<PriceTier | null> {
   const rows = await query<{
-    event_date: string; close: number; open: number; high: number; low: number;
-    volume: number; prev_close: number | null;
+    event_date: string;
+    close: number;
+    open: number;
+    high: number;
+    low: number;
+    volume: number;
+    prev_close: number | null;
   }>(`
     SELECT a.event_date::text, a.close, a.open, a.high, a.low, a.volume,
            (SELECT b.close FROM analytics.zl_price_1d b
@@ -123,10 +168,18 @@ async function getFrom1d(): Promise<PriceTier | null> {
   const change = r.close - prevClose;
   const changePct = prevClose !== 0 ? (change / prevClose) * 100 : 0;
   return {
-    price: r.close, open: r.open, high: r.high, low: r.low,
-    volume: r.volume, timestamp: r.event_date,
-    previous_close: prevClose, change, change_pct: changePct,
-    age_seconds: Math.round((Date.now() - new Date(r.event_date).getTime()) / 1000),
+    price: r.close,
+    open: r.open,
+    high: r.high,
+    low: r.low,
+    volume: r.volume,
+    timestamp: r.event_date,
+    previous_close: prevClose,
+    change,
+    change_pct: changePct,
+    age_seconds: Math.round(
+      (Date.now() - new Date(r.event_date).getTime()) / 1000,
+    ),
     source: "1d",
   };
 }
@@ -150,9 +203,12 @@ export async function GET() {
     const tiers = [t1m, t15m, t1h, t1d].filter(Boolean) as PriceTier[];
     if (tiers.length === 0) {
       return NextResponse.json({
-        symbol: "ZL", price: null, timestamp: null,
+        symbol: "ZL",
+        price: null,
+        timestamp: null,
         updated_at: new Date().toISOString(),
-        source: "none", live: false,
+        source: "none",
+        live: false,
         error: "No ZL price data in any table",
       });
     }
@@ -170,7 +226,8 @@ export async function GET() {
         : null;
     }
 
-    const isLive = best.source === "1m" && best.age_seconds < LIVE_THRESHOLD_SECONDS;
+    const isLive =
+      best.source === "1m" && best.age_seconds < LIVE_THRESHOLD_SECONDS;
 
     return NextResponse.json({
       symbol: "ZL",

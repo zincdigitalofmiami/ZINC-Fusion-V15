@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import date, timedelta
+from datetime import date
 
 # Add src to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -188,9 +188,9 @@ class TestStalenessTracking:
 
         assert "test_col" in metadata
         # Staleness should be > 0 for filled values
-        assert (
-            metadata["test_col"]["staleness_days"] == 4
-        ), f"Expected 4 days staleness, got {metadata['test_col']['staleness_days']}"
+        assert metadata["test_col"]["staleness_days"] == 4, (
+            f"Expected 4 days staleness, got {metadata['test_col']['staleness_days']}"
+        )
 
 
 class TestLCFSExceptionHandling:
@@ -199,7 +199,7 @@ class TestLCFSExceptionHandling:
     def test_lcfs_exception_logs_warning(self, caplog):
         """Test that LCFS exception logs warning instead of silent pass."""
         import logging
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
 
         logger = logging.getLogger("fusion.specialists.data_loaders")
 

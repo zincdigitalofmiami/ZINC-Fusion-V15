@@ -13,7 +13,7 @@
  * Table: econ.rates_1d (reusing FRED pattern)
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -54,6 +54,7 @@ export const eiaDaily = inngest.createFunction(
     id: "eia-petroleum-daily",
     name: "EIA Petroleum Spot Prices (API v2)",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
   async ({ step }) => {

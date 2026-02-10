@@ -35,13 +35,11 @@ For Soyoil Traders:
 
 from __future__ import annotations
 
-import os
-from dataclasses import dataclass, field
-from datetime import date, timedelta
+from dataclasses import dataclass
+from datetime import date
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,36 +49,37 @@ load_dotenv()
 # ==============================================================================
 
 # Board crush thresholds ($/bushel) - empirically calibrated
-CRUSH_DANGER_ZONE = 0.75      # Processors lose money
-CRUSH_SEVERE_STRESS = 1.00    # Marginal economics
-CRUSH_TIGHT = 1.25            # Profitable but squeezed
-CRUSH_NEUTRAL = 1.50          # Typical margins
-CRUSH_HEALTHY = 1.75          # Good margins
-CRUSH_STRONG = 2.00           # Strong margins
-CRUSH_EXCEPTIONAL = 2.50      # Exceptional (unsustainable)
+CRUSH_DANGER_ZONE = 0.75  # Processors lose money
+CRUSH_SEVERE_STRESS = 1.00  # Marginal economics
+CRUSH_TIGHT = 1.25  # Profitable but squeezed
+CRUSH_NEUTRAL = 1.50  # Typical margins
+CRUSH_HEALTHY = 1.75  # Good margins
+CRUSH_STRONG = 2.00  # Strong margins
+CRUSH_EXCEPTIONAL = 2.50  # Exceptional (unsustainable)
 
 # Oil share thresholds (%)
-OIL_SHARE_VERY_LOW = 0.42     # Oil severely undervalued
-OIL_SHARE_LOW = 0.45          # Oil weak
+OIL_SHARE_VERY_LOW = 0.42  # Oil severely undervalued
+OIL_SHARE_LOW = 0.45  # Oil weak
 OIL_SHARE_NEUTRAL_LOW = 0.47  # Slightly below average
-OIL_SHARE_NEUTRAL_HIGH = 0.49 # Slightly above average
-OIL_SHARE_HIGH = 0.51         # Oil commanding premium
-OIL_SHARE_VERY_HIGH = 0.54    # Oil extremely strong
+OIL_SHARE_NEUTRAL_HIGH = 0.49  # Slightly above average
+OIL_SHARE_HIGH = 0.51  # Oil commanding premium
+OIL_SHARE_VERY_HIGH = 0.54  # Oil extremely strong
 
 # Rate of change thresholds (% per 5 days)
 OIL_SHARE_FALLING_FAST = -0.02  # 2% drop in 5 days
-OIL_SHARE_FALLING = -0.005      # 0.5% drop
-OIL_SHARE_RISING = 0.005        # 0.5% gain
-OIL_SHARE_RISING_FAST = 0.02    # 2% gain
+OIL_SHARE_FALLING = -0.005  # 0.5% drop
+OIL_SHARE_RISING = 0.005  # 0.5% gain
+OIL_SHARE_RISING_FAST = 0.02  # 2% gain
 
 
 @dataclass
 class CrushRegime:
     """Crush margin regime classification."""
+
     name: str
     description: str
     implications_oil: str  # What this means for soyoil
-    implications_meal: str # What this means for soymeal
+    implications_meal: str  # What this means for soymeal
 
 
 CRUSH_REGIMES = {
@@ -88,38 +87,38 @@ CRUSH_REGIMES = {
         name="Margin Collapse",
         description="Processors at/below breakeven. Crush cuts imminent. Plants idling.",
         implications_oil="ZL MIXED-BEARISH. Supply cuts coming but reflects weak oil demand. Basis chaotic. Watch for capacity shutdowns.",
-        implications_meal="Meal basis firming sharply as supply dries up."
+        implications_meal="Meal basis firming sharply as supply dries up.",
     ),
     "severe_stress": CrushRegime(
         name="Severe Stress",
         description="Marginal economics. Weaker plants idling. Industry operating defensively.",
         implications_oil="ZL CAUTIOUS. Supply headwinds but demand soft. Oil share critical - if falling, meal driving. Processor discipline key.",
-        implications_meal="Meal basis bid as crush rates slow."
+        implications_meal="Meal basis bid as crush rates slow.",
     ),
     "tight_margins": CrushRegime(
         name="Tight Margins",
         description="Profitable but squeezed. Processors running cautiously. No expansion.",
         implications_oil="ZL NEUTRAL. Watch oil share closely - falling = meal driving, stable = balanced. Biofuel demand key.",
-        implications_meal="Adequate supplies. Basis stable."
+        implications_meal="Adequate supplies. Basis stable.",
     ),
     "healthy_margins": CrushRegime(
         name="Healthy Margins",
         description="Normal economics. Steady crush. Industry operating smoothly.",
         implications_oil="ZL NEUTRAL-BULLISH. Balanced fundamentals. Oil share trend is direction. Strong renewable diesel = oil premium.",
-        implications_meal="Ample supplies. Feed demand met."
+        implications_meal="Ample supplies. Feed demand met.",
     ),
     "strong_margins": CrushRegime(
         name="Strong Margins",
         description="Excellent economics. High utilization. Plants running hard.",
         implications_oil="ZL CAUTIOUS-BULLISH. Heavy supply but if demand absorbs (biofuel mandates, exports) = bullish. Watch stocks.",
-        implications_meal="Plentiful supplies pressuring meal basis."
+        implications_meal="Plentiful supplies pressuring meal basis.",
     ),
     "exceptional_margins": CrushRegime(
         name="Exceptional Margins",
         description="Unusually high margins. Maximum crush. Usually unsustainable.",
         implications_oil="ZL WATCH DEMAND. Max supply hitting market. Need robust biofuel/export demand or prices will correct.",
-        implications_meal="Heavy supplies. Meal under pressure."
-    )
+        implications_meal="Heavy supplies. Meal under pressure.",
+    ),
 }
 
 
@@ -140,7 +139,9 @@ def score_board_crush_level(crush_value: float) -> Tuple[float, str]:
     elif crush_value < CRUSH_SEVERE_STRESS:
         # $0.75 - $1.00 - severe stress
         # Linear interpolation: $0.75 → 85, $1.00 → 75
-        pct = (crush_value - CRUSH_DANGER_ZONE) / (CRUSH_SEVERE_STRESS - CRUSH_DANGER_ZONE)
+        pct = (crush_value - CRUSH_DANGER_ZONE) / (
+            CRUSH_SEVERE_STRESS - CRUSH_DANGER_ZONE
+        )
         score = 85 - (pct * 10)
         return score, "severe_stress"
 
@@ -206,7 +207,9 @@ def score_oil_share_level(oil_share: float) -> Tuple[float, str]:
         return -15, "Oil share extremely elevated"
 
 
-def score_oil_share_trend(current: float, prior: float, days: int = 5) -> Tuple[float, str]:
+def score_oil_share_trend(
+    current: float, prior: float, days: int = 5
+) -> Tuple[float, str]:
     """
     Score oil share trend (direction matters for soyoil traders).
 
@@ -234,7 +237,7 @@ def generate_crush_narrative(
     oil_share: float,
     oil_share_change: float,
     score: float,
-    regime: str
+    regime: str,
 ) -> Tuple[str, str, List[str]]:
     """
     Generate domain-expert narrative for crush pressure.
@@ -263,15 +266,21 @@ def generate_crush_narrative(
     parts = []
 
     # Crush level context
-    parts.append(f"Board crush at ${crush_value:.2f}/bu reflects {regime_info.name.lower()} conditions.")
+    parts.append(
+        f"Board crush at ${crush_value:.2f}/bu reflects {regime_info.name.lower()} conditions."
+    )
 
     # Oil share context
     if oil_share_change < -0.01:
-        parts.append(f"Oil share at {oil_share*100:.1f}% is falling, indicating meal is driving processor economics.")
+        parts.append(
+            f"Oil share at {oil_share * 100:.1f}% is falling, indicating meal is driving processor economics."
+        )
     elif oil_share_change > 0.01:
-        parts.append(f"Oil share at {oil_share*100:.1f}% is rising, with oil commanding an increasing premium.")
+        parts.append(
+            f"Oil share at {oil_share * 100:.1f}% is rising, with oil commanding an increasing premium."
+        )
     else:
-        parts.append(f"Oil share at {oil_share*100:.1f}% is stable.")
+        parts.append(f"Oil share at {oil_share * 100:.1f}% is stable.")
 
     # Implication for soyoil
     parts.append(regime_info.implications_oil)
@@ -287,9 +296,9 @@ def generate_crush_narrative(
         drivers.append(f"Strong board crush (${crush_value:.2f}/bu)")
 
     if oil_share < OIL_SHARE_LOW:
-        drivers.append(f"Low oil share ({oil_share*100:.1f}%)")
+        drivers.append(f"Low oil share ({oil_share * 100:.1f}%)")
     elif oil_share > OIL_SHARE_HIGH:
-        drivers.append(f"High oil share ({oil_share*100:.1f}%)")
+        drivers.append(f"High oil share ({oil_share * 100:.1f}%)")
 
     if oil_share_change < OIL_SHARE_FALLING:
         drivers.append("Falling oil share trend")
@@ -322,23 +331,29 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     cur = conn.cursor()
 
     # Get board crush data
-    cur.execute("""
+    cur.execute(
+        """
         SELECT trade_date, board_crush, oil_share
         FROM analytics.board_crush_1d
         WHERE trade_date <= %s
         ORDER BY trade_date DESC
         LIMIT 126
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     crush_data = cur.fetchall()
 
     # Get crush specialist signal
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'crush' AND as_of_date <= %s
         ORDER BY as_of_date DESC
         LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signal_row = cur.fetchone()
 
     # Handle no data case
@@ -367,8 +382,16 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     current_oil_share = float(crush_data[0][2])
 
     # Historical values for trend
-    oil_share_5d_ago = float(crush_data[min(5, len(crush_data)-1)][2]) if len(crush_data) > 1 else current_oil_share
-    oil_share_change = (current_oil_share - oil_share_5d_ago) / oil_share_5d_ago if oil_share_5d_ago > 0 else 0
+    oil_share_5d_ago = (
+        float(crush_data[min(5, len(crush_data) - 1)][2])
+        if len(crush_data) > 1
+        else current_oil_share
+    )
+    oil_share_change = (
+        (current_oil_share - oil_share_5d_ago) / oil_share_5d_ago
+        if oil_share_5d_ago > 0
+        else 0
+    )
 
     # ==== COMPONENT 1: Board Crush Level (45% weight) ====
     crush_score, regime = score_board_crush_level(current_crush)
@@ -377,7 +400,9 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     oil_share_adjustment, oil_share_desc = score_oil_share_level(current_oil_share)
 
     # ==== COMPONENT 3: Oil Share Trend (20% weight) ====
-    trend_adjustment, trend_desc = score_oil_share_trend(current_oil_share, oil_share_5d_ago)
+    trend_adjustment, trend_desc = score_oil_share_trend(
+        current_oil_share, oil_share_5d_ago
+    )
 
     # ==== COMPONENT 4: Specialist Signal (15% weight) ====
     signal_adjustment = 0
@@ -400,8 +425,8 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # Apply oil share adjustments (these modify the crush-based score)
     score = base_score + (oil_share_adjustment * 0.20 / 0.45)  # Scale to 45% base
-    score += (trend_adjustment * 0.20 / 0.45)
-    score += (signal_adjustment * 0.15 / 0.45)
+    score += trend_adjustment * 0.20 / 0.45
+    score += signal_adjustment * 0.15 / 0.45
 
     # Ensure bounds
     score = float(np.clip(score, 0, 100))
@@ -474,7 +499,9 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         "color": color,
         "icon": "droplet" if score < 50 else "alert-triangle",
         "sparkline": [round(v, 1) for v in sparkline],
-        "percentile_30d": round(score, 1),  # For this domain-based score, context IS the score
+        "percentile_30d": round(
+            score, 1
+        ),  # For this domain-based score, context IS the score
         "percentile_1y": round(score, 1),
         "regime": regime,
         "momentum": round(momentum, 3),
@@ -489,10 +516,16 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
             "specialist_signal": round(signal_adjustment, 1),
         },
         "domain_context": {
-            "regime_name": CRUSH_REGIMES.get(regime, CRUSH_REGIMES["healthy_margins"]).name,
-            "regime_description": CRUSH_REGIMES.get(regime, CRUSH_REGIMES["healthy_margins"]).description,
-            "oil_implication": CRUSH_REGIMES.get(regime, CRUSH_REGIMES["healthy_margins"]).implications_oil,
+            "regime_name": CRUSH_REGIMES.get(
+                regime, CRUSH_REGIMES["healthy_margins"]
+            ).name,
+            "regime_description": CRUSH_REGIMES.get(
+                regime, CRUSH_REGIMES["healthy_margins"]
+            ).description,
+            "oil_implication": CRUSH_REGIMES.get(
+                regime, CRUSH_REGIMES["healthy_margins"]
+            ).implications_oil,
             "oil_share_assessment": oil_share_desc,
             "trend_assessment": trend_desc,
-        }
+        },
     }

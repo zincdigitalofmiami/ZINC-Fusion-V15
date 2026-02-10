@@ -21,7 +21,6 @@ from typing import Dict, List, Set, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import re
-from ..taxonomy import ECONOMIC_DRIVERS, DRIVER_DESCRIPTIONS
 
 
 class SpecialistBucket(Enum):

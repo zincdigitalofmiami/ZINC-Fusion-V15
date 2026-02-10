@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest) {
     // Query latest forecast from each horizon table
     const result = await pool.query(`
       WITH latest_5d AS (
-        SELECT 
+        SELECT
           5 as horizon_days,
           as_of_date,
           forecast_date,
@@ -36,7 +36,7 @@ export async function GET(_req: NextRequest) {
         LIMIT 1
       ),
       latest_21d AS (
-        SELECT 
+        SELECT
           21 as horizon_days,
           as_of_date,
           forecast_date,
@@ -49,7 +49,7 @@ export async function GET(_req: NextRequest) {
         LIMIT 1
       ),
       latest_63d AS (
-        SELECT 
+        SELECT
           63 as horizon_days,
           as_of_date,
           forecast_date,
@@ -62,7 +62,7 @@ export async function GET(_req: NextRequest) {
         LIMIT 1
       ),
       latest_126d AS (
-        SELECT 
+        SELECT
           126 as horizon_days,
           as_of_date,
           forecast_date,

@@ -12,13 +12,13 @@ VOCABULARY:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List, Dict, Any
 from enum import Enum
 
 
 class Domain(str, Enum):
     """11 Specialist Domains"""
+
     CRUSH = "CRUSH"
     CHINA = "CHINA"
     FX = "FX"
@@ -34,6 +34,7 @@ class Domain(str, Enum):
 
 class Horizon(str, Enum):
     """4 Forecast Horizons"""
+
     ONE_WEEK = "1W"
     ONE_MONTH = "1M"
     THREE_MONTH = "3M"
@@ -42,6 +43,7 @@ class Horizon(str, Enum):
 
 class Direction(int, Enum):
     """Directional stance"""
+
     SHORT = -1
     FLAT = 0
     LONG = 1
@@ -49,6 +51,7 @@ class Direction(int, Enum):
 
 class QualityFlag(str, Enum):
     """Data quality indicators"""
+
     OK = "OK"
     LOW_EVIDENCE = "LOW_EVIDENCE"
     CONFLICTING_EVIDENCE = "CONFLICTING_EVIDENCE"
@@ -61,6 +64,7 @@ class TopDriver:
     """
     Individual driver contributing to the forecast.
     """
+
     driver_id: str
     label: str
     sign: int  # -1 or +1
@@ -74,6 +78,7 @@ class DriverWeights:
     Weight distribution across driver categories.
     MUST sum to 1.0 (±0.01 tolerance).
     """
+
     technical: float = 0.0
     flows: float = 0.0
     macro: float = 0.0
@@ -81,11 +86,18 @@ class DriverWeights:
     weather: float = 0.0
     positioning: float = 0.0
     sentiment: float = 0.0
-    
+
     def sum(self) -> float:
-        return (self.technical + self.flows + self.macro + 
-                self.policy + self.weather + self.positioning + self.sentiment)
-    
+        return (
+            self.technical
+            + self.flows
+            + self.macro
+            + self.policy
+            + self.weather
+            + self.positioning
+            + self.sentiment
+        )
+
     def is_valid(self, tolerance: float = 0.01) -> bool:
         return abs(self.sum() - 1.0) <= tolerance
 
@@ -95,6 +107,7 @@ class HorizonForecast:
     """
     Forecast for a single time horizon.
     """
+
     horizon: str  # 1W, 1M, 3M, 6M
     direction: int  # -1, 0, +1
     pressure_cents: float
@@ -110,6 +123,7 @@ class Benchmark:
     """
     External benchmark reference (AgBull, ChAI, etc.)
     """
+
     source: str
     as_of_ts: str
     summary: str
@@ -122,6 +136,7 @@ class ProtoStackSuggestion:
     """
     Suggested signal convergence candidate.
     """
+
     stack_name: str
     signal_ids: List[str]
     rationale: str
@@ -132,6 +147,7 @@ class IntelDrop:
     """
     Complete Intel Drop for a single domain.
     """
+
     schema_version: str = "pulse.v1"
     as_of_ts: str = ""
     instrument: str = "CBOT:ZL"
@@ -141,7 +157,7 @@ class IntelDrop:
     data_gaps: List[str] = field(default_factory=list)
     quality_flags: List[str] = field(default_factory=list)
     suggested_proto_stacks: List[ProtoStackSuggestion] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return {
@@ -170,12 +186,12 @@ class IntelDrop:
                             "label": d.label,
                             "sign": d.sign,
                             "weight": d.weight,
-                            "receipts": d.receipts
+                            "receipts": d.receipts,
                         }
                         for d in h.top_drivers
                     ],
                     "regime_tags": h.regime_tags,
-                    "uncertainty_notes": h.uncertainty_notes
+                    "uncertainty_notes": h.uncertainty_notes,
                 }
                 for h in self.horizons
             ],
@@ -185,7 +201,7 @@ class IntelDrop:
                     "as_of_ts": b.as_of_ts,
                     "summary": b.summary,
                     "direction": b.direction,
-                    "edge": b.edge
+                    "edge": b.edge,
                 }
                 for b in self.benchmarks
             ],
@@ -195,10 +211,10 @@ class IntelDrop:
                 {
                     "stack_name": p.stack_name,
                     "signal_ids": p.signal_ids,
-                    "rationale": p.rationale
+                    "rationale": p.rationale,
                 }
                 for p in self.suggested_proto_stacks
-            ]
+            ],
         }
 
 
@@ -212,14 +228,32 @@ PULSE_JSON_SCHEMA = {
         "instrument": {"type": "string"},
         "domain": {
             "type": "string",
-            "enum": ["CRUSH", "CHINA", "FX", "FED", "TARIFF", "ENERGY", 
-                     "BIOFUEL", "PALM", "VOLATILITY", "SUBSTITUTES", "TRUMP_EFFECT"]
+            "enum": [
+                "CRUSH",
+                "CHINA",
+                "FX",
+                "FED",
+                "TARIFF",
+                "ENERGY",
+                "BIOFUEL",
+                "PALM",
+                "VOLATILITY",
+                "SUBSTITUTES",
+                "TRUMP_EFFECT",
+            ],
         },
         "horizons": {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["horizon", "direction", "pressure_cents", "edge", "driver_weights", "top_drivers"],
+                "required": [
+                    "horizon",
+                    "direction",
+                    "pressure_cents",
+                    "edge",
+                    "driver_weights",
+                    "top_drivers",
+                ],
                 "properties": {
                     "horizon": {"type": "string", "enum": ["1W", "1M", "3M", "6M"]},
                     "direction": {"type": "integer", "enum": [-1, 0, 1]},
@@ -234,8 +268,8 @@ PULSE_JSON_SCHEMA = {
                             "policy": {"type": "number"},
                             "weather": {"type": "number"},
                             "positioning": {"type": "number"},
-                            "sentiment": {"type": "number"}
-                        }
+                            "sentiment": {"type": "number"},
+                        },
                     },
                     "top_drivers": {
                         "type": "array",
@@ -246,21 +280,28 @@ PULSE_JSON_SCHEMA = {
                                 "driver_id": {"type": "string"},
                                 "label": {"type": "string"},
                                 "sign": {"type": "integer", "enum": [-1, 1]},
-                                "weight": {"type": "number", "minimum": 0, "maximum": 1},
-                                "receipts": {"type": "array", "items": {"type": "string"}}
-                            }
-                        }
+                                "weight": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                },
+                                "receipts": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                            },
+                        },
                     },
                     "regime_tags": {"type": "array", "items": {"type": "string"}},
-                    "uncertainty_notes": {"type": "array", "items": {"type": "string"}}
-                }
+                    "uncertainty_notes": {"type": "array", "items": {"type": "string"}},
+                },
             },
             "minItems": 4,
-            "maxItems": 4
+            "maxItems": 4,
         },
         "benchmarks": {"type": "array"},
         "data_gaps": {"type": "array", "items": {"type": "string"}},
         "quality_flags": {"type": "array", "items": {"type": "string"}},
-        "suggested_proto_stacks": {"type": "array"}
-    }
+        "suggested_proto_stacks": {"type": "array"},
+    },
 }

@@ -29,7 +29,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
   // Use p10 and p90 for range visualization if needed
   void p10;
   void p90;
-  
+
   return (
     <div className="relative flex flex-col items-center justify-center p-5 bg-[#0a0a0a] border border-white/5 rounded-xl w-full shadow-lg">
       <div className="flex justify-between w-full mb-6 items-center">
@@ -44,7 +44,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
               </div>
           )}
       </div>
-      
+
       {/* TradingView Style Gauge */}
       <div className="relative w-48 h-24 mb-6">
         {/* SVG Arc */}
@@ -61,10 +61,10 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
 
             {/* Background Track */}
             <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e293b" strokeWidth="12" strokeLinecap="round" />
-            
+
             {/* Active Gradient Track */}
             <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGradient)" strokeWidth="12" strokeLinecap="round" strokeOpacity="0.8" />
-            
+
             {/* Segments Dividers (White Lines) */}
             {/* Center (Neutral) */}
             <line x1="100" y1="20" x2="100" y2="30" stroke="#0a0a0a" strokeWidth="2" />
@@ -75,9 +75,9 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
         </svg>
 
         {/* Needle */}
-        <motion.div 
+        <motion.div
             className="absolute bottom-0 left-[50%] w-[2px] h-[85px] bg-white origin-bottom z-10"
-            style={{ 
+            style={{
                 x: '-50%',
                 borderRadius: '4px',
                 boxShadow: '0 0 10px rgba(255,255,255,0.5)'
@@ -89,7 +89,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
             {/* Needle Head Circle */}
             <div className="absolute -top-1 -left-1.5 w-4 h-4 bg-white rounded-full border-2 border-[#0a0a0a]" />
         </motion.div>
-        
+
         {/* Pivot Hub */}
         <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-8 h-4 bg-[#0a0a0a] border-t border-white/10 rounded-t-full z-20 flex items-center justify-center">
              <div className="w-1.5 h-1.5 bg-slate-500 rounded-full mt-1"></div>
@@ -97,7 +97,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
       </div>
 
       <div className="text-center mb-6 relative z-10">
-         <motion.div 
+         <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-2xl font-bold tracking-tight"
@@ -105,7 +105,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
          >
              {signal.text}
          </motion.div>
-         
+
          <div className="text-[10px] font-mono text-slate-500 mt-1 flex justify-center gap-4 uppercase tracking-widest">
              <span>Sell</span>
              <span className="text-slate-700">|</span>
@@ -113,7 +113,7 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
              <span className="text-slate-700">|</span>
              <span>Buy</span>
          </div>
-         
+
          {/* Value Indicator */}
          <div className="mt-1 font-mono text-xs text-slate-600">
              SCORE: <span className="text-white">{value}</span>/100
@@ -132,17 +132,17 @@ export function SignalGauge({ value, horizon, p10, p90, confidence }: SignalGaug
             {/* The Bar */}
             <div className="relative h-2 bg-slate-800 rounded-full w-full overflow-hidden">
                 {/* P10 Marker Line (Left) */}
-                <div className="absolute left-0 top-0 bottom-0 w-[15%] bg-indigo-500/20" /> 
+                <div className="absolute left-0 top-0 bottom-0 w-[15%] bg-indigo-500/20" />
                 {/* P90 Marker Line (Right) */}
                 <div className="absolute right-0 top-0 bottom-0 w-[15%] bg-indigo-500/20" />
-                
+
                 {/* Center Range (The "Meat") */}
                 <div className="absolute left-[15%] right-[15%] top-0 bottom-0 bg-blue-600/30 border-x border-blue-500/50"></div>
-                
+
                 {/* Current Price Marker (Assumed roughly center for viz unless exact passed) */}
                 <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_white] z-10" />
             </div>
-            
+
             {/* Ticks */}
             <div className="flex justify-between text-xs font-bold font-mono mt-1.5 px-0 text-slate-300">
                 <div className="text-left">

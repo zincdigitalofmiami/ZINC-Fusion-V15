@@ -7,7 +7,7 @@
 
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -170,7 +170,7 @@ function toNoaaStationId(stationId: string): string | null {
 }
 
 export const noaaWeatherDaily = inngest.createFunction(
-  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3 },
+  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

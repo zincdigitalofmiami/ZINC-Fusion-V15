@@ -59,10 +59,12 @@ class TestKeywordCoverage:
     def test_all_specialists_have_keywords(self):
         """Each specialist should have at least 5 keywords."""
         for specialist in BIG_11_SPECIALISTS:
-            assert specialist in SPECIALIST_KEYWORDS, f"Missing keywords for {specialist}"
-            assert (
-                len(SPECIALIST_KEYWORDS[specialist]) >= 5
-            ), f"{specialist} has only {len(SPECIALIST_KEYWORDS[specialist])} keywords (need >= 5)"
+            assert specialist in SPECIALIST_KEYWORDS, (
+                f"Missing keywords for {specialist}"
+            )
+            assert len(SPECIALIST_KEYWORDS[specialist]) >= 5, (
+                f"{specialist} has only {len(SPECIALIST_KEYWORDS[specialist])} keywords (need >= 5)"
+            )
 
     def test_no_tariff_trump_overlap(self):
         """Tariff and trump_effect should not share keywords (use DUAL_TAG for shared)."""
@@ -75,7 +77,9 @@ class TestKeywordCoverage:
         """All keywords should be lowercase for consistent matching."""
         for specialist, keywords in SPECIALIST_KEYWORDS.items():
             for kw in keywords:
-                assert kw == kw.lower(), f"Keyword '{kw}' in {specialist} is not lowercase"
+                assert kw == kw.lower(), (
+                    f"Keyword '{kw}' in {specialist} is not lowercase"
+                )
 
 
 class TestClassifySpecialists:
@@ -199,7 +203,9 @@ class TestUtilityFunctions:
 
     def test_classify_with_scores(self):
         """classify_specialists_with_scores should return match counts."""
-        scores = classify_specialists_with_scores("China trade policy affects soybean crush")
+        scores = classify_specialists_with_scores(
+            "China trade policy affects soybean crush"
+        )
         assert "china" in scores
         assert "tariff" in scores
         assert "crush" in scores

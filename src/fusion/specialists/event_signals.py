@@ -6,7 +6,7 @@ aggregation rather than traditional ML models.
 """
 
 from datetime import date
-from typing import List, Optional, Dict, Any
+from typing import List
 import pandas as pd
 import numpy as np
 import logging
@@ -786,13 +786,11 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
 
         # Get RIN staleness from _last_obs columns
         rin_staleness = pd.Series(999, index=data.index)
-        rin_source_used = None
         for rin_col in ["rin_d4_price", "rin_d6_price", "rin_d3_price", "rin_d5_price"]:
             last_obs_col = f"{rin_col}_last_obs"
             if last_obs_col in data.columns:
                 rin_staleness = staleness_from_last_obs(last_obs_col, data.index)
                 if rin_staleness.min() < 999:
-                    rin_source_used = rin_col
                     logger.info(
                         f"   BIOFUEL: Using {last_obs_col} for staleness tracking"
                     )
@@ -942,12 +940,10 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
 
             # Signal 2: momentum (CONTRACT: must never be None)
             sig2 = 0.0  # Default to 0.0 instead of None
-            secondary_missing = True
             if use_momentum and rin_momentum is not None:
                 momentum_val = rin_momentum.loc[idx]
                 if not pd.isna(momentum_val):
                     sig2 = float(momentum_val)
-                    secondary_missing = False
                 else:
                     # Penalty for missing secondary
                     confidence = confidence * 0.7

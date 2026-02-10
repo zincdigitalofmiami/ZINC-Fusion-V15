@@ -14,16 +14,13 @@ import json
 import hashlib
 import logging
 import uuid
-from datetime import date, datetime
 from typing import Dict, List, Tuple, Any, Optional
 import subprocess
 
 import pandas as pd
 import numpy as np
-import psycopg2
 from psycopg2.extras import execute_values
 
-from .config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -374,7 +371,9 @@ def check_schema_drift(
 
     # Check for hash match
     if current_hash != ref_schema_hash:
-        issues.append(f"Schema hash changed: {ref_schema_hash[:16]}... → {current_hash[:16]}...")
+        issues.append(
+            f"Schema hash changed: {ref_schema_hash[:16]}... → {current_hash[:16]}..."
+        )
 
     # Check for added columns
     added = current_columns - ref_columns
@@ -434,7 +433,9 @@ def validate_inference_parity(
     # Check schema hash
     current_hash = compute_schema_hash(inference_df)
     if current_hash != ref_schema_hash:
-        issues.append(f"Schema hash mismatch: expected {ref_schema_hash[:16]}..., got {current_hash[:16]}...")
+        issues.append(
+            f"Schema hash mismatch: expected {ref_schema_hash[:16]}..., got {current_hash[:16]}..."
+        )
 
     is_valid = len(issues) == 0
     return is_valid, issues

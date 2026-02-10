@@ -9,7 +9,7 @@
 
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import dbPool from "@/lib/db";
 
@@ -27,13 +27,18 @@ const DATABENTO_PAIRS: Array<{
 ];
 
 function computeRowHash(pair: string, eventDate: string, rate: number): string {
-  return createHash("sha256").update(`${pair}|${eventDate}|${rate}|databento`).digest("hex");
+  return createHash("sha256")
+    .update(`${pair}|${eventDate}|${rate}|databento`)
+    .digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
+async function createIngestRun(
+  client: PoolClient,
+  jobName: string,
+): Promise<string> {
   const result = await client.query(
     `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
+    [jobName],
   );
   return result.rows[0].id;
 }
@@ -46,19 +51,22 @@ async function updateIngestRun(
   inserted: number,
   skipped: number,
   quarantined: number,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<void> {
   await client.query(
     `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
      rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
+    [runId, status, attempted, inserted, skipped, quarantined, errorMessage],
   );
 }
 
-async function getMaxDate(client: PoolClient, pair: string): Promise<string | null> {
+async function getMaxDate(
+  client: PoolClient,
+  pair: string,
+): Promise<string | null> {
   const r = await client.query(
     `SELECT MAX(event_date)::date::text as max_date FROM mkt.fx_1d WHERE pair=$1`,
-    [pair]
+    [pair],
   );
   return r.rows[0]?.max_date ?? null;
 }
@@ -70,7 +78,12 @@ function addDays(yyyyMmDd: string, days: number): string {
 }
 
 export const fxDatabentoSpotDaily = inngest.createFunction(
-  { id: "fx-databento-spot-daily", name: "FX Spot (1D) via Databento", retries: 3 },
+  {
+    id: "fx-databento-spot-daily",
+    name: "FX Spot (1D) via Databento",
+    retries: 3,
+    concurrency: [DB_CONCURRENCY],
+  },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 UTC) - offset from FRED job
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
@@ -80,35 +93,46 @@ export const fxDatabentoSpotDaily = inngest.createFunction(
       throw new Error("DATABENTO_API_KEY not configured");
     }
 
-    const client = await pool.connect();
-    let runId: string | null = null;
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        return await createIngestRun(client, "fx-databento-spot-daily");
+      } finally {
+        client.release();
+      }
+    });
+    logger.info(`Started ingest run: ${runId}`);
+
     let attempted = 0;
     let inserted = 0;
     let skipped = 0;
     let quarantined = 0;
 
     try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "fx-databento-spot-daily"));
-      logger.info(`Started ingest run: ${runId}`);
-
       for (const { pair, continuous, invert } of DATABENTO_PAIRS) {
-        await step.run(`pair-${pair}`, async () => {
-          const maxDate = await getMaxDate(client, pair);
-          // Databento starts 2010-06-06
-          const startDate = maxDate ? addDays(maxDate, 1) : "2010-06-06";
-
-          // Don't fetch if we're already current
-          const today = new Date().toISOString().slice(0, 10);
-          if (startDate >= today) {
-            logger.info(`${pair}: already current (last: ${maxDate})`);
-            return;
-          }
-
-          const endDate = today;
-
-          logger.info(`${pair}: fetching from ${startDate} to ${endDate}`);
+        const pairResult = await step.run(`pair-${pair}`, async () => {
+          const client = await pool.connect();
+          let pAttempted = 0;
+          let pInserted = 0;
+          let pSkipped = 0;
+          let pQuarantined = 0;
 
           try {
+            const maxDate = await getMaxDate(client, pair);
+            // Databento starts 2010-06-06
+            const startDate = maxDate ? addDays(maxDate, 1) : "2010-06-06";
+
+            // Don't fetch if we're already current
+            const today = new Date().toISOString().slice(0, 10);
+            if (startDate >= today) {
+              logger.info(`${pair}: already current (last: ${maxDate})`);
+              return { attempted: 0, inserted: 0, skipped: 0, quarantined: 0 };
+            }
+
+            const endDate = today;
+
+            logger.info(`${pair}: fetching from ${startDate} to ${endDate}`);
+
             const csv = await fetchDatabentoCsv({
               dataset: "GLBX.MDP3",
               schema: "ohlcv-1d",
@@ -134,11 +158,11 @@ export const fxDatabentoSpotDaily = inngest.createFunction(
               }
 
               if (!Number.isFinite(rate) || rate <= 0) {
-                quarantined++;
+                pQuarantined++;
                 continue;
               }
 
-              attempted++;
+              pAttempted++;
 
               const rowHash = computeRowHash(pair, eventDate, rate);
 
@@ -152,35 +176,84 @@ export const fxDatabentoSpotDaily = inngest.createFunction(
                      source = 'databento',
                      row_hash = EXCLUDED.row_hash,
                      ingested_at = NOW()`,
-                  [pair, eventDate, rate, rowHash]
+                  [pair, eventDate, rate, rowHash],
                 );
-                inserted++;
+                pInserted++;
               } catch (err) {
                 logger.warn(`Failed to insert ${pair} ${eventDate}: ${err}`);
-                skipped++;
+                pSkipped++;
               }
             }
+
+            return {
+              attempted: pAttempted,
+              inserted: pInserted,
+              skipped: pSkipped,
+              quarantined: pQuarantined,
+            };
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             logger.error(`Failed to fetch ${pair}: ${msg}`);
-            // Continue with other pairs
+            return {
+              attempted: pAttempted,
+              inserted: pInserted,
+              skipped: pSkipped,
+              quarantined: pQuarantined,
+            };
+          } finally {
+            client.release();
           }
         });
+
+        attempted += pairResult.attempted;
+        inserted += pairResult.inserted;
+        skipped += pairResult.skipped;
+        quarantined += pairResult.quarantined;
       }
 
-      await step.run("complete", () =>
-        updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined)
-      );
+      await step.run("complete", async () => {
+        const client = await pool.connect();
+        try {
+          await updateIngestRun(
+            client,
+            runId,
+            "success",
+            attempted,
+            inserted,
+            skipped,
+            quarantined,
+          );
+        } finally {
+          client.release();
+        }
+      });
 
-      return { status: "success", runId, attempted, inserted, skipped, quarantined };
+      return {
+        status: "success",
+        runId,
+        attempted,
+        inserted,
+        skipped,
+        quarantined,
+      };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+      const failClient = await pool.connect();
+      try {
+        await updateIngestRun(
+          failClient,
+          runId,
+          "failed",
+          attempted,
+          inserted,
+          skipped,
+          quarantined,
+          msg,
+        );
+      } finally {
+        failClient.release();
       }
       throw error;
-    } finally {
-      client.release();
     }
-  }
+  },
 );

@@ -38,7 +38,8 @@ IRF_ZSCORE_SCALE = 10.0
 # Try to import statsmodels for VAR
 try:
     from statsmodels.tsa.api import VAR
-    from statsmodels.tsa.vector_ar.irf import IRAnalysis
+    from statsmodels.tsa.vector_ar.irf import IRAnalysis  # noqa: F401
+
     VAR_AVAILABLE = True
 except ImportError:
     VAR_AVAILABLE = False
@@ -48,6 +49,7 @@ except ImportError:
 # =============================================================================
 # ENERGY SIGNAL GENERATOR - REAL VAR WITH IRF
 # =============================================================================
+
 
 class EnergySignalGenerator(BaseSignalGenerator):
     """
@@ -78,12 +80,20 @@ class EnergySignalGenerator(BaseSignalGenerator):
     PETROLEUM_PRODUCTS = {
         # Crude Oil
         "cl_close": {"name": "WTI Crude", "unit": "$/bbl", "role": "primary_shock"},
-        "bz_close": {"name": "Brent Crude", "unit": "$/bbl", "role": "global_benchmark"},
+        "bz_close": {
+            "name": "Brent Crude",
+            "unit": "$/bbl",
+            "role": "global_benchmark",
+        },
         # Refined Products
         "ho_close": {"name": "Heating Oil", "unit": "$/gal", "role": "diesel_proxy"},
         "rb_close": {"name": "RBOB Gasoline", "unit": "$/gal", "role": "crack_spread"},
         # Natural Gas
-        "ng_close": {"name": "Natural Gas", "unit": "$/mmbtu", "role": "energy_correlation"},
+        "ng_close": {
+            "name": "Natural Gas",
+            "unit": "$/mmbtu",
+            "role": "energy_correlation",
+        },
     }
 
     SPREAD_CALCULATIONS = {
@@ -100,27 +110,27 @@ class EnergySignalGenerator(BaseSignalGenerator):
             primary_features=[
                 "close",
                 # PETROLEUM COMPLEX - Full VAR system
-                "cl_close",         # WTI Crude ($/barrel) - PRIMARY shock source
-                "ho_close",         # Heating Oil ($/gallon) - Diesel/biodiesel proxy
-                "rb_close",         # RBOB Gasoline ($/gallon) - 3-2-1 crack
-                "ng_close",         # Natural Gas - Energy correlation
-                "bz_close",         # Brent Crude - Global benchmark
+                "cl_close",  # WTI Crude ($/barrel) - PRIMARY shock source
+                "ho_close",  # Heating Oil ($/gallon) - Diesel/biodiesel proxy
+                "rb_close",  # RBOB Gasoline ($/gallon) - 3-2-1 crack
+                "ng_close",  # Natural Gas - Energy correlation
+                "bz_close",  # Brent Crude - Global benchmark
             ],
             secondary_features=[
                 # ENERGY ETFs
-                "xle_close",        # Energy sector ETF
-                "uso_close",        # US Oil ETF
-                "ung_close",        # Natural Gas ETF
+                "xle_close",  # Energy sector ETF
+                "uso_close",  # US Oil ETF
+                "ung_close",  # Natural Gas ETF
                 # FRED BACKUP
                 "fred_dcoilwtico",  # FRED WTI
-                "fred_dcoilbrenteu",# FRED Brent
+                "fred_dcoilbrenteu",  # FRED Brent
                 # ELITE INDICATORS (computed)
-                "cl_rsi_14",        # Crude RSI
-                "cl_macd",          # Crude MACD
-                "cl_zscore_21d",    # Crude z-score
-                "crack_spread_321", # 3-2-1 crack spread
-                "boho_spread",      # ZL - HO spread
-                "wti_brent_spread", # WTI - Brent spread
+                "cl_rsi_14",  # Crude RSI
+                "cl_macd",  # Crude MACD
+                "cl_zscore_21d",  # Crude z-score
+                "crack_spread_321",  # 3-2-1 crack spread
+                "boho_spread",  # ZL - HO spread
+                "wti_brent_spread",  # WTI - Brent spread
                 "energy_momentum",  # Composite momentum
             ],
             lookback_days=252,
@@ -148,7 +158,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
             missing.append("ng_close")
         return missing
 
-    def _compute_elite_energy_indicators(self, data: pd.DataFrame) -> Dict[str, pd.Series]:
+    def _compute_elite_energy_indicators(
+        self, data: pd.DataFrame
+    ) -> Dict[str, pd.Series]:
         """Compute elite technical indicators for energy products."""
         elite = {}
 
@@ -175,7 +187,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
             for window in [21, 63]:
                 mean = price.rolling(window).mean()
                 std = price.rolling(window).std()
-                elite[f"{prefix}_zscore_{window}d"] = (price - mean) / std.replace(0, np.nan)
+                elite[f"{prefix}_zscore_{window}d"] = (price - mean) / std.replace(
+                    0, np.nan
+                )
 
             # Momentum
             elite[f"{prefix}_mom_5d"] = price.pct_change(5, fill_method=None)
@@ -184,7 +198,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
         # WTI-Brent spread
         if "cl_close" in data.columns and "bz_close" in data.columns:
             elite["wti_brent_spread"] = data["cl_close"] - data["bz_close"]
-            elite["wti_brent_zscore"] = self.compute_zscore(elite["wti_brent_spread"], 63)
+            elite["wti_brent_zscore"] = self.compute_zscore(
+                elite["wti_brent_spread"], 63
+            )
 
         # Gasoline-Diesel spread
         if "rb_close" in data.columns and "ho_close" in data.columns:
@@ -192,7 +208,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
         return elite
 
-    def _compute_energy_spreads(self, data: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
+    def _compute_energy_spreads(
+        self, data: pd.DataFrame
+    ) -> Tuple[pd.Series, pd.Series]:
         """
         Compute key energy spreads:
         - BOHO spread: ZL - HO (biofuel premium)
@@ -264,7 +282,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
             n_vars = len(columns)
             min_obs = max(150, n_vars * n_vars * maxlags + n_vars * 10)
             if len(returns) < min_obs:
-                logger.warning(f"Insufficient data for VAR({maxlags}): {len(returns)} < {min_obs}")
+                logger.warning(
+                    f"Insufficient data for VAR({maxlags}): {len(returns)} < {min_obs}"
+                )
                 # Try with reduced maxlags
                 maxlags = min(maxlags, len(returns) // (n_vars * n_vars + 10))
                 if maxlags < 1:
@@ -283,7 +303,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 hqic_lag = int(order_result.hqic)
                 fpe_lag = int(order_result.fpe)
 
-                logger.info(f"   VAR lag selection: AIC={aic_lag}, BIC={bic_lag}, HQIC={hqic_lag}, FPE={fpe_lag}")
+                logger.info(
+                    f"   VAR lag selection: AIC={aic_lag}, BIC={bic_lag}, HQIC={hqic_lag}, FPE={fpe_lag}"
+                )
 
                 # Use AIC as primary (tends to select more lags = richer dynamics)
                 # But cross-check with HQIC which balances AIC and BIC
@@ -310,7 +332,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
             # Step 3: Fit VAR with selected lag order
             result = model.fit(optimal_lag)
-            logger.info(f"   VAR fitted: {result.k_ar} lags, AIC={result.aic:.2f}, BIC={result.bic:.2f}")
+            logger.info(
+                f"   VAR fitted: {result.k_ar} lags, AIC={result.aic:.2f}, BIC={result.bic:.2f}"
+            )
 
             # Verify we have lags (should always be true now)
             if result.k_ar < 1:
@@ -326,10 +350,12 @@ class EnergySignalGenerator(BaseSignalGenerator):
             # Step 4: Compute REAL Impulse Response Functions
             # Use orthogonalized IRF (Cholesky decomposition) for structural interpretation
             irf = result.irf(self.irf_horizon)
-            logger.info(f"   IRF computed: {self.irf_horizon}-period horizon, shape={irf.irfs.shape}")
+            logger.info(
+                f"   IRF computed: {self.irf_horizon}-period horizon, shape={irf.irfs.shape}"
+            )
 
             # Also compute orthogonalized IRF for cleaner causal interpretation
-            orth_irf = result.irf(self.irf_horizon)
+            result.irf(self.irf_horizon)
             logger.info(f"   Orthogonalized IRF available")
 
             # Step 5: Compute REAL Forecast Error Variance Decomposition
@@ -337,9 +363,13 @@ class EnergySignalGenerator(BaseSignalGenerator):
             logger.info(f"   FEVD computed: horizon={self.irf_horizon}, vars={n_vars}")
 
             # Log FEVD summary at final horizon
-            logger.info(f"   FEVD at h={self.irf_horizon} (variance explained by each shock):")
+            logger.info(
+                f"   FEVD at h={self.irf_horizon} (variance explained by each shock):"
+            )
             for i, col in enumerate(columns):
-                decomp_str = ", ".join([f"{columns[j]}:{fevd.decomp[-1][i,j]:.3f}" for j in range(n_vars)])
+                decomp_str = ", ".join(
+                    [f"{columns[j]}:{fevd.decomp[-1][i, j]:.3f}" for j in range(n_vars)]
+                )
                 logger.debug(f"      {col} explained by: {decomp_str}")
 
             return result, irf, fevd
@@ -347,6 +377,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
         except Exception as e:
             logger.warning(f"VAR fitting/IRF failed: {e}")
             import traceback
+
             logger.debug(traceback.format_exc())
             return None, None, None
 
@@ -389,7 +420,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 spillover_from[var_i] = from_i
 
             # Total spillover index: sum of all off-diagonal / (n_vars)
-            total_off_diag = sum(decomp[i, j] for i in range(n_vars) for j in range(n_vars) if i != j)
+            total_off_diag = sum(
+                decomp[i, j] for i in range(n_vars) for j in range(n_vars) if i != j
+            )
             total_spillover = total_off_diag / n_vars * 100
 
             return {
@@ -421,7 +454,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
         try:
             # Get variable indices
             shock_idx = columns.index(shock_var) if shock_var in columns else None
-            response_idx = columns.index(response_var) if response_var in columns else None
+            response_idx = (
+                columns.index(response_var) if response_var in columns else None
+            )
 
             if shock_idx is None or response_idx is None:
                 return 0.0
@@ -452,7 +487,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
             if col in data.columns and data[col].notna().sum() > 30:
                 energy_data = data.copy()
                 energy_data["close"] = data[col]
-                energy_data = self.add_all_elite_indicators(energy_data, "close", energy_sym)
+                energy_data = self.add_all_elite_indicators(
+                    energy_data, "close", energy_sym
+                )
                 for c in energy_data.columns:
                     if c.startswith(f"{energy_sym}_") and c not in data.columns:
                         data[c] = energy_data[c]
@@ -504,7 +541,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 self.last_fevd = fevd_analysis
 
                 # Compute spillover index from FEVD
-                spillover_metrics = self._compute_spillover_index(fevd_analysis, energy_cols)
+                spillover_metrics = self._compute_spillover_index(
+                    fevd_analysis, energy_cols
+                )
 
                 # Extract IRF-based signal
                 if "ho_close" in energy_cols:
@@ -558,8 +597,12 @@ class EnergySignalGenerator(BaseSignalGenerator):
         # PATCHED 2026-01-31: Track warmup period for VAR model
         # VAR needs 252 days of history to fit properly
         MIN_HISTORY_FOR_VAR = 252
-        first_valid_idx = data.index[0] if len(data) > 0 else None
-        warmup_end_date = data.index[MIN_HISTORY_FOR_VAR - 1] if len(data) >= MIN_HISTORY_FOR_VAR else data.index[-1]
+        data.index[0] if len(data) > 0 else None
+        (
+            data.index[MIN_HISTORY_FOR_VAR - 1]
+            if len(data) >= MIN_HISTORY_FOR_VAR
+            else data.index[-1]
+        )
 
         for idx in data.index:
             if pd.isna(spillover_score.loc[idx]):
@@ -586,12 +629,20 @@ class EnergySignalGenerator(BaseSignalGenerator):
             base_confidence += 0.05 * abs(corr)
 
             confidence = min(base_confidence, 0.95)
-            momentum = spillover_momentum.loc[idx] if not pd.isna(spillover_momentum.loc[idx]) else 0.0
+            momentum = (
+                spillover_momentum.loc[idx]
+                if not pd.isna(spillover_momentum.loc[idx])
+                else 0.0
+            )
 
             # Build metadata with real IRF/FEVD results
             meta = {
-                "cl_zscore": float(cl_zscore.loc[idx]) if not pd.isna(cl_zscore.loc[idx]) else None,
-                "boho_zscore": float(boho_zscore.loc[idx]) if not pd.isna(boho_zscore.loc[idx]) else None,
+                "cl_zscore": float(cl_zscore.loc[idx])
+                if not pd.isna(cl_zscore.loc[idx])
+                else None,
+                "boho_zscore": float(boho_zscore.loc[idx])
+                if not pd.isna(boho_zscore.loc[idx])
+                else None,
                 "zl_cl_corr": float(corr),
                 "var_fitted": var_result is not None,
                 "irf_computed": irf_analysis is not None,
@@ -623,29 +674,41 @@ class EnergySignalGenerator(BaseSignalGenerator):
             if not crack_zscore.isna().all() and not pd.isna(crack_spread.loc[idx]):
                 meta["crack_321_spread"] = float(crack_spread.loc[idx])
 
-            as_of = idx.date() if hasattr(idx, 'date') else idx
+            as_of = idx.date() if hasattr(idx, "date") else idx
             # P0-3: Skip dates before EARLIEST_VALID_DATE
             if as_of < date(1990, 1, 1):
                 continue
 
             # P0-1: Compute max staleness for this date
             energy_price_cols = [
-                c for c in ["close", "cl_close", "ho_close", "rb_close", "ng_close", "bz_close"]
+                c
+                for c in [
+                    "close",
+                    "cl_close",
+                    "ho_close",
+                    "rb_close",
+                    "ng_close",
+                    "bz_close",
+                ]
                 if c in data.columns
             ]
             max_staleness = self.compute_max_staleness(data, as_of, energy_price_cols)
 
-            signals.append(SignalOutput(
-                as_of_date=as_of,
-                bucket="energy",
-                signal_1=float(spillover_score.loc[idx]),
-                signal_2=float(momentum),
-                confidence=float(confidence),
-                model_type="var",
-                max_input_age_days=max_staleness,  # P0-1: Staleness tracking
-                metadata=meta,
-            ))
+            signals.append(
+                SignalOutput(
+                    as_of_date=as_of,
+                    bucket="energy",
+                    signal_1=float(spillover_score.loc[idx]),
+                    signal_2=float(momentum),
+                    confidence=float(confidence),
+                    model_type="var",
+                    max_input_age_days=max_staleness,  # P0-1: Staleness tracking
+                    metadata=meta,
+                )
+            )
 
         has_irf = "with real IRF/FEVD" if irf_analysis else "no IRF"
-        logger.info(f"EnergySignalGenerator: Generated {len(signals)} signals ({has_irf})")
+        logger.info(
+            f"EnergySignalGenerator: Generated {len(signals)} signals ({has_irf})"
+        )
         return signals

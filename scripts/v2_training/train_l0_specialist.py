@@ -22,6 +22,7 @@ Usage:
 """
 
 import os
+
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 os.environ["KERAS_BACKEND"] = "tensorflow"
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
@@ -46,8 +47,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -63,9 +63,17 @@ QUANTILES = [0.30, 0.50, 0.70]
 NUM_VAL_WINDOWS = 4
 
 SPECIALISTS = [
-    "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes",
-    "trump_effect"
+    "crush",
+    "china",
+    "fx",
+    "fed",
+    "tariff",
+    "energy",
+    "biofuel",
+    "palm",
+    "volatility",
+    "substitutes",
+    "trump_effect",
 ]
 
 TACTICAL_START = "2020-01-01"
@@ -84,6 +92,7 @@ def get_run_label() -> str:
 # DATABASE CONNECTION
 # =============================================================================
 
+
 def get_connection():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
@@ -94,6 +103,7 @@ def get_connection():
 # =============================================================================
 # DATA LOADING
 # =============================================================================
+
 
 def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
     """Load ALL available features from training.matrix_1d for this horizon."""
@@ -113,8 +123,8 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
     """
 
     df = pd.read_sql(query, conn, params=(start_date,))
-    df['trade_date'] = pd.to_datetime(df['trade_date'])
-    df = df.set_index('trade_date')
+    df["trade_date"] = pd.to_datetime(df["trade_date"])
+    df = df.set_index("trade_date")
 
     # Consistent label
     df["target"] = df[target_col]
@@ -130,7 +140,7 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
     for col in df.columns:
         if df[col].dtype == object:
             try:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = pd.to_numeric(df[col], errors="coerce")
             except Exception:
                 pass
 
@@ -138,7 +148,7 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     df[numeric_cols] = df[numeric_cols].ffill().bfill()
 
-    logger.info(f"  Loaded {len(df):,} rows, {len(df.columns)-1} features")
+    logger.info(f"  Loaded {len(df):,} rows, {len(df.columns) - 1} features")
 
     return df
 
@@ -147,6 +157,7 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
 # CROSS-VALIDATION WINDOWS
 # =============================================================================
 
+
 def create_expanding_windows(df: pd.DataFrame, horizon: int) -> List[Dict]:
     total_days = len(df)
     min_train_size = int(total_days * 0.6)
@@ -154,19 +165,23 @@ def create_expanding_windows(df: pd.DataFrame, horizon: int) -> List[Dict]:
 
     windows = []
     for w in range(NUM_VAL_WINDOWS):
-        train_end_idx = min_train_size + (w * (total_days - min_train_size - val_space) // NUM_VAL_WINDOWS)
+        train_end_idx = min_train_size + (
+            w * (total_days - min_train_size - val_space) // NUM_VAL_WINDOWS
+        )
         val_start_idx = train_end_idx
         val_end_idx = min(val_start_idx + horizon, total_days)
 
         cutoff_date = df.index[train_end_idx - 1]
 
-        windows.append({
-            'window_id': w + 1,
-            'train_end_idx': train_end_idx,
-            'val_start_idx': val_start_idx,
-            'val_end_idx': val_end_idx,
-            'cutoff_date': cutoff_date,
-        })
+        windows.append(
+            {
+                "window_id": w + 1,
+                "train_end_idx": train_end_idx,
+                "val_start_idx": val_start_idx,
+                "val_end_idx": val_end_idx,
+                "cutoff_date": cutoff_date,
+            }
+        )
 
     return windows
 
@@ -175,6 +190,7 @@ def create_expanding_windows(df: pd.DataFrame, horizon: int) -> List[Dict]:
 # MODEL TRAINING (AutoGluon TabularPredictor)
 # =============================================================================
 
+
 def train_quantile_predictor(
     train_df: pd.DataFrame,
     label: str,
@@ -182,7 +198,7 @@ def train_quantile_predictor(
     time_limit: int,
     num_bag_folds: int,
     num_stack_levels: int,
-) -> "TabularPredictor":
+) -> "TabularPredictor":  # noqa: F821
     from autogluon.tabular import TabularPredictor
 
     predictor = TabularPredictor(
@@ -210,6 +226,7 @@ def train_quantile_predictor(
 # OOF PREDICTION GENERATION
 # =============================================================================
 
+
 def train_and_predict_oof(
     df: pd.DataFrame,
     bucket: str,
@@ -222,16 +239,16 @@ def train_and_predict_oof(
     dry_run: bool = False,
 ) -> pd.DataFrame:
     windows = create_expanding_windows(df, horizon)
-    feature_cols = [c for c in df.columns if c not in ['target']]
+    feature_cols = [c for c in df.columns if c not in ["target"]]
 
     oof_results = []
 
     for window in windows:
-        w_id = window['window_id']
-        cutoff = window['cutoff_date']
-        train_idx = window['train_end_idx']
-        val_start = window['val_start_idx']
-        val_end = window['val_end_idx']
+        w_id = window["window_id"]
+        cutoff = window["cutoff_date"]
+        train_idx = window["train_end_idx"]
+        val_start = window["val_start_idx"]
+        val_end = window["val_end_idx"]
 
         logger.info(f"  Window {w_id}/{NUM_VAL_WINDOWS} (cutoff: {cutoff.date()})")
 
@@ -244,7 +261,9 @@ def train_and_predict_oof(
         logger.info(f"    Train: {len(train_data):,}, Val: {len(val_features):,}")
 
         if dry_run:
-            logger.info(f"    DRY RUN: Skipping window {w_id} training (no fake predictions generated)")
+            logger.info(
+                f"    DRY RUN: Skipping window {w_id} training (no fake predictions generated)"
+            )
             continue
 
         else:
@@ -276,19 +295,23 @@ def train_and_predict_oof(
                 preds_df.columns = [str(c) for c in preds_df.columns]
 
         for i, (date, row) in enumerate(val_df.iterrows()):
-            oof_results.append({
-                'trade_date': date,
-                'symbol': 'ZL',
-                'horizon_days': horizon,
-                'window_id': w_id,
-                'cutoff_date': cutoff,
-                'p30': float(preds_df.iloc[i].get("0.3", np.nan)),
-                'p50': float(preds_df.iloc[i].get("0.5", np.nan)),
-                'p70': float(preds_df.iloc[i].get("0.7", np.nan)),
-                'target_value': float(row['target']) if pd.notna(row['target']) else None,
-                'trained_at': datetime.now(timezone.utc),
-                'run_hash': run_hash,
-            })
+            oof_results.append(
+                {
+                    "trade_date": date,
+                    "symbol": "ZL",
+                    "horizon_days": horizon,
+                    "window_id": w_id,
+                    "cutoff_date": cutoff,
+                    "p30": float(preds_df.iloc[i].get("0.3", np.nan)),
+                    "p50": float(preds_df.iloc[i].get("0.5", np.nan)),
+                    "p70": float(preds_df.iloc[i].get("0.7", np.nan)),
+                    "target_value": float(row["target"])
+                    if pd.notna(row["target"])
+                    else None,
+                    "trained_at": datetime.now(timezone.utc),
+                    "run_hash": run_hash,
+                }
+            )
 
     oof_df = pd.DataFrame(oof_results)
     logger.info(f"  Generated {len(oof_df)} OOF predictions")
@@ -300,7 +323,10 @@ def train_and_predict_oof(
 # DATABASE WRITE
 # =============================================================================
 
-def write_oof_to_db(conn, oof_df: pd.DataFrame, bucket: str, dry_run: bool = False) -> int:
+
+def write_oof_to_db(
+    conn, oof_df: pd.DataFrame, bucket: str, dry_run: bool = False
+) -> int:
     table_name = f"training.oof_{bucket}_1d"
 
     if dry_run:
@@ -309,20 +335,22 @@ def write_oof_to_db(conn, oof_df: pd.DataFrame, bucket: str, dry_run: bool = Fal
 
     records = []
     for _, row in oof_df.iterrows():
-        records.append((
-            row['trade_date'],
-            row['symbol'],
-            row['horizon_days'],
-            row['window_id'],
-            row['cutoff_date'],
-            row['p30'],
-            row['p50'],
-            row['p70'],
-            row['target_value'],
-            row['trained_at'],
-            row['run_hash'],
-            None,
-        ))
+        records.append(
+            (
+                row["trade_date"],
+                row["symbol"],
+                row["horizon_days"],
+                row["window_id"],
+                row["cutoff_date"],
+                row["p30"],
+                row["p50"],
+                row["p70"],
+                row["target_value"],
+                row["trained_at"],
+                row["run_hash"],
+                None,
+            )
+        )
 
     insert_sql = f"""
         INSERT INTO {table_name} (
@@ -351,6 +379,7 @@ def write_oof_to_db(conn, oof_df: pd.DataFrame, bucket: str, dry_run: bool = Fal
 # MAIN TRAINING
 # =============================================================================
 
+
 def train_specialist_model(
     bucket: str,
     horizon: int,
@@ -362,9 +391,9 @@ def train_specialist_model(
     dry_run: bool = False,
 ) -> Dict:
     model_id = get_model_id(bucket, horizon)
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     logger.info(f"TRAINING: {model_id}")
-    logger.info(f"{'='*60}")
+    logger.info(f"{'=' * 60}")
 
     conn = get_connection()
 
@@ -373,7 +402,12 @@ def train_specialist_model(
 
         if len(df) < 200:
             logger.error(f"Insufficient data: {len(df)} rows")
-            return {'bucket': bucket, 'horizon': horizon, 'status': 'failed', 'reason': 'insufficient_data'}
+            return {
+                "bucket": bucket,
+                "horizon": horizon,
+                "status": "failed",
+                "reason": "insufficient_data",
+            }
 
         oof_df = train_and_predict_oof(
             df=df,
@@ -387,27 +421,34 @@ def train_specialist_model(
             dry_run=dry_run,
         )
 
-        if len(oof_df) > 0 and oof_df['target_value'].notna().any():
-            mae = np.abs(oof_df['p50'] - oof_df['target_value']).mean()
-            coverage = ((oof_df['target_value'] >= oof_df['p30']) &
-                       (oof_df['target_value'] <= oof_df['p70'])).mean()
+        if len(oof_df) > 0 and oof_df["target_value"].notna().any():
+            mae = np.abs(oof_df["p50"] - oof_df["target_value"]).mean()
+            coverage = (
+                (oof_df["target_value"] >= oof_df["p30"])
+                & (oof_df["target_value"] <= oof_df["p70"])
+            ).mean()
             logger.info(f"  OOF MAE (p50): {mae:.6f}")
             logger.info(f"  OOF 40% Coverage: {coverage:.2%}")
 
         rows_written = write_oof_to_db(conn, oof_df, bucket, dry_run)
 
         return {
-            'bucket': bucket,
-            'horizon': horizon,
-            'model_id': model_id,
-            'status': 'success',
-            'rows_written': rows_written,
-            'oof_count': len(oof_df),
+            "bucket": bucket,
+            "horizon": horizon,
+            "model_id": model_id,
+            "status": "success",
+            "rows_written": rows_written,
+            "oof_count": len(oof_df),
         }
 
     except Exception as e:
         logger.error(f"Training failed for {model_id}: {e}")
-        return {'bucket': bucket, 'horizon': horizon, 'status': 'failed', 'reason': str(e)}
+        return {
+            "bucket": bucket,
+            "horizon": horizon,
+            "status": "failed",
+            "reason": str(e),
+        }
 
     finally:
         conn.close()
@@ -415,22 +456,31 @@ def train_specialist_model(
 
 def main():
     parser = argparse.ArgumentParser(description="SoT v2: L0 Specialist Model Training")
-    parser.add_argument("--bucket", type=str, required=True,
-                       help="Specialist bucket or 'all'")
-    parser.add_argument("--horizon", type=str, required=True,
-                       help="Horizon (5, 21, 63, 126, or 'all')")
-    parser.add_argument("--time-limit", type=int, default=5400,
-                       help="Time limit (seconds) per window fit")
-    parser.add_argument("--num-bag-folds", type=int, default=10,
-                       help="AutoGluon bagging folds")
-    parser.add_argument("--num-stack-levels", type=int, default=2,
-                       help="AutoGluon stack levels")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Validate without training")
+    parser.add_argument(
+        "--bucket", type=str, required=True, help="Specialist bucket or 'all'"
+    )
+    parser.add_argument(
+        "--horizon", type=str, required=True, help="Horizon (5, 21, 63, 126, or 'all')"
+    )
+    parser.add_argument(
+        "--time-limit",
+        type=int,
+        default=5400,
+        help="Time limit (seconds) per window fit",
+    )
+    parser.add_argument(
+        "--num-bag-folds", type=int, default=10, help="AutoGluon bagging folds"
+    )
+    parser.add_argument(
+        "--num-stack-levels", type=int, default=2, help="AutoGluon stack levels"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate without training"
+    )
     args = parser.parse_args()
 
     # Parse buckets
-    if args.bucket.lower() == 'all':
+    if args.bucket.lower() == "all":
         buckets = SPECIALISTS
     else:
         buckets = [args.bucket]
@@ -439,7 +489,7 @@ def main():
             return 1
 
     # Parse horizons
-    if args.horizon.lower() == 'all':
+    if args.horizon.lower() == "all":
         horizons = HORIZONS
     else:
         horizons = [int(args.horizon)]
@@ -450,15 +500,15 @@ def main():
     run_label = get_run_label()
     run_hash = f"specialist_{run_label}"
 
-    logger.info("="*60)
+    logger.info("=" * 60)
     logger.info("SoT v2: L0 SPECIALIST MODEL TRAINING")
-    logger.info("="*60)
+    logger.info("=" * 60)
     logger.info(f"Buckets: {buckets}")
     logger.info(f"Horizons: {horizons}")
     logger.info(f"Total models: {len(buckets) * len(horizons)}")
     logger.info(f"Run label: {run_label}")
     logger.info(f"Run hash: {run_hash}")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     results = []
     for bucket in buckets:
@@ -476,19 +526,21 @@ def main():
             results.append(result)
 
     # Summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("TRAINING SUMMARY")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
-    success_count = sum(1 for r in results if r['status'] == 'success')
-    total_oof = sum(r.get('oof_count', 0) for r in results)
+    success_count = sum(1 for r in results if r["status"] == "success")
+    total_oof = sum(r.get("oof_count", 0) for r in results)
 
     for r in results:
-        status = "OK" if r['status'] == 'success' else "FAIL"
-        model_name = r.get('model_id', f"{r['bucket']}-h{r['horizon']}d")
+        status = "OK" if r["status"] == "success" else "FAIL"
+        model_name = r.get("model_id", f"{r['bucket']}-h{r['horizon']}d")
         logger.info(f"  [{status}] {model_name}: {r['status']}")
 
-    logger.info(f"\nTotal: {success_count}/{len(results)} successful, {total_oof} OOF predictions")
+    logger.info(
+        f"\nTotal: {success_count}/{len(results)} successful, {total_oof} OOF predictions"
+    )
 
     return 0 if success_count == len(results) else 1
 

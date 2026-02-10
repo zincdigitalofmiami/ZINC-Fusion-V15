@@ -20,7 +20,6 @@ Usage:
 import os
 import sys
 import argparse
-import uuid
 from datetime import datetime, timezone
 
 import psycopg2
@@ -118,24 +117,33 @@ def register_models(conn, dry_run: bool = True):
     for m in MODELS:
         for h in HORIZONS:
             model_id = f"{m['model_name']}_h{h}_v1"
-            registrations.append({
-                "model_id": model_id,
-                "model_name": m["model_name"],
-                "model_type": m["model_type"],
-                "horizon": h,
-                "version": 1,
-                "status": "pending",
-                "notes": m["notes"],
-                "tags": {"registered_by": "pre_training_setup", "sot_version": "v2"},
-            })
+            registrations.append(
+                {
+                    "model_id": model_id,
+                    "model_name": m["model_name"],
+                    "model_type": m["model_type"],
+                    "horizon": h,
+                    "version": 1,
+                    "status": "pending",
+                    "notes": m["notes"],
+                    "tags": {
+                        "registered_by": "pre_training_setup",
+                        "sot_version": "v2",
+                    },
+                }
+            )
 
     if dry_run:
         print("\n[DRY RUN] Would register the following models:\n")
         print(f"{'Model ID':<35} {'Type':<12} {'Horizon':<10} {'Status'}")
         print("-" * 70)
         for r in registrations:
-            print(f"{r['model_id']:<35} {r['model_type']:<12} {r['horizon']:<10} {r['status']}")
-        print(f"\nTotal: {len(registrations)} model registrations ({len(MODELS)} models x {len(HORIZONS)} horizons)")
+            print(
+                f"{r['model_id']:<35} {r['model_type']:<12} {r['horizon']:<10} {r['status']}"
+            )
+        print(
+            f"\nTotal: {len(registrations)} model registrations ({len(MODELS)} models x {len(HORIZONS)} horizons)"
+        )
         return
 
     cursor = conn.cursor()
@@ -148,20 +156,22 @@ def register_models(conn, dry_run: bool = True):
     # Prepare values
     values = []
     for r in registrations:
-        values.append((
-            r["model_id"],
-            r["model_name"],
-            r["model_type"],
-            r["horizon"],
-            r["version"],
-            now,  # trained_at (placeholder)
-            r["status"],
-            False,  # is_champion
-            Json(r["tags"]),
-            r["notes"],
-            now,  # created_at
-            now,  # updated_at
-        ))
+        values.append(
+            (
+                r["model_id"],
+                r["model_name"],
+                r["model_type"],
+                r["horizon"],
+                r["version"],
+                now,  # trained_at (placeholder)
+                r["status"],
+                False,  # is_champion
+                Json(r["tags"]),
+                r["notes"],
+                now,  # created_at
+                now,  # updated_at
+            )
+        )
 
     insert_sql = """
         INSERT INTO model.model_registry
@@ -176,7 +186,9 @@ def register_models(conn, dry_run: bool = True):
     execute_values(cursor, insert_sql, values, page_size=100)
     conn.commit()
 
-    print(f"\n[SUCCESS] Registered {len(registrations)} model entries in model.model_registry")
+    print(
+        f"\n[SUCCESS] Registered {len(registrations)} model entries in model.model_registry"
+    )
 
     # Summary by model type
     cursor.execute("""
@@ -194,9 +206,15 @@ def register_models(conn, dry_run: bool = True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Register models in model.model_registry')
-    parser.add_argument('--dry-run', action='store_true', help='Preview without inserting')
-    parser.add_argument('--execute', action='store_true', help='Actually register models')
+    parser = argparse.ArgumentParser(
+        description="Register models in model.model_registry"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without inserting"
+    )
+    parser.add_argument(
+        "--execute", action="store_true", help="Actually register models"
+    )
     args = parser.parse_args()
 
     if not args.dry_run and not args.execute:
@@ -216,5 +234,5 @@ def main():
         conn.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

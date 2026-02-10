@@ -1,58 +1,65 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { getAuthCookieName, verifyAuthToken } from '@/lib/auth-edge'
+import { NextResponse, type NextRequest } from "next/server";
+import { getAuthCookieName, verifyAuthToken } from "@/lib/auth-edge";
 
 const PUBLIC_PATH_PREFIXES = [
-  '/_next',
-  '/favicon',
-  '/api/health',
-  '/api/auth',
-  '/api/inngest',        // Public - Inngest handles its own auth via signing key
-  '/api/zl',             // Public - ZL price data endpoints
-  '/api/vegas',          // Public - Vegas intel and brief endpoints
-  '/api/market-drivers', // Public - Key market drivers for dashboard
-  '/api/quant',          // Public - Quant overview data
-  '/api/epu',            // Public - Economic policy uncertainty
-  '/api/refresh-drivers', // Public - Manual data refresh trigger
-  '/api/sentiment',      // Public - Sentiment, news, COT data
-  '/api/options',        // Public - Options data
-  '/login',
-]
+  "/_next",
+  "/favicon",
+  "/api/health",
+  "/api/auth",
+  "/api/inngest", // Public - Inngest handles its own auth via signing key
+  "/api/zl", // Public - ZL price data endpoints
+  "/api/vegas", // Public - Vegas intel and brief endpoints
+  "/api/market-drivers", // Public - Key market drivers for dashboard
+  "/api/quant", // Public - Quant overview data
+  "/api/epu", // Public - Economic policy uncertainty
+  "/api/refresh-drivers", // Public - Manual data refresh trigger
+  "/api/sentiment", // Public - Sentiment, news, COT data
+  "/api/options", // Public - Options data
+  "/login",
+];
 
 export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl
+  const { pathname } = req.nextUrl;
 
   // Allow public paths
-  if (PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p))) {
-    return NextResponse.next()
+  if (
+    PUBLIC_PATH_PREFIXES.some(
+      (p) =>
+        pathname === p ||
+        pathname.startsWith(p + "/") ||
+        pathname.startsWith(p),
+    )
+  ) {
+    return NextResponse.next();
   }
 
   // Allow home page
-  if (pathname === '/') {
-    return NextResponse.next()
+  if (pathname === "/") {
+    return NextResponse.next();
   }
 
   // Check for auth token
-  const token = req.cookies.get(getAuthCookieName())?.value
+  const token = req.cookies.get(getAuthCookieName())?.value;
   if (!token) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('next', pathname)
-    return NextResponse.redirect(url)
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
 
   // Verify token
-  const payload = await verifyAuthToken(token)
+  const payload = await verifyAuthToken(token);
   if (!payload) {
     // Invalid token - clear it and redirect to login
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('next', pathname)
-    const response = NextResponse.redirect(url)
-    response.cookies.delete(getAuthCookieName())
-    return response
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    const response = NextResponse.redirect(url);
+    response.cookies.delete(getAuthCookieName());
+    return response;
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
@@ -64,6 +71,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (public folder)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-}
+};

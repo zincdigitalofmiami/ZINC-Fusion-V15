@@ -249,7 +249,9 @@ class BaseSignalGenerator(ABC):
 
         # STALENESS GATE (2026-02-04): Check critical features for freshness
         # Per Forward Fill Policy (Docs/FORWARD_FILL_POLICY.md)
-        max_staleness = self._check_critical_staleness(data, end_date or data.index.max().date())
+        max_staleness = self._check_critical_staleness(
+            data, end_date or data.index.max().date()
+        )
         if max_staleness > self.config.max_input_age_days:
             if self.strict_mode:
                 raise ValueError(
@@ -258,6 +260,7 @@ class BaseSignalGenerator(ABC):
                 )
             else:
                 import logging
+
                 logging.getLogger(__name__).warning(
                     f"{self.name}: Running with stale data. "
                     f"Max staleness: {max_staleness}d > threshold: {self.config.max_input_age_days}d"
@@ -296,8 +299,7 @@ class BaseSignalGenerator(ABC):
         Secondary features are lower priority and may have sparse coverage.
         """
         ordered = (
-            self.config.primary_features
-            + self.config.critical_features
+            self.config.primary_features + self.config.critical_features
             # secondary_features have lower priority, not strictly required
         )
         return list(dict.fromkeys(ordered))
@@ -323,7 +325,9 @@ class BaseSignalGenerator(ABC):
         max_staleness = 0
 
         # Check critical features (not secondary - those can be sparse)
-        critical_features = self.config.critical_features or self.config.primary_features
+        critical_features = (
+            self.config.critical_features or self.config.primary_features
+        )
 
         for feat in critical_features:
             if feat not in data.columns:

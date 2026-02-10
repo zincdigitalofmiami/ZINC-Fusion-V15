@@ -23,8 +23,6 @@ import os
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-import numpy as np
-import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
@@ -32,8 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -46,6 +43,7 @@ def get_connection():
 # =============================================================================
 # DRIVER SCORES - Specialist signal aggregation for dashboard
 # =============================================================================
+
 
 def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
     """
@@ -60,7 +58,8 @@ def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
     cur = conn.cursor()
 
     # Get latest signal per bucket
-    cur.execute("""
+    cur.execute(
+        """
         SELECT DISTINCT ON (bucket)
             bucket,
             as_of_date,
@@ -71,7 +70,9 @@ def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
         FROM training.specialist_signals_1d
         WHERE as_of_date <= %s
         ORDER BY bucket, as_of_date DESC
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
 
     signals = cur.fetchall()
 
@@ -90,17 +91,12 @@ def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
         # SHAP contribution placeholder (would come from model explainability)
         shap_contrib = abs(sig1) * (conf or 0.5)  # Proxy: signal magnitude * confidence
 
-        rows.append((
-            sig_date,
-            bucket,
-            sig1,
-            direction,
-            conf,
-            shap_contrib
-        ))
+        rows.append((sig_date, bucket, sig1, direction, conf, shap_contrib))
 
     # Upsert into driver_scores
-    cur.execute("DELETE FROM analytics.driver_scores WHERE as_of_date = %s", (as_of_date,))
+    cur.execute(
+        "DELETE FROM analytics.driver_scores WHERE as_of_date = %s", (as_of_date,)
+    )
 
     insert_sql = """
         INSERT INTO analytics.driver_scores
@@ -115,13 +111,16 @@ def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
     execute_values(cur, insert_sql, rows)
     conn.commit()
 
-    logger.info(f"Populated analytics.driver_scores: {len(rows)} specialists for {as_of_date}")
+    logger.info(
+        f"Populated analytics.driver_scores: {len(rows)} specialists for {as_of_date}"
+    )
     return len(rows)
 
 
 # =============================================================================
 # VOL REGIMES - Volatility regime classification
 # =============================================================================
+
 
 def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
     """
@@ -135,7 +134,8 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
     cur = conn.cursor()
 
     # Calculate rolling volatility
-    cur.execute("""
+    cur.execute(
+        """
         WITH returns AS (
             SELECT
                 event_date,
@@ -158,7 +158,9 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
         WHERE vol_21d IS NOT NULL
         ORDER BY event_date DESC
         LIMIT %s
-    """, (lookback_days + 30, lookback_days))
+    """,
+        (lookback_days + 30, lookback_days),
+    )
 
     vol_data = cur.fetchall()
 
@@ -187,22 +189,27 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
         else:
             trans = {"to_low": 0.05, "to_normal": 0.25, "stay": 0.70}
 
-        rows.append((
-            "ZL",
-            event_date,
-            regime,
-            regime_prob,
-            trans,
-            regime_prob,
-            "rolling_21d",
-            "v1.0"
-        ))
+        rows.append(
+            (
+                "ZL",
+                event_date,
+                regime,
+                regime_prob,
+                trans,
+                regime_prob,
+                "rolling_21d",
+                "v1.0",
+            )
+        )
 
     # Upsert
-    cur.execute("""
+    cur.execute(
+        """
         DELETE FROM analytics.vol_regimes
         WHERE symbol = 'ZL' AND as_of_date >= CURRENT_DATE - INTERVAL '%s days'
-    """, (lookback_days,))
+    """,
+        (lookback_days,),
+    )
 
     insert_sql = """
         INSERT INTO analytics.vol_regimes
@@ -217,7 +224,10 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
 
     # Convert dicts to JSON strings for psycopg2
     import json
-    rows_json = [(r[0], r[1], r[2], r[3], json.dumps(r[4]), r[5], r[6], r[7]) for r in rows]
+
+    rows_json = [
+        (r[0], r[1], r[2], r[3], json.dumps(r[4]), r[5], r[6], r[7]) for r in rows
+    ]
     execute_values(cur, insert_sql, rows_json)
     conn.commit()
 
@@ -229,6 +239,7 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
 # EVENT PROBABILITIES - Historical probability distributions by horizon
 # =============================================================================
 
+
 def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -> int:
     """
     Populate analytics.event_probabilities_{H}d_1d from historical returns.
@@ -239,31 +250,38 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
     table_name = f"analytics.event_probabilities_{horizon}d_1d"
 
     # Check if table exists
-    cur.execute("""
+    cur.execute(
+        """
         SELECT EXISTS (
             SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'analytics'
             AND table_name = %s
         )
-    """, (f"event_probabilities_{horizon}d_1d",))
+    """,
+        (f"event_probabilities_{horizon}d_1d",),
+    )
 
     if not cur.fetchone()[0]:
         logger.warning(f"Table {table_name} does not exist")
         return 0
 
     # Get column info to understand table structure
-    cur.execute("""
+    cur.execute(
+        """
         SELECT column_name FROM information_schema.columns
         WHERE table_schema = 'analytics' AND table_name = %s
         ORDER BY ordinal_position
-    """, (f"event_probabilities_{horizon}d_1d",))
+    """,
+        (f"event_probabilities_{horizon}d_1d",),
+    )
     cols = [r[0] for r in cur.fetchall()]
     logger.info(f"Table {table_name} columns: {cols}")
 
     # Calculate historical probabilities
     start_date = date.today() - timedelta(days=lookback_years * 365)
 
-    cur.execute(f"""
+    cur.execute(
+        f"""
         WITH returns AS (
             SELECT
                 event_date,
@@ -287,7 +305,9 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
             AVG(ret) as expected_return
         FROM returns
         WHERE ret IS NOT NULL
-    """, (start_date,))
+    """,
+        (start_date,),
+    )
 
     result = cur.fetchone()
 
@@ -306,17 +326,17 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
     insert_vals = []
 
     col_mapping = {
-        'as_of_date': result[0],
-        'horizon_days': result[1],
-        'sample_size': result[2],
-        'p_up': result[3],
-        'p_down': result[4],
-        'p_up_2pct': result[5],
-        'p_up_5pct': result[6],
-        'p_down_2pct': result[7],
-        'p_down_5pct': result[8],
-        'volatility': result[9],
-        'expected_return': result[10],
+        "as_of_date": result[0],
+        "horizon_days": result[1],
+        "sample_size": result[2],
+        "p_up": result[3],
+        "p_down": result[4],
+        "p_up_2pct": result[5],
+        "p_up_5pct": result[6],
+        "p_down_2pct": result[7],
+        "p_down_5pct": result[8],
+        "volatility": result[9],
+        "expected_return": result[10],
     }
 
     for col in cols:
@@ -327,9 +347,12 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
     if insert_cols:
         placeholders = ", ".join(["%s"] * len(insert_cols))
         col_names = ", ".join(insert_cols)
-        cur.execute(f"""
+        cur.execute(
+            f"""
             INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})
-        """, insert_vals)
+        """,
+            insert_vals,
+        )
         conn.commit()
         logger.info(f"Populated {table_name}: 1 row with {len(insert_cols)} columns")
         return 1
@@ -340,6 +363,7 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
 # =============================================================================
 # DASHBOARD METRICS - Key KPIs
 # =============================================================================
+
 
 def populate_dashboard_metrics(conn) -> int:
     """
@@ -416,6 +440,7 @@ def populate_dashboard_metrics(conn) -> int:
 
     # Build metrics JSON
     import json
+
     metrics = {
         "zl_price": float(current_price),
         "zl_date": str(price_date),
@@ -425,11 +450,13 @@ def populate_dashboard_metrics(conn) -> int:
         "specialist_net_direction": int(net_direction),
         "market_stance": stance,
         "vol_regime": vol_regime,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.utcnow().isoformat(),
     }
 
     # Upsert (assuming dashboard_metrics has id, name, value, updated_at, json_value)
-    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'analytics' AND table_name = 'dashboard_metrics'")
+    cur.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_schema = 'analytics' AND table_name = 'dashboard_metrics'"
+    )
     cols = [r[0] for r in cur.fetchall()]
     logger.info(f"dashboard_metrics columns: {cols}")
 
@@ -437,18 +464,24 @@ def populate_dashboard_metrics(conn) -> int:
     cur.execute("DELETE FROM analytics.dashboard_metrics")
 
     # Insert each metric as a row if schema supports it
-    if 'metric_name' in cols and 'metric_value' in cols:
+    if "metric_name" in cols and "metric_value" in cols:
         for name, value in metrics.items():
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO analytics.dashboard_metrics (metric_name, metric_value)
                 VALUES (%s, %s)
-            """, (name, json.dumps(value)))
-    elif 'name' in cols and 'value' in cols:
+            """,
+                (name, json.dumps(value)),
+            )
+    elif "name" in cols and "value" in cols:
         for name, value in metrics.items():
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO analytics.dashboard_metrics (name, value)
                 VALUES (%s, %s)
-            """, (name, str(value)))
+            """,
+                (name, str(value)),
+            )
     else:
         logger.warning(f"Unknown dashboard_metrics schema: {cols}")
         return 0
@@ -462,10 +495,21 @@ def populate_dashboard_metrics(conn) -> int:
 # MAIN
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(description="Populate dashboard analytics tables")
-    parser.add_argument("--table", choices=["driver_scores", "vol_regimes", "event_probs", "dashboard_metrics", "all"],
-                       default="all", help="Which table to populate")
+    parser.add_argument(
+        "--table",
+        choices=[
+            "driver_scores",
+            "vol_regimes",
+            "event_probs",
+            "dashboard_metrics",
+            "all",
+        ],
+        default="all",
+        help="Which table to populate",
+    )
     parser.add_argument("--date", type=str, help="As-of date (YYYY-MM-DD)")
     args = parser.parse_args()
 

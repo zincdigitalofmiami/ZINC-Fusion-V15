@@ -7,7 +7,7 @@ Run these BEFORE every training run.
 Usage:
     # Full validation suite
     python -m src.fusion.validators.run_all
-    
+
     # Individual validators
     python -m src.fusion.validators.schema_contract
     python -m src.fusion.validators.freshness_monitor
@@ -25,6 +25,6 @@ from .quarantine_verifier import QuarantineVerifier
 
 __all__ = [
     "SchemaContractValidator",
-    "FreshnessMonitor", 
+    "FreshnessMonitor",
     "QuarantineVerifier",
 ]

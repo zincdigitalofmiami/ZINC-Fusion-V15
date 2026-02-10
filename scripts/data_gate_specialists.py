@@ -21,7 +21,7 @@ import os
 import sys
 import argparse
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 

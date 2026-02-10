@@ -39,7 +39,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "meal-oil spread",
         "soybean crush",
     ],
-
     # ============================================================
     # CHINA - Chinese demand, trade flows, ASF, import patterns
     # ============================================================
@@ -61,7 +60,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "gacc",  # General Administration of Customs of China
         "cny",
     ],
-
     # ============================================================
     # FX - Currency movements, USD strength, BRL/MXN/CNY
     # ============================================================
@@ -86,7 +84,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "dollar strength",
         "dollar weakness",
     ],
-
     # ============================================================
     # FED - Federal Reserve, monetary policy, interest rates
     # ============================================================
@@ -110,7 +107,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "hawkish",
         "dovish",
     ],
-
     # ============================================================
     # TARIFF - Trade mechanisms, Section 301/232, duties, WTO
     # NOTE: Trade DEALS go in DUAL_TAG_KEYWORDS (both tariff + trump_effect)
@@ -134,7 +130,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "trade barrier",
         "safeguard",
     ],
-
     # ============================================================
     # ENERGY - Crude oil, diesel, petroleum, OPEC
     # ============================================================
@@ -156,7 +151,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "distillate",
         "jet fuel",
     ],
-
     # ============================================================
     # BIOFUEL - Biodiesel, RFS, RINs, renewable diesel, SAF
     # ============================================================
@@ -182,7 +176,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "d6 rin",
         "biomass-based diesel",
     ],
-
     # ============================================================
     # PALM - Palm oil, Malaysia, Indonesia, MPOB
     # ============================================================
@@ -202,7 +195,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "palm kernel",
         "lauric",
     ],
-
     # ============================================================
     # VOLATILITY - VIX, risk, uncertainty, hedging
     # ============================================================
@@ -222,7 +214,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "flight to safety",
         "safe haven",
     ],
-
     # ============================================================
     # SUBSTITUTES - Canola, sunflower, cottonseed, tallow
     # ============================================================
@@ -245,7 +236,6 @@ SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
         "corn oil",
         "olive oil",
     ],
-
     # ============================================================
     # TRUMP_EFFECT - Policy uncertainty, executive orders, EPU
     # NOTE: Trade DEALS go in DUAL_TAG_KEYWORDS (both tariff + trump_effect)

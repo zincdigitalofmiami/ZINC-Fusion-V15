@@ -22,20 +22,61 @@ interface OrganicTopicCloudProps {
 const FALLBACK_TOPICS: TopicNode[] = [
   { id: "fb-1", topic: "Tariffs", volume: 88, sentiment: -0.75, mentions: 34 },
   { id: "fb-2", topic: "RVO Rule", volume: 95, sentiment: 0.85, mentions: 41 },
-  { id: "fb-3", topic: "China Demand", volume: 72, sentiment: 0.4, mentions: 28 },
+  {
+    id: "fb-3",
+    topic: "China Demand",
+    volume: 72,
+    sentiment: 0.4,
+    mentions: 28,
+  },
   { id: "fb-4", topic: "Drought", volume: 58, sentiment: -0.6, mentions: 19 },
   { id: "fb-5", topic: "Biofuel", volume: 65, sentiment: 0.7, mentions: 22 },
-  { id: "fb-6", topic: "Export Sales", volume: 50, sentiment: 0.5, mentions: 16 },
-  { id: "fb-7", topic: "Crush Margins", volume: 78, sentiment: 0.3, mentions: 25 },
+  {
+    id: "fb-6",
+    topic: "Export Sales",
+    volume: 50,
+    sentiment: 0.5,
+    mentions: 16,
+  },
+  {
+    id: "fb-7",
+    topic: "Crush Margins",
+    volume: 78,
+    sentiment: 0.3,
+    mentions: 25,
+  },
   { id: "fb-8", topic: "Palm Oil", volume: 45, sentiment: -0.35, mentions: 12 },
-  { id: "fb-9", topic: "Fed Policy", volume: 55, sentiment: -0.2, mentions: 18 },
-  { id: "fb-10", topic: "USDA WASDE", volume: 68, sentiment: 0.15, mentions: 21 },
-  { id: "fb-11", topic: "Inflation", volume: 38, sentiment: -0.45, mentions: 11 },
+  {
+    id: "fb-9",
+    topic: "Fed Policy",
+    volume: 55,
+    sentiment: -0.2,
+    mentions: 18,
+  },
+  {
+    id: "fb-10",
+    topic: "USDA WASDE",
+    volume: 68,
+    sentiment: 0.15,
+    mentions: 21,
+  },
+  {
+    id: "fb-11",
+    topic: "Inflation",
+    volume: 38,
+    sentiment: -0.45,
+    mentions: 11,
+  },
 ];
 
 /* ─── Sentiment → color helpers ─── */
 
-function getSentimentColor(sentiment: number): { bg: string; text: string; border: string; glow: string } {
+function getSentimentColor(sentiment: number): {
+  bg: string;
+  text: string;
+  border: string;
+  glow: string;
+} {
   const abs = Math.abs(sentiment);
   const intensity = Math.min(1, abs * 1.3); // amplify slightly
 
@@ -69,7 +110,9 @@ export function OrganicTopicCloud({
 }: OrganicTopicCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<TopicNode[]>([]);
-  const simulationRef = useRef<d3.Simulation<TopicNode, undefined> | null>(null);
+  const simulationRef = useRef<d3.Simulation<TopicNode, undefined> | null>(
+    null,
+  );
   const isFallback = topics.length === 0 && !loading;
 
   // Use real data or fallback
@@ -221,8 +264,18 @@ export function OrganicTopicCloud({
       {/* Subtle grid lines */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.03]">
         <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
+          <pattern
+            id="grid"
+            width="40"
+            height="40"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 40 0 L 0 0 0 40"
+              fill="none"
+              stroke="white"
+              strokeWidth="0.5"
+            />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />

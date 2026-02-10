@@ -63,7 +63,7 @@ POSTGRES_SCHEMA = "ops"
 class GlideAPIClient:
     """
     Client for Glide API - READ ONLY operations.
-    
+
     Never writes back to Glide. Only pulls data into our system.
     """
 
@@ -78,10 +78,10 @@ class GlideAPIClient:
     def query_table(self, table_id: str) -> list[dict[str, Any]]:
         """
         Query Glide table using exact API format.
-        
+
         Args:
             table_id: Glide native table ID
-            
+
         Returns:
             List of row dictionaries
         """
@@ -118,10 +118,10 @@ class GlideAPIClient:
     def get_table(self, table_name: str) -> pd.DataFrame:
         """
         Get table data as DataFrame.
-        
+
         Args:
             table_name: Key from GLIDE_TABLES dict
-            
+
         Returns:
             DataFrame with table data
         """
@@ -131,7 +131,7 @@ class GlideAPIClient:
 
         table_id = GLIDE_TABLES[table_name]
         logger.info(f"Fetching {table_name} from Glide API...")
-        
+
         rows = self.query_table(table_id)
         if not rows:
             logger.warning(f"⚠️ No data for {table_name}")
@@ -150,7 +150,7 @@ class GlideAPIClient:
 def sanitize_column_name(col: str) -> str:
     """
     Sanitize column name for PostgreSQL.
-    
+
     - Remove $ prefix (Glide uses $rowID, etc.)
     - Replace spaces and dashes with underscores
     - Lowercase for consistency
@@ -165,14 +165,14 @@ def save_to_postgres(
 ) -> int:
     """
     Save DataFrame to PostgreSQL (ops schema).
-    
+
     Uses TRUNCATE + INSERT pattern for full refresh.
-    
+
     Args:
         df: DataFrame to save
         table_name: Target table name (e.g., 'vegas_restaurants')
         source_table_id: Glide table ID for provenance
-        
+
     Returns:
         Number of rows inserted
     """
@@ -234,7 +234,7 @@ def save_to_postgres(
 
             execute_batch(
                 cur,
-                f'INSERT INTO {full_table} (glide_row_id, data, ingested_at) VALUES (%s, %s::jsonb, NOW())',
+                f"INSERT INTO {full_table} (glide_row_id, data, ingested_at) VALUES (%s, %s::jsonb, NOW())",
                 records,
                 page_size=1000,
             )
@@ -259,7 +259,7 @@ def save_to_postgres(
 def ingest_all_vegas_data() -> dict[str, int]:
     """
     Ingest all 8 Glide tables into PostgreSQL.
-    
+
     Returns:
         Dict mapping table name to row count
     """
@@ -298,10 +298,10 @@ def ingest_all_vegas_data() -> dict[str, int]:
 def ingest_single_table(table_name: str) -> int:
     """
     Ingest a single Glide table.
-    
+
     Args:
         table_name: Key from GLIDE_TABLES dict
-        
+
     Returns:
         Number of rows inserted
     """

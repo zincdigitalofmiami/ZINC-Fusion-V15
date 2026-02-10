@@ -1,9 +1,9 @@
 /**
  * ZINC FUSION V15 - TradingView-Grade Color System
- * 
+ *
  * NO RECHARTS DEFAULTS. These are institutional-grade colors.
  * Source: TradingView dark theme + professional trading terminals
- * 
+ *
  * "uglier than the back of my nuts" - Kirk, on recharts colors
  */
 
@@ -38,7 +38,7 @@ export const TV = {
   // ==========================================================================
   // SEMANTIC COLORS - Trading Signals
   // ==========================================================================
-  
+
   // Bullish / Up / Buy
   bull: {
     primary: '#26a69a',      // Main teal
@@ -51,7 +51,7 @@ export const TV = {
   // Bearish / Down / Sell
   bear: {
     primary: '#ef5350',      // Main red
-    bright: '#f23645',       // Brighter red  
+    bright: '#f23645',       // Brighter red
     light: '#ff5252',        // Light red
     muted: 'rgba(239, 83, 80, 0.2)',
     gradient: 'linear-gradient(180deg, rgba(239, 83, 80, 0) 0%, rgba(239, 83, 80, 0.4) 100%)',
@@ -67,7 +67,7 @@ export const TV = {
   // ==========================================================================
   // ACCENT COLORS
   // ==========================================================================
-  
+
   blue: {
     primary: '#2962ff',      // TradingView blue
     bright: '#3d7aff',
@@ -95,17 +95,17 @@ export const TV = {
   // ==========================================================================
   // FORECAST CONE COLORS (from TradingView price targets)
   // ==========================================================================
-  
+
   forecast: {
     max: '#22ab94',          // Green - P90 ceiling
     avg: '#ffb74d',          // Orange/yellow - P50 expected
     current: '#26a69a',      // Teal - current price
     min: '#f06292',          // Pink/red - P10 floor
-    
+
     // Gradient fills for the cone
     maxFill: 'rgba(34, 171, 148, 0.15)',
     minFill: 'rgba(240, 98, 146, 0.15)',
-    
+
     // Line connecting current to forecast
     projectionLine: '#787b86',
     projectionDash: '4 2',
@@ -114,14 +114,14 @@ export const TV = {
   // ==========================================================================
   // GAUGE COLORS (Technicals meter)
   // ==========================================================================
-  
+
   gauge: {
     strongSell: '#f23645',   // Deep red
     sell: '#ff5252',         // Light red
     neutral: '#787b86',      // Gray
     buy: '#26a69a',          // Teal
     strongBuy: '#22ab94',    // Bright teal
-    
+
     // Gradient stops for the arc
     gradient: [
       { offset: 0, color: '#f23645' },      // Strong sell
@@ -135,7 +135,7 @@ export const TV = {
   // ==========================================================================
   // SEASONALS / MULTI-YEAR OVERLAY
   // ==========================================================================
-  
+
   years: {
     current: '#2962ff',      // 2026 - Blue
     prev1: '#26a69a',        // 2025 - Teal/Green
@@ -146,7 +146,7 @@ export const TV = {
   // ==========================================================================
   // PERFORMANCE GRID
   // ==========================================================================
-  
+
   perf: {
     positive: '#26a69a',
     negative: '#ef5350',
@@ -157,7 +157,7 @@ export const TV = {
   // ==========================================================================
   // SPECIALIST DRIVERS (for parallel coordinates)
   // ==========================================================================
-  
+
   drivers: {
     crush: '#ff9800',        // Orange
     china: '#f44336',        // Red
@@ -202,20 +202,20 @@ export const cssVariables = `
     --tv-bg-primary: #131722;
     --tv-bg-secondary: #1e222d;
     --tv-bg-tertiary: #2a2e39;
-    
+
     --tv-text-primary: #d1d4dc;
     --tv-text-secondary: #787b86;
-    
+
     --tv-bull: #26a69a;
     --tv-bull-bright: #22ab94;
     --tv-bear: #ef5350;
     --tv-bear-bright: #f23645;
-    
+
     --tv-blue: #2962ff;
     --tv-orange: #ff9800;
     --tv-purple: #7b1fa2;
     --tv-cyan: #00bcd4;
-    
+
     /* Forecast Cone */
     --tv-forecast-max: #22ab94;
     --tv-forecast-avg: #ffb74d;
@@ -237,20 +237,20 @@ export const rechartsTheme = {
     TV.purple.primary,
     TV.cyan.primary,
   ],
-  
+
   // Axis styling
   axis: {
     stroke: TV.border.primary,
     tick: { fill: TV.text.secondary },
     label: { fill: TV.text.secondary },
   },
-  
+
   // Grid
   grid: {
     stroke: TV.border.secondary,
     strokeDasharray: '3 3',
   },
-  
+
   // Tooltip
   tooltip: {
     contentStyle: {

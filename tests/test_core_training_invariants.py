@@ -8,6 +8,7 @@ These tests verify the structural guarantees of the training package:
 3. zscore_normalize is disabled
 4. Phase 5 checks block on violations
 """
+
 __test__ = False  # Pytest should not collect integration scripts.
 
 

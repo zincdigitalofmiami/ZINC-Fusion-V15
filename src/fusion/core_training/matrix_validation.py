@@ -15,8 +15,8 @@ LOCKED: 2026-02-01
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
-from typing import Dict, List, Tuple, Any, Optional
+from datetime import date
+from typing import Dict, List, Tuple, Any
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -48,11 +48,31 @@ class ValidationConfig:
     # - USDA Exports: Weekly but holiday gaps common
     CADENCE_RULES: Dict[str, Dict[str, Any]] = field(
         default_factory=lambda: {
-            "wasde": {"expected_per_year": 8, "max_age_days": 90, "enforce_from": date(2010, 1, 1)},
-            "cftc": {"expected_per_year": 50, "max_age_days": 14, "enforce_from": date(2006, 1, 1)},
-            "pmi": {"expected_per_year": 10, "max_age_days": 60, "enforce_from": date(2010, 1, 1)},
-            "lcfs": {"expected_per_year": 48, "max_age_days": 21, "enforce_from": date(2015, 1, 1)},
-            "usda_exports": {"expected_per_year": 48, "max_age_days": 21, "enforce_from": date(2010, 1, 1)},
+            "wasde": {
+                "expected_per_year": 8,
+                "max_age_days": 90,
+                "enforce_from": date(2010, 1, 1),
+            },
+            "cftc": {
+                "expected_per_year": 50,
+                "max_age_days": 14,
+                "enforce_from": date(2006, 1, 1),
+            },
+            "pmi": {
+                "expected_per_year": 10,
+                "max_age_days": 60,
+                "enforce_from": date(2010, 1, 1),
+            },
+            "lcfs": {
+                "expected_per_year": 48,
+                "max_age_days": 21,
+                "enforce_from": date(2015, 1, 1),
+            },
+            "usda_exports": {
+                "expected_per_year": 48,
+                "max_age_days": 21,
+                "enforce_from": date(2010, 1, 1),
+            },
         }
     )
 
@@ -113,11 +133,14 @@ def check_null_gate(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     # Exclude target columns and debug columns from NULL check
     # Targets have forward NULLs at end (expected)
     # Debug columns (_*_raw) are informational only
-    exclude_cols = [c for c in df.columns
-                   if c.startswith("target_")
-                   or c.startswith("_")  # Debug columns like _hurst_regime_raw
-                   or c == "created_at"  # Metadata column
-                   or c == "matrix_version"]
+    exclude_cols = [
+        c
+        for c in df.columns
+        if c.startswith("target_")
+        or c.startswith("_")  # Debug columns like _hurst_regime_raw
+        or c == "created_at"  # Metadata column
+        or c == "matrix_version"
+    ]
 
     check_cols = [c for c in df.columns if c not in exclude_cols]
 
@@ -246,11 +269,15 @@ def check_cadence_compliance(
     }
 
     # Find release day columns for this family
-    release_cols = [c for c in df.columns if c.startswith(prefix) and c.endswith("_is_release_day")]
+    release_cols = [
+        c for c in df.columns if c.startswith(prefix) and c.endswith("_is_release_day")
+    ]
 
     if not release_cols:
         # No event-encoded columns for this family - just warn, don't fail
-        metrics["issues"].append(f"No release day columns found for {family} (skipping cadence check)")
+        metrics["issues"].append(
+            f"No release day columns found for {family} (skipping cadence check)"
+        )
         return True, metrics
 
     # Check each metric's release pattern
@@ -329,7 +356,11 @@ def check_dtype_consistency(df: pd.DataFrame) -> Tuple[bool, List[str]]:
                 issues.append(f"{col} should be float, is {dtype}")
 
         # Flags should be int
-        if col.endswith("_is_release_day") or col.endswith("_is_available") or col.endswith("_is_missing"):
+        if (
+            col.endswith("_is_release_day")
+            or col.endswith("_is_available")
+            or col.endswith("_is_missing")
+        ):
             if not np.issubdtype(dtype, np.integer):
                 issues.append(f"{col} should be int, is {dtype}")
 
@@ -451,12 +482,23 @@ def validate_matrix(
     # =========================
 
     # Gate 6: Daily observed rate
-    daily_cols = [c for c in df.columns
-                  if not any(c.startswith(p) for p in VALIDATION_CONFIG.LOW_FREQ_PREFIXES)
-                  and not c.endswith(("_event_value", "_event_delta", "_is_release_day",
-                                     "_age_days", "_is_available", "_is_missing"))
-                  and c not in ("trade_date", "symbol")
-                  and np.issubdtype(df[c].dtype, np.number)]
+    daily_cols = [
+        c
+        for c in df.columns
+        if not any(c.startswith(p) for p in VALIDATION_CONFIG.LOW_FREQ_PREFIXES)
+        and not c.endswith(
+            (
+                "_event_value",
+                "_event_delta",
+                "_is_release_day",
+                "_age_days",
+                "_is_available",
+                "_is_missing",
+            )
+        )
+        and c not in ("trade_date", "symbol")
+        and np.issubdtype(df[c].dtype, np.number)
+    ]
 
     low_observed = []
     for col in daily_cols:
@@ -504,14 +546,18 @@ def validate_matrix(
         ),
         "null_count": int(df.isnull().sum().sum()),
         "encoding_columns": len([c for c in df.columns if c.endswith("_event_value")]),
-        "missing_flag_columns": len([c for c in df.columns if c.endswith("_is_missing")]),
+        "missing_flag_columns": len(
+            [c for c in df.columns if c.endswith("_is_missing")]
+        ),
     }
 
     # Final status
     if result.passed:
         logger.info("✅ VALIDATION PASSED - matrix is GO")
     else:
-        logger.error(f"❌ VALIDATION FAILED - {len(result.hard_failures)} hard failures")
+        logger.error(
+            f"❌ VALIDATION FAILED - {len(result.hard_failures)} hard failures"
+        )
         for f in result.hard_failures[:10]:
             logger.error(f"   {f}")
 

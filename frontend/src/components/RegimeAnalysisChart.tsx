@@ -34,10 +34,10 @@ interface PriceData {
   close: number
 }
 
-export function RegimeAnalysisChart({ 
+export function RegimeAnalysisChart({
   height = 400,
   timeRange = '3M',
-}: { 
+}: {
   height?: number
   timeRange?: '1M' | '3M' | '6M' | '1Y'
 }) {
@@ -87,7 +87,7 @@ export function RegimeAnalysisChart({
       handleScroll: false,
       handleScale: false,
       crosshair: {
-        vertLine: { 
+        vertLine: {
           color: 'rgba(0, 212, 255, 0.2)',
           width: 1,
           style: LineStyle.Dashed,
@@ -124,10 +124,10 @@ export function RegimeAnalysisChart({
     const regimeZones: RegimeZone[] = []
     let currentZoneStart = lineData[0]?.time
     let prevRegime: MarketRegime = 'NEUTRAL'
-    
+
     const sma20: number[] = []
     const sma50: number[] = []
-    
+
     for (let i = 0; i < lineData.length; i++) {
       // Calculate SMAs
       if (i >= 19) {
@@ -144,14 +144,14 @@ export function RegimeAnalysisChart({
     for (let i = 50; i < lineData.length; i++) {
       const sma20Idx = i - 20
       const sma50Idx = i - 50
-      
+
       if (sma20Idx >= 0 && sma50Idx >= 0 && sma20[sma20Idx] && sma50[sma50Idx]) {
         const price = lineData[i].value
         const s20 = sma20[sma20Idx]
         const s50 = sma50[sma50Idx]
-        
+
         let regime: MarketRegime = 'NEUTRAL'
-        
+
         if (s20 > s50 * 1.02 && price > s20) {
           regime = 'BULLISH'
         } else if (s20 < s50 * 0.98 && price < s20) {
@@ -175,7 +175,7 @@ export function RegimeAnalysisChart({
         }
       }
     }
-    
+
     // Add final zone
     if (currentZoneStart && lineData.length > 0) {
       regimeZones.push({
@@ -204,12 +204,12 @@ export function RegimeAnalysisChart({
           priceScaleId: 'regime',
           color: REGIME_COLORS[zone.regime].bg,
         })
-        
+
         // Scale histogram to fill chart height
         const maxPrice = Math.max(...lineData.map(d => d.value))
         const minPrice = Math.min(...lineData.map(d => d.value))
         const range = maxPrice - minPrice
-        
+
         zoneSeries.setData(zoneData.map(d => ({
           time: d.time,
           value: maxPrice + range * 0.1, // Fill to top
@@ -249,9 +249,9 @@ export function RegimeAnalysisChart({
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-bold text-white">ZL Futures - Regime Analysis</h3>
-          <span 
+          <span
             className="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
-            style={{ 
+            style={{
               backgroundColor: REGIME_COLORS[currentRegime].bg,
               color: REGIME_COLORS[currentRegime].border,
               border: `1px solid ${REGIME_COLORS[currentRegime].border}30`,
@@ -260,7 +260,7 @@ export function RegimeAnalysisChart({
             {currentRegime.replace('_', ' ')}
           </span>
         </div>
-        
+
         {/* Time Range Toggle */}
         <div className="flex items-center bg-white/5 rounded-lg p-0.5">
           {(['1M', '3M', '6M', '1Y'] as const).map((range) => (
@@ -286,7 +286,7 @@ export function RegimeAnalysisChart({
       <div className="flex items-center justify-center gap-6 py-2 border-t border-white/5 bg-white/[0.02]">
         {Object.entries(REGIME_COLORS).slice(0, 4).map(([regime, colors]) => (
           <div key={regime} className="flex items-center gap-1.5">
-            <div 
+            <div
               className="w-3 h-3 rounded-sm"
               style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}40` }}
             />

@@ -45,7 +45,7 @@ async function fullTest() {
 
   const url = page.url();
   console.log('After login URL:', url);
-  
+
   if (url.includes('sign-in')) {
     console.log('LOGIN FAILED!');
     await browser.close();
@@ -70,15 +70,15 @@ async function fullTest() {
       const results = [];
       const links = document.querySelectorAll('a[href*="profarmer.com"]');
       const seen = new Set();
-      
+
       for (const link of links) {
         const href = link.href;
         if (seen.has(href)) continue;
         if (href.includes('/r/') || href.includes('sign-in') || href.includes('subscribe')) continue;
-        
+
         const title = link.textContent?.trim();
         if (!title || title.length < 15) continue;
-        
+
         // Check if it looks like an article link
         if (href.match(/\/\d{4}\/\d{2}\//) || href.includes('/topics/')) {
           seen.add(href);

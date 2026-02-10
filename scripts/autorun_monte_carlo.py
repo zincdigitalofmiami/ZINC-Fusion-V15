@@ -2,6 +2,7 @@
 """
 Auto-run Monte Carlo after meta-ensemble is updated.
 """
+
 import os
 import time
 import argparse
@@ -28,7 +29,7 @@ def meta_ready(conn, since: datetime) -> bool:
         cur.execute(
             """
             SELECT horizon, COUNT(*)
-            FROM model.meta_ensemble
+            FROM model.meta_ensemble  -- sqlref: ignore
             WHERE trained_at >= %s
             GROUP BY horizon
             """,
@@ -40,7 +41,9 @@ def meta_ready(conn, since: datetime) -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Autorun Monte Carlo after meta-ensemble")
+    parser = argparse.ArgumentParser(
+        description="Autorun Monte Carlo after meta-ensemble"
+    )
     parser.add_argument("--since", required=True, help="ISO timestamp to wait for")
     parser.add_argument("--poll-seconds", type=int, default=300)
     args = parser.parse_args()

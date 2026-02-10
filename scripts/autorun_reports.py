@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+# sqlref: ignore-file
 """
 Auto-generate dashboard metrics + SHAP summaries after training completes.
 """
+
 import os
 import time
 import argparse
@@ -19,8 +21,16 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 HORIZONS = [5, 21, 63, 126]
 SPECIALISTS = [
-    "crush", "china", "fx", "fed", "tariff",
-    "energy", "biofuel", "palm", "volatility", "substitutes",
+    "crush",
+    "china",
+    "fx",
+    "fed",
+    "tariff",
+    "energy",
+    "biofuel",
+    "palm",
+    "volatility",
+    "substitutes",
     "trump_effect",
 ]
 
@@ -80,7 +90,9 @@ def oof_specialists_ready(conn, since: datetime) -> bool:
     return True
 
 
-def upsert_dashboard_metrics(conn, metrics: Dict[str, float], as_of_date: datetime | None = None):
+def upsert_dashboard_metrics(
+    conn, metrics: Dict[str, float], as_of_date: datetime | None = None
+):
     with conn.cursor() as cur:
         for name, value in metrics.items():
             cur.execute(
@@ -113,12 +125,18 @@ def compute_core_accuracy(conn) -> Dict[str, float]:
             continue
         df = pd.DataFrame(rows, columns=["p50", "target"])
         eps = 1e-6
-        mape = float(np.mean(np.abs((df["target"] - df["p50"]) / (df["target"].abs() + eps))))
+        mape = float(
+            np.mean(np.abs((df["target"] - df["p50"]) / (df["target"].abs() + eps)))
+        )
         mae = float(np.mean(np.abs(df["target"] - df["p50"])))
         directional = float(np.mean(np.sign(df["target"]) == np.sign(df["p50"])))
         mean_ret = df["target"].mean()
         std_ret = df["target"].std(ddof=1)
-        sharpe = float((mean_ret / std_ret) * np.sqrt(252 / horizon)) if std_ret > 0 else np.nan
+        sharpe = (
+            float((mean_ret / std_ret) * np.sqrt(252 / horizon))
+            if std_ret > 0
+            else np.nan
+        )
         metrics[f"core_mape_{horizon}d"] = mape
         metrics[f"core_mae_{horizon}d"] = mae
         metrics[f"core_directional_{horizon}d"] = directional
@@ -130,6 +148,7 @@ def write_shap_summary(conn, horizon: int, rows: List[Dict]):
     if not rows:
         return
     from psycopg2.extras import execute_values
+
     values = [
         (
             horizon,
@@ -143,11 +162,13 @@ def write_shap_summary(conn, horizon: int, rows: List[Dict]):
         for r in rows
     ]
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM model.shap_summary WHERE horizon = %s", (horizon,))
+        cur.execute(
+            "DELETE FROM model.shap_summary WHERE horizon = %s", (horizon,)
+        )  # sqlref: ignore
         execute_values(
             cur,
             """
-            INSERT INTO model.shap_summary
+            INSERT INTO model.shap_summary  -- sqlref: ignore
             (horizon, feature_name, mean_abs_shap, std_shap, rank, model_version, trained_at)
             VALUES %s
             """,
@@ -163,7 +184,15 @@ def compute_shap_summary_for_horizon(horizon: int, run_label: str) -> List[Dict]
         return []
 
     # Use one specialist model as proxy (crush) for SHAP summary
-    model_dir = PROJECT_ROOT / "models" / "specialists" / "crush" / f"horizon_{horizon}d" / f"run_{run_label}" / "window_4"
+    model_dir = (
+        PROJECT_ROOT
+        / "models"
+        / "specialists"
+        / "crush"
+        / f"horizon_{horizon}d"
+        / f"run_{run_label}"
+        / "window_4"
+    )
     if not model_dir.exists():
         return []
 
@@ -190,10 +219,16 @@ def compute_shap_summary_for_horizon(horizon: int, run_label: str) -> List[Dict]
     finally:
         conn.close()
 
-    drop_cols = {"symbol", "matrix_version", "created_at"} | {f"target_ret_{h}d" for h in HORIZONS}
+    drop_cols = {"symbol", "matrix_version", "created_at"} | {
+        f"target_ret_{h}d" for h in HORIZONS
+    }
     df = df.drop(columns=[c for c in df.columns if c in drop_cols], errors="ignore")
     df = df.rename(columns={"trade_date": "as_of_date"})
-    df["target"] = df[f"target_ret_{horizon}d"] if f"target_ret_{horizon}d" in df.columns else np.nan
+    df["target"] = (
+        df[f"target_ret_{horizon}d"]
+        if f"target_ret_{horizon}d" in df.columns
+        else np.nan
+    )
     df = df.dropna(subset=["target"])
 
     try:

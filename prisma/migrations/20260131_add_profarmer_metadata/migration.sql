@@ -2,7 +2,7 @@
 -- Extracted from raw_payload JSON for better queryability
 
 -- Add new columns
-ALTER TABLE alt.profarmer_news 
+ALTER TABLE alt.profarmer_news
   ADD COLUMN IF NOT EXISTS summary TEXT,
   ADD COLUMN IF NOT EXISTS subject VARCHAR(500),
   ADD COLUMN IF NOT EXISTS tags TEXT[],
@@ -12,26 +12,26 @@ ALTER TABLE alt.profarmer_news
 
 -- Populate from raw_payload JSON
 UPDATE alt.profarmer_news
-SET 
+SET
   summary = raw_payload->>'summary',
   subject = COALESCE(raw_payload->>'section', section),
-  tags = CASE 
-    WHEN raw_payload->'tags' IS NOT NULL 
+  tags = CASE
+    WHEN raw_payload->'tags' IS NOT NULL
     THEN ARRAY(SELECT jsonb_array_elements_text(raw_payload->'tags'))
     ELSE ARRAY[]::text[]
   END,
-  topics = CASE 
-    WHEN raw_payload->'topics' IS NOT NULL 
+  topics = CASE
+    WHEN raw_payload->'topics' IS NOT NULL
     THEN ARRAY(SELECT jsonb_array_elements_text(raw_payload->'topics'))
     ELSE ARRAY[]::text[]
   END,
-  keywords = CASE 
-    WHEN raw_payload->'keywords' IS NOT NULL 
+  keywords = CASE
+    WHEN raw_payload->'keywords' IS NOT NULL
     THEN ARRAY(SELECT jsonb_array_elements_text(raw_payload->'keywords'))
     ELSE ARRAY[]::text[]
   END,
-  categories = CASE 
-    WHEN raw_payload->'categories' IS NOT NULL 
+  categories = CASE
+    WHEN raw_payload->'categories' IS NOT NULL
     THEN ARRAY(SELECT jsonb_array_elements_text(raw_payload->'categories'))
     ELSE ARRAY[]::text[]
   END

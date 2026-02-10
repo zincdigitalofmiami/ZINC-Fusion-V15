@@ -83,7 +83,6 @@ FRED_SERIES_ROUTING = {
     "NYFED_TGCR": "econ.rates_1d",
     # Discontinued but may have historical data
     "TEDRATE": "econ.rates_1d",
-
     # =========================================================================
     # INFLATION (14 series) — CPI, PCE, PPI, inflation expectations, TIPS yields
     # =========================================================================
@@ -104,7 +103,6 @@ FRED_SERIES_ROUTING = {
     "DFII10": "econ.inflation_1d",
     "DFII20": "econ.inflation_1d",
     "DFII30": "econ.inflation_1d",
-
     # =========================================================================
     # LABOR (5 series) — Employment, claims
     # =========================================================================
@@ -113,7 +111,6 @@ FRED_SERIES_ROUTING = {
     "MANEMP": "econ.labor_1d",
     "ICSA": "econ.labor_1d",
     "CCSA": "econ.labor_1d",
-
     # =========================================================================
     # ACTIVITY (19 series) — GDP, production, housing, trade, consumption
     # =========================================================================
@@ -139,7 +136,6 @@ FRED_SERIES_ROUTING = {
     "XTIMVA01CNM667S": "econ.activity_1d",
     "IMPCH": "econ.activity_1d",
     "B235RC1Q027SBEA": "econ.activity_1d",
-
     # =========================================================================
     # VOL_INDICES (17 series) — VIX, stress, equity indices, policy uncertainty
     # =========================================================================
@@ -154,7 +150,7 @@ FRED_SERIES_ROUTING = {
     "ANFCI": "econ.vol_indices_1d",
     # Credit spreads
     "BAMLH0A0HYM2": "econ.vol_indices_1d",  # High Yield OAS
-    "BAMLC0A0CM": "econ.vol_indices_1d",    # Corporate OAS
+    "BAMLC0A0CM": "econ.vol_indices_1d",  # Corporate OAS
     # Equity indices
     "SP500": "econ.vol_indices_1d",
     "NASDAQCOM": "econ.vol_indices_1d",
@@ -163,7 +159,6 @@ FRED_SERIES_ROUTING = {
     "USEPUINDXM": "econ.vol_indices_1d",
     "EPUTRADE": "econ.vol_indices_1d",
     "EMVTRADEPOLEMV": "econ.vol_indices_1d",
-
     # =========================================================================
     # MONEY (8 series) — Money supply, Fed balance sheet
     # =========================================================================
@@ -176,7 +171,6 @@ FRED_SERIES_ROUTING = {
     # China money/rates
     "MYAGM2CNM189N": "econ.money_1d",
     "IR3TIB01CNM156N": "econ.money_1d",
-
     # =========================================================================
     # COMMODITIES (32 series) — Oil, gas, agricultural, fuels, PPI commodities
     # =========================================================================
@@ -236,19 +230,24 @@ DEFAULT_ECON_TABLE = "econ.activity_1d"
 
 SPECIALIST_ECON_TABLES: dict[str, list[str]] = {
     # Buckets with NO FRED data (use fundamentals/supply tables instead)
-    "crush": [],      # Uses mkt.futures_1d (ZL, ZS, ZM spreads)
-    "palm": [],       # Uses mkt.futures_1d (FCPO) — no FRED palm data
-    "biofuel": [],    # Uses supply.epa_rin_1d — RINs not in FRED
-
+    "crush": [],  # Uses mkt.futures_1d (ZL, ZS, ZM spreads)
+    "palm": [],  # Uses mkt.futures_1d (FCPO) — no FRED palm data
+    "biofuel": [],  # Uses supply.epa_rin_1d — RINs not in FRED
     # Buckets with FRED data
-    "china": ["econ.commodities_1d"],                           # PCOPPUSDM (copper as China demand proxy)
-    "energy": ["econ.commodities_1d"],                          # DCOILWTICO, DCOILBRENTEU
-    "fx": ["econ.rates_1d"],                                    # DTWEXBGS (dollar index)
-    "fed": ["econ.rates_1d", "econ.vol_indices_1d"],            # FEDFUNDS, DGS10, DGS2, T10Y2Y + NFCI
-    "tariff": ["econ.vol_indices_1d"],                          # USEPUINDXM (policy uncertainty)
-    "volatility": ["econ.vol_indices_1d"],                      # VIXCLS, OVXCLS, STLFSI4
-    "substitutes": ["econ.commodities_1d"],                     # PSUNOUSDM (sunflower oil)
-    "trump_effect": ["econ.vol_indices_1d", "econ.rates_1d"],   # USEPUINDXD, EPUTRADE + T10Y2Y
+    "china": ["econ.commodities_1d"],  # PCOPPUSDM (copper as China demand proxy)
+    "energy": ["econ.commodities_1d"],  # DCOILWTICO, DCOILBRENTEU
+    "fx": ["econ.rates_1d"],  # DTWEXBGS (dollar index)
+    "fed": [
+        "econ.rates_1d",
+        "econ.vol_indices_1d",
+    ],  # FEDFUNDS, DGS10, DGS2, T10Y2Y + NFCI
+    "tariff": ["econ.vol_indices_1d"],  # USEPUINDXM (policy uncertainty)
+    "volatility": ["econ.vol_indices_1d"],  # VIXCLS, OVXCLS, STLFSI4
+    "substitutes": ["econ.commodities_1d"],  # PSUNOUSDM (sunflower oil)
+    "trump_effect": [
+        "econ.vol_indices_1d",
+        "econ.rates_1d",
+    ],  # USEPUINDXD, EPUTRADE + T10Y2Y
 }
 
 # Curated FRED series per specialist bucket

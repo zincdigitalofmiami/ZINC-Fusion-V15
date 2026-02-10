@@ -41,12 +41,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 from enum import Enum
 
 import numpy as np
-import pandas as pd
 import psycopg2
 from dotenv import load_dotenv
 
@@ -70,6 +69,7 @@ load_dotenv()
 
 class PressureLevel(Enum):
     """Narrative labels for pressure intensity."""
+
     EXTREME = "Extreme Pressure"
     HIGH = "High Pressure"
     ELEVATED = "Elevated"
@@ -80,6 +80,7 @@ class PressureLevel(Enum):
 
 class TrendDirection(Enum):
     """Trend descriptions."""
+
     SURGING = "Surging ↑↑"
     RISING = "Rising ↑"
     STABLE = "Stable →"
@@ -90,6 +91,7 @@ class TrendDirection(Enum):
 @dataclass
 class VisualCue:
     """Rich visual metadata for dashboard rendering."""
+
     # Gauge styling
     gauge_color: str  # Primary color hex
     gauge_gradient: List[str]  # Gradient stops for 3D effect
@@ -109,6 +111,7 @@ class VisualCue:
 @dataclass
 class ForecastData:
     """Forward-looking projections for each pressure."""
+
     forecast_1d: float  # Tomorrow's expected score
     forecast_5d: float  # 5-day forward
     forecast_direction: str  # "improving", "stable", "deteriorating"
@@ -119,6 +122,7 @@ class ForecastData:
 @dataclass
 class NarrativeGraphic:
     """Rich narrative elements for storytelling."""
+
     tagline: str  # Ultra-short 3-5 word hook
     story_arc: str  # "escalating", "peak", "resolving", "building", "stable"
     icon_hint: str  # Icon name hint for frontend (no emojis)
@@ -130,6 +134,7 @@ class NarrativeGraphic:
 @dataclass
 class PressureReading:
     """A single pressure gauge reading with full narrative context."""
+
     name: str
     score: float  # 0-100
     level: PressureLevel
@@ -178,7 +183,10 @@ class PressureReading:
             "regime": self.regime,
             "momentum": round(self.momentum, 3),
             "as_of_date": self.as_of_date.isoformat(),
-            "components": {k: (round(v, 3) if isinstance(v, (int, float)) else v) for k, v in self.components.items()},
+            "components": {
+                k: (round(v, 3) if isinstance(v, (int, float)) else v)
+                for k, v in self.components.items()
+            },
         }
 
         # Add rich visual data
@@ -201,7 +209,9 @@ class PressureReading:
                 "5d": round(self.forecast.forecast_5d, 1),
                 "direction": self.forecast.forecast_direction,
                 "confidence": round(self.forecast.confidence, 2),
-                "forward_curve": [(d, round(v, 1)) for d, v in self.forecast.forward_curve],
+                "forward_curve": [
+                    (d, round(v, 1)) for d, v in self.forecast.forward_curve
+                ],
             }
 
         if self.graphic:
@@ -270,7 +280,12 @@ def calculate_percentile(value: float, historical: List[float]) -> float:
     """Calculate percentile rank of value vs historical distribution."""
     if not historical or len(historical) < 5:
         return 50.0
-    return float(np.percentile([value] + historical, (np.searchsorted(sorted(historical), value) / len(historical)) * 100))
+    return float(
+        np.percentile(
+            [value] + historical,
+            (np.searchsorted(sorted(historical), value) / len(historical)) * 100,
+        )
+    )
 
 
 def calculate_momentum(values: List[float], window: int = 5) -> float:
@@ -278,21 +293,34 @@ def calculate_momentum(values: List[float], window: int = 5) -> float:
     if len(values) < window + 1:
         return 0.0
     recent = np.mean(values[-window:])
-    earlier = np.mean(values[-(window*2):-window]) if len(values) >= window * 2 else values[0]
+    earlier = (
+        np.mean(values[-(window * 2) : -window])
+        if len(values) >= window * 2
+        else values[0]
+    )
     if earlier == 0:
         return 0.0
     raw_momentum = (recent - earlier) / abs(earlier)
     return float(np.clip(raw_momentum, -1, 1))
 
 
-def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> VisualCue:
+def generate_visual_cue(
+    score: float, momentum: float, level: PressureLevel
+) -> VisualCue:
     """Generate rich visual styling based on pressure state."""
 
     # Color palettes for each level
     palettes = {
         PressureLevel.EXTREME: {
             "base": "#DC2626",
-            "gradient": ["#FEE2E2", "#FECACA", "#FCA5A5", "#F87171", "#EF4444", "#DC2626"],
+            "gradient": [
+                "#FEE2E2",
+                "#FECACA",
+                "#FCA5A5",
+                "#F87171",
+                "#EF4444",
+                "#DC2626",
+            ],
             "sparkline": ["#FEE2E2", "#DC2626"],
             "glow": 0.9,
             "pulse": "fast",
@@ -300,7 +328,14 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
         },
         PressureLevel.HIGH: {
             "base": "#EA580C",
-            "gradient": ["#FFEDD5", "#FED7AA", "#FDBA74", "#FB923C", "#F97316", "#EA580C"],
+            "gradient": [
+                "#FFEDD5",
+                "#FED7AA",
+                "#FDBA74",
+                "#FB923C",
+                "#F97316",
+                "#EA580C",
+            ],
             "sparkline": ["#FFEDD5", "#EA580C"],
             "glow": 0.7,
             "pulse": "medium",
@@ -308,7 +343,14 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
         },
         PressureLevel.ELEVATED: {
             "base": "#D97706",
-            "gradient": ["#FEF3C7", "#FDE68A", "#FCD34D", "#FBBF24", "#F59E0B", "#D97706"],
+            "gradient": [
+                "#FEF3C7",
+                "#FDE68A",
+                "#FCD34D",
+                "#FBBF24",
+                "#F59E0B",
+                "#D97706",
+            ],
             "sparkline": ["#FEF3C7", "#D97706"],
             "glow": 0.5,
             "pulse": "slow",
@@ -316,7 +358,14 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
         },
         PressureLevel.NORMAL: {
             "base": "#65A30D",
-            "gradient": ["#ECFCCB", "#D9F99D", "#BEF264", "#A3E635", "#84CC16", "#65A30D"],
+            "gradient": [
+                "#ECFCCB",
+                "#D9F99D",
+                "#BEF264",
+                "#A3E635",
+                "#84CC16",
+                "#65A30D",
+            ],
             "sparkline": ["#ECFCCB", "#65A30D"],
             "glow": 0.2,
             "pulse": "none",
@@ -324,7 +373,14 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
         },
         PressureLevel.LOW: {
             "base": "#0891B2",
-            "gradient": ["#CFFAFE", "#A5F3FC", "#67E8F9", "#22D3EE", "#06B6D4", "#0891B2"],
+            "gradient": [
+                "#CFFAFE",
+                "#A5F3FC",
+                "#67E8F9",
+                "#22D3EE",
+                "#06B6D4",
+                "#0891B2",
+            ],
             "sparkline": ["#CFFAFE", "#0891B2"],
             "glow": 0.1,
             "pulse": "none",
@@ -332,7 +388,14 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
         },
         PressureLevel.VERY_LOW: {
             "base": "#0284C7",
-            "gradient": ["#E0F2FE", "#BAE6FD", "#7DD3FC", "#38BDF8", "#0EA5E9", "#0284C7"],
+            "gradient": [
+                "#E0F2FE",
+                "#BAE6FD",
+                "#7DD3FC",
+                "#38BDF8",
+                "#0EA5E9",
+                "#0284C7",
+            ],
             "sparkline": ["#E0F2FE", "#0284C7"],
             "glow": 0.0,
             "pulse": "none",
@@ -366,7 +429,9 @@ def generate_visual_cue(score: float, momentum: float, level: PressureLevel) -> 
     )
 
 
-def generate_forecast(score: float, momentum: float, sparkline: List[float]) -> ForecastData:
+def generate_forecast(
+    score: float, momentum: float, sparkline: List[float]
+) -> ForecastData:
     """Generate simple forward projections based on momentum."""
 
     # Naive forecast: project momentum forward
@@ -520,7 +585,11 @@ def generate_narrative_graphic(
     # Icon hints by category (for frontend icon rendering)
     icons = {
         "Crush Pressure": "droplet" if score < 50 else "alert-triangle",
-        "Greed Pressure Index": "trending-up" if score > 60 else "trending-down" if score < 40 else "minus",
+        "Greed Pressure Index": "trending-up"
+        if score > 60
+        else "trending-down"
+        if score < 40
+        else "minus",
         "Volatility Pressure": "activity" if score > 60 else "check-circle",
         "Trump Effect Pressure": "flag",
         "Trade Pressure": "truck" if score > 50 else "package",
@@ -567,7 +636,10 @@ def generate_narrative_graphic(
 # CRUSH PRESSURE
 # =============================================================================
 
-def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_crush_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Crush Pressure: Soybean processor margin stress indicator.
 
@@ -586,23 +658,29 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     cur = conn.cursor()
 
     # Get board crush data
-    cur.execute("""
+    cur.execute(
+        """
         SELECT trade_date, board_crush, oil_share
         FROM analytics.board_crush_1d
         WHERE trade_date <= %s
         ORDER BY trade_date DESC
         LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     crush_data = cur.fetchall()
 
     # Get crush specialist signal
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'crush' AND as_of_date <= %s
         ORDER BY as_of_date DESC
         LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signal_row = cur.fetchone()
 
     if not crush_data:
@@ -644,9 +722,15 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
 
     # Oil share trend (falling = more pressure for soyoil)
     if len(oil_share_values) > 5:
-        oil_share_5d_ago = oil_share_values[min(5, len(oil_share_values)-1)]
-        oil_share_change = (current_oil_share - oil_share_5d_ago) / oil_share_5d_ago if oil_share_5d_ago > 0 else 0
-        oil_share_component = 50 - (oil_share_change * 500)  # Falling oil share = pressure
+        oil_share_5d_ago = oil_share_values[min(5, len(oil_share_values) - 1)]
+        oil_share_change = (
+            (current_oil_share - oil_share_5d_ago) / oil_share_5d_ago
+            if oil_share_5d_ago > 0
+            else 0
+        )
+        oil_share_component = 50 - (
+            oil_share_change * 500
+        )  # Falling oil share = pressure
     else:
         oil_share_component = 50
 
@@ -657,12 +741,23 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         signal_component = 50 - (float(signal_row[0]) * 30)
 
     # Composite score (weighted average)
-    score = (crush_component * 0.45) + (oil_share_component * 0.30) + (signal_component * 0.25)
+    score = (
+        (crush_component * 0.45)
+        + (oil_share_component * 0.30)
+        + (signal_component * 0.25)
+    )
     score = float(np.clip(score, 0, 100))
 
     # Calculate momentum
-    sparkline_values = [50 - ((float(r[1]) - np.mean(crush_values)) / (np.std(crush_values) or 1) * 15)
-                        for r in reversed(crush_data[:10])] if len(crush_values) > 5 else [50] * 10
+    sparkline_values = (
+        [
+            50
+            - ((float(r[1]) - np.mean(crush_values)) / (np.std(crush_values) or 1) * 15)
+            for r in reversed(crush_data[:10])
+        ]
+        if len(crush_values) > 5
+        else [50] * 10
+    )
     momentum = calculate_momentum(sparkline_values)
 
     # Regime classification
@@ -683,22 +778,26 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     if level in [PressureLevel.EXTREME, PressureLevel.HIGH]:
         headline = "Crush Margins Under Stress"
         narrative = f"Processor margins are compressed with board crush at ${current_crush:.2f}/bu. "
-        narrative += f"Oil share at {current_oil_share*100:.1f}% is {'falling' if oil_share_change < -0.01 else 'stable'}. "
+        narrative += f"Oil share at {current_oil_share * 100:.1f}% is {'falling' if oil_share_change < -0.01 else 'stable'}. "
         narrative += "This typically pressures soyoil prices as processors struggle."
     elif level == PressureLevel.ELEVATED:
         headline = "Crush Margins Tightening"
-        narrative = f"Board crush spread at ${current_crush:.2f}/bu shows margins narrowing. "
+        narrative = (
+            f"Board crush spread at ${current_crush:.2f}/bu shows margins narrowing. "
+        )
         narrative += "Processors may reduce run rates if this continues."
     else:
         headline = "Healthy Crush Margins"
-        narrative = f"Board crush at ${current_crush:.2f}/bu indicates profitable processing. "
+        narrative = (
+            f"Board crush at ${current_crush:.2f}/bu indicates profitable processing. "
+        )
         narrative += "Strong margins support soybean demand from crushers."
 
     drivers = []
     if crush_component > 55:
         drivers.append(f"Tight board crush (${current_crush:.2f}/bu)")
     if oil_share_component > 55:
-        drivers.append(f"Falling oil share ({current_oil_share*100:.1f}%)")
+        drivers.append(f"Falling oil share ({current_oil_share * 100:.1f}%)")
     if signal_component > 55:
         drivers.append("Bearish crush specialist signal")
     if not drivers:
@@ -714,9 +813,15 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         key_drivers=drivers,
         color=score_to_color(score),
         icon="trending-down" if score > 60 else "trending-up",
-        sparkline=sparkline_values[-10:] if len(sparkline_values) >= 10 else sparkline_values,
-        percentile_30d=calculate_percentile(score, sparkline_values[-30:]) if len(sparkline_values) >= 30 else 50.0,
-        percentile_1y=calculate_percentile(score, sparkline_values) if len(sparkline_values) >= 60 else 50.0,
+        sparkline=sparkline_values[-10:]
+        if len(sparkline_values) >= 10
+        else sparkline_values,
+        percentile_30d=calculate_percentile(score, sparkline_values[-30:])
+        if len(sparkline_values) >= 30
+        else 50.0,
+        percentile_1y=calculate_percentile(score, sparkline_values)
+        if len(sparkline_values) >= 60
+        else 50.0,
         regime=regime,
         momentum=momentum,
         as_of_date=as_of_date,
@@ -724,7 +829,7 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
             "board_crush": crush_component,
             "oil_share": oil_share_component,
             "specialist_signal": signal_component,
-        }
+        },
     )
 
 
@@ -732,7 +837,10 @@ def calculate_crush_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
 # GREED PRESSURE INDEX (Fear/Greed Style Composite)
 # =============================================================================
 
-def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_greed_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Greed Pressure Index: Market sentiment composite.
 
@@ -756,11 +864,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     component_scores = []
 
     # 1. VIX Level (inverted - high VIX = fear)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     vix_data = cur.fetchall()
 
     if vix_data:
@@ -773,11 +884,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         component_scores.append(vix_score)
 
     # 2. Market Momentum (SPY) - Databento ETF
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'SPY' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 150
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     spy_data = cur.fetchall()
     if len(spy_data) < 125:
         raise ValueError("Insufficient SPY data for market momentum")
@@ -819,11 +933,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     component_scores.append(spy_score)
 
     # 3. Safe Haven Demand (GLD) - Databento ETF
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     gld_data = cur.fetchall()
     if len(gld_data) < 21:
         raise ValueError("Insufficient GLD data for safe haven score")
@@ -849,11 +966,14 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     component_scores.append(gold_score)
 
     # 4. Credit Spreads (HY spreads - inverted)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'BAMLH0A0HYM2' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     hy_data = cur.fetchall()
 
     if hy_data:
@@ -866,7 +986,8 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         component_scores.append(spread_score)
 
     # 5. Specialist Consensus
-    cur.execute("""
+    cur.execute(
+        """
         SELECT bucket, signal_1, confidence
         FROM (
             SELECT DISTINCT ON (bucket) bucket, signal_1, confidence
@@ -874,7 +995,9 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
             WHERE as_of_date <= %s
             ORDER BY bucket, as_of_date DESC
         ) latest
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     signals = cur.fetchall()
 
     if signals:
@@ -882,25 +1005,35 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         bearish_count = sum(1 for _, s, _ in signals if s and s < -0.1)
         total = len(signals)
         # Net bullish = greed
-        consensus_score = 50 + ((bullish_count - bearish_count) / total * 50) if total > 0 else 50
+        consensus_score = (
+            50 + ((bullish_count - bearish_count) / total * 50) if total > 0 else 50
+        )
         consensus_score = float(np.clip(consensus_score, 0, 100))
         components["specialist_consensus"] = consensus_score
         component_scores.append(consensus_score)
 
     # 6. News Sentiment Velocity
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.econ_news
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     news_count = cur.fetchone()[0] or 0
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.econ_news
         WHERE event_date >= %s - INTERVAL '30 days' AND event_date <= %s - INTERVAL '7 days'
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     news_baseline = cur.fetchone()[0] or 1
 
-    news_velocity = (news_count * 4) / news_baseline if news_baseline > 0 else 1  # Normalize to monthly
+    news_velocity = (
+        (news_count * 4) / news_baseline if news_baseline > 0 else 1
+    )  # Normalize to monthly
     # High news velocity often = fear (crisis coverage)
     news_score = 50 - ((news_velocity - 1) * 30)
     news_score = float(np.clip(news_score, 0, 100))
@@ -914,8 +1047,10 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     sparkline = [50] * 10  # Placeholder - would need historical calc
     momentum = 0.0
     if len(vix_data) > 10:
-        vix_spark = [100 - calculate_percentile(float(r[1]), [float(x[1]) for x in vix_data])
-                     for r in reversed(vix_data[:10])]
+        vix_spark = [
+            100 - calculate_percentile(float(r[1]), [float(x[1]) for x in vix_data])
+            for r in reversed(vix_data[:10])
+        ]
         sparkline = vix_spark
         momentum = calculate_momentum(sparkline)
 
@@ -972,9 +1107,15 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         narrative=narrative,
         key_drivers=drivers,
         color=score_to_color(score),
-        icon="trending-up" if score > 60 else "trending-down" if score < 40 else "minus",
+        icon="trending-up"
+        if score > 60
+        else "trending-down"
+        if score < 40
+        else "minus",
         sparkline=sparkline,
-        percentile_30d=calculate_percentile(score, sparkline[-30:]) if len(sparkline) >= 30 else 50.0,
+        percentile_30d=calculate_percentile(score, sparkline[-30:])
+        if len(sparkline) >= 30
+        else 50.0,
         percentile_1y=50.0,  # Would need more history
         regime=regime,
         momentum=momentum,
@@ -987,7 +1128,10 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
 # VOLATILITY PRESSURE
 # =============================================================================
 
-def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_volatility_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Volatility Pressure: Market fear and uncertainty gauge.
 
@@ -1008,11 +1152,14 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
     components = {}
 
     # VIX
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'VIXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     vix_data = cur.fetchall()
 
     vix_score = 50
@@ -1024,11 +1171,14 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
         components["vix_percentile"] = vix_score
 
     # OVX (oil volatility)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'OVXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     ovx_data = cur.fetchall()
 
     ovx_score = 50
@@ -1039,12 +1189,15 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
         components["ovx_percentile"] = ovx_score
 
     # Volatility specialist signal
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'volatility' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     vol_signal = cur.fetchone()
 
     signal_score = 50
@@ -1055,7 +1208,8 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
         components["vol_specialist"] = signal_score
 
     # Realized ZL volatility
-    cur.execute("""
+    cur.execute(
+        """
         WITH returns AS (
             SELECT event_date, close,
                    (close - LAG(close) OVER (ORDER BY event_date)) /
@@ -1066,7 +1220,9 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
             LIMIT 63
         )
         SELECT STDDEV(ret) * SQRT(252) as realized_vol FROM returns WHERE ret IS NOT NULL
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     rv_result = cur.fetchone()
 
     rv_score = 50
@@ -1086,12 +1242,25 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
         components["realized_vol"] = rv_score
 
     # Composite score
-    weights = {"vix_percentile": 0.35, "ovx_percentile": 0.20, "vol_specialist": 0.25, "realized_vol": 0.20}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "vix_percentile": 0.35,
+        "ovx_percentile": 0.20,
+        "vol_specialist": 0.25,
+        "realized_vol": 0.20,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     # Sparkline from VIX
-    sparkline = [calculate_percentile(float(r[1]), [float(x[1]) for x in vix_data])
-                 for r in reversed(vix_data[:10])] if len(vix_data) >= 10 else [50] * 10
+    sparkline = (
+        [
+            calculate_percentile(float(r[1]), [float(x[1]) for x in vix_data])
+            for r in reversed(vix_data[:10])
+        ]
+        if len(vix_data) >= 10
+        else [50] * 10
+    )
     momentum = calculate_momentum(sparkline)
 
     level = score_to_level(score)
@@ -1148,7 +1317,9 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
         color=score_to_color(score),
         icon="activity",
         sparkline=sparkline,
-        percentile_30d=calculate_percentile(score, sparkline[-30:]) if len(sparkline) >= 30 else 50.0,
+        percentile_30d=calculate_percentile(score, sparkline[-30:])
+        if len(sparkline) >= 30
+        else 50.0,
         percentile_1y=calculate_percentile(score, sparkline),
         regime=regime,
         momentum=momentum,
@@ -1161,7 +1332,10 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Pr
 # TRUMP EFFECT PRESSURE
 # =============================================================================
 
-def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_trump_effect_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Trump Effect Pressure: Policy uncertainty from executive actions.
 
@@ -1182,11 +1356,14 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components = {}
 
     # EPU Index
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 252
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     epu_data = cur.fetchall()
 
     epu_score = 50
@@ -1198,11 +1375,14 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["epu_percentile"] = epu_score
 
     # Trade Policy Uncertainty
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'EPUTRADE' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 60
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     tpu_data = cur.fetchall()
 
     tpu_score = 50
@@ -1213,10 +1393,13 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["tpu_percentile"] = tpu_score
 
     # Executive actions velocity
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.executive_actions
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     exec_count = cur.fetchone()[0] or 0
 
     # More than 5 executive actions in a week = high activity
@@ -1225,7 +1408,8 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
 
     # China ETF stress (FXI) - RE-ENABLED with Databento data
     # Uses 20-day return + ZL correlation for stress detection
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             close,
             returns_21d,
@@ -1234,13 +1418,15 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         FROM mkt.etf_1d
         WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     fxi_row = cur.fetchone()
 
     if fxi_row and fxi_row[1] is not None:
         fxi_ret_21d = float(fxi_row[1])  # 21-day log return
         fxi_corr = float(fxi_row[2]) if fxi_row[2] else 0.0
-        fxi_momentum = float(fxi_row[3]) if fxi_row[3] else 0.0
+        float(fxi_row[3]) if fxi_row[3] else 0.0
 
         # Score based on returns: big drop = high stress
         if fxi_ret_21d < -0.15:
@@ -1267,12 +1453,15 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["china_stress"] = 50.0
 
     # Trump effect specialist signal
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'trump_effect' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     trump_signal = cur.fetchone()
 
     signal_score = 50
@@ -1283,13 +1472,26 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["trump_specialist"] = signal_score
 
     # Composite score
-    weights = {"epu_percentile": 0.25, "tpu_percentile": 0.25, "executive_velocity": 0.20,
-               "china_stress": 0.15, "trump_specialist": 0.15}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "epu_percentile": 0.25,
+        "tpu_percentile": 0.25,
+        "executive_velocity": 0.20,
+        "china_stress": 0.15,
+        "trump_specialist": 0.15,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     # Sparkline
-    sparkline = [calculate_percentile(float(r[1]), [float(x[1]) for x in epu_data])
-                 for r in reversed(epu_data[:10])] if len(epu_data) >= 10 else [50] * 10
+    sparkline = (
+        [
+            calculate_percentile(float(r[1]), [float(x[1]) for x in epu_data])
+            for r in reversed(epu_data[:10])
+        ]
+        if len(epu_data) >= 10
+        else [50] * 10
+    )
     momentum = calculate_momentum(sparkline)
 
     level = score_to_level(score)
@@ -1307,7 +1509,9 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     if score >= 75:
         headline = "Major Policy Uncertainty"
         narrative = f"Policy uncertainty index at {current_epu:.0f} signals high market stress. "
-        narrative += f"{exec_count} executive actions in the past week are moving markets."
+        narrative += (
+            f"{exec_count} executive actions in the past week are moving markets."
+        )
     elif score >= 60:
         headline = "Policy Shifts Unsettling Markets"
         narrative = "Trade and policy uncertainty is elevated. "
@@ -1344,7 +1548,9 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
         color=score_to_color(score),
         icon="flag",
         sparkline=sparkline,
-        percentile_30d=calculate_percentile(score, sparkline[-30:]) if len(sparkline) >= 30 else 50.0,
+        percentile_30d=calculate_percentile(score, sparkline[-30:])
+        if len(sparkline) >= 30
+        else 50.0,
         percentile_1y=50.0,
         regime=regime,
         momentum=momentum,
@@ -1357,7 +1563,10 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
 # TRADE PRESSURE
 # =============================================================================
 
-def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_trade_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Trade Pressure: Global shipping and trade flow stress.
 
@@ -1377,11 +1586,14 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     components = {}
 
     # Shipping ETFs (BDRY) - Databento ETF
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     bdry_data = cur.fetchall()
     if len(bdry_data) < 21:
         raise ValueError("Insufficient BDRY data for trade pressure")
@@ -1394,12 +1606,15 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
 
     # China specialist signal
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'china' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     china_signal = cur.fetchone()
 
     china_score = 50
@@ -1409,18 +1624,25 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
         components["china_specialist"] = china_score
 
     # Brazil FX (BRL weakness = trade stress)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.rates_1d
         WHERE series_id = 'DEXBZUS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 63
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     brl_data = cur.fetchall()
 
     brl_score = 50
     if len(brl_data) > 20:
         brl_values = [float(r[1]) for r in brl_data if r[1] is not None]
         if len(brl_values) > 20:
-            brl_change = (brl_values[0] - brl_values[20]) / brl_values[20] if brl_values[20] > 0 else 0
+            brl_change = (
+                (brl_values[0] - brl_values[20]) / brl_values[20]
+                if brl_values[20] > 0
+                else 0
+            )
         else:
             brl_change = 0
         # BRL weakening (rising USD/BRL) = stress
@@ -1430,12 +1652,15 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
 
     # Trade news velocity
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT COUNT(*) FROM alt.profarmer_news
             WHERE event_date >= %s - INTERVAL '7 days'
             AND event_date <= %s
             AND (headline ILIKE '%%trade%%' OR headline ILIKE '%%export%%' OR headline ILIKE '%%china%%')
-        """, (as_of_date, as_of_date))
+        """,
+            (as_of_date, as_of_date),
+        )
         result = cur.fetchone()
         trade_news = result[0] if result else 0
     except Exception:
@@ -1445,8 +1670,15 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
     components["trade_news"] = news_score
 
     # Composite
-    weights = {"shipping_stress": 0.30, "china_specialist": 0.30, "brazil_fx": 0.25, "trade_news": 0.15}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "shipping_stress": 0.30,
+        "china_specialist": 0.30,
+        "brazil_fx": 0.25,
+        "trade_news": 0.15,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     sparkline = [50] * 10  # Would need historical shipping data
     momentum = 0.0
@@ -1505,7 +1737,10 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Pressur
 # TARIFF PRESSURE
 # =============================================================================
 
-def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_tariff_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Tariff Pressure: Trade policy and tariff uncertainty.
 
@@ -1525,11 +1760,14 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
     components = {}
 
     # Trade Policy Uncertainty
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'EPUTRADE' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 60
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     tpu_data = cur.fetchall()
 
     tpu_score = 50
@@ -1541,11 +1779,14 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
         components["tpu_index"] = tpu_score
 
     # Trade Policy EMV
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'EMVTRADEPOLEMV' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 60
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     emv_data = cur.fetchall()
 
     emv_score = 50
@@ -1556,12 +1797,15 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
         components["emv_trade"] = emv_score
 
     # Tariff specialist
-    cur.execute("""
+    cur.execute(
+        """
         SELECT signal_1, confidence
         FROM training.specialist_signals_1d
         WHERE bucket = 'tariff' AND as_of_date <= %s
         ORDER BY as_of_date DESC LIMIT 1
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     tariff_signal = cur.fetchone()
 
     signal_score = 50
@@ -1571,27 +1815,49 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
         components["tariff_specialist"] = signal_score
 
     # Legislation velocity
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.legislation_1d
         WHERE event_date >= %s - INTERVAL '14 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     legis_count = cur.fetchone()[0] or 0
 
     legis_score = min(100, 20 + (legis_count * 2))
     components["legislation"] = legis_score
 
     # Composite
-    weights = {"tpu_index": 0.35, "emv_trade": 0.25, "tariff_specialist": 0.25, "legislation": 0.15}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "tpu_index": 0.35,
+        "emv_trade": 0.25,
+        "tariff_specialist": 0.25,
+        "legislation": 0.15,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
-    sparkline = [calculate_percentile(float(r[1]), [float(x[1]) for x in tpu_data])
-                 for r in reversed(tpu_data[:10])] if len(tpu_data) >= 10 else [50] * 10
+    sparkline = (
+        [
+            calculate_percentile(float(r[1]), [float(x[1]) for x in tpu_data])
+            for r in reversed(tpu_data[:10])
+        ]
+        if len(tpu_data) >= 10
+        else [50] * 10
+    )
     momentum = calculate_momentum(sparkline)
 
     level = score_to_level(score)
     trend = momentum_to_trend(momentum)
 
-    regime = "tariff_war" if score >= 70 else "tariff_risk" if score >= 50 else "tariff_truce"
+    regime = (
+        "tariff_war"
+        if score >= 70
+        else "tariff_risk"
+        if score >= 50
+        else "tariff_truce"
+    )
 
     if score >= 75:
         headline = "Tariff Threats Escalating"
@@ -1629,7 +1895,9 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
         color=score_to_color(score),
         icon="shield",
         sparkline=sparkline,
-        percentile_30d=calculate_percentile(score, sparkline[-30:]) if len(sparkline) >= 30 else 50.0,
+        percentile_30d=calculate_percentile(score, sparkline[-30:])
+        if len(sparkline) >= 30
+        else 50.0,
         percentile_1y=50.0,
         regime=regime,
         momentum=momentum,
@@ -1642,7 +1910,10 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Pressu
 # CORRELATION PRESSURE
 # =============================================================================
 
-def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_correlation_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Correlation Pressure: Cross-asset correlation regimes.
 
@@ -1661,7 +1932,8 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
     components = {}
 
     # SPY-TLT + SPY-GLD correlations (Databento ETFs)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date,
                MAX(CASE WHEN symbol = 'SPY' THEN close END) AS spy_close,
                MAX(CASE WHEN symbol = 'TLT' THEN close END) AS tlt_close,
@@ -1670,13 +1942,19 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
         WHERE symbol IN ('SPY', 'TLT', 'GLD') AND event_date <= %s AND close IS NOT NULL
         GROUP BY event_date
         ORDER BY event_date DESC LIMIT 100
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     corr_rows = cur.fetchall()
     if len(corr_rows) < 30:
         raise ValueError("Insufficient ETF data for correlation pressure")
 
     corr_rows = list(reversed(corr_rows))
-    aligned = [(r[1], r[2], r[3]) for r in corr_rows if r[1] is not None and r[2] is not None and r[3] is not None]
+    aligned = [
+        (r[1], r[2], r[3])
+        for r in corr_rows
+        if r[1] is not None and r[2] is not None and r[3] is not None
+    ]
     if len(aligned) < 30:
         raise ValueError("Insufficient aligned ETF data for correlation pressure")
 
@@ -1703,11 +1981,14 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
     components["spy_gld_raw"] = round(spy_gld_corr, 3)
 
     # FX stress (DXY from FRED)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.activity_1d
         WHERE series_id = 'DXY' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     dxy_data = cur.fetchall()
     if len(dxy_data) < 21:
         raise ValueError("Insufficient DXY data for correlation pressure")
@@ -1721,7 +2002,9 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
 
     # Composite
     weights = {"spy_tlt_corr": 0.40, "spy_gld_corr": 0.35, "dxy_strength": 0.25}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     sparkline = [50] * 10
     momentum = 0.0
@@ -1729,7 +2012,9 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
     level = score_to_level(score)
     trend = momentum_to_trend(momentum)
 
-    regime = "risk_off" if score >= 65 else "transitioning" if score >= 45 else "risk_on"
+    regime = (
+        "risk_off" if score >= 65 else "transitioning" if score >= 45 else "risk_on"
+    )
 
     if score >= 70:
         headline = "Risk-Off Regime Active"
@@ -1778,6 +2063,7 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> P
 # GLOBAL NEWS PRESSURE
 # =============================================================================
 
+
 def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
     """
     Global News Pressure: News velocity and sentiment.
@@ -1798,25 +2084,49 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     components = {}
 
     # Total news this week vs baseline
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s)
         as total_week
-    """, (as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date))
+    """,
+        (
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+        ),
+    )
     total_week = cur.fetchone()[0] or 0
 
     # Baseline (previous month weekly average)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days')
         as total_month
-    """, (as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date, as_of_date))
+    """,
+        (
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+            as_of_date,
+        ),
+    )
     total_month = cur.fetchone()[0] or 1
     baseline_weekly = total_month / 4
 
@@ -1827,11 +2137,14 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
 
     # Trump-related concentration (search headline/content for keywords)
     try:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT COUNT(*) FROM alt.profarmer_news
             WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
             AND (headline ILIKE '%%trump%%' OR headline ILIKE '%%tariff%%' OR content ILIKE '%%trump%%')
-        """, (as_of_date, as_of_date))
+        """,
+            (as_of_date, as_of_date),
+        )
         result = cur.fetchone()
         trump_count = result[0] if result else 0
     except Exception:
@@ -1841,18 +2154,27 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     components["trump_concentration"] = trump_score
 
     # Executive action intensity
-    cur.execute("""
+    cur.execute(
+        """
         SELECT COUNT(*) FROM alt.executive_actions
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
-    """, (as_of_date, as_of_date))
+    """,
+        (as_of_date, as_of_date),
+    )
     exec_count = cur.fetchone()[0] or 0
 
     exec_score = min(100, 30 + (exec_count * 10))
     components["executive_velocity"] = exec_score
 
     # Composite
-    weights = {"news_velocity": 0.40, "trump_concentration": 0.35, "executive_velocity": 0.25}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "news_velocity": 0.40,
+        "trump_concentration": 0.35,
+        "executive_velocity": 0.25,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     sparkline = [50] * 10
     momentum = 0.0
@@ -1860,11 +2182,15 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     level = score_to_level(score)
     trend = momentum_to_trend(momentum)
 
-    regime = "news_storm" if score >= 70 else "active_news" if score >= 50 else "quiet_news"
+    regime = (
+        "news_storm" if score >= 70 else "active_news" if score >= 50 else "quiet_news"
+    )
 
     if score >= 75:
         headline = "News Flow Surging"
-        narrative = f"{total_week} articles this week, {velocity_ratio:.1f}x normal velocity. "
+        narrative = (
+            f"{total_week} articles this week, {velocity_ratio:.1f}x normal velocity. "
+        )
         narrative += "Heavy news flow often precedes market moves."
     elif score >= 55:
         headline = "Active News Cycle"
@@ -1909,7 +2235,10 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
 # COUNTRY WAR PRESSURE (Geopolitical Risk)
 # =============================================================================
 
-def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> PressureReading:
+
+def calculate_geopolitical_pressure(
+    conn, as_of_date: Optional[date] = None
+) -> PressureReading:
     """
     Country War Pressure: Geopolitical risk indicators.
 
@@ -1929,11 +2258,14 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
     components = {}
 
     # EPU spikes (geopolitical often causes EPU jumps)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 30
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     epu_data = cur.fetchall()
 
     epu_spike_score = 50
@@ -1947,11 +2279,14 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["epu_spike"] = epu_spike_score
 
     # OVX (oil volatility - geopolitical often hits energy)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.vol_indices_1d
         WHERE series_id = 'OVXCLS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 63
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     ovx_data = cur.fetchall()
 
     ovx_score = 50
@@ -1962,28 +2297,36 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["oil_volatility"] = ovx_score
 
     # EM FX stress (often first casualty of geopolitical risk)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, value FROM econ.rates_1d
         WHERE series_id = 'DTWEXEMEGS' AND event_date <= %s
         ORDER BY event_date DESC LIMIT 21
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     em_fx = cur.fetchall()
 
     em_score = 50
     if len(em_fx) > 10:
         em_values = [float(r[1]) for r in em_fx if r[1] is not None]
-        em_change = (em_values[0] - em_values[-1]) / em_values[-1] if em_values[-1] > 0 else 0
+        em_change = (
+            (em_values[0] - em_values[-1]) / em_values[-1] if em_values[-1] > 0 else 0
+        )
         # EM weakness = geopolitical stress
         em_score = 50 + (em_change * 500)
         em_score = float(np.clip(em_score, 0, 100))
         components["em_fx_stress"] = em_score
 
     # Gold as fear proxy (GLD ETF)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT event_date, close FROM mkt.etf_1d
         WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
-    """, (as_of_date,))
+    """,
+        (as_of_date,),
+    )
     gld_data = cur.fetchall()
     if len(gld_data) < 21:
         raise ValueError("Insufficient GLD data for gold fear score")
@@ -2009,8 +2352,15 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["gld_change_20d"] = round(gld_change_20d * 100, 2)
 
     # Composite
-    weights = {"epu_spike": 0.30, "oil_volatility": 0.25, "em_fx_stress": 0.25, "gold_fear": 0.20}
-    score = float(np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100))
+    weights = {
+        "epu_spike": 0.30,
+        "oil_volatility": 0.25,
+        "em_fx_stress": 0.25,
+        "gold_fear": 0.20,
+    }
+    score = float(
+        np.clip(sum(components.get(k, 50) * w for k, w in weights.items()), 0, 100)
+    )
 
     sparkline = [50] * 10
     momentum = 0.0
@@ -2069,10 +2419,13 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
 # VISUAL ENHANCEMENT
 # =============================================================================
 
+
 def enhance_with_visuals(reading: PressureReading) -> PressureReading:
     """Add rich visual elements to a pressure reading."""
     reading.visual = generate_visual_cue(reading.score, reading.momentum, reading.level)
-    reading.forecast = generate_forecast(reading.score, reading.momentum, reading.sparkline)
+    reading.forecast = generate_forecast(
+        reading.score, reading.momentum, reading.sparkline
+    )
     reading.graphic = generate_narrative_graphic(
         reading.name, reading.score, reading.momentum, reading.level, reading.sparkline
     )
@@ -2082,6 +2435,7 @@ def enhance_with_visuals(reading: PressureReading) -> PressureReading:
 # =============================================================================
 # MAIN INTERFACE
 # =============================================================================
+
 
 def dict_to_pressure_reading(data: Dict) -> PressureReading:
     """Convert dict from domain calculator to PressureReading object."""
@@ -2143,12 +2497,16 @@ def dict_to_pressure_reading(data: Dict) -> PressureReading:
         percentile_1y=data.get("percentile_1y", 50.0),
         regime=data.get("regime", "unknown"),
         momentum=data.get("momentum", 0.0),
-        as_of_date=date.fromisoformat(data["as_of_date"]) if "as_of_date" in data else date.today(),
+        as_of_date=date.fromisoformat(data["as_of_date"])
+        if "as_of_date" in data
+        else date.today(),
         components=data.get("components", {}),
     )
 
 
-def get_all_pressures(as_of_date: Optional[date] = None, with_visuals: bool = True) -> Dict[str, PressureReading]:
+def get_all_pressures(
+    as_of_date: Optional[date] = None, with_visuals: bool = True
+) -> Dict[str, PressureReading]:
     """
     Get all pressure readings for the dashboard.
 
@@ -2189,15 +2547,33 @@ def get_all_pressures(as_of_date: Optional[date] = None, with_visuals: bool = Tr
         pressures["geopolitical"] = dict_to_pressure_reading(geo_data)
 
         # Store domain context for richer output
-        pressures["crush"].components["_domain_context"] = crush_data.get("domain_context", {})
-        pressures["volatility"].components["_domain_context"] = vol_data.get("domain_context", {})
-        pressures["greed"].components["_domain_context"] = greed_data.get("domain_context", {})
-        pressures["trump_effect"].components["_domain_context"] = trump_data.get("domain_context", {})
-        pressures["tariff"].components["_domain_context"] = tariff_data.get("domain_context", {})
-        pressures["trade"].components["_domain_context"] = trade_data.get("domain_context", {})
-        pressures["correlation"].components["_domain_context"] = corr_data.get("domain_context", {})
-        pressures["news"].components["_domain_context"] = news_data.get("domain_context", {})
-        pressures["geopolitical"].components["_domain_context"] = geo_data.get("domain_context", {})
+        pressures["crush"].components["_domain_context"] = crush_data.get(
+            "domain_context", {}
+        )
+        pressures["volatility"].components["_domain_context"] = vol_data.get(
+            "domain_context", {}
+        )
+        pressures["greed"].components["_domain_context"] = greed_data.get(
+            "domain_context", {}
+        )
+        pressures["trump_effect"].components["_domain_context"] = trump_data.get(
+            "domain_context", {}
+        )
+        pressures["tariff"].components["_domain_context"] = tariff_data.get(
+            "domain_context", {}
+        )
+        pressures["trade"].components["_domain_context"] = trade_data.get(
+            "domain_context", {}
+        )
+        pressures["correlation"].components["_domain_context"] = corr_data.get(
+            "domain_context", {}
+        )
+        pressures["news"].components["_domain_context"] = news_data.get(
+            "domain_context", {}
+        )
+        pressures["geopolitical"].components["_domain_context"] = geo_data.get(
+            "domain_context", {}
+        )
 
     finally:
         conn.close()
@@ -2227,8 +2603,6 @@ def get_pressure_summary(as_of_date: Optional[date] = None) -> Dict:
 
 
 if __name__ == "__main__":
-    import json
-
     print("=" * 60)
     print("ZINC-FUSION-V15: Narrative Pressure Engine")
     print("=" * 60)

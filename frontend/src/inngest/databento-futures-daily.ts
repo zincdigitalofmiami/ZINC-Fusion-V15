@@ -1,15 +1,15 @@
 /**
  * Databento Futures Daily OHLCV Ingestion
- * 
+ *
  * Fetches continuous contract OHLCV data from Databento GLBX.MDP3 dataset.
  * Uses open-interest-ranked (.n.0) for Crush-relevant symbols (ZL/ZS/ZM) to ensure
  * price/volume/OI all refer to the same contract.
- * 
+ *
  * Incremental ingestion: checks MAX(event_date) and fetches only new data.
  * Handles "no new rows" gracefully (historical API may lag by 24h).
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
@@ -124,10 +124,10 @@ async function upsertOhlcvRow(
          low = COALESCE(EXCLUDED.low, mkt.futures_1d.low),
          close = EXCLUDED.close,
          volume = COALESCE(EXCLUDED.volume, mkt.futures_1d.volume),
-         source = CASE 
-           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL 
-           THEN EXCLUDED.source 
-           ELSE mkt.futures_1d.source 
+         source = CASE
+           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
+           THEN EXCLUDED.source
+           ELSE mkt.futures_1d.source
          END,
          ingested_at = NOW(),
          row_hash = EXCLUDED.row_hash
@@ -144,6 +144,7 @@ export const databentoFuturesDaily = inngest.createFunction(
     id: "databento-futures-daily",
     name: "Databento Futures Daily OHLCV",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
   async ({ step, logger }) => {

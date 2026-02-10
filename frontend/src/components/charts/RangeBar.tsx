@@ -1,6 +1,6 @@
 /**
  * RangeBar - TradingView-style 52-Week Range Indicator
- * 
+ *
  * Shows current price position within 52-week high/low range
  */
 'use client';
@@ -49,7 +49,7 @@ export function RangeBar({ low, high, current, label = '52WK RANGE' }: RangeBarP
             transform: 'translateX(-50%)',
           }}
         >
-          <div 
+          <div
             className="w-0 h-0 mt-1"
             style={{
               borderLeft: '4px solid transparent',
@@ -89,14 +89,14 @@ export function DayRange({ low, high, current, bid, ask }: DayRangeProps) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs text-[#787b86]">{low.toFixed(2)}</span>
-      
+
       <div className="flex-1 relative h-1.5">
         <div className="absolute inset-0 rounded-full bg-[#2a2e39]" />
         <div
           className="absolute left-0 top-0 h-full rounded-full bg-[#26a69a]"
           style={{ width: `${position}%` }}
         />
-        
+
         {/* Current marker */}
         <div
           className="absolute top-1/2 w-2 h-2 -translate-y-1/2 rounded-full bg-[#d1d4dc] border border-[#131722]"

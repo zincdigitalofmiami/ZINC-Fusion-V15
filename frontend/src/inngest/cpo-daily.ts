@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -97,7 +97,7 @@ async function fetchFromYahooFinance(): Promise<CpoData | null> {
  * Tries Investing.com first, falls back to Yahoo Finance
  */
 export const cpoPalmOilDaily = inngest.createFunction(
-  { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3 },
+  { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
   async ({ step, logger }) => {
     // Try to fetch CPO data from multiple sources
@@ -160,7 +160,7 @@ export const cpoPalmOilDaily = inngest.createFunction(
  * Runs 2 hours after primary to fill any gaps
  */
 export const cpoTradingEconomics = inngest.createFunction(
-  { id: "cpo-trading-economics", name: "CPO Trading Economics" },
+  { id: "cpo-trading-economics", name: "CPO Trading Economics", concurrency: [DB_CONCURRENCY] },
   { cron: "30 */8 * * *" }, // Every 8 hours at :30 (backup)
   async ({ step, logger }) => {
     const apiKey = process.env.TRADING_ECONOMICS_API_KEY;

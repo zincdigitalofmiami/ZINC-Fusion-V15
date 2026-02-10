@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import numpy as np
 import pandas as pd
 import pytest
-from datetime import date, timedelta
 
 
 class TestVolatilityDataContract:
@@ -96,7 +95,9 @@ class TestVolatilityDataContract:
         assert result["valid"] is True
         assert any("no data in last 5 days" in w for w in result["warnings"])
 
-    def test_term_structure_returns_nan_not_zeros(self, volatility_generator, sample_dates):
+    def test_term_structure_returns_nan_not_zeros(
+        self, volatility_generator, sample_dates
+    ):
         """When VIX/VXV missing, term structure should return NaN, not zeros."""
         # Data without VXV
         data = pd.DataFrame(
@@ -114,11 +115,17 @@ class TestVolatilityDataContract:
 
         # Should be NaN, not zeros
         assert term_slope.isna().all(), "term_slope should be all NaN when VXV missing"
-        assert term_zscore.isna().all(), "term_zscore should be all NaN when VXV missing"
-        assert term_slope_normalized.isna().all(), "term_slope_normalized should be all NaN"
+        assert term_zscore.isna().all(), (
+            "term_zscore should be all NaN when VXV missing"
+        )
+        assert term_slope_normalized.isna().all(), (
+            "term_slope_normalized should be all NaN"
+        )
 
         # Backwardation should be pd.NA (unknown), not False (contango)
-        assert is_backwardation.isna().all(), "is_backwardation should be pd.NA, not False"
+        assert is_backwardation.isna().all(), (
+            "is_backwardation should be pd.NA, not False"
+        )
 
     def test_term_structure_valid_data(self, volatility_generator, valid_data):
         """With valid data, term structure should compute normally."""
@@ -135,8 +142,8 @@ class TestVolatilityDataContract:
         self, volatility_generator, valid_data
     ):
         """When data is present, backwardation should be True/False, not pd.NA."""
-        term_slope, is_backwardation, _, _ = volatility_generator._compute_vix_term_structure(
-            valid_data
+        term_slope, is_backwardation, _, _ = (
+            volatility_generator._compute_vix_term_structure(valid_data)
         )
 
         # With valid data, backwardation should be computable
@@ -235,7 +242,9 @@ class TestTermStructureSemantics:
             index=dates,
         )
 
-        term_slope, is_backwardation, _, _ = volatility_generator._compute_vix_term_structure(data)
+        term_slope, is_backwardation, _, _ = (
+            volatility_generator._compute_vix_term_structure(data)
+        )
 
         # VIX - VIX3M = 25 - 20 = 5 (positive = backwardation)
         assert (term_slope == 5.0).all()
@@ -253,7 +262,9 @@ class TestTermStructureSemantics:
             index=dates,
         )
 
-        term_slope, is_backwardation, _, _ = volatility_generator._compute_vix_term_structure(data)
+        term_slope, is_backwardation, _, _ = (
+            volatility_generator._compute_vix_term_structure(data)
+        )
 
         # VIX - VIX3M = 18 - 22 = -4 (negative = contango)
         assert (term_slope == -4.0).all()

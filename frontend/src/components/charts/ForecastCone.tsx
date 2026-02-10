@@ -1,6 +1,6 @@
 /**
  * ForecastCone - TradingView-style Price Target Visualization
- * 
+ *
  * Shows historical price + forecast cone with P10/P50/P90 targets
  * Exactly like TradingView's "Price Target" chart with gradient fills
  */
@@ -33,13 +33,13 @@ interface ForecastConeProps {
   height?: number;
 }
 
-export function ForecastCone({ 
-  historicalData, 
-  currentPrice, 
+export function ForecastCone({
+  historicalData,
+  currentPrice,
   forecast,
-  height = 300 
+  height = 300
 }: ForecastConeProps) {
-  
+
   // Build the combined data with cone projection
   const chartData = useMemo(() => {
     const historical = historicalData.map(d => ({
@@ -50,10 +50,10 @@ export function ForecastCone({
 
     // Current point (transition from history to forecast)
     const currentDate = historical[historical.length - 1]?.date || 'Now';
-    
+
     // Forecast point (end of cone)
     const forecastDate = forecast.horizon;
-    
+
     // Create cone data points
     const coneData = [
       {
@@ -94,7 +94,7 @@ export function ForecastCone({
             </span>
           </div>
         </div>
-        
+
         {/* Target labels - right side */}
         <div className="flex flex-col gap-1 text-right text-xs">
           <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export function ForecastCone({
               <stop offset="0%" stopColor="#22ab94" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#22ab94" stopOpacity={0.05} />
             </linearGradient>
-            
+
             {/* Bear gradient (red fade) for lower cone */}
             <linearGradient id={bearGradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#f06292" stopOpacity={0.05} />
@@ -134,14 +134,14 @@ export function ForecastCone({
             </linearGradient>
           </defs>
 
-          <XAxis 
-            dataKey="date" 
+          <XAxis
+            dataKey="date"
             axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
             tickLine={false}
             tick={{ fill: '#787b86', fontSize: 11 }}
           />
-          
-          <YAxis 
+
+          <YAxis
             domain={['auto', 'auto']}
             axisLine={false}
             tickLine={false}
@@ -257,7 +257,7 @@ export function MiniForecastCone({ p90, p50, p10, horizon }: MiniConeProps) {
               <stop offset="100%" stopColor="#f06292" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-          
+
           {/* Cone triangle */}
           <polygon
             points="20,40 80,10 80,70"
@@ -265,16 +265,16 @@ export function MiniForecastCone({ p90, p50, p10, horizon }: MiniConeProps) {
             stroke="rgba(255,255,255,0.1)"
             strokeWidth="0.5"
           />
-          
+
           {/* P90 line */}
           <line x1="20" y1="40" x2="80" y2="10" stroke="#22ab94" strokeWidth="1" strokeDasharray="2 2" />
-          
+
           {/* P50 line */}
           <line x1="20" y1="40" x2="80" y2="40" stroke="#787b86" strokeWidth="1" strokeDasharray="2 2" />
-          
+
           {/* P10 line */}
           <line x1="20" y1="40" x2="80" y2="70" stroke="#f06292" strokeWidth="1" strokeDasharray="2 2" />
-          
+
           {/* Current dot */}
           <circle cx="20" cy="40" r="4" fill="#26a69a" stroke="#131722" strokeWidth="1" />
         </svg>

@@ -7,7 +7,7 @@
  * Runs every 8 hours to keep options data current.
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import {
   fetchDatabentoCsv,
   parseDatabentoStatisticsCsvOptions,
@@ -373,6 +373,7 @@ export const databentoOptionsDaily = inngest.createFunction(
     id: "databento-options-daily",
     name: "Databento Options Daily OHLCV",
     retries: 2,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
   async ({ step, logger }) => {

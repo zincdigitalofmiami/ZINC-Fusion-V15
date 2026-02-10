@@ -7,7 +7,7 @@
  * NO FAKE DATA - This monitors real Databento-sourced data only.
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -24,6 +24,7 @@ export const optionsStalenessCheck = inngest.createFunction(
     id: "options-staleness-check",
     name: "Options Data Staleness Check",
     retries: 1,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // 7am CT weekdays
   async ({ step, logger }) => {

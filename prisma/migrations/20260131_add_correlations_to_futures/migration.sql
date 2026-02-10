@@ -13,11 +13,11 @@ CREATE INDEX IF NOT EXISTS idx_futures_zl_corr_60d ON mkt.futures_1d(symbol, zl_
 -- Calculate correlations for all existing FX and key symbols
 -- This is a one-time backfill, then we'll calculate on insert
 
-COMMENT ON COLUMN mkt.futures_1d.zl_corr_30d IS 
+COMMENT ON COLUMN mkt.futures_1d.zl_corr_30d IS
   '30-day rolling correlation with ZL (soybean oil). Critical for FX specialist to understand currency-commodity linkages.';
 
 COMMENT ON COLUMN mkt.futures_1d.zl_corr_60d IS
   '60-day rolling correlation with ZL. Medium-term correlation signal.';
-  
+
 COMMENT ON COLUMN mkt.futures_1d.zl_corr_90d IS
   '90-day rolling correlation with ZL. Long-term structural correlation.';

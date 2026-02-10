@@ -12,7 +12,7 @@
 
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -257,7 +257,7 @@ async function fetchDailyArchive(
 }
 
 export const openmeteoWeatherDaily = inngest.createFunction(
-  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3 },
+  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY] },
   { cron: "10 */8 * * *" }, // Every 8 hours at :10
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");
@@ -373,4 +373,3 @@ export const openmeteoWeatherDaily = inngest.createFunction(
     }
   }
 );
-

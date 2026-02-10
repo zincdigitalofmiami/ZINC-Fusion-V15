@@ -15,7 +15,7 @@ Databento futures data ingestion for ZINC-FUSION-V15.
 
 Ingests daily OHLCV + open interest for crush-required symbols:
 - ZL (soybean oil)
-- ZS (soybeans)  
+- ZS (soybeans)
 - ZM (soybean meal)
 - CL (crude oil)
 - HO (heating oil)
@@ -25,11 +25,12 @@ Writes to: mkt.futures_1d (source='databento')
 """
 
 import warnings
+
 warnings.warn(
     "ingest_databento_futures.py is DEPRECATED. "
     "Use Inngest job 'databento-futures-daily.ts' instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 import os
@@ -67,7 +68,7 @@ SYMBOLS = [
 ]
 
 DATASET = "GLBX.MDP3"  # CME Globex
-SCHEMA = "ohlcv-1d"     # Daily OHLCV
+SCHEMA = "ohlcv-1d"  # Daily OHLCV
 
 
 def get_databento_client() -> db.Historical:
@@ -91,43 +92,40 @@ def compute_row_hash(row: dict) -> str:
 
 
 def fetch_databento_ohlcv(
-    client: db.Historical,
-    symbol: str,
-    start_date: date,
-    end_date: date
+    client: db.Historical, symbol: str, start_date: date, end_date: date
 ) -> pd.DataFrame:
     """
     Fetch daily OHLCV for a symbol from Databento.
-    
+
     Returns DataFrame with columns:
     - ts_event (datetime)
     - open, high, low, close (float)
     - volume (int)
     """
     print(f"  Fetching {symbol} from {start_date} to {end_date}...")
-    
+
     try:
         data = client.timeseries.get_range(
             dataset=DATASET,
             schema=SCHEMA,
             symbols=[symbol],
-            stype_in='continuous',  # Required for continuous contract symbols
+            stype_in="continuous",  # Required for continuous contract symbols
             start=start_date.isoformat(),
             end=end_date.isoformat(),
         )
-        
+
         df = data.to_df()
-        
+
         if df.empty:
             print(f"    No data returned for {symbol}")
             return pd.DataFrame()
-        
+
         # Databento OHLCV schema has: ts_event, open, high, low, close, volume
         df = df.reset_index()
-        
+
         print(f"    Received {len(df)} bars")
         return df
-        
+
     except Exception as e:
         print(f"    ERROR: {e}")
         return pd.DataFrame()
@@ -136,15 +134,15 @@ def fetch_databento_ohlcv(
 def transform_to_mkt_schema(df: pd.DataFrame, symbol: str) -> list[dict]:
     """
     Transform Databento DataFrame to mkt.futures_1d schema.
-    
+
     Map continuous symbol (ZL.c.0) to canonical symbol (ZL).
     """
     canonical_symbol = symbol.split(".")[0]  # ZL.c.0 -> ZL
-    
+
     rows = []
     for _, row in df.iterrows():
         event_date = pd.to_datetime(row["ts_event"]).date()
-        
+
         record = {
             "symbol": canonical_symbol,
             "event_date": event_date,
@@ -157,24 +155,24 @@ def transform_to_mkt_schema(df: pd.DataFrame, symbol: str) -> list[dict]:
             "source": "databento",
             "knowledge_time": datetime.now(),
         }
-        
+
         record["row_hash"] = compute_row_hash(record)
         rows.append(record)
-    
+
     return rows
 
 
 def upsert_to_database(conn, rows: list[dict]) -> int:
     """
     Upsert rows to mkt.futures_1d.
-    
+
     ON CONFLICT (event_date, symbol):
     - If source is already 'databento', update
     - Otherwise, skip (don't overwrite Yahoo with Databento)
     """
     if not rows:
         return 0
-    
+
     insert_query = """
     INSERT INTO mkt.futures_1d (
         event_date, symbol, open, high, low, close, volume, open_interest,
@@ -196,13 +194,13 @@ def upsert_to_database(conn, rows: list[dict]) -> int:
         row_hash = EXCLUDED.row_hash
     WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
     """
-    
+
     cur = conn.cursor()
     execute_batch(cur, insert_query, rows, page_size=1000)
     conn.commit()
     updated = cur.rowcount
     cur.close()
-    
+
     return updated
 
 
@@ -211,17 +209,17 @@ def get_latest_date_in_db(conn, symbol: str) -> date:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT MAX(event_date) FROM mkt.futures_1d 
+        SELECT MAX(event_date) FROM mkt.futures_1d
         WHERE symbol = %s AND source = 'databento'
         """,
-        (symbol,)
+        (symbol,),
     )
     result = cur.fetchone()[0]
     cur.close()
-    
+
     if result is None:
         return date(2020, 1, 1)  # Default backfill start
-    
+
     return result
 
 
@@ -230,46 +228,48 @@ def main():
     print("=" * 70)
     print("DATABENTO FUTURES INGESTION")
     print("=" * 70)
-    
+
     client = get_databento_client()
     conn = get_db_connection()
-    
+
     end_date = date.today()
-    
+
     total_inserted = 0
-    
+
     for symbol in SYMBOLS:
         canonical = symbol.split(".")[0]
         print(f"\n[{canonical}] {symbol}")
-        
+
         # Get latest date in DB
         latest_db_date = get_latest_date_in_db(conn, canonical)
-        start_date = latest_db_date + timedelta(days=1) if latest_db_date else date(2020, 1, 1)
-        
+        start_date = (
+            latest_db_date + timedelta(days=1) if latest_db_date else date(2020, 1, 1)
+        )
+
         print(f"  Latest in DB: {latest_db_date}")
         print(f"  Fetching from: {start_date}")
-        
+
         if start_date > end_date:
             print(f"  Up to date (no new data)")
             continue
-        
+
         # Fetch from Databento
         df = fetch_databento_ohlcv(client, symbol, start_date, end_date)
-        
+
         if df.empty:
             continue
-        
+
         # Transform to mkt schema
         rows = transform_to_mkt_schema(df, symbol)
         print(f"  Prepared {len(rows)} rows for upsert")
-        
+
         # Upsert to database
         inserted = upsert_to_database(conn, rows)
         total_inserted += inserted
         print(f"  Upserted {inserted} rows")
-    
+
     conn.close()
-    
+
     print("\n" + "=" * 70)
     print(f"COMPLETE: {total_inserted} total rows upserted")
     print("=" * 70)

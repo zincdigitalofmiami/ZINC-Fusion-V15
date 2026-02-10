@@ -17,26 +17,26 @@ ALTER TABLE mkt.futures_1d
   ADD COLUMN IF NOT EXISTS rvi DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS rvi_signal DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS elder_force_index DOUBLE PRECISION,
-  
+
   -- Tier 2: Optimized Moving Averages
   ADD COLUMN IF NOT EXISTS kama_10 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS hma_20 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS alma_50 DOUBLE PRECISION,
-  
+
   -- Tier 2: RSI Variants
   ADD COLUMN IF NOT EXISTS rsi_2 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS rsi_14 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS cumulative_rsi DOUBLE PRECISION,
-  
+
   -- Tier 2: MACD
   ADD COLUMN IF NOT EXISTS macd DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS macd_signal DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS macd_histogram DOUBLE PRECISION,
-  
+
   -- Tier 2: CCI
   ADD COLUMN IF NOT EXISTS cci_14 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS cci_50 DOUBLE PRECISION,
-  
+
   -- Tier 3: Volatility Regime
   ADD COLUMN IF NOT EXISTS atr_10 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS atr_50 DOUBLE PRECISION,
@@ -44,12 +44,12 @@ ALTER TABLE mkt.futures_1d
   ADD COLUMN IF NOT EXISTS garman_klass_vol DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS yang_zhang_vol DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS bb_percent_b DOUBLE PRECISION,
-  
+
   -- Tier 4: Volume/Flow
   ADD COLUMN IF NOT EXISTS cmf_21 DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS volume_zscore DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS unusual_volume BOOLEAN,
-  
+
   -- Calculated returns
   ADD COLUMN IF NOT EXISTS returns_1d DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS log_returns_1d DOUBLE PRECISION,
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_futures_ttm_squeeze ON mkt.futures_1d(symbol, ttm
 
 -- Migrate data from features.elite_1d to mkt.futures_1d
 UPDATE mkt.futures_1d f
-SET 
+SET
   hurst_exponent = e.hurst_exponent,
   hurst_regime = e.hurst_regime,
   connors_rsi = e.connors_rsi,
@@ -99,11 +99,11 @@ SET
   log_returns_1d = e.log_returns_1d,
   range_pct = e.range_pct
 FROM features.elite_1d e
-WHERE f.symbol = e.symbol 
+WHERE f.symbol = e.symbol
   AND f.event_date = e.trade_date;
 
 -- Verify migration
-SELECT 
+SELECT
   'Migration verification' as check,
   COUNT(*) as futures_rows,
   COUNT(hurst_exponent) as with_hurst,

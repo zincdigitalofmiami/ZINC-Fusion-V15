@@ -40,26 +40,27 @@ from dotenv import load_dotenv
 # Optional: OpenAI/Anthropic client
 try:
     import anthropic
+
     HAS_ANTHROPIC = True
 except ImportError:
     HAS_ANTHROPIC = False
 
 try:
     import openai
+
     HAS_OPENAI = True
 except ImportError:
     HAS_OPENAI = False
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv('.env.vercel')
+load_dotenv(".env.vercel")
 
 # Horizons
 HORIZONS = [5, 21, 63, 126]
@@ -72,6 +73,7 @@ MAX_TOKENS = 1500
 @dataclass
 class SynthesisInput:
     """All data required for LLM synthesis."""
+
     # Forecast geometry
     p10: float
     p50: float
@@ -111,6 +113,7 @@ class SynthesisInput:
 @dataclass
 class SynthesisOutput:
     """Structured output from LLM synthesis."""
+
     summary: str  # 3-sentence market posture summary
     risks: List[Dict[str, str]]  # Top risks with probability context
     opportunities: List[Dict[str, str]]  # Top opportunities with probability
@@ -130,23 +133,26 @@ def get_postgres_connection():
 def load_forecast_data(conn, horizon: int) -> Dict:
     """Load latest meta-ensemble forecast for horizon."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT as_of_date, p10, p50, p90
             FROM "model"."meta_ensemble"
             WHERE horizon = %s
             ORDER BY as_of_date DESC
             LIMIT 1
-        """, (horizon,))
+        """,
+            (horizon,),
+        )
         row = cur.fetchone()
 
     if not row:
         raise ValueError(f"No meta-ensemble data for horizon={horizon}")
 
     return {
-        'as_of_date': row[0],
-        'p10': float(row[1]),
-        'p50': float(row[2]),
-        'p90': float(row[3]),
+        "as_of_date": row[0],
+        "p10": float(row[1]),
+        "p50": float(row[2]),
+        "p90": float(row[3]),
     }
 
 
@@ -166,60 +172,78 @@ def load_monte_carlo_metrics(conn, horizon: int, as_of_date: datetime) -> Dict:
         row = cur.fetchone()
 
     if not row:
-        raise ValueError(f"No Monte Carlo risk metrics for horizon={horizon} as_of_date={as_of_date}")
+        raise ValueError(
+            f"No Monte Carlo risk metrics for horizon={horizon} as_of_date={as_of_date}"
+        )
 
     return {
-        'var_05': float(row[0]),
-        'cvar_05': float(row[1]),
-        'prob_up': float(row[2]),
-        'prob_up_5pct': float(row[3]),
-        'prob_down_5pct': float(row[4]),
+        "var_05": float(row[0]),
+        "cvar_05": float(row[1]),
+        "prob_up": float(row[2]),
+        "prob_up_5pct": float(row[3]),
+        "prob_down_5pct": float(row[4]),
     }
 
 
 def load_monte_carlo_percentiles(conn, horizon: int, as_of_date: datetime) -> Dict:
     """Load MC path percentiles (P5, P95 terminal)."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT percentiles
             FROM "model"."monte_carlo_runs"
             WHERE horizon = %s AND symbol = 'ZL' AND as_of_date::date = %s::date
             ORDER BY created_at DESC
             LIMIT 1
-        """, (horizon, as_of_date))
+        """,
+            (horizon, as_of_date),
+        )
         row = cur.fetchone()
 
     if not row or not row[0]:
-        raise ValueError(f"No Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}")
+        raise ValueError(
+            f"No Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}"
+        )
 
     percentiles = row[0]
     # Get terminal values (last element of each percentile array)
-    mc_p5 = percentiles.get('5', [None])[-1] if '5' in percentiles else None
-    mc_p95 = percentiles.get('95', [None])[-1] if '95' in percentiles else None
+    mc_p5 = percentiles.get("5", [None])[-1] if "5" in percentiles else None
+    mc_p95 = percentiles.get("95", [None])[-1] if "95" in percentiles else None
     if mc_p5 is None or mc_p95 is None:
-        raise ValueError(f"Malformed Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}")
+        raise ValueError(
+            f"Malformed Monte Carlo percentiles for horizon={horizon} as_of_date={as_of_date}"
+        )
 
-    return {'mc_p5': float(mc_p5), 'mc_p95': float(mc_p95)}
+    return {"mc_p5": float(mc_p5), "mc_p95": float(mc_p95)}
 
 
-def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) -> List[Dict]:
+def load_shap_drivers(
+    conn, horizon: int, as_of_date: datetime, top_n: int = 5
+) -> List[Dict]:
     """Load top SHAP feature importances."""
     try:
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT feature_name, mean_abs_shap
                 FROM "model"."shap_summary"
                 WHERE horizon = %s
                 ORDER BY mean_abs_shap DESC
                 LIMIT %s
-            """, (horizon, top_n))
+            """,
+                (horizon, top_n),
+            )
             rows = cur.fetchall()
 
         if not rows:
             return []
 
         return [
-            {'name': row[0], 'impact': float(row[1]), 'direction': 'positive' if row[1] > 0 else 'negative'}
+            {
+                "name": row[0],
+                "impact": float(row[1]),
+                "direction": "positive" if row[1] > 0 else "negative",
+            }
             for row in rows
         ]
     except Exception:
@@ -230,29 +254,49 @@ def load_shap_drivers(conn, horizon: int, as_of_date: datetime, top_n: int = 5) 
 
 def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
     """Load specialist predictions and compute agreement metrics."""
-    specialists = ['crush', 'china', 'fx', 'fed', 'tariff', 'energy', 'biofuel', 'palm', 'volatility', 'substitutes', 'trump_effect']
+    specialists = [
+        "crush",
+        "china",
+        "fx",
+        "fed",
+        "tariff",
+        "energy",
+        "biofuel",
+        "palm",
+        "volatility",
+        "substitutes",
+        "trump_effect",
+    ]
 
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT specialist, pred_p50
             FROM "model"."oof_predictions"
             WHERE horizon = %s
               AND as_of_date::date = %s::date
               AND specialist IN %s
             ORDER BY specialist
-        """, (horizon, as_of_date, tuple(specialists)))
+        """,
+            (horizon, as_of_date, tuple(specialists)),
+        )
         rows = cur.fetchall()
 
     if not rows:
-        raise ValueError(f"No OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}")
+        raise ValueError(
+            f"No OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}"
+        )
 
     preds = {row[0]: float(row[1]) for row in rows}
     values = list(preds.values())
 
     if len(values) < 2:
-        raise ValueError(f"Insufficient OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}")
+        raise ValueError(
+            f"Insufficient OOF specialist predictions for horizon={horizon} as_of_date={as_of_date}"
+        )
 
     import numpy as np
+
     specialist_std = float(np.std(values))
     specialist_mean = float(np.mean(values))
 
@@ -264,10 +308,10 @@ def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
     most_bearish = min(preds, key=preds.get)
 
     return {
-        'dissent_index': min(dissent_index, 1.0),  # Cap at 1.0
-        'specialist_std': specialist_std,
-        'most_bullish': most_bullish,
-        'most_bearish': most_bearish,
+        "dissent_index": min(dissent_index, 1.0),  # Cap at 1.0
+        "specialist_std": specialist_std,
+        "most_bullish": most_bullish,
+        "most_bearish": most_bearish,
     }
 
 
@@ -287,25 +331,32 @@ def load_regime(conn, as_of_date: datetime) -> Dict:
         row = cur.fetchone()
 
     if not row or not row[0] or row[1] is None:
-        raise ValueError(f"No regime data in analytics.vol_regimes for as_of_date={as_of_date}")
+        raise ValueError(
+            f"No regime data in analytics.vol_regimes for as_of_date={as_of_date}"
+        )
 
     return {
-        'regime': row[0],
-        'regime_confidence': float(row[1]),
+        "regime": row[0],
+        "regime_confidence": float(row[1]),
     }
 
 
-def load_historical_analogs(conn, horizon: int, as_of_date: datetime, top_n: int = 3) -> List[Dict]:
+def load_historical_analogs(
+    conn, horizon: int, as_of_date: datetime, top_n: int = 3
+) -> List[Dict]:
     """Load historical analog periods."""
     try:
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT analog_period, similarity_score, actual_outcome
                 FROM "analytics"."historical_analogs"
                 WHERE horizon = %s AND as_of_date::date = %s::date
                 ORDER BY similarity_score DESC
                 LIMIT %s
-            """, (horizon, as_of_date, top_n))
+            """,
+                (horizon, as_of_date, top_n),
+            )
             rows = cur.fetchall()
 
         if not rows:
@@ -314,9 +365,9 @@ def load_historical_analogs(conn, horizon: int, as_of_date: datetime, top_n: int
 
         return [
             {
-                'period': row[0],
-                'similarity': float(row[1]),
-                'outcome': f"{float(row[2]):+.1%}" if row[2] else "N/A",
+                "period": row[0],
+                "similarity": float(row[1]),
+                "outcome": f"{float(row[2]):+.1%}" if row[2] else "N/A",
             }
             for row in rows
         ]
@@ -332,7 +383,7 @@ def gather_synthesis_input(conn, horizon: int) -> SynthesisInput:
 
     # Load forecast
     forecast = load_forecast_data(conn, horizon)
-    as_of_date = forecast['as_of_date']
+    as_of_date = forecast["as_of_date"]
 
     # Load Monte Carlo
     mc_metrics = load_monte_carlo_metrics(conn, horizon, as_of_date)
@@ -352,24 +403,24 @@ def gather_synthesis_input(conn, horizon: int) -> SynthesisInput:
 
     # Build input object
     return SynthesisInput(
-        p10=forecast['p10'],
-        p50=forecast['p50'],
-        p90=forecast['p90'],
+        p10=forecast["p10"],
+        p50=forecast["p50"],
+        p90=forecast["p90"],
         horizon_days=horizon,
-        mc_p5=mc_percentiles['mc_p5'],
-        mc_p95=mc_percentiles['mc_p95'],
-        prob_up=mc_metrics['prob_up'],
-        prob_up_5pct=mc_metrics['prob_up_5pct'],
-        prob_down_5pct=mc_metrics['prob_down_5pct'],
-        var_05=mc_metrics['var_05'],
-        cvar_05=mc_metrics['cvar_05'],
+        mc_p5=mc_percentiles["mc_p5"],
+        mc_p95=mc_percentiles["mc_p95"],
+        prob_up=mc_metrics["prob_up"],
+        prob_up_5pct=mc_metrics["prob_up_5pct"],
+        prob_down_5pct=mc_metrics["prob_down_5pct"],
+        var_05=mc_metrics["var_05"],
+        cvar_05=mc_metrics["cvar_05"],
         top_drivers=drivers,
-        dissent_index=agreement['dissent_index'],
-        most_bullish=agreement['most_bullish'],
-        most_bearish=agreement['most_bearish'],
-        specialist_std=agreement['specialist_std'],
-        regime=regime['regime'],
-        regime_confidence=regime['regime_confidence'],
+        dissent_index=agreement["dissent_index"],
+        most_bullish=agreement["most_bullish"],
+        most_bearish=agreement["most_bearish"],
+        specialist_std=agreement["specialist_std"],
+        regime=regime["regime"],
+        regime_confidence=regime["regime_confidence"],
         analogs=analogs,
         as_of_date=as_of_date,
     )
@@ -381,7 +432,9 @@ def build_prompt(input_data: SynthesisInput) -> str:
     # Format drivers
     drivers_text = ""
     for i, d in enumerate(input_data.top_drivers[:3], 1):
-        drivers_text += f"{i}. {d['name']}: {d['impact']:+.4f} ({d.get('direction', 'neutral')})\n"
+        drivers_text += (
+            f"{i}. {d['name']}: {d['impact']:+.4f} ({d.get('direction', 'neutral')})\n"
+        )
 
     # Format analogs
     if input_data.analogs:
@@ -475,9 +528,7 @@ def call_llm(prompt: str, model: str = DEFAULT_MODEL) -> str:
         response = client.messages.create(
             model=model,
             max_tokens=MAX_TOKENS,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
         return response.content[0].text
 
@@ -489,9 +540,7 @@ def call_llm(prompt: str, model: str = DEFAULT_MODEL) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",
             max_tokens=MAX_TOKENS,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
         return response.choices[0].message.content
 
@@ -536,7 +585,8 @@ def save_synthesis(conn, input_data: SynthesisInput, output: SynthesisOutput) ->
 
     with conn.cursor() as cur:
         # Upsert
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO "analytics"."llm_synthesis"
             (as_of_date, horizon, symbol, input_data, summary, risks, opportunities,
              invalidation_triggers, confidence_level, model_used, created_at)
@@ -551,25 +601,29 @@ def save_synthesis(conn, input_data: SynthesisInput, output: SynthesisOutput) ->
                 confidence_level = EXCLUDED.confidence_level,
                 model_used = EXCLUDED.model_used,
                 created_at = EXCLUDED.created_at
-        """, (
-            input_data.as_of_date,
-            input_data.horizon_days,
-            input_data.symbol,
-            Json(asdict(input_data)),
-            output.summary,
-            Json(output.risks),
-            Json(output.opportunities),
-            Json(output.invalidation_triggers),
-            output.confidence_level,
-            DEFAULT_MODEL,
-            datetime.now(),
-        ))
+        """,
+            (
+                input_data.as_of_date,
+                input_data.horizon_days,
+                input_data.symbol,
+                Json(asdict(input_data)),
+                output.summary,
+                Json(output.risks),
+                Json(output.opportunities),
+                Json(output.invalidation_triggers),
+                output.confidence_level,
+                DEFAULT_MODEL,
+                datetime.now(),
+            ),
+        )
 
     conn.commit()
     return 1
 
 
-def generate_synthesis(horizon: int, dry_run: bool = False) -> Optional[SynthesisOutput]:
+def generate_synthesis(
+    horizon: int, dry_run: bool = False
+) -> Optional[SynthesisOutput]:
     """Generate LLM synthesis for a given horizon."""
     logger.info("=" * 60)
     logger.info(f"L5-C LLM SYNTHESIS @ {horizon}d")
@@ -582,9 +636,13 @@ def generate_synthesis(horizon: int, dry_run: bool = False) -> Optional[Synthesi
         input_data = gather_synthesis_input(conn, horizon)
 
         logger.info(f"  As of date: {input_data.as_of_date}")
-        logger.info(f"  P10/P50/P90: {input_data.p10:.2f} / {input_data.p50:.2f} / {input_data.p90:.2f}")
+        logger.info(
+            f"  P10/P50/P90: {input_data.p10:.2f} / {input_data.p50:.2f} / {input_data.p90:.2f}"
+        )
         logger.info(f"  Dissent index: {input_data.dissent_index:.2f}")
-        logger.info(f"  Regime: {input_data.regime} ({input_data.regime_confidence:.0%})")
+        logger.info(
+            f"  Regime: {input_data.regime} ({input_data.regime_confidence:.0%})"
+        )
         logger.info(f"  Top drivers: {[d['name'] for d in input_data.top_drivers[:3]]}")
 
         # Build prompt
@@ -605,21 +663,21 @@ def generate_synthesis(horizon: int, dry_run: bool = False) -> Optional[Synthesi
         output = parse_llm_response(raw_response)
 
         # Log summary
-        logger.info(f"\n{'='*40}")
+        logger.info(f"\n{'=' * 40}")
         logger.info("SYNTHESIS OUTPUT")
-        logger.info(f"{'='*40}")
+        logger.info(f"{'=' * 40}")
         logger.info(f"Summary: {output.summary[:200]}...")
         logger.info(f"Risks: {len(output.risks)}")
         logger.info(f"Opportunities: {len(output.opportunities)}")
         logger.info(f"Invalidation triggers: {len(output.invalidation_triggers)}")
 
         # Save to database
-        saved = save_synthesis(conn, input_data, output)
+        save_synthesis(conn, input_data, output)
         logger.info(f"\n  Saved synthesis to analytics.llm_synthesis")
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"L5-C LLM SYNTHESIS COMPLETE @ {horizon}d")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         return output
 
@@ -628,18 +686,28 @@ def generate_synthesis(horizon: int, dry_run: bool = False) -> Optional[Synthesi
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate LLM synthesis from model outputs")
-    parser.add_argument("--horizon", type=str, required=True,
-                       help="Horizon in days (5, 21, 63, 126) or 'all'")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Preview without calling LLM or saving")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL,
-                       help=f"LLM model to use (default: {DEFAULT_MODEL})")
+    parser = argparse.ArgumentParser(
+        description="Generate LLM synthesis from model outputs"
+    )
+    parser.add_argument(
+        "--horizon",
+        type=str,
+        required=True,
+        help="Horizon in days (5, 21, 63, 126) or 'all'",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without calling LLM or saving"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=DEFAULT_MODEL,
+        help=f"LLM model to use (default: {DEFAULT_MODEL})",
+    )
 
     args = parser.parse_args()
 
     # Use model from args (already defaults to DEFAULT_MODEL)
-    model_to_use = args.model
 
     # Determine horizons to process
     if args.horizon.lower() == "all":

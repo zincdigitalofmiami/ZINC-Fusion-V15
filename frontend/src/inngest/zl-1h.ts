@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
 import dbPool from "@/lib/db";
 
@@ -9,7 +9,7 @@ const pool = dbPool;
  * Runs every hour
  */
 export const zl1h = inngest.createFunction(
-  { id: "zl-1h", name: "ZL 1h Bars" },
+  { id: "zl-1h", name: "ZL 1h Bars", concurrency: [DB_CONCURRENCY] },
   { cron: "0 * * * *" }, // Every hour on the hour
   async ({ step }) => {
     const endStr = await step.run("compute-end-time", async () => {

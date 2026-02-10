@@ -29,10 +29,10 @@ export async function GET() {
 
   } catch (error) {
     console.error('Vegas restaurants error:', error)
-    return NextResponse.json({ 
-      count: 0, 
+    return NextResponse.json({
+      count: 0,
       data: [],
-      error: 'Failed to fetch restaurants' 
+      error: 'Failed to fetch restaurants'
     }, { status: 500 })
   }
 }

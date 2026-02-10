@@ -1,6 +1,6 @@
 /**
  * TradingView-Grade Chart Components
- * 
+ *
  * Institutional-quality visualizations with proper color palette
  * NO RECHARTS DEFAULTS - only TradingView colors
  */

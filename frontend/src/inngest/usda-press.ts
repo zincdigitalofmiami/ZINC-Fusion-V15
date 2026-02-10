@@ -11,7 +11,7 @@
  * Table: econ.rates_1d (reusing FRED pattern for time series)
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -119,6 +119,7 @@ export const usdaDaily = inngest.createFunction(
     id: "nass-crush-weekly",
     name: "NASS Soybean Crush & Prices (QuickStats API)",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 10 * * 1" }, // Mondays at 10am (NASS releases data monthly)
   async ({ step }) => {

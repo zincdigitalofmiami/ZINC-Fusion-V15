@@ -1,6 +1,6 @@
 /**
  * SeasonalsChart - TradingView-style Multi-Year Overlay
- * 
+ *
  * Shows price movements across years to identify seasonal patterns
  * 2026 (blue), 2025 (green), 2024 (orange) overlaid on same axis
  */
@@ -41,8 +41,8 @@ const YEAR_COLORS: Record<number, string> = {
   2022: '#e91e63',  // Pink
 };
 
-export function SeasonalsChart({ 
-  years, 
+export function SeasonalsChart({
+  years,
   height = 200,
   showYTDBadges = true,
 }: SeasonalsChartProps) {
@@ -73,7 +73,7 @@ export function SeasonalsChart({
       {/* Header with YTD badges */}
       <div className="flex items-center justify-between mb-2 px-2">
         <div className="text-xs text-[#787b86] uppercase tracking-wider">Seasonals</div>
-        
+
         {showYTDBadges && (
           <div className="flex items-center gap-2">
             {years.map(yearData => {
@@ -83,7 +83,7 @@ export function SeasonalsChart({
                 <div
                   key={yearData.year}
                   className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"
-                  style={{ 
+                  style={{
                     backgroundColor: `${color}20`,
                     borderLeft: `3px solid ${color}`,
                   }}
@@ -108,7 +108,7 @@ export function SeasonalsChart({
             tick={{ fill: '#787b86', fontSize: 10 }}
             interval={0}
           />
-          
+
           <YAxis
             domain={['auto', 'auto']}
             axisLine={false}
@@ -122,9 +122,9 @@ export function SeasonalsChart({
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
 
           {/* Current month indicator */}
-          <ReferenceLine 
-            x={MONTHS[currentMonth]} 
-            stroke="rgba(255,255,255,0.3)" 
+          <ReferenceLine
+            x={MONTHS[currentMonth]}
+            stroke="rgba(255,255,255,0.3)"
             strokeDasharray="3 3"
             label={{
               value: 'Now',

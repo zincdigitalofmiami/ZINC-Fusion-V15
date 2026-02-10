@@ -1,4 +1,4 @@
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -148,7 +148,7 @@ function validateBar1d(bar: ZlBar1dEvent): void {
 }
 
 export const zlLive15m = inngest.createFunction(
-  { id: "zl-live-15m", name: "ZL Live 15m Bars" },
+  { id: "zl-live-15m", name: "ZL Live 15m Bars", concurrency: [DB_CONCURRENCY] },
   { event: "zl.bar.15m" },
   async ({ event }) => {
     // DEBUG: Write receipt to prove function was invoked
@@ -212,7 +212,7 @@ export const zlLive15m = inngest.createFunction(
 );
 
 export const zlLive1h = inngest.createFunction(
-  { id: "zl-live-1h", name: "ZL Live 1h Bars" },
+  { id: "zl-live-1h", name: "ZL Live 1h Bars", concurrency: [DB_CONCURRENCY] },
   { event: "zl.bar.1h" },
   async ({ event }) => {
     const bar = event.data as ZlBar1hEvent;
@@ -251,7 +251,7 @@ export const zlLive1h = inngest.createFunction(
 );
 
 export const zlLive1d = inngest.createFunction(
-  { id: "zl-live-1d", name: "ZL Live 1d Bars" },
+  { id: "zl-live-1d", name: "ZL Live 1d Bars", concurrency: [DB_CONCURRENCY] },
   { event: "zl.bar.1d" },
   async ({ event }) => {
     const bar = event.data as ZlBar1dEvent;
@@ -294,7 +294,7 @@ export const zlLive1d = inngest.createFunction(
 // =============================================================================
 
 export const zlLive1m = inngest.createFunction(
-  { id: "zl-live-1m", name: "ZL Live 1m Bars" },
+  { id: "zl-live-1m", name: "ZL Live 1m Bars", concurrency: [DB_CONCURRENCY] },
   { event: "zl.bar.1m" },
   async ({ event, step }) => {
     const bar = event.data as ZlBar1mEvent;
@@ -439,7 +439,7 @@ export const zlLive1m = inngest.createFunction(
 // =============================================================================
 
 export const zlLive5m = inngest.createFunction(
-  { id: "zl-live-5m", name: "ZL Live 5m Bars" },
+  { id: "zl-live-5m", name: "ZL Live 5m Bars", concurrency: [DB_CONCURRENCY] },
   { event: "zl.bar.5m" },
   async ({ event }) => {
     const bar = event.data as ZlBar5mEvent;

@@ -37,8 +37,8 @@ MODELS_DIR = Path(__file__).parent.parent.parent.parent / "models" / "specialist
 
 # Try to import statsmodels for cointegration tests
 try:
-    from statsmodels.tsa.stattools import coint, adfuller
-    from statsmodels.regression.linear_model import OLS
+    from statsmodels.tsa.stattools import coint, adfuller  # noqa: F401
+    from statsmodels.regression.linear_model import OLS  # noqa: F401
 
     STATSMODELS_AVAILABLE = True
 except ImportError:
@@ -172,7 +172,9 @@ class PalmMLMixin:
             logger.warning(f"   Too few usable features: {len(usable_features)}")
             return False
 
-        logger.info(f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage")
+        logger.info(
+            f"   Using {len(usable_features)}/{len(feature_names)} features with >50% coverage"
+        )
 
         X_filtered = X[usable_features]
         self.feature_names = usable_features  # Only train on usable features
@@ -196,24 +198,39 @@ class PalmMLMixin:
 
         # Phase 2: Prune low-importance features, keeping ECM + news protected
         ECM_PROTECTED = {
-            "spread_zscore", "ecm_residual_zscore", "reversion_speed",
-            "spread_mom_5d", "spread_mom_21d", "spread_mom_63d",
-            "is_cointegrated", "coint_strength", "spread_vol_21d", "spread_vol_63d",
-            "palm_sentiment", "palm_sentiment_7d", "palm_news_intensity",
-            "palm_article_count", "palm_articles_7d", "palm_sentiment_delta",
+            "spread_zscore",
+            "ecm_residual_zscore",
+            "reversion_speed",
+            "spread_mom_5d",
+            "spread_mom_21d",
+            "spread_mom_63d",
+            "is_cointegrated",
+            "coint_strength",
+            "spread_vol_21d",
+            "spread_vol_63d",
+            "palm_sentiment",
+            "palm_sentiment_7d",
+            "palm_news_intensity",
+            "palm_article_count",
+            "palm_articles_7d",
+            "palm_sentiment_delta",
         }
         MAX_FEATURES = 50  # Cap total features for interpretability
 
         coef_importance = dict(zip(usable_features, abs(self.model.coef_)))
         protected = [f for f in usable_features if f in ECM_PROTECTED]
         remaining = [f for f in usable_features if f not in ECM_PROTECTED]
-        remaining_sorted = sorted(remaining, key=lambda f: coef_importance.get(f, 0), reverse=True)
-        top_remaining = remaining_sorted[:MAX_FEATURES - len(protected)]
+        remaining_sorted = sorted(
+            remaining, key=lambda f: coef_importance.get(f, 0), reverse=True
+        )
+        top_remaining = remaining_sorted[: MAX_FEATURES - len(protected)]
         selected_features = protected + top_remaining
 
         if len(selected_features) < len(usable_features):
-            logger.info(f"   Feature pruning: {len(usable_features)} -> {len(selected_features)} "
-                        f"({len(protected)} ECM/news protected + {len(top_remaining)} by importance)")
+            logger.info(
+                f"   Feature pruning: {len(usable_features)} -> {len(selected_features)} "
+                f"({len(protected)} ECM/news protected + {len(top_remaining)} by importance)"
+            )
             # Refit on selected features only
             X_selected = X_clean[selected_features]
             self.scaler = StandardScaler()
@@ -231,7 +248,13 @@ class PalmMLMixin:
             top_coefs = sorted(coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
             logger.info(f"   Top coefficients: {top_coefs}")
             if ecm_coefs:
-                logger.info(f"   ECM coefficients: {sorted(ecm_coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]}")
+                logger.info(
+                    f"   ECM coefficients: {
+                        sorted(
+                            ecm_coefs.items(), key=lambda x: abs(x[1]), reverse=True
+                        )[:5]
+                    }"
+                )
 
         # Save model
         self._save_model()
@@ -742,12 +765,12 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
 
         if sentiment_col is not None:
             features["palm_sentiment"] = data[sentiment_col]
-            features["palm_sentiment_7d"] = data[sentiment_col].rolling(
-                7, min_periods=1
-            ).mean()
-            features["palm_sentiment_21d"] = data[sentiment_col].rolling(
-                21, min_periods=5
-            ).mean()
+            features["palm_sentiment_7d"] = (
+                data[sentiment_col].rolling(7, min_periods=1).mean()
+            )
+            features["palm_sentiment_21d"] = (
+                data[sentiment_col].rolling(21, min_periods=5).mean()
+            )
             # Sentiment momentum (shift in tone)
             features["palm_sentiment_delta"] = (
                 features["palm_sentiment_7d"] - features["palm_sentiment_21d"]
@@ -797,7 +820,9 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         last_valid_idx = X_valid.index[-1] if len(X_valid) > 0 else None
 
         if last_valid_idx is None:
-            logger.warning("PalmSignalGenerator: No valid data after dropna(subset=primary_features)")
+            logger.warning(
+                "PalmSignalGenerator: No valid data after dropna(subset=primary_features)"
+            )
             return signals
 
         current_date = (
@@ -890,17 +915,17 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
                     continue
 
                 # P0-1: Compute staleness for this row
-                staleness = self.compute_max_staleness(data, as_of, self.config.primary_features)
+                staleness = self.compute_max_staleness(
+                    data, as_of, self.config.primary_features
+                )
 
                 # CONTRACT: signal_2 must never be None
                 if not pd.isna(speed):
                     signal_2_val = float(speed)
-                    secondary_missing = False
                 else:
                     signal_2_val = 0.0
                     # Penalty for missing secondary
                     confidence = confidence * 0.7
-                    secondary_missing = True
 
                 signals.append(
                     SignalOutput(
