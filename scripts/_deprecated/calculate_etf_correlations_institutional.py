@@ -48,20 +48,17 @@ Usage:
 """
 
 import os
-import sys
 import argparse
 import logging
 import warnings
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-from scipy.optimize import minimize
 import psycopg2
-from psycopg2.extras import execute_values
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -69,36 +66,40 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 # Try optional institutional quant libraries
 try:
     from sklearn.covariance import LedoitWolf
+
     HAS_SKLEARN = True
 except ImportError:
     HAS_SKLEARN = False
 
 try:
     from arch import arch_model
+
     HAS_ARCH = True
 except ImportError:
     HAS_ARCH = False
 
 try:
-    from statsmodels.stats.diagnostic import acorr_ljungbox
-    from statsmodels.tsa.stattools import grangercausalitytests, ccf
-    from statsmodels.regression.linear_model import OLS
-    from statsmodels.stats.stattools import durbin_watson
-    import statsmodels.api as sm
+    from statsmodels.stats.diagnostic import acorr_ljungbox  # noqa: F401
+    from statsmodels.tsa.stattools import grangercausalitytests, ccf  # noqa: F401
+    from statsmodels.regression.linear_model import OLS  # noqa: F401
+    from statsmodels.stats.stattools import durbin_watson  # noqa: F401
+    import statsmodels.api as sm  # noqa: F401
+
     HAS_STATSMODELS = True
 except ImportError:
     HAS_STATSMODELS = False
 
 try:
-    import ray
+    import ray  # noqa: F401
+
     HAS_RAY = True
 except ImportError:
     HAS_RAY = False
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
@@ -110,16 +111,16 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # Correlation windows (institutional standard)
 CORR_WINDOWS = {
-    "short": 21,      # 1 month - momentum/tactical
-    "medium": 63,     # 1 quarter - regime
-    "long": 126,      # 6 months - structural
-    "annual": 252,    # 1 year - long-term
+    "short": 21,  # 1 month - momentum/tactical
+    "medium": 63,  # 1 quarter - regime
+    "long": 126,  # 6 months - structural
+    "annual": 252,  # 1 year - long-term
 }
 
 # EWMA decay factors (RiskMetrics standard)
 EWMA_LAMBDA = {
-    "daily": 0.94,    # RiskMetrics daily
-    "weekly": 0.97,   # Weekly rebalancing
+    "daily": 0.94,  # RiskMetrics daily
+    "weekly": 0.97,  # Weekly rebalancing
     "monthly": 0.99,  # Monthly horizon
 }
 
@@ -129,23 +130,38 @@ ALPHA = 0.05
 # All ETF symbols
 ALL_SYMBOLS = [
     # China Complex - CRITICAL
-    "FXI", "KWEB", "MCHI",
+    "FXI",
+    "KWEB",
+    "MCHI",
     # Precious Metals - Vol regime
-    "GLD", "SLV",
+    "GLD",
+    "SLV",
     # Shipping - Physical flows
-    "BDRY", "SBLK",
+    "BDRY",
+    "SBLK",
     # Energy - Biodiesel
-    "XLE", "XOP", "USO", "UNG", "OIH",
+    "XLE",
+    "XOP",
+    "USO",
+    "UNG",
+    "OIH",
     # Treasuries - Carry
-    "TLT", "IEF",
+    "TLT",
+    "IEF",
     # Broad Market - Regime
-    "SPY", "QQQ",
+    "SPY",
+    "QQQ",
     # Ag Commodities
-    "DBA", "SOYB", "CORN", "WEAT",
+    "DBA",
+    "SOYB",
+    "CORN",
+    "WEAT",
     # Dollar
     "UUP",
     # Green Energy
-    "ICLN", "TAN", "LIT",
+    "ICLN",
+    "TAN",
+    "LIT",
 ]
 
 
@@ -153,9 +169,11 @@ ALL_SYMBOLS = [
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class CorrelationMetrics:
     """Comprehensive correlation metrics for a single ETF-ZL pair."""
+
     symbol: str
     event_date: datetime
 
@@ -205,6 +223,7 @@ class CorrelationMetrics:
 # =============================================================================
 # DATABASE
 # =============================================================================
+
 
 def get_db_connection():
     if not DATABASE_URL:
@@ -268,6 +287,7 @@ def load_etf_prices(symbols: List[str]) -> Dict[str, pd.DataFrame]:
 # =============================================================================
 # INSTITUTIONAL CORRELATION METHODS
 # =============================================================================
+
 
 def fisher_z_transform(r: float) -> float:
     """Fisher z-transform for correlation."""
@@ -364,18 +384,18 @@ def ewma_correlation(
     corr = np.zeros(n)
 
     # First observation uses sample variance
-    var_x[0] = x[0]**2
-    var_y[0] = y[0]**2
+    var_x[0] = x[0] ** 2
+    var_y[0] = y[0] ** 2
     cov_xy[0] = x[0] * y[0]
 
     # EWMA recursion
     for t in range(1, n):
-        var_x[t] = lambda_ * var_x[t-1] + (1 - lambda_) * x[t]**2
-        var_y[t] = lambda_ * var_y[t-1] + (1 - lambda_) * y[t]**2
-        cov_xy[t] = lambda_ * cov_xy[t-1] + (1 - lambda_) * x[t] * y[t]
+        var_x[t] = lambda_ * var_x[t - 1] + (1 - lambda_) * x[t] ** 2
+        var_y[t] = lambda_ * var_y[t - 1] + (1 - lambda_) * y[t] ** 2
+        cov_xy[t] = lambda_ * cov_xy[t - 1] + (1 - lambda_) * x[t] * y[t]
 
     # Correlation
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         corr = cov_xy / np.sqrt(var_x * var_y)
 
     return corr
@@ -394,11 +414,11 @@ def compute_dcc_correlation(
 
     try:
         # Fit univariate GARCH(1,1) to each series
-        model_x = arch_model(x * 100, vol='Garch', p=1, q=1, rescale=False)
-        model_y = arch_model(y * 100, vol='Garch', p=1, q=1, rescale=False)
+        model_x = arch_model(x * 100, vol="Garch", p=1, q=1, rescale=False)
+        model_y = arch_model(y * 100, vol="Garch", p=1, q=1, rescale=False)
 
-        res_x = model_x.fit(disp='off')
-        res_y = model_y.fit(disp='off')
+        res_x = model_x.fit(disp="off")
+        res_y = model_y.fit(disp="off")
 
         # Standardized residuals
         std_resid_x = res_x.std_resid
@@ -530,6 +550,7 @@ def detect_correlation_regime(
 # MAIN COMPUTATION
 # =============================================================================
 
+
 def compute_all_metrics_for_symbol(
     symbol: str,
     etf_df: pd.DataFrame,
@@ -542,7 +563,9 @@ def compute_all_metrics_for_symbol(
     # Align on common dates
     common_idx = etf_df.index.intersection(zl_df.index)
     if len(common_idx) < 126:  # Need at least 6 months
-        logger.warning(f"{symbol}: Insufficient overlapping data ({len(common_idx)} days)")
+        logger.warning(
+            f"{symbol}: Insufficient overlapping data ({len(common_idx)} days)"
+        )
         return []
 
     etf_returns = etf_df.loc[common_idx, "returns"].values
@@ -550,10 +573,13 @@ def compute_all_metrics_for_symbol(
     etf_close = etf_df.loc[common_idx, "close"].values
 
     # Prepare returns DataFrame for shrinkage estimation
-    returns_df = pd.DataFrame({
-        "etf": etf_returns,
-        "zl": zl_returns,
-    }, index=common_idx)
+    returns_df = pd.DataFrame(
+        {
+            "etf": etf_returns,
+            "zl": zl_returns,
+        },
+        index=common_idx,
+    )
 
     results = []
 
@@ -584,12 +610,8 @@ def compute_all_metrics_for_symbol(
         corr_63d, pval_63d = bias_corrected_correlation(
             etf_returns[w63], zl_returns[w63]
         )
-        corr_126d, _ = bias_corrected_correlation(
-            etf_returns[w126], zl_returns[w126]
-        )
-        corr_252d, _ = bias_corrected_correlation(
-            etf_returns[w252], zl_returns[w252]
-        )
+        corr_126d, _ = bias_corrected_correlation(etf_returns[w126], zl_returns[w126])
+        corr_252d, _ = bias_corrected_correlation(etf_returns[w252], zl_returns[w252])
 
         # Shrinkage-adjusted (21d and 63d windows)
         window_21 = returns_df.iloc[w21]
@@ -613,19 +635,27 @@ def compute_all_metrics_for_symbol(
 
         # Correlation regime
         hist_corr = pd.Series(
-            [np.corrcoef(etf_returns[max(0,j-63):j], zl_returns[max(0,j-63):j])[0,1]
-             for j in range(63, idx)]
+            [
+                np.corrcoef(
+                    etf_returns[max(0, j - 63) : j], zl_returns[max(0, j - 63) : j]
+                )[0, 1]
+                for j in range(63, idx)
+            ]
         ).dropna()
         regime, zscore = detect_correlation_regime(hist_corr, corr_63d)
 
         # Derived metrics
         returns_1d = float(etf_returns[idx - 1]) if idx > 0 else np.nan
-        returns_5d = float(np.sum(etf_returns[idx-5:idx])) if idx >= 5 else np.nan
-        returns_21d = float(np.sum(etf_returns[idx-21:idx])) if idx >= 21 else np.nan
+        returns_5d = float(np.sum(etf_returns[idx - 5 : idx])) if idx >= 5 else np.nan
+        returns_21d = (
+            float(np.sum(etf_returns[idx - 21 : idx])) if idx >= 21 else np.nan
+        )
 
         # Momentum: current price vs 21d SMA
-        sma_21 = np.mean(etf_close[idx-21:idx]) if idx >= 21 else np.nan
-        momentum_21d = (etf_close[idx-1] / sma_21 - 1) * 100 if not np.isnan(sma_21) else np.nan
+        sma_21 = np.mean(etf_close[idx - 21 : idx]) if idx >= 21 else np.nan
+        momentum_21d = (
+            (etf_close[idx - 1] / sma_21 - 1) * 100 if not np.isnan(sma_21) else np.nan
+        )
 
         # Realized volatility (annualized)
         vol_21d = np.std(etf_returns[w21]) * np.sqrt(252) if idx >= 21 else np.nan
@@ -645,7 +675,9 @@ def compute_all_metrics_for_symbol(
             corr_ewma_94=float(ewma_94[idx]) if idx < len(ewma_94) else np.nan,
             corr_ewma_97=float(ewma_97[idx]) if idx < len(ewma_97) else np.nan,
             # DCC
-            corr_dcc=float(dcc_corr[idx]) if dcc_corr is not None and idx < len(dcc_corr) else np.nan,
+            corr_dcc=float(dcc_corr[idx])
+            if dcc_corr is not None and idx < len(dcc_corr)
+            else np.nan,
             # Tail dependence
             tail_lower=tail_lower,
             tail_upper=tail_upper,
@@ -693,21 +725,23 @@ def update_database(metrics: List[CorrelationMetrics]) -> int:
     try:
         values = []
         for m in metrics:
-            values.append((
-                # Correlations
-                to_py_float(m.corr_21d),
-                to_py_float(m.corr_63d),
-                to_py_float(m.corr_126d),
-                # Derived
-                to_py_float(m.returns_1d),
-                to_py_float(m.returns_5d),
-                to_py_float(m.returns_21d),
-                to_py_float(m.momentum_21d),
-                to_py_float(m.volatility_21d),
-                # Keys
-                m.symbol,
-                m.event_date.date(),
-            ))
+            values.append(
+                (
+                    # Correlations
+                    to_py_float(m.corr_21d),
+                    to_py_float(m.corr_63d),
+                    to_py_float(m.corr_126d),
+                    # Derived
+                    to_py_float(m.returns_1d),
+                    to_py_float(m.returns_5d),
+                    to_py_float(m.returns_21d),
+                    to_py_float(m.momentum_21d),
+                    to_py_float(m.volatility_21d),
+                    # Keys
+                    m.symbol,
+                    m.event_date.date(),
+                )
+            )
 
         cur.executemany(
             """
@@ -748,13 +782,17 @@ def run_institutional_correlation(
     logger.info("=" * 70)
     logger.info(f"Symbols: {len(symbols)}")
     logger.info(f"Methods: Bias-corrected, Ledoit-Wolf, EWMA, DCC-GARCH, Tail Dep")
-    logger.info(f"Libraries: sklearn={HAS_SKLEARN}, arch={HAS_ARCH}, statsmodels={HAS_STATSMODELS}")
+    logger.info(
+        f"Libraries: sklearn={HAS_SKLEARN}, arch={HAS_ARCH}, statsmodels={HAS_STATSMODELS}"
+    )
     logger.info("=" * 70)
 
     # Load data
     logger.info("Loading ZL prices...")
     zl_df = load_zl_prices()
-    logger.info(f"ZL: {len(zl_df)} rows ({zl_df.index.min().date()} to {zl_df.index.max().date()})")
+    logger.info(
+        f"ZL: {len(zl_df)} rows ({zl_df.index.min().date()} to {zl_df.index.max().date()})"
+    )
 
     logger.info("Loading ETF prices...")
     etf_data = load_etf_prices(symbols)

@@ -32,25 +32,25 @@ Usage:
 import os
 import argparse
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 
 import pandas as pd
 import numpy as np
 import psycopg2
-from psycopg2.extras import execute_values
 
 # Try Ray
 try:
-    import ray
+    import ray  # noqa: F401
+
     HAS_RAY = True
 except ImportError:
     HAS_RAY = False
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
@@ -61,15 +61,30 @@ CORR_WINDOWS = [21, 63, 126]
 
 # All ETFs to process
 ALL_SYMBOLS = [
-    "FXI", "KWEB", "MCHI",  # China
-    "GLD", "SLV",  # Precious metals
-    "BDRY", "SBLK",  # Shipping
-    "XLE", "XOP", "USO", "UNG", "OIH",  # Energy
-    "TLT", "IEF",  # Treasuries
-    "SPY", "QQQ",  # Broad market
-    "DBA", "SOYB", "CORN", "WEAT",  # Ag
+    "FXI",
+    "KWEB",
+    "MCHI",  # China
+    "GLD",
+    "SLV",  # Precious metals
+    "BDRY",
+    "SBLK",  # Shipping
+    "XLE",
+    "XOP",
+    "USO",
+    "UNG",
+    "OIH",  # Energy
+    "TLT",
+    "IEF",  # Treasuries
+    "SPY",
+    "QQQ",  # Broad market
+    "DBA",
+    "SOYB",
+    "CORN",
+    "WEAT",  # Ag
     "UUP",  # Dollar
-    "ICLN", "TAN", "LIT",  # Green energy
+    "ICLN",
+    "TAN",
+    "LIT",  # Green energy
 ]
 
 
@@ -143,9 +158,7 @@ def compute_correlations_for_symbol(
     # Compute rolling correlations
     for window in CORR_WINDOWS:
         merged[f"zl_corr_{window}d"] = (
-            merged["returns"]
-            .rolling(window)
-            .corr(merged["zl_returns"])
+            merged["returns"].rolling(window).corr(merged["zl_returns"])
         )
 
     # Compute derived metrics
@@ -163,8 +176,8 @@ def compute_correlations_for_symbol(
 
     # Prepare output
     result = merged[
-        [f"zl_corr_{w}d" for w in CORR_WINDOWS] +
-        ["returns_1d", "returns_5d", "returns_21d", "momentum_21d", "volatility_21d"]
+        [f"zl_corr_{w}d" for w in CORR_WINDOWS]
+        + ["returns_1d", "returns_5d", "returns_21d", "momentum_21d", "volatility_21d"]
     ].dropna()
 
     result["symbol"] = symbol
@@ -185,18 +198,20 @@ def update_etf_metrics(df: pd.DataFrame) -> int:
         # Prepare values
         values = []
         for _, row in df.iterrows():
-            values.append((
-                row["symbol"],
-                row["event_date"].date(),
-                row.get("zl_corr_21d"),
-                row.get("zl_corr_63d"),
-                row.get("zl_corr_126d"),
-                row.get("returns_1d"),
-                row.get("returns_5d"),
-                row.get("returns_21d"),
-                row.get("momentum_21d"),
-                row.get("volatility_21d"),
-            ))
+            values.append(
+                (
+                    row["symbol"],
+                    row["event_date"].date(),
+                    row.get("zl_corr_21d"),
+                    row.get("zl_corr_63d"),
+                    row.get("zl_corr_126d"),
+                    row.get("returns_1d"),
+                    row.get("returns_5d"),
+                    row.get("returns_21d"),
+                    row.get("momentum_21d"),
+                    row.get("volatility_21d"),
+                )
+            )
 
         # Batch update
         cur.executemany(
@@ -212,7 +227,10 @@ def update_etf_metrics(df: pd.DataFrame) -> int:
                 volatility_21d = %s
             WHERE symbol = %s AND event_date = %s
             """,
-            [(v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[0], v[1]) for v in values],
+            [
+                (v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[0], v[1])
+                for v in values
+            ],
         )
 
         conn.commit()
@@ -259,8 +277,12 @@ def compute_gold_silver_ratio() -> None:
         ) / df["gold_silver_ratio"].rolling(63).std()
 
         # Store in a cross-asset correlation table or log for now
-        logger.info(f"Gold/Silver ratio range: {df['gold_silver_ratio'].min():.1f} - {df['gold_silver_ratio'].max():.1f}")
-        logger.info(f"Current: {df['gold_silver_ratio'].iloc[-1]:.1f}, Z-score: {df['ratio_zscore_63d'].iloc[-1]:.2f}")
+        logger.info(
+            f"Gold/Silver ratio range: {df['gold_silver_ratio'].min():.1f} - {df['gold_silver_ratio'].max():.1f}"
+        )
+        logger.info(
+            f"Current: {df['gold_silver_ratio'].iloc[-1]:.1f}, Z-score: {df['ratio_zscore_63d'].iloc[-1]:.2f}"
+        )
 
     conn.close()
 
@@ -278,7 +300,9 @@ def run_correlation_calculation(
     # Load data
     logger.info("Loading ZL prices...")
     zl_df = load_zl_prices()
-    logger.info(f"ZL data: {len(zl_df)} rows ({zl_df.index.min().date()} to {zl_df.index.max().date()})")
+    logger.info(
+        f"ZL data: {len(zl_df)} rows ({zl_df.index.min().date()} to {zl_df.index.max().date()})"
+    )
 
     logger.info("Loading ETF prices...")
     etf_df = load_etf_prices(symbols)
