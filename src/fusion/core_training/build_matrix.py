@@ -1308,8 +1308,42 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
             logger.warning(f"   Missing columns: {needed - available_cols}")
             return pd.DataFrame()
 
+        # Check for greeks columns (may not be populated yet)
+        has_iv = "implied_volatility" in available_cols
+        has_delta = "delta" in available_cols
+        has_gamma = "gamma" in available_cols
+        has_theta = "theta" in available_cols
+        has_vega = "vega" in available_cols
+
         # Aggregate options data by underlying and date
-        query = """
+        # Include greeks if available (Black-Scholes computed columns)
+        iv_select = (
+            ", AVG(implied_volatility) FILTER (WHERE implied_volatility IS NOT NULL) as avg_iv"
+            if has_iv
+            else ""
+        )
+        delta_select = (
+            ", SUM(delta * open_interest) / NULLIF(SUM(open_interest), 0) as weighted_delta"
+            if has_delta
+            else ""
+        )
+        gamma_select = (
+            ", AVG(gamma) FILTER (WHERE gamma IS NOT NULL) as avg_gamma"
+            if has_gamma
+            else ""
+        )
+        theta_select = (
+            ", AVG(theta) FILTER (WHERE theta IS NOT NULL) as avg_theta"
+            if has_theta
+            else ""
+        )
+        vega_select = (
+            ", AVG(vega) FILTER (WHERE vega IS NOT NULL) as avg_vega"
+            if has_vega
+            else ""
+        )
+
+        query = f"""
             SELECT
                 event_date as trade_date,
                 underlying,
@@ -1317,6 +1351,11 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
                 SUM(open_interest) as total_oi,
                 SUM(volume) as total_volume,
                 AVG(close) as avg_premium
+                {iv_select}
+                {delta_select}
+                {gamma_select}
+                {theta_select}
+                {vega_select}
             FROM mkt.options_1d
             WHERE underlying = 'ZL'
             GROUP BY event_date, underlying, option_type
@@ -1328,11 +1367,24 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
             logger.warning("   No ZL options data found")
             return pd.DataFrame()
 
+        # Build pivot values list dynamically based on available columns
+        pivot_values = ["total_oi", "total_volume", "avg_premium"]
+        if has_iv and "avg_iv" in df.columns:
+            pivot_values.append("avg_iv")
+        if has_delta and "weighted_delta" in df.columns:
+            pivot_values.append("weighted_delta")
+        if has_gamma and "avg_gamma" in df.columns:
+            pivot_values.append("avg_gamma")
+        if has_theta and "avg_theta" in df.columns:
+            pivot_values.append("avg_theta")
+        if has_vega and "avg_vega" in df.columns:
+            pivot_values.append("avg_vega")
+
         # Pivot put/call into separate columns
         result = df.pivot(
             index="trade_date",
             columns="option_type",
-            values=["total_oi", "total_volume", "avg_premium"],
+            values=pivot_values,
         )
 
         # Flatten column names
@@ -1341,7 +1393,7 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         ]
         result = result.reset_index()
 
-        # Calculate derived features
+        # Calculate derived features: ratios
         if "opt_total_oi_P" in result.columns and "opt_total_oi_C" in result.columns:
             result["opt_put_call_oi_ratio"] = result["opt_total_oi_P"] / result[
                 "opt_total_oi_C"
@@ -1362,6 +1414,13 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
             result["opt_premium_skew"] = (
                 result["opt_avg_premium_P"] - result["opt_avg_premium_C"]
             )
+
+        # Greeks-derived features (if available)
+        if "opt_avg_iv_c" in result.columns and "opt_avg_iv_p" in result.columns:
+            # ATM IV proxy: average of call and put IV
+            result["opt_atm_iv"] = (result["opt_avg_iv_c"] + result["opt_avg_iv_p"]) / 2
+            # IV skew: put IV - call IV (positive = fear premium)
+            result["opt_iv_skew"] = result["opt_avg_iv_p"] - result["opt_avg_iv_c"]
 
         result = normalize_date_column(result, "trade_date")
 
