@@ -3,7 +3,7 @@ Phase 3: Build Core Feature Matrix
 ===================================
 
 Assembles training.matrix_1d from ALL source data:
-- features.elite_1d (27 elite indicators + OHLCV)
+- mkt.futures_1d (elite indicators + OHLCV, superset of former features.elite_1d)
 - alt.weather_1d (weather aggregates computed on-the-fly)
 - econ.* tables (rates, inflation, labor, activity, vol_indices, commodities, money)
 - mkt.fx_1d (FX rates)
@@ -25,7 +25,7 @@ SCHEMA UPDATE 2026-01-22:
 
 SCHEMA UPDATE 2026-01-17:
 - FRED data migrated from domain-specific econ.* tables (legacy raw schema removed)
-- gold schema renamed to features (elite_1d)
+- gold schema renamed to features (elite_1d), later consolidated into mkt.futures_1d
 - training matrix curated table renamed to training.matrix_1d
 
 Design Principles:
@@ -1008,7 +1008,7 @@ def load_cross_asset_correlations(conn, target_symbol: str = "ZL") -> pd.DataFra
 
 def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataFrame:
     """
-    Load price and indicator data for related commodities from features.elite_1d.
+    Load price and indicator data for related commodities from mkt.futures_1d.
 
     This gives the model visibility into:
     - Soy complex (ZS, ZM) - direct fundamentals
@@ -1020,7 +1020,7 @@ def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataF
     Returns:
         DataFrame with trade_date and cross-asset feature columns
     """
-    logger.info("Loading cross-commodity indicators from features.elite_1d...")
+    logger.info("Loading cross-commodity indicators from mkt.futures_1d...")
 
     # Key related commodities
     cross_symbols = [
@@ -1038,7 +1038,7 @@ def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataF
         "DX",
     ]
 
-    # Key indicators to include (subset of elite_1d columns)
+    # Key indicators to include (subset of mkt.futures_1d indicator columns)
     indicator_cols = [
         "close",
         "returns_1d",
@@ -1056,12 +1056,12 @@ def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataF
 
         query = f"""
             SELECT
-                trade_date,
+                event_date AS trade_date,
                 symbol,
                 {cols_select}
-            FROM features.elite_1d
+            FROM mkt.futures_1d
             WHERE symbol IN ({placeholders})
-            ORDER BY trade_date, symbol
+            ORDER BY event_date, symbol
         """
         df = pd.read_sql(query, conn, params=tuple(cross_symbols))
 
@@ -1120,12 +1120,12 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         # Load close prices for key commodities
         query = """
             SELECT
-                trade_date,
+                event_date AS trade_date,
                 symbol,
                 close
-            FROM features.elite_1d
+            FROM mkt.futures_1d
             WHERE symbol IN ('ZL', 'ZS', 'ZM', 'CL', 'CPO', 'HO', 'RB')
-            ORDER BY trade_date, symbol
+            ORDER BY event_date, symbol
         """
         df = pd.read_sql(query, conn)
 
@@ -1355,14 +1355,37 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
 
 
 def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
-    """Load features.elite_1d for target symbol."""
-    logger.info("Loading elite indicators from features.elite_1d...")
+    """Load elite indicators from mkt.futures_1d for target symbol.
+
+    Selects indicator columns explicitly to avoid leaking metadata
+    (source, ingested_at, row_hash, etc.) into the training matrix.
+    Correlations (zl_corr_*) are loaded separately by load_cross_asset_correlations.
+    """
+    logger.info("Loading elite indicators from mkt.futures_1d...")
 
     query = """
-        SELECT *
-        FROM features.elite_1d
+        SELECT
+            event_date AS trade_date,
+            symbol,
+            open, high, low, close, volume,
+            returns_1d, log_returns_1d, range_pct,
+            hurst_exponent, hurst_regime, connors_rsi,
+            fisher_transform, fisher_signal,
+            mcginley_dynamic, ttm_squeeze_on, ttm_squeeze_momentum,
+            schaff_trend_cycle, rvi, rvi_signal, elder_force_index,
+            kama_10, hma_20, alma_50,
+            rsi_2, rsi_14, cumulative_rsi,
+            macd, macd_signal, macd_histogram,
+            cci_14, cci_50,
+            atr_10, atr_50, atr_ratio,
+            garman_klass_vol, yang_zhang_vol, bb_percent_b,
+            bb_upper, bb_middle, bb_lower, atr_14,
+            cmf_21, volume_zscore, unusual_volume, obv,
+            adx, adx_pos, adx_neg,
+            stoch_k, stoch_d
+        FROM mkt.futures_1d
         WHERE symbol = %s
-        ORDER BY trade_date
+        ORDER BY event_date
     """
     df = pd.read_sql(query, conn, params=(symbol,))
     logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)} columns")

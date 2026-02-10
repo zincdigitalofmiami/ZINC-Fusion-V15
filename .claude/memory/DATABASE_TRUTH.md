@@ -32,7 +32,7 @@ Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
 - `supply` - Supply/demand (USDA, EPA, trade flows)
 
 **Derived (computed from landing):**
-- `features` - Business-ready features (elite_1d, options_1d, weather_1d)
+- `features` - Business-ready features (options_1d, intel_drops, trump_effect_1d); elite_1d consolidated into mkt.futures_1d
 - `training` - Training matrices and OOF outputs
 
 **Output (model artifacts):**

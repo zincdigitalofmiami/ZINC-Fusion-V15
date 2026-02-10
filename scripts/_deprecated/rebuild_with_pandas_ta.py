@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Rebuild Elite Indicators using pandas_ta ONLY.
+DEPRECATED — features.elite_1d has been consolidated into mkt.futures_1d.
+Elite indicators are now stored directly in mkt.futures_1d.
+This script is retained for historical reference only. DO NOT RUN.
 
-NO CUSTOM CODE - every indicator is a direct pandas_ta call.
-Garman-Klass, Yang-Zhang, Hurst excluded (require custom wrappers).
+Original description:
+Rebuild Elite Indicators using pandas_ta ONLY.
 """
 import pandas as pd
 import pandas_ta as ta

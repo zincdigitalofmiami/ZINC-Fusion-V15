@@ -866,54 +866,8 @@ model vol_indices_1d {
   @@schema("econ")
 }
 
-model elite_1d {
-  id                   Int       @id @default(autoincrement())
-  trade_date           DateTime  @db.Date
-  symbol               String    @db.VarChar(20)
-  hurst_exponent       Float?
-  hurst_regime         String?   @db.VarChar(20)
-  connors_rsi          Float?
-  fisher_transform     Float?
-  fisher_signal        Float?
-  mcginley_dynamic     Float?
-  ttm_squeeze_on       Boolean?
-  ttm_squeeze_momentum Float?
-  schaff_trend_cycle   Float?
-  rvi                  Float?
-  rvi_signal           Float?
-  elder_force_index    Float?
-  kama_10              Float?
-  hma_20               Float?
-  alma_50              Float?
-  rsi_2                Float?
-  rsi_14               Float?
-  cumulative_rsi       Float?
-  macd                 Float?
-  macd_signal          Float?
-  macd_histogram       Float?
-  cci_14               Float?
-  cci_50               Float?
-  atr_10               Float?
-  atr_50               Float?
-  atr_ratio            Float?
-  garman_klass_vol     Float?
-  yang_zhang_vol       Float?
-  bb_percent_b         Float?
-  cmf_21               Float?
-  volume_zscore        Float?
-  unusual_volume       Boolean?
-  created_at           DateTime? @default(now()) @db.Timestamp(6)
-  open                 Float?
-  high                 Float?
-  low                  Float?
-  close                Float?
-  volume               BigInt?
-  returns_1d           Float?
-  log_returns_1d       Float?
-  range_pct            Float?
-
-  @@schema("features")
-}
+// elite_1d model REMOVED — consolidated into mkt.futures_1d
+// See migration: 20260210_drop_elite_1d
 
 model intel_drops {
   id             Int       @id @default(autoincrement())

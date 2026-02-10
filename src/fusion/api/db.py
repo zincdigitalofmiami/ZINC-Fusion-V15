@@ -167,8 +167,7 @@ TABLE_MAP = {
     "supply.usda_wasde_1m": '"supply"."usda_wasde_1m"',
     "supply.usda_exports_1w": '"supply"."usda_exports_1w"',
     "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
-    # Features
-    "features.elite_1d": '"features"."elite_1d"',
+    # Features (elite_1d consolidated into mkt.futures_1d)
     "features.intel_drops": '"features"."intel_drops"',
     "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training

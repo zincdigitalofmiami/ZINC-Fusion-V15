@@ -635,10 +635,9 @@ npx prisma generate
 ## Data Pipeline
 
 All data operations use Prisma Postgres. Key tables:
-- `mkt.futures_1d` — ZL, ZS, ZM, CL and other futures OHLCV (daily)
+- `mkt.futures_1d` — ZL, ZS, ZM, CL and other futures OHLCV + elite indicators (daily)
 - `econ.rates_1d`, `econ.activity_1d`, etc. — FRED economic indicators (7 domain tables)
 - `alt.weather_1d` — Weather data from key growing regions
-- `features.elite_1d` — Engineered feature store
 - `training.matrix_1d` — Training matrix
 - `training.oof_core_1d` — Core out-of-fold predictions (single table with `horizon_days`)
 - `training.specialist_signals_1d` — Specialist signal outputs
