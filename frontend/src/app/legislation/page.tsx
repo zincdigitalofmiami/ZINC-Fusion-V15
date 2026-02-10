@@ -292,12 +292,12 @@ export default async function PolicyPage() {
   ]);
 
   // Extract metric for Bureaucracy Velocity
-  const currentMetric = trumpMetrics[0] || { velocity: 0, score: 0 };
-  const prevMetric = trumpMetrics[1] || { velocity: 0 };
+  const currentMetric = trumpMetrics[0];
+  const prevMetric = trumpMetrics[1];
 
   // Calculate trend if we have previous data (avoid division by zero)
   const velocityTrend =
-    currentMetric.velocity && prevMetric.velocity && prevMetric.velocity > 0
+    currentMetric?.velocity && prevMetric?.velocity && prevMetric.velocity > 0
       ? Math.round(
           ((currentMetric.velocity - prevMetric.velocity) /
             prevMetric.velocity) *
@@ -330,8 +330,8 @@ export default async function PolicyPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Bureaucracy Velocity"
-            value={currentMetric.velocity?.toFixed(1) || "0.0"}
-            subtext="Actions per Week"
+            value={currentMetric?.velocity?.toFixed(1) || "N/A"}
+            subtext={currentMetric ? "Actions per Week" : "No Data"}
             icon={TrendingUp}
             trend={velocityTrend}
           />

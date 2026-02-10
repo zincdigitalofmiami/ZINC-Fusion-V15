@@ -242,7 +242,7 @@ export class PolicyService {
       `),
     ]);
 
-    const tpu = tpuRow[0]?.val ?? 100;
+    const tpu = tpuRow[0]?.val ?? 0;
     const emv = emvRow[0]?.val ?? null;
     const lCount = legisCount[0]?.count ?? 0;
     const nCount = newsCount[0]?.count ?? 0;
