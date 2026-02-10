@@ -10,6 +10,12 @@ import {
   generateFallbackDriverIntel,
   type DriverIntel,
 } from "@/lib/ai-driver-intel";
+import {
+  scoreTpu,
+  scoreEmv,
+  scoreLegislationVelocity,
+  scoreNewsVelocity,
+} from "@/lib/services/policy-service";
 
 export const dynamic = "force-dynamic";
 // Vercel Pro allows up to 300s. The 3 AM cron is the ONLY call that generates
@@ -146,9 +152,6 @@ const CNY = { STRONG: 7.0, NORMAL: 7.15, WEAK: 7.3, STRESS: 7.45, CRISIS: 7.6 };
 
 // Shipping (BDRY) 20d change thresholds - DISABLED: ETF data quality issues
 const SHIP = { COLLAPSE: -0.25, WEAK: -0.1, STABLE: 0.1, STRONG: 0.2 };
-
-// Trade Policy Uncertainty
-const TPU = { CALM: 40, NORMAL: 100, ELEVATED: 200, HIGH: 400, EXTREME: 700 };
 
 // =============================================================================
 // VIX STRESS SCORING (Full Sophistication)
@@ -819,43 +822,6 @@ interface TariffComponents {
   specialist_adj: number;
 }
 
-function scoreTpu(tpu: number): { score: number; regime: string } {
-  if (tpu < TPU.CALM) return { score: 15, regime: "trade_calm" };
-  if (tpu < TPU.NORMAL) {
-    const score = 15 + ((tpu - TPU.CALM) / (TPU.NORMAL - TPU.CALM)) * 25;
-    return { score, regime: "normal_uncertainty" };
-  }
-  if (tpu < TPU.ELEVATED) {
-    const score = 40 + ((tpu - TPU.NORMAL) / (TPU.ELEVATED - TPU.NORMAL)) * 20;
-    return { score, regime: "tariff_threats" };
-  }
-  if (tpu < TPU.HIGH) {
-    const score = 60 + ((tpu - TPU.ELEVATED) / (TPU.HIGH - TPU.ELEVATED)) * 20;
-    return { score, regime: "tariff_war" };
-  }
-  if (tpu < TPU.EXTREME) {
-    const score = 80 + ((tpu - TPU.HIGH) / (TPU.EXTREME - TPU.HIGH)) * 12;
-    return { score, regime: "extreme_disruption" };
-  }
-  return { score: 95, regime: "extreme_disruption" };
-}
-
-function scoreEmv(emv: number | null): { score: number; adj: number } {
-  if (emv === null) return { score: 50, adj: 0 };
-  if (emv > 400) return { score: 80, adj: 10 };
-  if (emv > 200) return { score: 60, adj: 5 };
-  if (emv < 50) return { score: 30, adj: -5 };
-  return { score: 50, adj: 0 };
-}
-
-function scoreSoyTariffNews(count: number): { adj: number; desc: string } {
-  if (count >= 10) return { adj: 25, desc: "Crisis-level tariff coverage" };
-  if (count >= 5) return { adj: 15, desc: "Heavy soy tariff coverage" };
-  if (count >= 2) return { adj: 8, desc: "Moderate tariff coverage" };
-  if (count >= 1) return { adj: 3, desc: "Light tariff coverage" };
-  return { adj: -5, desc: "No soy tariff news - trade policy calm" };
-}
-
 function calculateTariffThreat(
   tpu: number,
   emv: number | null,
@@ -876,14 +842,10 @@ function calculateTariffThreat(
   const { score: emvScore } = scoreEmv(emv);
 
   // Component 3: Legislation Velocity (10%)
-  let legisAdj = 0;
-  if (legislationCount >= 10) legisAdj = 15;
-  else if (legislationCount >= 5) legisAdj = 8;
-  else if (legislationCount >= 2) legisAdj = 3;
-  else if (legislationCount === 0) legisAdj = -3;
+  const legisAdj = scoreLegislationVelocity(legislationCount);
 
   // Component 4: Soy Tariff News (20%)
-  const { adj: newsAdj } = scoreSoyTariffNews(soyTariffNews);
+  const newsAdj = scoreNewsVelocity(soyTariffNews);
 
   // Component 5: Specialist Signal (15%)
   let specialistAdj = 0;
