@@ -71,7 +71,7 @@ interface VegasBriefData {
 // COMPONENT
 // =============================================================================
 
-export function VegasBrief() {
+export function ZlBrief() {
   const [brief, setBrief] = useState<VegasBriefData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +80,7 @@ export function VegasBrief() {
   useEffect(() => {
     async function fetchBrief() {
       try {
-        const res = await fetch('/api/vegas/brief');
+        const res = await fetch('/api/zl/brief');
         if (!res.ok) throw new Error('Failed to fetch brief');
         const data = await res.json();
         setBrief(data);

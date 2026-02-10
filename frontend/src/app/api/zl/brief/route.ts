@@ -1,10 +1,10 @@
 /**
- * Vegas Procurement Brief - Consolidated Email Summary
+ * ZL Procurement Brief - Consolidated Summary
  *
  * Combines: Live ZL price, 4 driver scores, forecasts at multiple horizons,
  * correlations, and actionable recommendations - all in plain English.
  *
- * For Chris - major Las Vegas soybean oil procurement buyer
+ * Reads from: analytics, forecasts, econ, mkt schemas (NOT vegas.*)
  */
 
 import { NextResponse } from 'next/server'

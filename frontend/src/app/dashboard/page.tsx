@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { LightweightZlCandlestickChart } from '@/components/LightweightZlCandlestickChart';
 import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
 import { SignalGauge } from '@/components/ui/SignalGauge';
-import { VegasBrief } from '@/components/VegasBrief';
+
 
 interface ForecastPoint {
   horizon_days: number;
@@ -106,8 +106,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 px-4 pt-20 pb-8 space-y-6">
 
-      {/* SECTION 0: VEGAS BRIEF - Executive Summary */}
-      <VegasBrief />
+      {/* ZL Brief moved to /api/zl/brief — not rendered on dashboard */}
 
       {/* SECTION 1: HERO CHART */}
       <div>
