@@ -11,57 +11,16 @@ import {
 } from "@/components/policy/types";
 
 // ===========================================
-// SCORING CONSTANTS (Matched to Market Drivers)
-// ===========================================
-const TPU = { CALM: 40, NORMAL: 100, ELEVATED: 200, HIGH: 400, EXTREME: 700 };
-
-// ===========================================
-// PURE SCORING FUNCTIONS
+// SCORING CONSTANTS (Matched to Python Logic)
+// Source: src/fusion/features/trump_effect.py
 // ===========================================
 
-export function scoreTpu(tpu: number): { score: number; regime: string } {
-  if (tpu < TPU.CALM) return { score: 15, regime: "trade_calm" };
-  if (tpu < TPU.NORMAL) {
-    const score = 15 + ((tpu - TPU.CALM) / (TPU.NORMAL - TPU.CALM)) * 25;
-    return { score, regime: "normal_uncertainty" };
-  }
-  if (tpu < TPU.ELEVATED) {
-    const score = 40 + ((tpu - TPU.NORMAL) / (TPU.ELEVATED - TPU.NORMAL)) * 20;
-    return { score, regime: "tariff_threats" };
-  }
-  if (tpu < TPU.HIGH) {
-    const score = 60 + ((tpu - TPU.ELEVATED) / (TPU.HIGH - TPU.ELEVATED)) * 20;
-    return { score, regime: "tariff_war" };
-  }
-  if (tpu < TPU.EXTREME) {
-    const score = 80 + ((tpu - TPU.HIGH) / (TPU.EXTREME - TPU.HIGH)) * 12;
-    return { score, regime: "extreme_disruption" };
-  }
-  return { score: 95, regime: "extreme_disruption" };
-}
-
-export function scoreEmv(emv: number | null): { score: number; adj: number } {
-  if (emv === null) return { score: 50, adj: 0 };
-  if (emv > 400) return { score: 80, adj: 10 };
-  if (emv > 200) return { score: 60, adj: 5 };
-  if (emv < 50) return { score: 30, adj: -5 };
-  return { score: 50, adj: 0 };
-}
-
-export function scoreLegislationVelocity(count: number): number {
-  if (count >= 10) return 15;
-  if (count >= 5) return 8;
-  if (count >= 2) return 3;
-  if (count === 0) return -3;
-  return 0;
-}
-
-export function scoreNewsVelocity(count: number): number {
-  if (count >= 10) return 25;
-  if (count >= 5) return 15;
-  if (count >= 2) return 8;
-  if (count >= 1) return 3;
-  return -5;
+// EPU regime thresholds from Python feature engine
+const EPU_THRESHOLDS = {
+  LOW: 75,
+  NORMAL: 125,
+  ELEVATED: 175,
+  HIGH: 250
 }
 
 export class PolicyService {
@@ -202,7 +161,7 @@ export class PolicyService {
   > {
     const sql = `
        SELECT event_date as date, value, series_id
-       FROM econ.rates_1d
+       FROM econ.vol_indices_1d
        WHERE series_id IN ('USEPUINDXD', 'EPUTRADE', 'EMVTRADEPOLEMV')
          AND event_date >= NOW() - INTERVAL '180 days'
        ORDER BY event_date ASC
@@ -217,16 +176,21 @@ export class PolicyService {
 
   static async getRegimeStatus(): Promise<RegimeState> {
     // 1. Fetch raw inputs in parallel
-    const [tpuRow, emvRow, legisCount, newsCount] = await Promise.all([
+    // Priority: Daily EPU -> Monthly EPU
+    const [dailyTpu, monthlyTpu, actionMetrics, legisCount, newsCount] = await Promise.all([
+      query<{ val: number }>(`
+        SELECT value::float8 as val FROM econ.vol_indices_1d
+        WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
+      `),
       query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ val: number }>(`
-        SELECT value::float8 as val FROM econ.vol_indices_1d
-        WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL
-        ORDER BY event_date DESC LIMIT 1
+      query<{ score: number }>(`
+        SELECT weighted_action_score as score FROM features.trump_effect_1d
+        ORDER BY as_of_date DESC LIMIT 1
       `),
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
@@ -242,40 +206,41 @@ export class PolicyService {
       `),
     ]);
 
-    const tpu = tpuRow[0]?.val ?? 0;
-    const emv = emvRow[0]?.val ?? null;
+    // Determine EPU level (Daily preferred)
+    // If no data, default to 0 (Minimal)
+    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 0;
+
+    // Get weighted action score from Python engine
+    // If null, we default to a baseline score derived from EPU
+    // Mapping EPU 0-300 to roughly 0-100 score if no action score exists
+    const pythonActionScore = actionMetrics[0]?.score;
+    const fallbackScore = Math.min(100, (tpu / 300) * 100);
+    const score = pythonActionScore ?? fallbackScore;
+
     const lCount = legisCount[0]?.count ?? 0;
     const nCount = newsCount[0]?.count ?? 0;
 
-    // 2. Score Components
-    const { score: tpuScore } = scoreTpu(tpu);
-    const { score: emvScore } = scoreEmv(emv);
-    const legisAdj = scoreLegislationVelocity(lCount);
-    const newsAdj = scoreNewsVelocity(nCount);
-
-    const specialistAdj = 0;
-
-    const rawScore =
-      tpuScore * 0.35 +
-      emvScore * 0.2 +
-      (50 + legisAdj) * 0.1 +
-      (50 + specialistAdj) * 0.15 +
-      (50 + newsAdj) * 0.2;
-
-    const score = Math.max(0, Math.min(100, rawScore));
-
+    // 2. Classify Regime (STRICT PYTHON THRESHOLDS)
     let label: RegimeState["label"] = "Minimal";
-    if (score >= 80) label = "Active War";
-    else if (score >= 65) label = "Retaliation Risk";
-    else if (score >= 50) label = "Elevated";
-    else if (score >= 35) label = "Background Noise";
+
+    if (tpu >= EPU_THRESHOLDS.HIGH) {
+      label = "Active War"; // > 250
+    } else if (tpu >= EPU_THRESHOLDS.ELEVATED) {
+      label = "Retaliation Risk"; // 175 - 250
+    } else if (tpu >= EPU_THRESHOLDS.NORMAL) {
+      label = "Elevated"; // 125 - 175
+    } else if (tpu >= EPU_THRESHOLDS.LOW) {
+      label = "Background Noise"; // 75 - 125
+    } else {
+      label = "Minimal"; // < 75
+    }
 
     return {
       score,
       label,
       components: {
         tpu,
-        emv: emv ?? 0,
+        emv: 0, // No longer primary driver
         legis_velocity: lCount,
         news_velocity: nCount,
       },
