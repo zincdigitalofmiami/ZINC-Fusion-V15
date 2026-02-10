@@ -913,7 +913,7 @@ function createFredSegmentJob(config: FredSegmentConfig) {
       id: config.id,
       name: config.displayName,
       retries: config.retries ?? DEFAULT_JOB_RETRIES,
-      concurrency: [DB_CONCURRENCY],
+      concurrency: [DB_CONCURRENCY, { limit: 1 }],
     },
     { cron: config.cron },
     async ({ step, logger }) => {

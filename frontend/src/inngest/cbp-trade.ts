@@ -58,8 +58,8 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 // =============================================================================
 
 export const cbpTradeDaily = inngest.createFunction(
-  { id: "cbp-trade-daily", name: "CBP Trade RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { id: "cbp-trade-daily", name: "CBP Trade RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { cron: "18 */8 * * *" }, // Every 8 hours at :18 UTC
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

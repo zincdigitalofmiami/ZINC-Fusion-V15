@@ -344,9 +344,9 @@ export const federalRegisterDaily = inngest.createFunction(
     id: "federal-register-daily",
     name: "Federal Register Daily Data Ingestion",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { cron: "2 */8 * * *" }, // Every 8 hours at :02 UTC
   async ({ step, logger }) => {
     // Get database client
     const client = await pool.connect();

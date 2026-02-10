@@ -14,6 +14,8 @@ const pool = dbPool;
 
 const NOAA_API_TOKEN = process.env.NOAA_API_TOKEN || process.env.NOAA_TOKEN;
 const NOAA_BASE_URL = "https://www.ncei.noaa.gov/cdo-web/api/v2/data";
+const NOAA_REQUEST_TIMEOUT_MS = 20_000;
+const NOAA_MAX_429_RETRIES = 5;
 
 const DATATYPES = ["TMAX", "TMIN", "TAVG", "PRCP", "SNOW", "AWND", "SNWD", "EVAP", "RHAV", "WSFG"] as const;
 
@@ -108,6 +110,7 @@ async function fetchNoaaStation(
   const all: Array<{ date: string; datatype: string; value: number }> = [];
   let offset = 1;
   const limit = 1000;
+  let rateLimitRetries = 0;
 
   while (true) {
     const url = new URL(NOAA_BASE_URL);
@@ -121,12 +124,31 @@ async function fetchNoaaStation(
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const res = await fetch(url.toString(), { headers });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), NOAA_REQUEST_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), { headers, signal: controller.signal });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error(`NOAA request timeout for ${stationId} after ${NOAA_REQUEST_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+
     if (res.status === 429) {
-      // NOAA rate limit; wait and retry this page.
-      await sleep(60_000);
+      // NOAA rate limit; bounded retries to avoid hanging indefinitely.
+      rateLimitRetries += 1;
+      if (rateLimitRetries > NOAA_MAX_429_RETRIES) {
+        throw new Error(`NOAA rate limit exceeded for ${stationId}: ${NOAA_MAX_429_RETRIES} retries`);
+      }
+      await sleep(Math.min(60_000, 5000 * rateLimitRetries));
       continue;
     }
+    rateLimitRetries = 0;
+
     if (!res.ok) {
       // 400 errors often indicate invalid station ID or station no longer reporting
       // Don't throw - return empty array so other stations can continue
@@ -170,8 +192,8 @@ function toNoaaStationId(stationId: string): string | null {
 }
 
 export const noaaWeatherDaily = inngest.createFunction(
-  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { cron: "6 */8 * * *" }, // Every 8 hours at :06 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

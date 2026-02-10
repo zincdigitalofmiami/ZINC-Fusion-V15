@@ -225,12 +225,30 @@ function extractCommodityRows(
 }
 
 async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn: (msg: string) => void }): Promise<{ release: WasdeRelease; rows: WasdeRow[] }> {
-  const pubRes = await fetch(CORNELL_PUBLICATIONS_URL, { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
+  const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, {
+        headers: { "User-Agent": "ZINC-Fusion/1.0" },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error(`WASDE fetch timed out after ${timeoutMs}ms: ${url}`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  const pubRes = await fetchWithTimeout(CORNELL_PUBLICATIONS_URL, 20000);
   if (!pubRes.ok) throw new Error(`Cornell publications fetch failed: ${pubRes.status}`);
   const html = await pubRes.text();
 
   const release = findLatestWasdeRelease(html);
-  const xmlRes = await fetch(release.xmlUrl, { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
+  const xmlRes = await fetchWithTimeout(release.xmlUrl, 20000);
   if (!xmlRes.ok) throw new Error(`WASDE XML fetch failed: ${xmlRes.status}`);
   const xmlText = await xmlRes.text();
 
@@ -273,8 +291,8 @@ async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn
 }
 
 export const usdaWasdeMonthly = inngest.createFunction(
-  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 */8 * * *" }, // Every 8 hours to catch monthly WASDE releases
+  { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { cron: "22 */8 * * *" }, // Every 8 hours at :22 UTC to catch monthly WASDE releases
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

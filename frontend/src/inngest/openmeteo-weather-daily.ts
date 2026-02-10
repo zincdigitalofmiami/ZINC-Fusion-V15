@@ -257,7 +257,7 @@ async function fetchDailyArchive(
 }
 
 export const openmeteoWeatherDaily = inngest.createFunction(
-  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY] },
+  { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
   { cron: "10 */8 * * *" }, // Every 8 hours at :10
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");

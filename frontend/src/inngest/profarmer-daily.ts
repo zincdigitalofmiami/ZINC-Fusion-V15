@@ -18,6 +18,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
+import puppeteer, { type Page } from "puppeteer-core";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -210,10 +211,13 @@ function checkTrumpRelated(title: string, content: string): boolean {
 }
 
 /**
- * Launch stealth browser and login to ProFarmer
+ * Launch browser and login to ProFarmer.
+ *
+ * Uses explicit form selectors + submit click pattern from the previously
+ * working JS login flow to reduce brittle keyboard-only behavior.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
+async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
   const user = process.env.PROFARMER_USERNAME;
   const pass = process.env.PROFARMER_PASSWORD;
 
@@ -225,29 +229,10 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
     throw new Error("PROFARMER_USERNAME and PROFARMER_PASSWORD required");
   }
 
-  // Explicitly pre-load known transitive dependency to isolate Vercel packaging/runtime misses.
-  try {
-    // @ts-expect-error - is-plain-object has type resolution issues with ESM exports
-    await import("is-plain-object");
-    console.log("[profarmer] dependency check passed: is-plain-object");
-  } catch (depErr) {
-    const depMsg =
-      depErr instanceof Error ? depErr.stack || depErr.message : String(depErr);
-    console.error(
-      `[profarmer] dependency check failed: is-plain-object :: ${depMsg}`,
-    );
-    throw new Error(`Dependency preload failed (is-plain-object): ${depMsg}`);
-  }
-
-  // Dynamic imports for serverless
-  const puppeteerExtra = await import("puppeteer-extra");
-  const StealthPlugin = await import("puppeteer-extra-plugin-stealth");
+  // Dynamic import for serverless chromium path resolution.
   const chromium = await import("@sparticuz/chromium");
 
-  // Add stealth plugin to bypass bot detection
-  puppeteerExtra.default.use(StealthPlugin.default());
-
-  const browser = await puppeteerExtra.default.launch({
+  const browser = await puppeteer.launch({
     args: [
       ...chromium.default.args,
       "--no-sandbox",
@@ -260,7 +245,6 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
     defaultViewport: { width: 1920, height: 1080 },
     executablePath: await chromium.default.executablePath(),
     headless: true,
-    ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
@@ -288,48 +272,37 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
     timeout: 60000,
   });
 
-  // Random delay to appear human
-  await new Promise((r) => setTimeout(r, 1000 + Math.random() * 2000));
-
-  // Click on the email field in the main form (not header search)
-  console.log("Finding and focusing email field...");
-  const clicked = await page.evaluate(() => {
+  const loginFormSelector = await page.evaluate(() => {
     const forms = document.querySelectorAll("form");
     for (const form of forms) {
-      const emailInput = form.querySelector(
-        'input[type="email"]',
-      ) as HTMLInputElement;
+      const emailInput = form.querySelector('input[type="email"]');
       const passInput = form.querySelector('input[type="password"]');
       if (emailInput && passInput) {
-        emailInput.focus();
-        emailInput.click();
-        return true;
+        form.setAttribute("data-profarmer-login", "true");
+        return 'form[data-profarmer-login="true"]';
       }
     }
-    return false;
+    return null;
   });
 
-  if (!clicked) {
+  if (!loginFormSelector) {
     throw new Error("Could not find login form");
   }
 
-  // Type credentials using keyboard (more reliable than setting .value)
-  console.log("Typing credentials...");
-  await page.keyboard.type(user, { delay: 80 });
-  await new Promise((r) => setTimeout(r, 300));
+  const emailSelector = `${loginFormSelector} input[type="email"]`;
+  const passwordSelector = `${loginFormSelector} input[type="password"]`;
+  const submitSelector = `${loginFormSelector} button[type="submit"], ${loginFormSelector} input[type="submit"]`;
 
-  await page.keyboard.press("Tab");
-  await new Promise((r) => setTimeout(r, 300));
+  await page.type(emailSelector, user, { delay: 50 });
+  await page.type(passwordSelector, pass, { delay: 50 });
 
-  await page.keyboard.type(pass, { delay: 80 });
-  await new Promise((r) => setTimeout(r, 500));
-
-  // Submit with Enter key
-  console.log("Submitting login...");
-  await page.keyboard.press("Enter");
-
-  // Wait for navigation
-  await new Promise((r) => setTimeout(r, 8000));
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }).catch(() => null),
+    page.click(submitSelector).catch(async () => {
+      await page.keyboard.press("Enter");
+    }),
+  ]);
+  await new Promise((r) => setTimeout(r, 2000));
 
   // Check if login succeeded
   const currentUrl = page.url();
@@ -370,7 +343,7 @@ async function launchStealthBrowser(): Promise<{ browser: any; page: any }> {
  * Scrape articles from a report page
  */
 async function scrapeReportArticles(
-  page: import("puppeteer-core").Page,
+  page: Page,
   reportUrl: string,
   reportSlug: string,
   specialists: string[],
@@ -548,11 +521,11 @@ async function scrapeReportArticles(
 export const profarmerDaily = inngest.createFunction(
   {
     id: "profarmer-daily",
-    name: "ProFarmer Premium Scraper (Stealth)",
+    name: "ProFarmer Premium Scraper",
     retries: 2,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "0 */4 * * *" }, // Every 4 hours
+  { cron: "5 */4 * * *" }, // Every 4 hours at :05
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -569,12 +542,12 @@ export const profarmerDaily = inngest.createFunction(
       );
       logger.info(`ProFarmer ingest run: ${runId}`);
 
-      // Launch stealth browser and login
+      // Launch browser and login
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let page: any;
       try {
         const result = await step.run("login", async () => {
-          return await launchStealthBrowser();
+          return await launchProFarmerBrowser();
         });
         browser = result.browser;
         page = result.page;
@@ -712,7 +685,7 @@ export const profarmerDaily = inngest.createFunction(
 );
 
 export const profarmerBackfill = inngest.createFunction(
-  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1, concurrency: [DB_CONCURRENCY] },
+  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
   { event: "profarmer/backfill" },
   async ({ step, logger }) => {
     const client = await pool.connect();
@@ -731,7 +704,7 @@ export const profarmerBackfill = inngest.createFunction(
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let page: any;
-      const result = await step.run("login", () => launchStealthBrowser());
+      const result = await step.run("login", () => launchProFarmerBrowser());
       browser = result.browser;
       page = result.page;
 

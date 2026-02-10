@@ -48,8 +48,8 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 }
 
 export const conabNewsDaily = inngest.createFunction(
-  { id: "conab-news-daily", name: "CONAB Brazil News RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { id: "conab-news-daily", name: "CONAB Brazil News RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { cron: "20 */8 * * *" }, // Every 8 hours at :20 UTC
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -65,9 +65,17 @@ export const conabNewsDaily = inngest.createFunction(
       logger.info(`Started ingest run: ${runId}`);
 
       const items = await step.run("fetch-rss", async () => {
-        const response = await fetch("https://www.conab.gov.br/rss", {
-          headers: { "User-Agent": "ZINC-Fusion/1.0" }
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        let response: Response;
+        try {
+          response = await fetch("https://www.conab.gov.br/rss", {
+            headers: { "User-Agent": "ZINC-Fusion/1.0" },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
         if (!response.ok) throw new Error(`CONAB RSS error: ${response.status}`);
         const xml = await response.text();
         const parser = new XMLParser({ ignoreAttributes: false });

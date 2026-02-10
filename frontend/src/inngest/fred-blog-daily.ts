@@ -329,9 +329,9 @@ export const fredBlogDaily = inngest.createFunction(
     id: "fred-blog-daily",
     name: "FRED Blog Scraper",
     retries: 3,
-    concurrency: [DB_CONCURRENCY],
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "0 */4 * * *" }, // Every 4 hours
+  { cron: "15 */4 * * *" }, // Every 4 hours at :15
   async ({ step, logger }) => {
     const runId = await step.run("create-ingest-run", async () => {
       const client = await pool.connect();
