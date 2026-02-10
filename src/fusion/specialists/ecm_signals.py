@@ -248,13 +248,10 @@ class PalmMLMixin:
             top_coefs = sorted(coefs.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
             logger.info(f"   Top coefficients: {top_coefs}")
             if ecm_coefs:
-                logger.info(
-                    f"   ECM coefficients: {
-                        sorted(
-                            ecm_coefs.items(), key=lambda x: abs(x[1]), reverse=True
-                        )[:5]
-                    }"
-                )
+                top_ecm = sorted(
+                    ecm_coefs.items(), key=lambda x: abs(x[1]), reverse=True
+                )[:5]
+                logger.info(f"   ECM coefficients: {top_ecm}")
 
         # Save model
         self._save_model()
