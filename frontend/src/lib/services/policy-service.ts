@@ -177,64 +177,92 @@ export class PolicyService {
   static async getRegimeStatus(): Promise<RegimeState> {
     // 1. Fetch raw inputs in parallel
     // Priority: Daily EPU -> Monthly EPU
-    const [dailyTpu, monthlyTpu, actionMetrics, legisCount, newsCount] =
-      await Promise.all([
-        query<{ val: number }>(`
+    // We fetch raw components to perform a transparent, real-time calculation
+    const [
+      dailyTpu,
+      monthlyTpu,
+      actionFeatures,
+      vixData,
+      legisCount,
+      newsCount,
+    ] = await Promise.all([
+      query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-        query<{ val: number }>(`
+      query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-        query<{ score: number }>(`
-        SELECT signal * 100 as score
-        FROM training.specialist_trump_effect_1d
+      query<{ score: number }>(`
+        SELECT weighted_action_score::float8 as score
+        FROM features.trump_effect_1d
         ORDER BY as_of_date DESC LIMIT 1
       `),
-        query<{ count: number }>(`
+      query<{ val: number }>(`
+        SELECT value::float8 as val FROM econ.vol_indices_1d
+        WHERE series_id = 'VIXCLS' AND value IS NOT NULL
+        ORDER BY event_date DESC LIMIT 1
+      `),
+      query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
         WHERE event_date >= CURRENT_DATE - INTERVAL '14 days'
         AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%')
       `),
-        query<{ count: number }>(`
+      query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.profarmer_news
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
          OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
          OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%'))
       `),
-      ]);
+    ]);
 
     // Determine EPU level (Daily preferred)
-    // If no data, default to 0 (Minimal)
-    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 0;
+    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 100; // Default to 100 if missing
 
-    // Get weighted action score from Python engine
-    // If null, we default to a baseline score derived from EPU
-    // Mapping EPU 0-300 to roughly 0-100 score if no action score exists
-    const pythonActionScore = actionMetrics[0]?.score;
-    const fallbackScore = Math.min(100, (tpu / 300) * 100);
-    const score = pythonActionScore ?? fallbackScore;
+    // Get raw inputs for calculation
+    const rawActionScore = actionFeatures[0]?.score ?? 0;
+    const vix = vixData[0]?.val ?? 15; // Default VIX 15
+
+    // "Real Math" Calculation (Transparent Component Summation)
+    // 1. Base Action Score (0-2 scale -> 0-70 points)
+    //    1.4 raw score (typical high) -> ~56 points
+    const actionPoints = Math.min(70, rawActionScore * 40);
+
+    // 2. EPU Stress (0-300 scale -> 0-30 points)
+    //    150 TPU -> 15 points
+    const epuPoints = Math.min(30, (tpu / 300) * 30);
+
+    // 3. VIX Stress (0-60 scale -> 0-10 points)
+    //    15 VIX -> 2.5 points
+    const vixPoints = Math.min(10, (vix / 60) * 10);
+
+    // Total calculation
+    const calculatedScore = Math.min(100, actionPoints + epuPoints + vixPoints);
+
+    // Use the calculated score
+    const score = calculatedScore;
 
     const lCount = legisCount[0]?.count ?? 0;
     const nCount = newsCount[0]?.count ?? 0;
 
-    // 2. Classify Regime (STRICT PYTHON THRESHOLDS)
+    // 2. Classify Regime (Score-Driven + Thresholds)
     let label: RegimeState["label"] = "Minimal";
 
-    if (tpu >= EPU_THRESHOLDS.HIGH) {
-      label = "Active War"; // > 250
-    } else if (tpu >= EPU_THRESHOLDS.ELEVATED) {
-      label = "Retaliation Risk"; // 175 - 250
-    } else if (tpu >= EPU_THRESHOLDS.NORMAL) {
-      label = "Elevated"; // 125 - 175
-    } else if (tpu >= EPU_THRESHOLDS.LOW) {
-      label = "Background Noise"; // 75 - 125
+    // Combined Logic: High Score OR High EPU triggers War state
+    if (score >= 80 || tpu >= EPU_THRESHOLDS.HIGH) {
+      label = "Active War";
+    } else if (score >= 60 || tpu >= EPU_THRESHOLDS.ELEVATED) {
+      label = "Retaliation Risk";
+    } else if (score >= 40 || tpu >= EPU_THRESHOLDS.NORMAL) {
+      label = "Elevated";
+    } else if (score >= 20 || tpu >= EPU_THRESHOLDS.LOW) {
+      label = "Background Noise";
     } else {
-      label = "Minimal"; // < 75
+      label = "Minimal";
     }
 
     return {
