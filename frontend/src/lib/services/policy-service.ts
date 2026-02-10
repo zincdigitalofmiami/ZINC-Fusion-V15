@@ -20,8 +20,8 @@ const EPU_THRESHOLDS = {
   LOW: 75,
   NORMAL: 125,
   ELEVATED: 175,
-  HIGH: 250
-}
+  HIGH: 250,
+};
 
 export class PolicyService {
   /**
@@ -177,34 +177,35 @@ export class PolicyService {
   static async getRegimeStatus(): Promise<RegimeState> {
     // 1. Fetch raw inputs in parallel
     // Priority: Daily EPU -> Monthly EPU
-    const [dailyTpu, monthlyTpu, actionMetrics, legisCount, newsCount] = await Promise.all([
-      query<{ val: number }>(`
+    const [dailyTpu, monthlyTpu, actionMetrics, legisCount, newsCount] =
+      await Promise.all([
+        query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ val: number }>(`
+        query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ score: number }>(`
+        query<{ score: number }>(`
         SELECT weighted_action_score as score FROM features.trump_effect_1d
         ORDER BY as_of_date DESC LIMIT 1
       `),
-      query<{ count: number }>(`
+        query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
         WHERE event_date >= CURRENT_DATE - INTERVAL '14 days'
         AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%')
       `),
-      query<{ count: number }>(`
+        query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.profarmer_news
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
          OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
          OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%'))
       `),
-    ]);
+      ]);
 
     // Determine EPU level (Daily preferred)
     // If no data, default to 0 (Minimal)
@@ -246,4 +247,38 @@ export class PolicyService {
       },
     };
   }
+}
+
+// ===========================================
+// EXPORTED HELPER FUNCTIONS (API SUPPORT)
+// ===========================================
+
+export function scoreTpu(value: number): { score: number; regime: string } {
+  // Normalize 0-300 scale to 0-100
+  const score = Math.min(100, (value / 300) * 100);
+
+  let regime = "Minimal";
+  if (value >= EPU_THRESHOLDS.HIGH) regime = "Active War";
+  else if (value >= EPU_THRESHOLDS.ELEVATED) regime = "Retaliation Risk";
+  else if (value >= EPU_THRESHOLDS.NORMAL) regime = "Elevated";
+  else if (value >= EPU_THRESHOLDS.LOW) regime = "Background Noise";
+
+  return { score, regime };
+}
+
+export function scoreEmv(value: number | null): { score: number } {
+  if (value === null) return { score: 0 };
+  // EMV tends to align with EPU, use same normalization for consistency
+  const score = Math.min(100, (value / 300) * 100);
+  return { score };
+}
+
+export function scoreLegislationVelocity(count: number): number {
+  // Simple heuristic: 0 count -> 0, 10 count -> +20
+  return Math.min(20, count * 2);
+}
+
+export function scoreNewsVelocity(count: number): number {
+  // Simple heuristic: 0 count -> 0, 20 count -> +20
+  return Math.min(20, count);
 }
