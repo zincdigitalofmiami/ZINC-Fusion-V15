@@ -16,14 +16,15 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 // Databento FX pairs not available from FRED
+// Pair names use SLASH format per 20260118_fx_consolidation migration convention.
 // Note: These are CME futures, close price used as spot proxy
 const DATABENTO_PAIRS: Array<{
   pair: string;
   continuous: string;
   invert: boolean; // True if CME quotes XXX/USD but we want USD/XXX
 }> = [
-  { pair: "NZDUSD", continuous: "6N.c.0", invert: false },
-  { pair: "USDZAR", continuous: "6Z.c.0", invert: true }, // CME: ZAR/USD -> USD/ZAR
+  { pair: "NZD/USD", continuous: "6N.c.0", invert: false },
+  { pair: "ZAR/USD", continuous: "6Z.c.0", invert: true }, // CME: ZAR/USD -> inverted to USD/ZAR rate
 ];
 
 function computeRowHash(pair: string, eventDate: string, rate: number): string {

@@ -60,10 +60,15 @@ from .matrix_validation import validate_matrix
 
 # Forward fill configuration
 try:
-    from fusion.config.forward_fill_config import get_ttl_days, FRED_CONFIG
+    from fusion.config.forward_fill_config import (
+        get_ttl_days,
+        get_source_config,
+        FRED_CONFIG,
+    )
 except ImportError:
     # Fallback defaults if config not available
     get_ttl_days = lambda x: 5  # noqa: E731
+    get_source_config = lambda x: None  # noqa: E731
     FRED_CONFIG = {}
 
 logger = logging.getLogger(__name__)
@@ -520,6 +525,7 @@ def merge_asof_to_trading_days(
     base_df: pd.DataFrame,
     source_df: pd.DataFrame,
     date_col: str = "trade_date",
+    tolerance_days: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Merge source data to trading days using backward-looking alignment.
@@ -530,7 +536,16 @@ def merge_asof_to_trading_days(
 
     Example: ICSA released Saturday 2026-01-17 → aligns to Monday 2026-01-20
 
+    Args:
+        base_df: Trading day calendar (left side of merge)
+        source_df: Source data with release dates
+        date_col: Column containing dates
+        tolerance_days: Maximum number of days to look back for a match.
+            If None, no limit (any historical value can match).
+            Set per-source to prevent arbitrarily old data from leaking in.
+
     PATCH: 2026-01-23 - Fixes 0% coverage for weekly/monthly data
+    PATCH: 2026-02-09 - Added per-source tolerance to cap stale data leakage
     """
     if len(source_df) == 0:
         return base_df
@@ -551,11 +566,17 @@ def merge_asof_to_trading_days(
 
     # merge_asof: for each trading day, find the most recent source row
     # direction='backward' means: use source row with date <= trading day
+    asof_kwargs: Dict[str, Any] = {
+        "on": "_dt",
+        "direction": "backward",
+    }
+    if tolerance_days is not None:
+        asof_kwargs["tolerance"] = pd.Timedelta(days=tolerance_days)
+
     merged = pd.merge_asof(
         base_df,
         source_df[["_dt"] + merge_cols],
-        on="_dt",
-        direction="backward",
+        **asof_kwargs,
     )
 
     # Clean up
@@ -1452,6 +1473,7 @@ def load_fred_macro(conn) -> pd.DataFrame:
             SELECT series_id, event_date, value FROM econ.commodities_1d
             UNION ALL
             -- FX consolidated to mkt.fx_1d - map pair back to series_id format
+            -- Pair names use SLASH format per 20260118_fx_consolidation migration
             SELECT
                 CASE pair
                     WHEN 'EUR/USD' THEN 'DEXUSEU'
@@ -1464,11 +1486,19 @@ def load_fred_macro(conn) -> pd.DataFrame:
                     WHEN 'INR/USD' THEN 'DEXINUS'
                     WHEN 'TWD/USD' THEN 'DEXTAUS'
                     WHEN 'AUD/USD' THEN 'DEXUSAL'
+                    WHEN 'GBP/USD' THEN 'DEXUSUK'
+                    WHEN 'CHF/USD' THEN 'DEXSZUS'
+                    WHEN 'SGD/USD' THEN 'DEXSIUS'
+                    WHEN 'HKD/USD' THEN 'DEXHKUS'
+                    WHEN 'MYR/USD' THEN 'DEXMAUS'
+                    WHEN 'NOK/USD' THEN 'DEXNOUS'
+                    WHEN 'SEK/USD' THEN 'DEXSDUS'
+                    WHEN 'THB/USD' THEN 'DEXTHUS'
                     WHEN 'DXY_BROAD' THEN 'DTWEXBGS'
                     WHEN 'DXY_AFE' THEN 'DTWEXAFEGS'
                     WHEN 'DXY_EME' THEN 'DTWEXEMEGS'
                     WHEN 'DXY_MAJOR' THEN 'DTWEXM'
-                    ELSE pair
+                    ELSE NULL
                 END as series_id,
                 event_date,
                 rate as value
@@ -1498,11 +1528,33 @@ def load_fred_macro(conn) -> pd.DataFrame:
         # Forward-fill ensures each date has last known value for ALL series.
         # This is NOT data leakage - it's reproducing what was known at each date.
         #
-        # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill per policy
-        # Daily FRED series: 3-day TTL (LOCKED threshold)
+        # TTL UPDATE (2026-02-09): Per-cadence TTL using LOCKED forward_fill_config thresholds
+        # Daily FRED series: 3-day TTL, weekend_exempt
         # Weekly FRED series: 10-day TTL
-        # Monthly FRED series: should use event encoding, not level ffill
-        df_wide = ffill_dataframe_with_ttl(df_wide, ttl_days=3)
+        # Monthly FRED series: NO level ffill (event encoding handles these downstream)
+        daily_cols = []
+        weekly_cols = []
+        # Monthly cols intentionally excluded — they use event encoding, not level ffill
+        for col in df_wide.columns:
+            cfg = get_source_config(col)
+            if cfg is not None:
+                if cfg.cadence == "daily":
+                    daily_cols.append(col)
+                elif cfg.cadence == "weekly":
+                    weekly_cols.append(col)
+                # monthly/quarterly: skip ffill (event encoding only)
+            else:
+                # Unknown series — conservative daily TTL as fallback
+                daily_cols.append(col)
+
+        if daily_cols:
+            df_wide = ffill_dataframe_with_ttl(
+                df_wide, ttl_days=3, columns=daily_cols, weekend_exempt=True
+            )
+        if weekly_cols:
+            df_wide = ffill_dataframe_with_ttl(
+                df_wide, ttl_days=10, columns=weekly_cols
+            )
 
         df_wide = df_wide.reset_index()
         # Prefix column names
@@ -2695,7 +2747,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             logger.info("Merging FRED macro (asof for mixed frequencies)...")
             df_fred = normalize_date_column(df_fred, "trade_date")
             before_cols = len(df.columns)
-            df = merge_asof_to_trading_days(df, df_fred)
+            df = merge_asof_to_trading_days(df, df_fred, tolerance_days=7)
             fred_cols = [c for c in df.columns if c.startswith("fred_")]
             non_null = df[fred_cols].notna().any(axis=1).sum() if fred_cols else 0
             logger.info(f"   Added {len(df.columns) - before_cols} FRED columns")
@@ -2745,7 +2797,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             ]
             df = pure_event_encode(df, df_cot, cftc_value_cols, prefix="cftc_zl")
             # ALSO keep legacy merge for backward compatibility during T0 phase
-            df = merge_asof_to_trading_days(df, df_cot)
+            df = merge_asof_to_trading_days(df, df_cot, tolerance_days=14)
             logger.info(
                 f"   Added {len(df.columns) - before_cols} CFTC columns (event-encoded + legacy)"
             )
@@ -2754,14 +2806,14 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         if len(df_cits) > 0:
             logger.info("Merging CFTC CITS index traders (asof)...")
             before_cols = len(df.columns)
-            df = merge_asof_to_trading_days(df, df_cits)
+            df = merge_asof_to_trading_days(df, df_cits, tolerance_days=14)
             logger.info(f"   Added {len(df.columns) - before_cols} CITS columns")
 
         # Merge EPA RIN prices (WEEKLY - use asof merge)
         if len(df_rin) > 0:
             logger.info("Merging EPA RIN prices (asof)...")
             before_cols = len(df.columns)
-            df = merge_asof_to_trading_days(df, df_rin)
+            df = merge_asof_to_trading_days(df, df_rin, tolerance_days=14)
             rin_cols = [c for c in df.columns if c.startswith("rin_")]
             non_null = df[rin_cols].notna().any(axis=1).sum() if rin_cols else 0
             logger.info(f"   Added {len(df.columns) - before_cols} RIN columns")
@@ -2775,7 +2827,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             lcfs_cols = [c for c in df_lcfs.columns if c != "trade_date"]
             df = pure_event_encode(df, df_lcfs, lcfs_cols, prefix="lcfs_ca")
             # ALSO keep legacy merge for backward compatibility during T0 phase
-            df = merge_asof_to_trading_days(df, df_lcfs)
+            df = merge_asof_to_trading_days(df, df_lcfs, tolerance_days=21)
             logger.info(
                 f"   Added {len(df.columns) - before_cols} LCFS columns (event-encoded + legacy)"
             )
@@ -2791,7 +2843,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
                 df, df_exports, usda_export_cols, prefix="usda_exports"
             )
             # ALSO keep legacy merge for backward compatibility during T0 phase
-            df = merge_asof_to_trading_days(df, df_exports)
+            df = merge_asof_to_trading_days(df, df_exports, tolerance_days=21)
             logger.info(
                 f"   Added {len(df.columns) - before_cols} USDA export columns (event-encoded + legacy)"
             )
@@ -2807,7 +2859,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             wasde_cols_raw = [c for c in df_wasde.columns if c != "trade_date"]
             df = pure_event_encode(df, df_wasde, wasde_cols_raw, prefix="")
             # ALSO keep legacy merge for backward compatibility during T0 phase
-            df = merge_asof_to_trading_days(df, df_wasde)
+            df = merge_asof_to_trading_days(df, df_wasde, tolerance_days=45)
             logger.info(
                 f"   Added {len(df.columns) - before_cols} WASDE columns (event-encoded + legacy)"
             )
@@ -2908,7 +2960,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
             pmi_cols = [c for c in df_china_pmi.columns if c != "trade_date"]
             df = pure_event_encode(df, df_china_pmi, pmi_cols, prefix="pmi_cn_nbs")
             # ALSO keep legacy merge for backward compatibility during T0 phase
-            df = merge_asof_to_trading_days(df, df_china_pmi)
+            df = merge_asof_to_trading_days(df, df_china_pmi, tolerance_days=45)
             logger.info(
                 f"   Added {len(df.columns) - before_cols} China PMI columns (event-encoded + legacy)"
             )
@@ -2917,7 +2969,7 @@ def run(symbol: str = TARGET_SYMBOL) -> Tuple[bool, Optional[str], int]:
         if len(df_dalian) > 0:
             logger.info("Merging Dalian soybean oil proxy (asof)...")
             before_cols = len(df.columns)
-            df = merge_asof_to_trading_days(df, df_dalian)
+            df = merge_asof_to_trading_days(df, df_dalian, tolerance_days=7)
             logger.info(f"   Added {len(df.columns) - before_cols} Dalian soy columns")
 
         # Merge news sentiment (NEW 2026-01-23)
