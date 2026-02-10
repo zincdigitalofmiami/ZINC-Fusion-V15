@@ -306,8 +306,8 @@ export default async function PolicyPage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 pb-20">
-      <div className="max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-20 pb-20">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* HEADER */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
