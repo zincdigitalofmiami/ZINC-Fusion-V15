@@ -58,6 +58,9 @@ def get_database_url() -> str:
     Get Prisma Postgres connection URL from environment.
 
     Checks DATABASE_URL first, then POSTGRES_URL as fallback.
+    Ensures gssencmode=disable is present — psycopg2-binary ships libpq 17
+    which tries GSSAPI encryption before SSL, and the Prisma Postgres proxy
+    drops the connection when it receives a GSSENCRequest it doesn't understand.
 
     Returns:
         Connection URL string
@@ -67,7 +70,9 @@ def get_database_url() -> str:
     """
     url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
     if not url:
-        raise ValueError("DATABASE_URL not set. " "Set it in environment or .env file.")
+        raise ValueError("DATABASE_URL not set. Set it in environment or .env file.")
+    if "gssencmode" not in url:
+        url += "&gssencmode=disable" if "?" in url else "?gssencmode=disable"
     return url
 
 
@@ -128,9 +133,9 @@ def get_write_connection() -> "psycopg2.extensions.connection":
 
 
 @contextmanager
-def DatabaseConnections() -> (
-    Generator[Tuple[Engine, "psycopg2.extensions.connection"], None, None]
-):
+def DatabaseConnections() -> Generator[
+    Tuple[Engine, "psycopg2.extensions.connection"], None, None
+]:
     """
     Context manager providing both read engine and write connection.
 
