@@ -64,6 +64,7 @@ import {
   zl1mBackfill,
   zl1mScheduledBackfill,
   cleanupStaleRuns,
+  lcfsCreditWeekly,
 } from "@/inngest/functions";
 
 /**
@@ -187,6 +188,8 @@ export const { GET, POST, PUT } = serve({
     zl1mScheduledBackfill,
     // Ops cleanup
     cleanupStaleRuns,
+    // Supply data (weekly)
+    lcfsCreditWeekly,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
