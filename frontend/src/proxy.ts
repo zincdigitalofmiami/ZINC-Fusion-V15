@@ -8,7 +8,6 @@ const PUBLIC_PATH_PREFIXES = [
   '/api/auth',
   '/api/inngest',        // Public - Inngest handles its own auth via signing key
   '/api/zl',             // Public - ZL price data endpoints
-  '/api/vegas',          // Public - Vegas intel and brief endpoints
   '/api/market-drivers', // Public - Key market drivers for dashboard
   '/api/quant',          // Public - Quant overview data
   '/api/epu',            // Public - Economic policy uncertainty

@@ -1056,14 +1056,6 @@ def strategy_risk(symbol: str = "ZL", horizon: Optional[str] = None) -> Dict[str
     return {"symbol": symbol, "risk_metrics": rows}
 
 
-@app.get("/api/vegas-intel/status")
-def vegas_intel_status() -> Dict[str, Any]:
-    return {
-        "status": "not_implemented",
-        "reason": "Vegas-intel tables not available.",
-    }
-
-
 @app.get("/api/sentiment/policy")
 def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> Dict[str, Any]:
     return {"rows": get_policy_sentiment(limit=limit)}
