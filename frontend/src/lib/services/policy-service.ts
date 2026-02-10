@@ -190,7 +190,8 @@ export class PolicyService {
         ORDER BY event_date DESC LIMIT 1
       `),
         query<{ score: number }>(`
-        SELECT weighted_action_score as score FROM features.trump_effect_1d
+        SELECT signal * 100 as score
+        FROM training.specialist_trump_effect_1d
         ORDER BY as_of_date DESC LIMIT 1
       `),
         query<{ count: number }>(`
