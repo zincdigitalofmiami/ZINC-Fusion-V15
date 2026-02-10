@@ -63,6 +63,7 @@ import {
   fredBlogDaily,
   zl1mBackfill,
   zl1mScheduledBackfill,
+  cleanupStaleRuns,
 } from "@/inngest/functions";
 
 /**
@@ -184,6 +185,8 @@ export const { GET, POST, PUT } = serve({
     // ZL 1m backfill
     zl1mBackfill,
     zl1mScheduledBackfill,
+    // Ops cleanup
+    cleanupStaleRuns,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

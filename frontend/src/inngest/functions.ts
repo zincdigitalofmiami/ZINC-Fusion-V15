@@ -51,3 +51,4 @@ export { databentoEtfVwapDaily, databentoEtfVwapBackfill } from "./databento-etf
 export { zl1mBackfill, zl1mScheduledBackfill } from "./zl-1m-backfill";
 export { fredBlogDaily } from "./fred-blog-daily";
 export { argentinaCrushMonthly } from "./argentina-crush-monthly";
+export { cleanupStaleRuns } from "./cleanup-stale-runs";
