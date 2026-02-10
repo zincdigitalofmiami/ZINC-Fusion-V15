@@ -1,5 +1,8 @@
 /**
- * Migrate elite indicators from features.elite_1d to mkt.futures_1d
+ * DEPRECATED — features.elite_1d has been consolidated into mkt.futures_1d.
+ * Migration is complete. This script is retained for historical reference only. DO NOT RUN.
+ *
+ * Original: Migrate elite indicators from features.elite_1d to mkt.futures_1d
  * Batched by symbol to avoid timeout
  */
 

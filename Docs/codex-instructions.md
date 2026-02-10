@@ -127,7 +127,7 @@ This is intentional architecture, not drift.
 - `supply` — Supply/demand (USDA, EPA, trade flows)
 
 **Derived (computed):**
-- `features` — Business-ready features (elite_1d, options_1d)
+- `features` — Business-ready features (options_1d, intel_drops, trump_effect_1d); elite_1d consolidated into mkt.futures_1d
 - `training` — Training matrices and OOF outputs
 
 **Output:**

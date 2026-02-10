@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
 """
-Rebuild Elite Indicators with Fixed Code
+DEPRECATED — features.elite_1d has been consolidated into mkt.futures_1d.
+Elite indicators are now stored directly in mkt.futures_1d.
+This script is retained for historical reference only. DO NOT RUN.
 
-This script recomputes features.elite_1d using the fixed
-elite_indicators.py that handles edge cases:
-- connors_rsi: division-safe RSI (no NaN on flat tape)
-- garman_klass_vol: flat bar safe (H=L → 0, not NaN)
-- cmf_21: zero volume safe (neutral outputs)
-
-Supports multi-symbol processing for cross-asset elite indicators.
-
-Usage:
-    python scripts/rebuild_elite_indicators.py                   # All symbols
-    python scripts/rebuild_elite_indicators.py --symbols ZL ZS   # Specific symbols
-    python scripts/rebuild_elite_indicators.py --dry-run
+Original description:
+Rebuild Elite Indicators with Fixed Code — recomputes features.elite_1d.
 """
 
 import sys

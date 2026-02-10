@@ -113,7 +113,7 @@ Domains are logical tags; physical storage uses institutional schemas.
 | alternative | `alt.*` | `alt.news_1d`, `alt.weather_1d`, `alt.legislation_1d` |
 | positioning | `pos.*` | `pos.cftc_1w` |
 | supply | `supply.*` | `supply.usda_wasde_1m`, `supply.epa_rin_1d` |
-| features | `features.*` | `features.elite_1d`, `features.options_1d` |
+| features | `features.*` | `features.options_1d` (elite_1d consolidated into `mkt.futures_1d`) |
 | training | `training.*` | `training.matrix_1d`, `training.oof_core_1d` |
 
 ### Archive Policy (v2)
@@ -230,7 +230,7 @@ Institutional schema taxonomy. Migrated 2026-01-18.
 | `alt` | Alternative data (news, weather, legislation) | Append-only |
 | `pos` | Positioning data (CFTC) | Append-only |
 | `supply` | Supply/demand (USDA, EPA, trade flows) | Append-only |
-| `features` | Denormalized feature store (elite_1d, news_scored_1d, weather_1d) | Computed / rebuilt |
+| `features` | Denormalized feature store (options_1d, intel_drops, trump_effect_1d); elite_1d consolidated into mkt.futures_1d | Computed / rebuilt |
 | `training` | Matrices + OOF + specialist features | Rebuilt on demand |
 | `model` | Model registry + training runs | Versioned |
 | `forecasts` | Prediction outputs | Versioned |

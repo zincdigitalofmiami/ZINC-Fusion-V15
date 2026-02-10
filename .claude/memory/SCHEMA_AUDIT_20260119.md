@@ -10,7 +10,7 @@ Forward fill policy: [Docs/FORWARD_FILL_POLICY.md](Docs/FORWARD_FILL_POLICY.md)
 | Item | Status | Count |
 |------|--------|-------|
 | `training.matrix_1d` | **POPULATED** | 7,808 rows (1980-2026) |
-| `features.elite_1d` | **POPULATED** | 7,818 rows |
+| `features.elite_1d` | **DROPPED** — consolidated into `mkt.futures_1d` | was 7,818 rows |
 | `model.cv_folds` | **POPULATED** | 188,140 rows |
 | Target columns | **ALL 4 PRESENT** | 5d/21d/63d/126d |
 

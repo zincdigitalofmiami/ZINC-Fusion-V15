@@ -80,10 +80,11 @@ Known tables:
 ### features (denormalized features)
 Purpose: business-ready features built from mkt + econ data.
 Known tables:
-- features.elite_1d
 - features.news_sentiment_1d
 - features.trump_effect_1d
 - features.intel_drops (Pulse feature - future)
+
+Note: features.elite_1d has been consolidated into mkt.futures_1d (DROPPED).
 
 Note: Weather features are computed on-the-fly from alt.weather_1d.
 
@@ -156,10 +157,10 @@ Landing schemas and derived schemas use different time column names to reflect t
 ### Join Pattern
 
 ```sql
--- Joining landing to derived
-FROM mkt.futures_1d m
-JOIN features.elite_1d f ON m.event_date = f.trade_date
-WHERE m.symbol = 'ZL';
+-- Elite indicators are now in mkt.futures_1d (no join needed)
+SELECT event_date, symbol, close, rsi_14, hurst_exponent
+FROM mkt.futures_1d
+WHERE symbol = 'ZL';
 
 -- Joining multiple landing tables
 FROM mkt.futures_1d m
@@ -275,7 +276,6 @@ Consider `metadata.trading_calendar` table for business day mapping (holidays, h
 
 | Table | Natural Key | Conflict Policy | Change Tracking |
 |-------|-------------|-----------------|-----------------|
-| `features.elite_1d` | (trade_date, symbol) | DO UPDATE | None |
 | `features.options_1d` | (trade_date, symbol) | DO UPDATE | None |
 | `training.matrix_1d` | (trade_date, symbol, matrix_version) | DO UPDATE | matrix_version |
 | `training.oof_core_1d` | (trade_date, symbol, horizon_days, window_id) | DO UPDATE | run_hash |

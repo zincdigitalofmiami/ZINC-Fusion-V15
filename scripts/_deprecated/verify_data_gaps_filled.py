@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Verify Data Gaps Filled & Training Matrix Enhanced
+DEPRECATED — features.elite_1d has been consolidated into mkt.futures_1d.
+Section 4 (elite multi-symbol check) queries a dropped table. DO NOT RUN.
 
-Run this locally: python scripts/verify_data_gaps_filled.py
-
-Validates the summary claims:
-1. Trump Effect Features (6 columns)
-2. New Correlations (7 columns)  
-3. Elite Indicators Multi-Symbol Support (11 symbols)
-4. Total columns = 162, Total rows = 6,632
+Original description:
+ZINC-FUSION-V15: Verify Data Gaps Filled & Training Matrix Enhanced.
 """
 
 import os

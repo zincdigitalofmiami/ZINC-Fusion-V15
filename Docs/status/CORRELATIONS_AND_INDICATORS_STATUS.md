@@ -6,13 +6,13 @@
 
 ## ✅ What's Already Done
 
-### Elite Indicators - 100% Coverage ✅
-- **Table**: `features.elite_1d`
-- **Rows**: 444,780 pre-calculated indicators
+### Elite Indicators - 100% Coverage ✅ (consolidated into mkt.futures_1d)
+- **Table**: `mkt.futures_1d` (formerly `features.elite_1d`, now consolidated)
+- **Rows**: 444,780+ pre-calculated indicators
 - **Coverage**: 100% for all major symbols (ZL, ZS, VX, ES, NQ, FX pairs, etc.)
 - **Indicators**: Hurst, Connors RSI, Fisher Transform, McGinley, TTM Squeeze, Schaff, RVI, Elder Force, KAMA, HMA, ALMA, RSI
 
-**Status**: ✅ Already calculating on data insert for all symbols
+**Status**: ✅ Consolidated into mkt.futures_1d — single table for OHLCV + indicators
 
 ---
 
@@ -36,12 +36,12 @@ Added to `mkt.futures_1d`:
 ## 🎯 Architecture: Calculate on Insert
 
 ### Current State
-1. ✅ **Elite indicators**: Calculated and stored in `features.elite_1d` (100% coverage)
+1. ✅ **Elite indicators**: Consolidated into `mkt.futures_1d` (100% coverage)
 2. 🔧 **ZL correlations**: Columns added, backfill script ready
 
 ### Desired State (Auto-calculation on Insert)
 When new futures data lands → automatically calculate:
-1. Elite indicators → `features.elite_1d`
+1. Elite indicators → `mkt.futures_1d` (indicator columns)
 2. ZL correlations → `mkt.futures_1d.zl_corr_*`
 
 ### Implementation Options
@@ -59,7 +59,7 @@ FOR EACH ROW EXECUTE FUNCTION calculate_zl_correlation_trigger();
 ```
 
 **Option 2**: Application-side (current approach)
-- Inngest jobs calculate and insert to `features.elite_1d` after futures insert
+- Inngest jobs calculate and update indicator columns in `mkt.futures_1d` after futures insert
 - Works but adds latency
 
 **Option 3**: Batch calculation (scheduled)

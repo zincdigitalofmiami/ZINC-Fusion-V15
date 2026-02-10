@@ -1,3 +1,6 @@
+// DEPRECATED — features.elite_1d has been consolidated into mkt.futures_1d.
+// Migration is complete. This script is retained for historical reference only. DO NOT RUN.
+
 const { Pool } = require('pg');
 require('dotenv').config({ path: require('path').join(__dirname, '../frontend/.env.local') });
 
