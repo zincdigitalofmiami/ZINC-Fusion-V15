@@ -1385,6 +1385,13 @@ model options_1d {
   theta              Float?
   vega               Float?
   rho                Float?
+  opening_price_stat Float?
+  indicative_opening Float?
+  session_low_stat   Float?
+  session_high_stat  Float?
+  cleared_volume     BigInt?
+  fixing_price       Float?
+  close_stat         Float?
   source             String?   @default("databento") @db.VarChar(50)
   ingested_at        DateTime? @default(now()) @db.Timestamptz(6)
   row_hash           String?   @db.VarChar(64)
