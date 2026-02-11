@@ -191,9 +191,14 @@ def _first_existing_column(
 
 
 def _to_datetime(value: Any) -> datetime:
-    """Best-effort conversion of DB values to datetime for sorting."""
+    """Best-effort conversion of DB values to datetime for sorting.
+
+    Always returns offset-naive datetime to avoid comparison errors
+    between offset-naive and offset-aware values from different DB tables.
+    """
     if isinstance(value, datetime):
-        return value
+        # Strip timezone info for consistent comparison
+        return value.replace(tzinfo=None)
     if isinstance(value, date):
         return datetime.combine(value, datetime.min.time())
     if isinstance(value, str):
@@ -201,7 +206,8 @@ def _to_datetime(value: Any) -> datetime:
         if text.endswith("Z"):
             text = text[:-1] + "+00:00"
         try:
-            return datetime.fromisoformat(text)
+            dt = datetime.fromisoformat(text)
+            return dt.replace(tzinfo=None)
         except ValueError:
             return datetime.min
     return datetime.min
@@ -654,28 +660,17 @@ def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: Optional[List[int]] = Query(None),
 ) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use forecasts.forecast_quantiles table
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles
-            WHERE symbol = ?
-            ORDER BY as_of_date ASC
-            """,
-            [symbol],
-        )
-    else:
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles
-            WHERE symbol = ?
-            ORDER BY as_of_date ASC
-            """,
-            [symbol],
-        )
+    # forecasts.forecast_quantiles actual columns:
+    # id, model_name, horizon, forecast_date, target_date, symbol, p10, p50, p90, created_at
+    rows = _fetch_rows(
+        """
+        SELECT forecast_date AS as_of_date, horizon AS horizon_days, p10, p50, p90
+        FROM forecasts.forecast_quantiles
+        WHERE symbol = ?
+        ORDER BY forecast_date ASC
+        """,
+        [symbol],
+    )
 
     if horizon_days:
         rows = [row for row in rows if row["horizon_days"] in horizon_days]
@@ -848,8 +843,23 @@ def db_info(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
 
 @app.get("/api/db/schemas")
 def db_schemas(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
-    # Return canonical schema list for Prisma Postgres
-    return {"schemas": ["raw", "training", "forecasts", "features", "specialist"]}
+    # Return canonical schema list for Prisma Postgres (12 schemas per AGENTS.md)
+    return {
+        "schemas": [
+            "mkt",
+            "econ",
+            "alt",
+            "pos",
+            "supply",
+            "features",
+            "training",
+            "model",
+            "forecasts",
+            "analytics",
+            "metadata",
+            "ops",
+        ]
+    }
 
 
 @app.get("/api/db/tables")
@@ -1041,18 +1051,24 @@ def strategy_posture(symbol: str = "ZL") -> Dict[str, Any]:
 
 @app.get("/api/strategy/risk")
 def strategy_risk(symbol: str = "ZL", horizon: Optional[str] = None) -> Dict[str, Any]:
+    # analytics.risk_metrics actual columns:
+    # id, as_of_date, horizon, var_01, var_05, var_10, cvar_05,
+    # prob_up, prob_up_5pct, prob_down_5pct, regime, tail_risk_flag, created_at
     rows = _fetch_rows(
         """
-        SELECT as_of_date, horizon, var_95, var_99, cvar_95, cvar_99
+        SELECT as_of_date, horizon, var_01, var_05, var_10, cvar_05,
+               prob_up, prob_up_5pct, prob_down_5pct, regime, tail_risk_flag
         FROM analytics.risk_metrics
-        WHERE symbol = ?
         ORDER BY as_of_date DESC
         LIMIT 1000
         """,
-        [symbol],
     )
     if horizon:
-        rows = [row for row in rows if row.get("horizon") == horizon]
+        try:
+            h = int(horizon)
+            rows = [row for row in rows if row.get("horizon") == h]
+        except ValueError:
+            rows = [row for row in rows if str(row.get("horizon")) == horizon]
     return {"symbol": symbol, "risk_metrics": rows}
 
 
@@ -1071,52 +1087,27 @@ def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> Dict[str, Any]:
 
 @app.get("/api/drivers/latest")
 def drivers_latest(symbol: str = "ZL") -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use analytics.driver_scores table (corrected schema)
-        rows = _fetch_rows(
-            """
-            WITH latest AS (
-                SELECT MAX(as_of_date) AS as_of_date
-                FROM analytics.driver_scores
-                WHERE symbol = ?
-            )
-            SELECT
-                s.as_of_date,
-                s.symbol,
-                s.bucket as specialist,
-                s.direction,
-                s.score,
-                s.weight
-            FROM analytics.driver_scores s
-            JOIN latest l ON s.as_of_date = l.as_of_date
-            WHERE s.symbol = ?
-            ORDER BY s.bucket
-            """,
-            [symbol, symbol],
+    # analytics.driver_scores actual columns:
+    # id, as_of_date, specialist, signal, direction, confidence, shap_contribution, created_at
+    # Note: no 'symbol' column exists in this table
+    rows = _fetch_rows(
+        """
+        WITH latest AS (
+            SELECT MAX(as_of_date) AS as_of_date
+            FROM analytics.driver_scores
         )
-    else:
-        rows = _fetch_rows(
-            """
-            WITH latest AS (
-                SELECT MAX(as_of_date) AS as_of_date
-                FROM analytics.driver_scores
-                WHERE symbol = ?
-            )
-            SELECT
-                s.as_of_date,
-                s.symbol,
-                s.bucket as specialist,
-                s.direction,
-                s.score,
-                s.weight
-            FROM analytics.driver_scores s
-            JOIN latest l ON s.as_of_date = l.as_of_date
-            WHERE s.symbol = ?
-            ORDER BY s.bucket
-            """,
-            [symbol, symbol],
-        )
+        SELECT
+            s.as_of_date,
+            s.specialist,
+            s.direction,
+            s.signal AS score,
+            s.confidence AS weight,
+            s.shap_contribution
+        FROM analytics.driver_scores s
+        JOIN latest l ON s.as_of_date = l.as_of_date
+        ORDER BY s.specialist
+        """,
+    )
     as_of_date = rows[0]["as_of_date"] if rows else None
     return {"symbol": symbol, "as_of_date": as_of_date, "signals": rows}
 
@@ -1127,38 +1118,21 @@ def drivers_series(
     driver_id: str = Query(..., min_length=1),
     limit: int = Query(2000, ge=1, le=10000),
 ) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use analytics.driver_scores (corrected schema)
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, score
-            FROM (
-                SELECT as_of_date, score
-                FROM analytics.driver_scores
-                WHERE symbol = ? AND bucket = ?
-                ORDER BY as_of_date DESC
-                LIMIT ?
-            ) t
-            ORDER BY as_of_date ASC
-            """,
-            [symbol, driver_id, limit],
-        )
-    else:
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, score
-            FROM (
-                SELECT as_of_date, score
-                FROM analytics.driver_scores
-                WHERE symbol = ? AND bucket = ?
-                ORDER BY as_of_date DESC
-                LIMIT ?
-            ) t
-            ORDER BY as_of_date ASC
-            """,
-            [symbol, driver_id, limit],
-        )
+    # analytics.driver_scores actual columns: specialist, signal (not bucket, score)
+    rows = _fetch_rows(
+        """
+        SELECT as_of_date, score
+        FROM (
+            SELECT as_of_date, signal AS score
+            FROM analytics.driver_scores
+            WHERE specialist = ?
+            ORDER BY as_of_date DESC
+            LIMIT ?
+        ) t
+        ORDER BY as_of_date ASC
+        """,
+        [driver_id, limit],
+    )
     series = [
         {"time": row["as_of_date"], "value": row["score"]}
         for row in rows

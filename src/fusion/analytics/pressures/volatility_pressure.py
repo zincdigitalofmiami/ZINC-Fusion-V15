@@ -352,9 +352,6 @@ def score_profarmer_hedge_sentiment(
     if total_articles == 0:
         return 0, "No ProFarmer data"
 
-    # Both raw count and concentration matter
-    concentration = hedge_article_count / total_articles
-
     if hedge_article_count >= 15:
         # Very high absolute count - major hedging focus
         return (
@@ -368,10 +365,8 @@ def score_profarmer_hedge_sentiment(
     elif hedge_article_count >= 1:
         return 0, f"Light hedge mentions ({hedge_article_count} articles)"
     else:
-        # No hedge talk - either calm or complacent
-        if concentration < 0.01:
-            return -3, "No hedge discussion - calm or complacent"
-        return 0, "Minimal hedge focus"
+        # No hedge talk — when hedge_article_count is 0 concentration is always 0
+        return -3, "No hedge discussion - calm or complacent"
 
 
 def generate_vol_narrative(
@@ -572,7 +567,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
     # ==== PROFARMER HEDGE SENTIMENT (SOY-CENTRIC) ====
     # Count articles mentioning hedging/volatility in last 7 days
     hedge_keywords_sql = " OR ".join(
-        [f"content ILIKE '%{kw}%'" for kw in HEDGE_KEYWORDS[:6]]
+        [f"content ILIKE '%%{kw}%%'" for kw in HEDGE_KEYWORDS[:6]]
     )
     cur.execute(
         f"""
