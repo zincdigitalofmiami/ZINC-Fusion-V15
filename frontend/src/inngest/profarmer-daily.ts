@@ -4,10 +4,13 @@
  * Client pays $500/month for ProFarmer subscription.
  * Uses puppeteer-extra with stealth plugin to bypass bot detection.
  *
- * Scrapes 4 key reports:
- * - Daily Advice Monitor (trading signals)
+ * Scrapes 7 report sections:
  * - First Thing Today (morning outlook)
+ * - Ahead of the Open (pre-market)
+ * - Daily Advice Monitor (trading signals)
  * - Washington/Ag Policy (policy news)
+ * - Pro Farmer Editors (editorial analysis)
+ * - Crop Tour (field reports)
  * - After the Bell (closing summaries)
  *
  * Requires env vars:
@@ -18,7 +21,11 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import puppeteer, { type Page } from "puppeteer-core";
+import puppeteerExtra from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { type Page } from "puppeteer-core";
+
+puppeteerExtra.use(StealthPlugin());
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -28,22 +35,40 @@ const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;
 
 const REPORTS = [
   {
-    slug: "daily-advice-monitor",
-    name: "Daily Advice Monitor",
-    url: `${PROFARMER_BASE}/daily-advice-monitor/`,
+    slug: "first-thing-today",
+    name: "First Thing Today",
+    url: `${PROFARMER_BASE}/topics/first-thing-today`,
+    specialists: ["crush", "china"],
+  },
+  {
+    slug: "ahead-of-the-open",
+    name: "Ahead of the Open",
+    url: `${PROFARMER_BASE}/topics/ahead-open`,
     specialists: ["crush", "china", "energy"],
   },
   {
-    slug: "first-thing-today",
-    name: "First Thing Today",
-    url: `${PROFARMER_BASE}/first-thing-today/`,
-    specialists: ["crush", "china"],
+    slug: "daily-advice-monitor",
+    name: "Daily Advice Monitor",
+    url: `${PROFARMER_BASE}/news/advice-monitor/pro-farmers-daily-advice-monitor`,
+    specialists: ["crush", "china", "energy"],
   },
   {
     slug: "washington-ag-policy",
     name: "Washington/Ag Policy",
-    url: `${PROFARMER_BASE}/washington-ag-policy/`,
+    url: `${PROFARMER_BASE}/news/policy-update`,
     specialists: ["tariff", "biofuel", "trump_effect"],
+  },
+  {
+    slug: "pro-farmer-editors",
+    name: "Pro Farmer Editors",
+    url: `${PROFARMER_BASE}/topics/pro-farmer-editors`,
+    specialists: ["crush", "china", "biofuel"],
+  },
+  {
+    slug: "crop-tour",
+    name: "Crop Tour",
+    url: `${PROFARMER_BASE}/topics/pro-farmer-crop-tour`,
+    specialists: ["crush", "china"],
   },
   {
     slug: "after-the-bell",
@@ -92,20 +117,11 @@ interface ScrapedArticle {
   title: string;
   content: string;
   pubDate: string;
+  author: string | null;
   reportSlug: string;
   specialists: string[];
 }
 
-// ArticleData interface used for type documentation only
-type _ArticleData = ScrapedArticle & {
-  summary: string;
-  topics: string[];
-  subjects: string[];
-  isTrumpRelated: boolean;
-  metaDescription: string;
-};
-// Suppress unused warning - kept for documentation
-void (0 as unknown as _ArticleData);
 
 /**
  * Extract topics from ProFarmer content
@@ -195,26 +211,16 @@ function extractSubjects(title: string, content: string): string[] {
   return Array.from(subjects).slice(0, 10);
 }
 
-/**
- * Check if content is Trump-related
- */
-function checkTrumpRelated(title: string, content: string): boolean {
-  const trumpKeywords = [
-    "trump",
-    "tariff",
-    "trade war",
-    "maga",
-    "executive order",
-  ];
-  const searchText = `${title} ${content}`.toLowerCase();
-  return trumpKeywords.some((kw) => searchText.includes(kw));
-}
 
 /**
  * Launch browser and login to ProFarmer.
  *
- * Uses explicit form selectors + submit click pattern from the previously
- * working JS login flow to reduce brittle keyboard-only behavior.
+ * Uses the proven keyboard-based login flow from the working JS scrapers
+ * (scripts/_deprecated/scrape_profarmer_final.js). Key details:
+ *  - evaluate() focus/click on the email input ensures correct field state
+ *    before typing begins (page.type(selector) can target stale/hidden elements).
+ *  - Tab between fields triggers blur → validation → focus cycle.
+ *  - 8s post-login wait allows auth redirect + cookie settlement.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
@@ -232,7 +238,7 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
   // Dynamic import for serverless chromium path resolution.
   const chromium = await import("@sparticuz/chromium");
 
-  const browser = await puppeteer.launch({
+  const browser = await puppeteerExtra.launch({
     args: [
       ...chromium.default.args,
       "--no-sandbox",
@@ -266,81 +272,83 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
   });
 
   // Navigate to login page
-  console.log("Navigating to ProFarmer login...");
+  console.log("[profarmer] navigating to login page...");
   await page.goto(PROFARMER_LOGIN_URL, {
     waitUntil: "networkidle2",
     timeout: 60000,
   });
 
-  const loginFormSelector = await page.evaluate(() => {
+  // Wait for SPA hydration before interacting with the form
+  await new Promise((r) => setTimeout(r, 1500));
+
+  // Focus the email input inside the login form (proven pattern from working JS scrapers)
+  const foundForm = await page.evaluate(() => {
     const forms = document.querySelectorAll("form");
     for (const form of forms) {
-      const emailInput = form.querySelector('input[type="email"]');
-      const passInput = form.querySelector('input[type="password"]');
-      if (emailInput && passInput) {
-        form.setAttribute("data-profarmer-login", "true");
-        return 'form[data-profarmer-login="true"]';
+      const emailInput = form.querySelector(
+        'input[type="email"]',
+      ) as HTMLInputElement | null;
+      if (emailInput && form.querySelector('input[type="password"]')) {
+        emailInput.focus();
+        emailInput.click();
+        return true;
       }
     }
-    return null;
+    return false;
   });
 
-  if (!loginFormSelector) {
-    throw new Error("Could not find login form");
+  if (!foundForm) {
+    throw new Error("Could not find login form with email + password fields");
   }
 
-  const emailSelector = `${loginFormSelector} input[type="email"]`;
-  const passwordSelector = `${loginFormSelector} input[type="password"]`;
-  const submitSelector = `${loginFormSelector} button[type="submit"], ${loginFormSelector} input[type="submit"]`;
+  // Keyboard-based login: fires real KeyDown/KeyPress/KeyUp events
+  await page.keyboard.type(user, { delay: 80 });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.keyboard.press("Tab");
+  await new Promise((r) => setTimeout(r, 500));
+  await page.keyboard.type(pass, { delay: 80 });
+  await new Promise((r) => setTimeout(r, 500));
+  await page.keyboard.press("Enter");
 
-  await page.type(emailSelector, user, { delay: 50 });
-  await page.type(passwordSelector, pass, { delay: 50 });
-
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }).catch(() => null),
-    page.click(submitSelector).catch(async () => {
-      await page.keyboard.press("Enter");
-    }),
-  ]);
-  await new Promise((r) => setTimeout(r, 2000));
+  // Wait for auth redirect to complete (8s matches working scripts)
+  await new Promise((r) => setTimeout(r, 8000));
 
   // Check if login succeeded
   const currentUrl = page.url();
-  console.log("Current URL after login:", currentUrl);
+  console.log("[profarmer] post-login URL:", currentUrl);
 
   if (currentUrl.includes("sign-in") || currentUrl.includes("login")) {
-    // Check for error messages
-    const errorText = await page.evaluate(() => {
-      const errorEl = document.querySelector(
-        '.error, .alert-danger, [class*="error"]',
-      );
-      return errorEl?.textContent || null;
-    });
-
-    if (errorText) {
-      throw new Error(`Login failed: ${errorText}`);
-    }
-
-    // Maybe there's a captcha
     const hasCaptcha = await page.evaluate(() => {
       return !!document.querySelector(
-        'iframe[src*="recaptcha"], [class*="captcha"], #captcha',
+        'iframe[src*="recaptcha"], [class*="captcha"], #captcha, .g-recaptcha',
       );
     });
 
     if (hasCaptcha) {
-      throw new Error("Login blocked by CAPTCHA - need TWOCAPTCHA_API_KEY");
+      throw new Error("Login blocked by CAPTCHA");
     }
 
-    throw new Error("Login failed - still on login page");
+    const errorText = await page.evaluate(() => {
+      const errorEl = document.querySelector(
+        '.error, .alert-danger, [class*="error"]',
+      );
+      return errorEl?.textContent?.trim() || null;
+    });
+
+    throw new Error(
+      `Login failed - still on login page${errorText ? `: ${errorText}` : ""}`,
+    );
   }
 
-  console.log("Login successful!");
+  console.log("[profarmer] login successful!");
   return { browser, page };
 }
 
 /**
- * Scrape articles from a report page
+ * Scrape article links from a report listing page.
+ *
+ * Uses the `a[href*="/news/"]` selector proven in the working JS scrapers
+ * instead of generic article/post container selectors.
  */
 async function scrapeReportArticles(
   page: Page,
@@ -349,169 +357,140 @@ async function scrapeReportArticles(
   specialists: string[],
   maxArticles: number = 15,
 ): Promise<ScrapedArticle[]> {
-  console.log(`Scraping ${reportUrl}...`);
+  console.log(`[profarmer] scraping ${reportUrl}...`);
   await page.goto(reportUrl, { waitUntil: "networkidle2", timeout: 60000 });
-  await new Promise((r) => setTimeout(r, 1000 + Math.random() * 1000));
+  await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
 
-  // Extract articles
-  const articles = await page.evaluate(
-    (slug: string, specs: string[], max: number) => {
-      const results: ScrapedArticle[] = [];
+  // Extract article links from listing page (proven selector from working scripts)
+  const articleLinks = await page.evaluate(
+    (max: number) => {
+      const results: Array<{ url: string; title: string }> = [];
+      const links = document.querySelectorAll('a[href*="/news/"]');
+      const seen = new Set<string>();
 
-      // Try multiple selectors for article containers
-      const selectors = [
-        "article",
-        ".post",
-        ".entry",
-        '[class*="article"]',
-        ".content-item",
-        ".news-item",
-        ".list-item",
-      ];
-
-      let articleEls: Element[] = [];
-      for (const sel of selectors) {
-        const els = document.querySelectorAll(sel);
-        if (els.length > 0) {
-          articleEls = Array.from(els);
-          break;
-        }
-      }
-
-      // If no containers found, try finding links directly
-      if (articleEls.length === 0) {
-        const links = document.querySelectorAll('a[href*="profarmer.com"]');
-        articleEls = Array.from(links)
-          .map((l) => l.parentElement!)
+      for (const a of links) {
+        const href = (a as HTMLAnchorElement).href;
+        const pathParts = href
+          .replace("https://www.profarmer.com", "")
+          .split("/")
           .filter(Boolean);
+        if (pathParts.length < 3) continue;
+        if (href.includes("/r/") || href.includes("subscribe")) continue;
+        if (seen.has(href)) continue;
+
+        const title = a.textContent?.trim();
+        if (!title || title.length < 15) continue;
+
+        seen.add(href);
+        results.push({ url: href, title });
+        if (results.length >= max) break;
       }
-
-      for (const el of articleEls.slice(0, max)) {
-        try {
-          // Find link
-          const linkEl = el.querySelector(
-            'a[href*="profarmer.com"]',
-          ) as HTMLAnchorElement;
-          if (!linkEl?.href) continue;
-
-          // Skip navigation/menu links
-          if (linkEl.href.includes("/r/") || linkEl.href.includes("sign-in"))
-            continue;
-
-          // Find title
-          const titleEl = el.querySelector(
-            "h1, h2, h3, h4, .title, .entry-title, a",
-          );
-          const title = titleEl?.textContent?.trim();
-          if (!title || title.length < 10) continue;
-
-          // Find date
-          let pubDate = "";
-          const dateEl = el.querySelector(
-            "time, .date, .published, [datetime]",
-          );
-          if (dateEl) {
-            pubDate =
-              dateEl.getAttribute("datetime") || dateEl.textContent || "";
-          }
-
-          // Extract date from URL if not found
-          if (!pubDate) {
-            const urlMatch = linkEl.href.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//);
-            if (urlMatch) {
-              pubDate = `${urlMatch[1]}-${urlMatch[2]}-${urlMatch[3]}`;
-            }
-          }
-
-          // Extract date from title if still not found
-          if (!pubDate) {
-            const titleDateMatch = title.match(
-              /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},\s+\d{4}/i,
-            );
-            if (titleDateMatch) {
-              const parsed = new Date(titleDateMatch[0]);
-              if (!isNaN(parsed.getTime())) {
-                pubDate = parsed.toISOString().split("T")[0];
-              }
-            }
-          }
-
-          // Parse date
-          if (pubDate) {
-            const dateMatch = pubDate.match(/(\d{4})-(\d{2})-(\d{2})/);
-            if (dateMatch) {
-              pubDate = dateMatch[0];
-            } else {
-              const parsed = new Date(pubDate);
-              if (!isNaN(parsed.getTime())) {
-                pubDate = parsed.toISOString().split("T")[0];
-              }
-            }
-          }
-
-          if (!pubDate) continue;
-
-          // Get excerpt/content
-          const contentEl = el.querySelector(
-            ".excerpt, .content, .entry-content, p",
-          );
-          const content = contentEl?.textContent?.trim().slice(0, 2000) || "";
-
-          results.push({
-            url: linkEl.href,
-            title,
-            content,
-            pubDate,
-            reportSlug: slug,
-            specialists: specs,
-          });
-        } catch {
-          continue;
-        }
-      }
-
       return results;
     },
-    reportSlug,
-    specialists,
     maxArticles,
   );
 
-  // Fetch full content for articles with short excerpts
-  for (const article of articles.slice(0, 10)) {
-    if (article.content.length < 500) {
-      try {
-        await page.goto(article.url, {
-          waitUntil: "networkidle2",
-          timeout: 30000,
-        });
-        await new Promise((r) => setTimeout(r, 500));
+  // Visit each article page to get full content, date, and author
+  const articles: ScrapedArticle[] = [];
 
-        const fullContent = await page.evaluate(() => {
-          const selectors = [
-            ".entry-content",
-            ".article-content",
-            ".post-content",
-            ".content",
-            "article",
-            "main",
-          ];
+  for (const link of articleLinks) {
+    try {
+      await page.goto(link.url, {
+        waitUntil: "networkidle2",
+        timeout: 20000,
+      });
+      await new Promise((r) => setTimeout(r, 300));
 
-          for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el?.textContent && el.textContent.length > 200) {
-              return el.textContent.trim().slice(0, 8000);
+      const pageData = await page.evaluate(() => {
+        // Date: meta tag → JSON-LD → .Page-datePublished (ProFarmer-specific)
+        let date = "";
+        const metaDate = document.querySelector(
+          'meta[property="article:published_time"]',
+        );
+        if (metaDate) {
+          date = metaDate.getAttribute("content") || "";
+        }
+
+        if (!date) {
+          const scripts = document.querySelectorAll(
+            'script[type="application/ld+json"]',
+          );
+          for (const s of scripts) {
+            try {
+              const json = JSON.parse(s.textContent || "");
+              if (json.datePublished) {
+                date = json.datePublished;
+                break;
+              }
+            } catch {
+              /* skip invalid JSON-LD */
             }
           }
-          return "";
-        });
-
-        if (fullContent.length > article.content.length) {
-          article.content = fullContent;
         }
-      } catch {
-        // Keep partial content
+
+        if (!date) {
+          const dateEl = document.querySelector(".Page-datePublished");
+          if (dateEl) date = dateEl.textContent?.trim() || "";
+        }
+
+        // Author: .Page-authorName → .byline → [rel="author"]
+        let author = "";
+        const authorEl = document.querySelector(
+          '.Page-authorName a, .byline a, [rel="author"]',
+        );
+        if (authorEl) author = authorEl.textContent?.trim() || "";
+
+        // Content: ProFarmer-specific selectors → generic fallbacks
+        let content = "";
+        const contentSelectors = [
+          ".Page-articleBody",
+          ".RichTextArticleBody",
+          ".RichTextBody",
+          ".Page-content",
+          "article",
+        ];
+        for (const sel of contentSelectors) {
+          const el = document.querySelector(sel);
+          if (el?.textContent && el.textContent.length > 100) {
+            content = el.textContent.trim().slice(0, 50000);
+            break;
+          }
+        }
+
+        return { date, content, author };
+      });
+
+      // Parse date into YYYY-MM-DD
+      let pubDate = "";
+      if (pageData.date) {
+        let parsed = new Date(pageData.date);
+        if (isNaN(parsed.getTime())) {
+          // Natural language fallback: "January 30, 2026 06:15 AM"
+          const match = pageData.date.match(/(\w+)\s+(\d+),?\s+(\d{4})/);
+          if (match) {
+            parsed = new Date(`${match[1]} ${match[2]}, ${match[3]}`);
+          }
+        }
+        if (!isNaN(parsed.getTime())) {
+          pubDate = parsed.toISOString().split("T")[0];
+        }
       }
+
+      if (!pubDate || !pageData.content || pageData.content.length < 100) {
+        continue;
+      }
+
+      articles.push({
+        url: link.url,
+        title: link.title,
+        content: pageData.content,
+        pubDate,
+        author: pageData.author || null,
+        reportSlug,
+        specialists,
+      });
+    } catch {
+      // Skip articles that fail to load
     }
   }
 
@@ -525,7 +504,7 @@ export const profarmerDaily = inngest.createFunction(
     retries: 2,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { event: "profarmer/daily.manual" }, // Scheduled run disabled pending login stability; manual trigger only
+  { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // Weekdays 7 AM CT
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
@@ -602,19 +581,15 @@ export const profarmerDaily = inngest.createFunction(
               report.slug,
             );
             const subjects = extractSubjects(article.title, article.content);
-            const isTrumpRelated = checkTrumpRelated(
-              article.title,
-              article.content,
-            );
             const summary = article.content.slice(0, 500);
             const metaDescription = article.content.slice(0, 300);
 
             try {
               await client.query(
                 `INSERT INTO alt.profarmer_news_event (
-                   event_date, section, headline, content, url,
+                   event_date, section, headline, content, url, author,
                    specialist_tags, summary, topics, subjects,
-                   is_trump_related, meta_description, raw_payload, row_hash
+                   meta_description, raw_payload, row_hash
                  ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                 [
                   article.pubDate,
@@ -622,11 +597,11 @@ export const profarmerDaily = inngest.createFunction(
                   article.title,
                   article.content,
                   article.url,
+                  article.author,
                   article.specialists,
                   summary,
                   topics,
                   subjects,
-                  isTrumpRelated,
                   metaDescription,
                   JSON.stringify({ report: report.name, slug: report.slug }),
                   rowHash,
@@ -711,7 +686,7 @@ export const profarmerBackfill = inngest.createFunction(
       for (const report of REPORTS) {
         for (let pageNum = 1; pageNum <= 50; pageNum++) {
           const pageUrl =
-            pageNum === 1 ? report.url : `${report.url}page/${pageNum}/`;
+            pageNum === 1 ? report.url : `${report.url}?page=${pageNum}`;
 
           try {
             const articles = await step.run(
@@ -757,19 +732,15 @@ export const profarmerBackfill = inngest.createFunction(
                 report.slug,
               );
               const subjects = extractSubjects(article.title, article.content);
-              const isTrumpRelated = checkTrumpRelated(
-                article.title,
-                article.content,
-              );
               const summary = article.content.slice(0, 500);
               const metaDescription = article.content.slice(0, 300);
 
               try {
                 await client.query(
                   `INSERT INTO alt.profarmer_news_event (
-                     event_date, section, headline, content, url,
+                     event_date, section, headline, content, url, author,
                      specialist_tags, summary, topics, subjects,
-                     is_trump_related, meta_description, raw_payload, row_hash
+                     meta_description, raw_payload, row_hash
                    ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                   [
                     article.pubDate,
@@ -777,11 +748,11 @@ export const profarmerBackfill = inngest.createFunction(
                     article.title,
                     article.content,
                     article.url,
+                    article.author,
                     article.specialists,
                     summary,
                     topics,
                     subjects,
-                    isTrumpRelated,
                     metaDescription,
                     JSON.stringify({
                       report: report.slug,
