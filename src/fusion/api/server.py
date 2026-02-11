@@ -7,21 +7,20 @@ import re
 import time
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
-from fusion.api.db import fetch_rows, get_backend, get_query_builder
-
 # Import domain-specific pressure calculators for Key Market Drivers
 from fusion.analytics.pressures import (
-    calculate_volatility_pressure,
-    calculate_crush_pressure,
     calculate_china_tension,
+    calculate_crush_pressure,
     calculate_tariff_pressure,
+    calculate_volatility_pressure,
 )
+from fusion.api.db import fetch_rows, get_backend, get_query_builder
+from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
 
 app = FastAPI(title="Fusion API", version="0.1.0")
 
@@ -54,14 +53,14 @@ def _serialize_value(value: Any) -> Any:
 
 
 # Use the unified database abstraction layer
-def _fetch_rows(query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+def _fetch_rows(query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
     """Fetch rows using the unified database abstraction layer."""
     qb = get_query_builder()
     translated_query = qb.query(query)
     return fetch_rows(translated_query, params)
 
 
-def _require_db_token(x_api_token: Optional[str] = Header(default=None)) -> None:
+def _require_db_token(x_api_token: str | None = Header(default=None)) -> None:
     expected = os.environ.get("FUSION_API_TOKEN", "").strip()
     if not expected:
         raise HTTPException(
@@ -92,12 +91,12 @@ def _validate_readonly_sql(sql: str) -> str:
 
 
 @app.get("/health")
-def health() -> Dict[str, str]:
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/api/dashboard/summary")
-def dashboard_summary(symbol: str = "ZL") -> Dict[str, Any]:
+def dashboard_summary(symbol: str = "ZL") -> dict[str, Any]:
     price_rows = _fetch_rows(
         """
         SELECT as_of_date, close
@@ -191,9 +190,12 @@ def _first_existing_column(
 
 
 def _to_datetime(value: Any) -> datetime:
-    """Best-effort conversion of DB values to datetime for sorting."""
+    """Best-effort conversion of DB values to datetime for sorting.
+
+    Always returns a naive datetime to avoid mixed-offset comparison errors.
+    """
     if isinstance(value, datetime):
-        return value
+        return value.replace(tzinfo=None)
     if isinstance(value, date):
         return datetime.combine(value, datetime.min.time())
     if isinstance(value, str):
@@ -201,7 +203,8 @@ def _to_datetime(value: Any) -> datetime:
         if text.endswith("Z"):
             text = text[:-1] + "+00:00"
         try:
-            return datetime.fromisoformat(text)
+            dt = datetime.fromisoformat(text)
+            return dt.replace(tzinfo=None)
         except ValueError:
             return datetime.min
     return datetime.min
@@ -309,7 +312,7 @@ def _recent_files(glob_path: str, limit: int = 5) -> list[dict[str, Any]]:
 
 
 @app.get("/api/overview/models")
-def overview_models() -> Dict[str, Any]:
+def overview_models() -> dict[str, Any]:
     """
     Read-only operational snapshot for the /overview dashboard.
 
@@ -569,7 +572,7 @@ def overview_models() -> Dict[str, Any]:
 def market_zl(
     symbol: str = "ZL",
     limit: int = Query(2000, ge=1, le=10000),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     rows = _fetch_rows(
         """
         SELECT as_of_date, close
@@ -597,30 +600,18 @@ def market_zl(
 @app.get("/api/forecast/quantiles")
 def forecast_quantiles(
     symbol: str = "ZL",
-    horizon_days: Optional[List[int]] = Query(None),
-) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use forecasts.forecast_quantiles table
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, horizon as horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles
-            WHERE symbol = ?
-            ORDER BY as_of_date ASC
-            """,
-            [symbol],
-        )
-    else:
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, horizon_days, p10, p50, p90
-            FROM forecasts.forecast_quantiles
-            WHERE symbol = ?
-            ORDER BY as_of_date ASC
-            """,
-            [symbol],
-        )
+    horizon_days: list[int] | None = Query(None),
+) -> dict[str, Any]:
+    # Schema: forecast_date (not as_of_date), horizon (not horizon_days)
+    rows = _fetch_rows(
+        """
+        SELECT forecast_date AS as_of_date, horizon AS horizon_days, p10, p50, p90
+        FROM forecasts.forecast_quantiles
+        WHERE symbol = ?
+        ORDER BY forecast_date ASC
+        """,
+        [symbol],
+    )
 
     if horizon_days:
         rows = [row for row in rows if row["horizon_days"] in horizon_days]
@@ -631,8 +622,8 @@ def forecast_quantiles(
 @app.get("/api/forecast/bands")
 def forecast_bands(
     symbol: str = "ZL",
-    horizon_days: Optional[List[int]] = Query(None),
-) -> Dict[str, Any]:
+    horizon_days: list[int] | None = Query(None),
+) -> dict[str, Any]:
     if _table_exists("forecasts", "forecast_quantiles"):
         horizon_col = _first_existing_column(
             "forecasts", "forecast_quantiles", ["horizon", "horizon_days"]
@@ -679,7 +670,7 @@ def forecast_bands(
 @app.get("/api/sentiment/news")
 def sentiment_news(
     limit: int = Query(200, ge=1, le=2000),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     articles = _fetch_recent_news_rows(limit)
 
     mapped = [
@@ -787,21 +778,36 @@ def db_explorer() -> str:
 
 
 @app.get("/api/db/info")
-def db_info(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
+def db_info(_: None = Depends(_require_db_token)) -> dict[str, Any]:
     return {"backend": "postgres", "database": "Prisma Postgres"}
 
 
 @app.get("/api/db/schemas")
-def db_schemas(_: None = Depends(_require_db_token)) -> Dict[str, Any]:
+def db_schemas(_: None = Depends(_require_db_token)) -> dict[str, Any]:
     # Return canonical schema list for Prisma Postgres
-    return {"schemas": ["raw", "training", "forecasts", "features", "specialist"]}
+    return {
+        "schemas": [
+            "alt",
+            "analytics",
+            "econ",
+            "features",
+            "forecasts",
+            "metadata",
+            "mkt",
+            "model",
+            "ops",
+            "pos",
+            "supply",
+            "training",
+        ]
+    }
 
 
 @app.get("/api/db/tables")
 def db_tables(
-    schema: Optional[str] = None,
+    schema: str | None = None,
     _: None = Depends(_require_db_token),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if schema:
         rows = _fetch_rows(
             """
@@ -829,7 +835,7 @@ def db_columns(
     schema: str,
     table: str,
     _: None = Depends(_require_db_token),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     rows = _fetch_rows(
         """
         SELECT column_name, data_type, is_nullable, ordinal_position
@@ -845,9 +851,9 @@ def db_columns(
 
 @app.post("/api/db/query")
 def db_query(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     _: None = Depends(_require_db_token),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     sql = _validate_readonly_sql(str(payload.get("sql", "")))
     limit = int(payload.get("limit", 200))
     if limit < 1:
@@ -878,7 +884,7 @@ def db_query(
 
 
 @app.get("/api/sentiment/series")
-def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
+def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> dict[str, Any]:
     scan_limit = min(max(limit * 25, 500), 5000)
     articles = _fetch_recent_news_rows(scan_limit)
     analyzed = analyze_articles(
@@ -894,7 +900,7 @@ def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
         ]
     ).get("articles", [])
 
-    by_day: Dict[date, Dict[str, Any]] = {}
+    by_day: dict[date, dict[str, Any]] = {}
     for article in analyzed:
         published_at = article.get("published_at")
         ts = _to_datetime(published_at)
@@ -931,7 +937,7 @@ def sentiment_series(limit: int = Query(365, ge=1, le=5000)) -> Dict[str, Any]:
 
 
 @app.get("/api/legislation/news")
-def legislation_news(limit: int = Query(200, ge=1, le=2000)) -> Dict[str, Any]:
+def legislation_news(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
     analyzed = sentiment_news(limit=limit)
     keep = {
         "US Regulatory Filings",
@@ -951,7 +957,7 @@ def legislation_news(limit: int = Query(200, ge=1, le=2000)) -> Dict[str, Any]:
 
 
 @app.get("/api/strategy/posture")
-def strategy_posture(symbol: str = "ZL") -> Dict[str, Any]:
+def strategy_posture(symbol: str = "ZL") -> dict[str, Any]:
     actions = _fetch_rows(
         """
         SELECT as_of_date, action, confidence, rationale
@@ -985,24 +991,24 @@ def strategy_posture(symbol: str = "ZL") -> Dict[str, Any]:
 
 
 @app.get("/api/strategy/risk")
-def strategy_risk(symbol: str = "ZL", horizon: Optional[str] = None) -> Dict[str, Any]:
+def strategy_risk(symbol: str = "ZL", horizon: str | None = None) -> dict[str, Any]:
+    # Schema: no symbol column; columns are var_01/var_05/var_10/cvar_05
     rows = _fetch_rows(
         """
-        SELECT as_of_date, horizon, var_95, var_99, cvar_95, cvar_99
+        SELECT as_of_date, horizon, var_01, var_05, var_10, cvar_05,
+               prob_up, prob_up_5pct, prob_down_5pct, regime, tail_risk_flag
         FROM analytics.risk_metrics
-        WHERE symbol = ?
         ORDER BY as_of_date DESC
         LIMIT 1000
         """,
-        [symbol],
     )
     if horizon:
-        rows = [row for row in rows if row.get("horizon") == horizon]
+        rows = [row for row in rows if str(row.get("horizon")) == horizon]
     return {"symbol": symbol, "risk_metrics": rows}
 
 
 @app.get("/api/vegas-intel/status")
-def vegas_intel_status() -> Dict[str, Any]:
+def vegas_intel_status() -> dict[str, Any]:
     return {
         "status": "not_implemented",
         "reason": "Vegas-intel tables not available.",
@@ -1010,58 +1016,31 @@ def vegas_intel_status() -> Dict[str, Any]:
 
 
 @app.get("/api/sentiment/policy")
-def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> Dict[str, Any]:
+def sentiment_policy(limit: int = Query(90, ge=1, le=2000)) -> dict[str, Any]:
     return {"rows": get_policy_sentiment(limit=limit)}
 
 
 @app.get("/api/drivers/latest")
-def drivers_latest(symbol: str = "ZL") -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use analytics.driver_scores table (corrected schema)
-        rows = _fetch_rows(
-            """
-            WITH latest AS (
-                SELECT MAX(as_of_date) AS as_of_date
-                FROM analytics.driver_scores
-                WHERE symbol = ?
-            )
-            SELECT
-                s.as_of_date,
-                s.symbol,
-                s.bucket as specialist,
-                s.direction,
-                s.score,
-                s.weight
-            FROM analytics.driver_scores s
-            JOIN latest l ON s.as_of_date = l.as_of_date
-            WHERE s.symbol = ?
-            ORDER BY s.bucket
-            """,
-            [symbol, symbol],
+def drivers_latest(symbol: str = "ZL") -> dict[str, Any]:
+    # Schema: no symbol/bucket/score/weight; actual columns are specialist/signal/direction/confidence/shap_contribution
+    rows = _fetch_rows(
+        """
+        WITH latest AS (
+            SELECT MAX(as_of_date) AS as_of_date
+            FROM analytics.driver_scores
         )
-    else:
-        rows = _fetch_rows(
-            """
-            WITH latest AS (
-                SELECT MAX(as_of_date) AS as_of_date
-                FROM analytics.driver_scores
-                WHERE symbol = ?
-            )
-            SELECT
-                s.as_of_date,
-                s.symbol,
-                s.bucket as specialist,
-                s.direction,
-                s.score,
-                s.weight
-            FROM analytics.driver_scores s
-            JOIN latest l ON s.as_of_date = l.as_of_date
-            WHERE s.symbol = ?
-            ORDER BY s.bucket
-            """,
-            [symbol, symbol],
-        )
+        SELECT
+            s.as_of_date,
+            s.specialist,
+            s.signal,
+            s.direction,
+            s.confidence,
+            s.shap_contribution
+        FROM analytics.driver_scores s
+        JOIN latest l ON s.as_of_date = l.as_of_date
+        ORDER BY s.specialist
+        """,
+    )
     as_of_date = rows[0]["as_of_date"] if rows else None
     return {"symbol": symbol, "as_of_date": as_of_date, "signals": rows}
 
@@ -1071,39 +1050,22 @@ def drivers_series(
     symbol: str = "ZL",
     driver_id: str = Query(..., min_length=1),
     limit: int = Query(2000, ge=1, le=10000),
-) -> Dict[str, Any]:
-    backend = get_backend()
-    if backend == "postgres":
-        # Use analytics.driver_scores (corrected schema)
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, score
-            FROM (
-                SELECT as_of_date, score
-                FROM analytics.driver_scores
-                WHERE symbol = ? AND bucket = ?
-                ORDER BY as_of_date DESC
-                LIMIT ?
-            ) t
-            ORDER BY as_of_date ASC
-            """,
-            [symbol, driver_id, limit],
-        )
-    else:
-        rows = _fetch_rows(
-            """
-            SELECT as_of_date, score
-            FROM (
-                SELECT as_of_date, score
-                FROM analytics.driver_scores
-                WHERE symbol = ? AND bucket = ?
-                ORDER BY as_of_date DESC
-                LIMIT ?
-            ) t
-            ORDER BY as_of_date ASC
-            """,
-            [symbol, driver_id, limit],
-        )
+) -> dict[str, Any]:
+    # Schema: no symbol/bucket/score; use specialist/signal
+    rows = _fetch_rows(
+        """
+        SELECT as_of_date, signal AS score
+        FROM (
+            SELECT as_of_date, signal
+            FROM analytics.driver_scores
+            WHERE specialist = ?
+            ORDER BY as_of_date DESC
+            LIMIT ?
+        ) t
+        ORDER BY as_of_date ASC
+        """,
+        [driver_id, limit],
+    )
     series = [
         {"time": row["as_of_date"], "value": row["score"]}
         for row in rows
@@ -1118,7 +1080,7 @@ def drivers_series(
 
 
 @app.get("/api/zl/live")
-def zl_live() -> Dict[str, Any]:
+def zl_live() -> dict[str, Any]:
     """
     Get the latest ZL price for the header widget.
     Returns the most recent 15m bar with change from previous close.
@@ -1196,7 +1158,7 @@ def zl_intraday(
     hours: int = Query(
         24, ge=1, le=168, description="Hours of data to return (max 168 = 7 days)"
     ),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get ZL 15-minute bars for charting.
     Returns data for the specified number of hours.
@@ -1245,7 +1207,7 @@ def zl_intraday(
 @app.get("/api/zl/intraday/ohlc")
 def zl_intraday_ohlc(
     days: int = Query(7, ge=1, le=60, description="Days of data to return"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get ZL 15-minute bars with full OHLC data.
     Returns ISO timestamps for broader compatibility.
@@ -1302,7 +1264,7 @@ def zl_intraday_ohlc(
 
 
 @app.get("/api/pulse/domains")
-def pulse_domains() -> Dict[str, Any]:
+def pulse_domains() -> dict[str, Any]:
     """
     Get list of supported specialist domains and horizons.
     """
@@ -1339,10 +1301,10 @@ def pulse_domains() -> Dict[str, Any]:
 
 @app.get("/api/pulse/latest")
 def pulse_latest(
-    domain: Optional[str] = None,
-    horizon: Optional[str] = None,
+    domain: str | None = None,
+    horizon: str | None = None,
     limit: int = Query(10, ge=1, le=100),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get the most recent Intel Drops.
 
@@ -1386,7 +1348,7 @@ def pulse_latest(
 
 
 @app.get("/api/pulse/drop/{drop_id}")
-def pulse_drop_by_id(drop_id: int) -> Dict[str, Any]:
+def pulse_drop_by_id(drop_id: int) -> dict[str, Any]:
     """
     Get a single Intel Drop by ID, including full narrative.
     """
@@ -1411,7 +1373,7 @@ def pulse_drop_by_id(drop_id: int) -> Dict[str, Any]:
 @app.get("/api/pulse/consensus")
 def pulse_consensus(
     horizon: str = Query("1W", description="Time horizon (1W, 1M, 3M, 6M)"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get consensus view across all domains for the latest timestamp.
 
@@ -1497,7 +1459,7 @@ def pulse_domain_history(
     domain: str,
     horizon: str = Query("1W", description="Time horizon"),
     days: int = Query(30, ge=1, le=365, description="Days of history"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get historical Intel Drops for a specific domain.
     """
@@ -1526,14 +1488,14 @@ def pulse_domain_history(
 
 @app.get("/api/pulse/signals")
 def pulse_signals(
-    direction: Optional[int] = Query(
+    direction: int | None = Query(
         None, ge=-1, le=1, description="Filter by direction (-1, 0, 1)"
     ),
-    min_edge: Optional[float] = Query(
+    min_edge: float | None = Query(
         None, ge=0, le=1, description="Minimum edge threshold"
     ),
-    horizon: Optional[str] = None,
-) -> Dict[str, Any]:
+    horizon: str | None = None,
+) -> dict[str, Any]:
     """
     Get actionable signals from Intel Drops.
 
@@ -1605,10 +1567,10 @@ def _get_db_connection():
 
 @app.get("/api/market-drivers")
 def market_drivers_all(
-    as_of_date: Optional[str] = Query(
+    as_of_date: str | None = Query(
         None, description="Date (YYYY-MM-DD), defaults to today"
     ),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get all 4 Key Market Drivers for dashboard cards.
 
@@ -1672,8 +1634,8 @@ def market_drivers_all(
 
 @app.get("/api/market-drivers/vix-stress")
 def market_driver_vix_stress(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
-) -> Dict[str, Any]:
+    as_of_date: str | None = Query(None, description="Date (YYYY-MM-DD)"),
+) -> dict[str, Any]:
     """
     Get VIX Stress indicator.
 
@@ -1698,8 +1660,8 @@ def market_driver_vix_stress(
 
 @app.get("/api/market-drivers/crush-pressure")
 def market_driver_crush_pressure(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
-) -> Dict[str, Any]:
+    as_of_date: str | None = Query(None, description="Date (YYYY-MM-DD)"),
+) -> dict[str, Any]:
     """
     Get Crush Pressure indicator.
 
@@ -1724,8 +1686,8 @@ def market_driver_crush_pressure(
 
 @app.get("/api/market-drivers/china-tension")
 def market_driver_china_tension(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
-) -> Dict[str, Any]:
+    as_of_date: str | None = Query(None, description="Date (YYYY-MM-DD)"),
+) -> dict[str, Any]:
     """
     Get China Tension indicator.
 
@@ -1756,8 +1718,8 @@ def market_driver_china_tension(
 
 @app.get("/api/market-drivers/tariff-threat")
 def market_driver_tariff_threat(
-    as_of_date: Optional[str] = Query(None, description="Date (YYYY-MM-DD)"),
-) -> Dict[str, Any]:
+    as_of_date: str | None = Query(None, description="Date (YYYY-MM-DD)"),
+) -> dict[str, Any]:
     """
     Get Tariff Threat indicator.
 

@@ -45,7 +45,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from dotenv import load_dotenv
@@ -165,7 +164,7 @@ VOL_REGIMES = {
 }
 
 
-def score_vix_level(vix: float) -> Tuple[float, str]:
+def score_vix_level(vix: float) -> tuple[float, str]:
     """
     Score VIX using absolute thresholds (not percentiles).
 
@@ -214,7 +213,7 @@ def score_vix_level(vix: float) -> Tuple[float, str]:
         return min(100, score), "extreme_fear"
 
 
-def score_term_structure(vix: float, vix3m: float) -> Tuple[float, str]:
+def score_term_structure(vix: float, vix3m: float) -> tuple[float, str]:
     """
     Score VIX term structure.
 
@@ -240,7 +239,7 @@ def score_term_structure(vix: float, vix3m: float) -> Tuple[float, str]:
         return 25, "Severe backwardation - panic mode"
 
 
-def score_ovx(ovx: float) -> Tuple[float, str]:
+def score_ovx(ovx: float) -> tuple[float, str]:
     """
     Score oil volatility (OVX).
 
@@ -263,7 +262,7 @@ def score_ovx(ovx: float) -> Tuple[float, str]:
         return 25, "Extreme oil volatility"
 
 
-def score_realized_vol(realized: float, implied_vix: float) -> Tuple[float, str]:
+def score_realized_vol(realized: float, implied_vix: float) -> tuple[float, str]:
     """
     Score realized ZL volatility and compare to VIX.
 
@@ -304,7 +303,7 @@ def score_realized_vol(realized: float, implied_vix: float) -> Tuple[float, str]
     return level_adj + gap_adj, gap_desc
 
 
-def score_vix_zl_correlation(correlation: float) -> Tuple[float, str]:
+def score_vix_zl_correlation(correlation: float) -> tuple[float, str]:
     """
     Score VIX-ZL correlation (how much VIX stress transmits to soy oil).
 
@@ -340,7 +339,7 @@ def score_vix_zl_correlation(correlation: float) -> Tuple[float, str]:
 
 def score_profarmer_hedge_sentiment(
     hedge_article_count: int, total_articles: int
-) -> Tuple[float, str]:
+) -> tuple[float, str]:
     """
     Score ProFarmer hedge-related article concentration.
 
@@ -378,10 +377,10 @@ def generate_vol_narrative(
     vix: float,
     vix3m: float,
     ovx: float,
-    realized: Optional[float],
+    realized: float | None,
     score: float,
     regime: str,
-) -> Tuple[str, str, List[str]]:
+) -> tuple[str, str, list[str]]:
     """
     Generate domain-expert narrative for volatility pressure.
 
@@ -451,7 +450,7 @@ def generate_vol_narrative(
     return headline, narrative, drivers
 
 
-def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
+def calculate_volatility_pressure(conn, as_of_date: date | None = None) -> dict:
     """
     Calculate Volatility Pressure using VIX term structure expertise.
 
@@ -572,7 +571,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
     # ==== PROFARMER HEDGE SENTIMENT (SOY-CENTRIC) ====
     # Count articles mentioning hedging/volatility in last 7 days
     hedge_keywords_sql = " OR ".join(
-        [f"content ILIKE '%{kw}%'" for kw in HEDGE_KEYWORDS[:6]]
+        [f"content ILIKE '%%{kw}%%'" for kw in HEDGE_KEYWORDS[:6]]
     )
     cur.execute(
         f"""
