@@ -20,7 +20,6 @@ Output:
 from __future__ import annotations
 
 import os
-import uuid
 
 # =============================================================================
 # CPU-ONLY SAFEGUARDS (set before any ML imports)
@@ -154,6 +153,7 @@ def get_model_config(horizon: int) -> dict:
     """Get model configuration for horizon.
 
     CPU-only: explicit full model list, no presets, no time limits.
+    """
 
     # Model Zoo (CPU-only) - Full CORE_TRAINING_SPEC_LOCKED.md allowlist
     # NOTE: Chronos2/Chronos/Toto disabled (HuggingFace mutex lock on macOS ARM)
@@ -176,14 +176,32 @@ def get_model_config(horizon: int) -> dict:
         "Croston": {},
         "IMAPA": {},
         # === DEEP / ML (5) — these exploit covariate columns ===
-        "DeepAR": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
-        "TemporalFusionTransformer": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
-        "DLinear": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
-        "PatchTST": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
-        "SimpleFeedForward": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "DeepAR": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
+        "TemporalFusionTransformer": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
+        "DLinear": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
+        "PatchTST": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
+        "SimpleFeedForward": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
         # === NEURAL (2) ===
         "TiDE": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
-        "WaveNet": {"trainer_kwargs": {"max_epochs": 100}, "context_length": horizon * 2},
+        "WaveNet": {
+            "trainer_kwargs": {"max_epochs": 100},
+            "context_length": horizon * 2,
+        },
         # === TABULAR TS (3) ===
         "DirectTabular": {},
         "PerStepTabular": {},
@@ -300,7 +318,11 @@ def extract_oof_predictions(
     """
     try:
         import_autogluon()
-        train_data = predictor._learner.load_train_data() if hasattr(predictor, '_learner') else None
+        train_data = (
+            predictor._learner.load_train_data()
+            if hasattr(predictor, "_learner")
+            else None
+        )
 
         # Strategy: Use leaderboard to get scores, then generate predictions
         # from each validation window cutoff
@@ -310,7 +332,7 @@ def extract_oof_predictions(
         n_windows = TRAINING_CONFIG.num_val_windows
 
         # Get the training data timestamps to compute cutoff points
-        if train_data is not None and hasattr(train_data, 'index'):
+        if train_data is not None and hasattr(train_data, "index"):
             ts_index = train_data.index.get_level_values("timestamp")
             all_dates = sorted(ts_index.unique())
         else:
@@ -328,7 +350,9 @@ def extract_oof_predictions(
             # Cutoff = total - (window_id * pred_len)
             cutoff_idx = total_len - (window_id * pred_len)
             if cutoff_idx < pred_len:
-                logger.warning(f"   Window {window_id}: insufficient data (cutoff_idx={cutoff_idx})")
+                logger.warning(
+                    f"   Window {window_id}: insufficient data (cutoff_idx={cutoff_idx})"
+                )
                 continue
 
             cutoff_date = all_dates[cutoff_idx - 1]  # Last date in training portion
@@ -382,7 +406,9 @@ def extract_oof_predictions(
             return pd.DataFrame()
 
         df_oof = pd.DataFrame(oof_rows)
-        logger.info(f"   Extracted {len(df_oof):,} OOF predictions across {n_windows} windows")
+        logger.info(
+            f"   Extracted {len(df_oof):,} OOF predictions across {n_windows} windows"
+        )
         return df_oof
 
     except Exception as e:
