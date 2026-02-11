@@ -1,7 +1,7 @@
 /**
  * FRED Blog Scraper
  *
- * Scrapes FRED Blog (fredblog.stlouisfed.org) articles and stores in alt.econ_news
+ * Scrapes FRED Blog (fredblog.stlouisfed.org) articles and stores in alt.econ_news_event
  * Federal Reserve economic research and analysis.
  * Runs every 4 hours to capture new posts.
  *
@@ -367,7 +367,7 @@ export const fredBlogDaily = inngest.createFunction(
 
           // Check for duplicate
           const exists = await client.query(
-            `SELECT 1 FROM alt.econ_news WHERE url = $1 LIMIT 1`,
+            `SELECT 1 FROM alt.econ_news_event WHERE url = $1 LIMIT 1`,
             [article.url],
           );
 
@@ -380,7 +380,7 @@ export const fredBlogDaily = inngest.createFunction(
 
           try {
             await client.query(
-              `INSERT INTO alt.econ_news (
+              `INSERT INTO alt.econ_news_event (
                  article_id, event_date, published_at, headline, summary, content,
                  source, url, author, specialist_tags, raw_payload,
                  topics, subjects, meta_description

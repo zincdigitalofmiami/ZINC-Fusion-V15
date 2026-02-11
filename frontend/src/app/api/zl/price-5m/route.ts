@@ -5,7 +5,7 @@ const pool = dbPool;
 
 /**
  * GET /api/zl/price-5m?hours=24
- * Fetch 5-minute OHLCV bars for ZL from analytics.zl_price_5m
+ * Fetch 5-minute OHLCV bars for ZL from analytics.price_5m
  *
  * Query params:
  * - hours: number of hours back (default 24 = 1 day)
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         day_low,
         source,
         created_at
-      FROM analytics.zl_price_5m
+      FROM analytics.price_5m
       WHERE timestamp >= NOW() - INTERVAL '${clampedHours} hours'
       ORDER BY timestamp ASC
     `;

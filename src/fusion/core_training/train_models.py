@@ -426,7 +426,12 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
             run_id = EXCLUDED.run_id
     """
 
-    values = [tuple(row) for row in df_oof.itertuples(index=False, name=None)]
+    # Convert NaN → None so Postgres stores NULL (not NaN which poisons aggregates)
+    df_oof = df_oof.where(df_oof.notna(), None)
+    values = [
+        tuple(None if pd.isna(v) else v for v in row)
+        for row in df_oof.itertuples(index=False, name=None)
+    ]
 
     with conn.cursor() as cur:
         execute_values(cur, insert_sql, values, page_size=1000)

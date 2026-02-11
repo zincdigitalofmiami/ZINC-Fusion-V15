@@ -5,7 +5,7 @@ const pool = dbPool;
 
 /**
  * GET /api/zl/price-1h?hours=168
- * Fetch 1-hour OHLCV bars for ZL from analytics.zl_price_1h
+ * Fetch 1-hour OHLCV bars for ZL from analytics.price_1h
  *
  * This is the ZL-specific 1h table, written by Inngest zl-1h and zlLive1m aggregation.
  * NOT the multi-symbol mkt.futures_1h basket.
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         volume,
         source,
         created_at
-      FROM analytics.zl_price_1h
+      FROM analytics.price_1h
       WHERE timestamp >= NOW() - $1::interval
         AND close IS NOT NULL
       ORDER BY timestamp ASC`,

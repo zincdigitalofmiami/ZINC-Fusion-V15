@@ -1,6 +1,6 @@
 /**
  * GET /api/zl/intraday
- * Returns ZL 15-minute bars from analytics.zl_price_15m
+ * Returns ZL 15-minute bars from analytics.price_15m
  * Query params: hours (default 24)
  * Runtime query - no repo dependency
  */
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         low,
         close,
         volume
-      FROM analytics.zl_price_15m
+      FROM analytics.price_15m
       WHERE timestamp > NOW() - INTERVAL '${hours} hours'
       ORDER BY timestamp ASC
     `)

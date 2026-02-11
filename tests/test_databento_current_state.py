@@ -31,7 +31,7 @@ def audit_source_distribution(engine) -> Dict[str, Any]:
     """Check source tag distribution across all ZL price tables."""
     results = {}
 
-    for table in ["zl_price_15m", "zl_price_1h", "zl_price_1d"]:
+    for table in ["price_15m", "price_1h", "price_1d"]:
         query = f"""
         SELECT
             source,
@@ -57,7 +57,7 @@ def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
         LAG(close) OVER (ORDER BY timestamp) as prev_close,
         ABS(close - LAG(close) OVER (ORDER BY timestamp)) / LAG(close) OVER (ORDER BY timestamp) * 100 as pct_change,
         source
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE timestamp >= NOW() - INTERVAL '{days} days'
     ORDER BY ABS(close - LAG(close) OVER (ORDER BY timestamp)) / NULLIF(LAG(close) OVER (ORDER BY timestamp), 0) DESC NULLS LAST
     LIMIT 20
@@ -79,7 +79,7 @@ def check_volume_consistency(engine, days: int = 7) -> Dict[str, Any]:
         AVG(volume) as avg_volume,
         MIN(volume) as min_volume,
         MAX(volume) as max_volume
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE timestamp >= NOW() - INTERVAL '{days} days'
     GROUP BY DATE_TRUNC('day', timestamp)
     ORDER BY day DESC
@@ -93,9 +93,9 @@ def check_date_coverage(engine) -> Dict[str, Any]:
     results = {}
 
     for table, ts_col in [
-        ("zl_price_15m", "timestamp"),
-        ("zl_price_1h", "timestamp"),
-        ("zl_price_1d", "event_date"),
+        ("price_15m", "timestamp"),
+        ("price_1h", "timestamp"),
+        ("price_1d", "event_date"),
     ]:
         query = f"""
         SELECT
@@ -109,9 +109,9 @@ def check_date_coverage(engine) -> Dict[str, Any]:
         df = run_query(engine, query)
 
         # Find gaps > expected interval
-        if table == "zl_price_15m":
+        if table == "price_15m":
             expected_gap = timedelta(minutes=15)
-        elif table == "zl_price_1h":
+        elif table == "price_1h":
             expected_gap = timedelta(hours=1)
         else:
             expected_gap = timedelta(days=1)
@@ -138,7 +138,7 @@ def analyze_roll_dates(engine, days: int = 90) -> List[Dict[str, Any]]:
             FIRST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp) as day_open,
             LAST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as day_close,
             COUNT(*) as bar_count
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE timestamp >= NOW() - INTERVAL '{days} days'
         GROUP BY DATE_TRUNC('day', timestamp)
     )
@@ -163,7 +163,7 @@ def check_symbol_metadata(engine) -> Dict[str, Any]:
     # Check if there's any metadata table or source tags that indicate symbol
     query = """
     SELECT DISTINCT source
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     ORDER BY source
     """
     df = run_query(engine, query)
@@ -175,7 +175,7 @@ def check_symbol_metadata(engine) -> Dict[str, Any]:
         COUNT(*) as count,
         MIN(timestamp) as earliest,
         MAX(timestamp) as latest
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     GROUP BY source
     ORDER BY latest DESC
     """

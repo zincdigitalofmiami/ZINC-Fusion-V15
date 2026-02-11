@@ -586,7 +586,7 @@ export const profarmerDaily = inngest.createFunction(
             );
 
             const exists = await client.query(
-              `SELECT 1 FROM alt.profarmer_news WHERE row_hash = $1 LIMIT 1`,
+              `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 LIMIT 1`,
               [rowHash],
             );
 
@@ -611,7 +611,7 @@ export const profarmerDaily = inngest.createFunction(
 
             try {
               await client.query(
-                `INSERT INTO alt.profarmer_news (
+                `INSERT INTO alt.profarmer_news_event (
                    event_date, section, headline, content, url,
                    specialist_tags, summary, topics, subjects,
                    is_trump_related, meta_description, raw_payload, row_hash
@@ -741,7 +741,7 @@ export const profarmerBackfill = inngest.createFunction(
               );
 
               const exists = await client.query(
-                `SELECT 1 FROM alt.profarmer_news WHERE row_hash = $1 LIMIT 1`,
+                `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 LIMIT 1`,
                 [rowHash],
               );
 
@@ -766,7 +766,7 @@ export const profarmerBackfill = inngest.createFunction(
 
               try {
                 await client.query(
-                  `INSERT INTO alt.profarmer_news (
+                  `INSERT INTO alt.profarmer_news_event (
                      event_date, section, headline, content, url,
                      specialist_tags, summary, topics, subjects,
                      is_trump_related, meta_description, raw_payload, row_hash

@@ -5,10 +5,10 @@ Automatically loads news/alt data from ANY table with specialist_tags column.
 Each specialist gets articles tagged for them across all sources.
 
 Tables with specialist_tags:
-- alt.profarmer_news
-- alt.econ_news
-- alt.policy_news
-- alt.executive_actions
+- alt.profarmer_news_event
+- alt.econ_news_event
+- alt.policy_news_event
+- alt.executive_actions_event
 - alt.legislation_1d
 
 Rule: If a table has specialist_tags[], and an article has 'crush' in that array,

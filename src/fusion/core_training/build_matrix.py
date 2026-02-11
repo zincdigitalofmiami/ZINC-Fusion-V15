@@ -2158,19 +2158,19 @@ def load_news_sentiment(conn) -> pd.DataFrame:
     - news_count: Number of articles
     """
     logger.info(
-        "Loading news data from alt schema (union of policy_news, executive_actions, econ_news, profarmer_news)..."
+        "Loading news data from alt schema (union of policy_news_event, executive_actions_event, econ_news_event, profarmer_news_event)..."
     )
 
     try:
         query = """
             WITH all_news AS (
-                SELECT event_date, zl_sentiment FROM alt.policy_news
+                SELECT event_date, zl_sentiment FROM alt.policy_news_event
                 UNION ALL
-                SELECT event_date, zl_sentiment FROM alt.executive_actions
+                SELECT event_date, zl_sentiment FROM alt.executive_actions_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news
+                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news
+                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news_event
             )
             SELECT
                 event_date as trade_date,
@@ -2465,30 +2465,30 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
     df["matrix_version"] = matrix_version
     df["created_at"] = datetime.utcnow()
 
-    # Always drop and recreate to ensure schema matches
-    # This table is rebuilt from scratch each time (immutable rebuild pattern)
-    with conn.cursor() as cur:
-        cur.execute("DROP TABLE IF EXISTS training.matrix_1d CASCADE")
-        logger.info("   Dropped existing table (clean rebuild)")
+    # Atomic rebuild: TRUNCATE + INSERT in a single transaction.
+    # Uses TRUNCATE (not DROP) to preserve the Prisma-managed schema.
+    # If INSERT fails, explicit rollback ensures table is not left empty.
+    try:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE TABLE training.matrix_1d")
+            logger.info("   Truncated training.matrix_1d (preserving schema)")
 
-    # Create table dynamically based on DataFrame columns
-    logger.info("   Creating training.matrix_1d table...")
-    create_table_from_df(conn, df, "training", "matrix_1d", matrix_version)
+            # Insert rows
+            cols = list(df.columns)
+            insert_sql = f"""
+                INSERT INTO training.matrix_1d ({",".join(cols)})
+                VALUES %s
+            """
 
-    # Insert rows
-    cols = list(df.columns)
-    insert_sql = f"""
-        INSERT INTO training.matrix_1d ({",".join(cols)})
-        VALUES %s
-    """
+            values = [tuple(row) for row in df.itertuples(index=False, name=None)]
+            execute_values(cur, insert_sql, values, page_size=1000)
 
-    values = [tuple(row) for row in df.itertuples(index=False, name=None)]
-
-    with conn.cursor() as cur:
-        execute_values(cur, insert_sql, values, page_size=1000)
-
-    conn.commit()
-    logger.info(f"   Inserted {len(df):,} rows")
+        conn.commit()
+        logger.info(f"   Inserted {len(df):,} rows")
+    except Exception:
+        conn.rollback()
+        logger.error("   Matrix write failed — rolled back TRUNCATE")
+        raise
 
     return len(df)
 
@@ -2527,7 +2527,7 @@ def create_table_from_df(conn, df: pd.DataFrame, schema: str, table: str, versio
 
     with conn.cursor() as cur:
         cur.execute(create_sql)
-    conn.commit()
+    # Caller is responsible for conn.commit() — no mid-transaction commit here.
 
     logger.info(f"   Created table {schema}.{table}")
 

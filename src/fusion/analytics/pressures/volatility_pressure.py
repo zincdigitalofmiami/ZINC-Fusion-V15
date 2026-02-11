@@ -516,7 +516,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
             SELECT event_date, close,
                    (close - LAG(close) OVER (ORDER BY event_date)) /
                    NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as ret
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             WHERE event_date <= %s
             ORDER BY event_date DESC
             LIMIT 63
@@ -555,7 +555,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
             SELECT event_date,
                    (close - LAG(close) OVER (ORDER BY event_date)) /
                    NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as zl_ret
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             WHERE event_date <= %s
             ORDER BY event_date DESC LIMIT 25
         )
@@ -576,7 +576,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
     )
     cur.execute(
         f"""
-        SELECT COUNT(*) FROM alt.profarmer_news
+        SELECT COUNT(*) FROM alt.profarmer_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
         AND ({hedge_keywords_sql})
     """,
@@ -586,7 +586,7 @@ def calculate_volatility_pressure(conn, as_of_date: Optional[date] = None) -> Di
 
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.profarmer_news
+        SELECT COUNT(*) FROM alt.profarmer_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),

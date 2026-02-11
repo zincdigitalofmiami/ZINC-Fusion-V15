@@ -34,7 +34,7 @@ def test_incremental_fetch(engine) -> Dict:
     # Check current max timestamp
     query = """
     SELECT MAX(timestamp) as max_ts
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento'
     """
     df = run_query(engine, query)
@@ -67,7 +67,7 @@ def test_24h_boundary(engine) -> Dict:
     # Check if any data exists in last 24h from historical jobs
     query = """
     SELECT COUNT(*) as count
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento'
       AND timestamp > NOW() - INTERVAL '24 hours'
     """
@@ -93,7 +93,7 @@ def test_source_conflict(engine) -> Dict:
     # Check if live data exists
     query = """
     SELECT COUNT(*) as count
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento_live'
     """
     df = run_query(engine, query)
@@ -103,12 +103,12 @@ def test_source_conflict(engine) -> Dict:
     query2 = """
     WITH live_ts AS (
         SELECT DISTINCT timestamp
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE source = 'databento_live'
     ),
     hist_ts AS (
         SELECT DISTINCT timestamp
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE source = 'databento'
     )
     SELECT COUNT(*) as overlap_count
@@ -141,7 +141,7 @@ def test_empty_window(engine) -> Dict:
         COUNT(*) as count,
         MIN(timestamp) as min_ts,
         MAX(timestamp) as max_ts
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento'
       AND timestamp >= NOW() - INTERVAL '48 hours'
     """
@@ -175,7 +175,7 @@ def test_backfill(engine) -> Dict:
         SELECT
             DATE_TRUNC('day', timestamp)::date AS day,
             COUNT(*) as bar_count
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE source = 'databento'
           AND timestamp >= CURRENT_DATE - INTERVAL '30 days'
         GROUP BY DATE_TRUNC('day', timestamp)

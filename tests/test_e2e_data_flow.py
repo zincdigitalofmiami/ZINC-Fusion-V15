@@ -69,7 +69,7 @@ def check_database_row(engine, timestamp: str) -> Dict:
     # Query database for the row
     query = """
     SELECT timestamp, open, high, low, close, volume, source
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE timestamp = %s
     ORDER BY timestamp DESC
     LIMIT 1
@@ -163,7 +163,7 @@ def check_end_to_end_latency(engine) -> Dict:
     # Get most recent row
     query = """
     SELECT timestamp, created_at
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento_live'
     ORDER BY timestamp DESC
     LIMIT 1
@@ -243,7 +243,7 @@ def main():
     # Check 2: Database row (using most recent row)
     query = """
     SELECT timestamp
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     WHERE source = 'databento_live'
     ORDER BY timestamp DESC
     LIMIT 1

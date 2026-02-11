@@ -379,7 +379,7 @@ def fetch_articles_for_scoring(
 ) -> list[dict]:
     """
     DEPRECATED: The old monolithic news + sentiment tables no longer exist.
-    News was split into alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news.
+    News was split into alt.policy_news_event, alt.executive_actions_event, alt.econ_news_event, alt.profarmer_news_event.
     Sentiment scoring tables were removed from the features schema.
 
     Returns empty list until proper migration is implemented.
@@ -399,7 +399,7 @@ def update_article_with_ai_score(
 ):
     """
     DEPRECATED: The old sentiment table no longer exists.
-    News data was split into alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news.
+    News data was split into alt.policy_news_event, alt.executive_actions_event, alt.econ_news_event, alt.profarmer_news_event.
     The features-layer sentiment table was removed during the v2 schema migration.
 
     Returns without action. Upstream fetch_articles_for_scoring() already returns empty list.
@@ -417,7 +417,7 @@ def refresh_specialist_training(conn):
     """
     DEPRECATED: The old sentiment table no longer exists (removed during v2 migration).
     Trump effect training signals are now generated via scripts/refresh_trump_effect_features.py
-    which reads directly from alt.executive_actions and alt.policy_news.
+    which reads directly from alt.executive_actions_event and alt.policy_news_event.
 
     Returns without action.
     """

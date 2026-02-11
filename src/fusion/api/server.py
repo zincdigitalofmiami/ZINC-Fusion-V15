@@ -216,7 +216,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     per_table_limit = max(limit, 200)
 
-    if _table_exists("alt", "econ_news"):
+    if _table_exists("alt", "econ_news_event"):
         rows.extend(
             _fetch_rows(
                 """
@@ -226,7 +226,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
                     COALESCE(source, 'econ_news') AS source,
                     headline AS title,
                     content
-                FROM alt.econ_news
+                FROM alt.econ_news_event
                 ORDER BY COALESCE(published_at, event_date) DESC
                 LIMIT ?
                 """,
@@ -234,7 +234,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
             )
         )
 
-    if _table_exists("alt", "policy_news"):
+    if _table_exists("alt", "policy_news_event"):
         rows.extend(
             _fetch_rows(
                 """
@@ -244,7 +244,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
                     COALESCE(source, 'policy_news') AS source,
                     headline AS title,
                     content
-                FROM alt.policy_news
+                FROM alt.policy_news_event
                 ORDER BY COALESCE(published_at, event_date) DESC
                 LIMIT ?
                 """,
@@ -252,7 +252,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
             )
         )
 
-    if _table_exists("alt", "profarmer_news"):
+    if _table_exists("alt", "profarmer_news_event"):
         rows.extend(
             _fetch_rows(
                 """
@@ -262,7 +262,7 @@ def _fetch_recent_news_rows(limit: int) -> list[dict[str, Any]]:
                     'profarmer_news' AS source,
                     headline AS title,
                     content
-                FROM alt.profarmer_news
+                FROM alt.profarmer_news_event
                 ORDER BY event_date DESC
                 LIMIT ?
                 """,
@@ -330,105 +330,50 @@ def overview_models() -> Dict[str, Any]:
         "substitutes",
     ]
 
-    # Core OOF - Postgres uses unified oof_predictions table
+    # Core OOF — query training.oof_core_1d (v3: single core table, no 'source' column)
     core = {"exists": False, "by_horizon": []}
-    if backend == "postgres":
+    if _table_exists("training", "oof_core_1d"):
         core["exists"] = True
         core["by_horizon"] = _fetch_rows(
             """
-            SELECT horizon, COUNT(*)::bigint as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-            FROM oof_predictions
-            WHERE source = 'core'
-            GROUP BY horizon
-            ORDER BY horizon
+            SELECT horizon_days as horizon, COUNT(*)::BIGINT as rows,
+                   MIN(trade_date) as start_date, MAX(trade_date) as end_date
+            FROM training.oof_core_1d
+            GROUP BY horizon_days
+            ORDER BY horizon_days
             """
         )
-    elif _table_exists("training", "oof_core_1d"):
-        core["exists"] = True
-        horizon_col = _first_existing_column(
-            "training", "oof_core_1d", ["horizon_steps", "horizon_days"]
-        )
-        if horizon_col:
-            core["by_horizon"] = _fetch_rows(
-                f"""
-                SELECT {horizon_col} as horizon, COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.oof_core_1d
-                GROUP BY 1
-                ORDER BY 1
-                """
-            )
-        else:
-            core["by_horizon"] = _fetch_rows(
-                """
-                SELECT NULL as horizon, COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.oof_core_1d
-                """
-            )
 
-    # Specialist OOF evidence tables - Postgres uses unified oof_predictions with source column
+    # Specialist OOF — v3 has no specialist OOF tables (legacy v2 concept).
+    # Check for individual training.oof_specialist_*_1d tables if they exist.
     specialist_rows = []
-    if backend == "postgres":
-        # Query unified table for all specialists at once
-        specialist_data = _fetch_rows(
-            """
-            SELECT source as specialist, COUNT(*)::bigint as rows,
-                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-            FROM oof_predictions
-            WHERE source != 'core'
-            GROUP BY source
-            """
-        )
-        specialist_map = {r["specialist"]: r for r in specialist_data}
-        for s in specialists:
-            if s in specialist_map:
-                specialist_rows.append(specialist_map[s])
-            else:
-                specialist_rows.append(
-                    {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
-                )
-    else:
-        for s in specialists:
-            table = f"oof_specialist_{s}_1d"
-            if _table_exists("training", table):
-                row = _fetch_rows(
-                    f"""
-                    SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
-                           MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                    FROM training.{table}
-                    """
-                )[0]
-            else:
-                row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
-            specialist_rows.append(row)
+    for s in specialists:
+        table = f"oof_specialist_{s}_1d"
+        if _table_exists("training", table):
+            row = _fetch_rows(
+                f"""
+                SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
+                       MIN(trade_date) as start_date, MAX(trade_date) as end_date
+                FROM training.{table}
+                """
+            )[0]
+        else:
+            row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
+        specialist_rows.append(row)
 
+    # Combined specialist signals — check for specialist_signals_1d table
     combined = {"exists": False, "rows": 0, "start_date": None, "end_date": None}
-    if backend == "postgres":
-        # In Postgres, "combined" is just the total of all specialists in oof_predictions
+    if _table_exists("training", "specialist_signals_1d"):
         combined_data = _fetch_rows(
             """
-            SELECT COUNT(*)::bigint as rows,
+            SELECT COUNT(*)::BIGINT as rows,
                    MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-            FROM oof_predictions
-            WHERE source != 'core'
+            FROM training.specialist_signals_1d
             """
         )
         if combined_data and combined_data[0]["rows"] > 0:
             combined["exists"] = True
             combined.update(combined_data[0])
-    elif _table_exists("training", "specialist_signals_1d"):
-        combined["exists"] = True
-        combined.update(
-            _fetch_rows(
-                """
-                SELECT COUNT(*)::BIGINT as rows,
-                       MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
-                FROM training.specialist_signals_1d
-                """
-            )[0]
-        )
 
     # Raw data statistics - handle Postgres table structure
     market_1h = {"rows": 0, "start_date": None, "end_date": None, "symbols": 0}
@@ -1192,7 +1137,7 @@ def zl_live() -> Dict[str, Any]:
             change_percent,
             day_high,
             day_low
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         ORDER BY timestamp DESC
         LIMIT 1
         """
@@ -1265,7 +1210,7 @@ def zl_intraday(
             low,
             close,
             volume
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE timestamp > NOW() - INTERVAL '{hours} hours'
         ORDER BY timestamp ASC
         """
@@ -1316,7 +1261,7 @@ def zl_intraday_ohlc(
             volume,
             day_high,
             day_low
-        FROM analytics.zl_price_15m
+        FROM analytics.price_15m
         WHERE timestamp > NOW() - INTERVAL '{days} days'
         ORDER BY timestamp ASC
         """
@@ -1425,7 +1370,7 @@ def pulse_latest(
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             source_model, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE {where_sql}
         ORDER BY as_of_ts DESC, domain, horizon
         LIMIT ?
@@ -1451,7 +1396,7 @@ def pulse_drop_by_id(drop_id: int) -> Dict[str, Any]:
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             receipts, narrative, quant_payload, source_model, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE id = ?
         """,
         [drop_id],
@@ -1476,7 +1421,7 @@ def pulse_consensus(
     latest_rows = _fetch_rows(
         """
         SELECT MAX(as_of_ts) as latest_ts
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE horizon = ?
         """,
         [horizon.upper()],
@@ -1501,7 +1446,7 @@ def pulse_consensus(
         """
         SELECT
             domain, direction, pressure_cents, edge, top_drivers, regime_tags
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE as_of_ts = ? AND horizon = ?
         ORDER BY domain
         """,
@@ -1561,7 +1506,7 @@ def pulse_domain_history(
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE domain = ?
           AND horizon = ?
           AND as_of_ts >= NOW() - INTERVAL '{days} days'
@@ -1616,7 +1561,7 @@ def pulse_signals(
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             top_drivers, regime_tags, source_model
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE {where_sql}
         ORDER BY edge DESC, as_of_ts DESC
         LIMIT 50

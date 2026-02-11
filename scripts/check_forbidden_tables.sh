@@ -74,7 +74,7 @@ if [ $VIOLATIONS_FOUND -eq 1 ]; then
   echo "Forbidden table references found in active code."
   echo ""
   echo "Forbidden tables:"
-  echo "  - alt.news_1d (split into alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news)"
+  echo "  - alt.news_1d (split into alt.policy_news_event, alt.executive_actions_event, alt.econ_news_event, alt.profarmer_news_event)"
   echo "  - features.news_sentiment_1d (removed - no Prisma model; use alt news tables with specialist_tags)"
   echo "  - raw.* (raw schema banned per v2 architecture)"
   echo "  - gold.*, silver.*, bronze.* (medallion schemas banned)"

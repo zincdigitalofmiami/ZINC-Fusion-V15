@@ -80,10 +80,10 @@ TABLE_CONFIG = {
         "group_by": None,
         "date_col": "event_date",
     },
-    "alt.policy_news": {
+    "alt.policy_news_event": {
         "query": """
             SELECT id, event_date, headline, zl_sentiment
-            FROM alt.policy_news
+            FROM alt.policy_news_event
         """,
         "detector": "news",
         "group_by": None,

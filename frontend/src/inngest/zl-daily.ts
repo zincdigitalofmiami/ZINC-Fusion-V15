@@ -51,7 +51,7 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
 }
 
 /**
- * ZL daily bars for analytics.zl_price_1d (Databento only)
+ * ZL daily bars for analytics.price_1d (Databento only)
  */
 export const zlDaily = inngest.createFunction(
   { id: "zl-daily", name: "ZL Daily (Databento)", retries: 3, concurrency: [DB_CONCURRENCY] },
@@ -70,18 +70,18 @@ export const zlDaily = inngest.createFunction(
       const client = await pool.connect();
       try {
         await client.query(
-          `INSERT INTO analytics.zl_price_1d
+          `INSERT INTO analytics.price_1d
             (event_date, open, high, low, close, volume, source, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, 'databento', NOW())
-           ON CONFLICT (event_date) DO UPDATE SET
+           ON CONFLICT (symbol, event_date) DO UPDATE SET
              open = EXCLUDED.open,
              high = EXCLUDED.high,
              low = EXCLUDED.low,
              close = EXCLUDED.close,
              volume = EXCLUDED.volume,
              source = EXCLUDED.source
-           WHERE analytics.zl_price_1d.source IS NULL
-              OR analytics.zl_price_1d.source <> 'databento_live'`,
+           WHERE analytics.price_1d.source IS NULL
+              OR analytics.price_1d.source <> 'databento_live'`,
           [
             zlQuote.eventDate,
             zlQuote.open,

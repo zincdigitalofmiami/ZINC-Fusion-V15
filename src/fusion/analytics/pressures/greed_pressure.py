@@ -493,7 +493,7 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     # ==== 6. ZL MOMENTUM ====
     cur.execute(
         """
-        SELECT event_date, close FROM analytics.zl_price_1d
+        SELECT event_date, close FROM analytics.price_1d
         WHERE event_date <= %s
         ORDER BY event_date DESC LIMIT 63
     """,

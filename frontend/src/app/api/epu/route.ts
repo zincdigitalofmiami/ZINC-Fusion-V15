@@ -83,13 +83,13 @@ export async function GET(req: NextRequest) {
     const includeZl = searchParams.get("include_zl") !== "false";
     const includeVix = searchParams.get("include_vix") !== "false";
 
-    // Fetch US EPU (daily)
+    // Fetch US EPU (daily) from canonical table routing.
     const epuResult = await pool.query(
       `SELECT
         event_date,
         value as epu_value,
         series_id
-      FROM econ.activity_1d
+      FROM econ.vol_indices_1d
       WHERE series_id = 'USEPUINDXD'
         AND event_date >= CURRENT_DATE - $1::interval
       ORDER BY event_date ASC`,
@@ -190,24 +190,39 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Calculate summary statistics
+    // Calculate summary statistics (null-safe for sparse windows)
     const epuValues = data.map((d) => d.epu).filter((v) => v !== null);
     const recentEpu = epuValues.slice(-30);
+    const avgEpu =
+      epuValues.length > 0
+        ? Math.round(
+            (epuValues.reduce((a, b) => a + b, 0) / epuValues.length) * 100,
+          ) / 100
+        : null;
+    const maxEpu = epuValues.length > 0 ? Math.max(...epuValues) : null;
+    const minEpu = epuValues.length > 0 ? Math.min(...epuValues) : null;
+    const avg30d =
+      recentEpu.length > 0
+        ? Math.round(
+            (recentEpu.reduce((a, b) => a + b, 0) / recentEpu.length) * 100,
+          ) / 100
+        : null;
+    const current = data.length > 0 ? data[data.length - 1] : null;
 
     const summary = {
       current: {
-        epu: epuValues[epuValues.length - 1] || null,
-        epu_factor: data[data.length - 1]?.epu_factor || 1.0,
-        epu_level: data[data.length - 1]?.epu_level || "unknown",
-        china_tpu: data[data.length - 1]?.china_tpu || null,
-        vix: data[data.length - 1]?.vix || null,
-        zl_close: data[data.length - 1]?.zl_close || null,
+        epu: current?.epu ?? null,
+        epu_factor: current?.epu_factor ?? null,
+        epu_level: current?.epu_level ?? "unknown",
+        china_tpu: current?.china_tpu ?? null,
+        vix: current?.vix ?? null,
+        zl_close: current?.zl_close ?? null,
       },
       period: {
-        avg_epu: Math.round((epuValues.reduce((a, b) => a + b, 0) / epuValues.length) * 100) / 100,
-        max_epu: Math.max(...epuValues),
-        min_epu: Math.min(...epuValues),
-        avg_30d: Math.round((recentEpu.reduce((a, b) => a + b, 0) / recentEpu.length) * 100) / 100,
+        avg_epu: avgEpu,
+        max_epu: maxEpu,
+        min_epu: minEpu,
+        avg_30d: avg30d,
       },
       thresholds: EPU_THRESHOLDS,
       vix_thresholds: VIX_THRESHOLDS,

@@ -142,7 +142,7 @@ def populate_vol_regimes(conn, lookback_days: int = 252) -> int:
                 close,
                 (close - LAG(close) OVER (ORDER BY event_date)) /
                     NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as ret
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             WHERE event_date >= CURRENT_DATE - INTERVAL '%s days'
         ),
         vol_windows AS (
@@ -288,7 +288,7 @@ def populate_event_probabilities(conn, horizon: int, lookback_years: int = 10) -
                 close,
                 (close - LAG(close, {horizon}) OVER (ORDER BY event_date)) /
                     NULLIF(LAG(close, {horizon}) OVER (ORDER BY event_date), 0) as ret
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             WHERE event_date >= %s
         )
         SELECT
@@ -375,13 +375,13 @@ def populate_dashboard_metrics(conn) -> int:
     cur.execute("""
         WITH latest AS (
             SELECT close, event_date
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             ORDER BY event_date DESC
             LIMIT 1
         ),
         prev AS (
             SELECT close
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             ORDER BY event_date DESC
             OFFSET 1 LIMIT 1
         )

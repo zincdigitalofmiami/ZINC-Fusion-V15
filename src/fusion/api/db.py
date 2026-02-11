@@ -155,10 +155,10 @@ TABLE_MAP = {
     "econ.inflation_1d": '"econ"."inflation_1d"',
     "econ.labor_1d": '"econ"."labor_1d"',
     # Alternative data
-    "alt.policy_news": '"alt"."policy_news"',
-    "alt.executive_actions": '"alt"."executive_actions"',
-    "alt.econ_news": '"alt"."econ_news"',
-    "alt.profarmer_news": '"alt"."profarmer_news"',
+    "alt.policy_news_event": '"alt"."policy_news_event"',
+    "alt.executive_actions_event": '"alt"."executive_actions_event"',
+    "alt.econ_news_event": '"alt"."econ_news_event"',
+    "alt.profarmer_news_event": '"alt"."profarmer_news_event"',
     "alt.weather_1d": '"alt"."weather_1d"',
     "alt.legislation_1d": '"alt"."legislation_1d"',
     # Positioning
@@ -169,7 +169,7 @@ TABLE_MAP = {
     "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
     # Features
     "features.elite_1d": '"features"."elite_1d"',
-    "features.intel_drops": '"features"."intel_drops"',
+    "features.intel_drops_event": '"features"."intel_drops_event"',
     "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training
     "training.matrix_1d": '"training"."matrix_1d"',

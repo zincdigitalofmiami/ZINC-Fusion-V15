@@ -68,7 +68,7 @@ export const cbpTradeDaily = inngest.createFunction(
     try {
       await step.run("assert-table", async () => {
         // Fail loudly if the table doesn't exist (no silent DDL in prod).
-        await client.query(`SELECT 1 FROM alt.policy_news LIMIT 1`);
+        await client.query(`SELECT 1 FROM alt.policy_news_event LIMIT 1`);
       });
 
       runId = await step.run("create-ingest-run", () => createIngestRun(client, "cbp-trade-daily"));
@@ -120,13 +120,13 @@ export const cbpTradeDaily = inngest.createFunction(
 
           const rowHash = computeRowHash(link, pubDate);
 
-          if (await hashExists(client, "alt.policy_news", rowHash)) {
+          if (await hashExists(client, "alt.policy_news_event", rowHash)) {
             return { status: "skipped_duplicate" as const };
           }
 
           const eventDate = parsed.toISOString().split("T")[0];
           await client.query(
-            `INSERT INTO alt.policy_news (
+            `INSERT INTO alt.policy_news_event (
                event_date, headline, content, url, published_at,
                source, raw_payload, ingestion_batch_id, row_hash, specialist_tags
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,

@@ -77,10 +77,10 @@ REQUIRED_DATA_SOURCES = {
     "econ.money_1d": (1_000, "FRED money supply (M2, reserves)", "event_date"),
     # Alternative data (alt schema)
     "alt.weather_1d": (500, "NOAA weather (US/Brazil/Argentina)", "event_date"),
-    "alt.policy_news": (50, "Policy/trade news", "event_date"),
-    "alt.executive_actions": (50, "White House actions", "event_date"),
-    "alt.econ_news": (50, "Economic news", "event_date"),
-    "alt.profarmer_news": (50, "Pro Farmer news", "event_date"),
+    "alt.policy_news_event": (50, "Policy/trade news", "event_date"),
+    "alt.executive_actions_event": (50, "White House actions", "event_date"),
+    "alt.econ_news_event": (50, "Economic news", "event_date"),
+    "alt.profarmer_news_event": (50, "Pro Farmer news", "event_date"),
     # Position data (pos schema)
     "pos.cftc_1w": (500, "CFTC COT positioning", "as_of_date"),
     # Supply data (supply schema)

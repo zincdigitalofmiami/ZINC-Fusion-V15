@@ -5,7 +5,7 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 /**
- * Fetch ZL 1-hour bars from Databento and write to analytics.zl_price_1h
+ * Fetch ZL 1-hour bars from Databento and write to analytics.price_1h
  * Runs every hour
  */
 export const zl1h = inngest.createFunction(
@@ -22,7 +22,7 @@ export const zl1h = inngest.createFunction(
       const client = await pool.connect();
       try {
         const result = await client.query<{ ts: Date | null }>(
-          `SELECT MAX(timestamp) AS ts FROM analytics.zl_price_1h`
+          `SELECT MAX(timestamp) AS ts FROM analytics.price_1h`
         );
         const lastTs = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
         const bufferMs = 12 * 60 * 60 * 1000;
@@ -70,25 +70,25 @@ export const zl1h = inngest.createFunction(
       return { status: "no_data", message: "No hourly bars returned" };
     }
 
-    // Step 2: Upsert bars to analytics.zl_price_1h
+    // Step 2: Upsert bars to analytics.price_1h
     const inserted = await step.run("upsert-bars", async () => {
       const client = await pool.connect();
       let count = 0;
       try {
         for (const bar of bars) {
           await client.query(
-            `INSERT INTO analytics.zl_price_1h
+            `INSERT INTO analytics.price_1h
               (timestamp, open, high, low, close, volume, source, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, 'databento', NOW())
-             ON CONFLICT (timestamp) DO UPDATE SET
+             ON CONFLICT (symbol, timestamp) DO UPDATE SET
                open = EXCLUDED.open,
                high = EXCLUDED.high,
                low = EXCLUDED.low,
                close = EXCLUDED.close,
                volume = EXCLUDED.volume,
                source = EXCLUDED.source
-             WHERE analytics.zl_price_1h.source IS NULL
-                OR analytics.zl_price_1h.source <> 'databento_live'`,
+             WHERE analytics.price_1h.source IS NULL
+                OR analytics.price_1h.source <> 'databento_live'`,
             [
               bar.eventTime,
               bar.open,

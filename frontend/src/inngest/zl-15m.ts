@@ -5,7 +5,7 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 /**
- * Fetch ZL 15-minute bars from Databento and write to analytics.zl_price_15m
+ * Fetch ZL 15-minute bars from Databento and write to analytics.price_15m
  * Runs every 15 minutes
  */
 export const zl15m = inngest.createFunction(
@@ -22,7 +22,7 @@ export const zl15m = inngest.createFunction(
       const client = await pool.connect();
       try {
         const result = await client.query<{ ts: Date | null }>(
-          `SELECT MAX(timestamp) AS ts FROM analytics.zl_price_15m`
+          `SELECT MAX(timestamp) AS ts FROM analytics.price_15m`
         );
         const lastTs: Date | null = result.rows[0]?.ts ? new Date(result.rows[0].ts) : null;
         const bufferMs = 6 * 60 * 60 * 1000;
@@ -155,7 +155,7 @@ export const zl15m = inngest.createFunction(
       return { status: "no_data", message: "No 15m bars returned" };
     }
 
-    // Step 2: Upsert bars to analytics.zl_price_15m
+    // Step 2: Upsert bars to analytics.price_15m
     const inserted = await step.run("upsert-bars", async () => {
       const client = await pool.connect();
       let count = 0;
@@ -166,10 +166,10 @@ export const zl15m = inngest.createFunction(
           const changePct = previousClose != null ? (change! / previousClose) * 100 : null;
 
           await client.query(
-            `INSERT INTO analytics.zl_price_15m
+            `INSERT INTO analytics.price_15m
               (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'databento', NOW())
-             ON CONFLICT (timestamp) DO UPDATE SET
+             ON CONFLICT (symbol, timestamp) DO UPDATE SET
                open = EXCLUDED.open,
                high = EXCLUDED.high,
                low = EXCLUDED.low,
@@ -181,8 +181,8 @@ export const zl15m = inngest.createFunction(
                day_high = EXCLUDED.day_high,
                day_low = EXCLUDED.day_low,
                source = EXCLUDED.source
-             WHERE analytics.zl_price_15m.source IS NULL
-                OR analytics.zl_price_15m.source <> 'databento_live'`,
+             WHERE analytics.price_15m.source IS NULL
+                OR analytics.price_15m.source <> 'databento_live'`,
             [
               bar.timestamp,
               bar.open,

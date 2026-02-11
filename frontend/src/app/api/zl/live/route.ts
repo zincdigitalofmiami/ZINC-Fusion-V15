@@ -49,7 +49,7 @@ async function getFrom1m(): Promise<PriceTier | null> {
   }>(`
     SELECT timestamp, close, open, high, low, volume,
            previous_close, change, change_percent, day_high, day_low
-    FROM analytics.zl_price_1m
+    FROM analytics.price_1m
     ORDER BY timestamp DESC LIMIT 1
   `);
   if (rows.length === 0) return null;
@@ -84,7 +84,7 @@ async function getFrom15m(): Promise<PriceTier | null> {
     volume: number;
   }>(`
     SELECT timestamp, close, open, high, low, volume
-    FROM analytics.zl_price_15m
+    FROM analytics.price_15m
     ORDER BY timestamp DESC LIMIT 1
   `);
   if (rows.length === 0) return null;
@@ -119,7 +119,7 @@ async function getFrom1h(): Promise<PriceTier | null> {
     volume: number;
   }>(`
     SELECT timestamp, close, open, high, low, volume
-    FROM analytics.zl_price_1h
+    FROM analytics.price_1h
     ORDER BY timestamp DESC LIMIT 1
   `);
   if (rows.length === 0) return null;
@@ -155,10 +155,10 @@ async function getFrom1d(): Promise<PriceTier | null> {
     prev_close: number | null;
   }>(`
     SELECT a.event_date::text, a.close, a.open, a.high, a.low, a.volume,
-           (SELECT b.close FROM analytics.zl_price_1d b
+           (SELECT b.close FROM analytics.price_1d b
             WHERE b.event_date < a.event_date AND b.close IS NOT NULL
             ORDER BY b.event_date DESC LIMIT 1) AS prev_close
-    FROM analytics.zl_price_1d a
+    FROM analytics.price_1d a
     WHERE a.close IS NOT NULL
     ORDER BY a.event_date DESC LIMIT 1
   `);

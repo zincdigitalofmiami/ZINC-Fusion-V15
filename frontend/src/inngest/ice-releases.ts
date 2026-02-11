@@ -1,7 +1,7 @@
 /**
  * ICE.gov Comprehensive Ingestion (20+ URLs)
  *
- * Table: alt.ice_enforcement (dedicated — separate from policy_news)
+ * Table: alt.ice_enforcement_event (dedicated — separate from policy_news)
  *
  * URLS HIT:
  * - /rss (RSS feed)
@@ -149,7 +149,7 @@ export const iceReleasesDaily = inngest.createFunction(
       return true;
     });
 
-    // Insert into alt.ice_enforcement
+    // Insert into alt.ice_enforcement_event
     const result = await step.run("insert-articles", async () => {
       if (!DATABASE_URL) {
         throw new Error("DATABASE_URL not configured");
@@ -164,7 +164,7 @@ export const iceReleasesDaily = inngest.createFunction(
         const rowHash = generateRowHash(item.title, item.link);
 
         const checkResult = await pool.query(
-          `SELECT 1 FROM alt.ice_enforcement WHERE row_hash = $1`,
+          `SELECT 1 FROM alt.ice_enforcement_event WHERE row_hash = $1`,
           [rowHash]
         );
 
@@ -174,7 +174,7 @@ export const iceReleasesDaily = inngest.createFunction(
         }
 
         await pool.query(
-          `INSERT INTO alt.ice_enforcement
+          `INSERT INTO alt.ice_enforcement_event
            (headline, source, url, published_at, event_date, row_hash, specialist_tags)
            VALUES ($1, $2, $3, NOW(), CURRENT_DATE, $4, $5)`,
           [

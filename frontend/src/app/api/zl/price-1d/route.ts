@@ -5,7 +5,7 @@ const pool = dbPool;
 
 /**
  * GET /api/zl/price-1d?days=90
- * Fetch daily OHLCV bars for ZL from analytics.zl_price_1d
+ * Fetch daily OHLCV bars for ZL from analytics.price_1d
  *
  * This is the ZL-specific daily table, updated by Inngest zl-live-1d and zl-daily.
  * NOT the 100+ symbol mkt.futures_1d basket.
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     // Clamp days to reasonable range
     const clampedDays = Math.max(7, Math.min(days, 3650)); // 1 week to 10 years
 
-    // Query analytics.zl_price_1d — ZL-specific, freshest daily data
+    // Query analytics.price_1d — ZL-specific, freshest daily data
     const result = await pool.query(
       `SELECT
         event_date as timestamp,
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         close,
         volume,
         COALESCE(source, 'databento') as source
-      FROM analytics.zl_price_1d
+      FROM analytics.price_1d
       WHERE event_date >= CURRENT_DATE - $1::interval
         AND event_date <= CURRENT_DATE
         AND close IS NOT NULL

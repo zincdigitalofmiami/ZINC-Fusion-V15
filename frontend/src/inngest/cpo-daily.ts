@@ -6,8 +6,7 @@ const pool = dbPool;
 /**
  * CPO Data Sources (in order of preference):
  * 1. Investing.com API (primary) - unofficial, can be flaky
- * 2. Yahoo Finance FCPO=F (fallback) - Bursa Malaysia Crude Palm Oil futures
- * 3. Trading Economics (backup) - requires API key
+ * 2. Trading Economics (backup) - requires API key
  */
 
 interface CpoData {
@@ -47,54 +46,9 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
   return { source: "investing_com", eventDate, open, high, low, close };
 }
 
-async function fetchFromYahooFinance(): Promise<CpoData | null> {
-  // Yahoo Finance CPO=F (CME Malaysian Crude Palm Oil Cash Futures)
-  // Note: FCPO=F (Bursa Malaysia symbol) was delisted, using CPO=F instead
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/CPO=F?interval=1d&range=5d";
-
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-    },
-  });
-
-  if (!res.ok) {
-    console.warn(`Yahoo Finance API error: ${res.status}`);
-    return null;
-  }
-
-  const json = await res.json();
-  const result = json?.chart?.result?.[0];
-  if (!result?.timestamp || !result?.indicators?.quote?.[0]) {
-    return null;
-  }
-
-  const timestamps = result.timestamp;
-  const quote = result.indicators.quote[0];
-
-  // Get the most recent complete trading day
-  const lastIdx = timestamps.length - 1;
-  if (lastIdx < 0) return null;
-
-  const timestamp = timestamps[lastIdx] * 1000; // Convert to milliseconds
-  const eventDate = new Date(timestamp).toISOString().split("T")[0];
-
-  const close = quote.close?.[lastIdx];
-  if (close === undefined || close === null) return null;
-
-  return {
-    source: "yahoo_finance",
-    eventDate,
-    open: quote.open?.[lastIdx],
-    high: quote.high?.[lastIdx],
-    low: quote.low?.[lastIdx],
-    close,
-  };
-}
-
 /**
- * Primary CPO ingestion with multi-source fallback
- * Tries Investing.com first, falls back to Yahoo Finance
+ * Primary CPO ingestion
+ * Uses Investing.com as the only primary source.
  */
 export const cpoPalmOilDaily = inngest.createFunction(
   { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3, concurrency: [DB_CONCURRENCY] },
@@ -102,23 +56,14 @@ export const cpoPalmOilDaily = inngest.createFunction(
   async ({ step, logger }) => {
     // Try to fetch CPO data from multiple sources
     const data = await step.run("fetch-cpo-price", async () => {
-      // Try Investing.com first
       logger.info("Attempting Investing.com...");
-      let result = await fetchFromInvestingCom();
+      const result = await fetchFromInvestingCom();
       if (result) {
         logger.info(`Got CPO from Investing.com: ${result.close}`);
         return result;
       }
 
-      // Fallback to Yahoo Finance
-      logger.info("Investing.com failed, trying Yahoo Finance FCPO=F...");
-      result = await fetchFromYahooFinance();
-      if (result) {
-        logger.info(`Got CPO from Yahoo Finance: ${result.close}`);
-        return result;
-      }
-
-      throw new Error("All CPO data sources failed (Investing.com, Yahoo Finance)");
+      throw new Error("CPO primary source failed (Investing.com)");
     });
 
     // Insert the data

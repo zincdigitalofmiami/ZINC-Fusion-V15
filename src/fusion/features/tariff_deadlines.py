@@ -197,7 +197,7 @@ class TariffDeadlineFeatureEngine:
         self._deadline_cache: Optional[List[DeadlineInfo]] = None
 
     def _load_deadlines_from_db(self, as_of_date: date) -> List[DeadlineInfo]:
-        """Load deadlines from alt.tariff_deadlines table if available."""
+        """Load deadlines from alt.tariff_deadlines_static table if available."""
         if self.db_connection is None:
             return []
 
@@ -207,7 +207,7 @@ class TariffDeadlineFeatureEngine:
                 """
                 SELECT deadline_name, deadline_date, days_to_expiry,
                        policy_type, description, renewal_probability
-                FROM alt.tariff_deadlines
+                FROM alt.tariff_deadlines_static
                 WHERE is_active = true AND deadline_date >= %s
                 ORDER BY deadline_date
             """,

@@ -65,6 +65,8 @@ import {
   zl1mScheduledBackfill,
   cleanupStaleRuns,
   lcfsCreditWeekly,
+  trumpEffectSignalSync,
+  trumpEffectSignalSyncManual,
 } from "@/inngest/functions";
 
 /**
@@ -190,6 +192,9 @@ export const { GET, POST, PUT } = serve({
     cleanupStaleRuns,
     // Supply data (weekly)
     lcfsCreditWeekly,
+    // Trump effect signal synchronization
+    trumpEffectSignalSync,
+    trumpEffectSignalSyncManual,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

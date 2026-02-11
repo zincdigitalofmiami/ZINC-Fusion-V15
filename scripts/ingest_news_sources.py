@@ -496,13 +496,13 @@ def article_exists(conn, article_hash: str) -> bool:
         cur.execute(
             """
             SELECT 1 FROM (
-                SELECT row_hash FROM alt.policy_news WHERE row_hash = %s
+                SELECT row_hash FROM alt.policy_news_event WHERE row_hash = %s
                 UNION ALL
-                SELECT row_hash FROM alt.executive_actions WHERE row_hash = %s
+                SELECT row_hash FROM alt.executive_actions_event WHERE row_hash = %s
                 UNION ALL
-                SELECT row_hash FROM alt.econ_news WHERE row_hash = %s
+                SELECT row_hash FROM alt.econ_news_event WHERE row_hash = %s
                 UNION ALL
-                SELECT row_hash FROM alt.profarmer_news WHERE row_hash = %s
+                SELECT row_hash FROM alt.profarmer_news_event WHERE row_hash = %s
             ) combined LIMIT 1
         """,
             (article_hash, article_hash, article_hash, article_hash),
@@ -522,14 +522,14 @@ def insert_article(conn, article: Dict[str, Any]) -> bool:
 
         # Determine target table
         if "whitehouse" in source or "executive" in source:
-            table = "alt.executive_actions"
+            table = "alt.executive_actions_event"
         elif any(x in source for x in ["profarmer", "farmdoc", "agweb", "dtn"]):
-            table = "alt.profarmer_news"
+            table = "alt.profarmer_news_event"
         elif any(x in source for x in ["fred", "ecb", "bloomberg", "wsj"]):
-            table = "alt.econ_news"
+            table = "alt.econ_news_event"
         else:
             # Default: policy/trade news
-            table = "alt.policy_news"
+            table = "alt.policy_news_event"
 
         with conn.cursor() as cur:
             cur.execute(

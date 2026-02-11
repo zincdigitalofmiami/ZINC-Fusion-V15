@@ -30,10 +30,10 @@ def load_news_for_specialist(
     where this specialist is in the tags array.
 
     New table structure (2026-01-31):
-    - alt.econ_news: FRED blog (Federal Reserve economic research)
-    - alt.executive_actions: WhiteHouse presidential documents
-    - alt.policy_news: Other policy sources (ICE, CBP, AEI, FarmDoc)
-    - alt.profarmer_news: ProFarmer premium ag news
+    - alt.econ_news_event: FRED blog (Federal Reserve economic research)
+    - alt.executive_actions_event: WhiteHouse presidential documents
+    - alt.policy_news_event: Other policy sources (ICE, CBP, AEI, FarmDoc)
+    - alt.profarmer_news_event: ProFarmer premium ag news
     - alt.legislation_1d: Federal Register legislation
 
     Returns:
@@ -1291,7 +1291,7 @@ def load_trump_effect_data(
     - Credit: BAMLC0A0CM, BAMLH0A0HYM2
     - Fed Rates: DFF, DGS2, DGS10, T10Y2Y, SOFR
     - FX Rates: All major USD pairs
-    - Tariff: alt.tariff_deadlines
+    - Tariff: alt.tariff_deadlines_static
     - Trump Features: features.trump_effect_1d
     """
     conn = get_connection()
@@ -1522,7 +1522,7 @@ def load_trump_effect_data(
     # ==========================================================================
     tariff_query = """
     SELECT deadline_name, deadline_date, days_to_expiry, renewal_probability, is_active
-    FROM alt.tariff_deadlines
+    FROM alt.tariff_deadlines_static
     WHERE is_active = true
     ORDER BY deadline_date
     """

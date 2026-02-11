@@ -18,8 +18,8 @@ interface NewsRow {
 
 /**
  * GET /api/sentiment/news
- * Aggregates recent headlines across all news tables (alt.profarmer_news,
- * alt.policy_news, alt.executive_actions, alt.econ_news, econ.news_event)
+ * Aggregates recent headlines across all news tables (alt.profarmer_news_event,
+ * alt.policy_news_event, alt.executive_actions_event, alt.econ_news_event, econ.news_event)
  * and returns them sorted by date descending.
  */
 export async function GET() {
@@ -37,7 +37,7 @@ export async function GET() {
           NULL AS zl_sentiment,
           specialist_tags,
           'profarmer' AS table_source
-        FROM alt.profarmer_news
+        FROM alt.profarmer_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
 
         UNION ALL
@@ -53,7 +53,7 @@ export async function GET() {
           zl_sentiment,
           specialist_tags,
           'policy' AS table_source
-        FROM alt.policy_news
+        FROM alt.policy_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
 
         UNION ALL
@@ -69,7 +69,7 @@ export async function GET() {
           zl_sentiment,
           specialist_tags,
           'executive' AS table_source
-        FROM alt.executive_actions
+        FROM alt.executive_actions_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
 
         UNION ALL
@@ -85,7 +85,7 @@ export async function GET() {
           NULL AS zl_sentiment,
           specialist_tags,
           'econ' AS table_source
-        FROM alt.econ_news
+        FROM alt.econ_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
 
         UNION ALL

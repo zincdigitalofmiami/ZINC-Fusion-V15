@@ -101,12 +101,12 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
   try {
     // Get latest price
     const latest = await query<{price: number, timestamp: string}>(`
-      SELECT price, timestamp FROM analytics.zl_latest WHERE id = 1
+      SELECT price, timestamp FROM analytics.latest_price WHERE id = 1
     `)
 
     // Get recent daily closes for week range
     const dailyCloses = await query<{close: number, event_date: string}>(`
-      SELECT close, event_date FROM analytics.zl_price_1d
+      SELECT close, event_date FROM analytics.price_1d
       ORDER BY event_date DESC LIMIT 6
     `)
 
@@ -133,31 +133,15 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
 
 async function getForecasts(currentPrice: number): Promise<ForecastHorizon[]> {
   try {
-    // Try production forecasts first
+    // Try production forecasts first (consolidated table with horizon column)
     const fcRows = await query<{
       horizon_days: number, price_p30: number, price_p50: number, price_p70: number
     }>(`
-      WITH latest_5d AS (
-        SELECT 5 as horizon_days, price_p30::float, price_p50::float, price_p70::float
-        FROM forecasts.production_5d_1d ORDER BY as_of_date DESC LIMIT 1
-      ),
-      latest_21d AS (
-        SELECT 21 as horizon_days, price_p30::float, price_p50::float, price_p70::float
-        FROM forecasts.production_21d_1d ORDER BY as_of_date DESC LIMIT 1
-      ),
-      latest_63d AS (
-        SELECT 63 as horizon_days, price_p30::float, price_p50::float, price_p70::float
-        FROM forecasts.production_63d_1d ORDER BY as_of_date DESC LIMIT 1
-      ),
-      latest_126d AS (
-        SELECT 126 as horizon_days, price_p30::float, price_p50::float, price_p70::float
-        FROM forecasts.production_126d_1d ORDER BY as_of_date DESC LIMIT 1
-      )
-      SELECT * FROM latest_5d
-      UNION ALL SELECT * FROM latest_21d
-      UNION ALL SELECT * FROM latest_63d
-      UNION ALL SELECT * FROM latest_126d
-      ORDER BY horizon_days
+      SELECT DISTINCT ON (horizon)
+        horizon as horizon_days, price_p30::float, price_p50::float, price_p70::float
+      FROM forecasts.production_1d
+      WHERE horizon IN (5, 21, 63, 126)
+      ORDER BY horizon, as_of_date DESC
     `)
 
     if (fcRows.length > 0) {
@@ -395,7 +379,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
 
       // ZL vs VIX (inverse relationship expected)
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM analytics.zl_price_1d ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+        WITH zl AS (SELECT event_date, close FROM analytics.price_1d ORDER BY event_date DESC LIMIT ${LOOKBACK}),
              vix AS (SELECT event_date, value as close FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
         SELECT CORR(zl.close, vix.close)::float8 as corr FROM zl JOIN vix ON zl.event_date = vix.event_date
       `).catch(() => [{ corr: null }]),

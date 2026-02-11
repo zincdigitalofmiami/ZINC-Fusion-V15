@@ -32,6 +32,7 @@ model econ_news {
   @@index([event_date], map: "idx_alt_econ_news_date")
   @@index([published_at], map: "idx_alt_econ_news_published_at")
   @@index([specialist_tags], map: "idx_alt_econ_news_tags", type: Gin)
+  @@map("econ_news_event")
   @@schema("alt")
 }
 
@@ -57,6 +58,7 @@ model executive_actions {
   @@index([event_date], map: "idx_executive_actions_date")
   @@index([specialist_tags], map: "idx_executive_actions_tags", type: Gin)
   @@index([document_type], map: "idx_executive_actions_type")
+  @@map("executive_actions_event")
   @@schema("alt")
 }
 
@@ -74,6 +76,7 @@ model ice_enforcement {
   @@index([event_date], map: "idx_ice_enforcement_date")
   @@index([specialist_tags], map: "idx_ice_enforcement_tags", type: Gin)
   @@index([source], map: "idx_ice_enforcement_source")
+  @@map("ice_enforcement_event")
   @@schema("alt")
 }
 
@@ -118,6 +121,7 @@ model policy_news {
   @@index([event_date], map: "idx_policy_news_date")
   @@index([source], map: "idx_policy_news_source")
   @@index([specialist_tags], map: "idx_policy_news_tags", type: Gin)
+  @@map("policy_news_event")
   @@schema("alt")
 }
 
@@ -150,6 +154,7 @@ model profarmer_news {
   @@index([keywords], map: "idx_profarmer_keywords", type: Gin)
   @@index([tags], map: "idx_profarmer_tags", type: Gin)
   @@index([topics], map: "idx_profarmer_topics", type: Gin)
+  @@map("profarmer_news_event")
   @@schema("alt")
 }
 
@@ -168,6 +173,7 @@ model tariff_deadlines {
   @@unique([deadline_name, deadline_date])
   @@index([is_active], map: "idx_alt_tariff_deadline_active")
   @@index([deadline_date], map: "idx_alt_tariff_deadline_date")
+  @@map("tariff_deadlines_static")
   @@schema("alt")
 }
 
@@ -283,8 +289,9 @@ model driver_scores {
   @@schema("analytics")
 }
 
-model event_probabilities_126d_1d {
+model event_probabilities_1d {
   id             Int       @id @default(autoincrement())
+  horizon        Int
   as_of_date     DateTime  @db.Date
   event_type     String
   window_start   DateTime? @db.Date
@@ -296,66 +303,11 @@ model event_probabilities_126d_1d {
   model_version  String?
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
-  @@unique([as_of_date, event_type])
-  @@index([as_of_date], map: "idx_event_prob_126d_date")
-  @@index([event_type], map: "idx_event_prob_126d_type")
-  @@schema("analytics")
-}
-
-model event_probabilities_21d_1d {
-  id             Int       @id @default(autoincrement())
-  as_of_date     DateTime  @db.Date
-  event_type     String
-  window_start   DateTime? @db.Date
-  window_end     DateTime? @db.Date
-  p_event        Decimal?  @db.Decimal(5, 4)
-  severity_score Decimal?  @db.Decimal(5, 4)
-  confidence     Decimal?  @db.Decimal(5, 4)
-  drivers_topk   Json?
-  model_version  String?
-  created_at     DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, event_type])
-  @@index([as_of_date], map: "idx_event_prob_21d_date")
-  @@index([event_type], map: "idx_event_prob_21d_type")
-  @@schema("analytics")
-}
-
-model event_probabilities_5d_1d {
-  id             Int       @id @default(autoincrement())
-  as_of_date     DateTime  @db.Date
-  event_type     String
-  window_start   DateTime? @db.Date
-  window_end     DateTime? @db.Date
-  p_event        Decimal?  @db.Decimal(5, 4)
-  severity_score Decimal?  @db.Decimal(5, 4)
-  confidence     Decimal?  @db.Decimal(5, 4)
-  drivers_topk   Json?
-  model_version  String?
-  created_at     DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, event_type])
-  @@index([as_of_date], map: "idx_event_prob_5d_date")
-  @@index([event_type], map: "idx_event_prob_5d_type")
-  @@schema("analytics")
-}
-
-model event_probabilities_63d_1d {
-  id             Int       @id @default(autoincrement())
-  as_of_date     DateTime  @db.Date
-  event_type     String
-  window_start   DateTime? @db.Date
-  window_end     DateTime? @db.Date
-  p_event        Decimal?  @db.Decimal(5, 4)
-  severity_score Decimal?  @db.Decimal(5, 4)
-  confidence     Decimal?  @db.Decimal(5, 4)
-  drivers_topk   Json?
-  model_version  String?
-  created_at     DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, event_type])
-  @@index([as_of_date], map: "idx_event_prob_63d_date")
-  @@index([event_type], map: "idx_event_prob_63d_type")
+  @@unique([horizon, as_of_date, event_type])
+  @@index([as_of_date], map: "idx_event_prob_date")
+  @@index([event_type], map: "idx_event_prob_type")
+  @@index([horizon], map: "idx_event_prob_horizon")
+  @@map("event_probabilities_1d")
   @@schema("analytics")
 }
 
@@ -384,8 +336,9 @@ model market_posture {
   @@schema("analytics")
 }
 
-model price_scenarios_126d_1d {
+model price_scenarios_1d {
   id            Int       @id @default(autoincrement())
+  horizon       Int
   as_of_date    DateTime  @db.Date
   axis          String
   scenario_name String
@@ -404,87 +357,11 @@ model price_scenarios_126d_1d {
   model_version String?
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
 
-  @@unique([as_of_date, axis, scenario_name])
-  @@index([axis], map: "idx_scenarios_126d_axis")
-  @@index([as_of_date], map: "idx_scenarios_126d_date")
-  @@schema("analytics")
-}
-
-model price_scenarios_21d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @db.Date
-  axis          String
-  scenario_name String
-  p_scenario    Decimal?  @db.Decimal(5, 4)
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  drivers_topk  Json?
-  display_order Int?
-  color_code    String?
-  model_version String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, axis, scenario_name])
-  @@index([axis], map: "idx_scenarios_21d_axis")
-  @@index([as_of_date], map: "idx_scenarios_21d_date")
-  @@schema("analytics")
-}
-
-model price_scenarios_5d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @db.Date
-  axis          String
-  scenario_name String
-  p_scenario    Decimal?  @db.Decimal(5, 4)
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  drivers_topk  Json?
-  display_order Int?
-  color_code    String?
-  model_version String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, axis, scenario_name])
-  @@index([axis], map: "idx_scenarios_5d_axis")
-  @@index([as_of_date], map: "idx_scenarios_5d_date")
-  @@schema("analytics")
-}
-
-model price_scenarios_63d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @db.Date
-  axis          String
-  scenario_name String
-  p_scenario    Decimal?  @db.Decimal(5, 4)
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  drivers_topk  Json?
-  display_order Int?
-  color_code    String?
-  model_version String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([as_of_date, axis, scenario_name])
-  @@index([axis], map: "idx_scenarios_63d_axis")
-  @@index([as_of_date], map: "idx_scenarios_63d_date")
+  @@unique([horizon, as_of_date, axis, scenario_name])
+  @@index([axis], map: "idx_scenarios_axis")
+  @@index([as_of_date], map: "idx_scenarios_date")
+  @@index([horizon], map: "idx_scenarios_horizon")
+  @@map("price_scenarios_1d")
   @@schema("analytics")
 }
 
@@ -609,33 +486,23 @@ model vol_regimes {
   @@schema("analytics")
 }
 
-model zl_forming_bar {
-  timeframe  String    @id @db.VarChar(10)
-  bar_start  DateTime  @db.Timestamptz(6)
-  open       Float
-  high       Float
-  low        Float
-  close      Float
-  volume     Int?      @default(0)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@schema("analytics")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model zl_latest {
+/// Renamed from zl_latest; singleton latest price per symbol
+model latest_price {
   id         Int       @id @default(1)
+  symbol     String    @default("ZL") @db.VarChar(20)
   price      Float
   timestamp  DateTime  @db.Timestamptz(6)
   volume     Int?
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@map("latest_price")
   @@schema("analytics")
 }
 
-model zl_price_15m {
+model price_15m {
   id             Int       @id @default(autoincrement())
-  timestamp      DateTime  @unique @db.Timestamptz(6)
+  symbol         String    @default("ZL") @db.VarChar(20)
+  timestamp      DateTime  @db.Timestamptz(6)
   open           Float
   high           Float
   low            Float
@@ -649,12 +516,17 @@ model zl_price_15m {
   source         String?   @db.VarChar(50)
   created_at     DateTime? @db.Timestamptz(6)
 
-  @@index([timestamp(sort: Desc)], map: "idx_zl_price_15m_ts")
+  @@unique([symbol, timestamp])
+  @@index([timestamp(sort: Desc)], map: "idx_price_15m_ts")
+  @@index([symbol], map: "idx_price_15m_symbol")
+  @@map("price_15m")
   @@schema("analytics")
 }
 
-model zl_price_1d {
-  event_date DateTime  @id @db.Date
+model price_1d {
+  id         Int       @id @default(autoincrement())
+  symbol     String    @default("ZL") @db.VarChar(20)
+  event_date DateTime  @db.Date
   open       Decimal   @db.Decimal(10, 4)
   high       Decimal   @db.Decimal(10, 4)
   low        Decimal   @db.Decimal(10, 4)
@@ -663,27 +535,17 @@ model zl_price_1d {
   source     String?   @default("yahoo") @db.VarChar(50)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
 
-  @@index([event_date(sort: Desc)], map: "idx_zl_price_1d_date")
+  @@unique([symbol, event_date])
+  @@index([event_date(sort: Desc)], map: "idx_price_1d_date")
+  @@index([symbol], map: "idx_price_1d_symbol")
+  @@map("price_1d")
   @@schema("analytics")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model zl_price_1d_yahoo_backup {
-  event_date DateTime? @db.Date
-  open       Decimal?  @db.Decimal(10, 4)
-  high       Decimal?  @db.Decimal(10, 4)
-  low        Decimal?  @db.Decimal(10, 4)
-  close      Decimal?  @db.Decimal(10, 4)
-  volume     BigInt?
-  source     String?   @db.VarChar(50)
-  created_at DateTime? @db.Timestamptz(6)
-
-  @@ignore
-  @@schema("analytics")
-}
-
-model zl_price_1h {
-  timestamp  DateTime @id @db.Timestamptz(6)
+model price_1h {
+  id         Int      @id @default(autoincrement())
+  symbol     String   @default("ZL") @db.VarChar(20)
+  timestamp  DateTime @db.Timestamptz(6)
   open       Decimal  @db.Decimal(10, 4)
   high       Decimal  @db.Decimal(10, 4)
   low        Decimal  @db.Decimal(10, 4)
@@ -692,13 +554,17 @@ model zl_price_1h {
   source     String   @default("yahoo") @db.VarChar(50)
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
-  @@index([timestamp(sort: Desc)], map: "idx_zl_price_1h_ts")
+  @@unique([symbol, timestamp])
+  @@index([timestamp(sort: Desc)], map: "idx_price_1h_ts")
+  @@index([symbol], map: "idx_price_1h_symbol")
+  @@map("price_1h")
   @@schema("analytics")
 }
 
-model zl_price_1m {
+model price_5m {
   id             Int       @id @default(autoincrement())
-  timestamp      DateTime  @unique @db.Timestamptz(6)
+  symbol         String    @default("ZL") @db.VarChar(20)
+  timestamp      DateTime  @db.Timestamptz(6)
   open           Float
   high           Float
   low            Float
@@ -712,12 +578,16 @@ model zl_price_1m {
   source         String?   @db.VarChar(50)
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@unique([symbol, timestamp])
+  @@index([symbol], map: "idx_price_5m_symbol")
+  @@map("price_5m")
   @@schema("analytics")
 }
 
-model zl_price_5m {
+model price_1m {
   id             Int       @id @default(autoincrement())
-  timestamp      DateTime  @unique @db.Timestamptz(6)
+  symbol         String    @default("ZL") @db.VarChar(20)
+  timestamp      DateTime  @db.Timestamptz(6)
   open           Float
   high           Float
   low            Float
@@ -731,6 +601,9 @@ model zl_price_5m {
   source         String?   @db.VarChar(50)
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@unique([symbol, timestamp])
+  @@index([symbol], map: "idx_price_1m_symbol")
+  @@map("price_1m")
   @@schema("analytics")
 }
 
@@ -938,6 +811,7 @@ model intel_drops {
   @@index([as_of_ts], map: "idx_intel_drops_as_of_ts")
   @@index([direction], map: "idx_intel_drops_direction")
   @@index([domain], map: "idx_intel_drops_domain")
+  @@map("intel_drops_event")
   @@schema("features")
 }
 
@@ -987,9 +861,9 @@ model core_mc_1d {
   forecast_date DateTime  @db.Date
   horizon_days  Int
   s0            Float
-  q10           Float
-  q50           Float
-  q90           Float
+  p10           Float
+  p50           Float
+  p90           Float
   mu_annual     Float?
   sigma_annual  Float?
   mc_p10_final  Float?
@@ -1126,9 +1000,10 @@ model probability_distributions {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model production_126d_1d {
+model production_1d {
   id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @unique @db.Date
+  horizon       Int
+  as_of_date    DateTime  @db.Date
   forecast_date DateTime  @db.Date
   p30           Decimal?  @db.Decimal(10, 4)
   p50           Decimal?  @db.Decimal(10, 4)
@@ -1145,79 +1020,10 @@ model production_126d_1d {
   run_id        String?
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
 
-  @@index([as_of_date], map: "idx_production_126d_date")
-  @@schema("forecasts")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model production_21d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @unique @db.Date
-  forecast_date DateTime  @db.Date
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  price_p10_cal Decimal?  @db.Decimal(10, 4)
-  price_p90_cal Decimal?  @db.Decimal(10, 4)
-  current_price Decimal?  @db.Decimal(10, 4)
-  model_version String?
-  run_id        String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@index([as_of_date], map: "idx_production_21d_date")
-  @@schema("forecasts")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model production_5d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @unique @db.Date
-  forecast_date DateTime  @db.Date
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  price_p10_cal Decimal?  @db.Decimal(10, 4)
-  price_p90_cal Decimal?  @db.Decimal(10, 4)
-  current_price Decimal?  @db.Decimal(10, 4)
-  model_version String?
-  run_id        String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@index([as_of_date], map: "idx_production_5d_date")
-  @@schema("forecasts")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model production_63d_1d {
-  id            Int       @id @default(autoincrement())
-  as_of_date    DateTime  @unique @db.Date
-  forecast_date DateTime  @db.Date
-  p30           Decimal?  @db.Decimal(10, 4)
-  p50           Decimal?  @db.Decimal(10, 4)
-  p70           Decimal?  @db.Decimal(10, 4)
-  p10_cal       Decimal?  @db.Decimal(10, 4)
-  p90_cal       Decimal?  @db.Decimal(10, 4)
-  price_p30     Decimal?  @db.Decimal(10, 4)
-  price_p50     Decimal?  @db.Decimal(10, 4)
-  price_p70     Decimal?  @db.Decimal(10, 4)
-  price_p10_cal Decimal?  @db.Decimal(10, 4)
-  price_p90_cal Decimal?  @db.Decimal(10, 4)
-  current_price Decimal?  @db.Decimal(10, 4)
-  model_version String?
-  run_id        String?
-  created_at    DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@index([as_of_date], map: "idx_production_63d_date")
+  @@unique([horizon, as_of_date])
+  @@index([as_of_date], map: "idx_production_date")
+  @@index([horizon], map: "idx_production_horizon")
+  @@map("production_1d")
   @@schema("forecasts")
 }
 
@@ -1584,14 +1390,14 @@ model prediction_accuracy {
   prediction_date DateTime  @db.Date
   target_date     DateTime  @db.Date
   actual          Decimal?  @db.Decimal
-  pred_p50        Decimal?  @db.Decimal
+  p50             Decimal?  @db.Decimal
   error           Decimal?  @db.Decimal
   abs_error       Decimal?  @db.Decimal
   pct_error       Decimal?  @db.Decimal
   in_80_band      Boolean?
   created_at      DateTime? @default(now()) @db.Timestamptz(6)
-  pred_p10        Decimal?  @db.Decimal
-  pred_p90        Decimal?  @db.Decimal
+  p10             Decimal?  @db.Decimal
+  p90             Decimal?  @db.Decimal
 
   @@unique([model_id, prediction_date, target_date])
   @@index([model_id], map: "idx_accuracy_model")
@@ -3236,6 +3042,7 @@ model model_runs {
   @@unique([run_hash, horizon_days])
   @@index([model_name, horizon_days], map: "idx_model_runs_model")
   @@index([status, outcome], map: "idx_model_runs_status")
+  @@map("model_runs_event")
   @@schema("training")
 }
 
@@ -3278,6 +3085,7 @@ model realized_volatility {
   @@unique([symbol, as_of_date, window_days])
   @@index([as_of_date], map: "idx_realized_vol_date")
   @@index([symbol], map: "idx_realized_vol_symbol")
+  @@map("realized_volatility_1d")
   @@schema("training")
 }
 
@@ -3353,6 +3161,7 @@ model volatility_surface {
   @@unique([underlying, as_of_date])
   @@index([as_of_date], map: "idx_vol_surface_date")
   @@index([underlying], map: "idx_vol_surface_underlying")
+  @@map("volatility_surface_1d")
   @@schema("training")
 }
 

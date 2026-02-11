@@ -423,7 +423,7 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     # ==== 3. EXECUTIVE VELOCITY ====
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.executive_actions
+        SELECT COUNT(*) FROM alt.executive_actions_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),
@@ -672,7 +672,7 @@ def calculate_tariff_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     # ==== 5. SOY-SPECIFIC TARIFF NEWS (ProFarmer) ====
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.profarmer_news
+        SELECT COUNT(*) FROM alt.profarmer_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
         AND (
             headline ILIKE '%%tariff%%'

@@ -336,18 +336,18 @@ def insert_to_database(conn, df: pd.DataFrame, dry_run: bool = True):
     values = [tuple(convert_value(v) for v in row) for row in df_clean.values]
 
     insert_sql = f"""
-        INSERT INTO training.matrix_1d ({", ".join(columns)}, created_at, updated_at)
+        INSERT INTO training.matrix_1d ({", ".join(columns)}, created_at)
         VALUES %s
     """
 
-    # Add timestamps to each row
+    # Add created_at timestamp to each row (updated_at is not in Prisma schema)
     from datetime import timezone
 
     now = datetime.now(timezone.utc)
-    values_with_timestamps = [v + (now, now) for v in values]
+    values_with_timestamps = [v + (now,) for v in values]
 
     # Use execute_values for efficient batch insert
-    template = "(" + ", ".join(["%s"] * len(columns)) + ", %s, %s)"
+    template = "(" + ", ".join(["%s"] * len(columns)) + ", %s)"
     execute_values(
         cursor, insert_sql, values_with_timestamps, template=template, page_size=1000
     )

@@ -927,7 +927,7 @@ def load_news_data(conn) -> pd.DataFrame:
     """Load news sentiment data aggregated by date (legacy - global aggregate).
 
     MIGRATED: Previously read from the monolithic news table (deleted).
-    Now unions alt.policy_news, alt.executive_actions, alt.econ_news, alt.profarmer_news.
+    Now unions alt.policy_news_event, alt.executive_actions_event, alt.econ_news_event, alt.profarmer_news_event.
     Note: This global aggregate is NOT used by generate_bucket_features (which uses
     news_by_bucket instead). Kept for backward compatibility.
     """
@@ -935,13 +935,13 @@ def load_news_data(conn) -> pd.DataFrame:
     with conn.cursor() as cur:
         cur.execute("""
             WITH all_news AS (
-                SELECT event_date, zl_sentiment FROM alt.policy_news
+                SELECT event_date, zl_sentiment FROM alt.policy_news_event
                 UNION ALL
-                SELECT event_date, zl_sentiment FROM alt.executive_actions
+                SELECT event_date, zl_sentiment FROM alt.executive_actions_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news
+                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news
+                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news_event
             )
             SELECT event_date AS as_of_date,
                 COUNT(*) as news_article_count,
@@ -972,8 +972,8 @@ def load_news_sentiment_by_bucket(conn) -> dict[str, pd.DataFrame]:
     Load BUCKET-SPECIFIC news sentiment from alt news tables via specialist_tags.
 
     MIGRATED: Previously read from the features news sentiment table (deleted).
-    Now aggregates directly from alt.policy_news, alt.executive_actions,
-    alt.econ_news, alt.profarmer_news using specialist_tags[] routing.
+    Now aggregates directly from alt.policy_news_event, alt.executive_actions_event,
+    alt.econ_news_event, alt.profarmer_news_event using specialist_tags[] routing.
 
     Returns a dict of {bucket_name: DataFrame} with aggregated sentiment features.
     """
@@ -1004,16 +1004,16 @@ def load_news_sentiment_by_bucket(conn) -> dict[str, pd.DataFrame]:
                 f"""
                 WITH all_tagged_news AS (
                     SELECT event_date, zl_sentiment, specialist_tags
-                    FROM alt.policy_news WHERE %s = ANY(specialist_tags)
+                    FROM alt.policy_news_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
                     SELECT event_date, zl_sentiment, specialist_tags
-                    FROM alt.executive_actions WHERE %s = ANY(specialist_tags)
+                    FROM alt.executive_actions_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
                     SELECT event_date, NULL as zl_sentiment, specialist_tags
-                    FROM alt.econ_news WHERE %s = ANY(specialist_tags)
+                    FROM alt.econ_news_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
                     SELECT event_date, NULL as zl_sentiment, specialist_tags
-                    FROM alt.profarmer_news WHERE %s = ANY(specialist_tags)
+                    FROM alt.profarmer_news_event WHERE %s = ANY(specialist_tags)
                 )
                 SELECT
                     event_date AS as_of_date,
@@ -2198,7 +2198,7 @@ def generate_bucket_features(
                 zl_df[col] = zl_df[col].fillna(0)
             logger.info(f"    + WhiteHouse: {len(wh_cols)} features")
 
-        # DJT stock proxy for Trump sentiment (from yahoo_equity_1d via market data)
+        # DJT stock proxy for Trump sentiment (from equity market proxy feed)
         if "djt_close" in zl_df.columns:
             zl_df["djt_momentum_5d"] = zl_df["djt_close"].pct_change(5) * 100
             zl_df["djt_momentum_21d"] = zl_df["djt_close"].pct_change(21) * 100

@@ -1,6 +1,6 @@
 /**
  * GET /api/zl/chart
- * Returns ZL daily OHLCV from analytics.zl_price_1d
+ * Returns ZL daily OHLCV from analytics.price_1d
  * Query params: days (default 365)
  * Dashboard charts consume this endpoint
  */
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         low,
         close,
         volume
-      FROM analytics.zl_price_1d
+      FROM analytics.price_1d
       ORDER BY event_date DESC
       LIMIT $1
     `, [days])

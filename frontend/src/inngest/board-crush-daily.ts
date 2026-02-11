@@ -156,7 +156,7 @@ export const boardCrushDaily = inngest.createFunction(
       const client = await pool.connect();
       try {
         await client.query(`
-          UPDATE alt.tariff_deadlines
+          UPDATE alt.tariff_deadlines_static
           SET days_to_expiry = deadline_date - CURRENT_DATE,
               last_updated = NOW()
           WHERE is_active = true

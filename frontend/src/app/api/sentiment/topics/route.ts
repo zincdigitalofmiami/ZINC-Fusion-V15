@@ -24,7 +24,7 @@ export async function GET() {
       WITH all_tags AS (
         -- ProFarmer
         SELECT unnest(specialist_tags) AS tag, headline, summary
-        FROM alt.profarmer_news
+        FROM alt.profarmer_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
@@ -32,7 +32,7 @@ export async function GET() {
 
         -- Policy
         SELECT unnest(specialist_tags), headline, NULL
-        FROM alt.policy_news
+        FROM alt.policy_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
@@ -40,7 +40,7 @@ export async function GET() {
 
         -- Executive actions
         SELECT unnest(specialist_tags), headline, NULL
-        FROM alt.executive_actions
+        FROM alt.executive_actions_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 
@@ -48,7 +48,7 @@ export async function GET() {
 
         -- Econ news
         SELECT unnest(specialist_tags), headline, summary
-        FROM alt.econ_news
+        FROM alt.econ_news_event
         WHERE event_date >= NOW() - INTERVAL '30 days'
           AND specialist_tags IS NOT NULL
 

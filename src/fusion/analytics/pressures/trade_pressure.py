@@ -346,7 +346,7 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     try:
         cur.execute(
             """
-            SELECT COUNT(*) FROM alt.profarmer_news
+            SELECT COUNT(*) FROM alt.profarmer_news_event
             WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
             AND (headline ILIKE '%%trade%%' OR headline ILIKE '%%export%%' OR
                  headline ILIKE '%%china%%' OR headline ILIKE '%%brazil%%')

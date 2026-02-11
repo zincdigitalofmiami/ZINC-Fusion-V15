@@ -30,9 +30,9 @@ def identify_roll_dates(engine, symbol_type: str, days: int = 90) -> List[Dict]:
     # For now, we'll detect large intraday price changes
 
     table = (
-        f"analytics.zl_price_15m_test_{symbol_type}"
+        f"analytics.price_15m_test_{symbol_type}"
         if symbol_type in ["c", "n"]
-        else "analytics.zl_price_15m"
+        else "analytics.price_15m"
     )
 
     query = f"""
@@ -113,7 +113,7 @@ def analyze_daily_impact(engine) -> Dict:
             FIRST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp) as open,
             LAST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as close,
             SUM(volume) as volume
-        FROM analytics.zl_price_15m_test_c  -- sqlref: ignore
+        FROM analytics.price_15m_test_c  -- sqlref: ignore
         WHERE timestamp >= NOW() - INTERVAL '90 days'
         GROUP BY DATE_TRUNC('day', timestamp)
     ),
@@ -125,7 +125,7 @@ def analyze_daily_impact(engine) -> Dict:
             FIRST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp) as open,
             LAST_VALUE(close) OVER (PARTITION BY DATE_TRUNC('day', timestamp) ORDER BY timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as close,
             SUM(volume) as volume
-        FROM analytics.zl_price_15m_test_n
+        FROM analytics.price_15m_test_n
         WHERE timestamp >= NOW() - INTERVAL '90 days'
         GROUP BY DATE_TRUNC('day', timestamp)
     ),
@@ -235,7 +235,7 @@ def main():
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'analytics'
-      AND table_name IN ('zl_price_15m_test_c', 'zl_price_15m_test_n')
+      AND table_name IN ('price_15m_test_c', 'price_15m_test_n')
     """
     df = pd.read_sql(query, engine)
 

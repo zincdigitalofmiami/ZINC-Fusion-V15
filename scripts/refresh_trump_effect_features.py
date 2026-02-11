@@ -265,7 +265,7 @@ def main():
         SELECT event_date as action_date,
                specialist_tags[1] as action_type,
                headline as title
-        FROM alt.executive_actions
+        FROM alt.executive_actions_event
         WHERE source LIKE 'whitehouse%'
           AND event_date IS NOT NULL
         ORDER BY event_date
@@ -344,6 +344,7 @@ def main():
         SELECT event_date, close
         FROM mkt.futures_1d
         WHERE symbol = 'ZL' AND event_date >= '2017-01-01'
+        AND close IS NOT NULL
         ORDER BY event_date
     """)
     zl_prices = {row[0]: float(row[1]) for row in cur.fetchall()}
@@ -368,13 +369,13 @@ def main():
     # Note: sentiment_score field no longer exists; using article counts only
     cur.execute("""
         WITH all_news AS (
-            SELECT event_date FROM alt.policy_news WHERE event_date >= '2017-01-01'
+            SELECT event_date FROM alt.policy_news_event WHERE event_date >= '2017-01-01'
             UNION ALL
-            SELECT event_date FROM alt.executive_actions WHERE event_date >= '2017-01-01'
+            SELECT event_date FROM alt.executive_actions_event WHERE event_date >= '2017-01-01'
             UNION ALL
-            SELECT event_date FROM alt.econ_news WHERE event_date >= '2017-01-01'
+            SELECT event_date FROM alt.econ_news_event WHERE event_date >= '2017-01-01'
             UNION ALL
-            SELECT event_date FROM alt.profarmer_news WHERE event_date >= '2017-01-01'
+            SELECT event_date FROM alt.profarmer_news_event WHERE event_date >= '2017-01-01'
         )
         SELECT event_date as pub_date,
                COUNT(*) as article_count

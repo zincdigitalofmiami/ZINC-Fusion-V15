@@ -28,7 +28,7 @@
  * - /briefing-room/statements-releases/feed/
  *
  * Routes to: tariff, trump_effect, energy, china specialists
- * Table: alt.executive_actions
+ * Table: alt.executive_actions_event
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
@@ -341,7 +341,7 @@ export const whitehouseDaily = inngest.createFunction(
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
         const checkResult = await pool.query(
-          `SELECT 1 FROM alt.executive_actions WHERE row_hash = $1`,
+          `SELECT 1 FROM alt.executive_actions_event WHERE row_hash = $1`,
           [rowHash]
         );
 
@@ -351,7 +351,7 @@ export const whitehouseDaily = inngest.createFunction(
         }
 
         await pool.query(
-          `INSERT INTO alt.executive_actions
+          `INSERT INTO alt.executive_actions_event
            (source, headline, url, published_at, event_date, content, specialist_tags, row_hash)
            VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7)`,
           [

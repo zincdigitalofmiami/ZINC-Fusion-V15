@@ -14,7 +14,7 @@ Components:
 
 Data Sources:
 - FRED: USEPUINDXD, EPUTRADE, EMVTRADEPOLEMV, CHNMAINLANDTPU, IMPCH, B235RC1Q027SBEA
-- Yahoo: DJT, FXI, KWEB (probability proxies)
+- Equity proxies: DJT, FXI, KWEB (probability proxies)
 - URL Events: White House, Federal Register, Truth Social
 
 Usage:
@@ -25,7 +25,7 @@ Usage:
         detect_epu_regime,
     )
 
-    engine = TrumpEffectFeatureEngine(fred_df, yahoo_df)
+    engine = TrumpEffectFeatureEngine(fred_df, proxy_df)
     features = engine.compute_all_features()
 """
 
@@ -66,7 +66,7 @@ class EventIntensity:
 
 @dataclass
 class ProbabilityProxies:
-    """Market-implied probability proxies from Yahoo tickers."""
+    """Market-implied probability proxies from equity proxy tickers."""
 
     djt_ret_1d: float  # DJT 1-day return
     djt_ret_5d: float  # DJT 5-day return
@@ -418,31 +418,31 @@ def calculate_event_intensity(
 
 
 # =============================================================================
-# PROBABILITY PROXIES (Yahoo-derived)
+# PROBABILITY PROXIES (equity-proxy derived)
 # =============================================================================
 
 
 def calculate_probability_proxies(
-    yahoo_df: pd.DataFrame,
+    proxy_df: pd.DataFrame,
     as_of_date: datetime,
 ) -> ProbabilityProxies:
     """
-    Calculate market-implied probability proxies from Yahoo tickers.
+    Calculate market-implied probability proxies from equity proxy tickers.
 
-    Required columns in yahoo_df:
+    Required columns in proxy_df:
         - as_of_date, ticker, close, adj_close
 
     Expected tickers: DJT, FXI, KWEB
 
     Args:
-        yahoo_df: Yahoo price data
+        proxy_df: Equity proxy price data
         as_of_date: Reference date
 
     Returns:
         ProbabilityProxies dataclass
     """
     # Pivot to wide format
-    pivot = yahoo_df.pivot(index="as_of_date", columns="ticker", values="adj_close")
+    pivot = proxy_df.pivot(index="as_of_date", columns="ticker", values="adj_close")
     pivot = pivot.sort_index()
 
     # Filter to as_of_date
@@ -734,14 +734,14 @@ class TrumpEffectFeatureEngine:
     """
     Main feature engineering class for Trump Effect specialist.
 
-    Combines FRED series, Yahoo proxies, and event data into
+    Combines FRED series, proxy tickers, and event data into
     feature vectors for training/inference.
     """
 
     def __init__(
         self,
         fred_df: pd.DataFrame,
-        yahoo_df: Optional[pd.DataFrame] = None,
+        proxy_df: Optional[pd.DataFrame] = None,
         events_df: Optional[pd.DataFrame] = None,
     ):
         """
@@ -749,11 +749,11 @@ class TrumpEffectFeatureEngine:
 
         Args:
             fred_df: FRED observations (as_of_date, series_id, value)
-            yahoo_df: Yahoo prices (as_of_date, ticker, close, adj_close)
+            proxy_df: Equity proxy prices (as_of_date, ticker, close, adj_close)
             events_df: Event ledger (event_date, topic_code, doc_type, text, ...)
         """
         self.fred_df = fred_df
-        self.yahoo_df = yahoo_df
+        self.proxy_df = proxy_df
         self.events_df = events_df
 
     def compute_features_for_date(
@@ -783,9 +783,9 @@ class TrumpEffectFeatureEngine:
         fred_features = self._get_fred_features(as_of_date)
         features.update(fred_features)
 
-        # Probability proxies (Yahoo)
-        if self.yahoo_df is not None:
-            proxies = calculate_probability_proxies(self.yahoo_df, as_of_date)
+        # Probability proxies (equity proxy tickers)
+        if self.proxy_df is not None:
+            proxies = calculate_probability_proxies(self.proxy_df, as_of_date)
             features["djt_ret_1d"] = proxies.djt_ret_1d
             features["djt_ret_5d"] = proxies.djt_ret_5d
             features["djt_rv_21d"] = proxies.djt_rv_21d
@@ -891,7 +891,7 @@ class TrumpEffectFeatureEngine:
 
 def quick_trump_effect_summary(
     fred_df: pd.DataFrame,
-    yahoo_df: Optional[pd.DataFrame] = None,
+    proxy_df: Optional[pd.DataFrame] = None,
     as_of_date: Optional[datetime] = None,
 ) -> Dict:
     """
@@ -917,8 +917,8 @@ def quick_trump_effect_summary(
     }
 
     # Probability proxies
-    if yahoo_df is not None:
-        proxies = calculate_probability_proxies(yahoo_df, as_of_date)
+    if proxy_df is not None:
+        proxies = calculate_probability_proxies(proxy_df, as_of_date)
         summary["djt_ret_1d"] = round(proxies.djt_ret_1d * 100, 2)
         summary["djt_rv_21d"] = round(proxies.djt_rv_21d * 100, 2)
         summary["djt_fxi_spread"] = round(proxies.djt_minus_fxi_ret_1d * 100, 2)

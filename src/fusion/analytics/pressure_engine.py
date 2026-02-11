@@ -1015,7 +1015,7 @@ def calculate_greed_pressure(
     # 6. News Sentiment Velocity
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.econ_news
+        SELECT COUNT(*) FROM alt.econ_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),
@@ -1024,7 +1024,7 @@ def calculate_greed_pressure(
 
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.econ_news
+        SELECT COUNT(*) FROM alt.econ_news_event
         WHERE event_date >= %s - INTERVAL '30 days' AND event_date <= %s - INTERVAL '7 days'
     """,
         (as_of_date, as_of_date),
@@ -1214,7 +1214,7 @@ def calculate_volatility_pressure(
             SELECT event_date, close,
                    (close - LAG(close) OVER (ORDER BY event_date)) /
                    NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as ret
-            FROM analytics.zl_price_1d
+            FROM analytics.price_1d
             WHERE event_date <= %s
             ORDER BY event_date DESC
             LIMIT 63
@@ -1395,7 +1395,7 @@ def calculate_trump_effect_pressure(
     # Executive actions velocity
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.executive_actions
+        SELECT COUNT(*) FROM alt.executive_actions_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),
@@ -1654,7 +1654,7 @@ def calculate_trade_pressure(
     try:
         cur.execute(
             """
-            SELECT COUNT(*) FROM alt.profarmer_news
+            SELECT COUNT(*) FROM alt.profarmer_news_event
             WHERE event_date >= %s - INTERVAL '7 days'
             AND event_date <= %s
             AND (headline ILIKE '%%trade%%' OR headline ILIKE '%%export%%' OR headline ILIKE '%%china%%')
@@ -2087,9 +2087,9 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     cur.execute(
         """
         SELECT
-            (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
-            (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
-            (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
+            (SELECT COUNT(*) FROM alt.econ_news_event WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
+            (SELECT COUNT(*) FROM alt.profarmer_news_event WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
+            (SELECT COUNT(*) FROM alt.executive_actions_event WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s) +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s)
         as total_week
     """,
@@ -2110,9 +2110,9 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     cur.execute(
         """
         SELECT
-            (SELECT COUNT(*) FROM alt.econ_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
-            (SELECT COUNT(*) FROM alt.profarmer_news WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
-            (SELECT COUNT(*) FROM alt.executive_actions WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
+            (SELECT COUNT(*) FROM alt.econ_news_event WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
+            (SELECT COUNT(*) FROM alt.profarmer_news_event WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
+            (SELECT COUNT(*) FROM alt.executive_actions_event WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days') +
             (SELECT COUNT(*) FROM alt.legislation_1d WHERE event_date >= %s - INTERVAL '35 days' AND event_date <= %s - INTERVAL '7 days')
         as total_month
     """,
@@ -2139,7 +2139,7 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     try:
         cur.execute(
             """
-            SELECT COUNT(*) FROM alt.profarmer_news
+            SELECT COUNT(*) FROM alt.profarmer_news_event
             WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
             AND (headline ILIKE '%%trump%%' OR headline ILIKE '%%tariff%%' OR content ILIKE '%%trump%%')
         """,
@@ -2156,7 +2156,7 @@ def calculate_news_pressure(conn, as_of_date: Optional[date] = None) -> Pressure
     # Executive action intensity
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.executive_actions
+        SELECT COUNT(*) FROM alt.executive_actions_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),

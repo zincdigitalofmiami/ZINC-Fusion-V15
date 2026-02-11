@@ -20,65 +20,19 @@ interface ForecastPoint {
  */
 export async function GET(_req: NextRequest) {
   try {
-    // Query latest forecast from each horizon table
+    // Query latest forecast per horizon from consolidated production_1d table
     const result = await pool.query(`
-      WITH latest_5d AS (
-        SELECT
-          5 as horizon_days,
-          as_of_date,
-          forecast_date,
-          price_p30::float,
-          price_p50::float,
-          price_p70::float,
-          current_price::float
-        FROM forecasts.production_5d_1d
-        ORDER BY as_of_date DESC
-        LIMIT 1
-      ),
-      latest_21d AS (
-        SELECT
-          21 as horizon_days,
-          as_of_date,
-          forecast_date,
-          price_p30::float,
-          price_p50::float,
-          price_p70::float,
-          current_price::float
-        FROM forecasts.production_21d_1d
-        ORDER BY as_of_date DESC
-        LIMIT 1
-      ),
-      latest_63d AS (
-        SELECT
-          63 as horizon_days,
-          as_of_date,
-          forecast_date,
-          price_p30::float,
-          price_p50::float,
-          price_p70::float,
-          current_price::float
-        FROM forecasts.production_63d_1d
-        ORDER BY as_of_date DESC
-        LIMIT 1
-      ),
-      latest_126d AS (
-        SELECT
-          126 as horizon_days,
-          as_of_date,
-          forecast_date,
-          price_p30::float,
-          price_p50::float,
-          price_p70::float,
-          current_price::float
-        FROM forecasts.production_126d_1d
-        ORDER BY as_of_date DESC
-        LIMIT 1
-      )
-      SELECT * FROM latest_5d
-      UNION ALL SELECT * FROM latest_21d
-      UNION ALL SELECT * FROM latest_63d
-      UNION ALL SELECT * FROM latest_126d
-      ORDER BY horizon_days ASC
+      SELECT DISTINCT ON (horizon)
+        horizon as horizon_days,
+        as_of_date,
+        forecast_date,
+        price_p30::float,
+        price_p50::float,
+        price_p70::float,
+        current_price::float
+      FROM forecasts.production_1d
+      WHERE horizon IN (5, 21, 63, 126)
+      ORDER BY horizon, as_of_date DESC
     `);
 
     if (result.rows.length === 0) {

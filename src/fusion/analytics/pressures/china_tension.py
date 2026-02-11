@@ -476,7 +476,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     # ==== 5. SOY-SPECIFIC CHINA NEWS (Trade War Focus) ====
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.profarmer_news
+        SELECT COUNT(*) FROM alt.profarmer_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
     """,
         (as_of_date, as_of_date),
@@ -486,7 +486,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     # Soy-specific China/trade war keywords
     cur.execute(
         """
-        SELECT COUNT(*) FROM alt.profarmer_news
+        SELECT COUNT(*) FROM alt.profarmer_news_event
         WHERE event_date >= %s - INTERVAL '7 days' AND event_date <= %s
         AND (
             (headline ILIKE '%%china%%' AND (headline ILIKE '%%soy%%' OR headline ILIKE '%%bean%%' OR headline ILIKE '%%export%%'))

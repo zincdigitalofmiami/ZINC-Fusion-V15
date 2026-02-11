@@ -6,6 +6,7 @@
  * - Crush: boardCrushDaily
  * - China: fredDailyFx (DEXCHUS)
  * - Tariff: fredDailyTrumpEffect (USEPUINDXM, EMVTRADEPOLEMV)
+ * - Trump Effect Signals: trumpEffectSignalSyncManual
  */
 
 import { NextResponse } from 'next/server'
@@ -38,10 +39,15 @@ export async function POST() {
         name: 'fred-daily-trump-effect',
         data: { trigger: 'manual', timestamp: new Date().toISOString() },
       }),
+      // Sync trump_effect specialist signal rows for dashboard/API consumers
+      inngest.send({
+        name: 'trump-effect.signal-sync',
+        data: { trigger: 'manual', timestamp: new Date().toISOString() },
+      }),
     ])
 
     const summary = results.map((r, i) => {
-      const names = ['volatility', 'crush', 'fx', 'trump-effect']
+      const names = ['volatility', 'crush', 'fx', 'trump-effect-fred', 'trump-effect-signals']
       return {
         function: names[i],
         status: r.status,
@@ -82,6 +88,7 @@ export async function GET() {
       'board-crush-daily (Board Crush, Oil Share)',
       'fred-daily-fx (CNY/USD)',
       'fred-daily-trump-effect (TPU, EMV)',
+      'trump-effect.signal-sync (specialist signal sync)',
     ],
     disabled: [],
   })

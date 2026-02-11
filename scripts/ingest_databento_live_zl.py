@@ -3,13 +3,11 @@
 Databento Live (Raw/TCP) -> DB + Inngest connector for ZL.
 
 Subscribes to ohlcv-1m for ZL continuous:
-- Updates zl_latest with every bar (live price)
-- Updates zl_forming_bar with incomplete candles (15m/1h/1d)
+- Updates latest_price with every bar (live price)
 - Emits Inngest events when bars complete (15m/1h/1d)
 
 Tables updated directly:
-  - analytics.zl_latest (every 1m - latest price)
-  - analytics.zl_forming_bar (every 1m - incomplete candles)
+  - analytics.latest_price (every 1m - latest price)
 
 Inngest events (completed bars):
   - zl.bar.15m
@@ -92,7 +90,7 @@ def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO analytics.zl_latest (id, price, timestamp, volume, updated_at)
+                INSERT INTO analytics.latest_price (id, price, timestamp, volume, updated_at)
                 VALUES (1, %s, %s, %s, NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     price = EXCLUDED.price,
@@ -101,35 +99,6 @@ def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
                     updated_at = NOW()
                 """,
                 (price, ts, volume),
-            )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def update_forming_bar(
-    timeframe: str, bar_start: datetime, o: float, h: float, l: float, c: float, v: int
-) -> None:
-    """Update the forming (incomplete) bar for a timeframe."""
-    if not DATABASE_URL:
-        return
-    conn = psycopg2.connect(DATABASE_URL)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO analytics.zl_forming_bar (timeframe, bar_start, open, high, low, close, volume, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (timeframe) DO UPDATE SET
-                    bar_start = EXCLUDED.bar_start,
-                    open = EXCLUDED.open,
-                    high = EXCLUDED.high,
-                    low = EXCLUDED.low,
-                    close = EXCLUDED.close,
-                    volume = EXCLUDED.volume,
-                    updated_at = NOW()
-                """,
-                (timeframe, bar_start, o, h, l, c, v),
             )
         conn.commit()
     finally:
@@ -159,8 +128,8 @@ def get_latest_ts_from_db() -> Optional[datetime]:
             cur.execute(
                 """
                 SELECT GREATEST(
-                  COALESCE((SELECT MAX(timestamp) FROM analytics.zl_price_15m), '1970-01-01'::timestamptz),
-                  COALESCE((SELECT MAX(timestamp) FROM analytics.zl_price_1h), '1970-01-01'::timestamptz)
+                  COALESCE((SELECT MAX(timestamp) FROM analytics.price_15m), '1970-01-01'::timestamptz),
+                  COALESCE((SELECT MAX(timestamp) FROM analytics.price_1h), '1970-01-01'::timestamptz)
                 ) AS max_ts
                 """
             )
@@ -387,44 +356,6 @@ def main() -> None:
                 # ========== LIVE UPDATES (every 1m bar) ==========
                 # Update latest price
                 update_zl_latest(ts, c, v)
-
-                # Update forming bars (incomplete candles)
-                if current_15m:
-                    update_forming_bar(
-                        "15m",
-                        datetime.fromtimestamp(
-                            current_15m.start_ts / 1000, tz=timezone.utc
-                        ),
-                        current_15m.open,
-                        current_15m.high,
-                        current_15m.low,
-                        current_15m.close,
-                        current_15m.volume,
-                    )
-                if current_1h:
-                    update_forming_bar(
-                        "1h",
-                        datetime.fromtimestamp(
-                            current_1h.start_ts / 1000, tz=timezone.utc
-                        ),
-                        current_1h.open,
-                        current_1h.high,
-                        current_1h.low,
-                        current_1h.close,
-                        current_1h.volume,
-                    )
-                if day_open is not None:
-                    update_forming_bar(
-                        "1d",
-                        datetime.combine(
-                            current_day, datetime.min.time(), tzinfo=timezone.utc
-                        ),
-                        day_open,
-                        day_high,
-                        day_low,
-                        day_close,
-                        day_volume,
-                    )
 
             retry_count = 0
             break

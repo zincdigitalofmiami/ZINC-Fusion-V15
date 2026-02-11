@@ -3,7 +3,7 @@ ZINC-FUSION-V15 Pulse Storage Layer
 ====================================
 
 Storage helpers for persisting Intel Drops to Prisma PostgreSQL.
-Uses the features.intel_drops table with narrative + quantPayload structure.
+Uses the features.intel_drops_event table with narrative + quantPayload structure.
 """
 
 import json
@@ -84,7 +84,7 @@ async def insert_intel_drop(
         ID of inserted row
     """
     query = """
-        INSERT INTO features.intel_drops (
+        INSERT INTO features.intel_drops_event (
             as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             narrative, quant_payload, receipts, source_model, created_at
@@ -232,7 +232,7 @@ async def get_latest_intel_drops(
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             narrative, quant_payload, receipts, source_model, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE ($1::text IS NULL OR domain = $1)
           AND ($2::text IS NULL OR horizon = $2)
         ORDER BY as_of_ts DESC, domain, horizon
@@ -283,7 +283,7 @@ async def get_intel_drop_by_id(
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, quality_flags, data_gaps,
             narrative, quant_payload, receipts, source_model, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE id = $1
     """
 
@@ -331,7 +331,7 @@ async def get_domain_history(
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, created_at
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE domain = $1
           AND horizon = $2
           AND as_of_ts >= NOW() - INTERVAL '1 day' * $3
@@ -385,7 +385,7 @@ async def get_consensus_view(
     query = """
         SELECT
             domain, direction, pressure_cents, edge, top_drivers, regime_tags
-        FROM features.intel_drops
+        FROM features.intel_drops_event
         WHERE as_of_ts = $1 AND horizon = $2
         ORDER BY domain
     """

@@ -1164,7 +1164,7 @@ export async function GET() {
         WITH returns AS (
           SELECT (close - LAG(close) OVER (ORDER BY event_date)) /
                  NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as ret
-          FROM analytics.zl_price_1d
+          FROM analytics.price_1d
           ORDER BY event_date DESC LIMIT 63
         )
         SELECT STDDEV(ret) * SQRT(252) as realized_vol FROM returns WHERE ret IS NOT NULL
@@ -1179,7 +1179,7 @@ export async function GET() {
         zl_changes AS (
           SELECT event_date, (close - LAG(close) OVER (ORDER BY event_date)) /
                  NULLIF(LAG(close) OVER (ORDER BY event_date), 0) as zl_ret
-          FROM analytics.zl_price_1d ORDER BY event_date DESC LIMIT 25
+          FROM analytics.price_1d ORDER BY event_date DESC LIMIT 25
         )
         SELECT CORR(v.vix_change, z.zl_ret) as vix_zl_corr
         FROM vix_changes v JOIN zl_changes z ON v.event_date = z.event_date
@@ -1187,7 +1187,7 @@ export async function GET() {
       `),
       // ProFarmer Hedge Sentiment (7 days)
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM alt.profarmer_news
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND (content ILIKE '%hedge%' OR content ILIKE '%hedging%' OR content ILIKE '%volatility%'
              OR content ILIKE '%options%' OR content ILIKE '%protection%' OR content ILIKE '%risk management%')
@@ -1225,7 +1225,7 @@ export async function GET() {
       Promise.resolve([{ change_20d: 0 }]),
       // Soy China News (ProFarmer)
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM alt.profarmer_news
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND ((headline ILIKE '%china%' AND (headline ILIKE '%soy%' OR headline ILIKE '%bean%' OR headline ILIKE '%export%'))
              OR headline ILIKE '%trade war%' OR headline ILIKE '%tariff%' OR headline ILIKE '%export sales%'
@@ -1233,7 +1233,7 @@ export async function GET() {
       `),
       // Total ProFarmer News (for concentration)
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM alt.profarmer_news
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
       `),
 
@@ -1253,7 +1253,7 @@ export async function GET() {
       `).catch(() => [{ count: 0 }]), // Table might not exist
       // Soy Tariff News (ProFarmer)
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM alt.profarmer_news
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
              OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
@@ -1262,21 +1262,53 @@ export async function GET() {
       `),
 
       // === SPECIALIST SIGNALS ===
-      // DISABLED: Data in training.specialist_signals_1d is FAKE/PLACEHOLDER:
-      // - volatility: outputs only 0/1/2/3 discrete values (not real GARCH), all recent = 1.0
-      // - Real specialist models (GARCH, XGB, ARDL, etc.) have NOT been trained
-      // - 82K rows exist but are rule-based script output, not ML model predictions
-      // Enable when REAL trained specialist models exist in models/specialists/
-      Promise.resolve([] as { signal: number }[]), // volSignal - FAKE (regime labels only)
-      Promise.resolve([] as { signal: number }[]), // crushSignal - FAKE (not trained XGB)
-      Promise.resolve([] as { signal: number }[]), // chinaSignal - FAKE (not trained GBM)
-      Promise.resolve([] as { signal: number }[]), // tariffSignal - FAKE (not trained tree)
+      // Pull latest real specialist signals with a freshness gate.
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal
+        FROM training.specialist_signals_1d
+        WHERE bucket = 'volatility'
+          AND as_of_date >= CURRENT_DATE - INTERVAL '45 days'
+          AND abstained = false
+          AND confidence > 0
+        ORDER BY as_of_date DESC
+        LIMIT 1
+      `),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal
+        FROM training.specialist_signals_1d
+        WHERE bucket = 'crush'
+          AND as_of_date >= CURRENT_DATE - INTERVAL '45 days'
+          AND abstained = false
+          AND confidence > 0
+        ORDER BY as_of_date DESC
+        LIMIT 1
+      `),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal
+        FROM training.specialist_signals_1d
+        WHERE bucket = 'china'
+          AND as_of_date >= CURRENT_DATE - INTERVAL '45 days'
+          AND abstained = false
+          AND confidence > 0
+        ORDER BY as_of_date DESC
+        LIMIT 1
+      `),
+      query<{ signal: number }>(`
+        SELECT signal_1::float8 as signal
+        FROM training.specialist_signals_1d
+        WHERE bucket = 'tariff'
+          AND as_of_date >= CURRENT_DATE - INTERVAL '45 days'
+          AND abstained = false
+          AND confidence > 0
+        ORDER BY as_of_date DESC
+        LIMIT 1
+      `),
 
       // === ZL PRICE DATA (for comprehensive reports) ===
       query<{ close: number; change_5d: number; change_20d: number }>(`
         WITH zl AS (
           SELECT close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
-          FROM analytics.zl_price_1d WHERE close IS NOT NULL LIMIT 21
+          FROM analytics.price_1d WHERE close IS NOT NULL LIMIT 21
         )
         SELECT
           (SELECT close FROM zl WHERE rn = 1)::float8 as close,
@@ -1290,7 +1322,7 @@ export async function GET() {
 
       // === RECENT NEWS HEADLINES (for comprehensive reports) ===
       query<{ headline: string }>(`
-        SELECT headline FROM alt.profarmer_news
+        SELECT headline FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND headline IS NOT NULL
         ORDER BY event_date DESC

@@ -53,3 +53,4 @@ export { fredBlogDaily } from "./fred-blog-daily";
 export { argentinaCrushMonthly } from "./argentina-crush-monthly";
 export { cleanupStaleRuns } from "./cleanup-stale-runs";
 export { lcfsCreditWeekly } from "./lcfs-credit-weekly";
+export { trumpEffectSignalSync, trumpEffectSignalSyncManual } from "./trump-effect-signals";

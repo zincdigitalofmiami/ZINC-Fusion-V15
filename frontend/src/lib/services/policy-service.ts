@@ -51,7 +51,7 @@ export class PolicyService {
       SELECT
         id, event_date, headline, content, url,
         document_type, zl_sentiment, specialist_tags
-      FROM alt.executive_actions
+      FROM alt.executive_actions_event
       ORDER BY event_date DESC
       LIMIT $1
     `;
@@ -68,7 +68,7 @@ export class PolicyService {
   static async getTariffDeadlines(): Promise<TariffDeadline[]> {
     const sql = `
       SELECT *
-      FROM alt.tariff_deadlines
+      FROM alt.tariff_deadlines_static
       WHERE is_active = true
       ORDER BY days_to_expiry ASC
     `;
@@ -138,7 +138,7 @@ export class PolicyService {
         e.specialist_tags,
         m.close as zl_price_close,
         m.returns_1d as price_return_1d
-      FROM alt.executive_actions e
+      FROM alt.executive_actions_event e
       LEFT JOIN mkt.futures_1d m
         ON e.event_date = m.event_date AND m.symbol = 'ZL'
       WHERE e.zl_sentiment IS NOT NULL
@@ -212,7 +212,7 @@ export class PolicyService {
         AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%')
       `),
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM alt.profarmer_news
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
          OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')

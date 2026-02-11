@@ -1,7 +1,7 @@
 /**
  * ZL 1-Minute Historical Backfill via Databento
  *
- * Backfills analytics.zl_price_1m and analytics.zl_price_5m from Databento historical API.
+ * Backfills analytics.price_1m and analytics.price_5m from Databento historical API.
  * Triggered manually or on schedule to fill gaps.
  *
  * Uses Databento's timeseries.get_range API with ohlcv-1m schema.
@@ -27,7 +27,7 @@ async function getMinTimestamp(): Promise<Date | null> {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT MIN(timestamp) AS min_ts FROM analytics.zl_price_1m`
+      `SELECT MIN(timestamp) AS min_ts FROM analytics.price_1m`
     );
     return result.rows[0]?.min_ts ? new Date(result.rows[0].min_ts) : null;
   } finally {
@@ -39,7 +39,7 @@ async function getMaxTimestamp(): Promise<Date | null> {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT MAX(timestamp) AS max_ts FROM analytics.zl_price_1m`
+      `SELECT MAX(timestamp) AS max_ts FROM analytics.price_1m`
     );
     return result.rows[0]?.max_ts ? new Date(result.rows[0].max_ts) : null;
   } finally {
@@ -60,10 +60,10 @@ async function insert1mBar(
 ): Promise<boolean> {
   try {
     await client.query(
-      `INSERT INTO analytics.zl_price_1m
+      `INSERT INTO analytics.price_1m
         (timestamp, open, high, low, close, volume, source, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, 'databento_backfill', NOW())
-       ON CONFLICT (timestamp) DO NOTHING`,
+       ON CONFLICT (symbol, timestamp) DO NOTHING`,
       [bar.timestamp, bar.open, bar.high, bar.low, bar.close, bar.volume]
     );
     return true;
@@ -79,7 +79,7 @@ async function aggregate5mBars(
 ): Promise<number> {
   // Aggregate all 1m bars into 5m bars for the given range
   const result = await client.query(
-    `INSERT INTO analytics.zl_price_5m (timestamp, open, high, low, close, volume, source, created_at)
+    `INSERT INTO analytics.price_5m (timestamp, open, high, low, close, volume, source, created_at)
      SELECT
        date_trunc('hour', timestamp) + INTERVAL '5 min' * FLOOR(EXTRACT(MINUTE FROM timestamp) / 5) AS bar_time,
        (ARRAY_AGG(open ORDER BY timestamp))[1] AS open,
@@ -89,11 +89,11 @@ async function aggregate5mBars(
        SUM(COALESCE(volume, 0)) AS volume,
        'aggregated_backfill' AS source,
        NOW() AS created_at
-     FROM analytics.zl_price_1m
+     FROM analytics.price_1m
      WHERE timestamp >= $1 AND timestamp < $2
      GROUP BY bar_time
      HAVING COUNT(*) >= 3
-     ON CONFLICT (timestamp) DO UPDATE SET
+     ON CONFLICT (symbol, timestamp) DO UPDATE SET
        open = EXCLUDED.open,
        high = EXCLUDED.high,
        low = EXCLUDED.low,

@@ -173,10 +173,10 @@ export const zlLive15m = inngest.createFunction(
     const client = await pool.connect();
     try {
       await client.query(
-        `INSERT INTO analytics.zl_price_15m
+        `INSERT INTO analytics.price_15m
           (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-         ON CONFLICT (timestamp) DO UPDATE SET
+         ON CONFLICT (symbol, timestamp) DO UPDATE SET
            open = EXCLUDED.open,
            high = EXCLUDED.high,
            low = EXCLUDED.low,
@@ -222,10 +222,10 @@ export const zlLive1h = inngest.createFunction(
     const client = await pool.connect();
     try {
       await client.query(
-        `INSERT INTO analytics.zl_price_1h
+        `INSERT INTO analytics.price_1h
           (timestamp, open, high, low, close, volume, source, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-         ON CONFLICT (timestamp) DO UPDATE SET
+         ON CONFLICT (symbol, timestamp) DO UPDATE SET
            open = EXCLUDED.open,
            high = EXCLUDED.high,
            low = EXCLUDED.low,
@@ -261,10 +261,10 @@ export const zlLive1d = inngest.createFunction(
     const client = await pool.connect();
     try {
       await client.query(
-        `INSERT INTO analytics.zl_price_1d
+        `INSERT INTO analytics.price_1d
           (event_date, open, high, low, close, volume, source, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-         ON CONFLICT (event_date) DO UPDATE SET
+         ON CONFLICT (symbol, event_date) DO UPDATE SET
            open = EXCLUDED.open,
            high = EXCLUDED.high,
            low = EXCLUDED.low,
@@ -309,10 +309,10 @@ export const zlLive1m = inngest.createFunction(
       const client = await pool.connect();
       try {
         await client.query(
-          `INSERT INTO analytics.zl_price_1m
+          `INSERT INTO analytics.price_1m
             (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-           ON CONFLICT (timestamp) DO UPDATE SET
+           ON CONFLICT (symbol, timestamp) DO UPDATE SET
              open = EXCLUDED.open,
              high = EXCLUDED.high,
              low = EXCLUDED.low,
@@ -362,7 +362,7 @@ export const zlLive1m = inngest.createFunction(
 
           const barsResult = await client.query(
             `SELECT open, high, low, close, volume, previous_close, day_high, day_low
-             FROM analytics.zl_price_1m
+             FROM analytics.price_1m
              WHERE timestamp >= $1 AND timestamp <= $2
              ORDER BY timestamp ASC`,
             [fiveMinStart.toISOString(), bar.timestamp]
@@ -389,10 +389,10 @@ export const zlLive1m = inngest.createFunction(
               : null;
 
             await client.query(
-              `INSERT INTO analytics.zl_price_5m
+              `INSERT INTO analytics.price_5m
                 (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-               ON CONFLICT (timestamp) DO UPDATE SET
+               ON CONFLICT (symbol, timestamp) DO UPDATE SET
                  open = EXCLUDED.open,
                  high = EXCLUDED.high,
                  low = EXCLUDED.low,
@@ -452,10 +452,10 @@ export const zlLive5m = inngest.createFunction(
     const client = await pool.connect();
     try {
       await client.query(
-        `INSERT INTO analytics.zl_price_5m
+        `INSERT INTO analytics.price_5m
           (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-         ON CONFLICT (timestamp) DO UPDATE SET
+         ON CONFLICT (symbol, timestamp) DO UPDATE SET
            open = EXCLUDED.open,
            high = EXCLUDED.high,
            low = EXCLUDED.low,
