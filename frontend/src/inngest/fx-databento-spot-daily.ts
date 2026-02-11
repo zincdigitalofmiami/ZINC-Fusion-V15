@@ -85,7 +85,7 @@ export const fxDatabentoSpotDaily = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 UTC) - offset from FRED job
+  { cron: "30 6 * * *" }, // Daily at 06:30 UTC - offset from FRED job
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");

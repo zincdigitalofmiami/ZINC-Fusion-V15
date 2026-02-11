@@ -292,7 +292,7 @@ async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn
 
 export const usdaWasdeMonthly = inngest.createFunction(
   { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "22 */8 * * *" }, // Every 8 hours at :22 UTC to catch monthly WASDE releases
+  { cron: "22 6 * * *" }, // Daily at 06:22 UTC to catch monthly WASDE releases
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

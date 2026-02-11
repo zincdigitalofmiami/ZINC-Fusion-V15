@@ -271,14 +271,13 @@ def load_specialist_agreement(conn, horizon: int, as_of_date: datetime) -> Dict:
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT specialist, pred_p50
-            FROM "model"."oof_predictions"
-            WHERE horizon = %s
-              AND as_of_date::date = %s::date
-              AND specialist IN %s
-            ORDER BY specialist
+            SELECT bucket, signal_1
+            FROM "training"."specialist_signals_1d"
+            WHERE as_of_date::date = %s::date
+              AND bucket IN %s
+            ORDER BY bucket
         """,
-            (horizon, as_of_date, tuple(specialists)),
+            (as_of_date, tuple(specialists)),
         )
         rows = cur.fetchall()
 

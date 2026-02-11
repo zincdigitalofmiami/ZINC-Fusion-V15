@@ -2147,38 +2147,30 @@ def load_usda_wasde(conn) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def load_news_sentiment(conn) -> pd.DataFrame:
+def load_news_counts(conn) -> pd.DataFrame:
     """
-    Load news sentiment from alt news tables (policy_news, executive_actions, econ_news, profarmer_news).
-
-    NEW (2026-01-23): News sentiment is a key driver of short-term moves.
+    Load news article counts from alt news tables.
 
     Features:
-    - news_zl_sentiment: ZL-specific sentiment (where available)
-    - news_count: Number of articles
+    - news_count: Number of articles per day
     """
     logger.info(
-        "Loading news data from alt schema (union of policy_news_event, executive_actions_event, econ_news_event, profarmer_news_event)..."
+        "Loading news counts from alt schema (union of policy_news_event, executive_actions_event, econ_news_event, profarmer_news_event)..."
     )
 
     try:
         query = """
             WITH all_news AS (
-                SELECT event_date, zl_sentiment FROM alt.policy_news_event
+                SELECT event_date FROM alt.policy_news_event
                 UNION ALL
-                SELECT event_date, zl_sentiment FROM alt.executive_actions_event
+                SELECT event_date FROM alt.executive_actions_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.econ_news_event
+                SELECT event_date FROM alt.econ_news_event
                 UNION ALL
-                SELECT event_date, NULL as zl_sentiment FROM alt.profarmer_news_event
+                SELECT event_date FROM alt.profarmer_news_event
             )
             SELECT
                 event_date as trade_date,
-                AVG(CASE
-                    WHEN zl_sentiment = 'bullish' THEN 1.0
-                    WHEN zl_sentiment = 'bearish' THEN -1.0
-                    ELSE 0.0
-                END) as news_zl_sentiment,
                 COUNT(*) as news_count
             FROM all_news
             GROUP BY event_date
@@ -2777,7 +2769,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         df_wasde = load_usda_wasde(conn)
         df_china_pmi = load_china_pmi(conn)
         df_dalian = load_dalian_soy(conn)
-        df_news = load_news_sentiment(conn)
+        df_news = load_news_counts(conn)
 
         # NEW (2026-02-02): Cross-asset data - correlations, indicators, spreads, options
         df_correlations = load_cross_asset_correlations(conn, symbol)
@@ -3038,9 +3030,9 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             df = merge_asof_to_trading_days(df, df_dalian, tolerance_days=7)
             logger.info(f"   Added {len(df.columns) - before_cols} Dalian soy columns")
 
-        # Merge news sentiment (NEW 2026-01-23)
+        # Merge news counts (article volume per day)
         if len(df_news) > 0:
-            logger.info("Merging news sentiment (NEW)...")
+            logger.info("Merging news counts...")
             before_cols = len(df.columns)
             df = df.merge(df_news, on="trade_date", how="left")
             logger.info(f"   Added {len(df.columns) - before_cols} news columns")

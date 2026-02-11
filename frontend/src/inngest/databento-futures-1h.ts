@@ -109,7 +109,7 @@ export const databentoFutures1h = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 30 */8 * * *" },
+  { cron: "TZ=America/Chicago 30 6 * * *" },
   async ({ step, logger }) => {
     const results: { symbol: string; status: string; rows?: number; error?: string }[] = [];
 

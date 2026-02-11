@@ -73,8 +73,8 @@ const TAG_RULES: TagRule[] = [
   { pattern: /presidential[\s_-]?(action|memorandum|proclamation|determination)/i, tags: ["trump_effect"] },
   { pattern: /doge|government[\s_-]?efficiency/i, tags: ["trump_effect"] },
 
-  // Immigration (TRUMP_EFFECT + LEGISLATION)
-  { pattern: /immigration|ice[\s_-]enforcement|deportation|visa|border[\s_-]?(security|control)/i, tags: ["trump_effect", "legislation"] },
+  // Immigration (TRUMP_EFFECT)
+  { pattern: /immigration|ice[\s_-]enforcement|deportation|visa|border[\s_-]?(security|control)/i, tags: ["trump_effect"] },
 
   // Biofuel (BIOFUEL specialist)
   { pattern: /renewable[\s_-]?fuel[\s_-]?standard|rfs/i, tags: ["biofuel"] },
@@ -108,8 +108,6 @@ const TAG_RULES: TagRule[] = [
   // Sanctions (TARIFF + CHINA)
   { pattern: /sanctions|ofac|export[\s_-]?control/i, tags: ["tariff", "china"] },
 
-  // Default - all Federal Register docs are legislation
-  { pattern: /.*/, tags: ["legislation"] },
 ];
 
 /**
@@ -118,7 +116,6 @@ const TAG_RULES: TagRule[] = [
  * Uses hybrid approach:
  * 1. Document-specific TAG_RULES (regex patterns for Federal Register context)
  * 2. Shared keyword classifier for general specialist detection
- * 3. "legislation" always added for Federal Register documents
  */
 function assignTags(title: string, abstract: string, docType: string, agencies: string[]): string[] {
   const content = `${title} ${abstract} ${agencies.join(" ")}`;
@@ -145,10 +142,6 @@ function assignTags(title: string, abstract: string, docType: string, agencies: 
       tags.add(tag);
     }
   }
-
-  // All Federal Register docs get "legislation" as document-type tag
-  // Note: "legislation" is NOT a Big-11 specialist, it's a document category
-  tags.add("legislation");
 
   return Array.from(tags);
 }
@@ -343,10 +336,10 @@ export const federalRegisterDaily = inngest.createFunction(
   {
     id: "federal-register-daily",
     name: "Federal Register Daily Data Ingestion",
-    retries: 3,
+    retries: 1,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "2 */8 * * *" }, // Every 8 hours at :02 UTC
+  { cron: "2 6 * * *" }, // Daily at 06:02 UTC
   async ({ step, logger }) => {
     // Get database client
     const client = await pool.connect();
@@ -374,9 +367,11 @@ export const federalRegisterDaily = inngest.createFunction(
 
       logger.info(`Fetched ${documents.length} documents from Federal Register`);
 
-      // Step 3: Process each document
-      for (const doc of documents) {
-        const outcome = await step.run(`ingest-${doc.document_number}`, async () => {
+      // Step 3: Process all documents in one batched step to reduce operations.
+      const outcomes = await step.run("ingest-documents-batch", async () => {
+        const batchedResults: { docNumber: string; status: string; tags?: string[] }[] = [];
+
+        for (const doc of documents) {
           try {
             // Validate required fields
             if (!doc.document_number || !doc.publication_date) {
@@ -388,7 +383,11 @@ export const federalRegisterDaily = inngest.createFunction(
                 ["Missing required fields: document_number or publication_date"],
                 "error"
               );
-              return { docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" as const };
+              batchedResults.push({
+                docNumber: doc.document_number || "UNKNOWN",
+                status: "quarantined_missing_fields",
+              });
+              continue;
             }
 
             // Compute row hash for idempotency
@@ -396,7 +395,11 @@ export const federalRegisterDaily = inngest.createFunction(
 
             // Check if exact same data already exists (skip duplicate)
             if (await hashExists(client, rowHash)) {
-              return { docNumber: doc.document_number, status: "skipped_duplicate" as const };
+              batchedResults.push({
+                docNumber: doc.document_number,
+                status: "skipped_duplicate",
+              });
+              continue;
             }
 
             // Extract agencies
@@ -440,8 +443,11 @@ export const federalRegisterDaily = inngest.createFunction(
               ]
             );
 
-            return { docNumber: doc.document_number, status: "inserted" as const, tags };
-
+            batchedResults.push({
+              docNumber: doc.document_number,
+              status: "inserted",
+              tags,
+            });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
 
@@ -454,10 +460,17 @@ export const federalRegisterDaily = inngest.createFunction(
               "error"
             );
 
-            return { docNumber: doc.document_number || "UNKNOWN", status: "error" as const };
+            batchedResults.push({
+              docNumber: doc.document_number || "UNKNOWN",
+              status: "error",
+            });
           }
-        });
+        }
 
+        return batchedResults;
+      });
+
+      for (const outcome of outcomes) {
         rowsAttempted++;
         results.push(outcome);
         if (outcome.status === "inserted") {

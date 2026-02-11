@@ -46,14 +46,13 @@ def palm_generator():
 def test_prepare_features_accepts_current_news_contract(palm_generator):
     data = _build_base_input()
     data["news_article_count"] = np.arange(len(data)) % 5
-    data["news_avg_sentiment"] = np.linspace(-0.2, 0.3, len(data))
 
     features, _ = palm_generator._prepare_features(data)
 
     assert "palm_article_count" in features.columns
-    assert "palm_sentiment" in features.columns
     assert "palm_news_intensity" in features.columns
     assert "mpob_stocks_zscore" in features.columns
+    assert "palm_sentiment" not in features.columns
     pd.testing.assert_series_equal(
         features["palm_article_count"], data["news_article_count"], check_names=False
     )
@@ -62,12 +61,11 @@ def test_prepare_features_accepts_current_news_contract(palm_generator):
 def test_prepare_features_accepts_legacy_news_contract(palm_generator):
     data = _build_base_input()
     data["article_count"] = np.arange(len(data)) % 3
-    data["avg_sentiment"] = np.linspace(-0.1, 0.2, len(data))
 
     features, _ = palm_generator._prepare_features(data)
 
     assert "palm_article_count" in features.columns
-    assert "palm_sentiment" in features.columns
+    assert "palm_sentiment" not in features.columns
     pd.testing.assert_series_equal(
         features["palm_article_count"], data["article_count"], check_names=False
     )

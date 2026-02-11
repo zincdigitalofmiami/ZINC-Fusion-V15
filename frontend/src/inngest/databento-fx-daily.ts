@@ -132,7 +132,7 @@ export const databentoFxDaily = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 15 */8 * * *" }, // Every 8 hours at :15 (0:15, 8:15, 16:15 CT)
+  { cron: "TZ=America/Chicago 15 6 * * *" }, // Daily at 06:15 CT
   async ({ step, logger }) => {
     const results: SymbolResult[] = [];
 

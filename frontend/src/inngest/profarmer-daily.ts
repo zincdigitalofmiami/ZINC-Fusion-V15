@@ -525,7 +525,7 @@ export const profarmerDaily = inngest.createFunction(
     retries: 2,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "5 */4 * * *" }, // Every 4 hours at :05
+  { event: "profarmer/daily.manual" }, // Scheduled run disabled pending login stability; manual trigger only
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

@@ -46,7 +46,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Total Runs\" FROM training.model_runs",
+          "rawSql": "SELECT COUNT(*) as \"Total Runs\" FROM training.model_runs_event",
           "refId": "A"
         }
       ],
@@ -90,7 +90,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) FROM training.model_runs WHERE outcome = 'win'",
+          "rawSql": "SELECT COUNT(*) FROM training.model_runs_event WHERE outcome = 'win'",
           "refId": "A"
         }
       ],
@@ -134,7 +134,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) FROM training.model_runs WHERE outcome = 'fail'",
+          "rawSql": "SELECT COUNT(*) FROM training.model_runs_event WHERE outcome = 'fail'",
           "refId": "A"
         }
       ],
@@ -178,7 +178,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT SUM(oof_count) FROM training.model_runs",
+          "rawSql": "SELECT SUM(oof_count) FROM training.model_runs_event",
           "refId": "A"
         }
       ],
@@ -263,7 +263,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT model_name || ' | ' || COALESCE(model_nickname, '') as \"Model\", horizon_days || 'd' as \"Horizon\", trained_date as \"Trained\", ROUND(mae::numeric, 4) as \"MAE\", oof_count as \"OOF Count\", outcome as \"Result\", status as \"Status\", notes as \"Notes\" FROM training.model_runs ORDER BY created_at DESC",
+          "rawSql": "SELECT model_name || ' | ' || COALESCE(model_nickname, '') as \"Model\", horizon_days || 'd' as \"Horizon\", trained_date as \"Trained\", ROUND(mae::numeric, 4) as \"MAE\", oof_count as \"OOF Count\", outcome as \"Result\", status as \"Status\", notes as \"Notes\" FROM training.model_runs_event ORDER BY created_at DESC",
           "refId": "A"
         }
       ],
@@ -319,7 +319,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT model_name || ' ' || horizon_days || 'd' as \"Model\", mae as \"MAE\" FROM training.model_runs WHERE mae IS NOT NULL ORDER BY horizon_days, created_at",
+          "rawSql": "SELECT model_name || ' ' || horizon_days || 'd' as \"Model\", mae as \"MAE\" FROM training.model_runs_event WHERE mae IS NOT NULL ORDER BY horizon_days, created_at",
           "refId": "A"
         }
       ],
@@ -354,7 +354,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT outcome as \"Outcome\", COUNT(*) as \"Count\" FROM training.model_runs GROUP BY outcome",
+          "rawSql": "SELECT outcome as \"Outcome\", COUNT(*) as \"Count\" FROM training.model_runs_event GROUP BY outcome",
           "refId": "A"
         }
       ],
@@ -389,7 +389,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT model_name as \"Model\", COUNT(*) as \"Count\" FROM training.model_runs GROUP BY model_name",
+          "rawSql": "SELECT model_name as \"Model\", COUNT(*) as \"Count\" FROM training.model_runs_event GROUP BY model_name",
           "refId": "A"
         }
       ],

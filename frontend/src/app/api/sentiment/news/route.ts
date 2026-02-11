@@ -113,7 +113,6 @@ export async function GET() {
     // Compute sentiment classification — keyword-based when zl_sentiment is NULL
     const headlines = rows.map((r) => {
       const sentiment = classifySentiment(
-        r.zl_sentiment,
         r.headline,
         r.summary || r.content,
       );

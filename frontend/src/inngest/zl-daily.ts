@@ -55,7 +55,7 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
  */
 export const zlDaily = inngest.createFunction(
   { id: "zl-daily", name: "ZL Daily (Databento)", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "TZ=America/Chicago 5 */8 * * *" }, // Every 8 hours at :05 (0:05, 8:05, 16:05 CT)
+  { cron: "TZ=America/Chicago 5 6 * * *" }, // Daily at 06:05 CT
   async ({ step, logger, attempt }) => {
     const zlQuote = await step.run("fetch-databento-zl", async () => {
       logger.info(`ZL daily fetch attempt ${attempt}, requesting Databento ohlcv-1d`);

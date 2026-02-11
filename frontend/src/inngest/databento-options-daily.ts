@@ -375,7 +375,7 @@ export const databentoOptionsDaily = inngest.createFunction(
     retries: 2,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
+  { cron: "TZ=America/Chicago 30 6 * * *" }, // Daily at 06:30 CT
   async ({ step, logger }) => {
     const results: OptionResult[] = [];
 

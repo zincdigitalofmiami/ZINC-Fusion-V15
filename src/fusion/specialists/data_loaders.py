@@ -39,7 +39,6 @@ def load_news_for_specialist(
     Returns:
         DataFrame indexed by trade_date with:
         - news_article_count: count of articles for this specialist on this date
-        - news_avg_sentiment: average sentiment (if available)
         - news_headline_text: concatenated headlines for NLP features
     """
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -65,8 +64,7 @@ def load_news_for_specialist(
             FROM information_schema.columns
             WHERE table_schema = '{schema}' AND table_name = '{table}'
               AND column_name IN ('event_date', 'published_at', 'headline',
-                                  'content', 'sentiment_score', 'zl_sentiment',
-                                  'avg_sentiment', 'summary')
+                                  'content', 'summary')
             """
             cols_df = pd.read_sql(cols_query, conn)
             available = set(cols_df["column_name"])
@@ -82,13 +80,6 @@ def load_news_for_specialist(
                 select_parts.append("headline")
             if "summary" in available:
                 select_parts.append("summary")
-            sentiment_col = None
-            for candidate in ("sentiment_score", "zl_sentiment", "avg_sentiment"):
-                if candidate in available:
-                    sentiment_col = candidate
-                    break
-            if sentiment_col is not None:
-                select_parts.append(f"{sentiment_col} as sentiment_score")
 
             query = f"""
             SELECT {", ".join(select_parts)}
@@ -114,7 +105,6 @@ def load_news_for_specialist(
             columns=[
                 "trade_date",
                 "news_article_count",
-                "news_avg_sentiment",
                 "news_headline_text",
             ]
         ).set_index("trade_date")
@@ -138,9 +128,6 @@ def load_news_for_specialist(
         agg_dict["summary"] = lambda x: " | ".join(
             [str(s) for s in x if pd.notna(s)][:5]
         )
-    if "sentiment_score" in combined.columns:
-        agg_dict["sentiment_score"] = "mean"
-
     result = combined.groupby("trade_date").agg(agg_dict)
     result["news_article_count"] = combined.groupby("trade_date").size()
 
@@ -148,8 +135,6 @@ def load_news_for_specialist(
     rename_map = {}
     if "headline" in result.columns:
         rename_map["headline"] = "news_headline_text"
-    if "sentiment_score" in result.columns:
-        rename_map["sentiment_score"] = "news_avg_sentiment"
     if "summary" in result.columns:
         rename_map["summary"] = "news_summary_text"
 

@@ -52,7 +52,7 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
  */
 export const cpoPalmOilDaily = inngest.createFunction(
   { id: "cpo-palm-oil-daily", name: "CPO Palm Oil Daily", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 UTC)
+  { cron: "0 6 * * *" }, // Daily at 06:00 UTC
   async ({ step, logger }) => {
     // Try to fetch CPO data from multiple sources
     const data = await step.run("fetch-cpo-price", async () => {
@@ -106,7 +106,7 @@ export const cpoPalmOilDaily = inngest.createFunction(
  */
 export const cpoTradingEconomics = inngest.createFunction(
   { id: "cpo-trading-economics", name: "CPO Trading Economics", concurrency: [DB_CONCURRENCY] },
-  { cron: "30 */8 * * *" }, // Every 8 hours at :30 (backup)
+  { cron: "30 6 * * *" }, // Daily at 06:30 UTC (backup)
   async ({ step, logger }) => {
     const apiKey = process.env.TRADING_ECONOMICS_API_KEY;
 

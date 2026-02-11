@@ -258,7 +258,7 @@ async function fetchDailyArchive(
 
 export const openmeteoWeatherDaily = inngest.createFunction(
   { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "10 */8 * * *" }, // Every 8 hours at :10
+  { cron: "10 6 * * *" }, // Daily at 06:10 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");
 
@@ -279,30 +279,35 @@ export const openmeteoWeatherDaily = inngest.createFunction(
       const today = new Date().toISOString().slice(0, 10);
       const endDate = addDays(today, -1); // avoid same-day partials
 
-      for (const station of stations) {
-        await step.run(`station-${station.station_id}`, async () => {
+      const batchSummary = await step.run("ingest-stations-batch", async () => {
+        let attemptedLocal = 0;
+        let insertedLocal = 0;
+        let skippedLocal = 0;
+        let quarantinedLocal = 0;
+
+        for (const station of stations) {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
-          if (startDate > endDate) return;
+          if (startDate > endDate) continue;
 
           const q = resolveGeocodeQuery(station.station_id);
           if (!q) {
-            quarantined++;
-            return;
+            quarantinedLocal++;
+            continue;
           }
 
           const geo = await geocodeStrict(q.name, q.country, q.requireAdmin1);
           const archive = await fetchDailyArchive(geo.latitude, geo.longitude, startDate, endDate);
 
           const n = archive.time.length;
-          if (n === 0) return;
+          if (n === 0) continue;
 
           for (let i = 0; i < n; i++) {
             const eventDate = archive.time[i];
             if (!eventDate) continue;
 
-            attempted++;
+            attemptedLocal++;
             if (await eventStationExists(client, station.station_id, eventDate)) {
-              skipped++;
+              skippedLocal++;
               continue;
             }
 
@@ -355,10 +360,22 @@ export const openmeteoWeatherDaily = inngest.createFunction(
                 rowHash,
               ]
             );
-            inserted++;
+            insertedLocal++;
           }
-        });
-      }
+        }
+
+        return {
+          attempted: attemptedLocal,
+          inserted: insertedLocal,
+          skipped: skippedLocal,
+          quarantined: quarantinedLocal,
+        };
+      });
+
+      attempted += batchSummary.attempted;
+      inserted += batchSummary.inserted;
+      skipped += batchSummary.skipped;
+      quarantined += batchSummary.quarantined;
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
       return { status: "success", runId, attempted, inserted, skipped, quarantined };

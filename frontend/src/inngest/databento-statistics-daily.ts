@@ -98,12 +98,12 @@ export const databentoStatisticsDaily = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 30 */8 * * *" }, // Every 8 hours at :30 (0:30, 8:30, 16:30 CT)
+  { cron: "TZ=America/Chicago 30 6 * * *" }, // Daily at 06:30 CT
   async ({ step, logger }) => {
-    const results: SymbolResult[] = [];
+    const results = await step.run("fetch-all-stats-symbols-batch", async () => {
+      const batchedResults: SymbolResult[] = [];
 
-    for (const config of DATABENTO_SYMBOLS) {
-      await step.run(`fetch-stats-${config.canonical}`, async () => {
+      for (const config of DATABENTO_SYMBOLS) {
         try {
           // Always fetch last 5 days for robustness (handles timing edge cases)
           const endDate = new Date();
@@ -132,11 +132,11 @@ export const databentoStatisticsDaily = inngest.createFunction(
           const bars = parseDatabentoStatisticsCsv(csv);
           if (bars.length === 0) {
             logger.info(`No OI stats returned for ${config.canonical}`);
-            results.push({
+            batchedResults.push({
               symbol: config.canonical,
               status: "no_data",
             });
-            return;
+            continue;
           }
 
           // Upsert each bar
@@ -153,7 +153,7 @@ export const databentoStatisticsDaily = inngest.createFunction(
           }
 
           logger.info(`Upserted ${upserted} OI rows for ${config.canonical}`);
-          results.push({
+          batchedResults.push({
             symbol: config.canonical,
             status: "success",
             rowsUpserted: upserted,
@@ -161,14 +161,16 @@ export const databentoStatisticsDaily = inngest.createFunction(
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           logger.error(`Failed to fetch/upsert OI stats for ${config.canonical}: ${errorMsg}`);
-          results.push({
+          batchedResults.push({
             symbol: config.canonical,
             status: "error",
             error: errorMsg,
           });
         }
-      });
-    }
+      }
+
+      return batchedResults;
+    });
 
     return {
       status: "complete",

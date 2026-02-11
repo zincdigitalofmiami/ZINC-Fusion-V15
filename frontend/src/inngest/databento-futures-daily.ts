@@ -146,12 +146,12 @@ export const databentoFuturesDaily = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
+  { cron: "TZ=America/Chicago 0 6 * * *" }, // Daily at 06:00 CT
   async ({ step, logger }) => {
-    const results: SymbolResult[] = [];
+    const results = await step.run("fetch-all-symbols-batch", async () => {
+      const batchedResults: SymbolResult[] = [];
 
-    for (const config of DATABENTO_SYMBOLS) {
-      await step.run(`fetch-${config.canonical}`, async () => {
+      for (const config of DATABENTO_SYMBOLS) {
         try {
           // Get incremental window: start = max_date + 1 day, end = now minus 24h
           const maxDate = await getMaxEventDate(config.canonical);
@@ -172,11 +172,11 @@ export const databentoFuturesDaily = inngest.createFunction(
           // Ensure start < end
           if (startDate >= endDate) {
             logger.info(`No new data window for ${config.canonical} (max_date=${maxDate?.toISOString()})`);
-            results.push({
+            batchedResults.push({
               symbol: config.canonical,
               status: "skipped",
             });
-            return;
+            continue;
           }
 
           logger.info(
@@ -198,11 +198,11 @@ export const databentoFuturesDaily = inngest.createFunction(
           const bars = parseDatabentoOhlcvCsv(csv);
           if (bars.length === 0) {
             logger.info(`No bars returned for ${config.canonical}`);
-            results.push({
+            batchedResults.push({
               symbol: config.canonical,
               status: "no_data",
             });
-            return;
+            continue;
           }
 
           // Insert each bar
@@ -238,7 +238,7 @@ export const databentoFuturesDaily = inngest.createFunction(
           }
 
           logger.info(`Inserted ${inserted} rows for ${config.canonical}`);
-          results.push({
+          batchedResults.push({
             symbol: config.canonical,
             status: "success",
             rowsInserted: inserted,
@@ -246,14 +246,16 @@ export const databentoFuturesDaily = inngest.createFunction(
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
           logger.error(`Failed to fetch/insert ${config.canonical}: ${errorMsg}`);
-          results.push({
+          batchedResults.push({
             symbol: config.canonical,
             status: "error",
             error: errorMsg,
           });
         }
-      });
-    }
+      }
+
+      return batchedResults;
+    });
 
     return {
       status: "complete",

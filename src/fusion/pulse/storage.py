@@ -376,7 +376,7 @@ async def get_consensus_view(
         # Get latest timestamp
         latest = await conn.fetchval(
             """
-            SELECT MAX(as_of_ts) FROM features.intel_drops WHERE horizon = $1
+            SELECT MAX(as_of_ts) FROM features.intel_drops_event WHERE horizon = $1
         """,
             horizon,
         )

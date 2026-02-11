@@ -101,10 +101,10 @@ export const nyfedDaily = inngest.createFunction(
   {
     id: "nyfed-daily",
     name: "NY Fed Rates Daily Ingestion",
-    retries: 3,
+    retries: 1,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "12 */8 * * *" }, // Every 8 hours at :12 UTC
+  { cron: "12 6 * * *" }, // Daily at 06:12 UTC
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

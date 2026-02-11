@@ -104,22 +104,11 @@ export function scoreZlSentiment(
 }
 
 /**
- * Given a pre-existing zl_sentiment string (from DB), parse it.
- * Falls back to keyword scoring if the DB value is null/empty.
+ * Classify sentiment for a news article using keyword scoring.
  */
 export function classifySentiment(
-  zlSentiment: string | null,
   headline: string | null,
   summary?: string | null,
 ): Sentiment {
-  // If the DB has an explicit sentiment, use it
-  if (zlSentiment) {
-    const s = zlSentiment.toLowerCase();
-    if (s.includes("bull") || s.includes("positive")) return "bullish";
-    if (s.includes("bear") || s.includes("negative")) return "bearish";
-    return "neutral";
-  }
-
-  // Otherwise, derive from keywords
   return scoreZlSentiment(headline, summary).sentiment;
 }

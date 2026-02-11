@@ -192,8 +192,8 @@ function toNoaaStationId(stationId: string): string | null {
 }
 
 export const noaaWeatherDaily = inngest.createFunction(
-  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "6 */8 * * *" }, // Every 8 hours at :06 UTC
+  { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { cron: "6 6 * * *" }, // Daily at 06:06 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");
@@ -223,10 +223,16 @@ export const noaaWeatherDaily = inngest.createFunction(
 
       const stationErrors: string[] = [];
 
-      for (const station of stationsNoaa) {
-        await step.run(`station-${station.station_id}`, async () => {
+      const batchSummary = await step.run("ingest-stations-batch", async () => {
+        let attemptedLocal = 0;
+        let insertedLocal = 0;
+        let skippedLocal = 0;
+        let quarantinedLocal = 0;
+        const stationErrorsLocal: string[] = [];
+
+        for (const station of stationsNoaa) {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
-          if (startDate > endDate) return;
+          if (startDate > endDate) continue;
 
           let rows: Array<{ date: string; datatype: string; value: number }>;
           try {
@@ -234,11 +240,11 @@ export const noaaWeatherDaily = inngest.createFunction(
           } catch (err) {
             // Log but don't fail the entire job for one station
             const msg = err instanceof Error ? err.message : String(err);
-            stationErrors.push(`${station.station_id}: ${msg}`);
-            quarantined++;
-            return;
+            stationErrorsLocal.push(`${station.station_id}: ${msg}`);
+            quarantinedLocal++;
+            continue;
           }
-          if (rows.length === 0) return;
+          if (rows.length === 0) continue;
 
           // Group by YYYY-MM-DD
           const byDate = new Map<string, Record<string, number>>();
@@ -254,9 +260,9 @@ export const noaaWeatherDaily = inngest.createFunction(
           }
 
           for (const [eventDate, values] of byDate.entries()) {
-            attempted++;
+            attemptedLocal++;
             if (await eventStationExists(client, station.station_id, eventDate)) {
-              skipped++;
+              skippedLocal++;
               continue;
             }
 
@@ -293,10 +299,24 @@ export const noaaWeatherDaily = inngest.createFunction(
                 rowHash,
               ]
             );
-            inserted++;
+            insertedLocal++;
           }
-        });
-      }
+        }
+
+        return {
+          attempted: attemptedLocal,
+          inserted: insertedLocal,
+          skipped: skippedLocal,
+          quarantined: quarantinedLocal,
+          stationErrors: stationErrorsLocal,
+        };
+      });
+
+      attempted += batchSummary.attempted;
+      inserted += batchSummary.inserted;
+      skipped += batchSummary.skipped;
+      quarantined += batchSummary.quarantined;
+      stationErrors.push(...batchSummary.stationErrors);
 
       await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
 

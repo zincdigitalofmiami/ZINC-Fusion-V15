@@ -154,7 +154,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Runs\" FROM training.model_runs",
+          "rawSql": "SELECT COUNT(*) as \"Runs\" FROM training.model_runs_event",
           "refId": "A"
         }
       ],
@@ -189,7 +189,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Wins\" FROM training.model_runs WHERE outcome = 'win'",
+          "rawSql": "SELECT COUNT(*) as \"Wins\" FROM training.model_runs_event WHERE outcome = 'win'",
           "refId": "A"
         }
       ],
@@ -224,7 +224,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as \"Fails\" FROM training.model_runs WHERE outcome = 'fail'",
+          "rawSql": "SELECT COUNT(*) as \"Fails\" FROM training.model_runs_event WHERE outcome = 'fail'",
           "refId": "A"
         }
       ],
@@ -307,11 +307,11 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT model_name || ' | ' || COALESCE(model_nickname, '') as \"Model\", horizon_days || 'd' as \"Horizon\", trained_date as \"Trained\", ROUND(mae::numeric, 4) as \"MAE\", oof_count as \"OOF Count\", outcome as \"Outcome\", status as \"Status\", notes as \"Notes\" FROM training.model_runs ORDER BY created_at DESC",
+          "rawSql": "SELECT model_name || ' | ' || COALESCE(model_nickname, '') as \"Model\", horizon_days || 'd' as \"Horizon\", trained_date as \"Trained\", ROUND(mae::numeric, 4) as \"MAE\", oof_count as \"OOF Count\", outcome as \"Outcome\", status as \"Status\", notes as \"Notes\" FROM training.model_runs_event ORDER BY created_at DESC",
           "refId": "A"
         }
       ],
-      "title": "Training Experiments (training.model_runs)",
+      "title": "Training Experiments (training.model_runs_event)",
       "type": "table"
     },
     {
@@ -573,7 +573,7 @@
           "datasource": { "type": "postgres", "uid": "${datasource}" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT model_name as \"Model\", COUNT(*) as \"Count\" FROM training.model_runs GROUP BY model_name",
+          "rawSql": "SELECT model_name as \"Model\", COUNT(*) as \"Count\" FROM training.model_runs_event GROUP BY model_name",
           "refId": "A"
         }
       ],

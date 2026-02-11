@@ -1003,39 +1003,42 @@ def load_news_sentiment_by_bucket(conn) -> dict[str, pd.DataFrame]:
             cur.execute(
                 f"""
                 WITH all_tagged_news AS (
-                    SELECT event_date, zl_sentiment, specialist_tags
+                    SELECT event_date
                     FROM alt.policy_news_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
-                    SELECT event_date, zl_sentiment, specialist_tags
+                    SELECT event_date
                     FROM alt.executive_actions_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
-                    SELECT event_date, NULL as zl_sentiment, specialist_tags
+                    SELECT event_date
                     FROM alt.econ_news_event WHERE %s = ANY(specialist_tags)
                     UNION ALL
-                    SELECT event_date, NULL as zl_sentiment, specialist_tags
+                    SELECT event_date
                     FROM alt.profarmer_news_event WHERE %s = ANY(specialist_tags)
+                    UNION ALL
+                    SELECT event_date
+                    FROM alt.legislation_1d WHERE %s = ANY(specialist_tags)
+                    UNION ALL
+                    SELECT event_date
+                    FROM econ.news_event WHERE %s = ANY(specialist_tags)
+                    UNION ALL
+                    SELECT event_date
+                    FROM alt.ice_enforcement_event WHERE %s = ANY(specialist_tags)
                 )
                 SELECT
                     event_date AS as_of_date,
-                    COUNT(*) as {bucket}_news_count,
-                    AVG(CASE
-                        WHEN zl_sentiment = 'bullish' THEN 1.0
-                        WHEN zl_sentiment = 'bearish' THEN -1.0
-                        ELSE 0.0
-                    END) as {bucket}_news_sentiment_avg
+                    COUNT(*) as {bucket}_news_count
                 FROM all_tagged_news
                 WHERE event_date IS NOT NULL
                 GROUP BY event_date
                 ORDER BY event_date
             """,
-                (bucket, bucket, bucket, bucket),
+                (bucket, bucket, bucket, bucket, bucket, bucket, bucket),
             )
             rows = cur.fetchall()
 
         columns = [
             "as_of_date",
             f"{bucket}_news_count",
-            f"{bucket}_news_sentiment_avg",
         ]
 
         df = pd.DataFrame(rows, columns=columns)
@@ -2434,30 +2437,14 @@ def generate_bucket_features(
         logger.info("    + Trump regime: 10+ features")
 
     # ==========================================================================
-    # 11. ADD BUCKET-SPECIFIC NEWS SENTIMENT (from alt news tables via specialist_tags)
+    # 11. ADD BUCKET-SPECIFIC NEWS COUNT (from alt news tables via specialist_tags)
     # ==========================================================================
-    # This is CRITICAL - news sentiment was loaded but NEVER merged before!
     if news_by_bucket is not None and bucket_name in news_by_bucket:
         bucket_news_df = news_by_bucket[bucket_name]
         if not bucket_news_df.empty:
             zl_df = zl_df.merge(bucket_news_df, on="as_of_date", how="left")
-            # Add rolling sentiment features
-            sentiment_col = f"{bucket_name}_news_sentiment_avg"
-            if sentiment_col in zl_df.columns:
-                # 5-day rolling sentiment average
-                zl_df[f"{bucket_name}_news_sentiment_5d"] = (
-                    zl_df[sentiment_col].rolling(5).mean()
-                )
-                # 21-day rolling sentiment average
-                zl_df[f"{bucket_name}_news_sentiment_21d"] = (
-                    zl_df[sentiment_col].rolling(21).mean()
-                )
-                # Sentiment momentum
-                zl_df[f"{bucket_name}_news_sentiment_momentum"] = (
-                    zl_df[sentiment_col] - zl_df[f"{bucket_name}_news_sentiment_21d"]
-                )
             logger.info(
-                f"    + News sentiment: {len(bucket_news_df.columns) - 1} features for {bucket_name}"
+                f"    + News count: {len(bucket_news_df.columns) - 1} features for {bucket_name}"
             )
 
     # ==========================================================================

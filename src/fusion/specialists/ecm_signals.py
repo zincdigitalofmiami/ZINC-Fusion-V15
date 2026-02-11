@@ -208,12 +208,9 @@ class PalmMLMixin:
             "coint_strength",
             "spread_vol_21d",
             "spread_vol_63d",
-            "palm_sentiment",
-            "palm_sentiment_7d",
             "palm_news_intensity",
             "palm_article_count",
             "palm_articles_7d",
-            "palm_sentiment_delta",
         }
         MAX_FEATURES = 50  # Cap total features for interpretability
 
@@ -729,21 +726,14 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             )
             logger.debug("   MPOB fundamental features added (6 features)")
 
-        # === NEWS / SENTIMENT FEATURES ===
+        # === NEWS ARTICLE FEATURES ===
         # Accept both legacy and current loader contracts:
-        # - article_count / avg_sentiment
-        # - news_article_count / news_avg_sentiment
+        # - article_count / news_article_count
         article_col = None
         if "news_article_count" in data.columns:
             article_col = "news_article_count"
         elif "article_count" in data.columns:
             article_col = "article_count"
-
-        sentiment_col = None
-        if "news_avg_sentiment" in data.columns:
-            sentiment_col = "news_avg_sentiment"
-        elif "avg_sentiment" in data.columns:
-            sentiment_col = "avg_sentiment"
 
         if article_col is not None:
             features["palm_article_count"] = data[article_col].fillna(0)
@@ -759,19 +749,6 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             features["palm_news_intensity"] = (
                 (features["palm_articles_21d"] - art_mean) / art_std.replace(0, np.nan)
             ).fillna(0)
-
-        if sentiment_col is not None:
-            features["palm_sentiment"] = data[sentiment_col]
-            features["palm_sentiment_7d"] = (
-                data[sentiment_col].rolling(7, min_periods=1).mean()
-            )
-            features["palm_sentiment_21d"] = (
-                data[sentiment_col].rolling(21, min_periods=5).mean()
-            )
-            # Sentiment momentum (shift in tone)
-            features["palm_sentiment_delta"] = (
-                features["palm_sentiment_7d"] - features["palm_sentiment_21d"]
-            )
 
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)

@@ -49,7 +49,7 @@ async function hashExists(client: PoolClient, table: string, hash: string): Prom
 
 export const farmdocRinsDaily = inngest.createFunction(
   { id: "farmdoc-rins-daily", name: "Farmdoc RINs RSS Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "14 */8 * * *" }, // Every 8 hours at :14 UTC
+  { cron: "14 6 * * *" }, // Daily at 06:14 UTC
   async ({ step, logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;

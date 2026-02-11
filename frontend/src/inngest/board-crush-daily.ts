@@ -56,7 +56,7 @@ function calculateBoardCrush(components: CrushComponents): CrushResult {
  */
 export const boardCrushDaily = inngest.createFunction(
   { id: "board-crush-daily", name: "Board Crush Daily Calculator", concurrency: [DB_CONCURRENCY] },
-  { cron: "TZ=America/Chicago 0 */8 * * *" }, // Every 8 hours (0:00, 8:00, 16:00 CT)
+  { cron: "TZ=America/Chicago 0 6 * * *" }, // Daily at 06:00 CT
   async ({ step, logger }) => {
     // Step 1: Fetch latest closes for ZS, ZL, ZM from mkt.futures_1d
     const components = await step.run("fetch-crush-components", async () => {
