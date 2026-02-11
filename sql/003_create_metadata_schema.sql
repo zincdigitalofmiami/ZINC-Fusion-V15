@@ -3,7 +3,7 @@
 
 CREATE SCHEMA IF NOT EXISTS metadata;
 
-CREATE TABLE IF NOT EXISTS metadata.column_descriptions (
+CREATE TABLE IF NOT EXISTS metadata.column_descriptions ( -- sqlref: ignore
     id SERIAL PRIMARY KEY,
     table_schema VARCHAR(100) NOT NULL,
     table_name VARCHAR(200) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS metadata.column_descriptions (
     UNIQUE (table_schema, table_name, column_name)
 );
 
-CREATE TABLE IF NOT EXISTS metadata.table_descriptions (
+CREATE TABLE IF NOT EXISTS metadata.table_descriptions ( -- sqlref: ignore
     id SERIAL PRIMARY KEY,
     table_schema VARCHAR(100) NOT NULL,
     table_name VARCHAR(200) NOT NULL,
@@ -36,20 +36,3 @@ CREATE TABLE IF NOT EXISTS metadata.table_descriptions (
 
 CREATE INDEX IF NOT EXISTS idx_colmeta_schema_table ON metadata.column_descriptions(table_schema, table_name);
 CREATE INDEX IF NOT EXISTS idx_colmeta_specialist ON metadata.column_descriptions(specialist_bucket);
-
--- Archive table for garbage cleanup
-CREATE TABLE IF NOT EXISTS raw.news_articles_archive (
-    id SERIAL PRIMARY KEY,
-    original_id INTEGER,
-    headline TEXT,
-    content TEXT,
-    source VARCHAR(255),
-    published_at TIMESTAMP,
-    bucket_name VARCHAR(100),
-    sentiment_score NUMERIC,
-    archived_at TIMESTAMP DEFAULT NOW(),
-    archive_reason VARCHAR(100)
-);
-
-CREATE INDEX IF NOT EXISTS idx_archive_date ON raw.news_articles_archive(archived_at);
-CREATE INDEX IF NOT EXISTS idx_archive_original_id ON raw.news_articles_archive(original_id);

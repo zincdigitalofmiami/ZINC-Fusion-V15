@@ -529,11 +529,11 @@ def overview_models() -> dict[str, Any]:
             "epa_rin_prices_1d": (
                 _fetch_rows(
                     """
-	                SELECT COUNT(*)::BIGINT as rows,
-	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
-	                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
-	                FROM supply.epa_rin_1d
-	                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+                       COUNT(DISTINCT rin_type)::BIGINT as rin_types
+                FROM supply.epa_rin_1d
+                """
                 )[0]
                 if _table_exists("supply", "epa_rin_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "rin_types": 0}
@@ -541,11 +541,11 @@ def overview_models() -> dict[str, Any]:
             "weather_observations_1d": (
                 _fetch_rows(
                     """
-	                SELECT COUNT(*)::BIGINT as rows,
-	                       MIN(event_date) as start_date, MAX(event_date) as end_date,
-	                       COUNT(DISTINCT station_id)::BIGINT as stations
-	                FROM alt.weather_1d
-	                """
+                SELECT COUNT(*)::BIGINT as rows,
+                       MIN(event_date) as start_date, MAX(event_date) as end_date,
+                       COUNT(DISTINCT station_id)::BIGINT as stations
+                FROM alt.weather_1d
+                """
                 )[0]
                 if _table_exists("alt", "weather_1d")
                 else {"rows": 0, "start_date": None, "end_date": None, "stations": 0}

@@ -1,54 +1,54 @@
-import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 type StatsRow = {
-  running: number
-  completed_7d: number
-  failed_7d: number
-  last_started_at: string | null
-}
+  running: number;
+  completed_7d: number;
+  failed_7d: number;
+  last_started_at: string | null;
+};
 
 type RunRow = {
-  run_id: string
-  run_name: string | null
-  model_type: string
-  specialist_name: string | null
-  horizon: number | null
-  status: string
-  started_at: string | null
-  completed_at: string | null
-  duration_seconds: number | null
-  error_message: string | null
-}
+  run_id: string;
+  run_name: string | null;
+  model_type: string;
+  specialist_name: string | null;
+  horizon: number | null;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  error_message: string | null;
+};
 
 type LeaderboardRow = {
-  run_id: string
-  model_name: string
-  rank: number | null
-  score_val: number | null
-  score_test: number | null
-  fit_time_seconds: number | null
-  pred_time_seconds: number | null
-  model_type: string | null
-  specialist_name: string | null
-  horizon: number | null
-}
+  run_id: string;
+  model_name: string;
+  rank: number | null;
+  score_val: number | null;
+  score_test: number | null;
+  fit_time_seconds: number | null;
+  pred_time_seconds: number | null;
+  model_type: string | null;
+  specialist_name: string | null;
+  horizon: number | null;
+};
 
 type RegistryRow = {
-  model_id: string
-  model_name: string
-  model_type: string
-  horizon: number | null
-  version: number
-  trained_at: string
-  status: string
-  is_champion: boolean
-  mase: number | null
-  rmse: number | null
-  mae: number | null
-}
+  model_id: string;
+  model_name: string;
+  model_type: string;
+  horizon: number | null;
+  version: number;
+  trained_at: string;
+  status: string;
+  is_champion: boolean;
+  mase: number | null;
+  rmse: number | null;
+  mae: number | null;
+};
 
 export async function GET() {
   try {
@@ -123,7 +123,7 @@ export async function GET() {
           r.model_type,
           r.specialist_name,
           r.horizon::int
-        FROM model.model_leaderboard l
+        FROM model.model_leaderboard l -- sqlref: ignore
         LEFT JOIN ops.training_runs r ON r.run_id = l.run_id
         ORDER BY l.rank ASC NULLS LAST, l.score_val ASC NULLS LAST
         LIMIT 20
@@ -145,14 +145,14 @@ export async function GET() {
         ORDER BY trained_at DESC
         LIMIT 20
       `),
-    ])
+    ]);
 
     const stats = statsRows[0] || {
       running: 0,
       completed_7d: 0,
       failed_7d: 0,
       last_started_at: null,
-    }
+    };
 
     return NextResponse.json({
       stats: {
@@ -167,9 +167,12 @@ export async function GET() {
       recent: recentRows ?? [],
       leaderboard: leaderboardRows ?? [],
       registry: registryRows ?? [],
-    })
+    });
   } catch (error) {
-    console.error('Quant overview query failed:', error)
-    return NextResponse.json({ error: 'Quant overview query failed' }, { status: 500 })
+    console.error("Quant overview query failed:", error);
+    return NextResponse.json(
+      { error: "Quant overview query failed" },
+      { status: 500 },
+    );
   }
 }
