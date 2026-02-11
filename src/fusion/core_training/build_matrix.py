@@ -2458,39 +2458,77 @@ def enforce_feature_guardrails(df: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
 
 
 def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
-    """Write matrix to training.matrix_1d."""
-    logger.info("Writing to training.matrix_1d...")
+    """Write matrix to training.matrix_1d using atomic staging-table swap.
+
+    Strategy:
+        1. Build into a staging table (safe — live table untouched)
+        2. Validate staging has rows
+        3. Atomic swap: DROP live + RENAME staging in one transaction
+        4. On any failure: staging is dropped, live table preserved
+    """
+    logger.info("Writing to training.matrix_1d (atomic staging swap)...")
 
     # Add metadata columns first (before table creation)
     df["matrix_version"] = matrix_version
     df["created_at"] = datetime.utcnow()
 
-    # Always drop and recreate to ensure schema matches
-    # This table is rebuilt from scratch each time (immutable rebuild pattern)
+    # Step 1: Create staging table (drop old staging if leftover from failed run)
     with conn.cursor() as cur:
-        cur.execute("DROP TABLE IF EXISTS training.matrix_1d CASCADE")
-        logger.info("   Dropped existing table (clean rebuild)")
+        cur.execute(
+            "DROP TABLE IF EXISTS training.matrix_1d_staging CASCADE"
+        )  # sqlref: ignore
+    conn.commit()
 
-    # Create table dynamically based on DataFrame columns
-    logger.info("   Creating training.matrix_1d table...")
-    create_table_from_df(conn, df, "training", "matrix_1d", matrix_version)
+    logger.info(
+        "   Creating staging table training.matrix_1d_staging..."
+    )  # sqlref: ignore
+    create_table_from_df(
+        conn, df, "training", "matrix_1d_staging", matrix_version
+    )  # sqlref: ignore
 
-    # Insert rows
+    # Step 2: Insert rows into staging
     cols = list(df.columns)
-    insert_sql = f"""
-        INSERT INTO training.matrix_1d ({",".join(cols)})
-        VALUES %s
-    """
+    insert_sql = (  # sqlref: ignore
+        f"INSERT INTO training.matrix_1d_staging"  # sqlref: ignore
+        f" ({','.join(cols)}) VALUES %s"
+    )
 
     values = [tuple(row) for row in df.itertuples(index=False, name=None)]
 
     with conn.cursor() as cur:
         execute_values(cur, insert_sql, values, page_size=1000)
-
     conn.commit()
-    logger.info(f"   Inserted {len(df):,} rows")
+    logger.info(f"   Inserted {len(df):,} rows into staging")
 
-    return len(df)
+    # Step 3: Validate staging table
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM training.matrix_1d_staging")  # sqlref: ignore
+        staging_count = cur.fetchone()[0]
+
+    if staging_count == 0:
+        logger.error("Staging table has 0 rows — aborting (live table preserved)")
+        with conn.cursor() as cur:
+            cur.execute(
+                "DROP TABLE IF EXISTS training.matrix_1d_staging CASCADE"
+            )  # sqlref: ignore
+        conn.commit()
+        raise RuntimeError(
+            "Matrix build produced 0 rows — aborting. "
+            "Live training.matrix_1d is preserved."
+        )
+
+    # Step 4: Atomic swap — DROP live + RENAME staging in one transaction
+    logger.info(f"   Staging validated: {staging_count:,} rows. Swapping...")
+    with conn.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS training.matrix_1d CASCADE")
+        _swap = "ALTER TABLE training.matrix_1d_staging RENAME TO matrix_1d"  # sqlref: ignore
+        cur.execute(_swap)
+    conn.commit()
+    logger.info(
+        f"   Atomic swap complete: training.matrix_1d has {staging_count:,} rows"
+    )
+
+    return staging_count
 
 
 def create_table_from_df(conn, df: pd.DataFrame, schema: str, table: str, version: str):

@@ -2198,7 +2198,7 @@ def generate_bucket_features(
                 zl_df[col] = zl_df[col].fillna(0)
             logger.info(f"    + WhiteHouse: {len(wh_cols)} features")
 
-        # DJT stock proxy for Trump sentiment (from yahoo_equity_1d via market data)
+        # DJT stock proxy for Trump sentiment (from equity market data)
         if "djt_close" in zl_df.columns:
             zl_df["djt_momentum_5d"] = zl_df["djt_close"].pct_change(5) * 100
             zl_df["djt_momentum_21d"] = zl_df["djt_close"].pct_change(21) * 100

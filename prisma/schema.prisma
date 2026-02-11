@@ -660,25 +660,10 @@ model zl_price_1d {
   low        Decimal   @db.Decimal(10, 4)
   close      Decimal   @db.Decimal(10, 4)
   volume     BigInt?   @default(0)
-  source     String?   @default("yahoo") @db.VarChar(50)
+  source     String?   @default("databento") @db.VarChar(50)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([event_date(sort: Desc)], map: "idx_zl_price_1d_date")
-  @@schema("analytics")
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model zl_price_1d_yahoo_backup {
-  event_date DateTime? @db.Date
-  open       Decimal?  @db.Decimal(10, 4)
-  high       Decimal?  @db.Decimal(10, 4)
-  low        Decimal?  @db.Decimal(10, 4)
-  close      Decimal?  @db.Decimal(10, 4)
-  volume     BigInt?
-  source     String?   @db.VarChar(50)
-  created_at DateTime? @db.Timestamptz(6)
-
-  @@ignore
   @@schema("analytics")
 }
 
@@ -689,7 +674,7 @@ model zl_price_1h {
   low        Decimal  @db.Decimal(10, 4)
   close      Decimal  @db.Decimal(10, 4)
   volume     BigInt   @default(0)
-  source     String   @default("yahoo") @db.VarChar(50)
+  source     String   @default("databento") @db.VarChar(50)
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([timestamp(sort: Desc)], map: "idx_zl_price_1h_ts")

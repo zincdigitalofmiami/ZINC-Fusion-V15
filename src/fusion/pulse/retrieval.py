@@ -144,7 +144,7 @@ DOMAIN_PRIORITY_SOURCES: Dict[str, List[str]] = {
     "ENERGY": ["eia", "fred_energy", "tradingeconomics_energy"],
     "BIOFUEL": ["epa_rin", "epa_rfs", "eia_biofuels"],
     "PALM": ["mpob", "bursa_malaysia", "tradingeconomics_palm"],
-    "VOLATILITY": ["cboe_vix", "fred_volatility", "yahoo_vix"],
+    "VOLATILITY": ["cboe_vix", "fred_volatility"],
     "SUBSTITUTES": ["tradingeconomics_oils", "usda_oilseeds"],
     "TRUMP_EFFECT": [
         "whitehouse",

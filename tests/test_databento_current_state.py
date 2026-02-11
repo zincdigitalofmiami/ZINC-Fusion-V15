@@ -3,7 +3,7 @@
 Test 1: Database State Audit
 
 Audits current database state for Databento live integration:
-- Source distribution (databento vs databento_live vs yahoo)
+- Source distribution (databento vs databento_live)
 - Price distribution analysis (detect discontinuities)
 - Date coverage gaps
 - Volume/OI consistency

@@ -426,6 +426,10 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
             run_id = EXCLUDED.run_id
     """
 
+    # Replace NaN with None so postgres inserts NULL (not NaN float).
+    # NaN floats poison SQL aggregates: AVG/SUM return NaN if any row is NaN.
+    df_oof = df_oof.where(pd.notnull(df_oof), None)
+
     values = [tuple(row) for row in df_oof.itertuples(index=False, name=None)]
 
     with conn.cursor() as cur:
