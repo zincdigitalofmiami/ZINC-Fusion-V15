@@ -11,7 +11,13 @@ import {
   UTCTimestamp,
   LineStyle,
   CandlestickData,
+  WhitespaceData,
 } from "lightweight-charts";
+import { ensureFutureWhitespace } from "@/lib/charts/ensureFutureWhitespace";
+import {
+  ForecastTargetsPrimitive,
+  type ForecastTarget,
+} from "@/lib/charts/ForecastTargetsPrimitive";
 
 interface PriceData {
   timestamp: string;
@@ -54,6 +60,7 @@ export function LightweightZlCandlestickChart({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const fitContentCalledRef = useRef(false);
+  const forecastPrimitiveRef = useRef<ForecastTargetsPrimitive | null>(null);
 
   // Keep a stable reference for change detection during 5-minute refreshes.
   const priceDataRef = useRef<PriceData[]>([]);
@@ -66,6 +73,7 @@ export function LightweightZlCandlestickChart({
   const [lowPrice, setLowPrice] = useState<number | null>(null);
   const [isLive, setIsLive] = useState<boolean>(false);
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  const [forecastTargets, setForecastTargets] = useState<ForecastTarget[]>([]);
 
   // Fetch historical data (daily bars)
   useEffect(() => {
@@ -87,7 +95,8 @@ export function LightweightZlCandlestickChart({
           const oldData = priceDataRef.current;
           const changed =
             oldData.length !== parsed.length ||
-            oldData[oldData.length - 1]?.close !== parsed[parsed.length - 1]?.close;
+            oldData[oldData.length - 1]?.close !==
+              parsed[parsed.length - 1]?.close;
           priceDataRef.current = parsed;
           if (changed) setPriceData(parsed);
           const latest = parsed[parsed.length - 1];
@@ -108,7 +117,9 @@ export function LightweightZlCandlestickChart({
           setIsLive(Boolean(json.live_rollup));
           if (json.live_rollup_latest_intraday_ts) {
             setLastUpdate(
-              new Date(json.live_rollup_latest_intraday_ts).toLocaleTimeString(),
+              new Date(
+                json.live_rollup_latest_intraday_ts,
+              ).toLocaleTimeString(),
             );
           } else {
             setLastUpdate(new Date().toLocaleTimeString());
@@ -143,6 +154,75 @@ export function LightweightZlCandlestickChart({
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch forecast targets (separate from price data — non-blocking, fail-safe)
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchTargets() {
+      try {
+        const res = await fetch("/api/zl/forecast-targets");
+        if (!res.ok) {
+          if (!cancelled) setForecastTargets([]);
+          return;
+        }
+        const json = await res.json();
+        if (cancelled) return;
+        if (!json.targets || json.targets.length === 0) {
+          setForecastTargets([]);
+          return;
+        }
+
+        const mapped: ForecastTarget[] = json.targets.map(
+          (t: {
+            id: string;
+            kind: "ENTRY" | "TP" | "SL";
+            label: string;
+            horizonDays: number;
+            asOfDate: string;
+            forecastDate: string;
+            oofPrice: number;
+            priceLow: number;
+            priceHigh: number;
+            mae: number | null;
+          }) => ({
+            id: t.id,
+            kind: t.kind,
+            label: t.label,
+            startTime: Math.floor(
+              new Date(t.asOfDate).getTime() / 1000,
+            ) as UTCTimestamp,
+            endTime: Math.floor(
+              new Date(t.forecastDate).getTime() / 1000,
+            ) as UTCTimestamp,
+            oofPrice: t.oofPrice,
+            priceLow: t.priceLow,
+            priceHigh: t.priceHigh,
+            mae: t.mae,
+            asOfDate: t.asOfDate,
+            horizonDays: t.horizonDays,
+          }),
+        );
+
+        const validTargets = mapped.filter(
+          (t) =>
+            Number.isFinite(t.startTime as number) &&
+            Number.isFinite(t.endTime as number) &&
+            Number.isFinite(t.oofPrice) &&
+            Number.isFinite(t.priceLow) &&
+            Number.isFinite(t.priceHigh),
+        );
+
+        setForecastTargets(validTargets);
+      } catch {
+        // Forecast overlay is optional — never break the chart
+        if (!cancelled) setForecastTargets([]);
+      }
+    }
+    fetchTargets();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Initialize chart
   useEffect(() => {
     if (!chartContainerRef.current || priceData.length === 0) return;
@@ -152,6 +232,7 @@ export function LightweightZlCandlestickChart({
       chartRef.current.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
+      forecastPrimitiveRef.current = null;
       fitContentCalledRef.current = false;
     }
 
@@ -238,8 +319,27 @@ export function LightweightZlCandlestickChart({
       priceLineVisible: true,
     });
 
-    candleSeries.setData(candleData);
+    // If forecast targets exist, extend the time scale with whitespace so
+    // zones can render to the right of the last candle.
+    let seriesData: Array<
+      CandlestickData<UTCTimestamp> | WhitespaceData<UTCTimestamp>
+    > = candleData;
+    if (forecastTargets.length > 0) {
+      const maxEndTime = Math.max(
+        ...forecastTargets.map((t) => t.endTime as number),
+      ) as UTCTimestamp;
+      seriesData = ensureFutureWhitespace(candleData, maxEndTime);
+    }
+
+    candleSeries.setData(seriesData);
     candleSeriesRef.current = candleSeries;
+
+    // Attach forecast target zones as a series primitive overlay
+    if (forecastTargets.length > 0) {
+      const primitive = new ForecastTargetsPrimitive(forecastTargets);
+      candleSeries.attachPrimitive(primitive);
+      forecastPrimitiveRef.current = primitive;
+    }
 
     // Set initial visible range to last 5 months (~150 bars) instead of all data
     if (!fitContentCalledRef.current && candleData.length > 0) {
@@ -266,7 +366,7 @@ export function LightweightZlCandlestickChart({
       resizeObserver.disconnect();
       chart.remove();
     };
-  }, [priceData]);
+  }, [priceData, forecastTargets]);
 
   return (
     <div
