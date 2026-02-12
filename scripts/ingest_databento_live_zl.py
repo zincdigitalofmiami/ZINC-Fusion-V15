@@ -4,12 +4,16 @@ Databento Live (Raw/TCP) -> DB + Inngest connector for ZL.
 
 Subscribes to ohlcv-1m for ZL continuous:
 - Updates latest_price with every bar (live price)
-- Emits Inngest events when bars complete (15m/1h/1d)
+- Emits Inngest 1m events on every bar so frontend 1m/5m tables stay hot
+- Emits completed-bar events (15m/1h/1d)
 
 Tables updated directly:
   - analytics.latest_price (every 1m - latest price)
+  - analytics.price_1m (every 1m)
+  - analytics.price_5m (derived from 1m buckets)
 
-Inngest events (completed bars):
+Inngest events:
+  - zl.bar.1m
   - zl.bar.15m
   - zl.bar.1h
   - zl.bar.1d
@@ -31,15 +35,24 @@ import psycopg2
 import requests
 from dotenv import load_dotenv
 
-# Load environment from project root
+# Load environment from project root.
+# Fallback to frontend/.env.local for local development keys.
 PROJECT_ROOT = Path(__file__).parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(PROJECT_ROOT / "frontend" / ".env.local")
 
 DATABENTO_API_KEY = os.getenv("DATABENTO_API_KEY")
 INNGEST_EVENT_KEY = os.getenv("INNGEST_EVENT_KEY") or os.getenv(
     "WORKFLOW_INNGEST_EVENT_KEY"
 )
+INNGEST_EVENT_ENV = os.getenv("INNGEST_EVENT_ENV") or os.getenv("INNGEST_ENV")
 DATABASE_URL = os.getenv("DATABASE_URL")
+SEND_INNGEST_EVENTS = os.getenv("DATABENTO_SEND_INNGEST_EVENTS", "1").lower() not in (
+    "0",
+    "false",
+    "no",
+)
+EVENT_FORWARDING_ENABLED = SEND_INNGEST_EVENTS
 
 DATASET = "GLBX.MDP3"
 SCHEMA = "ohlcv-1m"
@@ -57,10 +70,12 @@ logging.basicConfig(
 def require_env() -> None:
     if not DATABENTO_API_KEY:
         raise ValueError("DATABENTO_API_KEY not set")
-    if not INNGEST_EVENT_KEY:
-        raise ValueError("INNGEST_EVENT_KEY not set")
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL not set")
+    if SEND_INNGEST_EVENTS and not INNGEST_EVENT_KEY:
+        logger.warning(
+            "INNGEST_EVENT_KEY not set; continuing with direct DB writes only."
+        )
 
 
 def to_datetime(ts_event) -> datetime:
@@ -73,12 +88,38 @@ def to_datetime(ts_event) -> datetime:
     return datetime.fromisoformat(str(ts_event)).astimezone(timezone.utc)
 
 
-def send_event(name: str, data: dict) -> None:
+def send_event(name: str, data: dict) -> bool:
+    global EVENT_FORWARDING_ENABLED
+    if not EVENT_FORWARDING_ENABLED:
+        return False
     if not EVENT_URL:
-        raise RuntimeError("INNGEST_EVENT_KEY not configured")
+        logger.warning("Event URL not configured; skipping event '%s'", name)
+        return False
     payload = {"name": name, "data": data}
-    resp = requests.post(EVENT_URL, json=payload, timeout=10)
-    resp.raise_for_status()
+    headers = {"Content-Type": "application/json"}
+    if INNGEST_EVENT_ENV:
+        headers["x-inngest-env"] = INNGEST_EVENT_ENV
+    try:
+        resp = requests.post(EVENT_URL, json=payload, headers=headers, timeout=10)
+    except Exception as exc:
+        logger.warning("Event send transport failure for '%s': %s", name, exc)
+        return False
+    if resp.status_code >= 400:
+        # Avoid logging key-containing URLs.
+        body = (resp.text or "").strip().replace("\n", " ")[:300]
+        if "env_unspecified" in body or "env_not_found" in body:
+            EVENT_FORWARDING_ENABLED = False
+            logger.warning(
+                "Disabling event forwarding for this run due to Inngest environment routing error."
+            )
+        logger.warning(
+            "Event send rejected for '%s': status=%s body=%s",
+            name,
+            resp.status_code,
+            body,
+        )
+        return False
+    return True
 
 
 def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
@@ -99,6 +140,131 @@ def update_zl_latest(ts: datetime, price: float, volume: int) -> None:
                     updated_at = NOW()
                 """,
                 (price, ts, volume),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def upsert_price_1m(
+    ts: datetime,
+    open_px: float,
+    high_px: float,
+    low_px: float,
+    close_px: float,
+    volume: int,
+    previous_close: Optional[float],
+    day_high: Optional[float],
+    day_low: Optional[float],
+    source: str,
+) -> None:
+    """Directly maintain analytics.price_1m for dashboard live charting."""
+    if not DATABASE_URL:
+        return
+    change = close_px - previous_close if previous_close is not None else None
+    change_pct = (
+        (change / previous_close) * 100
+        if previous_close is not None and previous_close != 0
+        else None
+    )
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO analytics.price_1m
+                    (timestamp, open, high, low, close, volume, previous_close,
+                     change, change_percent, day_high, day_low, source, created_at)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (symbol, timestamp) DO UPDATE SET
+                    open = EXCLUDED.open,
+                    high = EXCLUDED.high,
+                    low = EXCLUDED.low,
+                    close = EXCLUDED.close,
+                    volume = EXCLUDED.volume,
+                    previous_close = EXCLUDED.previous_close,
+                    change = EXCLUDED.change,
+                    change_percent = EXCLUDED.change_percent,
+                    day_high = EXCLUDED.day_high,
+                    day_low = EXCLUDED.day_low,
+                    source = EXCLUDED.source
+                """,
+                (
+                    ts,
+                    open_px,
+                    high_px,
+                    low_px,
+                    close_px,
+                    volume,
+                    previous_close,
+                    change,
+                    change_pct,
+                    day_high,
+                    day_low,
+                    source,
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def upsert_price_5m(
+    bucket_start_ts_ms: int,
+    bar: "AggBar",
+    previous_close: Optional[float],
+    day_high: Optional[float],
+    day_low: Optional[float],
+    source: str,
+) -> None:
+    """Directly maintain analytics.price_5m for dashboard live charting."""
+    if not DATABASE_URL:
+        return
+    ts = datetime.fromtimestamp(bucket_start_ts_ms / 1000, tz=timezone.utc)
+    change = bar.close - previous_close if previous_close is not None else None
+    change_pct = (
+        (change / previous_close) * 100
+        if previous_close is not None and previous_close != 0
+        else None
+    )
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO analytics.price_5m
+                    (timestamp, open, high, low, close, volume, previous_close,
+                     change, change_percent, day_high, day_low, source, created_at)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (symbol, timestamp) DO UPDATE SET
+                    open = EXCLUDED.open,
+                    high = EXCLUDED.high,
+                    low = EXCLUDED.low,
+                    close = EXCLUDED.close,
+                    volume = EXCLUDED.volume,
+                    previous_close = EXCLUDED.previous_close,
+                    change = EXCLUDED.change,
+                    change_percent = EXCLUDED.change_percent,
+                    day_high = EXCLUDED.day_high,
+                    day_low = EXCLUDED.day_low,
+                    source = EXCLUDED.source
+                """,
+                (
+                    ts,
+                    bar.open,
+                    bar.high,
+                    bar.low,
+                    bar.close,
+                    bar.volume,
+                    previous_close,
+                    change,
+                    change_pct,
+                    day_high,
+                    day_low,
+                    source,
+                ),
             )
         conn.commit()
     finally:
@@ -128,6 +294,8 @@ def get_latest_ts_from_db() -> Optional[datetime]:
             cur.execute(
                 """
                 SELECT GREATEST(
+                  COALESCE((SELECT MAX(timestamp) FROM analytics.price_1m), '1970-01-01'::timestamptz),
+                  COALESCE((SELECT MAX(timestamp) FROM analytics.price_5m), '1970-01-01'::timestamptz),
                   COALESCE((SELECT MAX(timestamp) FROM analytics.price_15m), '1970-01-01'::timestamptz),
                   COALESCE((SELECT MAX(timestamp) FROM analytics.price_1h), '1970-01-01'::timestamptz)
                 ) AS max_ts
@@ -180,7 +348,7 @@ def main() -> None:
     parser.add_argument(
         "--max-replay-hours",
         type=int,
-        default=24,
+        default=72,
         help="Clamp replay window to last N hours.",
     )
     parser.add_argument(
@@ -194,6 +362,7 @@ def main() -> None:
     max_retries = 10
     base_sleep = 5
 
+    current_5m: AggBar | None = None
     current_15m: AggBar | None = None
     current_1h: AggBar | None = None
     current_day: date | None = None
@@ -201,6 +370,7 @@ def main() -> None:
     day_volume = 0
     prev_day_close: float | None = None
 
+    bucket_5m = 5 * 60 * 1000
     bucket_15m = 15 * 60 * 1000
     bucket_1h = 60 * 60 * 1000
 
@@ -298,6 +468,43 @@ def main() -> None:
                     day_close = c
                     day_volume += v
 
+                # 5m aggregation (direct table + optional event forwarding)
+                b5 = bucket_start(ts_ms, bucket_5m)
+                if current_5m is None:
+                    current_5m = AggBar(b5, o, h, l, c, v)
+                elif b5 != current_5m.start_ts:
+                    upsert_price_5m(
+                        bucket_start_ts_ms=current_5m.start_ts,
+                        bar=current_5m,
+                        previous_close=prev_day_close,
+                        day_high=day_high,
+                        day_low=day_low,
+                        source="databento_live",
+                    )
+                    send_event(
+                        "zl.bar.5m",
+                        {
+                            "timestamp": datetime.fromtimestamp(
+                                current_5m.start_ts / 1000, tz=timezone.utc
+                            ).isoformat(),
+                            "open": current_5m.open,
+                            "high": current_5m.high,
+                            "low": current_5m.low,
+                            "close": current_5m.close,
+                            "volume": current_5m.volume,
+                            "previousClose": prev_day_close,
+                            "dayHigh": day_high,
+                            "dayLow": day_low,
+                            "source": "databento_live",
+                        },
+                    )
+                    current_5m = AggBar(b5, o, h, l, c, v)
+                else:
+                    current_5m.high = max(current_5m.high, h)
+                    current_5m.low = min(current_5m.low, l)
+                    current_5m.close = c
+                    current_5m.volume += v
+
                 # 15m aggregation
                 b15 = bucket_start(ts_ms, bucket_15m)
                 if current_15m is None:
@@ -356,6 +563,39 @@ def main() -> None:
                 # ========== LIVE UPDATES (every 1m bar) ==========
                 # Update latest price
                 update_zl_latest(ts, c, v)
+                # Update 1m chart table directly
+                upsert_price_1m(
+                    ts=ts,
+                    open_px=o,
+                    high_px=h,
+                    low_px=l,
+                    close_px=c,
+                    volume=v,
+                    previous_close=prev_day_close,
+                    day_high=day_high,
+                    day_low=day_low,
+                    source="databento_live",
+                )
+
+                # Emit every 1m bar; frontend zl-live-1m ingester writes:
+                #   analytics.price_1m
+                # and derives:
+                #   analytics.price_5m
+                send_event(
+                    "zl.bar.1m",
+                    {
+                        "timestamp": ts.isoformat(),
+                        "open": o,
+                        "high": h,
+                        "low": l,
+                        "close": c,
+                        "volume": v,
+                        "previousClose": prev_day_close,
+                        "dayHigh": day_high,
+                        "dayLow": day_low,
+                        "source": "databento_live",
+                    },
+                )
 
             retry_count = 0
             break

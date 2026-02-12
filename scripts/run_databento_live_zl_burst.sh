@@ -10,4 +10,14 @@ if [ -f "${ROOT_DIR}/.env" ]; then
   set +a
 fi
 
-exec python3 "${ROOT_DIR}/scripts/ingest_databento_live_zl.py" --run-seconds 120
+# Inngest event intake currently requires branch env routing.
+# Keep event forwarding off by default so live DB updates continue cleanly.
+export DATABENTO_SEND_INNGEST_EVENTS="${DATABENTO_SEND_INNGEST_EVENTS:-0}"
+
+if [ -x "${ROOT_DIR}/.venv/bin/python" ]; then
+  PYTHON_BIN="${ROOT_DIR}/.venv/bin/python"
+else
+  PYTHON_BIN="python3"
+fi
+
+exec "${PYTHON_BIN}" "${ROOT_DIR}/scripts/ingest_databento_live_zl.py" --run-seconds 120

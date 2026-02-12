@@ -405,6 +405,19 @@ Agents may not:
 
 **Rule:** All work remains inside the approved stack.
 
+#### Git Internal File Protection
+Agents **NEVER**:
+- Modify `.git/info/exclude` — this caused 4 consecutive Vercel failures (2026-02-11)
+- Modify `.git/config` or any file under `.git/`
+- Create worktrees without explicit user approval
+- Leave worktrees behind after completing tasks
+
+**Use `.gitignore` (tracked, reviewable) instead of `.git/info/exclude` (local, invisible).**
+
+If a file should not be committed, add it to the root `.gitignore` where it can be reviewed in PRs.
+Agents must run `scripts/check_git_integrity.sh` before claiming any task is done — this is
+enforced by pre-commit hooks and CI.
+
 ---
 
 ### Required Behavior When Mutating Anything

@@ -5,7 +5,7 @@
 # If it returns non-zero, you are BLOCKED.
 # ============================================================================
 
-.PHONY: check lint test verify install setup help
+.PHONY: check lint test verify install setup help git-integrity clean-worktrees clean-worktrees-auto
 
 # The ONE command. Run this. If it fails, you're blocked.
 check: verify
@@ -39,11 +39,24 @@ format:
 	@.venv/bin/ruff format src/ scripts/ tests/
 	@.venv/bin/ruff check --fix --select F401,F403,F405,F821,F841 src/ scripts/ tests/
 
+# Git integrity check only
+git-integrity:
+	@bash scripts/check_git_integrity.sh
+
+# Worktree cleanup (interactive)
+clean-worktrees:
+	@bash scripts/cleanup_worktrees.sh
+
+# Worktree cleanup (auto — stale > 7 days)
+clean-worktrees-auto:
+	@bash scripts/cleanup_worktrees.sh --auto
+
 # Install dependencies
 install:
 	@pip install -e ".[dev]"
 	@pip install pre-commit ruff
 	@pre-commit install
+	@pre-commit install --hook-type pre-push
 	@cd frontend && npm ci
 
 # Setup from scratch
@@ -58,6 +71,8 @@ help:
 	@echo "  make lint-frontend    ESLint frontend only"
 	@echo "  make tsc              TypeScript type-check only"
 	@echo "  make prisma-validate  Validate Prisma schema"
+	@echo "  make git-integrity    Check .git/info/exclude & untracked files"
+	@echo "  make clean-worktrees  Interactive worktree/branch cleanup"
 	@echo "  make format           Auto-format Python code"
-	@echo "  make install          Install all dependencies"
+	@echo "  make install          Install all dependencies + hooks"
 	@echo "  make setup            Full setup from scratch"

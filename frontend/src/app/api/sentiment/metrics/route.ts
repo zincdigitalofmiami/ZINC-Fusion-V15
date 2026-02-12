@@ -3,6 +3,80 @@ import { query } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+/* ── Fear & Greed composite ────────────────────────────────── */
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+function computeFearGreed(
+  vix: number | null,
+  mmPercentile: number | null,
+  bullish: number,
+  bearish: number,
+  crushZscore: number | null,
+  realizedVol: number | null,
+  trumpScore: number | null,
+) {
+  // Each component maps its input to a 0-100 scale (0 = extreme fear, 100 = extreme greed)
+  const vixScore = vix != null ? clamp(100 - ((vix - 15) / 20) * 100, 0, 100) : 50;
+  const posScore = mmPercentile ?? 50;
+  const total = bullish + bearish;
+  const sentScore = total > 0 ? (bullish / total) * 100 : 50;
+  const crushScore = crushZscore != null ? clamp(50 + crushZscore * 25, 0, 100) : 50;
+  const volScore = realizedVol != null ? clamp(100 - ((realizedVol - 15) / 25) * 100, 0, 100) : 50;
+  const trumpFear = trumpScore != null ? clamp(100 - trumpScore * 50, 0, 100) : 50;
+
+  const composite = Math.round(
+    vixScore * 0.20 +
+    posScore * 0.20 +
+    sentScore * 0.15 +
+    crushScore * 0.15 +
+    volScore * 0.15 +
+    trumpFear * 0.15,
+  );
+
+  const score = clamp(composite, 0, 100);
+
+  const zone =
+    score <= 20 ? "extreme_fear"
+    : score <= 40 ? "fear"
+    : score <= 60 ? "neutral"
+    : score <= 80 ? "greed"
+    : "extreme_greed";
+
+  const label =
+    score <= 20 ? "Extreme Fear"
+    : score <= 40 ? "Fear"
+    : score <= 60 ? "Neutral"
+    : score <= 80 ? "Greed"
+    : "Extreme Greed";
+
+  const interpretation =
+    score <= 20 ? "Strong Buying Opportunity — markets are oversold"
+    : score <= 40 ? "Favorable Buying Window"
+    : score <= 60 ? "Market is Balanced"
+    : score <= 80 ? "Consider Waiting — prices may be elevated"
+    : "Exercise Caution — market may be overheated";
+
+  return {
+    score,
+    zone,
+    label,
+    interpretation,
+    components: {
+      vix: { score: Math.round(vixScore), weight: 0.20, raw: vix },
+      positioning: { score: Math.round(posScore), weight: 0.20, raw: mmPercentile },
+      sentiment: { score: Math.round(sentScore), weight: 0.15, raw: total > 0 ? bullish / total : null },
+      crush: { score: Math.round(crushScore), weight: 0.15, raw: crushZscore },
+      volatility: { score: Math.round(volScore), weight: 0.15, raw: realizedVol },
+      trumpEffect: { score: Math.round(trumpFear), weight: 0.15, raw: trumpScore },
+    },
+  };
+}
+
+/* ── Route handler ─────────────────────────────────────────── */
+
 export async function GET() {
   try {
     const [
@@ -16,6 +90,8 @@ export async function GET() {
       ovxResult,
       crushResult,
       signalsResult,
+      trumpResult,
+      sentimentRatioResult,
     ] = await Promise.all([
       // 1. Latest ZL price + volume + OI
       query<{
@@ -204,6 +280,52 @@ export async function GET() {
          FROM training.specialist_signals_1d
          ORDER BY bucket, as_of_date DESC`,
       ),
+
+      // 11. Trump Effect (latest row)
+      query<{
+        weighted_action_score: number | null;
+        action_velocity: number | null;
+        action_acceleration: number | null;
+        total_actions_7d: number | null;
+        total_actions_30d: number | null;
+        eo_count_7d: number | null;
+        proclamation_count_7d: number | null;
+        memorandum_count_7d: number | null;
+        nomination_count_7d: number | null;
+        avg_sentiment_7d: number | null;
+        avg_sentiment_30d: number | null;
+      }>(
+        `SELECT weighted_action_score::float8,
+                action_velocity::float8,
+                action_acceleration::float8,
+                total_actions_7d::int,
+                total_actions_30d::int,
+                eo_count_7d::int,
+                proclamation_count_7d::int,
+                memorandum_count_7d::int,
+                nomination_count_7d::int,
+                avg_sentiment_7d::float8,
+                avg_sentiment_30d::float8
+         FROM features.trump_effect_1d
+         ORDER BY as_of_date DESC LIMIT 1`,
+      ),
+
+      // 12. News sentiment ratio (7d) — for Fear & Greed composite
+      query<{ bullish_count: number; bearish_count: number }>(
+        `SELECT
+           COUNT(*) FILTER (WHERE zl_sentiment = 'bullish')::int  AS bullish_count,
+           COUNT(*) FILTER (WHERE zl_sentiment = 'bearish')::int  AS bearish_count
+         FROM (
+           SELECT zl_sentiment FROM alt.policy_news_event
+             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
+           UNION ALL
+           SELECT zl_sentiment FROM alt.executive_actions_event
+             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
+           UNION ALL
+           SELECT zl_sentiment FROM econ.news_event
+             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
+         ) sub`,
+      ),
     ]);
 
     const price = priceResult[0];
@@ -215,6 +337,8 @@ export async function GET() {
     const vixData = vixResult[0];
     const ovxData = ovxResult[0];
     const crush = crushResult[0];
+    const trump = trumpResult[0];
+    const sentRatio = sentimentRatioResult[0];
 
     // Compute composite sentiment score from specialist signals
     const signals = signalsResult.filter((s) => !s.abstained);
@@ -240,6 +364,17 @@ export async function GET() {
           : trendScore === 1
             ? "mixed"
             : "downtrend";
+
+    // Compute Fear & Greed composite
+    const fearGreed = computeFearGreed(
+      vixData ? Number(vixData.vix) : null,
+      cot ? Number(cot.percentile) : null,
+      sentRatio?.bullish_count ?? 0,
+      sentRatio?.bearish_count ?? 0,
+      crush ? Number(crush.crush_z) : null,
+      rvol ? Number(rvol.rvol_21d) : null,
+      trump?.weighted_action_score ?? null,
+    );
 
     return NextResponse.json({
       as_of: price?.event_date ?? null,
@@ -317,6 +452,24 @@ export async function GET() {
               ? "bearish"
               : "neutral",
       },
+
+      fearGreed,
+
+      trumpEffect: trump
+        ? {
+            weighted_action_score: trump.weighted_action_score,
+            action_velocity: trump.action_velocity,
+            action_acceleration: trump.action_acceleration,
+            total_actions_7d: trump.total_actions_7d,
+            total_actions_30d: trump.total_actions_30d,
+            eo_count_7d: trump.eo_count_7d,
+            proclamation_count_7d: trump.proclamation_count_7d,
+            memorandum_count_7d: trump.memorandum_count_7d,
+            nomination_count_7d: trump.nomination_count_7d,
+            avg_sentiment_7d: trump.avg_sentiment_7d,
+            avg_sentiment_30d: trump.avg_sentiment_30d,
+          }
+        : null,
     });
   } catch (err) {
     console.error("Metrics API error:", err);
