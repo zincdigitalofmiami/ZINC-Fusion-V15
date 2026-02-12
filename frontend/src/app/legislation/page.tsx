@@ -9,13 +9,13 @@ import {
 import {
   Gavel,
   FileSignature,
-  Siren,
   TrendingUp,
-  Activity,
   Building2,
   CalendarClock,
   ExternalLink,
   ShieldAlert,
+  Activity,
+  Siren,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,12 +24,13 @@ import {
 // ============================================================================
 
 function RegimeBadge({ regime }: { regime: RegimeState }) {
+  // Black and white style - no gaming colors
   const colors = {
-    Minimal: "bg-slate-800 text-slate-400 border-slate-700",
-    "Background Noise": "bg-blue-950 text-blue-400 border-blue-800",
-    Elevated: "bg-yellow-950 text-yellow-400 border-yellow-800",
-    "Retaliation Risk": "bg-orange-950 text-orange-400 border-orange-800",
-    "Active War": "bg-red-950 text-red-500 border-red-800 animate-pulse",
+    Minimal: "bg-white/5 text-white/60 border-white/10",
+    "Background Noise": "bg-white/10 text-white/70 border-white/15",
+    Elevated: "bg-white/15 text-white/80 border-white/20",
+    "Retaliation Risk": "bg-white/20 text-white/90 border-white/25",
+    "Active War": "bg-white/25 text-white border-white/30",
   };
   const colorClass = colors[regime.label] || colors["Minimal"];
 
@@ -37,13 +38,13 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
     <div
       className={`flex flex-col items-end px-6 py-3 rounded-lg border ${colorClass}`}
     >
-      <div className="text-xs uppercase tracking-widest opacity-80 mb-1">
+      <div className="text-xs uppercase tracking-widest opacity-60 mb-1">
         Threat Level
       </div>
-      <div className="text-2xl font-black tracking-tight">
+      <div className="text-2xl font-bold tracking-tight">
         {regime.label.toUpperCase()}
       </div>
-      <div className="text-xs font-mono mt-1 opacity-70">
+      <div className="text-xs font-mono mt-1 opacity-50">
         SCORE: {Math.round(regime.score)}/100 | TPU:{" "}
         {Math.round(regime.components.tpu)}
       </div>
@@ -67,14 +68,14 @@ function MetricCard({
   trend,
 }: MetricCardProps) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
+    <div className="bg-white/[0.02] border border-white/[0.1] rounded-xl p-5 hover:border-white/[0.15] transition-colors">
       <div className="flex justify-between items-start mb-2">
-        <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
+        <div className="p-2 bg-white/[0.05] rounded-lg text-white/[0.6]">
           <Icon className="w-5 h-5" />
         </div>
         {trend && (
           <span
-            className={`text-xs font-medium px-2 py-1 rounded-full ${trend > 0 ? "bg-red-950 text-red-400" : "bg-green-950 text-green-400"}`}
+            className={`text-xs font-medium px-2 py-1 rounded-full ${trend > 0 ? "bg-white/[0.1] text-white/[0.8]" : "bg-white/[0.1] text-white/[0.6]"}`}
           >
             {trend > 0 ? "+" : ""}
             {trend}%
@@ -82,8 +83,10 @@ function MetricCard({
         )}
       </div>
       <div className="text-2xl font-bold text-white mb-1">{value}</div>
-      <div className="text-sm font-medium text-slate-400">{title}</div>
-      {subtext && <div className="text-xs text-slate-500 mt-1">{subtext}</div>}
+      <div className="text-sm font-medium text-white/[0.6]">{title}</div>
+      {subtext && (
+        <div className="text-xs text-white/[0.4] mt-1">{subtext}</div>
+      )}
     </div>
   );
 }
@@ -92,9 +95,9 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
   const maxCount = Math.max(...agencies.map((a) => a.count), 1);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
+    <div className="bg-white/[0.02] border border-white/[0.1] rounded-xl p-6 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Building2 className="w-5 h-5 text-indigo-400" />
+        <Building2 className="w-5 h-5" />
         Enforcement Radar
       </h3>
       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -102,16 +105,16 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
           <div key={agency.agency} className="group">
             <div className="flex justify-between text-sm mb-1">
               <span
-                className="text-slate-300 font-medium truncate w-3/4"
+                className="text-white/[0.7] font-medium truncate w-3/4"
                 title={agency.agency}
               >
                 {agency.agency}
               </span>
-              <span className="text-slate-400 font-mono">{agency.count}</span>
+              <span className="text-white/[0.5] font-mono">{agency.count}</span>
             </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/[0.1] rounded-full overflow-hidden">
               <div
-                className="h-full bg-indigo-500/80 rounded-full group-hover:bg-indigo-400 transition-all"
+                className="h-full bg-white/[0.4] rounded-full group-hover:bg-white/[0.6] transition-all"
                 style={{ width: `${(agency.count / maxCount) * 100}%` }}
               />
             </div>
@@ -124,24 +127,24 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
 
 function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
+    <div className="bg-white/[0.02] border border-white/[0.1] rounded-xl p-6 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Activity className="w-5 h-5 text-rose-400" />
+        <Activity className="w-5 h-5" />
         Shockwave Events
       </h3>
       <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
         {events.slice(0, 6).map((evt) => (
           <div
             key={evt.id}
-            className="relative pl-4 border-l-2 border-slate-800 hover:border-rose-500/50 transition-colors"
+            className="relative pl-4 border-l-2 border-white/[0.1] hover:border-white/[0.3] transition-colors"
           >
-            <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-900" />
+            <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-white/[0.3] ring-2 ring-black" />
             <div className="flex justify-between items-start">
-              <span className="text-xs text-slate-500 font-mono">
+              <span className="text-xs text-white/[0.4] font-mono">
                 {evt.event_date}
               </span>
               {Math.abs(evt.price_return_1d || 0) > 0.01 && (
-                <span className="text-xs bg-rose-950 text-rose-400 px-1.5 py-0.5 rounded ml-2">
+                <span className="text-xs bg-white/[0.1] text-white/[0.8] px-1.5 py-0.5 rounded ml-2">
                   Impact: {(evt.price_return_1d! * 100).toFixed(1)}%
                 </span>
               )}
@@ -149,7 +152,7 @@ function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
             <a
               href={evt.url || "#"}
               target="_blank"
-              className="block text-sm text-slate-200 mt-1 hover:text-rose-400 transition-colors line-clamp-2"
+              className="block text-sm text-white/[0.7] mt-1 hover:text-white transition-colors line-clamp-2"
             >
               {evt.headline}
             </a>
@@ -171,10 +174,10 @@ interface FeedColumnProps {
 
 function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
   return (
-    <div className="col-span-1 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-[600px]">
-      <div className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-        <h3 className="font-semibold text-slate-200 flex items-center gap-2">
-          <Icon className="w-4 h-4 text-slate-400" />
+    <div className="col-span-1 bg-white/[0.02] border border-white/[0.1] rounded-xl overflow-hidden flex flex-col h-[600px]">
+      <div className="p-4 border-b border-white/[0.1] bg-white/[0.02] backdrop-blur sticky top-0 z-10">
+        <h3 className="font-semibold text-white/[0.8] flex items-center gap-2">
+          <Icon className="w-4 h-4" />
           {title}
         </h3>
       </div>
@@ -199,36 +202,36 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
           return (
             <div
               key={item.id}
-              className="group p-4 bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-600 transition-all"
+              className="group p-4 bg-white/[0.02] border border-white/[0.08] rounded-lg hover:border-white/[0.15] transition-all"
             >
               <div className="flex justify-between items-start mb-2">
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
                   ${
                     type === "deadline"
-                      ? "bg-amber-950 text-amber-500"
+                      ? "bg-white/[0.15] text-white/[0.8]"
                       : type === "executive"
-                        ? "bg-purple-950 text-purple-400"
-                        : "bg-emerald-950 text-emerald-400"
+                        ? "bg-white/[0.12] text-white/[0.7]"
+                        : "bg-white/[0.1] text-white/[0.6]"
                   }`}
                 >
                   {type === "deadline"
                     ? `${daysToExpiry} DAYS`
                     : docType || "RULE"}
                 </span>
-                <span className="text-xs text-slate-500 font-mono">
+                <span className="text-xs text-white/[0.4] font-mono">
                   {dateText}
                 </span>
               </div>
 
-              <h4 className="text-sm font-medium text-slate-200 leading-snug mb-2 group-hover:text-white">
+              <h4 className="text-sm font-medium text-white/[0.7] leading-snug mb-2 group-hover:text-white">
                 {titleText}
               </h4>
 
               {type === "deadline" && daysToExpiry !== undefined && (
-                <div className="w-full bg-slate-900 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div className="w-full bg-white/[0.05] h-1.5 rounded-full mt-2 overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${daysToExpiry < 30 ? "bg-amber-500" : "bg-slate-600"}`}
+                    className={`h-full rounded-full ${daysToExpiry < 30 ? "bg-white/[0.5]" : "bg-white/[0.3]"}`}
                     style={{
                       width: `${Math.max(5, 100 - (daysToExpiry / 365) * 100)}%`,
                     }}
@@ -242,7 +245,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
                   {tags.slice(0, 3).map((tag: string) => (
                     <span
                       key={tag}
-                      className="text-[10px] bg-slate-900 text-slate-500 px-1.5 py-0.5 rounded border border-slate-800"
+                      className="text-[10px] bg-white/[0.05] text-white/[0.4] px-1.5 py-0.5 rounded border border-white/[0.08]"
                     >
                       #{tag}
                     </span>
@@ -254,7 +257,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
                 <a
                   href={url}
                   target="_blank"
-                  className="flex items-center gap-1 text-xs text-blue-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-1 text-xs text-white/[0.5] mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Source <ExternalLink className="w-3 h-3" />
                 </a>
@@ -306,18 +309,18 @@ export default async function PolicyPage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-20 pb-20">
+    <div className="min-h-screen bg-black text-white/[0.8] pt-20 pb-20">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* HEADER */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Gavel className="w-8 h-8 text-amber-500" />
+              <Gavel className="w-8 h-8" />
               <h1 className="text-3xl font-bold tracking-tight text-white">
                 Policy Intelligence
               </h1>
             </div>
-            <p className="text-slate-400">
+            <p className="text-white/[0.5]">
               Monitoring {agencies.length} agencies and{" "}
               {legislation.length + executive.length} active regulatory events
             </p>
@@ -368,7 +371,7 @@ export default async function PolicyPage() {
         {/* FEED COLUMNS */}
         <div>
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <FileSignature className="w-5 h-5 text-slate-400" />
+            <FileSignature className="w-5 h-5" />
             Live Policy Feeds
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
