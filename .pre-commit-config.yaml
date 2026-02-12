@@ -52,3 +52,18 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+      - id: git-integrity
+        name: Git integrity (exclude poisoning / untracked imports)
+        entry: bash scripts/check_git_integrity.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: pre-push-build
+        name: Pre-push build gate (mirrors Vercel)
+        entry: bash scripts/pre_push_build.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

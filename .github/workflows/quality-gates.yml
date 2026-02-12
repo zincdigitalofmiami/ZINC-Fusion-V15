@@ -103,3 +103,9 @@ jobs:
 
       - name: Prisma validate
         run: npx --prefix config prisma validate --schema prisma/schema.prisma
+
+      - name: Git integrity check
+        run: bash scripts/check_git_integrity.sh
+
+      - name: Next.js build (mirrors Vercel)
+        run: npm --prefix frontend run build
