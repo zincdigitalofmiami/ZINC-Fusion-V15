@@ -21,11 +21,8 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import puppeteerExtra from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { type Page } from "puppeteer-core";
 
-puppeteerExtra.use(StealthPlugin());
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -120,6 +117,25 @@ interface ScrapedArticle {
   author: string | null;
   reportSlug: string;
   specialists: string[];
+}
+
+type PuppeteerExtra = typeof import("puppeteer-extra").default;
+let cachedPuppeteerExtra: PuppeteerExtra | null = null;
+
+async function getPuppeteerExtra(): Promise<PuppeteerExtra> {
+  if (cachedPuppeteerExtra) {
+    return cachedPuppeteerExtra;
+  }
+
+  const [{ default: puppeteerExtra }, { default: StealthPlugin }] =
+    await Promise.all([
+      import("puppeteer-extra"),
+      import("puppeteer-extra-plugin-stealth"),
+    ]);
+
+  puppeteerExtra.use(StealthPlugin());
+  cachedPuppeteerExtra = puppeteerExtra;
+  return cachedPuppeteerExtra;
 }
 
 
@@ -237,6 +253,7 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
 
   // Dynamic import for serverless chromium path resolution.
   const chromium = await import("@sparticuz/chromium");
+  const puppeteerExtra = await getPuppeteerExtra();
 
   const browser = await puppeteerExtra.launch({
     args: [
