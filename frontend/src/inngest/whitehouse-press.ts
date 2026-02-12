@@ -53,10 +53,14 @@ interface WhiteHouseItem {
 const WHITEHOUSE_SOURCES = {
   // Presidential Actions - CRITICAL for trump_effect
   presidentialActions: {
-    executiveOrders: "https://www.whitehouse.gov/presidential-actions/executive-orders/",
-    memoranda: "https://www.whitehouse.gov/presidential-actions/presidential-memoranda/",
-    proclamations: "https://www.whitehouse.gov/presidential-actions/proclamations/",
-    nominations: "https://www.whitehouse.gov/presidential-actions/nominations-appointments/",
+    executiveOrders:
+      "https://www.whitehouse.gov/presidential-actions/executive-orders/",
+    memoranda:
+      "https://www.whitehouse.gov/presidential-actions/presidential-memoranda/",
+    proclamations:
+      "https://www.whitehouse.gov/presidential-actions/proclamations/",
+    nominations:
+      "https://www.whitehouse.gov/presidential-actions/nominations-appointments/",
   },
 
   // Policy Issues - CRITICAL for specialists
@@ -67,10 +71,6 @@ const WHITEHOUSE_SOURCES = {
     energy: "https://www.whitehouse.gov/issues/economy/energy/", // energy specialist
     nationalSecurity: "https://www.whitehouse.gov/issues/national-security/", // trump_effect
     doge: "https://www.whitehouse.gov/issues/doge/", // trump_effect
-    safeCommunities: "https://www.whitehouse.gov/issues/safe-communities/",
-    techInnovation: "https://www.whitehouse.gov/issues/tech-innovation/",
-    maha: "https://www.whitehouse.gov/issues/maha/", // health policy
-    socialCauses: "https://www.whitehouse.gov/issues/social-causes/",
   },
 
   // News & Statements
@@ -84,17 +84,18 @@ const WHITEHOUSE_SOURCES = {
 
   // RSS Feeds
   rss: {
-    statementsReleases: "https://www.whitehouse.gov/briefing-room/statements-releases/feed/",
+    statementsReleases:
+      "https://www.whitehouse.gov/briefing-room/statements-releases/feed/",
   },
 };
 
 // Specialist routing rules
 const SOURCE_TO_SPECIALISTS: Record<string, string[]> = {
   // Presidential Actions
-  executiveOrders: ["trump_effect", "tariff"],
-  memoranda: ["trump_effect"],
-  proclamations: ["trump_effect"],
-  nominations: ["trump_effect"],
+  executiveOrders: [],
+  memoranda: [],
+  proclamations: [],
+  nominations: [],
 
   // Issues
   trade: ["tariff", "china"],
@@ -103,27 +104,145 @@ const SOURCE_TO_SPECIALISTS: Record<string, string[]> = {
   energy: ["energy", "biofuel"],
   nationalSecurity: ["trump_effect", "china"],
   doge: ["trump_effect"],
-  safeCommunities: ["trump_effect"],
-  techInnovation: ["trump_effect"],
-  maha: ["trump_effect"],
-  socialCauses: ["trump_effect"],
 
   // News
-  briefings: ["trump_effect", "tariff"],
-  factSheets: ["trump_effect", "tariff"],
-  remarks: ["trump_effect"],
-  news: ["trump_effect"],
-  articles: ["trump_effect"],
+  briefings: [],
+  factSheets: [],
+  remarks: [],
+  news: [],
+  articles: [],
 
   // RSS
-  statementsReleases: ["trump_effect", "tariff"],
+  statementsReleases: [],
 };
+
+const EXECUTE_ACTION_TAG = "execute_action";
+
+type WhiteHouseDocumentType =
+  | "executive_order"
+  | "presidential_memorandum"
+  | "proclamation"
+  | "nomination_appointment"
+  | "briefing_statement"
+  | "fact_sheet"
+  | "remarks"
+  | "news"
+  | "issue_page"
+  | "other";
+
+function inferDocumentType(item: WhiteHouseItem): WhiteHouseDocumentType {
+  const link = item.link.toLowerCase();
+  const title = item.title.toLowerCase();
+
+  if (
+    item.sourceCategory === "executiveOrders" ||
+    link.includes("/presidential-actions/executive-orders/")
+  ) {
+    return "executive_order";
+  }
+  if (
+    item.sourceCategory === "memoranda" ||
+    link.includes("/presidential-actions/presidential-memoranda/")
+  ) {
+    return "presidential_memorandum";
+  }
+  if (
+    item.sourceCategory === "proclamations" ||
+    link.includes("/presidential-actions/proclamations/")
+  ) {
+    return "proclamation";
+  }
+  if (
+    item.sourceCategory === "nominations" ||
+    link.includes("/presidential-actions/nominations-appointments/")
+  ) {
+    return "nomination_appointment";
+  }
+
+  if (
+    item.sourceCategory === "factSheets" ||
+    link.includes("/fact-sheets") ||
+    link.includes("/fact-sheet")
+  ) {
+    return "fact_sheet";
+  }
+  if (
+    item.sourceCategory === "briefings" ||
+    link.includes("/briefings-statements") ||
+    link.includes("/briefing-room")
+  ) {
+    return "briefing_statement";
+  }
+  if (item.sourceCategory === "remarks" || link.includes("/remarks/")) {
+    return "remarks";
+  }
+  if (item.sourceCategory === "news" || link.includes("/news/")) {
+    return "news";
+  }
+  if (link.includes("/issues/")) {
+    return "issue_page";
+  }
+
+  // Fallback heuristics
+  if (
+    title.startsWith("executive order") ||
+    title.includes(" executive order ")
+  ) {
+    return "executive_order";
+  }
+  if (title.startsWith("proclamation") || title.includes(" proclamation")) {
+    return "proclamation";
+  }
+  if (
+    title.includes("presidential memorandum") ||
+    title.includes("presidential action")
+  ) {
+    return "presidential_memorandum";
+  }
+
+  return "other";
+}
+
+function isExecuteAction(
+  item: WhiteHouseItem,
+  docType: WhiteHouseDocumentType,
+): boolean {
+  // Strict default: only true presidential action documents qualify
+  if (
+    docType === "executive_order" ||
+    docType === "presidential_memorandum" ||
+    docType === "proclamation"
+  ) {
+    return true;
+  }
+
+  // Allow a narrow set of major actions even if not in presidential-actions pages
+  // (e.g., major war actions, sanctions, national emergency)
+  const text = `${item.title} ${item.description || ""}`.toLowerCase();
+  const majorActionSignals = [
+    "national emergency",
+    "emergency declaration",
+    "authorization for use of military force",
+    "airstrike",
+    "military strike",
+    "deployment",
+    "sanctions",
+    "executive action",
+    "presidential determination",
+    "presidential directive",
+    "trade agreement signed",
+    "trade deal signed",
+    "agreement signed",
+  ];
+
+  return majorActionSignals.some((s) => text.includes(s));
+}
 
 async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
-      "Accept": "application/rss+xml, application/xml, text/xml",
+      Accept: "application/rss+xml, application/xml, text/xml",
     },
   });
 
@@ -137,10 +256,14 @@ async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
   const itemMatches = text.match(/<item>[\s\S]*?<\/item>/g) || [];
 
   for (const itemXml of itemMatches.slice(0, 25)) {
-    const titleMatch = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/);
+    const titleMatch = itemXml.match(
+      /<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/,
+    );
     const linkMatch = itemXml.match(/<link>(.*?)<\/link>/);
     const pubDateMatch = itemXml.match(/<pubDate>(.*?)<\/pubDate>/);
-    const descMatch = itemXml.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>|<description>([\s\S]*?)<\/description>/);
+    const descMatch = itemXml.match(
+      /<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>|<description>([\s\S]*?)<\/description>/,
+    );
 
     if (titleMatch && linkMatch) {
       items.push({
@@ -156,12 +279,16 @@ async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
   return items;
 }
 
-async function scrapePage(url: string, sourceKey: string): Promise<WhiteHouseItem[]> {
+async function scrapePage(
+  url: string,
+  sourceKey: string,
+): Promise<WhiteHouseItem[]> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        Accept: "text/html,application/xhtml+xml",
       },
     });
 
@@ -237,7 +364,7 @@ function generateRowHash(item: WhiteHouseItem): string {
 
 function classifySpecialists(item: WhiteHouseItem): string[] {
   // Start with source-based classification (contextual hints)
-  const baseSpecialists = SOURCE_TO_SPECIALISTS[item.sourceCategory] || ["trump_effect"];
+  const baseSpecialists = SOURCE_TO_SPECIALISTS[item.sourceCategory] || [];
   const specialists = new Set<string>(baseSpecialists);
 
   // Use shared keyword classifier for content-based tagging
@@ -251,8 +378,19 @@ function classifySpecialists(item: WhiteHouseItem): string[] {
     }
   }
 
-  // Whitehouse content always gets trump_effect
-  specialists.add("trump_effect");
+  const docType = inferDocumentType(item);
+  if (
+    docType === "executive_order" ||
+    docType === "presidential_memorandum" ||
+    docType === "proclamation"
+  ) {
+    specialists.add("trump_effect");
+  }
+
+  if (isExecuteAction(item, docType)) {
+    specialists.add(EXECUTE_ACTION_TAG);
+    specialists.add("trump_effect");
+  }
 
   return Array.from(specialists);
 }
@@ -270,23 +408,30 @@ export const whitehouseDaily = inngest.createFunction(
 
     // Step 1: Fetch RSS
     const rssItems = await step.run("fetch-rss-feed", async () => {
-      const items = await fetchAndParseRSS(WHITEHOUSE_SOURCES.rss.statementsReleases);
+      const items = await fetchAndParseRSS(
+        WHITEHOUSE_SOURCES.rss.statementsReleases,
+      );
       return items;
     });
     allItems.push(...rssItems);
     sourceCounts["rss_statementsReleases"] = rssItems.length;
 
     // Step 2: Scrape Presidential Actions (most important)
-    const presActionsItems = await step.run("scrape-presidential-actions", async () => {
-      const items: WhiteHouseItem[] = [];
-      for (const [key, url] of Object.entries(WHITEHOUSE_SOURCES.presidentialActions)) {
-        const pageItems = await scrapePage(url, key);
-        items.push(...pageItems);
-        // Small delay between requests
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      return items;
-    });
+    const presActionsItems = await step.run(
+      "scrape-presidential-actions",
+      async () => {
+        const items: WhiteHouseItem[] = [];
+        for (const [key, url] of Object.entries(
+          WHITEHOUSE_SOURCES.presidentialActions,
+        )) {
+          const pageItems = await scrapePage(url, key);
+          items.push(...pageItems);
+          // Small delay between requests
+          await new Promise((r) => setTimeout(r, 500));
+        }
+        return items;
+      },
+    );
     allItems.push(...presActionsItems);
     sourceCounts["presidentialActions"] = presActionsItems.length;
 
@@ -340,9 +485,28 @@ export const whitehouseDaily = inngest.createFunction(
         const specialists = classifySpecialists(item);
         const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
+        // Hard gate: do not insert items with no meaningful tags
+        // (prevents irrelevant content from polluting executive actions feed)
+        if (specialists.length === 0) {
+          skipped++;
+          continue;
+        }
+
+        const docType = inferDocumentType(item);
+
+        // Additional gate: only persist to executive actions table if it is an execute action
+        // or it contains at least one recognized specialist tag (not just generic news).
+        const hasSpecialistSignal = specialists.some(
+          (t) => t !== EXECUTE_ACTION_TAG,
+        );
+        if (!specialists.includes(EXECUTE_ACTION_TAG) && !hasSpecialistSignal) {
+          skipped++;
+          continue;
+        }
+
         const checkResult = await pool.query(
           `SELECT 1 FROM alt.executive_actions_event WHERE row_hash = $1`,
-          [rowHash]
+          [rowHash],
         );
 
         if (checkResult.rows.length > 0) {
@@ -352,17 +516,19 @@ export const whitehouseDaily = inngest.createFunction(
 
         await pool.query(
           `INSERT INTO alt.executive_actions_event
-           (source, headline, url, published_at, event_date, content, specialist_tags, row_hash)
-           VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7)`,
+           (source, headline, url, published_at, event_date, content, specialist_tags, row_hash, document_type)
+           VALUES ($1, $2, $3, $4, $5::date, $6, $7, $8, $9)`,
           [
             `whitehouse_${item.sourceCategory}`,
             item.title,
             item.link,
             publishedAt,
+            publishedAt,
             item.description || null,
             specialists,
             rowHash,
-          ]
+            docType,
+          ],
         );
         inserted++;
       }
@@ -377,5 +543,5 @@ export const whitehouseDaily = inngest.createFunction(
       sourceCounts,
       ...result,
     };
-  }
+  },
 );

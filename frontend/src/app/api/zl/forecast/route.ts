@@ -16,7 +16,7 @@ interface ForecastPoint {
 /**
  * GET /api/zl/forecast
  * Fetch the latest Core Model forecasts for ZL across all horizons (5d, 21d, 63d, 126d)
- * Returns price quantiles (p30/p50/p70) for building forecast fan/cone
+ * Returns price quantiles (p30/p50/p70) for building forecast target zones
  */
 export async function GET(_req: NextRequest) {
   try {
@@ -38,11 +38,11 @@ export async function GET(_req: NextRequest) {
     if (result.rows.length === 0) {
       return NextResponse.json(
         { error: "No forecast data available", forecasts: [] },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    const forecasts: ForecastPoint[] = result.rows.map(row => ({
+    const forecasts: ForecastPoint[] = result.rows.map((row) => ({
       horizon_days: row.horizon_days,
       as_of_date: row.as_of_date,
       forecast_date: row.forecast_date,
@@ -67,7 +67,7 @@ export async function GET(_req: NextRequest) {
     console.error("ZL forecast API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch ZL forecast data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
