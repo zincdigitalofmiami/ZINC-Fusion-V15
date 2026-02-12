@@ -149,8 +149,7 @@ function staleAdjust(c: ReturnType<typeof colors>): typeof c {
 
 function formatLabel(t: ForecastTarget): string {
   // MAE from model_runs_event, or fall back to quantile half-width
-  const errorVal =
-    t.mae != null ? t.mae : (t.priceHigh - t.priceLow) / 2;
+  const errorVal = t.mae != null ? t.mae : (t.priceHigh - t.priceLow) / 2;
   let label = `${t.label} ${t.oofPrice.toFixed(2)}  |  MAE ±${errorVal.toFixed(2)}`;
   if (isStale(t)) {
     label += "  STALE";
