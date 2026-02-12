@@ -114,7 +114,7 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
             </div>
             <div className="h-2 bg-white/[0.1] rounded-full overflow-hidden">
               <div
-                className="h-full bg-white/[0.4] rounded-full group-hover:bg-white/[0.6] transition-all"
+                className="h-full bg-blue-400/60 rounded-full group-hover:bg-blue-400 transition-all"
                 style={{ width: `${(agency.count / maxCount) * 100}%` }}
               />
             </div>

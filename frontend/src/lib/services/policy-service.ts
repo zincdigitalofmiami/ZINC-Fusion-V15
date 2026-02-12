@@ -44,7 +44,8 @@ export class PolicyService {
   }
 
   /**
-   * Fetches executive actions (EOs, Memorandums)
+   * Fetches executive actions - only high-level presidential actions
+   * (Executive Orders, Presidential Memoranda, Proclamations)
    */
   static async getExecutiveEvents(limit = 50): Promise<ExecutiveEvent[]> {
     const sql = `
@@ -52,6 +53,8 @@ export class PolicyService {
         id, event_date, headline, content, url,
         document_type, zl_sentiment, specialist_tags
       FROM alt.executive_actions_event
+      WHERE document_type IN ('executive_order', 'presidential_memorandum', 'proclamation')
+        OR document_type IS NULL
       ORDER BY event_date DESC
       LIMIT $1
     `;
