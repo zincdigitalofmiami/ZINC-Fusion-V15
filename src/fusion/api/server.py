@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import time
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +23,8 @@ from fusion.analytics.pressures import (
 )
 from fusion.api.db import fetch_rows, get_backend, get_query_builder
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Fusion API", version="0.1.0")
 
@@ -42,6 +46,73 @@ _SQL_WRITE_VERBS = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+
+
+def handle_db_errors(func: Callable) -> Callable:
+    """
+    Decorator to catch and handle database errors gracefully.
+    
+    Wraps endpoint functions to catch psycopg2 and other database errors,
+    log them, and return proper HTTP 500 responses without exposing
+    internal tracebacks to clients.
+    """
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            # Import here to avoid dependency issues if psycopg2 not installed
+            error_type = type(e).__name__
+            
+            # Check if it's a database error (psycopg2, SQLAlchemy, etc.)
+            if 'psycopg2' in str(type(e).__module__) or 'sqlalchemy' in str(type(e).__module__):
+                logger.error(f"Database error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Database query failed. Please try again later."
+                )
+            # Re-raise HTTPExceptions as-is (they're already properly formatted)
+            elif isinstance(e, HTTPException):
+                raise
+            # Catch all other exceptions
+            else:
+                logger.error(f"Unexpected error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="An unexpected error occurred. Please try again later."
+                )
+    
+    @wraps(func)
+    def sync_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_type = type(e).__name__
+            
+            # Check if it's a database error
+            if 'psycopg2' in str(type(e).__module__) or 'sqlalchemy' in str(type(e).__module__):
+                logger.error(f"Database error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Database query failed. Please try again later."
+                )
+            # Re-raise HTTPExceptions as-is
+            elif isinstance(e, HTTPException):
+                raise
+            # Catch all other exceptions
+            else:
+                logger.error(f"Unexpected error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="An unexpected error occurred. Please try again later."
+                )
+    
+    # Return appropriate wrapper based on whether function is async
+    import asyncio
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return sync_wrapper
 
 
 def _serialize_value(value: Any) -> Any:
@@ -96,6 +167,7 @@ def health() -> dict[str, str]:
 
 
 @app.get("/api/dashboard/summary")
+@handle_db_errors
 def dashboard_summary(symbol: str = "ZL") -> dict[str, Any]:
     price_rows = _fetch_rows(
         """
@@ -312,6 +384,7 @@ def _recent_files(glob_path: str, limit: int = 5) -> list[dict[str, Any]]:
 
 
 @app.get("/api/overview/models")
+@handle_db_errors
 def overview_models() -> dict[str, Any]:
     """
     Read-only operational snapshot for the /overview dashboard.
@@ -580,6 +653,7 @@ def overview_models() -> dict[str, Any]:
 
 
 @app.get("/api/market/zl")
+@handle_db_errors
 def market_zl(
     symbol: str = "ZL",
     limit: int = Query(2000, ge=1, le=10000),
@@ -609,6 +683,7 @@ def market_zl(
 
 
 @app.get("/api/forecast/quantiles")
+@handle_db_errors
 def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
@@ -861,6 +936,7 @@ def db_columns(
 
 
 @app.post("/api/db/query")
+@handle_db_errors
 def db_query(
     payload: dict[str, Any],
     _: None = Depends(_require_db_token),
