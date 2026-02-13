@@ -1,0 +1,255 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║         CORE MODEL REFACTOR - IMPACT ON CODE REVIEW AUDIT                ║
+║                        Analysis Date: 2026-02-13                          ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+📋 QUESTION: Does the Core Model Refactor Change the Audit Findings?
+
+ANSWER: Partially - 3 Categories of Impact
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ ✅ HELPS FIX: 1 Audit Issue                                              │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Issue #6: Float vs Decimal for Price Data
+  ├─ Current Problem: mkt.futures_1d uses Float (precision loss)
+  ├─ Refactor Impact: Schema changes provide opportunity to migrate ALL
+  │                   quantile columns to Decimal(10,6)
+  └─ Recommendation: Bundle Float→Decimal with probability column additions
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ ⚠️  ORTHOGONAL: 5 Critical Issues (MUST FIX SEPARATELY)                  │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  These issues are UNRELATED to model refactor and should NOT be delayed:
+
+  Issue #1: Connection Leak (zl-live.ts:160)
+  ├─ Risk: Pool exhaustion under load
+  ├─ Fix Time: 10 minutes
+  └─ Action: Add try-finally block to receiptClient
+
+  Issue #2: No API Authentication (30+ endpoints)
+  ├─ Risk: Security vulnerability, data exposure
+  ├─ Fix Time: 2-4 hours
+  └─ Action: Add X-API-Key authentication + rate limiting
+
+  Issue #3: N+1 Specialist Query (server.py:351)
+  ├─ Risk: 2-3 second latency per request
+  ├─ Fix Time: 30 minutes
+  └─ Action: Replace loop with single UNION ALL query
+
+  Issue #4: Missing DB Error Handling (server.py)
+  ├─ Risk: Unhandled exceptions, traceback exposure
+  ├─ Fix Time: 1-2 hours
+  └─ Action: Add @handle_db_errors decorator
+
+  Issue #7: N+1 Backfill Query (board-crush-daily.ts:291)
+  ├─ Risk: Slow backfill (500 queries vs 1 batch)
+  ├─ Fix Time: 30 minutes
+  └─ Action: Use WHERE trade_date = ANY($1) pattern
+
+  TOTAL EFFORT: 4-7 hours
+  ⚠️  CRITICAL: Fix these THIS WEEK (don't delay for refactor)
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ 🔄 CHANGED SCOPE: 1 Issue                                                │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Issue #9: Missing Indexes on training.matrix_1d
+  ├─ Original Scope: Add indexes to training.matrix_1d only
+  ├─ New Scope: Add indexes to ALL forecast tables with new columns
+  │   • forecasts.forecast_summary_1d.prob_enter_zone
+  │   • forecasts.core_mc_1d.prob_enter_p30_p70_within_h
+  └─ Impact: Slightly more work, but straightforward
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 ARCHITECTURE DISCOVERY: Current State Analysis
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Layer 1: Training Layer ✅ ALREADY CORRECT - NO CHANGES NEEDED           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  File: src/fusion/core_training/config.py:31
+  Code: QUANTILES = [0.3, 0.5, 0.7]  ✅ Already trains P30/P50/P70
+  
+  Schema: training.oof_core_1d
+  Columns: p30, p50, p70  ✅ Already correct
+  
+  Status: Training layer is DONE. No modifications required.
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Layer 2: Calibration Layer 🔴 MISSING - MUST CREATE                      │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Files to Create:
+  ├─ src/fusion/calibration/tail_calibration.py
+  │  └─ Algorithm: Compute p10_cal, p90_cal from OOF residuals
+  │
+  ├─ scripts/calibrate_tails.py
+  │  └─ Runner: Execute calibration and persist to database
+  │
+  └─ Migration: Add model.tail_calibration_params table
+
+  Effort: 5 hours
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Layer 3: Probability Layer 🔴 PARTIALLY EXISTS - ENHANCE                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  File to Modify: scripts/run_monte_carlo.py
+  Add Functions:
+  ├─ compute_zone_entry_probability(paths, p30, p70)
+  │  └─ Returns: Probability path enters [p30, p70] zone
+  │
+  └─ compute_tail_touch_probability(paths, p10_cal, p90_cal)
+     └─ Returns: (prob_touch_p10, prob_touch_p90)
+
+  Schema: Add 3 columns to forecasts.core_mc_1d
+  ├─ prob_enter_p30_p70_within_h  (primary metric)
+  ├─ prob_touch_p10               (downside risk)
+  └─ prob_touch_p90               (upside opportunity)
+
+  Effort: 4 hours
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ Layer 4: Serving/UI Contract 🔄 PARTIALLY READY - INTEGRATE              │
+└───────────────────────────────────────────────────────────────────────────┘
+
+  Files to Modify:
+  ├─ scripts/generate_production_forecasts.py
+  │  ├─ Add: load_calibration_params()
+  │  ├─ Add: apply_calibration()
+  │  └─ Add: get_latest_probabilities()
+  │
+  ├─ src/fusion/api/server.py
+  │  └─ Update: /api/forecast/quantiles to return prob_enter_zone
+  │
+  └─ frontend/src/components/ForecastCard.tsx
+     ├─ BEFORE: "ZL forecast: $42.30 - $45.80"
+     └─ AFTER:  "72% probability ZL enters $42.30 - $45.80 within 21 days"
+
+  Schema: Add prob_enter_zone to forecasts.forecast_summary_1d
+
+  Effort: 5 hours (3 backend + 2 frontend)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 IMPLEMENTATION SUMMARY
+
+New Files to Create:        6
+Existing Files to Modify:   4
+Database Migrations:        3
+Total Implementation Time:  21 hours (~3 days)
+
+Files to Create:
+├─ src/fusion/calibration/__init__.py
+├─ src/fusion/calibration/tail_calibration.py
+├─ scripts/calibrate_tails.py
+├─ tests/test_calibration.py
+├─ tests/test_probability.py
+└─ tests/test_core_refactor_integration.py
+
+Files to Modify:
+├─ prisma/schema.prisma (3 table additions/modifications)
+├─ scripts/run_monte_carlo.py (add probability calculations)
+├─ scripts/generate_production_forecasts.py (apply calibration)
+└─ src/fusion/api/server.py (serve probabilities)
+
+Migrations:
+├─ add-tail-calibration-params (model schema)
+├─ add-zone-entry-probabilities (forecasts.core_mc_1d)
+└─ add-probabilities-to-forecast-summary (forecasts.forecast_summary_1d)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 RECOMMENDED ACTION PLAN
+
+Week 1 (THIS WEEK):
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ PRIORITY 1: Fix 5 Critical Security/Performance Issues             │
+  │ Effort: 4-7 hours                                                   │
+  │ Reason: UNRELATED to refactor, immediate risk                       │
+  └─────────────────────────────────────────────────────────────────────┘
+  
+  Then:
+  • Review refactor specifications (all 3 documents)
+  • Decide on timing (parallel vs sequential)
+  • Assign developer resources
+
+Week 2-3 (IF REFACTOR APPROVED):
+  Day 1-2: Schema migration + Float→Decimal (3 hours)
+  Day 3-4: Calibration layer (5 hours)
+  Day 5-6: Probability layer (4 hours)
+  Day 7-8: Serving layer + dashboard (5 hours)
+
+Week 4 (VALIDATION & PRODUCTION):
+  Day 1-2: Integration testing (3 hours)
+  Day 3:   Staging deployment
+  Day 4:   Production deployment with monitoring
+  Day 5:   User feedback collection
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ VALIDATION CHECKLIST (Definition of Done)
+
+The refactor is NOT complete unless ALL of these pass:
+
+  [ ] Schema Check
+      └─ All forecast tables have p10_cal/p30/p50/p70/p90_cal/prob_enter_zone
+
+  [ ] Monotonicity Check (100% of forecasts)
+      └─ p10_cal ≤ p30 ≤ p50 ≤ p70 ≤ p90_cal
+
+  [ ] Probability Bounds Check (100% of forecasts)
+      └─ 0 ≤ prob_enter_zone ≤ 1
+
+  [ ] API Response Check
+      └─ /api/forecast/quantiles returns prob_enter_zone
+
+  [ ] Dashboard Display Check
+      └─ Shows "XX% probability..." text (not generic "$X - $Y")
+
+  [ ] Float→Decimal Migration (BONUS)
+      └─ All quantile columns use Decimal(10,6)
+
+  [ ] Coverage Accuracy (Post-Deployment)
+      └─ P10 coverage = 10% ± 2%, P90 coverage = 90% ± 2%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION PROVIDED
+
+1. CORE_MODEL_REFACTOR_SPEC.md (24KB)
+   └─ Comprehensive implementation specification
+   
+2. CORE_MODEL_REFACTOR_QUICK_REF.md (21KB)
+   └─ File-by-file action checklist with line numbers
+   
+3. CORE_MODEL_REFACTOR_EXEC_BRIEF.md (12KB)
+   └─ Executive summary and prioritization guide
+   
+4. This File: REFACTOR_IMPACT_SUMMARY.txt
+   └─ Visual quick reference
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎓 FINAL RECOMMENDATION
+
+DO: Security fixes immediately (this week, 4-7 hours)
+THEN: Core model refactor (next 2-3 weeks, 21 hours)
+
+Total Timeline: 3-4 weeks to completion
+Risk Level: Medium (manageable with proper staging and rollback)
+Business Value: High (probability display more intuitive for users)
+
+DO NOT: Delay security fixes waiting for refactor decision
+DO NOT: Skip validation checklist (definition of done is mandatory)
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    END OF IMPACT SUMMARY                                  ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+Generated: 2026-02-13
+Analysis Tool: GitHub Copilot Agent
+Status: Ready for stakeholder decision
