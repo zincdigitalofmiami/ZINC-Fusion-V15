@@ -2923,6 +2923,8 @@ model matrix_1d {
   matrix_version                                  String?
 
   @@id([trade_date, symbol])
+  @@index([symbol, trade_date])
+  @@index([matrix_version])
   @@schema("training")
 }
 
