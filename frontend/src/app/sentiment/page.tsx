@@ -255,15 +255,39 @@ export default function SentimentPage() {
         fetch("/api/sentiment/metrics"),
       ]);
 
-      const [newsData, cotData, metricsData] = await Promise.all([
-        newsRes.ok ? newsRes.json() : null,
-        cotRes.ok ? cotRes.json() : null,
-        metricsRes.ok ? metricsRes.json() : null,
+      const parseEndpoint = async <T,>(
+        res: Response,
+        label: string,
+      ): Promise<{ data: T | null; error: string | null }> => {
+        if (!res.ok) {
+          return { data: null, error: `${label} (${res.status})` };
+        }
+        try {
+          return { data: (await res.json()) as T, error: null };
+        } catch {
+          return { data: null, error: `${label} (invalid JSON)` };
+        }
+      };
+
+      const [newsResult, cotResult, metricsResult] = await Promise.all([
+        parseEndpoint<NewsData>(newsRes, "news"),
+        parseEndpoint<CotData>(cotRes, "cot"),
+        parseEndpoint<MetricsData>(metricsRes, "metrics"),
       ]);
 
-      setNews(newsData);
-      setCot(cotData);
-      setMetrics(metricsData);
+      // Preserve last good payload if one endpoint has a transient failure.
+      if (newsResult.data) setNews(newsResult.data);
+      if (cotResult.data) setCot(cotResult.data);
+      if (metricsResult.data) setMetrics(metricsResult.data);
+
+      const endpointErrors = [
+        newsResult.error,
+        cotResult.error,
+        metricsResult.error,
+      ].filter(Boolean);
+      if (endpointErrors.length > 0) {
+        setError(`Some data failed to load: ${endpointErrors.join(", ")}`);
+      }
     } catch (e) {
       setError(String(e));
     } finally {

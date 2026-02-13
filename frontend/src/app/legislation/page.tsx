@@ -355,6 +355,31 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
 // ============================================================================
 
 export default async function PolicyPage() {
+  // Fetch everything in parallel, but never let one failed query blank the page.
+  const withFallback = async <T,>(
+    label: string,
+    task: () => Promise<T>,
+    fallback: T,
+  ): Promise<T> => {
+    try {
+      return await task();
+    } catch (error) {
+      console.error(`[PolicyPage] ${label} failed:`, error);
+      return fallback;
+    }
+  };
+
+  const defaultRegime: RegimeState = {
+    score: 35,
+    label: "Background Noise",
+    components: {
+      tpu: 100,
+      emv: 0,
+      news_velocity: 0,
+      legis_velocity: 0,
+    },
+  };
+
   // Fetch everything in parallel
   const [
     regime,
@@ -365,13 +390,13 @@ export default async function PolicyPage() {
     trumpMetrics,
     shockwaves,
   ] = await Promise.all([
-    PolicyService.getRegimeStatus(),
-    PolicyService.getLegislationEvents(30),
-    PolicyService.getExecutiveEvents(30),
-    PolicyService.getTariffDeadlines(),
-    PolicyService.getAgencyHeatmap(),
-    PolicyService.getTrumpEffectMetrics(),
-    PolicyService.getShockwaveEvents(),
+    withFallback("getRegimeStatus", () => PolicyService.getRegimeStatus(), defaultRegime),
+    withFallback("getLegislationEvents", () => PolicyService.getLegislationEvents(30), []),
+    withFallback("getExecutiveEvents", () => PolicyService.getExecutiveEvents(30), []),
+    withFallback("getTariffDeadlines", () => PolicyService.getTariffDeadlines(), []),
+    withFallback("getAgencyHeatmap", () => PolicyService.getAgencyHeatmap(), []),
+    withFallback("getTrumpEffectMetrics", () => PolicyService.getTrumpEffectMetrics(), []),
+    withFallback("getShockwaveEvents", () => PolicyService.getShockwaveEvents(), []),
   ]);
 
   // Extract metric for Bureaucracy Velocity
@@ -389,18 +414,18 @@ export default async function PolicyPage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-20 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-36 pb-20">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* HEADER */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Gavel className="w-8 h-8" />
-              <h1 className="text-3xl font-bold tracking-tight text-white">
+              <h1 className="text-5xl font-bold tracking-tight text-white">
                 Policy Intelligence
               </h1>
             </div>
-            <p className="text-slate-400">
+            <p className="text-slate-400 text-sm font-mono">
               Monitoring {agencies.length} agencies and{" "}
               {legislation.length + executive.length} active regulatory events
             </p>
