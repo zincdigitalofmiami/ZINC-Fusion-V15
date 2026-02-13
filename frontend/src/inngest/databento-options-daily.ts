@@ -381,7 +381,6 @@ export const databentoOptionsDaily = inngest.createFunction(
 
     // Calculate date range: last 5 days to handle weekends/holidays
     const endDate = new Date();
-    endDate.setUTCDate(endDate.getUTCDate() - 1);
     const startDate = new Date(endDate);
     startDate.setUTCDate(startDate.getUTCDate() - 5);
 

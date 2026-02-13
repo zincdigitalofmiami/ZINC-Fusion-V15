@@ -14,9 +14,8 @@ interface DatabentoDailyQuote {
 }
 
 async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
-  // Subtract 1 day — Databento historical API lags ~24h for daily bars
+  // No T-1 offset: job runs 06:05 CT, ~13h after CME close — yesterday's bar is available
   const end = new Date();
-  end.setUTCDate(end.getUTCDate() - 1);
   end.setUTCHours(0, 0, 0, 0);
   const start = new Date(end.getTime() - 5 * 24 * 60 * 60 * 1000);
 

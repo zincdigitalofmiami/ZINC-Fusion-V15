@@ -141,7 +141,6 @@ export const databentoFxDaily = inngest.createFunction(
         try {
           // Fetch last 5 days for robustness
           const endDate = new Date();
-          endDate.setUTCDate(endDate.getUTCDate() - 1);
           endDate.setUTCHours(0, 0, 0, 0);
 
           const startDate = new Date(endDate);
