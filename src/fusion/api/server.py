@@ -1285,7 +1285,7 @@ def zl_intraday(
     Returns data for the specified number of hours.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             timestamp,
             open,
@@ -1294,9 +1294,10 @@ def zl_intraday(
             close,
             volume
         FROM analytics.price_15m
-        WHERE timestamp > NOW() - INTERVAL '{hours} hours'
+        WHERE timestamp > NOW() - INTERVAL '1 hour' * $1
         ORDER BY timestamp ASC
-        """
+        """,
+        [hours]
     )
 
     # Format for charting libraries (TradingView lightweight-charts format)
@@ -1334,7 +1335,7 @@ def zl_intraday_ohlc(
     Returns ISO timestamps for broader compatibility.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             timestamp,
             open,
@@ -1345,9 +1346,10 @@ def zl_intraday_ohlc(
             day_high,
             day_low
         FROM analytics.price_15m
-        WHERE timestamp > NOW() - INTERVAL '{days} days'
+        WHERE timestamp > NOW() - INTERVAL '1 day' * $1
         ORDER BY timestamp ASC
-        """
+        """,
+        [days]
     )
 
     bars = []
@@ -1585,17 +1587,17 @@ def pulse_domain_history(
     Get historical Intel Drops for a specific domain.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, created_at
         FROM features.intel_drops_event
-        WHERE domain = ?
-          AND horizon = ?
-          AND as_of_ts >= NOW() - INTERVAL '{days} days'
+        WHERE domain = $1
+          AND horizon = $2
+          AND as_of_ts >= NOW() - INTERVAL '1 day' * $3
         ORDER BY as_of_ts ASC
         """,
-        [domain.upper(), horizon.upper()],
+        [domain.upper(), horizon.upper(), days],
     )
 
     return {
