@@ -77,7 +77,7 @@ const CRUSH_EXPERT_PROMPT = `You are a soybean crush margin specialist analyzing
 
 KEY RELATIONSHIPS:
 - Board crush = (11 × ZM) + (ZL/100) - ZS  (simplified)
-- <$1.00/bu = crisis, $1.00-1.25 = stressed, $1.25-1.50 = tight, $1.50-1.75 = neutral, $1.75-2.00 = healthy, >$2.00 = strong
+- <USD 1.00/bu = crisis, USD 1.00-1.25 = stressed, USD 1.25-1.50 = tight, USD 1.50-1.75 = neutral, USD 1.75-2.00 = healthy, >USD 2.00 = strong
 - Oil share = ZL value / total product value (typically 42-48%)
 - Falling oil share = meal driving crush decisions, rising = oil demand strong
 
@@ -276,10 +276,10 @@ export function generateFallbackDriverIntel(data: DriverIntelData): DriverIntel 
     },
     crush: {
       whatsHappening: data.score >= 65
-        ? `Crushers are getting squeezed hard. At $${crushValue?.toFixed(2) ?? '<1.25'}/bushel margins, some plants will slow down or shut. Less crushing = less soy oil supply = prices should firm up.`
+        ? `Crushers are getting squeezed hard. At USD ${crushValue?.toFixed(2) ?? '<1.25'}/bushel margins, some plants will slow down or shut. Less crushing = less soy oil supply = prices should firm up.`
         : data.score <= 35
-        ? `Crushers are printing money at $${crushValue?.toFixed(2) ?? '>1.75'}/bushel margins. Every plant is running full tilt. That means a flood of soy oil hitting the market. Prices face headwinds.`
-        : `Crush margins around $${crushValue?.toFixed(2) ?? '1.50'}/bushel are workable. Plants running normal schedules. Supply is steady, nothing dramatic either way.`,
+        ? `Crushers are printing money at USD ${crushValue?.toFixed(2) ?? '>1.75'}/bushel margins. Every plant is running full tilt. That means a flood of soy oil hitting the market. Prices face headwinds.`
+        : `Crush margins around USD ${crushValue?.toFixed(2) ?? '1.50'}/bushel are workable. Plants running normal schedules. Supply is steady, nothing dramatic either way.`,
       macroContext: crushValue && crushValue < 1.25
         ? `Bean prices are too high relative to what crushers can sell oil and meal for. Something has to give - either beans drop or product prices rise.`
         : crushValue && crushValue > 1.75
@@ -314,7 +314,7 @@ export function generateFallbackDriverIntel(data: DriverIntelData): DriverIntel 
       macroContext: cnyRate && cnyRate > 7.2
         ? `Yuan is weak at ${cnyRate.toFixed(2)}. That makes Brazilian soy even cheaper for Chinese buyers. US gulf is uncompetitive.`
         : `Currency isn't helping or hurting much. The real issue is the 13% US tariff vs 3% for Brazil.`,
-      supplyDemand: `Here's the math: US soy to China faces 13% tariff. Brazil/Argentina pay 3%. That's a $20-30/MT disadvantage before freight. We only win when Brazil runs short.`,
+      supplyDemand: `Here's the math: US soy to China faces 13% tariff. Brazil/Argentina pay 3%. That's a USD 20-30/MT disadvantage before freight. We only win when Brazil runs short.`,
       geopolitical: data.score >= 50
         ? `Trade war risk is real. Remember 2018-2019? China switched to Brazil overnight. Could happen again.`
         : `No immediate trade war threat, but the structural disadvantage is permanent. Don't count on China demand surprises.`,

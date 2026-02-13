@@ -92,7 +92,7 @@ export default function StatusBar({
     <div className="status-bar">
       <div className="status-left">
         <div className="zl-price">
-          ZL: ${zlPrice.toFixed(2)}
+          ZL: USD {zlPrice.toFixed(2)}
           <span className={`price-delta ${priceChangeClass}`}>
             {" "}
             {isPositive ? "+" : ""}

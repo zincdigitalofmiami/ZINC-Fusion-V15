@@ -73,7 +73,7 @@ export function PriceOutlookCard({
       {/* Forecast price — the hero number */}
       <div className="mb-1">
         <span className="text-4xl md:text-5xl font-bold text-white tracking-tight font-mono">
-          ${forecastPrice.toFixed(2)}
+          USD {forecastPrice.toFixed(2)}
         </span>
       </div>
 
@@ -102,9 +102,9 @@ export function PriceOutlookCard({
 
           {/* Range labels */}
           <div className="flex justify-between text-base font-mono text-slate-300 mt-2">
-            <span>${rangeLow.toFixed(2)}</span>
-            <span className="text-xs text-slate-500">▲ current (${currentPrice.toFixed(2)})</span>
-            <span>${rangeHigh.toFixed(2)}</span>
+            <span>USD {rangeLow.toFixed(2)}</span>
+            <span className="text-xs text-slate-500">▲ current (USD {currentPrice.toFixed(2)})</span>
+            <span>USD {rangeHigh.toFixed(2)}</span>
           </div>
         </div>
       ) : (

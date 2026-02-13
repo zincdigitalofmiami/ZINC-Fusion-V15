@@ -44,7 +44,7 @@ interface DriverSummary {
   status: string
   impact: string
   rawValue: number | null  // The actual underlying value (VIX level, crush margin, etc.)
-  unit: string             // e.g., 'VIX points', '$/bu', 'CNY/$', 'index'
+  unit: string             // e.g., 'VIX points', 'USD/bu', 'CNY/USD', 'index'
   asOfDate: string | null  // When this data was last updated
   source: 'live' | 'stale' | 'unavailable'
 }
@@ -286,11 +286,11 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         score: crushScore ?? 0,
         status: crushScore === null ? 'NO DATA' : crushScore >= 65 ? 'TIGHT' : crushScore <= 35 ? 'FLUSH' : 'NORMAL',
         impact: crushScore === null ? 'Crush data unavailable — score excluded from average' :
-                crushScore >= 65 ? `Plants slowing at $${crush!.toFixed(2)}/bu - supply tightening` :
-                crushScore <= 35 ? `Plants running full at $${crush!.toFixed(2)}/bu - plenty of oil` :
-                `Normal margins at $${crush!.toFixed(2)}/bu`,
+                crushScore >= 65 ? `Plants slowing at USD ${crush!.toFixed(2)}/bu - supply tightening` :
+                crushScore <= 35 ? `Plants running full at USD ${crush!.toFixed(2)}/bu - plenty of oil` :
+                `Normal margins at USD ${crush!.toFixed(2)}/bu`,
         rawValue: crush,
-        unit: '$/bushel',
+        unit: 'USD/bushel',
         asOfDate: crushDate,
         source: checkFreshness(crushDate, 'Crush')
       },
@@ -338,7 +338,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     return {
       drivers: [
         { name: 'Markets', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'VIX points', asOfDate: null, source: 'unavailable' },
-        { name: 'Crush', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: '$/bushel', asOfDate: null, source: 'unavailable' },
+        { name: 'Crush', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/bushel', asOfDate: null, source: 'unavailable' },
         { name: 'China', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'CNY/USD', asOfDate: null, source: 'unavailable' },
         { name: 'Trade', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' }
       ],

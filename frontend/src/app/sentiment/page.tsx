@@ -761,7 +761,7 @@ export default function SentimentPage() {
             label="Crush Margin"
             value={
               metrics?.crush.board_crush != null
-                ? `$${metrics.crush.board_crush.toFixed(2)}/bu`
+                ? `USD ${metrics.crush.board_crush.toFixed(2)}/bu`
                 : "—"
             }
             loading={loading && !metrics}

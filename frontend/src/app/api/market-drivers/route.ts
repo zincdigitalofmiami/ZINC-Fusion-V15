@@ -126,7 +126,7 @@ const OVX = { LOW: 25, NORMAL: 35, ELEVATED: 50, HIGH: 70 };
 // VIX-ZL Correlation Thresholds (KEY SOY METRIC)
 const VIX_ZL_CORR = { HIGH: 0.5, MODERATE: 0.3, LOW: 0.1, NEGATIVE: -0.1 };
 
-// Board Crush ($/bushel)
+// Board Crush (USD/bushel)
 const CRUSH = {
   DANGER: 0.75,
   SEVERE: 1.0,
@@ -518,17 +518,17 @@ function calculateCrushPressure(
   else if (score >= 30) level = "Healthy";
   else level = "Max Utilization";
 
-  // Headlines with board crush context (<$1 crisis, $1.50 neutral, >$2 strong)
+  // Headlines with board crush context (<USD 1 crisis, USD 1.50 neutral, >USD 2 strong)
   const headline =
     score >= 75
-      ? "ZL Mixed - Crush Plants Idling (<$1.00/bu margins)"
+      ? "ZL Mixed - Crush Plants Idling (<USD 1.00/bu margins)"
       : score >= 55
-        ? "ZL Cautious - Processor Margins Tight ($1.00-1.50/bu)"
+        ? "ZL Cautious - Processor Margins Tight (USD 1.00-1.50/bu)"
         : score >= 40
-          ? "ZL Neutral - Crush Economics Balanced (~$1.50/bu)"
+          ? "ZL Neutral - Crush Economics Balanced (~USD 1.50/bu)"
           : score >= 25
-            ? "ZL Supportive - Healthy Crush ($1.75+/bu)"
-            : "ZL Watch Supply - Max Crush at $2+/bu";
+            ? "ZL Supportive - Healthy Crush (USD 1.75+/bu)"
+            : "ZL Watch Supply - Max Crush at USD 2+/bu";
 
   return {
     score: Math.round(score * 10) / 10,
@@ -995,11 +995,11 @@ function generateMarketIntelligence(
   // Crush - what it means for supply
   if (crush.score >= 65) {
     summaryParts.push(
-      `Crushers struggling at $${crushValue.toFixed(2)}/bu margins - supply may tighten.`,
+      `Crushers struggling at USD ${crushValue.toFixed(2)}/bu margins - supply may tighten.`,
     );
   } else if (crush.score <= 35) {
     summaryParts.push(
-      `Crushers making money at $${crushValue.toFixed(2)}/bu - plenty of oil supply.`,
+      `Crushers making money at USD ${crushValue.toFixed(2)}/bu - plenty of oil supply.`,
     );
   }
 
@@ -1058,7 +1058,7 @@ function generateMarketIntelligence(
       label: "Crush",
       outlook:
         crush.score >= 65 ? "TIGHT" : crush.score <= 35 ? "FLUSH" : "NORMAL",
-      detail: `$${crushValue.toFixed(2)}/bu margins - ${crush.score >= 65 ? "plants slowing" : crush.score <= 35 ? "running full out" : "normal pace"}`,
+      detail: `USD ${crushValue.toFixed(2)}/bu margins - ${crush.score >= 65 ? "plants slowing" : crush.score <= 35 ? "running full out" : "normal pace"}`,
     },
     {
       label: "China",

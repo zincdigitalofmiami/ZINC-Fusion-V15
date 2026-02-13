@@ -106,7 +106,7 @@ KEY RELATIONSHIPS YOU UNDERSTAND:
 THRESHOLDS YOU KNOW:
 - VIX: <15 calm, 15-20 normal, 20-25 elevated, 25-30 high, 30-40 fear, >40 panic
 - OVX: <25 calm, 25-35 normal, 35-50 elevated, >50 high
-- Board Crush: <$1.00 crisis, $1.00-1.25 stressed, $1.25-1.50 tight, $1.50-1.75 neutral, $1.75-2.00 healthy, >$2.00 strong
+- Board Crush: <USD 1.00 crisis, USD 1.00-1.25 stressed, USD 1.25-1.50 tight, USD 1.50-1.75 neutral, USD 1.75-2.00 healthy, >USD 2.00 strong
 - CNY: 7.00 strong, 7.15 normal, 7.30 weak, 7.45 stress, >7.60 crisis
 - TPU: <100 calm, 100-200 normal, 200-400 elevated, >400 high
 
@@ -191,7 +191,7 @@ VOLATILITY:
 - Pre-calculated pressure score: ${data.scores.vix}/100
 
 CRUSH ECONOMICS:
-- Board Crush: $${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ''}
+- Board Crush: USD ${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ''}
 - Pre-calculated pressure score: ${data.scores.crush}/100
 
 CHINA/TRADE:
@@ -280,12 +280,12 @@ export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
   const keySupports: string[] = []
 
   if (data.scores.vix >= 65) keyRisks.push(`VIX at ${data.vix.toFixed(1)} - fund liquidation risk`)
-  if (data.scores.crush >= 65) keyRisks.push(`Crush margins squeezed at $${data.boardCrush.toFixed(2)}`)
+  if (data.scores.crush >= 65) keyRisks.push(`Crush margins squeezed at USD ${data.boardCrush.toFixed(2)}`)
   if (data.scores.china >= 65) keyRisks.push(`China tension elevated - CNY at ${data.cnyRate.toFixed(2)}`)
   if (data.scores.tariff >= 65) keyRisks.push(`Tariff risk high - TPU at ${data.tpu.toFixed(0)}`)
 
   if (data.scores.vix <= 35) keySupports.push(`Low VIX at ${data.vix.toFixed(1)} - stable conditions`)
-  if (data.scores.crush <= 35) keySupports.push(`Strong crush at $${data.boardCrush.toFixed(2)} - processor demand`)
+  if (data.scores.crush <= 35) keySupports.push(`Strong crush at USD ${data.boardCrush.toFixed(2)} - processor demand`)
   if (data.scores.china <= 35) keySupports.push(`Constructive China trade flow`)
   if (data.scores.tariff <= 35) keySupports.push(`Trade policy calm`)
 

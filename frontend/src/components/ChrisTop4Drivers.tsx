@@ -491,7 +491,7 @@ export function ChrisTop4Drivers() {
           label="Crush Pressure"
           data={d?.crush_pressure ?? null}
           metrics={[
-            { key: 'board_crush_value', label: 'Crush Margin', format: (v) => v ? `$${v.toFixed(2)}/bu` : '--' },
+            { key: 'board_crush_value', label: 'Crush Margin', format: (v) => v ? `USD ${v.toFixed(2)}/bu` : '--' },
             { key: 'oil_share_value', label: 'Oil Value Share', format: (v) => v !== null ? `${v?.toFixed(1)}%` : '--' },
             { key: 'oil_share_5d_change', label: '5-Day Change', format: (v) => v !== null ? `${v! >= 0 ? '+' : ''}${v?.toFixed(1)}%` : '--' },
           ]}

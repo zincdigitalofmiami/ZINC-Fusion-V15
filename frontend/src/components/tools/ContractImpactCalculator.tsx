@@ -50,7 +50,12 @@ export function ContractImpactCalculator() {
 
   const formatCurrency = (val: number) => {
     const sign = val >= 0 ? '+' : '';
-    return `${sign}${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val)}`;
+    return `${sign}${new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      currencyDisplay: 'code',
+      maximumFractionDigits: 0
+    }).format(val)}`;
   };
 
   const getPnlColor = (val: number) => {
