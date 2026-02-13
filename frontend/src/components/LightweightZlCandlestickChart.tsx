@@ -176,6 +176,7 @@ export function LightweightZlCandlestickChart({
             id: string;
             kind: "ENTRY" | "TP" | "SL";
             label: string;
+            horizonLabel?: string;
             horizonDays: number;
             asOfDate: string;
             forecastDate: string;
@@ -183,10 +184,14 @@ export function LightweightZlCandlestickChart({
             priceLow: number;
             priceHigh: number;
             mae: number | null;
+            probabilityMethod?: string;
+            probabilityZone?: string;
+            coveragePct?: number;
           }) => ({
             id: t.id,
             kind: t.kind,
             label: t.label,
+            horizonLabel: t.horizonLabel,
             startTime: Math.floor(
               new Date(t.asOfDate).getTime() / 1000,
             ) as UTCTimestamp,
@@ -197,6 +202,9 @@ export function LightweightZlCandlestickChart({
             priceLow: t.priceLow,
             priceHigh: t.priceHigh,
             mae: t.mae,
+            probabilityMethod: t.probabilityMethod,
+            probabilityZone: t.probabilityZone,
+            coveragePct: t.coveragePct,
             asOfDate: t.asOfDate,
             horizonDays: t.horizonDays,
           }),

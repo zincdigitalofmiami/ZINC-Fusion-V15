@@ -6,12 +6,12 @@ const pool = dbPool;
 /**
  * GET /api/zl/forecast-targets
  *
- * Returns the latest Core Model forecasts shaped for the
+ * Returns the latest Core Model probabilistic zones shaped for the
  * ForecastTargetsPrimitive chart overlay.
  *
  * Data sources (all real — no placeholders):
- *   - forecasts.production_1d        → price_p30/p50/p70 per horizon (OOF targets)
- *   - training.model_runs_event      → MAE per horizon (model accuracy)
+ *   - forecasts.production_1d        → Monte Carlo quantile zones (price_p30/p50/p70)
+ *   - training.model_runs_event      → MAE per horizon (error envelope language)
  */
 export async function GET() {
   try {
@@ -79,7 +79,7 @@ export async function GET() {
     );
     const currentPrice = parseFloat(String(latestRow.current_price));
 
-    const targets = forecastResult.rows.map(
+    const targetInputs = forecastResult.rows.map(
       (row: {
         horizon_days: number;
         as_of_date: string;
@@ -91,11 +91,13 @@ export async function GET() {
         model_version: string | null;
       }) => {
         const h = row.horizon_days;
+        const direction = row.price_p50 >= currentPrice ? "TP" : "SL";
+        const rankKey = `${h}-${row.as_of_date}`;
 
         return {
-          id: `tp-${h}d`,
-          kind: "TP" as const,
-          label: `${h}d`,
+          rankKey,
+          kind: direction as "TP" | "SL",
+          horizonLabel: `${h}d`,
           horizonDays: h,
           asOfDate: row.as_of_date,
           forecastDate: row.forecast_date,
@@ -103,10 +105,47 @@ export async function GET() {
           priceLow: row.price_p30,
           priceHigh: row.price_p70,
           mae: maeByHorizon[h] ?? null,
+          probabilityMethod: "MC" as const,
+          probabilityZone: "P30-P70" as const,
+          coveragePct: 40 as const,
           modelVersion: row.model_version,
         };
       },
     );
+
+    // Rank TP/SL zones by distance from current price for TradingView-style labels.
+    const tpZones = targetInputs
+      .filter((z) => z.kind === "TP")
+      .sort((a, b) => a.oofPrice - b.oofPrice);
+    const slZones = targetInputs
+      .filter((z) => z.kind === "SL")
+      .sort((a, b) => b.oofPrice - a.oofPrice);
+
+    const labelByKey = new Map<string, string>();
+    for (let i = 0; i < tpZones.length; i++) {
+      labelByKey.set(tpZones[i].rankKey, `TP${i + 1}`);
+    }
+    for (let i = 0; i < slZones.length; i++) {
+      labelByKey.set(slZones[i].rankKey, `SL${i + 1}`);
+    }
+
+    const targets = targetInputs.map((z) => ({
+      id: `${z.kind.toLowerCase()}-${z.horizonDays}d-${z.asOfDate}`,
+      kind: z.kind,
+      label: labelByKey.get(z.rankKey) ?? z.kind,
+      horizonLabel: z.horizonLabel,
+      horizonDays: z.horizonDays,
+      asOfDate: z.asOfDate,
+      forecastDate: z.forecastDate,
+      oofPrice: z.oofPrice,
+      priceLow: z.priceLow,
+      priceHigh: z.priceHigh,
+      mae: z.mae,
+      probabilityMethod: z.probabilityMethod,
+      probabilityZone: z.probabilityZone,
+      coveragePct: z.coveragePct,
+      modelVersion: z.modelVersion,
+    }));
 
     return NextResponse.json({
       symbol: "ZL",

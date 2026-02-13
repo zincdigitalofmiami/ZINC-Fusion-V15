@@ -2,18 +2,19 @@
  * ForecastTargetsPrimitive.ts
  *
  * Lightweight Charts v5 Series Primitive that draws forecast target zones
- * with price-axis labels. No cones — just shaded rectangles representing
- * the model's OOF price forecast and its uncertainty band.
+ * with price-axis labels using shaded zone areas representing
+ * the model's probabilistic price targets as zone areas.
  *
  * Data contract (all real, all from database):
  *   - oofPrice  = price_p50  from forecasts.production_1d
  *   - priceLow  = price_p30  from forecasts.production_1d
  *   - priceHigh = price_p70  from forecasts.production_1d
  *   - mae       = from training.model_runs_event
+ *   - probability metadata: Monte Carlo method + P30-P70 + coverage %
  *
  * Visual output per target:
  *   - Horizontal shaded rectangle from startTime → endTime at [priceLow, priceHigh]
- *   - Price-axis label: "5d 57.47 | MAE ±0.80"
+ *   - Price-axis label: "TP1 21d 57.47 | MC P30-P70 40% | MAE ±0.80"
  */
 import type {
   ISeriesPrimitive,
@@ -44,20 +45,26 @@ export interface ForecastTarget {
   id: string;
   /** Visual classification */
   kind: TargetKind;
-  /** Human label: "5d", "21d", "63d", "126d" */
+  /** Zone label: TP1, TP2, SL1, ... */
   label: string;
+  /** Optional horizon display label (e.g., "21d") */
+  horizonLabel?: string;
   /** Left edge of the zone (typically last-candle time) */
   startTime: UTCTimestamp;
   /** Right edge of the zone (forecast horizon date) */
   endTime: UTCTimestamp;
   /** Center of the zone — price_p50 from production_1d */
   oofPrice: number;
-  /** Lower band edge — price_p30 from production_1d */
+  /** Lower zone edge — price_p30 from production_1d */
   priceLow: number;
-  /** Upper band edge — price_p70 from production_1d */
+  /** Upper zone edge — price_p70 from production_1d */
   priceHigh: number;
   /** MAE from model_runs_event (null if unavailable) */
   mae: number | null;
+  /** Probability metadata used for labels */
+  probabilityMethod?: string;
+  probabilityZone?: string;
+  coveragePct?: number;
   /** ISO date string of the model's as_of_date (for staleness check) */
   asOfDate?: string;
   /** Horizon in calendar days — e.g. 5, 21, 63, 126 (for staleness check) */
@@ -91,16 +98,16 @@ function colors(kind: TargetKind): {
   switch (kind) {
     case "TP":
       return {
-        fill: "rgba(0, 200, 120, 0.18)",
-        stroke: "rgba(0, 200, 120, 0.55)",
-        axisBack: "rgba(0, 200, 120, 0.90)",
+        fill: "rgba(0, 200, 120, 0.20)",
+        stroke: "rgba(0, 200, 120, 0.60)",
+        axisBack: "rgba(0, 200, 120, 0.92)",
         axisText: "#0b0b0b",
       };
     case "SL":
       return {
-        fill: "rgba(220, 70, 70, 0.18)",
-        stroke: "rgba(220, 70, 70, 0.55)",
-        axisBack: "rgba(220, 70, 70, 0.90)",
+        fill: "rgba(245, 158, 11, 0.20)",
+        stroke: "rgba(245, 158, 11, 0.60)",
+        axisBack: "rgba(245, 158, 11, 0.92)",
         axisText: "#0b0b0b",
       };
     case "ENTRY":
@@ -148,9 +155,13 @@ function staleAdjust(c: ReturnType<typeof colors>): typeof c {
 // ---------------------------------------------------------------------------
 
 function formatLabel(t: ForecastTarget): string {
-  // MAE from model_runs_event, or fall back to quantile half-width
+  // MAE from model_runs_event, or fall back to zone half-width
   const errorVal = t.mae != null ? t.mae : (t.priceHigh - t.priceLow) / 2;
-  let label = `${t.label} ${t.oofPrice.toFixed(2)}  |  MAE ±${errorVal.toFixed(2)}`;
+  const method = t.probabilityMethod ?? "MC";
+  const zone = t.probabilityZone ?? "P30-P70";
+  const coverage = Number.isFinite(t.coveragePct) ? `${t.coveragePct}%` : "40%";
+  const horizon = t.horizonLabel ? ` ${t.horizonLabel}` : "";
+  let label = `${t.label}${horizon} ${t.oofPrice.toFixed(2)}  |  ${method} ${zone} ${coverage}  |  MAE ±${errorVal.toFixed(2)}`;
   if (isStale(t)) {
     label += "  STALE";
   }
