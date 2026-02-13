@@ -23,27 +23,95 @@ import {
 // UI COMPONENTS
 // ============================================================================
 
+// Dashboard risk-card palette (copied 1:1 from `frontend/src/components/ChrisTop4Drivers.tsx`)
+function getScoreColor(score: number): { stroke: string; glow: string } {
+  const s = Math.max(0, Math.min(100, score));
+  if (s <= 25) return { stroke: "#22C55E", glow: "rgba(34, 197, 94, 0.5)" };
+  if (s <= 40) {
+    const t = (s - 25) / 15;
+    return {
+      stroke: `rgb(${Math.round(34 + (234 - 34) * t)}, ${Math.round(
+        197 - (197 - 179) * t,
+      )}, ${Math.round(94 - (94 - 8) * t)})`,
+      glow: `rgba(${Math.round(34 + (234 - 34) * t)}, ${Math.round(
+        197 - (197 - 179) * t,
+      )}, ${Math.round(94 - (94 - 8) * t)}, 0.5)`,
+    };
+  }
+  if (s <= 55) return { stroke: "#EAB308", glow: "rgba(234, 179, 8, 0.5)" };
+  if (s <= 70) {
+    const t = (s - 55) / 15;
+    return {
+      stroke: `rgb(${Math.round(234 + (239 - 234) * t)}, ${Math.round(
+        179 - (179 - 115) * t,
+      )}, ${Math.round(8 + (0 - 8) * t)})`,
+      glow: `rgba(${Math.round(234 + (239 - 234) * t)}, ${Math.round(
+        179 - (179 - 115) * t,
+      )}, ${Math.round(8 + (0 - 8) * t)}, 0.5)`,
+    };
+  }
+  if (s <= 85) return { stroke: "#EF7300", glow: "rgba(239, 115, 0, 0.5)" };
+  return { stroke: "#EF4444", glow: "rgba(239, 68, 68, 0.6)" };
+}
+
+function getScoreTextColor(score: number): string {
+  if (score >= 70) return "text-red-400";
+  if (score >= 55) return "text-orange-400";
+  if (score >= 40) return "text-amber-400";
+  return "text-green-400";
+}
+
+function HorizontalMeter({ score }: { score: number }) {
+  const percentage = Math.min(Math.max(score, 0), 100);
+  const colors = getScoreColor(score);
+
+  return (
+    <div className="flex items-center gap-4 w-full">
+      <div className="flex-1 h-3 bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700 ease-out"
+          style={{
+            width: `${percentage}%`,
+            backgroundColor: colors.stroke,
+            boxShadow: `0 0 8px ${colors.glow}`,
+          }}
+        />
+      </div>
+      <span
+        className="text-3xl font-bold tabular-nums min-w-[3ch] text-right"
+        style={{ color: colors.stroke }}
+      >
+        {Math.round(score)}
+      </span>
+    </div>
+  );
+}
+
 function RegimeBadge({ regime }: { regime: RegimeState }) {
-  // Dashboard slate style - NO gaming colors
-  const colors = {
-    Minimal: "bg-slate-800 text-slate-400 border-slate-700",
-    "Background Noise": "bg-slate-700 text-slate-300 border-slate-600",
-    Elevated: "bg-slate-600 text-slate-200 border-slate-500",
-    "Retaliation Risk": "bg-slate-500 text-white border-slate-400",
-    "Active War": "bg-slate-400 text-white border-slate-300",
-  };
-  const colorClass = colors[regime.label] || colors["Minimal"];
+  const score = regime.score ?? 0;
+  const colors = getScoreColor(score);
+  const borderStyle =
+    score >= 65
+      ? { borderColor: colors.stroke, boxShadow: `0 0 20px ${colors.glow}` }
+      : { borderColor: "rgba(255,255,255,0.08)" };
 
   return (
     <div
-      className={`flex flex-col items-end px-6 py-3 rounded-lg border ${colorClass}`}
+      className="bg-[#0a0a0a] border rounded-2xl p-6 md:p-7 flex flex-col items-end"
+      style={borderStyle}
     >
-      <div className="text-xs uppercase tracking-widest opacity-60 mb-1">
+      <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">
         Threat Level
       </div>
-      <div className="text-2xl font-bold tracking-tight">
-        {regime.label.toUpperCase()}
+
+      <div className="w-full mb-3">
+        <HorizontalMeter score={score} />
       </div>
+
+      <div className={`text-lg font-medium ${getScoreTextColor(score)}`}>
+        {regime.label}
+      </div>
+
       <div className="text-xs font-mono mt-1 opacity-50">
         SCORE: {Math.round(regime.score)}/100 | TPU:{" "}
         {Math.round(regime.components.tpu)}
@@ -68,14 +136,18 @@ function MetricCard({
   trend,
 }: MetricCardProps) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
+    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 hover:border-white/20 transition-all duration-300">
       <div className="flex justify-between items-start mb-2">
         <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
           <Icon className="w-5 h-5" />
         </div>
         {trend && (
           <span
-            className={`text-xs font-medium px-2 py-1 rounded-full ${trend > 0 ? "bg-red-950 text-red-400" : "bg-green-950 text-green-400"}`}
+            className={`text-xs font-medium px-2 py-1 rounded-full border ${
+              trend > 0
+                ? "bg-red-500/10 text-red-400 border-red-500/20"
+                : "bg-green-500/10 text-green-400 border-green-500/20"
+            }`}
           >
             {trend > 0 ? "+" : ""}
             {trend}%
@@ -93,7 +165,7 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
   const maxCount = Math.max(...agencies.map((a) => a.count), 1);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
+    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <Building2 className="w-5 h-5" />
         Enforcement Radar
@@ -112,8 +184,14 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
             </div>
             <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-400/60 rounded-full group-hover:bg-blue-400 transition-all"
-                style={{ width: `${(agency.count / maxCount) * 100}%` }}
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{
+                  width: `${(agency.count / maxCount) * 100}%`,
+                  backgroundColor: getScoreColor(
+                    (agency.count / maxCount) * 100,
+                  ).stroke,
+                  boxShadow: `0 0 8px ${getScoreColor((agency.count / maxCount) * 100).glow}`,
+                }}
               />
             </div>
           </div>
@@ -125,7 +203,7 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
 
 function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
+    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <Activity className="w-5 h-5" />
         Shockwave Events
@@ -172,8 +250,8 @@ interface FeedColumnProps {
 
 function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
   return (
-    <div className="col-span-1 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-[600px]">
-      <div className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
+    <div className="col-span-1 bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden flex flex-col h-[600px]">
+      <div className="p-4 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur sticky top-0 z-10">
         <h3 className="font-semibold text-slate-200 flex items-center gap-2">
           <Icon className="w-4 h-4 text-slate-400" />
           {title}
@@ -200,7 +278,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
           return (
             <div
               key={item.id}
-              className="group p-4 bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-600 transition-all"
+              className="group p-4 bg-slate-950 border border-white/5 rounded-xl hover:border-white/20 transition-all"
             >
               <div className="flex justify-between items-start mb-2">
                 <span
@@ -221,12 +299,23 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
 
               {type === "deadline" && daysToExpiry !== undefined && (
                 <div className="w-full bg-slate-900 h-1.5 rounded-full mt-2 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-slate-500"
-                    style={{
-                      width: `${Math.max(5, 100 - (daysToExpiry / 365) * 100)}%`,
-                    }}
-                  />
+                  {(() => {
+                    const urgencyScore = Math.max(
+                      0,
+                      Math.min(100, 100 - (daysToExpiry / 365) * 100),
+                    );
+                    const c = getScoreColor(urgencyScore);
+                    return (
+                      <div
+                        className="h-full rounded-full transition-all duration-700 ease-out"
+                        style={{
+                          width: `${Math.max(5, urgencyScore)}%`,
+                          backgroundColor: c.stroke,
+                          boxShadow: `0 0 8px ${c.glow}`,
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               )}
 
@@ -248,7 +337,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
                 <a
                   href={url}
                   target="_blank"
-                  className="flex items-center gap-1 text-xs text-blue-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-1 text-xs text-cyan-400 mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Source <ExternalLink className="w-3 h-3" />
                 </a>
