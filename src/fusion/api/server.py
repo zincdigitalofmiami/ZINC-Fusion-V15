@@ -347,22 +347,33 @@ def overview_models() -> dict[str, Any]:
             """
         )
 
-    # Specialist OOF — v3 has no specialist OOF tables (legacy v2 concept).
-    # Check for individual training.oof_specialist_*_1d tables if they exist.
+    # Specialist OOF — v3 uses specialist_signals_1d instead of individual tables.
+    # Query all specialists in a single query using GROUP BY.
     specialist_rows = []
-    for s in specialists:
-        table = f"oof_specialist_{s}_1d"
-        if _table_exists("training", table):
-            row = _fetch_rows(
-                f"""
-                SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
-                       MIN(trade_date) as start_date, MAX(trade_date) as end_date
-                FROM training.{table}
-                """
-            )[0]
-        else:
-            row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
-        specialist_rows.append(row)
+    if _table_exists("training", "specialist_signals_1d"):
+        # Single query to get all specialist stats
+        specialist_data = _fetch_rows(
+            """
+            SELECT bucket as specialist, COUNT(*)::BIGINT as rows,
+                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+            FROM training.specialist_signals_1d
+            WHERE bucket = ANY(%s)
+            GROUP BY bucket
+            """,
+            [specialists]
+        )
+        # Create lookup dict for O(1) access
+        specialist_dict = {row["specialist"]: row for row in specialist_data}
+        # Build result maintaining specialist order
+        for s in specialists:
+            if s in specialist_dict:
+                specialist_rows.append(specialist_dict[s])
+            else:
+                specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
+    else:
+        # Fallback: no specialist_signals_1d table exists
+        for s in specialists:
+            specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
 
     # Combined specialist signals — check for specialist_signals_1d table
     combined = {"exists": False, "rows": 0, "start_date": None, "end_date": None}
