@@ -142,6 +142,34 @@ def _require_db_token(x_api_token: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Token.")
 
 
+def verify_api_key(x_api_key: str | None = Header(default=None)) -> str:
+    """
+    Verify API key against environment variable.
+    
+    Used to protect business logic endpoints (dashboard, forecasts, market data).
+    Separate from _require_db_token which protects database explorer endpoints.
+    
+    Set FUSION_API_KEY in environment to enable authentication.
+    If not set, authentication is disabled (development mode).
+    """
+    expected_key = os.environ.get("FUSION_API_KEY", "").strip()
+    
+    # If no API key is configured, allow access (development mode)
+    if not expected_key:
+        logger.warning("FUSION_API_KEY not set - API authentication disabled (development mode)")
+        return "development"
+    
+    # If API key is configured, require it
+    if not x_api_key or x_api_key.strip() != expected_key:
+        logger.warning(f"API authentication failed - invalid or missing X-API-Key header")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing X-API-Key. Please provide a valid API key in the X-API-Key header."
+        )
+    
+    return x_api_key
+
+
 def _validate_readonly_sql(sql: str) -> str:
     normalized = (sql or "").strip()
     if not normalized:
@@ -168,7 +196,10 @@ def health() -> dict[str, str]:
 
 @app.get("/api/dashboard/summary")
 @handle_db_errors
-def dashboard_summary(symbol: str = "ZL") -> dict[str, Any]:
+def dashboard_summary(
+    symbol: str = "ZL",
+    _api_key: str = Depends(verify_api_key)
+) -> dict[str, Any]:
     price_rows = _fetch_rows(
         """
         SELECT as_of_date, close
@@ -385,7 +416,7 @@ def _recent_files(glob_path: str, limit: int = 5) -> list[dict[str, Any]]:
 
 @app.get("/api/overview/models")
 @handle_db_errors
-def overview_models() -> dict[str, Any]:
+def overview_models(_api_key: str = Depends(verify_api_key)) -> dict[str, Any]:
     """
     Read-only operational snapshot for the /overview dashboard.
 
@@ -657,6 +688,7 @@ def overview_models() -> dict[str, Any]:
 def market_zl(
     symbol: str = "ZL",
     limit: int = Query(2000, ge=1, le=10000),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     rows = _fetch_rows(
         """
@@ -687,6 +719,7 @@ def market_zl(
 def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     # Schema: forecast_date (not as_of_date), horizon (not horizon_days)
     rows = _fetch_rows(
@@ -709,6 +742,7 @@ def forecast_quantiles(
 def forecast_bands(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     if _table_exists("forecasts", "forecast_quantiles"):
         horizon_col = _first_existing_column(
