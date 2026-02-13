@@ -3,7 +3,7 @@
 ZINC-FUSION-V15: L5-A Monte Carlo Risk Engine
 
 Runs Monte Carlo simulation using calibrated quantile distributions from
-the L4 meta-ensemble to generate risk metrics, probability distributions,
+forecasts.production_1d to generate risk metrics, probability distributions,
 and path statistics for visualization.
 
 NON-NEGOTIABLES:
@@ -48,10 +48,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # GARCH volatility forecasting
-from src.fusion.forecasting.volatility import (
-    garch_volatility_for_monte_carlo,
-    calculate_risk_metrics,
-)
+from src.fusion.forecasting.volatility import garch_volatility_for_monte_carlo
 
 # Setup logging
 logging.basicConfig(
@@ -107,16 +104,25 @@ def get_postgres_connection():
     return psycopg2.connect(database_url)
 
 
-def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
-    """Load meta-ensemble predictions for a given horizon."""
-    logger.info(f"Loading meta-ensemble predictions for horizon={horizon}d")
+def load_production_predictions(conn, horizon: int) -> pd.DataFrame:
+    """Load production forecasts for a given horizon from forecasts.production_1d."""
+    logger.info(f"Loading production forecasts for horizon={horizon}d")
 
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, p10, p50, p90
-            FROM "model"."meta_ensemble"
+                        SELECT
+                                as_of_date,
+                                current_price,
+                                price_p30,
+                                price_p50,
+                                price_p70,
+                                price_p10_cal,
+                                price_p90_cal
+                        FROM forecasts.production_1d
             WHERE horizon = %s
+                            AND current_price IS NOT NULL
+                            AND price_p50 IS NOT NULL
             ORDER BY as_of_date DESC
             LIMIT 1000
         """,
@@ -128,8 +134,47 @@ def load_meta_predictions(conn, horizon: int) -> pd.DataFrame:
     if not rows:
         return None  # Let caller handle gracefully
 
-    df = pd.DataFrame(rows, columns=["as_of_date", "p10", "p50", "p90"])
-    logger.info(f"  Loaded {len(df):,} predictions")
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "as_of_date",
+            "current_price",
+            "p30",
+            "p50",
+            "p70",
+            "p10_cal",
+            "p90_cal",
+        ],
+    )
+
+    # Ensure tails are available; fallback to symmetric expansion from p30/p50/p70
+    df["p10"] = df["p10_cal"]
+    df["p90"] = df["p90_cal"]
+    missing_10 = df["p10"].isna()
+    missing_90 = df["p90"].isna()
+    df.loc[missing_10, "p10"] = df.loc[missing_10, "p30"] - (
+        df.loc[missing_10, "p50"] - df.loc[missing_10, "p30"]
+    )
+    df.loc[missing_90, "p90"] = df.loc[missing_90, "p70"] + (
+        df.loc[missing_90, "p70"] - df.loc[missing_90, "p50"]
+    )
+
+    logger.info(f"  Loaded {len(df):,} production rows")
+
+    # Staleness guard — reject inputs older than 5 business days, warn after 2
+    latest_date = pd.Timestamp(df["as_of_date"].max())
+    now = pd.Timestamp.now()
+    bdays_stale = len(pd.bdate_range(latest_date, now)) - 1
+    if bdays_stale > 5:
+        raise ValueError(
+            f"Stale production forecasts: latest as_of_date={latest_date.date()}, "
+            f"{bdays_stale} business days old. Run generate_production_forecasts.py first."
+        )
+    if bdays_stale > 2:
+        logger.warning(
+            f"  Production forecasts are {bdays_stale} business days stale "
+            f"(latest={latest_date.date()}). Consider re-running forecast generator."
+        )
 
     return df
 
@@ -199,7 +244,9 @@ def simulate_paths_asymmetric(
     p10: float,
     p50: float,
     p90: float,
+    start_price: float,
     horizon: int,
+    rng: np.random.Generator,
     vol_regime: str = "normal",
     n_sims: int = N_SIMULATIONS,
 ) -> np.ndarray:
@@ -213,15 +260,15 @@ def simulate_paths_asymmetric(
         p10: 10th percentile forecast (floor)
         p50: 50th percentile forecast (median)
         p90: 90th percentile forecast (ceiling)
+        start_price: Current price level
         horizon: Forecast horizon in days
+        rng: Local numpy Generator for reproducible, thread-safe randomness
         vol_regime: Current volatility regime
         n_sims: Number of simulations
 
     Returns:
         Array of shape (n_sims, horizon+1) with simulated paths
     """
-    np.random.seed(RANDOM_SEED)
-
     # Extract implied volatilities from quantile spread
     # Using inverse normal CDF: P10 = mu - 1.28*sigma, P90 = mu + 1.28*sigma
     z_90 = stats.norm.ppf(0.90)  # ≈ 1.28
@@ -241,10 +288,10 @@ def simulate_paths_asymmetric(
 
     # Initialize paths
     paths = np.zeros((n_sims, horizon + 1))
-    paths[:, 0] = p50  # Start at median forecast
+    paths[:, 0] = start_price
 
-    # Generate shocks
-    shocks = np.random.normal(0, 1, (n_sims, horizon))
+    # Generate shocks (local rng — reproducible regardless of call order)
+    shocks = rng.normal(0, 1, (n_sims, horizon))
 
     # Apply asymmetric diffusion
     for t in range(horizon):
@@ -264,8 +311,10 @@ def simulate_paths_garch(
     p10: float,
     p50: float,
     p90: float,
+    start_price: float,
     horizon: int,
     historical_returns: np.ndarray,
+    rng: np.random.Generator,
     vol_regime: str = "normal",
     n_sims: int = N_SIMULATIONS,
 ) -> np.ndarray:
@@ -275,41 +324,40 @@ def simulate_paths_garch(
     This is the ENHANCED simulation method that uses GJR-GARCH to forecast
     volatility with proper clustering and asymmetry (leverage effect).
 
+    Raises RuntimeError if GARCH fitting fails — caller handles fallback
+    with explicit model labeling.
+
     Args:
         p10: 10th percentile forecast (floor)
         p50: 50th percentile forecast (median)
         p90: 90th percentile forecast (ceiling)
+        start_price: Current price level
         horizon: Forecast horizon in days
         historical_returns: Historical return series for GARCH calibration
+        rng: Local numpy Generator for reproducible, thread-safe randomness
         vol_regime: Current volatility regime
         n_sims: Number of simulations
 
     Returns:
         Array of shape (n_sims, horizon+1) with simulated paths
     """
-    np.random.seed(RANDOM_SEED)
-
-    # Fit GARCH model to historical returns
-    try:
-        garch_vol, upside_mult, downside_mult = garch_volatility_for_monte_carlo(
-            historical_returns, horizon=horizon, model_type="gjr-garch"
-        )
-        logger.info(
-            f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}"
-        )
-    except Exception as e:
-        logger.warning(f"  GARCH fitting failed, falling back to asymmetric: {e}")
-        return simulate_paths_asymmetric(p10, p50, p90, horizon, vol_regime, n_sims)
+    # Fit GARCH model — let failures propagate to caller for honest labeling
+    garch_vol, upside_mult, downside_mult = garch_volatility_for_monte_carlo(
+        historical_returns, horizon=horizon, model_type="gjr-garch"
+    )
+    logger.info(
+        f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}"
+    )
 
     # Regime adjustment on top of GARCH
     vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
 
     # Initialize paths
     paths = np.zeros((n_sims, horizon + 1))
-    paths[:, 0] = p50  # Start at median forecast
+    paths[:, 0] = start_price
 
-    # Generate shocks
-    shocks = np.random.standard_t(df=5, size=(n_sims, horizon))  # Fat-tailed shocks
+    # Generate shocks (local rng — reproducible regardless of call order)
+    shocks = rng.standard_t(df=5, size=(n_sims, horizon))  # Fat-tailed shocks
     shocks = shocks / np.std(shocks)  # Normalize to unit variance
 
     # Apply GARCH-based diffusion
@@ -388,16 +436,16 @@ def fit_distribution(p10: float, p50: float, p90: float) -> Tuple[float, float]:
 
 
 def run_simulation(
-    mu: float, s: float, n_simulations: int = N_SIMULATIONS
+    mu: float, s: float, rng: np.random.Generator, n_simulations: int = N_SIMULATIONS
 ) -> np.ndarray:
     """Run Monte Carlo simulation using logistic distribution.
 
     Returns array of simulated returns.
     """
-    np.random.seed(RANDOM_SEED)
-
-    # Generate random draws from logistic distribution
-    simulated_returns = stats.logistic.rvs(loc=mu, scale=s, size=n_simulations)
+    # Use local rng for reproducibility (scipy accepts numpy Generator)
+    simulated_returns = stats.logistic.rvs(
+        loc=mu, scale=s, size=n_simulations, random_state=rng
+    )
 
     return simulated_returns
 
@@ -453,30 +501,8 @@ def calculate_risk_metrics(
 def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
     """Save risk metrics to Postgres."""
 
-    # First ensure table exists
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS risk_metrics (
-                id SERIAL PRIMARY KEY,
-                as_of_date TIMESTAMP NOT NULL,
-                horizon INTEGER NOT NULL,
-                var_01 DOUBLE PRECISION NOT NULL,
-                var_05 DOUBLE PRECISION NOT NULL,
-                var_10 DOUBLE PRECISION NOT NULL,
-                cvar_05 DOUBLE PRECISION NOT NULL,
-                prob_up DOUBLE PRECISION NOT NULL,
-                prob_up_5pct DOUBLE PRECISION NOT NULL,
-                prob_down_5pct DOUBLE PRECISION NOT NULL,
-                regime VARCHAR(20) NOT NULL,
-                tail_risk_flag BOOLEAN NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW(),
-                UNIQUE(as_of_date, horizon)
-            )
-        """)
-        conn.commit()
-
     insert_query = """
-        INSERT INTO risk_metrics
+        INSERT INTO analytics.risk_metrics
         (as_of_date, horizon, var_01, var_05, var_10, cvar_05,
          prob_up, prob_up_5pct, prob_down_5pct, regime, tail_risk_flag)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -512,7 +538,7 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
 
     with conn.cursor() as cur:
         execute_batch(cur, insert_query, batch, page_size=1000)
-    conn.commit()
+    # No commit here — caller owns the transaction boundary
 
     return len(batch)
 
@@ -520,44 +546,37 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
 def save_path_percentiles(
     conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, model_version: str
 ):
-    """Save path percentiles to probability_distributions table."""
-    with conn.cursor() as cur:
-        # Clear existing
-        cur.execute(
-            """
-            DELETE FROM "model"."probability_distributions"
-            WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
-        """,
-            (as_of_date, horizon),
+    """Save path percentiles to probability_distributions table (atomic upsert)."""
+    batch = []
+    for percentile, values in path_percentiles.items():
+        batch.append(
+            (
+                "ZL",
+                as_of_date,
+                horizon,
+                float(percentile),
+                values[-1],  # Terminal value
+                model_version,
+                datetime.now(),
+            )
         )
 
-        # Insert percentiles
-        batch = []
-        for percentile, values in path_percentiles.items():
-            # Store terminal value
-            batch.append(
-                (
-                    "ZL",
-                    as_of_date,
-                    horizon,
-                    float(percentile),
-                    values[-1],  # Terminal value
-                    model_version,
-                    datetime.now(),
-                )
-            )
-
+    with conn.cursor() as cur:
         execute_batch(
             cur,
             """
-            INSERT INTO "model"."probability_distributions"
+            INSERT INTO forecasts.probability_distributions
             (symbol, as_of_date, horizon, percentile, value, model_version, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (symbol, as_of_date, horizon, percentile)
+            DO UPDATE SET
+                value = EXCLUDED.value,
+                model_version = EXCLUDED.model_version,
+                created_at = EXCLUDED.created_at
         """,
             batch,
         )
-
-    conn.commit()
+    # No commit here — caller owns the transaction boundary
 
 
 def save_monte_carlo_run(
@@ -573,7 +592,7 @@ def save_monte_carlo_run(
         # Clear existing
         cur.execute(
             """
-            DELETE FROM "model"."monte_carlo_runs"
+            DELETE FROM forecasts.monte_carlo_runs
             WHERE symbol = 'ZL' AND as_of_date = %s AND horizon = %s
         """,
             (as_of_date, horizon),
@@ -582,7 +601,7 @@ def save_monte_carlo_run(
         # Insert summary with full path data for visualization
         cur.execute(
             """
-            INSERT INTO "model"."monte_carlo_runs"
+            INSERT INTO forecasts.monte_carlo_runs
             (symbol, as_of_date, horizon, num_sims, percentiles, model_version, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
@@ -596,14 +615,80 @@ def save_monte_carlo_run(
                 datetime.now(),
             ),
         )
+    # No commit here — caller owns the transaction boundary
 
-    conn.commit()
+
+def validate_quantile_ordering(p10: float, p50: float, p90: float, as_of_date) -> None:
+    """Ensure strict quantile ordering p10 < p50 < p90.
+
+    Raises ValueError on crossing — prevents nonsensical simulation paths.
+    """
+    if p10 >= p50:
+        raise ValueError(
+            f"Quantile crossing at {as_of_date}: p10={p10:.6f} >= p50={p50:.6f}"
+        )
+    if p50 >= p90:
+        raise ValueError(
+            f"Quantile crossing at {as_of_date}: p50={p50:.6f} >= p90={p90:.6f}"
+        )
+
+
+def compute_zone_probabilities(
+    paths: np.ndarray,
+    zone_low: float,
+    zone_high: float,
+    p10_floor: float,
+    p90_ceiling: float,
+) -> tuple[float, float, float]:
+    """Compute path-based probabilities for entering/touching forecast zones."""
+    path_slice = paths[:, 1:] if paths.shape[1] > 1 else paths
+    enter_zone = ((path_slice >= zone_low) & (path_slice <= zone_high)).any(axis=1)
+    touch_p10 = (path_slice <= p10_floor).any(axis=1)
+    touch_p90 = (path_slice >= p90_ceiling).any(axis=1)
+    return float(enter_zone.mean()), float(touch_p10.mean()), float(touch_p90.mean())
+
+
+def write_zone_probabilities(
+    conn,
+    as_of_date: datetime,
+    horizon: int,
+    prob_enter_zone: float,
+    prob_touch_p10: float,
+    prob_touch_p90: float,
+    mc_runs: int,
+):
+    """Write Monte Carlo zone probabilities back to forecasts.production_1d."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE forecasts.production_1d
+            SET
+                prob_enter_zone = %s,
+                prob_touch_p10 = %s,
+                prob_touch_p90 = %s,
+                mc_runs = %s
+            WHERE horizon = %s
+              AND as_of_date = %s
+            """,
+            (
+                prob_enter_zone,
+                prob_touch_p10,
+                prob_touch_p90,
+                mc_runs,
+                horizon,
+                as_of_date,
+            ),
+        )
+    # No commit here — caller owns the transaction boundary
 
 
 def run_monte_carlo(
     horizon: int, dry_run: bool = False, use_garch: bool = True
 ) -> List[RiskMetrics]:
     """Run Monte Carlo simulation for a given horizon (L5-A).
+
+    Transaction safety: ALL writes for a horizon are committed atomically.
+    Model labeling: Tracks which simulation model actually ran (GARCH vs asymmetric).
 
     Args:
         horizon: Forecast horizon in days
@@ -618,22 +703,22 @@ def run_monte_carlo(
     logger.info(f"  Asymmetric diffusion: ENABLED")
     logger.info(f"  Regime adjustment: ENABLED")
 
+    # Local RNG — reproducible regardless of call order or thread context
+    rng = np.random.default_rng(RANDOM_SEED)
+
     conn = get_postgres_connection()
 
     try:
-        # Load meta-ensemble predictions
-        predictions_df = load_meta_predictions(conn, horizon)
+        # Load production forecast predictions (includes staleness guard)
+        predictions_df = load_production_predictions(conn, horizon)
 
         if predictions_df is None:
             if dry_run:
                 logger.info(
-                    "[DRY RUN] No upstream meta-ensemble predictions available yet"
+                    "[DRY RUN] No upstream production predictions available yet"
                 )
-                logger.info("[DRY RUN] Would run Monte Carlo once L4 is trained")
-                return
-            raise ValueError(
-                f"No meta-ensemble predictions found for horizon={horizon}"
-            )
+                return []
+            raise ValueError(f"No production predictions found for horizon={horizon}")
 
         # Load current regime
         regime = load_current_regime(conn)
@@ -652,29 +737,55 @@ def run_monte_carlo(
                 use_garch = False
 
         all_metrics = []
-        model_version = f"mc_l5a_{horizon}d_{'garch' if use_garch else 'asym'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # actual_model tracks what REALLY ran (not what was requested)
+        actual_model = "asym"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         for idx, row in predictions_df.iterrows():
             as_of_date = row["as_of_date"]
             p10, p50, p90 = float(row["p10"]), float(row["p50"]), float(row["p90"])
+            current_price = float(row["current_price"])
+            zone_low, zone_high = float(row["p30"]), float(row["p70"])
 
-            # L5-A: Path simulation (GARCH or asymmetric)
+            # Quantile crossing guard — reject nonsensical inputs
+            validate_quantile_ordering(p10, p50, p90, as_of_date)
+
+            # L5-A: Path simulation with honest fallback
             if use_garch and idx == 0:  # Only fit GARCH once for latest prediction
-                paths = simulate_paths_garch(
-                    p10=p10,
-                    p50=p50,
-                    p90=p90,
-                    horizon=horizon,
-                    historical_returns=historical_returns,
-                    vol_regime=regime,
-                    n_sims=N_SIMULATIONS,
-                )
+                try:
+                    paths = simulate_paths_garch(
+                        p10=p10,
+                        p50=p50,
+                        p90=p90,
+                        start_price=current_price,
+                        horizon=horizon,
+                        historical_returns=historical_returns,
+                        rng=rng,
+                        vol_regime=regime,
+                        n_sims=N_SIMULATIONS,
+                    )
+                    actual_model = "garch"
+                except Exception as e:
+                    logger.warning(f"  GARCH failed, falling back to asymmetric: {e}")
+                    paths = simulate_paths_asymmetric(
+                        p10=p10,
+                        p50=p50,
+                        p90=p90,
+                        start_price=current_price,
+                        horizon=horizon,
+                        rng=rng,
+                        vol_regime=regime,
+                        n_sims=N_SIMULATIONS,
+                    )
+                    actual_model = "asym_fallback"
             else:
                 paths = simulate_paths_asymmetric(
                     p10=p10,
                     p50=p50,
                     p90=p90,
+                    start_price=current_price,
                     horizon=horizon,
+                    rng=rng,
                     vol_regime=regime,
                     n_sims=N_SIMULATIONS,
                 )
@@ -688,7 +799,19 @@ def run_monte_carlo(
 
             # Compute path percentiles for visualization (only for latest)
             if idx == 0:
+                # Model version reflects what ACTUALLY ran
+                model_version = f"mc_l5a_{horizon}d_{actual_model}_{timestamp}"
+
                 path_percentiles = compute_path_percentiles(paths)
+                prob_enter_zone, prob_touch_p10, prob_touch_p90 = (
+                    compute_zone_probabilities(
+                        paths=paths,
+                        zone_low=zone_low,
+                        zone_high=zone_high,
+                        p10_floor=p10,
+                        p90_ceiling=p90,
+                    )
+                )
 
                 if not dry_run:
                     save_path_percentiles(
@@ -702,12 +825,28 @@ def run_monte_carlo(
                         N_SIMULATIONS,
                         model_version,
                     )
+                    write_zone_probabilities(
+                        conn=conn,
+                        as_of_date=as_of_date,
+                        horizon=horizon,
+                        prob_enter_zone=prob_enter_zone,
+                        prob_touch_p10=prob_touch_p10,
+                        prob_touch_p90=prob_touch_p90,
+                        mc_runs=N_SIMULATIONS,
+                    )
+                logger.info(
+                    "  Zone probs: enter_zone=%.1f%% touch_p10=%.1f%% touch_p90=%.1f%%",
+                    prob_enter_zone * 100,
+                    prob_touch_p10 * 100,
+                    prob_touch_p90 * 100,
+                )
 
         # Log summary
         latest_metrics = all_metrics[0]
         logger.info(f"\n{'=' * 40}")
         logger.info(f"LATEST RISK METRICS ({latest_metrics.as_of_date.date()})")
         logger.info(f"{'=' * 40}")
+        logger.info(f"  Model used: {actual_model}")
         logger.info(f"  VaR 1%:  {latest_metrics.var_01:+.2%}")
         logger.info(f"  VaR 5%:  {latest_metrics.var_05:+.2%}")
         logger.info(f"  VaR 10%: {latest_metrics.var_10:+.2%}")
@@ -722,12 +861,15 @@ def run_monte_carlo(
             logger.info(f"\n[DRY RUN] Would save {len(all_metrics):,} risk metrics")
             return all_metrics
 
-        # Save to database
+        # Save risk metrics
         saved = save_risk_metrics(conn, all_metrics)
-        logger.info(f"\n  Saved {saved:,} risk metrics to analytics.risk_metrics")
+
+        # SINGLE COMMIT — all writes for this horizon are atomic
+        conn.commit()
+        logger.info(f"\n  Committed {saved:,} risk metrics + path data atomically")
 
         logger.info(f"\n{'=' * 60}")
-        logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d")
+        logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d (model={actual_model})")
         logger.info(f"{'=' * 60}")
 
         return all_metrics

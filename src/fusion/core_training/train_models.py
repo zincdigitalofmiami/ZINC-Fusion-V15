@@ -38,21 +38,21 @@ os.environ["PYTORCH_MPS_ENABLED"] = "0"  # Disable MPS backend explicitly
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict
 
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 
+from fusion.validation.all_data_policy import enforce_all_data_policy
+
 from .config import (
     DATABASE_URL,
-    TARGET_SYMBOL,
     HORIZONS,
-    QUANTILES,
-    TRAINING_CONFIG,
     OOF_COLUMN_NAMES,
+    QUANTILES,
+    TARGET_SYMBOL,
+    TRAINING_CONFIG,
 )
-from fusion.validation.all_data_policy import enforce_all_data_policy
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +74,10 @@ def import_autogluon():
         torch.set_default_device("cpu")
         if hasattr(torch.backends, "mps"):
             torch.backends.mps.is_available = lambda: False
-        logger.info(f"   torch device: cpu (MPS disabled)")
+        logger.info("   torch device: cpu (MPS disabled)")
 
-        from autogluon.timeseries import TimeSeriesPredictor as TSP
         from autogluon.timeseries import TimeSeriesDataFrame as TSDF
+        from autogluon.timeseries import TimeSeriesPredictor as TSP
 
         TimeSeriesPredictor = TSP
         TimeSeriesDataFrame = TSDF
@@ -106,7 +106,7 @@ def load_training_data(conn, symbol: str) -> pd.DataFrame:
     return df
 
 
-def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> "TimeSeriesDataFrame":
+def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> TimeSeriesDataFrame:
     """
     Convert pandas DataFrame to TimeSeriesDataFrame for AutoGluon.
 
@@ -210,7 +210,7 @@ def get_model_config(horizon: int) -> dict:
     }
 
 
-def filter_to_window(df: pd.DataFrame, window_start: Optional[str]) -> pd.DataFrame:
+def filter_to_window(df: pd.DataFrame, window_start: str | None) -> pd.DataFrame:
     """Filter data to training window starting from window_start date."""
     if window_start is None:
         return df
@@ -225,7 +225,7 @@ def filter_to_window(df: pd.DataFrame, window_start: Optional[str]) -> pd.DataFr
 
 def train_horizon(
     df: pd.DataFrame, horizon: int, model_dir: Path, run_id: str
-) -> Tuple[Optional["TimeSeriesPredictor"], Optional[pd.DataFrame]]:
+) -> tuple[TimeSeriesPredictor | None, pd.DataFrame | None]:
     """
     Train model for single horizon.
 
@@ -287,7 +287,7 @@ def train_horizon(
 
         # Extract OOF predictions
         logger.info("   Extracting OOF predictions...")
-        oof_df = extract_oof_predictions(predictor, horizon, run_id)
+        oof_df = extract_oof_predictions(predictor, horizon, run_id, df_window)
 
         return predictor, oof_df
 
@@ -296,11 +296,38 @@ def train_horizon(
         return None, None
 
 
+def _build_target_lookup(source_df: pd.DataFrame | None, horizon: int) -> dict:
+    """Build {date → realized_return} lookup from training matrix.
+
+    Returns empty dict if source_df is None or target column missing.
+    """
+    target_col = f"target_ret_{horizon}d"
+    if source_df is None or target_col not in source_df.columns:
+        return {}
+
+    lookup = {}
+    for _, src_row in source_df.iterrows():
+        td = src_row.get("trade_date")
+        if td is not None and pd.notna(src_row.get(target_col)):
+            lookup[pd.Timestamp(td).date()] = float(src_row[target_col])
+    return lookup
+
+
 def extract_oof_predictions(
-    predictor: "TimeSeriesPredictor", horizon: int, run_id: str
+    predictor: TimeSeriesPredictor,
+    horizon: int,
+    run_id: str,
+    source_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
     Extract out-of-fold predictions using backtest.
+
+    Args:
+        predictor: Trained TimeSeriesPredictor
+        horizon: Forecast horizon in days
+        run_id: Training run identifier
+        source_df: Original training data with target_ret_{horizon}d for
+                   populating target_value (realized return at horizon)
 
     Returns DataFrame with columns matching OOF schema.
     """
@@ -322,6 +349,12 @@ def extract_oof_predictions(
             logger.warning("   No backtest predictions returned")
             return pd.DataFrame()
 
+        # Build lookup once (not per-window)
+        target_lookup = _build_target_lookup(source_df, horizon)
+
+        # Deterministic UUID from string run_id (stable across retries)
+        run_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, run_id))
+
         # Convert to OOF format
         oof_rows = []
 
@@ -333,19 +366,21 @@ def extract_oof_predictions(
                 else preds
             )
 
-            # Deterministic UUID from string run_id (stable across retries)
-            run_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, run_id))
-
             for idx, row in window_preds.iterrows():
+                trade_date = idx if isinstance(idx, datetime) else row.get("timestamp")
+                td_key = (
+                    pd.Timestamp(trade_date).date() if trade_date is not None else None
+                )
+                realized = target_lookup.get(td_key) if td_key else None
+
                 oof_row = {
-                    "trade_date": (
-                        idx if isinstance(idx, datetime) else row.get("timestamp")
-                    ),
+                    "trade_date": trade_date,
                     "symbol": TARGET_SYMBOL,
                     "horizon_days": horizon,
                     "p30": row.get("0.3", row.get("mean", 0)),
                     "p50": row.get("0.5", row.get("mean", 0)),
                     "p70": row.get("0.7", row.get("mean", 0)),
+                    "target_value": realized,
                     "window_id": window_id,
                     "cutoff_date": info.get(
                         f"cutoff_{window_id}", datetime.utcnow().date()
@@ -442,8 +477,8 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
 
 
 def run(
-    symbol: str = TARGET_SYMBOL, horizons: List[int] = None, versions: dict = None
-) -> Tuple[bool, Dict[int, bool]]:
+    symbol: str = TARGET_SYMBOL, horizons: list[int] = None, versions: dict = None
+) -> tuple[bool, dict[int, bool]]:
     """
     Execute Phase 6: Sequential Core Training.
 

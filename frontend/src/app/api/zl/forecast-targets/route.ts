@@ -13,6 +13,69 @@ const pool = dbPool;
  *   - forecasts.production_1d        → Monte Carlo quantile zones (price_p30/p50/p70)
  *   - training.model_runs_event      → MAE per horizon (error envelope language)
  */
+
+interface ForecastRow {
+  horizon_days: number;
+  as_of_date: string;
+  forecast_date: string;
+  price_p30: number;
+  price_p50: number;
+  price_p70: number;
+  prob_enter_zone: number | null;
+  current_price: number;
+  model_version: string | null;
+}
+
+function toTargetInput(
+  row: ForecastRow,
+  currentPrice: number,
+  maeByHorizon: Record<number, number>,
+) {
+  const h = row.horizon_days;
+  const direction = row.price_p50 >= currentPrice ? "TP" : "SL";
+  const rankKey = `${h}-${row.as_of_date}`;
+
+  return {
+    rankKey,
+    kind: direction as "TP" | "SL",
+    horizonLabel: `${h}d`,
+    horizonDays: h,
+    asOfDate: row.as_of_date,
+    forecastDate: row.forecast_date,
+    oofPrice: row.price_p50,
+    priceLow: row.price_p30,
+    priceHigh: row.price_p70,
+    mae: maeByHorizon[h] ?? null,
+    probabilityMethod: "MC" as const,
+    probabilityZone: "P30-P70" as const,
+    coveragePct:
+      row.prob_enter_zone != null
+        ? Math.round(row.prob_enter_zone * 100)
+        : null,
+    modelVersion: row.model_version,
+  };
+}
+
+function assignRankLabels(
+  targetInputs: ReturnType<typeof toTargetInput>[],
+): Map<string, string> {
+  const tpZones = targetInputs
+    .filter((z) => z.kind === "TP")
+    .sort((a, b) => a.oofPrice - b.oofPrice);
+  const slZones = targetInputs
+    .filter((z) => z.kind === "SL")
+    .sort((a, b) => b.oofPrice - a.oofPrice);
+
+  const labelByKey = new Map<string, string>();
+  for (let i = 0; i < tpZones.length; i++) {
+    labelByKey.set(tpZones[i].rankKey, `TP${i + 1}`);
+  }
+  for (let i = 0; i < slZones.length; i++) {
+    labelByKey.set(slZones[i].rankKey, `SL${i + 1}`);
+  }
+  return labelByKey;
+}
+
 export async function GET() {
   try {
     // 1) Latest production forecast per horizon
@@ -24,6 +87,7 @@ export async function GET() {
         price_p30::float,
         price_p50::float,
         price_p70::float,
+        prob_enter_zone::float,
         current_price::float,
         model_version
       FROM forecasts.production_1d
@@ -61,73 +125,25 @@ export async function GET() {
       );
     }
 
-    // 3) Build the response with all real data
-    const asOfDates = forecastResult.rows.map((row: { as_of_date: string }) =>
+    // 3) Build response
+    const asOfDates = forecastResult.rows.map((row: ForecastRow) =>
       String(row.as_of_date),
     );
     const asOfDateMin = [...asOfDates].sort()[0];
     const asOfDateMax = [...asOfDates].sort()[asOfDates.length - 1];
     const mixedVintage = new Set(asOfDates).size > 1;
-    // Use current_price from the row with the latest as_of_date (not rows[0],
-    // which is ordered by horizon first and may not be the freshest vintage).
     const latestRow = forecastResult.rows.reduce(
-      (
-        best: { as_of_date: string; current_price: number },
-        r: { as_of_date: string; current_price: number },
-      ) => (String(r.as_of_date) > String(best.as_of_date) ? r : best),
+      (best: ForecastRow, r: ForecastRow) =>
+        String(r.as_of_date) > String(best.as_of_date) ? r : best,
       forecastResult.rows[0],
     );
     const currentPrice = parseFloat(String(latestRow.current_price));
 
-    const targetInputs = forecastResult.rows.map(
-      (row: {
-        horizon_days: number;
-        as_of_date: string;
-        forecast_date: string;
-        price_p30: number;
-        price_p50: number;
-        price_p70: number;
-        current_price: number;
-        model_version: string | null;
-      }) => {
-        const h = row.horizon_days;
-        const direction = row.price_p50 >= currentPrice ? "TP" : "SL";
-        const rankKey = `${h}-${row.as_of_date}`;
-
-        return {
-          rankKey,
-          kind: direction as "TP" | "SL",
-          horizonLabel: `${h}d`,
-          horizonDays: h,
-          asOfDate: row.as_of_date,
-          forecastDate: row.forecast_date,
-          oofPrice: row.price_p50,
-          priceLow: row.price_p30,
-          priceHigh: row.price_p70,
-          mae: maeByHorizon[h] ?? null,
-          probabilityMethod: "MC" as const,
-          probabilityZone: "P30-P70" as const,
-          coveragePct: 40 as const,
-          modelVersion: row.model_version,
-        };
-      },
+    const targetInputs = forecastResult.rows.map((row: ForecastRow) =>
+      toTargetInput(row, currentPrice, maeByHorizon),
     );
 
-    // Rank TP/SL zones by distance from current price for TradingView-style labels.
-    const tpZones = targetInputs
-      .filter((z) => z.kind === "TP")
-      .sort((a, b) => a.oofPrice - b.oofPrice);
-    const slZones = targetInputs
-      .filter((z) => z.kind === "SL")
-      .sort((a, b) => b.oofPrice - a.oofPrice);
-
-    const labelByKey = new Map<string, string>();
-    for (let i = 0; i < tpZones.length; i++) {
-      labelByKey.set(tpZones[i].rankKey, `TP${i + 1}`);
-    }
-    for (let i = 0; i < slZones.length; i++) {
-      labelByKey.set(slZones[i].rankKey, `SL${i + 1}`);
-    }
+    const labelByKey = assignRankLabels(targetInputs);
 
     const targets = targetInputs.map((z) => ({
       id: `${z.kind.toLowerCase()}-${z.horizonDays}d-${z.asOfDate}`,
