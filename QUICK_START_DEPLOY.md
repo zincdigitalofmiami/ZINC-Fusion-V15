@@ -74,24 +74,24 @@ vercel env add FUSION_API_KEY preview
 vercel env add DATABASE_URL preview
 ```
 
-### Option B: Railway (Recommended for backend - 5 minutes)
+### Option B: Fly.io (Alternative backend - 5 minutes)
 
 ```bash
-# Install Railway CLI
-npm install -g @railway/cli
+# Install flyctl
+curl -L https://fly.io/install.sh | sh
 
 # Login
-railway login
+flyctl auth login
 
-# Initialize project
-railway init
+# Create app
+flyctl launch
 
-# Set environment variables
-railway variables set FUSION_API_KEY=[your-key]
-railway variables set DATABASE_URL=[your-connection-string]
+# Set secrets
+flyctl secrets set FUSION_API_KEY=[your-key]
+flyctl secrets set DATABASE_URL=[your-connection-string]
 
 # Deploy
-railway up
+flyctl deploy
 ```
 
 ### Option C: Docker (For self-hosting - 10 minutes)

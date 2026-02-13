@@ -63,7 +63,7 @@ Generate with:
   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 Must be set in:
-  • Backend environment (Railway, Vercel, Docker, etc.)
+  • Backend environment (Vercel, Fly.io, Docker, etc.)
   • Frontend environment (Vercel)
   • Must match between frontend and backend
 
@@ -86,13 +86,10 @@ Backend (Choose One):
   Option A: Vercel Serverless
     vercel --prod=false
 
-  Option B: Railway (Recommended)
-    railway init && railway up
-
-  Option C: Fly.io
+  Option B: Fly.io
     flyctl launch && flyctl deploy
 
-  Option D: Docker
+  Option C: Docker
     docker build -t zinc-fusion-api .
     docker run -p 8000:8000 \
       -e FUSION_API_KEY=<key> \
@@ -177,8 +174,9 @@ For fastest deployment:
    # Set FUSION_API_KEY in Vercel dashboard
 
 3. Deploy backend (5 min):
-   # Use Railway for easiest backend deployment
-   railway init && railway variables set FUSION_API_KEY=<key> && railway up
+   # Use Vercel or Fly.io for backend deployment
+   vercel --prod=false
+   # Or: flyctl launch && flyctl deploy
 
 4. Test (3 min):
    ./scripts/test-deployment.sh
@@ -240,7 +238,7 @@ Architecture:
 Immediate (Now):
   1. Read QUICK_START_DEPLOY.md or DEPLOYMENT_CHECKLIST.md
   2. Generate secure API key
-  3. Choose deployment platform (Railway recommended for backend)
+  3. Choose deployment platform (Vercel or Fly.io for backend)
 
 This Week:
   1. Deploy to staging

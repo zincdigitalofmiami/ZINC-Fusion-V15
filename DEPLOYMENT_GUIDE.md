@@ -178,26 +178,7 @@ EOF
 vercel --prod=false
 ```
 
-**Option B: Railway**
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login
-railway login
-
-# Create new project
-railway init
-
-# Add environment variables
-railway variables set FUSION_API_KEY=<your-key>
-railway variables set DATABASE_URL=<connection-string>
-
-# Deploy
-railway up
-```
-
-**Option C: Fly.io**
+**Option B: Fly.io**
 ```bash
 # Install flyctl
 curl -L https://fly.io/install.sh | sh
@@ -216,7 +197,7 @@ flyctl secrets set DATABASE_URL=<connection-string>
 flyctl deploy
 ```
 
-**Option D: Docker + Cloud Run / ECS / etc.**
+**Option C: Docker + Cloud Run / ECS / etc.**
 ```bash
 # Create Dockerfile if not exists
 cat > Dockerfile << EOF
@@ -614,7 +595,7 @@ vercel env rename FUSION_API_KEY_NEW FUSION_API_KEY production
 
 If deployment issues arise:
 1. Check this guide's Troubleshooting section
-2. Review deployment logs (Vercel, Railway, etc.)
+2. Review deployment logs (Vercel, Fly.io, etc.)
 3. Check database connection status
 4. Verify environment variables are set correctly
 5. Review recent commits for potential issues

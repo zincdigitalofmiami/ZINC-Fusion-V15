@@ -35,7 +35,7 @@
   - [ ] `DATABENTO_API_KEY`
 
 ### 2. Backend (Choose Platform)
-- [ ] Deploy FastAPI server (Railway/Vercel/Fly.io/Docker)
+- [ ] Deploy FastAPI server (Vercel/Fly.io/Docker)
 - [ ] Set `FUSION_API_KEY` environment variable
 - [ ] Set `DATABASE_URL` environment variable
 - [ ] Note backend URL: ___________________________
