@@ -24,13 +24,13 @@ import {
 // ============================================================================
 
 function RegimeBadge({ regime }: { regime: RegimeState }) {
-  // Dashboard slate style
+  // Dashboard slate style - NO gaming colors
   const colors = {
     Minimal: "bg-slate-800 text-slate-400 border-slate-700",
-    "Background Noise": "bg-blue-950 text-blue-400 border-blue-800",
-    Elevated: "bg-yellow-950 text-yellow-400 border-yellow-800",
-    "Retaliation Risk": "bg-orange-950 text-orange-400 border-orange-800",
-    "Active War": "bg-red-950 text-red-400 border-red-800",
+    "Background Noise": "bg-slate-700 text-slate-300 border-slate-600",
+    Elevated: "bg-slate-600 text-slate-200 border-slate-500",
+    "Retaliation Risk": "bg-slate-500 text-white border-slate-400",
+    "Active War": "bg-slate-400 text-white border-slate-300",
   };
   const colorClass = colors[regime.label] || colors["Minimal"];
 
@@ -95,7 +95,7 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Building2 className="w-5 h-5 text-indigo-400" />
+        <Building2 className="w-5 h-5" />
         Enforcement Radar
       </h3>
       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -112,7 +112,7 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
             </div>
             <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-indigo-500/80 rounded-full group-hover:bg-indigo-400 transition-all"
+                className="h-full bg-blue-400/60 rounded-full group-hover:bg-blue-400 transition-all"
                 style={{ width: `${(agency.count / maxCount) * 100}%` }}
               />
             </div>
@@ -127,14 +127,14 @@ function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-full">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Activity className="w-5 h-5 text-rose-400" />
+        <Activity className="w-5 h-5" />
         Shockwave Events
       </h3>
       <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
         {events.slice(0, 6).map((evt) => (
           <div
             key={evt.id}
-            className="relative pl-4 border-l-2 border-slate-800 hover:border-rose-500/50 transition-colors"
+            className="relative pl-4 border-l-2 border-slate-800 hover:border-slate-500 transition-colors"
           >
             <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-900" />
             <div className="flex justify-between items-start">
@@ -142,7 +142,7 @@ function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
                 {evt.event_date}
               </span>
               {Math.abs(evt.price_return_1d || 0) > 0.01 && (
-                <span className="text-xs bg-rose-950 text-rose-400 px-1.5 py-0.5 rounded ml-2">
+                <span className="text-xs bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-2">
                   Impact: {(evt.price_return_1d! * 100).toFixed(1)}%
                 </span>
               )}
@@ -150,7 +150,7 @@ function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
             <a
               href={evt.url || "#"}
               target="_blank"
-              className="block text-sm text-slate-200 mt-1 hover:text-rose-400 transition-colors line-clamp-2"
+              className="block text-sm text-slate-300 mt-1 hover:text-white transition-colors line-clamp-2"
             >
               {evt.headline}
             </a>
@@ -204,14 +204,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
             >
               <div className="flex justify-between items-start mb-2">
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider
-                  ${
-                    type === "deadline"
-                      ? "bg-amber-950 text-amber-500"
-                      : type === "executive"
-                        ? "bg-purple-950 text-purple-400"
-                        : "bg-emerald-950 text-emerald-400"
-                  }`}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-slate-700 text-slate-300`}
                 >
                   {type === "deadline"
                     ? `${daysToExpiry} DAYS`
@@ -229,7 +222,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
               {type === "deadline" && daysToExpiry !== undefined && (
                 <div className="w-full bg-slate-900 h-1.5 rounded-full mt-2 overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${daysToExpiry < 30 ? "bg-amber-500" : "bg-slate-600"}`}
+                    className="h-full rounded-full bg-slate-500"
                     style={{
                       width: `${Math.max(5, 100 - (daysToExpiry / 365) * 100)}%`,
                     }}
