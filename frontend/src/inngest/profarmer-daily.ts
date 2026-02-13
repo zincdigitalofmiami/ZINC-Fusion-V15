@@ -70,7 +70,7 @@ const REPORTS = [
   {
     slug: "after-the-bell",
     name: "After the Bell",
-    url: `${PROFARMER_BASE}/after-the-bell/`,
+    url: `${PROFARMER_BASE}/news/after-bell`,
     specialists: ["crush", "volatility"],
   },
 ];
@@ -522,7 +522,7 @@ export const profarmerDaily = inngest.createFunction(
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
   { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // Weekdays 7 AM CT
-  async ({ step, logger }) => {
+  async ({ logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
     let attempted = 0;
@@ -533,18 +533,18 @@ export const profarmerDaily = inngest.createFunction(
     let browser: any = null;
 
     try {
-      runId = await step.run("create-ingest-run", () =>
-        createIngestRun(client, "profarmer-daily"),
-      );
+      runId = await createIngestRun(client, "profarmer-daily");
       logger.info(`ProFarmer ingest run: ${runId}`);
 
-      // Launch browser and login
+      // Launch browser and login — NO step.run() wrapper.
+      // Puppeteer Browser/Page objects are NOT JSON-serializable, so wrapping
+      // them in step.run() causes Inngest replay to deserialize dead objects.
+      // This matches the plain sequential pattern from scrape_profarmer_final.js
+      // that successfully pulled ~2K articles.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let page: any;
       try {
-        const result = await step.run("login", async () => {
-          return await launchProFarmerBrowser();
-        });
+        const result = await launchProFarmerBrowser();
         browser = result.browser;
         page = result.page;
         logger.info("ProFarmer login successful");
@@ -561,15 +561,13 @@ export const profarmerDaily = inngest.createFunction(
       // Scrape each report
       for (const report of REPORTS) {
         try {
-          const articles = await step.run(`scrape-${report.slug}`, async () => {
-            return await scrapeReportArticles(
-              page,
-              report.url,
-              report.slug,
-              report.specialists,
-              15,
-            );
-          });
+          const articles = await scrapeReportArticles(
+            page,
+            report.url,
+            report.slug,
+            report.specialists,
+            15,
+          );
 
           logger.info(`${report.name}: ${articles.length} articles found`);
 
@@ -581,9 +579,10 @@ export const profarmerDaily = inngest.createFunction(
               article.pubDate,
             );
 
+            // Dedup by row_hash OR url (handles cross-scheme hashes from legacy scrapers)
             const exists = await client.query(
-              `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 LIMIT 1`,
-              [rowHash],
+              `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 OR url = $2 LIMIT 1`,
+              [rowHash, article.url],
             );
 
             if (exists.rows.length > 0) {
@@ -610,7 +609,7 @@ export const profarmerDaily = inngest.createFunction(
                  ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                 [
                   article.pubDate,
-                  report.slug,
+                  report.name,
                   article.title,
                   article.content,
                   article.url,
@@ -679,7 +678,7 @@ export const profarmerDaily = inngest.createFunction(
 export const profarmerBackfill = inngest.createFunction(
   { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
   { event: "profarmer/backfill" },
-  async ({ step, logger }) => {
+  async ({ logger }) => {
     const client = await pool.connect();
     let runId: string | null = null;
     let attempted = 0;
@@ -690,13 +689,11 @@ export const profarmerBackfill = inngest.createFunction(
     let browser: any = null;
 
     try {
-      runId = await step.run("create-run", () =>
-        createIngestRun(client, "profarmer-backfill"),
-      );
+      runId = await createIngestRun(client, "profarmer-backfill");
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let page: any;
-      const result = await step.run("login", () => launchProFarmerBrowser());
+      const result = await launchProFarmerBrowser();
       browser = result.browser;
       page = result.page;
 
@@ -706,17 +703,12 @@ export const profarmerBackfill = inngest.createFunction(
             pageNum === 1 ? report.url : `${report.url}?page=${pageNum}`;
 
           try {
-            const articles = await step.run(
-              `${report.slug}-p${pageNum}`,
-              async () => {
-                return await scrapeReportArticles(
-                  page,
-                  pageUrl,
-                  report.slug,
-                  report.specialists,
-                  20,
-                );
-              },
+            const articles = await scrapeReportArticles(
+              page,
+              pageUrl,
+              report.slug,
+              report.specialists,
+              20,
             );
 
             if (articles.length === 0) break;
@@ -732,9 +724,10 @@ export const profarmerBackfill = inngest.createFunction(
                 article.pubDate,
               );
 
+              // Dedup by row_hash OR url (handles cross-scheme hashes from legacy scrapers)
               const exists = await client.query(
-                `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 LIMIT 1`,
-                [rowHash],
+                `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 OR url = $2 LIMIT 1`,
+                [rowHash, article.url],
               );
 
               if (exists.rows.length > 0) {
@@ -761,7 +754,7 @@ export const profarmerBackfill = inngest.createFunction(
                    ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
                   [
                     article.pubDate,
-                    report.slug,
+                    report.name,
                     article.title,
                     article.content,
                     article.url,
@@ -772,7 +765,8 @@ export const profarmerBackfill = inngest.createFunction(
                     subjects,
                     metaDescription,
                     JSON.stringify({
-                      report: report.slug,
+                      report: report.name,
+                      slug: report.slug,
                       backfill: true,
                       page: pageNum,
                     }),
