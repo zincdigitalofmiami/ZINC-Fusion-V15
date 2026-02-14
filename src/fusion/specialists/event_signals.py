@@ -1416,13 +1416,13 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                 try:
                     if not pd.isna(data.loc[idx, "fred_eputrade"]):
                         confidence += 0.15
-                except:
+                except Exception:
                     pass
             if "hg_close" in data.columns:
                 try:
                     if not pd.isna(data.loc[idx, "hg_close"]):
                         confidence += 0.1
-                except:
+                except Exception:
                     pass
             if has_decomposition:
                 confidence += 0.1  # Bonus for EPU decomposition

@@ -17,10 +17,7 @@ interface StatusBarProps {
   confidence?: number;
 }
 
-export default function StatusBar({
-  regime = "volatile",
-  confidence = 87,
-}: StatusBarProps) {
+export default function StatusBar({ regime, confidence }: StatusBarProps) {
   const [displayTime, setDisplayTime] = useState<string>("");
   const [zlData, setZlData] = useState<ZlLiveData | null>(null);
   const [isStale, setIsStale] = useState(false);
@@ -72,10 +69,10 @@ export default function StatusBar({
     return () => clearInterval(interval);
   }, []);
 
-  const zlPrice = zlData?.price ?? 0;
-  const zlChange = zlData?.change ?? 0;
-  const zlChangePercent = zlData?.change_pct ?? 0;
-  const isPositive = zlChange >= 0;
+  const zlPrice = zlData?.price ?? null;
+  const zlChange = zlData?.change ?? null;
+  const zlChangePercent = zlData?.change_pct ?? null;
+  const isPositive = (zlChange ?? 0) >= 0;
   const priceChangeClass = isPositive ? "positive" : "negative";
 
   const regimeLabels: Record<string, string> = {
@@ -86,19 +83,21 @@ export default function StatusBar({
     crisis: "Crisis",
   };
 
-  const confidenceClass = confidence >= 80 ? "high" : "";
+  const confidenceClass = (confidence ?? 0) >= 80 ? "high" : "";
 
   return (
     <div className="status-bar">
       <div className="status-left">
         <div className="zl-price">
-          ZL: USD {zlPrice.toFixed(2)}
-          <span className={`price-delta ${priceChangeClass}`}>
-            {" "}
-            {isPositive ? "+" : ""}
-            {zlChange.toFixed(2)} ({isPositive ? "+" : ""}
-            {zlChangePercent.toFixed(2)}%)
-          </span>
+          ZL: {zlPrice != null ? `$${zlPrice.toFixed(2)}` : "--"}
+          {zlChange != null && zlChangePercent != null && (
+            <span className={`price-delta ${priceChangeClass}`}>
+              {" "}
+              {isPositive ? "+" : ""}
+              {zlChange.toFixed(2)} ({isPositive ? "+" : ""}
+              {zlChangePercent.toFixed(2)}%)
+            </span>
+          )}
           {zlData?.live && (
             <span className="live-dot" title="Live 1m data">
               ●
@@ -110,10 +109,14 @@ export default function StatusBar({
             </span>
           )}
         </div>
-        <div className={`regime-chip ${regime}`}>{regimeLabels[regime]}</div>
-        <div className={`confidence-badge ${confidenceClass}`}>
-          {confidence}% Conf
-        </div>
+        {regime && (
+          <div className={`regime-chip ${regime}`}>{regimeLabels[regime]}</div>
+        )}
+        {confidence != null && (
+          <div className={`confidence-badge ${confidenceClass}`}>
+            {confidence}% Conf
+          </div>
+        )}
       </div>
       <div className="status-right">
         {isStale && (

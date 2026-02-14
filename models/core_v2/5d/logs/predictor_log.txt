@@ -593,3 +593,150 @@ Training complete. Models trained: ['Naive', 'SeasonalNaive', 'Average', 'Season
 Total runtime: 424.69 s
 Best model: WeightedEnsemble
 Best model score: -0.6052
+Beginning AutoGluon training...
+AutoGluon will save models to '/Volumes/Satechi Hub/ZINC-FUSION-V15/models/core_v2/5d'
+=================== System Info ===================
+AutoGluon Version:  1.5.0
+Python Version:     3.12.8
+Operating System:   Darwin
+Platform Machine:   arm64
+Platform Version:   Darwin Kernel Version 25.2.0: Tue Nov 18 21:09:56 PST 2025; root:xnu-12377.61.12~1/RELEASE_ARM64_T6041
+CPU Count:          12
+Pytorch Version:    2.9.1
+CUDA Version:       CUDA is not available
+GPU Memory:
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       6.95 GB / 24.00 GB (29.0%)
+Disk Space Avail:   831.74 GB / 931.32 GB (89.3%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': WQL,
+ 'freq': 'B',
+ 'hyperparameters': {'ADIDA': {},
+                     'AutoARIMA': {},
+                     'AutoCES': {},
+                     'AutoETS': {},
+                     'Average': {},
+                     'Croston': {},
+                     'DLinear': {},
+                     'DeepAR': {},
+                     'DirectTabular': {},
+                     'DynamicOptimizedTheta': {},
+                     'ETS': {},
+                     'IMAPA': {},
+                     'NPTS': {},
+                     'Naive': {},
+                     'PatchTST': {},
+                     'PerStepTabular': {},
+                     'RecursiveTabular': {},
+                     'SeasonalAverage': {},
+                     'SeasonalNaive': {},
+                     'SimpleFeedForward': {},
+                     'TemporalFusionTransformer': {},
+                     'Theta': {},
+                     'TiDE': {},
+                     'WaveNet': {},
+                     'Zero': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 4,
+ 'prediction_length': 5,
+ 'quantile_levels': [0.3, 0.5, 0.7],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target_ret_5d',
+ 'verbosity': 2}
+
+train_data with frequency 'IRREG' has been resampled to frequency 'B'.
+Provided train_data has 9419 rows (NaN fraction=24.3%), 1 time series. Median time series length is 9419 (min=9419, max=9419).
+
+Provided data contains following columns:
+	target: 'target_ret_5d'
+	past_covariates:
+		categorical:        ['ttm_squeeze_momentum', '_hurst_regime_raw']
+		continuous (float): ['open', 'high', 'low', 'close', 'volume', 'open_interest', ...]
+
+AutoGluon will ignore following non-numeric/non-informative columns:
+	ignored covariates:      ['alma_50_age_days', 'alma_50_is_missing', 'atr_10_age_days', 'atr_10_is_missing', 'atr_50_age_days', 'atr_50_is_missing', 'atr_ratio_age_days', 'atr_ratio_is_missing', 'bb_percent_b_age_days', 'bb_percent_b_is_missing', 'board_crush_expanding_is_missing', 'cftc_zl_cot_mm_pct_oi_age_days', 'cftc_zl_cot_mm_pct_oi_is_available', 'cftc_zl_cot_mm_pct_oi_is_release_day', 'cftc_zl_cot_open_interest_age_days', 'cftc_zl_cot_open_interest_is_available', 'cftc_zl_cot_open_interest_is_release_day', 'cftc_zl_cot_prod_merc_net_age_days', 'cftc_zl_cot_prod_merc_net_is_available', 'cftc_zl_cot_prod_merc_net_is_release_day', 'churn_high_is_missing', 'cl_bb_percent_b_is_missing', 'cl_returns_1d_is_missing', 'close_is_missing', 'cmf_21_is_missing', 'corr_ng_30d_is_missing', 'corr_ng_60d_is_missing', 'corr_ng_90d_is_missing', 'corr_vx_60d_is_missing', 'corr_zs_60d_is_missing', 'corr_zs_90d_is_missing', 'corr_zw_60d_is_missing', 'corr_zw_90d_is_missing', 'cot_age_fresh_is_missing', 'cot_comm_net_chg_is_missing', 'cot_comm_pct_oi_is_missing', 'cot_mm_pct_oi_is_missing', 'cot_net_zscore_is_missing', 'cot_open_interest_is_missing', 'cot_prod_merc_net_is_missing', 'cot_regime_numeric_is_missing', 'cumulative_rsi', 'diesel_crack_wide_is_missing', 'dx_hurst_exponent', 'dx_hurst_exponent_is_missing', 'dx_returns_1d_is_missing', 'dx_rsi_14_is_missing', 'elder_force_index_age_days', 'elder_force_index_is_missing', 'es_hurst_exponent', 'es_hurst_exponent_is_missing', 'es_returns_1d_is_missing', 'es_rsi_14_is_missing', 'fisher_signal_is_missing', 'fisher_transform_age_days', 'fisher_transform_is_missing', 'flow_conviction_is_missing', 'fred_bamlh0a0hym2_is_missing', 'fred_bogmbase_age_days', 'fred_bogmbase_is_missing', 'fred_busloans_age_days', 'fred_busloans_is_missing', 'fred_chnmainlandtpu_age_days', 'fred_chnmainlandtpu_is_missing', 'fred_dcoilwtico_is_missing', 'fred_dexcaus_age_days', 'fred_dexcaus_is_missing', 'fred_dexchus_is_missing', 'fred_dexhkus_age_days', 'fred_dexhkus_is_missing', 'fred_dexinus_is_missing', 'fred_dexjpus_age_days', 'fred_dexjpus_is_missing', 'fred_dexkous_age_days', 'fred_dexkous_is_missing', 'fred_dexmaus_is_missing', 'fred_dexmxus_age_days', 'fred_dexmxus_is_missing', 'fred_dexnous_age_days', 'fred_dexnous_is_missing', 'fred_dexsfus_is_missing', 'fred_dexsius_age_days', 'fred_dexsius_is_missing', 'fred_dexszus_age_days', 'fred_dexszus_is_missing', 'fred_dextaus_age_days', 'fred_dextaus_is_missing', 'fred_dexusal_age_days', 'fred_dexusal_is_missing', 'fred_dexuseu_age_days', 'fred_dexuseu_is_missing', 'fred_dexusuk_age_days', 'fred_dexusuk_is_missing', 'fred_dfedtaru_age_days', 'fred_dfedtaru_is_missing', 'fred_dff_is_missing', 'fred_dfii5_age_days', 'fred_dfii5_is_missing', 'fred_dfii7_age_days', 'fred_dfii7_is_missing', 'fred_dgs10_is_missing', 'fred_dgs1_is_missing', 'fred_dgs20_age_days', 'fred_dgs20_is_missing', 'fred_dgs2_age_days', 'fred_dgs2_is_missing', 'fred_dgs30_age_days', 'fred_dgs30_is_missing', 'fred_dgs3mo_age_days', 'fred_dgs3mo_is_missing', 'fred_dgs5_age_days', 'fred_dgs5_is_missing', 'fred_dgs6mo_age_days', 'fred_dgs6mo_is_missing', 'fred_dgs7_age_days', 'fred_dgs7_is_missing', 'fred_djfuelusgulf_age_days', 'fred_djfuelusgulf_is_missing', 'fred_dpropanembtx_is_missing', 'fred_drcclacbs_age_days', 'fred_drcclacbs_is_missing', 'fred_dtwexbgs_age_days', 'fred_dtwexbgs_is_missing', 'fred_dtwexemegs_age_days', 'fred_dtwexemegs_is_missing', 'fred_expgs_age_days', 'fred_expgs_is_missing', 'fred_frgshpusm649ncis_age_days', 'fred_frgshpusm649ncis_is_missing', 'fred_gdp_age_days', 'fred_gdp_is_missing', 'fred_gdpc1_age_days', 'fred_gdpc1_is_missing', 'fred_icsa_is_missing', 'fred_impgs_age_days', 'fred_impgs_is_missing', 'fred_indpro_age_days', 'fred_indpro_is_missing', 'fred_m2sl_age_days', 'fred_m2sl_is_missing', 'fred_manemp_age_days', 'fred_manemp_is_missing', 'fred_nasdaqcom_is_missing', 'fred_nyfed_effr_age_days', 'fred_nyfed_effr_is_missing', 'fred_nyfed_obfr_age_days', 'fred_nyfed_obfr_is_missing', 'fred_nyfed_tgcr', 'fred_nyfed_tgcr_age_days', 'fred_nyfed_tgcr_is_missing', 'fred_payems_age_days', 'fred_payems_is_missing', 'fred_pcepi_age_days', 'fred_pcepi_is_missing', 'fred_pcepilfe_age_days', 'fred_pcepilfe_is_missing', 'fred_pcu32411032411012_age_days', 'fred_pcu32411032411012_is_missing', 'fred_permit_age_days', 'fred_permit_is_missing', 'fred_pmaizmtusdm_age_days', 'fred_pmaizmtusdm_is_missing', 'fred_psoilusdm_age_days', 'fred_psoilusdm_is_missing', 'fred_psoybusdm_age_days', 'fred_psoybusdm_is_missing', 'fred_psugaisausdm_age_days', 'fred_psugaisausdm_is_missing', 'fred_psunousdm_age_days', 'fred_psunousdm_is_missing', 'fred_pwheamtusdm_age_days', 'fred_pwheamtusdm_is_missing', 'fred_rsxfs_age_days', 'fred_rsxfs_is_missing', 'fred_t10y2y_is_missing', 'fred_t10y3m_age_days', 'fred_t10y3m_is_missing', 'fred_t10yie_is_missing', 'fred_t30yiem_age_days', 'fred_t30yiem_is_missing', 'fred_t5yie_age_days', 'fred_t5yie_is_missing', 'fred_t5yifr_age_days', 'fred_t5yifr_is_missing', 'fred_totresns_age_days', 'fred_totresns_is_missing', 'fred_umcsent_age_days', 'fred_umcsent_is_missing', 'fred_unrate_age_days', 'fred_unrate_is_missing', 'fred_usepuindxd_is_missing', 'fred_wpu01830171_age_days', 'fred_wpu01830171_is_missing', 'fred_wpu057303_age_days', 'fred_wpu057303_is_missing', 'fred_wresbal_age_days', 'fred_wresbal_is_missing', 'fred_xtexva01cnm667s_age_days', 'fred_xtexva01cnm667s_is_missing', 'fred_xtimva01cnm667s_age_days', 'fred_xtimva01cnm667s_is_missing', 'fx_dxy_broad_is_missing', 'fx_dxy_eme_is_missing', 'fx_gbp_usd_is_missing', 'fx_mxn_usd_is_missing', 'fx_myr_usd_is_missing', 'fx_nok_usd_is_missing', 'fx_sek_usd_is_missing', 'fx_sgd_usd_is_missing', 'fx_thb_usd_is_missing', 'fx_twd_usd_is_missing', 'fx_usd_cny', 'fx_usd_cny_is_missing', 'fx_usd_jpy_is_missing', 'high_is_missing', 'hma_20_age_days', 'hma_20_is_missing', 'ho_bb_percent_b_is_missing', 'ho_returns_1d_is_missing', 'hurst_exponent_is_missing', 'kama_10_age_days', 'kama_10_is_missing', 'low_is_missing', 'macd_age_days', 'macd_histogram_age_days', 'macd_histogram_is_missing', 'macd_is_missing', 'macd_signal_age_days', 'macd_signal_is_missing', 'mcginley_dynamic_age_days', 'mcginley_dynamic_is_missing', 'news_zl_sentiment', 'news_zl_sentiment_age_days', 'news_zl_sentiment_is_missing', 'ng_atr_ratio_is_missing', 'ng_bb_percent_b_is_missing', 'ng_returns_1d_is_missing', 'oi_direction_is_missing', 'oi_price_divergence_is_missing', 'opt_atm_iv', 'opt_avg_gamma_c', 'opt_avg_gamma_p', 'opt_avg_iv_c', 'opt_avg_iv_p', 'opt_avg_premium_c', 'opt_avg_premium_p', 'opt_avg_theta_c', 'opt_avg_theta_p', 'opt_avg_vega_c', 'opt_avg_vega_p', 'opt_iv_skew', 'opt_total_oi_c', 'opt_total_oi_p', 'opt_total_volume_c', 'opt_total_volume_p', 'opt_weighted_delta_c', 'opt_weighted_delta_p', 'range_pct_is_missing', 'rapeseed_close', 'rapeseed_close_age_days', 'rapeseed_close_is_missing', 'rb_crack_is_missing', 'returns_1d_is_missing', 'rsi_14_age_days', 'rsi_14_is_missing', 'rsi_2_age_days', 'rsi_2_is_missing', 'rvi_age_days', 'rvi_is_missing', 'rvi_signal_age_days', 'rvi_signal_is_missing', 'schaff_trend_cycle', 'sig_biofuel_2_is_missing', 'sig_biofuel_conf_is_missing', 'sig_china_2_is_missing', 'sig_china_conf_is_missing', 'sig_crush_2_is_missing', 'sig_crush_conf_is_missing', 'sig_energy_2_is_missing', 'sig_energy_conf_is_missing', 'sig_fed_1_is_missing', 'sig_fed_2_is_missing', 'sig_fed_conf_is_missing', 'sig_fx_2_is_missing', 'sig_fx_conf_is_missing', 'sig_palm_1_is_missing', 'sig_palm_2_is_missing', 'sig_palm_conf_is_missing', 'sig_substitutes_1_is_missing', 'sig_substitutes_2_is_missing', 'sig_substitutes_conf_is_missing', 'sig_tariff_1_is_missing', 'sig_tariff_2_is_missing', 'sig_tariff_conf_is_missing', 'sig_trump_effect_2_is_missing', 'sig_trump_effect_conf_is_missing', 'sig_volatility_2_is_missing', 'sig_volatility_conf_is_missing', 'soy_oil_share_is_missing', 'sunflower_close', 'sunflower_close_age_days', 'sunflower_close_is_missing', 'ttm_squeeze_on_is_missing', 'unusual_volume_is_missing', 'usd_cny', 'usd_cny_is_missing', 'usda_exports_usda_zl_net_sales_is_available', 'usda_exports_usda_zl_outstanding_age_days', 'usda_exports_usda_zl_outstanding_is_available', 'usda_exports_usda_zl_outstanding_is_release_day', 'usda_exports_usda_zm_exports_is_available', 'usda_exports_usda_zm_net_sales_is_available', 'usda_exports_usda_zm_net_sales_is_release_day', 'usda_exports_usda_zm_outstanding_age_days', 'usda_exports_usda_zm_outstanding_is_available', 'usda_exports_usda_zm_outstanding_is_release_day', 'usda_exports_usda_zs_exports_is_available', 'usda_exports_usda_zs_net_sales_is_available', 'usda_exports_usda_zs_outstanding_age_days', 'usda_exports_usda_zs_outstanding_is_available', 'usda_exports_usda_zs_outstanding_is_release_day', 'usda_zl_outstanding_age_days', 'usda_zl_outstanding_is_missing', 'usda_zm_outstanding_age_days', 'usda_zm_outstanding_is_missing', 'usda_zs_outstanding_age_days', 'usda_zs_outstanding_is_missing', 'vix_close', 'vix_close_is_missing', 'volume_spike_is_missing', 'wasde_soybean_oil_ending_stocks', 'wasde_soybean_oil_ending_stocks_is_missing', 'wasde_soybean_oil_production', 'wasde_soybean_oil_production_is_missing', 'wasde_soybeans_crush', 'wasde_soybeans_crush_age_days', 'wasde_soybeans_crush_is_missing', 'wasde_us_zl_ending_stocks_is_available', 'wasde_us_zl_exports_age_days', 'wasde_us_zl_exports_is_available', 'wasde_us_zl_exports_is_missing', 'wasde_us_zl_exports_is_release_day', 'wasde_us_zl_production_age_days', 'wasde_us_zl_production_is_available', 'wasde_us_zl_production_is_missing', 'wasde_us_zl_production_is_release_day', 'wasde_us_zm_consumption_is_release_day', 'wasde_us_zm_crush', 'wasde_us_zm_crush_age_days', 'wasde_us_zm_crush_event_delta', 'wasde_us_zm_crush_event_value', 'wasde_us_zm_crush_is_available', 'wasde_us_zm_crush_is_missing', 'wasde_us_zm_crush_is_release_day', 'wasde_us_zm_ending_stocks_age_days', 'wasde_us_zm_ending_stocks_is_available', 'wasde_us_zm_ending_stocks_is_missing', 'wasde_us_zm_ending_stocks_is_release_day', 'wasde_us_zm_exports_age_days', 'wasde_us_zm_exports_is_available', 'wasde_us_zm_exports_is_missing', 'wasde_us_zm_exports_is_release_day', 'wasde_us_zm_production_age_days', 'wasde_us_zm_production_is_available', 'wasde_us_zm_production_is_missing', 'wasde_us_zm_production_is_release_day', 'wasde_us_zs_consumption_age_days', 'wasde_us_zs_consumption_is_available', 'wasde_us_zs_consumption_is_missing', 'wasde_us_zs_consumption_is_release_day', 'wasde_us_zs_crush', 'wasde_us_zs_crush_age_days', 'wasde_us_zs_crush_event_delta', 'wasde_us_zs_crush_event_value', 'wasde_us_zs_crush_is_available', 'wasde_us_zs_crush_is_missing', 'wasde_us_zs_crush_is_release_day', 'wasde_us_zs_ending_stocks_age_days', 'wasde_us_zs_ending_stocks_is_available', 'wasde_us_zs_ending_stocks_is_missing', 'wasde_us_zs_ending_stocks_is_release_day', 'wasde_us_zs_exports_age_days', 'wasde_us_zs_exports_is_available', 'wasde_us_zs_exports_is_missing', 'wasde_us_zs_exports_is_release_day', 'wasde_us_zs_production_age_days', 'wasde_us_zs_production_is_available', 'wasde_us_zs_production_is_missing', 'wasde_us_zs_production_is_release_day', 'wasde_world_zl_consumption_age_days', 'wasde_world_zl_consumption_is_available', 'wasde_world_zl_consumption_is_missing', 'wasde_world_zl_consumption_is_release_day', 'wasde_world_zl_ending_stocks_age_days', 'wasde_world_zl_ending_stocks_is_available', 'wasde_world_zl_ending_stocks_is_missing', 'wasde_world_zl_ending_stocks_is_release_day', 'wasde_world_zl_exports_age_days', 'wasde_world_zl_exports_is_available', 'wasde_world_zl_exports_is_missing', 'wasde_world_zl_exports_is_release_day', 'wasde_world_zl_production_age_days', 'wasde_world_zl_production_is_available', 'wasde_world_zl_production_is_missing', 'wasde_world_zl_production_is_release_day', 'wasde_world_zm_ending_stocks_age_days', 'wasde_world_zm_ending_stocks_is_available', 'wasde_world_zm_ending_stocks_is_missing', 'wasde_world_zm_ending_stocks_is_release_day', 'wasde_world_zm_exports_age_days', 'wasde_world_zm_exports_is_available', 'wasde_world_zm_exports_is_missing', 'wasde_world_zm_exports_is_release_day', 'wasde_world_zm_production_age_days', 'wasde_world_zm_production_is_available', 'wasde_world_zm_production_is_missing', 'wasde_world_zm_production_is_release_day', 'wasde_world_zs_consumption_age_days', 'wasde_world_zs_consumption_is_available', 'wasde_world_zs_consumption_is_missing', 'wasde_world_zs_consumption_is_release_day', 'wasde_world_zs_ending_stocks_age_days', 'wasde_world_zs_ending_stocks_is_available', 'wasde_world_zs_ending_stocks_is_missing', 'wasde_world_zs_ending_stocks_is_release_day', 'wasde_world_zs_exports_age_days', 'wasde_world_zs_exports_is_available', 'wasde_world_zs_exports_is_missing', 'wasde_world_zs_exports_is_release_day', 'wasde_world_zs_production_age_days', 'wasde_world_zs_production_is_available', 'wasde_world_zs_production_is_missing', 'wasde_world_zs_production_is_release_day', 'washout_risk_is_missing', 'wx_ar_gdd_10c_is_missing', 'wx_ar_gdd_30d_sum_is_missing', 'wx_ar_prcp_14d_sum_is_missing', 'wx_ar_prcp_7d_sum_is_missing', 'wx_ar_prcp_anom_30d_is_missing', 'wx_ar_prcp_mm_is_missing', 'wx_ar_snow_mm_is_missing', 'wx_ar_temp_anom_30d_is_missing', 'wx_ar_temp_vol_7d_is_missing', 'wx_ar_tmax_c_is_missing', 'wx_ar_tmin_c_is_missing', 'wx_br_gdd_10c_is_missing', 'wx_br_gdd_30d_sum_is_missing', 'wx_br_prcp_14d_sum_is_missing', 'wx_br_prcp_7d_sum_is_missing', 'wx_br_prcp_anom_30d_is_missing', 'wx_br_prcp_mm_is_missing', 'wx_br_snow_mm', 'wx_br_snow_mm_is_missing', 'wx_br_tavg_c_is_missing', 'wx_br_temp_anom_30d_is_missing', 'wx_br_temp_vol_7d_is_missing', 'wx_br_tmax_c_is_missing', 'wx_br_tmin_c_is_missing', 'wx_us_gdd_10c_is_missing', 'wx_us_gdd_30d_sum_is_missing', 'wx_us_prcp_14d_sum_is_missing', 'wx_us_prcp_7d_sum_is_missing', 'wx_us_prcp_anom_30d_is_missing', 'wx_us_prcp_mm_is_missing', 'wx_us_snow_mm_is_missing', 'wx_us_tavg_c_is_missing', 'wx_us_temp_anom_30d_is_missing', 'wx_us_temp_vol_7d_is_missing', 'wx_us_tmax_c_is_missing', 'wx_us_tmin_c_is_missing', 'zc_hurst_exponent', 'zc_hurst_exponent_is_missing', 'zc_rsi_14_is_missing', 'zl_cpo_spread_age_days', 'zl_cpo_spread_is_missing', 'zl_zs_ratio_is_missing', 'zs_bb_percent_b_is_missing', 'zs_hurst_exponent_is_missing', 'zs_macd_is_missing', 'zs_returns_1d_is_missing', 'zs_rsi_14_is_missing', 'zw_bb_percent_b_is_missing', 'zw_hurst_exponent', 'zw_hurst_exponent_is_missing', 'zw_returns_1d_is_missing', 'zw_rsi_14_is_missing']
+
+To learn how to fix incorrectly inferred types, please see documentation for TimeSeriesPredictor.fit
+
+AutoGluon will gauge predictive performance using evaluation metric: 'WQL'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-02-13 11:17:57
+Models that will be trained: ['Naive', 'SeasonalNaive', 'Average', 'SeasonalAverage', 'Zero', 'RecursiveTabular', 'DirectTabular', 'ETS', 'NPTS', 'Croston', 'PerStepTabular', 'Theta', 'DynamicOptimizedTheta', 'AutoETS', 'AutoARIMA', 'TemporalFusionTransformer', 'DeepAR', 'PatchTST', 'TiDE', 'WaveNet', 'AutoCES', 'ADIDA', 'IMAPA', 'DLinear', 'SimpleFeedForward']
+Training timeseries model Naive.
+	-1.6342       = Validation score (-WQL)
+	2.22    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive.
+	-0.4402       = Validation score (-WQL)
+	2.14    s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model Average.
+	-0.9927       = Validation score (-WQL)
+	1.31    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model SeasonalAverage.
+	-0.5619       = Validation score (-WQL)
+	0.46    s     = Training runtime
+	0.01    s     = Validation (prediction) runtime
+Training timeseries model Zero.
+	-0.9889       = Validation score (-WQL)
+	2.77    s     = Training runtime
+	0.04    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular.
+	-0.4856       = Validation score (-WQL)
+	7.89    s     = Training runtime
+	0.05    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular.
+	-0.3333       = Validation score (-WQL)
+	103.80  s     = Training runtime
+	0.11    s     = Validation (prediction) runtime
+Training timeseries model ETS.
+	-0.2827       = Validation score (-WQL)
+	5.01    s     = Training runtime
+	0.61    s     = Validation (prediction) runtime
+Training timeseries model NPTS.
+	-0.0868       = Validation score (-WQL)
+	1.81    s     = Training runtime
+	0.03    s     = Validation (prediction) runtime
+Training timeseries model Croston.
+	-0.9773       = Validation score (-WQL)
+	3.54    s     = Training runtime
+	0.28    s     = Validation (prediction) runtime
+Training timeseries model PerStepTabular.
+	-0.5528       = Validation score (-WQL)
+	25.53   s     = Training runtime
+	0.19    s     = Validation (prediction) runtime
+Training timeseries model Theta.
+	-0.4712       = Validation score (-WQL)
+	3.75    s     = Training runtime
+	0.12    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta.
+	-0.4712       = Validation score (-WQL)
+	1.85    s     = Training runtime
+	0.25    s     = Validation (prediction) runtime
+Training timeseries model AutoETS.
+	-0.2827       = Validation score (-WQL)
+	2.00    s     = Training runtime
+	0.17    s     = Validation (prediction) runtime
+Training timeseries model AutoARIMA.
+	-0.6112       = Validation score (-WQL)
+	2.05    s     = Training runtime
+	0.29    s     = Validation (prediction) runtime
+Training timeseries model TemporalFusionTransformer.
+	-0.0693       = Validation score (-WQL)
+	600.01  s     = Training runtime
+	0.29    s     = Validation (prediction) runtime
+Training timeseries model DeepAR.
+	-0.4551       = Validation score (-WQL)
+	136.79  s     = Training runtime
+	0.02    s     = Validation (prediction) runtime
+Training timeseries model PatchTST.

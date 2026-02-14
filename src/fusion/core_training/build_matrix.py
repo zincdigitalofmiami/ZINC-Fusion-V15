@@ -2464,19 +2464,28 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
         with conn.cursor() as cur:
             cur.execute("TRUNCATE TABLE training.matrix_1d")
             logger.info("   Truncated training.matrix_1d (preserving schema)")
-
-            # Insert rows
-            cols = list(df.columns)
-            insert_sql = f"""
-                INSERT INTO training.matrix_1d ({",".join(cols)})
-                VALUES %s
-            """
-
-            values = [tuple(row) for row in df.itertuples(index=False, name=None)]
-            execute_values(cur, insert_sql, values, page_size=1000)
-
         conn.commit()
-        logger.info(f"   Inserted {len(df):,} rows")
+
+        # Insert rows in chunks to avoid SSL timeout on Prisma Postgres proxy.
+        # With 1400+ columns, each row is ~50KB of SQL — large batches blow
+        # past the proxy's payload/timeout limit and cause "SSL connection
+        # has been closed unexpectedly".
+        cols = list(df.columns)
+        insert_sql = f"""
+            INSERT INTO training.matrix_1d ({",".join(cols)})
+            VALUES %s
+        """
+
+        values = [tuple(row) for row in df.itertuples(index=False, name=None)]
+
+        chunk_size = 500
+        for i in range(0, len(values), chunk_size):
+            chunk = values[i : i + chunk_size]
+            with conn.cursor() as cur:
+                execute_values(cur, insert_sql, chunk, page_size=100)
+            conn.commit()
+            logger.info(f"   Inserted chunk {i // chunk_size + 1}: {len(chunk)} rows")
+        logger.info(f"   Total: {len(df):,} rows inserted")
     except Exception:
         conn.rollback()
         logger.error("   Matrix write failed — rolled back TRUNCATE")
@@ -2488,10 +2497,14 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
 def create_table_from_df(conn, df: pd.DataFrame, schema: str, table: str, version: str):
     """Create table dynamically from DataFrame structure."""
 
+    # All numeric types use 4-byte storage to keep rows under PostgreSQL's
+    # 8,160-byte tuple limit with 1400+ columns. ML feature matrices don't
+    # need 8-byte precision — single-precision float and 32-bit int are
+    # more than sufficient for training data.
     dtype_map = {
-        "int64": "BIGINT",
+        "int64": "INTEGER",
         "int32": "INTEGER",
-        "float64": "DOUBLE PRECISION",
+        "float64": "REAL",
         "float32": "REAL",
         "bool": "BOOLEAN",
         "datetime64[ns]": "TIMESTAMP",

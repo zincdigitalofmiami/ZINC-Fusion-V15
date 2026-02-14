@@ -14,7 +14,7 @@ Plus specialist bucket-specific indicators for Big-8 analysis.
 
 import pandas as pd
 import numpy as np
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -104,8 +104,8 @@ class ZincFusionIndicators:
 
     def add_momentum_indicators(
         self,
-        rsi_periods: List[int] = [7, 14, 21],
-        macd_params: Tuple[int, int, int] = (12, 26, 9),
+        rsi_periods: list[int] | None = None,
+        macd_params: tuple[int, int, int] = (12, 26, 9),
         stoch_period: int = 14,
     ) -> pd.DataFrame:
         """
@@ -127,6 +127,8 @@ class ZincFusionIndicators:
         - MFI (Money Flow Index)
         - DPO (Detrended Price Oscillator)
         """
+        if rsi_periods is None:
+            rsi_periods = [7, 14, 21]
         df = self.df
 
         # RSI - Multiple periods for different timeframes
@@ -271,8 +273,8 @@ class ZincFusionIndicators:
 
     def add_trend_indicators(
         self,
-        sma_periods: List[int] = [5, 10, 20, 50, 100, 200],
-        ema_periods: List[int] = [9, 12, 26, 50, 200],
+        sma_periods: list[int] | None = None,
+        ema_periods: list[int] | None = None,
     ) -> pd.DataFrame:
         """
         Add comprehensive trend indicators.
@@ -293,6 +295,10 @@ class ZincFusionIndicators:
         - Mass Index
         - SuperTrend
         """
+        if sma_periods is None:
+            sma_periods = [5, 10, 20, 50, 100, 200]
+        if ema_periods is None:
+            ema_periods = [9, 12, 26, 50, 200]
         df = self.df
 
         # SMA - Simple Moving Averages
@@ -330,7 +336,7 @@ class ZincFusionIndicators:
             df[f"wma_{period}"] = (
                 df["close"]
                 .rolling(period)
-                .apply(lambda x: np.dot(x, weights) / weights.sum(), raw=True)
+                .apply(lambda x, w=weights: np.dot(x, w) / w.sum(), raw=True)
             )
 
         # DEMA - Double EMA
@@ -463,7 +469,7 @@ class ZincFusionIndicators:
         self,
         bb_period: int = 20,
         bb_std: float = 2.0,
-        atr_periods: List[int] = [7, 14, 21],
+        atr_periods: list[int] | None = None,
     ) -> pd.DataFrame:
         """
         Add comprehensive volatility indicators.
@@ -479,6 +485,8 @@ class ZincFusionIndicators:
         - True Range
         - Chaikin Volatility
         """
+        if atr_periods is None:
+            atr_periods = [7, 14, 21]
         df = self.df
 
         # Bollinger Bands

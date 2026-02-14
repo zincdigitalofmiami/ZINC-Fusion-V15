@@ -13,12 +13,16 @@
  * NO GUESSWORK - All data is verified before passing to AI
  */
 
-import Anthropic from '@anthropic-ai/sdk'
-import { MODEL_BALANCED_CONDITIONS, TOKENS_BALANCED_CONDITIONS } from './ai-config'
+import Anthropic from "@anthropic-ai/sdk";
+import {
+  MODEL_BALANCED_CONDITIONS,
+  TOKENS_BALANCED_CONDITIONS,
+} from "./ai-config";
+import { parseAIJson } from "./parse-ai-json";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-})
+});
 
 // =============================================================================
 // TYPES
@@ -26,62 +30,62 @@ const anthropic = new Anthropic({
 
 export interface MarketData {
   // Volatility
-  vix: number
-  ovx: number | null
-  vix3m?: number | null
+  vix: number;
+  ovx: number | null;
+  vix3m?: number | null;
 
   // Crush Economics
-  boardCrush: number
-  oilShare: number | null
+  boardCrush: number;
+  oilShare: number | null;
 
   // China/Trade
-  cnyRate: number
-  fxiChange20d: number
-  fxiChange5d: number
-  bdryChange20d: number | null
+  cnyRate: number;
+  fxiChange20d: number;
+  fxiChange5d: number;
+  bdryChange20d: number | null;
 
   // Tariff/Policy
-  tpu: number
-  emv: number | null
+  tpu: number;
+  emv: number | null;
 
   // Rule-based scores (already calculated)
   scores: {
-    vix: number
-    crush: number
-    china: number
-    tariff: number
-  }
+    vix: number;
+    crush: number;
+    china: number;
+    tariff: number;
+  };
 
   // ZL Price Data (NEW - for comprehensive reports)
-  zlPrice?: number
-  zlChange5d?: number
-  zlChange20d?: number
+  zlPrice?: number;
+  zlChange5d?: number;
+  zlChange20d?: number;
 
   // Recent News Headlines (NEW - for comprehensive reports)
-  recentNews?: string[]
+  recentNews?: string[];
 
   // FRESHNESS
-  asOfDate?: string  // Dashboard timestamp
+  asOfDate?: string; // Dashboard timestamp
 }
 
 export interface AIIntelligence {
-  headline: string
-  reasoning: string
-  zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
-  keyRisks: string[]
-  keySupports: string[]
-  tradingImplication: string
+  headline: string;
+  reasoning: string;
+  zlOutlook: "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH";
+  keyRisks: string[];
+  keySupports: string[];
+  tradingImplication: string;
   // Comprehensive narrative sections (Institutional Grade)
   comprehensiveReport?: {
-    tldr: string                // Quick summary with price targets and timeframes
-    currentSnapshot: string     // Current market snapshot with prices
-    keyDrivers: string          // Detailed breakdown of all key drivers
-    forecasts: string           // Time-horizon forecasts (1 week, 1 month, 1 quarter, 6 months)
-    correlations: string        // Correlation summary with specific coefficients
-    technicalOutlook: string    // Support/resistance, trends, key levels
-  }
+    tldr: string; // Quick summary with price targets and timeframes
+    currentSnapshot: string; // Current market snapshot with prices
+    keyDrivers: string; // Detailed breakdown of all key drivers
+    forecasts: string; // Time-horizon forecasts (1 week, 1 month, 1 quarter, 6 months)
+    correlations: string; // Correlation summary with specific coefficients
+    technicalOutlook: string; // Support/resistance, trends, key levels
+  };
   // FRESHNESS ECHO (anti-bullshit gate)
-  dataAsOf?: string  // Echo of input date to verify currency
+  dataAsOf?: string; // Echo of input date to verify currency
 }
 
 // =============================================================================
@@ -127,59 +131,46 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
     "correlations": "Summary of key correlations: Palm oil substitution (~0.7-0.8), Canola (~0.6-0.8), China/Brazil/Argentina (negative for US), VIX (positive), Fed rates/USD (negative). Include specific correlation estimates where relevant.",
     "technicalOutlook": "Support and resistance levels, trend direction, potential breakout/breakdown scenarios, and key levels to watch."
   }
-}`
+}`;
 
 // =============================================================================
 // AI INTELLIGENCE GENERATOR
 // =============================================================================
 
-function parseAIIntelligenceJson(rawText: string): AIIntelligence | null {
-  const text = rawText.trim()
-  const candidates = new Set<string>([text])
+// JSON parsing delegated to shared parseAIJson<T> in parse-ai-json.ts
 
-  // Common case: model wraps JSON in markdown fences.
-  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
-  if (fenced?.[1]) candidates.add(fenced[1].trim())
-
-  // Fallback: extract the first top-level JSON object from mixed text.
-  const firstBrace = text.indexOf('{')
-  const lastBrace = text.lastIndexOf('}')
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    candidates.add(text.slice(firstBrace, lastBrace + 1).trim())
-  }
-
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate) as AIIntelligence
-    } catch {
-      // Continue trying other candidates.
-    }
-  }
-
-  return null
-}
-
-export async function generateAIIntelligence(data: MarketData): Promise<AIIntelligence | null> {
+export async function generateAIIntelligence(
+  data: MarketData,
+): Promise<AIIntelligence | null> {
   // Validate we have real data (NO GUESSWORK)
-  if (data.vix === undefined || data.boardCrush === undefined || data.cnyRate === undefined || data.tpu === undefined) {
-    console.error('AI Intelligence: Missing required data - refusing to guess')
-    return null
+  if (
+    data.vix === undefined ||
+    data.boardCrush === undefined ||
+    data.cnyRate === undefined ||
+    data.tpu === undefined
+  ) {
+    console.error("AI Intelligence: Missing required data - refusing to guess");
+    return null;
   }
 
-  const asOfDate = data.asOfDate || new Date().toISOString().split('T')[0]
+  const asOfDate = data.asOfDate || new Date().toISOString().split("T")[0];
 
   // Build ZL price section if available
   const zlPriceSection = data.zlPrice
     ? `\nZL PRICE DATA:
 - Current ZL Price: ${data.zlPrice.toFixed(2)} cents/lb
-- 5-Day Change: ${data.zlChange5d !== undefined ? `${(data.zlChange5d * 100).toFixed(2)}%` : 'N/A'}
-- 20-Day Change: ${data.zlChange20d !== undefined ? `${(data.zlChange20d * 100).toFixed(2)}%` : 'N/A'}`
-    : ''
+- 5-Day Change: ${data.zlChange5d !== undefined ? `${(data.zlChange5d * 100).toFixed(2)}%` : "N/A"}
+- 20-Day Change: ${data.zlChange20d !== undefined ? `${(data.zlChange20d * 100).toFixed(2)}%` : "N/A"}`
+    : "";
 
   // Build news section if available
-  const newsSection = data.recentNews && data.recentNews.length > 0
-    ? `\nRECENT NEWS HEADLINES (last 7 days):\n${data.recentNews.slice(0, 8).map(h => `- ${h}`).join('\n')}`
-    : ''
+  const newsSection =
+    data.recentNews && data.recentNews.length > 0
+      ? `\nRECENT NEWS HEADLINES (last 7 days):\n${data.recentNews
+          .slice(0, 8)
+          .map((h) => `- ${h}`)
+          .join("\n")}`
+      : "";
 
   const userPrompt = `Produce a COMPREHENSIVE market intelligence report for ZL (soybean oil) futures.
 
@@ -187,20 +178,20 @@ DATA AS OF: ${asOfDate}
 ${zlPriceSection}
 
 VOLATILITY:
-- VIX: ${data.vix.toFixed(1)}${data.ovx !== null ? ` | OVX: ${data.ovx.toFixed(1)}` : ''}
+- VIX: ${data.vix.toFixed(1)}${data.ovx !== null ? ` | OVX: ${data.ovx.toFixed(1)}` : ""}
 - Pre-calculated pressure score: ${data.scores.vix}/100
 
 CRUSH ECONOMICS:
-- Board Crush: USD ${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ''}
+- Board Crush: $${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ""}
 - Pre-calculated pressure score: ${data.scores.crush}/100
 
 CHINA/TRADE:
 - CNY/USD: ${data.cnyRate.toFixed(2)}
-- FXI 20d change: ${(data.fxiChange20d * 100).toFixed(1)}%${data.bdryChange20d !== null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ''}
+- FXI 20d change: ${(data.fxiChange20d * 100).toFixed(1)}%${data.bdryChange20d !== null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ""}
 - Pre-calculated tension score: ${data.scores.china}/100
 
 TARIFF/POLICY:
-- Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ''}
+- Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ""}
 - Pre-calculated threat score: ${data.scores.tariff}/100
 ${newsSection}
 
@@ -213,40 +204,41 @@ CRITICAL INSTRUCTIONS:
 4. Reference specific numbers from the data provided.
 5. Include "dataAsOf": "${asOfDate}" in your response to confirm currency.
 
-Produce your comprehensive ZL market intelligence as JSON.`
+Produce your comprehensive ZL market intelligence as JSON.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: MODEL_BALANCED_CONDITIONS,  // LOCKED: Opus 4.5 for comprehensive synthesis
+      model: MODEL_BALANCED_CONDITIONS, // LOCKED: Opus 4.5 for comprehensive synthesis
       max_tokens: TOKENS_BALANCED_CONDITIONS,
-      messages: [
-        { role: 'user', content: userPrompt }
-      ],
+      messages: [{ role: "user", content: userPrompt }],
       system: SYSTEM_PROMPT,
-    })
+    });
 
-    const content = response.content[0]
-    if (content.type !== 'text') {
-      console.error('AI Intelligence: Unexpected response type')
-      return null
+    const content = response.content[0];
+    if (content.type !== "text") {
+      console.error("AI Intelligence: Unexpected response type");
+      return null;
     }
 
-    const parsed = parseAIIntelligenceJson(content.text)
+    const parsed = parseAIJson<AIIntelligence>(content.text);
     if (!parsed) {
-      console.error('AI Intelligence: Invalid JSON response', content.text.slice(0, 160))
-      return null
+      console.error(
+        "AI Intelligence: Invalid JSON response",
+        content.text.slice(0, 160),
+      );
+      return null;
     }
 
     // Validate required fields
     if (!parsed.headline || !parsed.reasoning || !parsed.zlOutlook) {
-      console.error('AI Intelligence: Missing required fields in response')
-      return null
+      console.error("AI Intelligence: Missing required fields in response");
+      return null;
     }
 
-    return parsed
+    return parsed;
   } catch (error) {
-    console.error('AI Intelligence generation failed:', error)
-    return null
+    console.error("AI Intelligence generation failed:", error);
+    return null;
   }
 }
 
@@ -255,48 +247,71 @@ Produce your comprehensive ZL market intelligence as JSON.`
 // =============================================================================
 
 export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
-  const avgScore = (data.scores.vix + data.scores.crush + data.scores.china + data.scores.tariff) / 4
-  const highPressureCount = [data.scores.vix, data.scores.crush, data.scores.china, data.scores.tariff]
-    .filter(s => s >= 65).length
+  const avgScore =
+    (data.scores.vix +
+      data.scores.crush +
+      data.scores.china +
+      data.scores.tariff) /
+    4;
+  const highPressureCount = [
+    data.scores.vix,
+    data.scores.crush,
+    data.scores.china,
+    data.scores.tariff,
+  ].filter((s) => s >= 65).length;
 
-  let zlOutlook: 'BULLISH' | 'NEUTRAL' | 'CAUTIOUS' | 'BEARISH'
-  let headline: string
+  let zlOutlook: "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH";
+  let headline: string;
 
   if (avgScore >= 70 || highPressureCount >= 3) {
-    zlOutlook = 'BEARISH'
-    headline = 'Multiple Headwinds for Soybean Oil'
+    zlOutlook = "BEARISH";
+    headline = "Multiple Headwinds for Soybean Oil";
   } else if (avgScore >= 55 || highPressureCount >= 2) {
-    zlOutlook = 'CAUTIOUS'
-    headline = 'Mixed Signals for ZL - Proceed Carefully'
+    zlOutlook = "CAUTIOUS";
+    headline = "Mixed Signals for ZL - Proceed Carefully";
   } else if (avgScore >= 40) {
-    zlOutlook = 'NEUTRAL'
-    headline = 'Balanced Conditions for Soybean Oil'
+    zlOutlook = "NEUTRAL";
+    headline = "Balanced Conditions for Soybean Oil";
   } else {
-    zlOutlook = 'BULLISH'
-    headline = 'Supportive Environment for ZL'
+    zlOutlook = "BULLISH";
+    headline = "Supportive Environment for ZL";
   }
 
-  const keyRisks: string[] = []
-  const keySupports: string[] = []
+  const keyRisks: string[] = [];
+  const keySupports: string[] = [];
 
-  if (data.scores.vix >= 65) keyRisks.push(`VIX at ${data.vix.toFixed(1)} - fund liquidation risk`)
-  if (data.scores.crush >= 65) keyRisks.push(`Crush margins squeezed at USD ${data.boardCrush.toFixed(2)}`)
-  if (data.scores.china >= 65) keyRisks.push(`China tension elevated - CNY at ${data.cnyRate.toFixed(2)}`)
-  if (data.scores.tariff >= 65) keyRisks.push(`Tariff risk high - TPU at ${data.tpu.toFixed(0)}`)
+  if (data.scores.vix >= 65)
+    keyRisks.push(`VIX at ${data.vix.toFixed(1)} - fund liquidation risk`);
+  if (data.scores.crush >= 65)
+    keyRisks.push(
+      `Crush margins squeezed at $${data.boardCrush.toFixed(2)}/bu`,
+    );
+  if (data.scores.china >= 65)
+    keyRisks.push(`China tension elevated - CNY at ${data.cnyRate.toFixed(2)}`);
+  if (data.scores.tariff >= 65)
+    keyRisks.push(`Tariff risk high - TPU at ${data.tpu.toFixed(0)}`);
 
-  if (data.scores.vix <= 35) keySupports.push(`Low VIX at ${data.vix.toFixed(1)} - stable conditions`)
-  if (data.scores.crush <= 35) keySupports.push(`Strong crush at USD ${data.boardCrush.toFixed(2)} - processor demand`)
-  if (data.scores.china <= 35) keySupports.push(`Constructive China trade flow`)
-  if (data.scores.tariff <= 35) keySupports.push(`Trade policy calm`)
+  if (data.scores.vix <= 35)
+    keySupports.push(`Low VIX at ${data.vix.toFixed(1)} - stable conditions`);
+  if (data.scores.crush <= 35)
+    keySupports.push(
+      `Strong crush at $${data.boardCrush.toFixed(2)}/bu - processor demand`,
+    );
+  if (data.scores.china <= 35)
+    keySupports.push(`Constructive China trade flow`);
+  if (data.scores.tariff <= 35) keySupports.push(`Trade policy calm`);
 
   return {
     headline,
-    reasoning: `Average market pressure at ${avgScore.toFixed(0)}/100 with ${highPressureCount} driver(s) in alert territory. ${zlOutlook === 'BEARISH' ? 'Multiple headwinds converging.' : zlOutlook === 'BULLISH' ? 'Fundamentals supportive.' : 'Cross-currents require careful positioning.'}`,
+    reasoning: `Average market pressure at ${avgScore.toFixed(0)}/100 with ${highPressureCount} driver(s) in alert territory. ${zlOutlook === "BEARISH" ? "Multiple headwinds converging." : zlOutlook === "BULLISH" ? "Fundamentals supportive." : "Cross-currents require careful positioning."}`,
     zlOutlook,
-    keyRisks: keyRisks.length > 0 ? keyRisks : ['No major risks identified'],
-    keySupports: keySupports.length > 0 ? keySupports : ['Balanced conditions'],
-    tradingImplication: zlOutlook === 'BEARISH' ? 'Reduce ZL longs, watch for gap risk.' :
-                        zlOutlook === 'BULLISH' ? 'ZL dips are buying opportunities.' :
-                        'Trade range-bound, respect support/resistance.'
-  }
+    keyRisks: keyRisks.length > 0 ? keyRisks : ["No major risks identified"],
+    keySupports: keySupports.length > 0 ? keySupports : ["Balanced conditions"],
+    tradingImplication:
+      zlOutlook === "BEARISH"
+        ? "Reduce ZL longs, watch for gap risk."
+        : zlOutlook === "BULLISH"
+          ? "ZL dips are buying opportunities."
+          : "Trade range-bound, respect support/resistance.",
+  };
 }

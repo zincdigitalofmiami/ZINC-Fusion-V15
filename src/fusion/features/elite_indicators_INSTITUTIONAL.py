@@ -11,7 +11,7 @@ This replaces elite_indicators.py with BATTLE-TESTED implementations.
 
 import pandas as pd
 import numpy as np
-from stock_indicators import indicators, Quote
+from stock_indicators import indicators
 from stock_indicators.indicators.common import Quote
 
 # Import GS Quant functions

@@ -85,7 +85,7 @@ class EliteIndicatorsV2:
             try:
                 H, c, data = compute_Hc(valid, kind="price", simplified=False)
                 return H
-            except:
+            except Exception:
                 return np.nan
 
         self.df["hurst_exponent"] = close.rolling(lookback).apply(
@@ -185,12 +185,14 @@ class EliteIndicatorsV2:
     # TIER 2: TA-LIB STANDARD INDICATORS (Industry C Library)
     # =========================================================================
 
-    def add_rsi_talib(self, periods: list = [2, 14]) -> pd.DataFrame:
+    def add_rsi_talib(self, periods: list | None = None) -> pd.DataFrame:
         """
         RSI using TA-Lib (INDUSTRY STANDARD C LIBRARY)
 
         Source: TA-Lib
         """
+        if periods is None:
+            periods = [2, 14]
         close = self.df["close"].values
 
         for period in periods:
@@ -244,12 +246,14 @@ class EliteIndicatorsV2:
 
         return self.df
 
-    def add_atr_talib(self, periods: list = [10, 14, 50]) -> pd.DataFrame:
+    def add_atr_talib(self, periods: list | None = None) -> pd.DataFrame:
         """
         ATR using TA-Lib (INDUSTRY STANDARD)
 
         Source: TA-Lib
         """
+        if periods is None:
+            periods = [10, 14, 50]
         high = self.df["high"].values
         low = self.df["low"].values
         close = self.df["close"].values
@@ -305,12 +309,14 @@ class EliteIndicatorsV2:
 
         return self.df
 
-    def add_cci_talib(self, periods: list = [14, 50]) -> pd.DataFrame:
+    def add_cci_talib(self, periods: list | None = None) -> pd.DataFrame:
         """
         CCI using TA-Lib (INDUSTRY STANDARD)
 
         Source: TA-Lib
         """
+        if periods is None:
+            periods = [14, 50]
         high = self.df["high"].values
         low = self.df["low"].values
         close = self.df["close"].values

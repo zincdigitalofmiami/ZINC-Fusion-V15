@@ -71,7 +71,11 @@ REQUIRED_DATA_SOURCES = {
     "econ.rates_1d": (50_000, "FRED rates/treasuries", "event_date"),
     "econ.inflation_1d": (1_000, "FRED inflation (CPI, PCE, PPI)", "event_date"),
     "econ.labor_1d": (1_000, "FRED labor (unemployment, payrolls)", "event_date"),
-    "econ.activity_1d": (50_000, "FRED activity (GDP, industrial)", "event_date"),
+    "econ.activity_1d": (
+        5_000,
+        "FRED activity (GDP, industrial)",
+        "event_date",
+    ),  # 19 monthly/quarterly series ≈ 10K rows
     "econ.vol_indices_1d": (5_000, "FRED vol indices (VIX, NFCI)", "event_date"),
     "econ.commodities_1d": (10_000, "FRED commodities (oil, grains)", "event_date"),
     "econ.money_1d": (1_000, "FRED money supply (M2, reserves)", "event_date"),

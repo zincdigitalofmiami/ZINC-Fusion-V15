@@ -157,11 +157,16 @@ function staleAdjust(c: ReturnType<typeof colors>): typeof c {
 function formatLabel(t: ForecastTarget): string {
   // MAE from model_runs_event, or fall back to zone half-width
   const errorVal = t.mae != null ? t.mae : (t.priceHigh - t.priceLow) / 2;
-  const method = t.probabilityMethod ?? "MC";
-  const zone = t.probabilityZone ?? "P30-P70";
-  const coverage = Number.isFinite(t.coveragePct) ? `${t.coveragePct}%` : "40%";
-  const horizon = t.horizonLabel ? ` ${t.horizonLabel}` : "";
-  let label = `${t.label}${horizon} ${t.oofPrice.toFixed(2)}  |  ${method} ${zone} ${coverage}  |  MAE ±${errorVal.toFixed(2)}`;
+  const likelihood = Number.isFinite(t.coveragePct)
+    ? `${t.coveragePct}% likely`
+    : "";
+  const horizonText = t.horizonLabel
+    ? `${t.horizonLabel.replace("d", "-Day")} Target`
+    : t.label;
+  const accuracyText = `\u00b1$${errorVal.toFixed(2)} accuracy`;
+  let label = likelihood
+    ? `${horizonText} $${t.oofPrice.toFixed(2)}  \u00b7  ${likelihood}  \u00b7  ${accuracyText}`
+    : `${horizonText} $${t.oofPrice.toFixed(2)}  \u00b7  ${accuracyText}`;
   if (isStale(t)) {
     label += "  STALE";
   }

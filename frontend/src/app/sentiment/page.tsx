@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  RefreshCw,
-  Newspaper,
-  TrendingUp,
-  Activity,
-} from "lucide-react";
+import { RefreshCw, Newspaper, TrendingUp, Activity } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -222,8 +217,7 @@ function volLabel(
   value: number,
   thresholds: [number, number],
 ): { text: string; color: string } {
-  if (value > thresholds[1])
-    return { text: "Elevated", color: "text-red-400" };
+  if (value > thresholds[1]) return { text: "Elevated", color: "text-red-400" };
   if (value > thresholds[0])
     return { text: "Moderate", color: "text-amber-400" };
   return { text: "Calm", color: "text-emerald-400" };
@@ -353,8 +347,7 @@ export default function SentimentPage() {
     if (total === 0) return null;
     const ratio = (bullish - bearish) / total;
     const sigma = (ratio * 2).toFixed(2);
-    const direction =
-      ratio > 0 ? "Bullish" : ratio < 0 ? "Bearish" : "Neutral";
+    const direction = ratio > 0 ? "Bullish" : ratio < 0 ? "Bearish" : "Neutral";
     return {
       sigma: `${ratio > 0 ? "+" : ""}${sigma}σ`,
       direction,
@@ -761,7 +754,7 @@ export default function SentimentPage() {
             label="Crush Margin"
             value={
               metrics?.crush.board_crush != null
-                ? `USD ${metrics.crush.board_crush.toFixed(2)}/bu`
+                ? `$${metrics.crush.board_crush.toFixed(2)}/bu`
                 : "—"
             }
             loading={loading && !metrics}

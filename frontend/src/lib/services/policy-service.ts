@@ -314,3 +314,106 @@ export function scoreNewsVelocity(count: number): number {
   // Simple heuristic: 0 count -> 0, 20 count -> +20
   return Math.min(20, count);
 }
+
+// ===========================================
+// TARIFF THREAT SCORING (Full Sophistication)
+// Matches policy_pressure.py exactly
+// ===========================================
+
+export interface TariffComponents {
+  tpu_score: number;
+  tpu_value: number;
+  emv_score: number;
+  emv_value: number | null;
+  legislation_count: number;
+  legislation_adj: number;
+  soy_tariff_news_count: number;
+  soy_tariff_news_adj: number;
+  specialist_signal: number | null;
+  specialist_adj: number;
+}
+
+export function calculateTariffThreat(
+  tpu: number,
+  emv: number | null,
+  legislationCount: number,
+  soyTariffNews: number,
+  specialistSignal: number | null,
+): {
+  score: number;
+  level: string;
+  regime: string;
+  headline: string;
+  components: TariffComponents;
+} {
+  // Component 1: TPU (35%)
+  const { score: tpuScore, regime } = scoreTpu(tpu);
+
+  // Component 2: EMV (20%)
+  const { score: emvScore } = scoreEmv(emv);
+
+  // Component 3: Legislation Velocity (10%)
+  const legisAdj = scoreLegislationVelocity(legislationCount);
+
+  // Component 4: Soy Tariff News (20%)
+  const newsAdj = scoreNewsVelocity(soyTariffNews);
+
+  // Component 5: Specialist Signal (15%)
+  let specialistAdj = 0;
+  if (specialistSignal !== null) {
+    specialistAdj = -specialistSignal * 20 * 0.5;
+  }
+
+  // Composite Score (SOY-CENTRIC WEIGHTS from Python)
+  // TPU 35%, EMV 20%, Legislation 10%, Specialist 15%, Soy News 20%
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      tpuScore * 0.35 +
+        emvScore * 0.2 +
+        (50 + legisAdj) * 0.1 +
+        (50 + specialistAdj) * 0.15 +
+        (50 + newsAdj) * 0.2,
+    ),
+  );
+
+  // Level - ACTIONABLE LABELS
+  let level: string;
+  if (score >= 80) level = "Active War";
+  else if (score >= 65) level = "Retaliation Risk";
+  else if (score >= 50) level = "Elevated Noise";
+  else if (score >= 35) level = "Background Noise";
+  else level = "Minimal Threat";
+
+  // Headlines with TPU context (normal ~100, elevated ~200, crisis 400+)
+  const headline =
+    score >= 80
+      ? "ZL Bearish - Active Tariffs on Soy (TPU 400+)"
+      : score >= 65
+        ? "ZL Cautious - Retaliatory Tariff Risk (TPU 200+)"
+        : score >= 50
+          ? "TPU Elevated - Export Sales Pace Uncertain"
+          : score >= 35
+            ? "TPU Normal Range - Background Trade Noise"
+            : "Trade Policy Calm - Supportive for Soy Exports";
+
+  return {
+    score: Math.round(score * 10) / 10,
+    level,
+    regime,
+    headline,
+    components: {
+      tpu_score: Math.round(tpuScore * 10) / 10,
+      tpu_value: Math.round(tpu),
+      emv_score: Math.round(emvScore * 10) / 10,
+      emv_value: emv ? Math.round(emv) : null,
+      legislation_count: legislationCount,
+      legislation_adj: Math.round(legisAdj * 10) / 10,
+      soy_tariff_news_count: soyTariffNews,
+      soy_tariff_news_adj: Math.round(newsAdj * 10) / 10,
+      specialist_signal: specialistSignal,
+      specialist_adj: Math.round(specialistAdj * 10) / 10,
+    },
+  };
+}

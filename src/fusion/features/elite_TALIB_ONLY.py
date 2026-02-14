@@ -27,7 +27,7 @@ class EliteTALibOnly:
     def calculate_all(self) -> pd.DataFrame:
         """Calculate all TA-Lib indicators."""
 
-        self.df["open"].values
+        o = self.df["open"].values  # noqa: F841
         h = self.df["high"].values
         l = self.df["low"].values
         c = self.df["close"].values

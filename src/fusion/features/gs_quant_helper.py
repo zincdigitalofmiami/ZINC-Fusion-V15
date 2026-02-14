@@ -230,10 +230,13 @@ def plot_measure(
     dependencies: Optional[List[QueryType]] = tuple(),
     asset_type_excluded: Optional[tuple] = None,
     display_name: Optional[str] = None,
-    entitlements: Optional[List[Entitlement]] = [],
+    entitlements: Optional[List[Entitlement]] = None,
 ):
     # Indicates that fn should be exported to plottool as a member function / pseudo-measure.
     # Set category to None for no restrictions, else provide a tuple of allowed values.
+    if entitlements is None:
+        entitlements = []
+
     def decorator(fn):
         assert isinstance(asset_class, tuple)
         assert len(asset_class) >= 1

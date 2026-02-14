@@ -384,7 +384,7 @@ class BaseSignalGenerator(ABC):
     def compute_momentum(
         self,
         series: pd.Series,
-        periods: List[int] = [5, 21, 63],
+        periods: List[int] | None = None,
     ) -> Dict[str, pd.Series]:
         """
         Utility: Compute momentum over multiple periods.
@@ -396,6 +396,8 @@ class BaseSignalGenerator(ABC):
         Returns:
             Dict mapping period name to momentum series
         """
+        if periods is None:
+            periods = [5, 21, 63]
         return {f"mom_{p}d": series.pct_change(periods=p) for p in periods}
 
     def compute_regime(
