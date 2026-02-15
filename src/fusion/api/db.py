@@ -20,9 +20,17 @@ except ImportError:
 
 
 def _get_postgres_url() -> str | None:
-    """Get Postgres connection URL from environment or .env file."""
-    url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    """Get direct Postgres URL (not Prisma Accelerate proxy)."""
+    url = (
+        os.getenv("DIRECT_DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("DATABASE_URL")
+    )
     if url:
+        if url.startswith("prisma+postgres://"):
+            raise RuntimeError(
+                "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+            )
         return url
 
     # Try loading from .env file
@@ -30,10 +38,26 @@ def _get_postgres_url() -> str | None:
 
     env_path = Path(__file__).parent.parent.parent.parent / ".env"
     if env_path.exists():
+        candidates: dict[str, str] = {}
         with open(env_path) as f:
             for line in f:
-                if line.startswith("DATABASE_URL="):
-                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                if key not in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+                    continue
+                candidates[key] = value.strip().strip('"').strip("'")
+        for key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+            parsed = candidates.get(key)
+            if not parsed:
+                continue
+            if parsed.startswith("prisma+postgres://"):
+                raise RuntimeError(
+                    "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+                )
+            return parsed
     return None
 
 
@@ -45,8 +69,8 @@ def get_backend() -> str:
     """
     if not _get_postgres_url():
         raise RuntimeError(
-            "DATABASE_URL not set. Prisma Postgres is required. "
-            "Set DATABASE_URL in environment or .env file."
+            "Database URL not set. Prisma Postgres is required. "
+            "Set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in environment or .env file."
         )
     if not HAS_POSTGRES:
         raise RuntimeError("psycopg2 not installed. Run: pip install psycopg2-binary")
@@ -75,7 +99,9 @@ class DatabaseConnection:
         """Establish connection to Prisma Postgres."""
         url = _get_postgres_url()
         if not url:
-            raise RuntimeError("DATABASE_URL not set")
+            raise RuntimeError(
+                "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+            )
         self._conn = psycopg2.connect(url)
         return self
 
@@ -130,7 +156,9 @@ def get_connection():
     """Get a raw psycopg2 connection to Prisma Postgres."""
     url = _get_postgres_url()
     if not url:
-        raise RuntimeError("DATABASE_URL not set")
+        raise RuntimeError(
+            "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+        )
     return psycopg2.connect(url)
 
 

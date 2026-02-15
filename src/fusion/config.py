@@ -5,7 +5,9 @@ All training, inference, and operations use Prisma Postgres.
 Frontend deployed on Vercel (Next.js + Inngest).
 
 Environment Variables:
-    DATABASE_URL         - Prisma Postgres connection string (REQUIRED)
+    DIRECT_DATABASE_URL  - Direct Prisma Postgres connection string (preferred)
+    POSTGRES_URL         - Direct Prisma Postgres connection string
+    DATABASE_URL         - Backward-compatible direct Prisma Postgres URL
     FUSION_MODEL_DIR     - Path to model directory (default: models)
     HISTORICAL_DATA_PATH - Path to historical parquet files (for initial ingestion)
 """
@@ -17,8 +19,12 @@ from pathlib import Path
 # CANONICAL ENVIRONMENT VARIABLES
 # =============================================================================
 
-# Prisma Postgres connection (REQUIRED)
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# Prisma Postgres direct connection (REQUIRED for psycopg2/sqlalchemy paths)
+DATABASE_URL = (
+    os.environ.get("DIRECT_DATABASE_URL")
+    or os.environ.get("POSTGRES_URL")
+    or os.environ.get("DATABASE_URL")
+)
 
 # Model directory
 FUSION_MODEL_DIR = os.environ.get("FUSION_MODEL_DIR", "models")
@@ -39,11 +45,31 @@ def get_database_url() -> str:
         # Try loading from .env file
         env_path = Path(__file__).parent.parent.parent.parent / ".env"
         if env_path.exists():
+            candidates: dict[str, str] = {}
             with open(env_path) as f:
                 for line in f:
-                    if line.startswith("DATABASE_URL="):
-                        return line.split("=", 1)[1].strip().strip('"').strip("'")
-        raise ValueError("DATABASE_URL not set. Set it in environment or .env file.")
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    if key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+                        candidates[key] = value.strip().strip('"').strip("'")
+            for key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+                if candidates.get(key):
+                    url = candidates[key]
+                    if url.startswith("prisma+postgres://"):
+                        raise ValueError(
+                            "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+                        )
+                    return url
+        raise ValueError(
+            "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in environment or .env file."
+        )
+    if DATABASE_URL.startswith("prisma+postgres://"):
+        raise ValueError(
+            "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+        )
     return DATABASE_URL
 
 

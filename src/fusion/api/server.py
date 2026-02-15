@@ -21,6 +21,7 @@ from fusion.analytics.pressures import (
 )
 from fusion.api.db import fetch_rows, get_backend, get_query_builder
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
+from fusion.db.connection import get_write_connection
 
 app = FastAPI(title="Fusion API", version="0.1.0")
 
@@ -1560,9 +1561,7 @@ def pulse_signals(
 
 def _get_db_connection():
     """Get database connection for pressure calculations."""
-    import psycopg2
-
-    return psycopg2.connect(os.environ.get("DATABASE_URL", ""))
+    return get_write_connection()
 
 
 @app.get("/api/market-drivers")
