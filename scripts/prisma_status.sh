@@ -5,11 +5,46 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# Load DATABASE_URL from .env if not already set
-if [ -z "${DATABASE_URL:-}" ] && [ -f .env ]; then
+# Load env file when DB vars are missing.
+_ENV_DATABASE_URL="${DATABASE_URL:-}"
+_ENV_POSTGRES_URL="${POSTGRES_URL:-}"
+_ENV_DIRECT_DATABASE_URL="${DIRECT_DATABASE_URL:-}"
+if { [ -z "${DIRECT_DATABASE_URL:-}" ] || [ -z "${DATABASE_URL:-}" ] || [ -z "${POSTGRES_URL:-}" ]; } && [ -f .env ]; then
   set -a
   source .env
   set +a
+fi
+# Preserve explicit caller-provided env values.
+if [ -n "${_ENV_DATABASE_URL}" ]; then
+  export DATABASE_URL="${_ENV_DATABASE_URL}"
+fi
+if [ -n "${_ENV_POSTGRES_URL}" ]; then
+  export POSTGRES_URL="${_ENV_POSTGRES_URL}"
+fi
+if [ -n "${_ENV_DIRECT_DATABASE_URL}" ]; then
+  export DIRECT_DATABASE_URL="${_ENV_DIRECT_DATABASE_URL}"
+fi
+
+# Normalize aliases so downstream tooling can rely on either key.
+if [ -z "${POSTGRES_URL:-}" ] && [ -n "${DIRECT_DATABASE_URL:-}" ]; then
+  export POSTGRES_URL="${DIRECT_DATABASE_URL}"
+fi
+if [ -z "${POSTGRES_URL:-}" ] && [ -n "${DATABASE_URL:-}" ]; then
+  export POSTGRES_URL="${DATABASE_URL}"
+fi
+if [ -z "${DATABASE_URL:-}" ] && [ -n "${POSTGRES_URL:-}" ]; then
+  export DATABASE_URL="${POSTGRES_URL}"
+fi
+
+if [ -z "${POSTGRES_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
+  echo "FALLBACK FAILED: set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in environment/.env"
+  exit 1
+fi
+
+if printf "%s" "${POSTGRES_URL:-}" | grep -q '^prisma+postgres://'; then
+  echo "FALLBACK FAILED: POSTGRES_URL/DIRECT_DATABASE_URL must be direct postgres:// for migrate/status."
+  echo "Set direct URL from Prisma Console; do not use prisma+postgres:// for this script."
+  exit 1
 fi
 
 echo "=== Prisma Migrate Status (PROD) ==="
@@ -65,9 +100,9 @@ local = sorted(
     if p.is_dir() and (p / "migration.sql").exists()
 )
 
-url = os.getenv("DATABASE_URL")
+url = os.getenv("DIRECT_DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
 if not url:
-    print("FALLBACK FAILED: DATABASE_URL not set")
+    print("FALLBACK FAILED: DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL not set")
     sys.exit(1)
 
 conn = None
