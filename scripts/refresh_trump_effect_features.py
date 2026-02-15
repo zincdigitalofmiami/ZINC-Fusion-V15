@@ -593,59 +593,12 @@ def main():
         )
 
     # =========================================================================
-    # STEP 5: Update features.trump_effect_1d
+    # STEP 5: Legacy feature table write removed
     # =========================================================================
     print("\n" + "=" * 60)
-    print("STEP 5: Updating features.trump_effect_1d")
+    print("STEP 5: Legacy write removed (features.trump_effect_1d)")
     print("=" * 60)
-
-    # Clear existing data
-    cur.execute("DELETE FROM features.trump_effect_1d")
-    conn.commit()
-    print("  Cleared existing data")
-
-    # Insert new data
-    insert_count = 0
-    for row in features_rows:
-        cur.execute(
-            """
-            INSERT INTO features.trump_effect_1d
-            (as_of_date, eo_count_7d, eo_count_30d,
-             proclamation_count_7d, proclamation_count_30d,
-             nomination_count_7d, nomination_count_30d,
-             memorandum_count_7d, memorandum_count_30d,
-             total_actions_7d, total_actions_30d,
-             avg_sentiment_7d, avg_sentiment_30d,
-             action_velocity, action_acceleration,
-             weighted_action_score, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            ON CONFLICT (as_of_date) DO UPDATE SET
-                eo_count_7d = EXCLUDED.eo_count_7d,
-                eo_count_30d = EXCLUDED.eo_count_30d,
-                proclamation_count_7d = EXCLUDED.proclamation_count_7d,
-                proclamation_count_30d = EXCLUDED.proclamation_count_30d,
-                nomination_count_7d = EXCLUDED.nomination_count_7d,
-                nomination_count_30d = EXCLUDED.nomination_count_30d,
-                memorandum_count_7d = EXCLUDED.memorandum_count_7d,
-                memorandum_count_30d = EXCLUDED.memorandum_count_30d,
-                total_actions_7d = EXCLUDED.total_actions_7d,
-                total_actions_30d = EXCLUDED.total_actions_30d,
-                avg_sentiment_7d = EXCLUDED.avg_sentiment_7d,
-                avg_sentiment_30d = EXCLUDED.avg_sentiment_30d,
-                action_velocity = EXCLUDED.action_velocity,
-                action_acceleration = EXCLUDED.action_acceleration,
-                weighted_action_score = EXCLUDED.weighted_action_score
-        """,
-            row,
-        )
-        insert_count += 1
-
-        if insert_count % 500 == 0:
-            conn.commit()
-            print(f"    Inserted {insert_count} rows...")
-
-    conn.commit()
-    print(f"  ✅ Inserted {insert_count} rows into features.trump_effect_1d")
+    print("  Skipping deprecated features table; writing specialist data only.")
 
     # =========================================================================
     # STEP 6: Sync to training.specialist_trump_effect_1d with NEURAL SIGNALS
@@ -758,35 +711,17 @@ def main():
     print("STEP 7: Verification & Neural Signal Analysis")
     print("=" * 60)
 
-    cur.execute("""
-        SELECT COUNT(*), MIN(as_of_date), MAX(as_of_date)
-        FROM features.trump_effect_1d
-    """)
-    result = cur.fetchone()
-    print(f"  Total rows: {result[0]}")
-    print(f"  Date range: {result[1]} to {result[2]}")
-
-    # Show non-zero action days
-    cur.execute("""
-        SELECT COUNT(*)
-        FROM features.trump_effect_1d
-        WHERE total_actions_7d > 0
-    """)
-    active_days = cur.fetchone()[0]
+    print(f"  Generated rows: {len(features_rows)}")
+    if features_rows:
+        print(f"  Date range: {features_rows[0][0]} to {features_rows[-1][0]}")
+    active_days = sum(1 for row in features_rows if row[9] and row[9] > 0)
     print(f"  Days with actions (7d window): {active_days}")
 
-    # Sample recent data from features table
-    cur.execute("""
-        SELECT as_of_date, eo_count_7d, eo_count_30d, total_actions_7d, action_velocity
-        FROM features.trump_effect_1d
-        WHERE total_actions_7d > 0
-        ORDER BY as_of_date DESC
-        LIMIT 10
-    """)
-    print("\n  Recent days with actions (features table):")
-    for row in cur.fetchall():
+    print("\n  Recent days with actions (generated payload):")
+    for row in [r for r in features_rows if r[9] and r[9] > 0][-10:]:
+        velocity = row[13] if row[13] is not None else 0.0
         print(
-            f"    {row[0]}: EO_7d={row[1]}, EO_30d={row[2]}, Total_7d={row[3]}, velocity={row[4]:.2f}"
+            f"    {row[0]}: EO_7d={row[1]}, EO_30d={row[2]}, Total_7d={row[9]}, velocity={velocity:.2f}"
         )
 
     # Verify training table with NEURAL signal details

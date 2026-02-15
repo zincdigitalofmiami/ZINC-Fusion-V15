@@ -170,7 +170,6 @@ TABLE_MAP = {
     "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
     # Features
     "features.intel_drops_event": '"features"."intel_drops_event"',
-    "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training
     "training.matrix_1d": '"training"."matrix_1d"',
     "training.oof_core_1d": '"training"."oof_core_1d"',

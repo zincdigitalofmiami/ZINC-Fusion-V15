@@ -766,30 +766,6 @@ model intel_drops {
   @@schema("features")
 }
 
-model trump_effect_1d {
-  id                     Int       @id @default(autoincrement())
-  as_of_date             DateTime  @unique @db.Date
-  eo_count_7d            Int?      @default(0)
-  eo_count_30d           Int?      @default(0)
-  proclamation_count_7d  Int?      @default(0)
-  proclamation_count_30d Int?      @default(0)
-  nomination_count_7d    Int?      @default(0)
-  nomination_count_30d   Int?      @default(0)
-  memorandum_count_7d    Int?      @default(0)
-  memorandum_count_30d   Int?      @default(0)
-  total_actions_7d       Int?      @default(0)
-  total_actions_30d      Int?      @default(0)
-  avg_sentiment_7d       Float?
-  avg_sentiment_30d      Float?
-  action_velocity        Float?
-  action_acceleration    Float?
-  weighted_action_score  Float?
-  created_at             DateTime? @default(now()) @db.Timestamp(6)
-
-  @@index([as_of_date], map: "idx_trump_effect_as_of_date")
-  @@schema("features")
-}
-
 model core_cone_1d {
   id            Int       @id @default(autoincrement())
   forecast_date DateTime  @db.Date

@@ -1277,7 +1277,7 @@ def load_trump_effect_data(
     - Fed Rates: DFF, DGS2, DGS10, T10Y2Y, SOFR
     - FX Rates: All major USD pairs
     - Tariff: alt.tariff_deadlines_static
-    - Trump Features: features.trump_effect_1d
+    - Trump Features: training.specialist_trump_effect_1d (features JSON payload)
     """
     conn = get_connection()
 
@@ -1432,17 +1432,24 @@ def load_trump_effect_data(
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 7. Trump Effect Features (EO counts, sentiment, action velocity)
+    # 7. Trump Effect Features (from specialist payload)
     # ==========================================================================
     trump_query = """
-    SELECT as_of_date as trade_date,
-           eo_count_7d, eo_count_30d,
-           proclamation_count_7d, proclamation_count_30d,
-           total_actions_7d, total_actions_30d,
-           avg_sentiment_7d, avg_sentiment_30d,
-           action_velocity, action_acceleration,
-           weighted_action_score
-    FROM features.trump_effect_1d
+    SELECT
+           as_of_date as trade_date,
+           NULLIF(features->>'eo_count_7d', '')::double precision AS eo_count_7d,
+           NULLIF(features->>'eo_count_30d', '')::double precision AS eo_count_30d,
+           NULLIF(features->>'proclamation_count_7d', '')::double precision AS proclamation_count_7d,
+           NULLIF(features->>'proclamation_count_30d', '')::double precision AS proclamation_count_30d,
+           NULLIF(features->>'total_actions_7d', '')::double precision AS total_actions_7d,
+           NULLIF(features->>'total_actions_30d', '')::double precision AS total_actions_30d,
+           NULLIF(features->>'avg_sentiment_7d', '')::double precision AS avg_sentiment_7d,
+           NULLIF(features->>'avg_sentiment_30d', '')::double precision AS avg_sentiment_30d,
+           NULLIF(features->>'action_velocity', '')::double precision AS action_velocity,
+           NULLIF(features->>'action_acceleration', '')::double precision AS action_acceleration,
+           NULLIF(features->>'weighted_action_score', '')::double precision AS weighted_action_score
+    FROM training.specialist_trump_effect_1d
+    WHERE symbol = 'ZL'
     ORDER BY as_of_date
     """
     trump_df = pd.read_sql(trump_query, conn)
