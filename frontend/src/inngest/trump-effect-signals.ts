@@ -6,6 +6,7 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 const SOURCE_BUCKET = "trump_effect";
+const SOURCE_TABLE = "training.specialist_features_trump_effect";
 const LOOKBACK_DAYS = 120;
 
 interface TrumpSourceRow {
@@ -53,17 +54,16 @@ async function runTrumpEffectSignalSync() {
       features: unknown;
     }>(
       `SELECT as_of_date, features
-       FROM training.specialist_features
-       WHERE bucket = $1
-         AND as_of_date >= CURRENT_DATE - $2::interval
+       FROM training.specialist_features_trump_effect
+       WHERE as_of_date >= CURRENT_DATE - $1::interval
        ORDER BY as_of_date ASC`,
-      [SOURCE_BUCKET, `${LOOKBACK_DAYS} days`],
+      [`${LOOKBACK_DAYS} days`],
     );
 
     if (!sourceResult.rows.length) {
       return {
         status: "no_data",
-        reason: "No rows in training.specialist_features for bucket=trump_effect",
+        reason: `No rows in ${SOURCE_TABLE}`,
         synced: 0,
       };
     }
@@ -176,11 +176,11 @@ async function runTrumpEffectSignalSync() {
           confidence,
           runHash,
           ageDays,
-          "training.specialist_features",
+          SOURCE_TABLE,
           degradedLevel,
           confidence,
           JSON.stringify({
-            source: "training.specialist_features",
+            source: SOURCE_TABLE,
             scoring_version: features.scoring_version ?? null,
             has_epu: hasEpu,
             has_vix: hasVix,

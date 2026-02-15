@@ -41,7 +41,7 @@ LOCAL_DATA_DIR = Path(__file__).parent.parent / "data" / "training_cache"
 # DEPRECATED: specialist_*_1d/1h OHLCV tables are DUPLICATES of mkt.futures_1d
 # They have been REMOVED from this sync list. Training uses:
 #   - mkt.futures_1d (filter by symbol for each specialist bucket)
-#   - training.specialist_features (computed JSON blob per specialist)
+#   - training.specialist_features_<bucket> (computed JSON blob per specialist)
 #   - training.specialist_signals_1d (canonical specialist signals)
 # =============================================================================
 TRAINING_TABLES = {
@@ -59,10 +59,25 @@ TRAINING_TABLES = {
     "econ.money_1d": {"key": "event_date", "incremental": True},
     # Training tables
     "training.matrix_1d": {"key": "trade_date", "incremental": True},
-    "training.specialist_features": {
+    "training.specialist_features_crush": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_china": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_fx": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_fed": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_tariff": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_energy": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_biofuel": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_palm": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features_volatility": {
         "key": "as_of_date",
         "incremental": True,
-        "dedupe_keys": ["bucket", "as_of_date"],
+    },
+    "training.specialist_features_substitutes": {
+        "key": "as_of_date",
+        "incremental": True,
+    },
+    "training.specialist_features_trump_effect": {
+        "key": "as_of_date",
+        "incremental": True,
     },
     "training.specialist_signals_1d": {
         "key": "as_of_date",

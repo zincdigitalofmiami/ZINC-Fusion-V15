@@ -43,6 +43,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+TRUMP_FEATURE_TABLE = "training.specialist_features_trump_effect"
 
 # =============================================================================
 # NEURAL SIGNAL CONFIGURATION
@@ -601,16 +602,14 @@ def main():
     print("  Skipping deprecated features table; writing specialist data only.")
 
     # =========================================================================
-    # STEP 6: Sync to training.specialist_features with NEURAL SIGNALS
+    # STEP 6: Sync to training.specialist_features_trump_effect with NEURAL SIGNALS
     # =========================================================================
     print("\n" + "=" * 60)
-    print("STEP 6: Syncing NEURAL-ENHANCED payload to specialist_features")
+    print("STEP 6: Syncing NEURAL-ENHANCED payload to specialist_features_trump_effect")
     print("=" * 60)
 
-    # Keep one canonical storage path: specialist_features + specialist_signals_1d
-    cur.execute(
-        "DELETE FROM training.specialist_features WHERE bucket = 'trump_effect'"
-    )
+    # Keep one canonical storage path: specialist_features_trump_effect + specialist_signals_1d
+    cur.execute(f"DELETE FROM {TRUMP_FEATURE_TABLE}")
     conn.commit()
     print("  Cleared existing trump_effect payload rows")
 
@@ -680,10 +679,10 @@ def main():
 
         cur.execute(
             """
-            INSERT INTO training.specialist_features
-            (bucket, as_of_date, features)
-            VALUES ('trump_effect', %s, %s::jsonb)
-            ON CONFLICT (bucket, as_of_date) DO UPDATE SET
+            INSERT INTO training.specialist_features_trump_effect
+            (as_of_date, features)
+            VALUES (%s, %s::jsonb)
+            ON CONFLICT (as_of_date) DO UPDATE SET
                 features = EXCLUDED.features
         """,
             (
@@ -698,9 +697,7 @@ def main():
             print(f"    Synced {sync_count} rows...")
 
     conn.commit()
-    print(
-        f"  ✅ Synced {sync_count} NEURAL-ENHANCED rows to training.specialist_features"
-    )
+    print(f"  ✅ Synced {sync_count} NEURAL-ENHANCED rows to {TRUMP_FEATURE_TABLE}")
 
     # =========================================================================
     # STEP 7: Verification with Neural Signal Analysis
@@ -725,12 +722,11 @@ def main():
     # Verify training table with NEURAL signal details
     cur.execute("""
         SELECT COUNT(*), MIN(as_of_date), MAX(as_of_date)
-        FROM training.specialist_features
-        WHERE bucket = 'trump_effect'
+        FROM training.specialist_features_trump_effect
     """)
     result = cur.fetchone()
-    print(f"\n  specialist_features rows: {result[0]}")
-    print(f"  specialist_features date range: {result[1]} to {result[2]}")
+    print(f"\n  specialist_features_trump_effect rows: {result[0]}")
+    print(f"  specialist_features_trump_effect date range: {result[1]} to {result[2]}")
 
     # Signal distribution analysis
     cur.execute("""
@@ -753,8 +749,7 @@ def main():
             AVG(NULLIF(features->>'neural_signal', '')::double precision)
                 FILTER (WHERE NULLIF(features->>'neural_signal', '')::double precision > 0) as avg_active_signal,
             AVG(NULLIF(features->>'neural_confidence', '')::double precision) as avg_confidence
-        FROM training.specialist_features
-        WHERE bucket = 'trump_effect'
+        FROM training.specialist_features_trump_effect
     """)
     dist = cur.fetchone()
     print(f"\n  Signal distribution:")
@@ -783,13 +778,12 @@ def main():
                features->>'vix_7d' as vix,
                features->>'base_signal' as base,
                features->>'scoring_version' as version
-        FROM training.specialist_features
-        WHERE bucket = 'trump_effect'
+        FROM training.specialist_features_trump_effect
           AND NULLIF(features->>'neural_signal', '')::double precision > 0
         ORDER BY as_of_date DESC
         LIMIT 10
     """)
-    print("\n  Recent NEURAL-ENHANCED signals (specialist_features):")
+    print("\n  Recent NEURAL-ENHANCED signals (specialist_features_trump_effect):")
     for row in cur.fetchall():
         epu_str = f"EPU={row[4]}" if row[4] else "EPU=N/A"
         vix_str = f"VIX={row[5]}" if row[5] else "VIX=N/A"
@@ -805,8 +799,7 @@ def main():
                NULLIF(features->>'neural_confidence', '')::double precision as confidence,
                features->>'era' as era,
                features->>'total_actions_7d' as actions
-        FROM training.specialist_features
-        WHERE bucket = 'trump_effect'
+        FROM training.specialist_features_trump_effect
           AND NULLIF(features->>'neural_signal', '')::double precision > 0
         ORDER BY NULLIF(features->>'neural_signal', '')::double precision DESC
         LIMIT 5

@@ -201,7 +201,17 @@ TABLE_MAP = {
     # Training
     "training.matrix_1d": '"training"."matrix_1d"',
     "training.oof_core_1d": '"training"."oof_core_1d"',
-    "training.specialist_features": '"training"."specialist_features"',
+    "training.specialist_features_crush": '"training"."specialist_features_crush"',
+    "training.specialist_features_china": '"training"."specialist_features_china"',
+    "training.specialist_features_fx": '"training"."specialist_features_fx"',
+    "training.specialist_features_fed": '"training"."specialist_features_fed"',
+    "training.specialist_features_tariff": '"training"."specialist_features_tariff"',
+    "training.specialist_features_energy": '"training"."specialist_features_energy"',
+    "training.specialist_features_biofuel": '"training"."specialist_features_biofuel"',
+    "training.specialist_features_palm": '"training"."specialist_features_palm"',
+    "training.specialist_features_volatility": '"training"."specialist_features_volatility"',
+    "training.specialist_features_substitutes": '"training"."specialist_features_substitutes"',
+    "training.specialist_features_trump_effect": '"training"."specialist_features_trump_effect"',
     # Model registry
     "model.model_registry": '"model"."model_registry"',
     # Forecasts

@@ -495,6 +495,13 @@ SPECIALIST_FEATURE_CONFIGS = {
 SPECIALIST_BUCKETS = SPECIALIST_FEATURE_CONFIGS
 
 
+def specialist_feature_table_name(bucket: str) -> str:
+    """Return canonical per-bucket specialist feature table name."""
+    if bucket not in SPECIALIST_BUCKETS:
+        raise ValueError(f"Unknown specialist bucket: {bucket}")
+    return f"specialist_features_{bucket}"
+
+
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
     database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
@@ -2442,6 +2449,10 @@ def generate_bucket_features(
     if news_by_bucket is not None and bucket_name in news_by_bucket:
         bucket_news_df = news_by_bucket[bucket_name]
         if not bucket_news_df.empty:
+            # Normalize merge key dtypes to avoid object-vs-datetime join failures.
+            zl_df["as_of_date"] = pd.to_datetime(zl_df["as_of_date"])
+            bucket_news_df = bucket_news_df.copy()
+            bucket_news_df["as_of_date"] = pd.to_datetime(bucket_news_df["as_of_date"])
             zl_df = zl_df.merge(bucket_news_df, on="as_of_date", how="left")
             logger.info(
                 f"    + News count: {len(bucket_news_df.columns) - 1} features for {bucket_name}"
@@ -2471,11 +2482,13 @@ def save_specialist_features(
         logger.info(f"  [DRY RUN] Would save {len(df):,} rows for bucket {bucket}")
         return
 
+    table_name = specialist_feature_table_name(bucket)
+
     # Convert to JSON format for storage
-    insert_query = """
-        INSERT INTO "training"."specialist_features" (bucket, as_of_date, features)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (bucket, as_of_date) DO UPDATE SET features = EXCLUDED.features
+    insert_query = f"""
+        INSERT INTO "training"."{table_name}" (as_of_date, features)
+        VALUES (%s, %s::jsonb)
+        ON CONFLICT (as_of_date) DO UPDATE SET features = EXCLUDED.features
     """
 
     batch = []
@@ -2485,13 +2498,11 @@ def save_specialist_features(
         features = {
             col: float(row[col]) if pd.notna(row[col]) else None for col in feature_cols
         }
-        batch.append((bucket, row["as_of_date"], json.dumps(features)))
+        batch.append((row["as_of_date"], json.dumps(features)))
 
     with conn.cursor() as cur:
         # Clear existing
-        cur.execute(
-            'DELETE FROM "training"."specialist_features" WHERE bucket = %s', (bucket,)
-        )
+        cur.execute(f'DELETE FROM "training"."{table_name}"')
         # Insert new
         execute_batch(cur, insert_query, batch, page_size=500)
 

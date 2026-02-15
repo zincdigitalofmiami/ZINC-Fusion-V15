@@ -3020,16 +3020,113 @@ model realized_volatility {
   @@schema("training")
 }
 
-model specialist_features {
+model specialist_features_crush {
   id         Int      @id @default(autoincrement())
-  bucket     String
-  as_of_date DateTime
+  as_of_date DateTime @db.Date
   features   Json
 
-  @@unique([bucket, as_of_date])
-  @@index([as_of_date])
-  @@index([bucket])
-  @@index([bucket, as_of_date(sort: Desc)], map: "idx_specialist_features_bucket_date")
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_crush_date")
+  @@schema("training")
+}
+
+model specialist_features_china {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_china_date")
+  @@schema("training")
+}
+
+model specialist_features_fx {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_fx_date")
+  @@schema("training")
+}
+
+model specialist_features_fed {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_fed_date")
+  @@schema("training")
+}
+
+model specialist_features_tariff {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_tariff_date")
+  @@schema("training")
+}
+
+model specialist_features_energy {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_energy_date")
+  @@schema("training")
+}
+
+model specialist_features_biofuel {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_biofuel_date")
+  @@schema("training")
+}
+
+model specialist_features_palm {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_palm_date")
+  @@schema("training")
+}
+
+model specialist_features_volatility {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_volatility_date")
+  @@schema("training")
+}
+
+model specialist_features_substitutes {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_substitutes_date")
+  @@schema("training")
+}
+
+model specialist_features_trump_effect {
+  id         Int      @id @default(autoincrement())
+  as_of_date DateTime @db.Date
+  features   Json
+
+  @@unique([as_of_date])
+  @@index([as_of_date(sort: Desc)], map: "idx_specialist_features_trump_effect_date")
   @@schema("training")
 }
 
