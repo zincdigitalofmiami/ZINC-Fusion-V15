@@ -142,7 +142,8 @@ def get_connection():
 #   Landing: mkt, econ, alt, pos, supply
 #   Derived: features, training
 #   Output: model, forecasts, analytics
-#   Governance: metadata, ops
+#   Governance: ops
+#   Domain: vegas
 #
 TABLE_MAP = {
     # Market data
@@ -168,7 +169,6 @@ TABLE_MAP = {
     "supply.usda_exports_1w": '"supply"."usda_exports_1w"',
     "supply.epa_rin_1d": '"supply"."epa_rin_1d"',
     # Features
-    "features.elite_1d": '"features"."elite_1d"',
     "features.intel_drops_event": '"features"."intel_drops_event"',
     "features.trump_effect_1d": '"features"."trump_effect_1d"',
     # Training

@@ -199,8 +199,8 @@ def check_schema():
         "model",
         "forecasts",
         "analytics",
-        "metadata",
         "ops",
+        "vegas",
     ]
     found_schemas = set()
     for line in content.split("\n"):

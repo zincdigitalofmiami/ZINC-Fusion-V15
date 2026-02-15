@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# GIT INTEGRITY CHECK — catches "works locally, fails on CI" bugs
+# GIT INTEGRITY CHECK - catches "works locally, fails on CI" bugs
 #
 # Checks:
 #   1. .git/info/exclude has no active rules hiding source files
@@ -12,11 +12,9 @@
 # ============================================================================
 set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 FAILURES=0
@@ -28,20 +26,20 @@ echo "[1/3] Checking .git/info/exclude..."
 
 EXCLUDE_FILE=".git/info/exclude"
 if [ -f "$EXCLUDE_FILE" ]; then
-    # Strip comments and blank lines — anything left is an active rule
+    # Strip comments and blank lines - anything left is an active rule
     ACTIVE_RULES=$(grep -v '^\s*#' "$EXCLUDE_FILE" | grep -v '^\s*$' || true)
     if [ -n "$ACTIVE_RULES" ]; then
-        echo -e "${RED}BLOCKED: .git/info/exclude contains active rules:${NC}"
+        echo "BLOCKED: .git/info/exclude contains active rules:"
         echo "$ACTIVE_RULES"
         echo ""
         echo "  These hide files from git locally while CI/Vercel won't see them."
         echo "  Fix: Move entries to .gitignore or remove them from .git/info/exclude"
         FAILURES=$((FAILURES + 1))
     else
-        echo -e "  ${GREEN}OK${NC} — no active exclude rules"
+        echo "  OK - no active exclude rules"
     fi
 else
-    echo -e "  ${GREEN}OK${NC} — no exclude file"
+    echo "  OK - no exclude file"
 fi
 
 # --------------------------------------------------------------------------
@@ -56,14 +54,14 @@ if [ -f "$BARREL" ]; then
     MISSING=0
     for module in $MODULES; do
         TARGET="frontend/src/inngest/${module}.ts"
-        # Check git-tracked (not just on disk — that's the whole point)
+        # Check git-tracked (not just on disk - that's the whole point)
         if ! git ls-files --error-unmatch "$TARGET" >/dev/null 2>&1; then
-            echo -e "  ${RED}NOT TRACKED: ${TARGET}${NC}"
+            echo "  NOT TRACKED: ${TARGET}"
             if [ -f "$TARGET" ]; then
-                echo "    File exists on disk but is NOT in git — CI will fail"
+                echo "    File exists on disk but is NOT in git - CI will fail"
                 echo "    Fix: git add ${TARGET}"
             else
-                echo "    File does not exist — build will fail everywhere"
+                echo "    File does not exist - build will fail everywhere"
             fi
             MISSING=$((MISSING + 1))
         fi
@@ -72,10 +70,10 @@ if [ -f "$BARREL" ]; then
         FAILURES=$((FAILURES + 1))
     else
         MODULE_COUNT=$(echo "$MODULES" | wc -w | tr -d ' ')
-        echo -e "  ${GREEN}OK${NC} — all ${MODULE_COUNT} re-exported modules are git-tracked"
+        echo "  OK - all ${MODULE_COUNT} re-exported modules are git-tracked"
     fi
 else
-    echo "  SKIP — $BARREL not found"
+    echo "  SKIP - $BARREL not found"
 fi
 
 # --------------------------------------------------------------------------
@@ -84,20 +82,20 @@ fi
 echo "[3/3] Checking for ghost .ts/.tsx files in frontend/src/..."
 
 # Use --exclude-standard to apply .gitignore but NOT .git/info/exclude
-# (which is intentional — we want to catch files hidden by exclude)
+# (which is intentional - we want to catch files hidden by exclude)
 GHOSTS=$(git ls-files --others --exclude-from=.gitignore \
     -- 'frontend/src/**/*.ts' 'frontend/src/**/*.tsx' 2>/dev/null || true)
 
 if [ -n "$GHOSTS" ]; then
     GHOST_COUNT=$(echo "$GHOSTS" | wc -l | tr -d ' ')
-    echo -e "  ${RED}FOUND ${GHOST_COUNT} untracked TypeScript file(s):${NC}"
+    echo "  FOUND ${GHOST_COUNT} untracked TypeScript file(s):"
     echo "$GHOSTS" | head -20
     echo ""
     echo "  These exist locally but won't be in CI/Vercel builds."
     echo "  Fix: git add <file> or add to .gitignore"
     FAILURES=$((FAILURES + 1))
 else
-    echo -e "  ${GREEN}OK${NC} — no ghost TypeScript files"
+    echo "  OK - no ghost TypeScript files"
 fi
 
 # --------------------------------------------------------------------------
@@ -105,9 +103,9 @@ fi
 # --------------------------------------------------------------------------
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
-    echo -e "${GREEN}Git integrity: PASSED${NC}"
+    echo "Git integrity: PASSED"
     exit 0
 else
-    echo -e "${RED}Git integrity: FAILED ($FAILURES violation(s))${NC}"
+    echo "Git integrity: FAILED ($FAILURES violation(s))"
     exit 1
 fi

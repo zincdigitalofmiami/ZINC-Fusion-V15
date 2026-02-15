@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# VERIFICATION GATE — blocks on ANY failure
+# VERIFICATION GATE - blocks on ANY failure
 # Usage: scripts/verify.sh [--python-only] [--frontend-only] [--all]
 # Exit code: 0 = all clean, 1 = BLOCKED (fix before proceeding)
 #
@@ -10,13 +10,8 @@
 
 set -uo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-BOLD='\033[1m'
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
@@ -30,14 +25,15 @@ gate() {
     local name="$1"
     shift
     CHECKS=$((CHECKS + 1))
-    echo -e "\n${BOLD}[CHECK $CHECKS] $name${NC}"
+    echo ""
+    echo "[CHECK $CHECKS] $name"
     if "$@" ; then
         PASSED=$((PASSED + 1))
-        echo -e "  ${GREEN}✓ PASSED${NC}"
+        echo "  PASS"
     else
         FAILURES=$((FAILURES + 1))
         FAILED_CHECKS+=("$name")
-        echo -e "  ${RED}✗ FAILED${NC}"
+        echo "  FAIL"
     fi
 }
 
@@ -123,21 +119,21 @@ fi
 echo ""
 echo "============================================"
 if [[ $FAILURES -eq 0 ]]; then
-    echo -e "${GREEN}${BOLD}ALL $CHECKS CHECKS PASSED${NC}"
+    echo "ALL $CHECKS CHECKS PASSED"
     echo "============================================"
     echo ""
     echo "Safe to commit / mark task complete."
     exit 0
 else
-    echo -e "${RED}${BOLD}$FAILURES OF $CHECKS CHECKS FAILED${NC}"
+    echo "$FAILURES OF $CHECKS CHECKS FAILED"
     echo "============================================"
     echo ""
-    echo -e "${RED}BLOCKED CHECKS:${NC}"
+    echo "BLOCKED CHECKS:"
     for check in "${FAILED_CHECKS[@]}"; do
-        echo -e "  ${RED}✗${NC} $check"
+        echo "  FAIL $check"
     done
     echo ""
-    echo -e "${RED}${BOLD}DO NOT PROCEED. Fix failures above first.${NC}"
+    echo "DO NOT PROCEED. Fix failures above first."
     echo ""
     exit 1
 fi

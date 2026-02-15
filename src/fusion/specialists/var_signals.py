@@ -480,14 +480,14 @@ class EnergySignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL PETROLEUM PRODUCTS
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         for energy_sym in ["cl", "ho", "rb", "ng", "bz"]:
             col = f"{energy_sym}_close"
             if col in data.columns and data[col].notna().sum() > 30:
                 energy_data = data.copy()
                 energy_data["close"] = data[col]
-                energy_data = self.add_all_elite_indicators(
+                energy_data = self.add_all_technical_indicators(
                     energy_data, "close", energy_sym
                 )
                 for c in energy_data.columns:

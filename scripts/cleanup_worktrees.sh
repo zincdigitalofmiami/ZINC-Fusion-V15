@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# WORKTREE HYGIENE — cleans up stale agent worktrees, branches, stashes
+# WORKTREE HYGIENE - cleans up stale agent worktrees, branches, stashes
 #
 # Usage: scripts/cleanup_worktrees.sh          (interactive)
 #        scripts/cleanup_worktrees.sh --auto    (non-interactive, stale > 7 days)
@@ -8,12 +8,9 @@
 # ============================================================================
 set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 MODE="${1:-interactive}"
@@ -53,7 +50,7 @@ while IFS= read -r wt; do
     WORKTREE_COUNT=$((WORKTREE_COUNT + 1))
 
     if [ ! -d "$wt" ]; then
-        echo -e "  ${RED}ORPHANED: $wt (directory missing)${NC}"
+        echo "  ORPHANED: $wt (directory missing)"
         if [ "$MODE" = "--auto" ]; then
             git worktree remove --force "$wt" 2>/dev/null || git worktree prune
             echo "    Removed."
@@ -69,7 +66,7 @@ while IFS= read -r wt; do
     fi
 
     LAST_COMMIT_AGE=$(git -C "$wt" log -1 --format="%cr" 2>/dev/null || echo "unknown")
-    echo -e "  ${YELLOW}WORKTREE: $wt${NC}"
+    echo "  WORKTREE: $wt"
     echo "    Last commit: $LAST_COMMIT_AGE"
 
     if [ "$MODE" = "--dry-run" ]; then
@@ -109,7 +106,7 @@ if [ -n "$AGENT_BRANCHES" ]; then
     while IFS= read -r branch; do
         # Never touch the current branch
         if [ "$branch" = "$CURRENT_BRANCH" ]; then
-            echo -e "  ${YELLOW}SKIP: $branch (current branch)${NC}"
+            echo "  SKIP: $branch (current branch)"
             continue
         fi
 
@@ -120,7 +117,7 @@ if [ -n "$AGENT_BRANCHES" ]; then
             STATUS="NOT merged"
         fi
 
-        echo -e "  ${YELLOW}${branch}${NC} ($STATUS)"
+        echo "  $branch ($STATUS)"
 
         if [ "$MODE" = "--dry-run" ]; then
             echo "    (would prompt for deletion)"
@@ -135,7 +132,7 @@ if [ -n "$AGENT_BRANCHES" ]; then
         fi
     done <<< "$AGENT_BRANCHES"
 else
-    echo -e "  ${GREEN}No agent branches found${NC}"
+    echo "  No agent branches found"
 fi
 
 # --------------------------------------------------------------------------
@@ -148,7 +145,7 @@ if [ "$MODE" != "--dry-run" ]; then
     if echo "$PRUNED" | grep -q "pruning"; then
         echo "$PRUNED"
     else
-        echo -e "  ${GREEN}Nothing to prune${NC}"
+        echo "  Nothing to prune"
     fi
 else
     git remote prune origin --dry-run 2>/dev/null || true
@@ -161,20 +158,20 @@ echo ""
 echo "[4/4] Checking stashes..."
 STASH_COUNT=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 if [ "$STASH_COUNT" -gt 0 ]; then
-    echo -e "  ${YELLOW}${STASH_COUNT} stash(es) found:${NC}"
+    echo "  ${STASH_COUNT} stash(es) found:"
     git stash list | head -10
     if [ "$MODE" = "--dry-run" ]; then
         echo "    (would prompt for cleanup)"
     elif [ "$MODE" != "--auto" ]; then
         if prompt_yes_no "  Drop all stashes? [y/N] "; then
             git stash clear
-            echo -e "  ${GREEN}Stashes cleared${NC}"
+            echo "  Stashes cleared"
         fi
     fi
 else
-    echo -e "  ${GREEN}No stashes${NC}"
+    echo "  No stashes"
 fi
 
 echo ""
-echo -e "${GREEN}Hygiene check complete.${NC}"
+echo "Hygiene check complete."
 echo "============================================"

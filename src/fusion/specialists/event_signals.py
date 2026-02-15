@@ -240,7 +240,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND EPU SERIES
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # Add elite indicators for EPU series
         for epu_col in [
@@ -254,7 +254,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
                 epu_data = data.copy()
                 epu_data["close"] = data[epu_col]
                 prefix = epu_col.replace("fred_", "")
-                epu_data = self.add_all_elite_indicators(epu_data, "close", prefix)
+                epu_data = self.add_all_technical_indicators(epu_data, "close", prefix)
                 for c in epu_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = epu_data[c]
@@ -734,13 +734,13 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL, HO, RIN SERIES
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # HO elite indicators (biodiesel proxy)
         if "ho_close" in data.columns and data["ho_close"].notna().sum() > 30:
             ho_data = data.copy()
             ho_data["close"] = data["ho_close"]
-            ho_data = self.add_all_elite_indicators(ho_data, "close", "ho")
+            ho_data = self.add_all_technical_indicators(ho_data, "close", "ho")
             for c in ho_data.columns:
                 if c.startswith("ho_") and c not in data.columns:
                     data[c] = ho_data[c]
@@ -751,7 +751,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
                 rin_data = data.copy()
                 rin_data["close"] = data[rin_col]
                 prefix = rin_col.replace("_price", "")
-                rin_data = self.add_all_elite_indicators(rin_data, "close", prefix)
+                rin_data = self.add_all_technical_indicators(rin_data, "close", prefix)
                 for c in rin_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = rin_data[c]
@@ -760,7 +760,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         if "lcfs_credit" in data.columns and data["lcfs_credit"].notna().sum() > 30:
             lcfs_data = data.copy()
             lcfs_data["close"] = data["lcfs_credit"]
-            lcfs_data = self.add_all_elite_indicators(lcfs_data, "close", "lcfs")
+            lcfs_data = self.add_all_technical_indicators(lcfs_data, "close", "lcfs")
             for c in lcfs_data.columns:
                 if c.startswith("lcfs_") and c not in data.columns:
                     data[c] = lcfs_data[c]
@@ -1257,13 +1257,13 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, FXI, KWEB, EPU
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # HG elite indicators (China demand)
         if "hg_close" in data.columns and data["hg_close"].notna().sum() > 30:
             hg_data = data.copy()
             hg_data["close"] = data["hg_close"]
-            hg_data = self.add_all_elite_indicators(hg_data, "close", "hg")
+            hg_data = self.add_all_technical_indicators(hg_data, "close", "hg")
             for c in hg_data.columns:
                 if c.startswith("hg_") and c not in data.columns:
                     data[c] = hg_data[c]
@@ -1272,7 +1272,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         if "fxi_close" in data.columns and data["fxi_close"].notna().sum() > 30:
             fxi_data = data.copy()
             fxi_data["close"] = data["fxi_close"]
-            fxi_data = self.add_all_elite_indicators(fxi_data, "close", "fxi")
+            fxi_data = self.add_all_technical_indicators(fxi_data, "close", "fxi")
             for c in fxi_data.columns:
                 if c.startswith("fxi_") and c not in data.columns:
                     data[c] = fxi_data[c]
@@ -1281,7 +1281,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         if "kweb_close" in data.columns and data["kweb_close"].notna().sum() > 30:
             kweb_data = data.copy()
             kweb_data["close"] = data["kweb_close"]
-            kweb_data = self.add_all_elite_indicators(kweb_data, "close", "kweb")
+            kweb_data = self.add_all_technical_indicators(kweb_data, "close", "kweb")
             for c in kweb_data.columns:
                 if c.startswith("kweb_") and c not in data.columns:
                     data[c] = kweb_data[c]
@@ -1290,7 +1290,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         if "fred_vixcls" in data.columns and data["fred_vixcls"].notna().sum() > 30:
             vix_data = data.copy()
             vix_data["close"] = data["fred_vixcls"]
-            vix_data = self.add_all_elite_indicators(vix_data, "close", "vix")
+            vix_data = self.add_all_technical_indicators(vix_data, "close", "vix")
             for c in vix_data.columns:
                 if c.startswith("vix_") and c not in data.columns:
                     data[c] = vix_data[c]
@@ -1301,7 +1301,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                 epu_data = data.copy()
                 epu_data["close"] = data[epu_col]
                 prefix = epu_col.replace("fred_", "")
-                epu_data = self.add_all_elite_indicators(epu_data, "close", prefix)
+                epu_data = self.add_all_technical_indicators(epu_data, "close", prefix)
                 for c in epu_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = epu_data[c]

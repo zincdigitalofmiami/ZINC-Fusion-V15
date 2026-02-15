@@ -31,7 +31,6 @@ ALLOWED_SCHEMAS = {
     "model",
     "forecasts",
     "analytics",
-    "metadata",
     "ops",
     "vegas",
 }

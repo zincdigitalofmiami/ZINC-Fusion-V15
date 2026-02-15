@@ -476,7 +476,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL VOL INDICES
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # Add elite indicators for all volatility indices
         for vol_col in [
@@ -493,7 +493,7 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 vol_data = data.copy()
                 vol_data["close"] = data[vol_col]
                 prefix = vol_col.replace("fred_", "").replace("cls", "")
-                vol_data = self.add_all_elite_indicators(vol_data, "close", prefix)
+                vol_data = self.add_all_technical_indicators(vol_data, "close", prefix)
                 for c in vol_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = vol_data[c]

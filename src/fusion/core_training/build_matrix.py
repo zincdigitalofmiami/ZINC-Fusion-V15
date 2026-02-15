@@ -3,7 +3,7 @@ Phase 3: Build Core Feature Matrix
 ===================================
 
 Assembles training.matrix_1d from ALL source data:
-- features.elite_1d (27 elite indicators + OHLCV)
+- legacy indicator pack (retired)
 - alt.weather_1d (weather aggregates computed on-the-fly)
 - econ.* tables (rates, inflation, labor, activity, vol_indices, commodities, money)
 - mkt.fx_1d (FX rates)
@@ -1028,245 +1028,15 @@ def load_cross_asset_correlations(conn, target_symbol: str = "ZL") -> pd.DataFra
 
 
 def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataFrame:
-    """
-    Load price and indicator data for related commodities from features.elite_1d.
-
-    This gives the model visibility into:
-    - Soy complex (ZS, ZM) - direct fundamentals
-    - Energy complex (CL, HO, RB, NG) - biodiesel/energy linkage
-    - Competing crops (ZC, ZW) - agricultural rotation
-    - Substitutes (CPO) - vegetable oil competition
-    - Macro proxies (GC, ES, DX) - risk sentiment
-
-    Returns:
-        DataFrame with trade_date and cross-asset feature columns
-    """
-    logger.info("Loading cross-commodity indicators from features.elite_1d...")
-
-    # Key related commodities
-    cross_symbols = [
-        "ZS",
-        "ZM",
-        "CL",
-        "HO",
-        "RB",
-        "NG",
-        "ZC",
-        "ZW",
-        "CPO",
-        "GC",
-        "ES",
-        "DX",
-    ]
-
-    # Key indicators to include (subset of elite_1d columns)
-    indicator_cols = [
-        "close",
-        "returns_1d",
-        "rsi_14",
-        "macd",
-        "atr_ratio",
-        "volume_zscore",
-        "bb_percent_b",
-        "hurst_exponent",
-    ]
-
-    try:
-        placeholders = ",".join(["%s"] * len(cross_symbols))
-        cols_select = ", ".join([f'"{c}"' for c in indicator_cols])
-
-        query = f"""
-            SELECT
-                trade_date,
-                symbol,
-                {cols_select}
-            FROM features.elite_1d
-            WHERE symbol IN ({placeholders})
-            ORDER BY trade_date, symbol
-        """
-        df = pd.read_sql(query, conn, params=tuple(cross_symbols))
-
-        if len(df) == 0:
-            logger.warning("   No cross-commodity data found")
-            return pd.DataFrame()
-
-        # Pivot each indicator separately and combine
-        result = None
-        for col in indicator_cols:
-            if col not in df.columns:
-                continue
-            pivot = df.pivot(index="trade_date", columns="symbol", values=col)
-            pivot.columns = [f"{sym.lower()}_{col}" for sym in pivot.columns]
-            if result is None:
-                result = pivot
-            else:
-                result = result.join(pivot)
-
-        if result is None:
-            return pd.DataFrame()
-
-        result = result.reset_index()
-        result = normalize_date_column(result, "trade_date")
-
-        logger.info(
-            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} cross-commodity columns"
-        )
-        logger.info(f"   Symbols: {cross_symbols}")
-        logger.info(f"   Indicators: {indicator_cols}")
-        return result
-
-    except Exception as e:
-        logger.warning(f"   Cross-commodity indicators not available: {e}")
-        return pd.DataFrame()
+    """Cross-commodity elite indicators retired."""
+    logger.info("Cross-commodity elite indicators retired; skipping.")
+    return pd.DataFrame()
 
 
 def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
-    """
-    Calculate spread and ratio features between related commodities.
-
-    Key spreads:
-    - Board crush: (ZL × 0.11) + (ZM × 0.022) - (ZS / 100) [CME formula]
-    - Soy oil share: ZL / (ZL + ZM)
-    - ZL/ZS ratio: Soybean oil to soybean price ratio
-    - ZL/CL ratio: Oil vs crude (biodiesel margin proxy)
-    - ZL/CPO spread: Soy oil vs palm oil (substitution)
-    - Crush margin z-score: Standardized crush profitability
-
-    Returns:
-        DataFrame with trade_date and spread/ratio columns
-    """
-    logger.info("Calculating spread and ratio features...")
-
-    try:
-        # Load close prices for key commodities
-        query = """
-            SELECT
-                trade_date,
-                symbol,
-                close
-            FROM features.elite_1d
-            WHERE symbol IN ('ZL', 'ZS', 'ZM', 'CL', 'CPO', 'HO', 'RB')
-            ORDER BY trade_date, symbol
-        """
-        df = pd.read_sql(query, conn)
-
-        if len(df) == 0:
-            logger.warning("   No price data for spreads")
-            return pd.DataFrame()
-
-        # Pivot to wide format
-        prices = df.pivot(index="trade_date", columns="symbol", values="close")
-        prices = prices.reset_index()
-        prices = normalize_date_column(prices, "trade_date")
-
-        result = pd.DataFrame({"trade_date": prices["trade_date"]})
-
-        # Board crush margin (CME formula): (ZL × 0.11) + (ZM × 0.022) - (ZS / 100)
-        if all(c in prices.columns for c in ["ZL", "ZS", "ZM"]):
-            result["board_crush"] = (
-                (prices["ZL"] * 0.11) + (prices["ZM"] * 0.022) - (prices["ZS"] / 100)
-            )
-
-            # Z-scores (multiple horizons for different trading timeframes)
-            # 21d = 1 month (tactical trading)
-            result["board_crush_zscore_21d"] = (
-                result["board_crush"]
-                - result["board_crush"].rolling(21, min_periods=10).mean()
-            ) / result["board_crush"].rolling(21, min_periods=10).std()
-            # 63d = 1 quarter (swing trading)
-            result["board_crush_zscore_63d"] = (
-                result["board_crush"]
-                - result["board_crush"].rolling(63, min_periods=21).mean()
-            ) / result["board_crush"].rolling(63, min_periods=21).std()
-            # 252d = 1 year (strategic)
-            result["board_crush_zscore_252d"] = (
-                result["board_crush"]
-                - result["board_crush"].rolling(252, min_periods=63).mean()
-            ) / result["board_crush"].rolling(252, min_periods=63).std()
-
-            # Momentum: 5-day change (leading indicator)
-            result["board_crush_momentum_5d"] = result["board_crush"].diff(5)
-
-            # Regime: Expanding vs contracting
-            result["board_crush_expanding"] = (
-                result["board_crush"].diff(5) > 0
-            ).astype(int)
-
-            logger.info(
-                "   Calculated board_crush with z-scores (21d/63d/252d) and momentum"
-            )
-
-        # Soy oil share of crush value
-        if all(c in prices.columns for c in ["ZL", "ZM"]):
-            result["soy_oil_share"] = prices["ZL"] / (prices["ZL"] + prices["ZM"])
-            result["soy_oil_share_zscore"] = (
-                result["soy_oil_share"]
-                - result["soy_oil_share"].rolling(252, min_periods=63).mean()
-            ) / result["soy_oil_share"].rolling(252, min_periods=63).std()
-            logger.info("   Calculated soy_oil_share")
-
-        # ZL/ZS ratio (oil extraction value)
-        if all(c in prices.columns for c in ["ZL", "ZS"]):
-            result["zl_zs_ratio"] = prices["ZL"] / prices["ZS"]
-            result["zl_zs_ratio_zscore"] = (
-                result["zl_zs_ratio"]
-                - result["zl_zs_ratio"].rolling(252, min_periods=63).mean()
-            ) / result["zl_zs_ratio"].rolling(252, min_periods=63).std()
-            logger.info("   Calculated zl_zs_ratio")
-
-        # ZL/CL ratio (biodiesel margin proxy)
-        if all(c in prices.columns for c in ["ZL", "CL"]):
-            result["zl_cl_ratio"] = prices["ZL"] / prices["CL"]
-            result["zl_cl_ratio_zscore"] = (
-                result["zl_cl_ratio"]
-                - result["zl_cl_ratio"].rolling(252, min_periods=63).mean()
-            ) / result["zl_cl_ratio"].rolling(252, min_periods=63).std()
-            logger.info("   Calculated zl_cl_ratio")
-
-        # ZL - CPO spread (substitution pressure)
-        if all(c in prices.columns for c in ["ZL", "CPO"]):
-            result["zl_cpo_spread"] = prices["ZL"] - prices["CPO"]
-            result["zl_cpo_spread_zscore"] = (
-                result["zl_cpo_spread"]
-                - result["zl_cpo_spread"].rolling(252, min_periods=63).mean()
-            ) / result["zl_cpo_spread"].rolling(252, min_periods=63).std()
-            logger.info("   Calculated zl_cpo_spread")
-
-        # 3-2-1 crack spread proxy (if HO and RB available)
-        if all(c in prices.columns for c in ["CL", "HO", "RB"]):
-            # 3-2-1 crack: 2*HO + 1*RB - 3*CL (simplified)
-            result["crack_321"] = 2 * prices["HO"] + prices["RB"] - 3 * prices["CL"]
-            result["crack_321_zscore"] = (
-                result["crack_321"]
-                - result["crack_321"].rolling(252, min_periods=63).mean()
-            ) / result["crack_321"].rolling(252, min_periods=63).std()
-
-            # Individual crack spreads (heating oil and RBOB vs crude)
-            result["ho_crack"] = prices["HO"] - prices["CL"]  # Heating oil crack
-            result["rb_crack"] = prices["RB"] - prices["CL"]  # RBOB gasoline crack
-
-            # HO crack z-score (diesel economics for biodiesel substitution)
-            result["ho_crack_zscore_63d"] = (
-                result["ho_crack"]
-                - result["ho_crack"].rolling(63, min_periods=21).mean()
-            ) / result["ho_crack"].rolling(63, min_periods=21).std()
-
-            # Wide diesel crack = biodiesel substitution (bullish ZL via RINs)
-            result["diesel_crack_wide"] = (result["ho_crack_zscore_63d"] > 1.0).astype(
-                int
-            )
-
-            logger.info("   Calculated crack_321 spread + HO/RB individual cracks")
-
-        # Drop trade_date duplicates, keep only spread columns
-        spread_cols = [c for c in result.columns if c != "trade_date"]
-        logger.info(f"   Created {len(spread_cols)} spread/ratio features")
-
-        return result
-
-    except Exception as e:
-        logger.warning(f"   Spread features not available: {e}")
-        return pd.DataFrame()
+    """Spread features previously tied to elite indicators are retired."""
+    logger.info("Elite-backed spread features retired; skipping.")
+    return pd.DataFrame()
 
 
 def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
@@ -1432,21 +1202,6 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
     except Exception as e:
         logger.warning(f"   Options features not available: {e}")
         return pd.DataFrame()
-
-
-def load_elite_indicators(conn, symbol: str) -> pd.DataFrame:
-    """Load features.elite_1d for target symbol."""
-    logger.info("Loading elite indicators from features.elite_1d...")
-
-    query = """
-        SELECT *
-        FROM features.elite_1d
-        WHERE symbol = %s
-        ORDER BY trade_date
-    """
-    df = pd.read_sql(query, conn, params=(symbol,))
-    logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)} columns")
-    return df
 
 
 def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -2757,7 +2512,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         f"Target features: {FMC.TARGET_FEATURES} (guardrails: {FMC.MIN_FEATURES}-{FMC.MAX_FEATURES})"
     )
     logger.info(
-        "Sources: elite, cross-asset correlations, cross-commodity indicators, spreads/ratios,"
+        "Sources: cross-asset correlations, cross-commodity indicators, spreads/ratios,"
     )
     logger.info(
         "         options, FRED, FX, weather, CFTC, RINs, exports, WASDE, news, specialist signals"
@@ -2770,7 +2525,6 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
 
         # Load ALL source tables - NO DATE LIMITS
         df_futures = load_futures_base(conn, symbol)
-        df_elite = load_elite_indicators(conn, symbol)
         df_fred = load_fred_macro(conn)
         df_fx = load_fx_rates(conn)
         df_weather = load_weather_aggregates(conn)
@@ -2796,22 +2550,6 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         logger.info(
             f"Base: {len(df):,} rows from futures ({df['trade_date'].min()} to {df['trade_date'].max()})"
         )
-
-        # Merge elite indicators
-        if len(df_elite) > 0:
-            logger.info("Merging elite indicators...")
-            df_elite = normalize_date_column(df_elite, "trade_date")
-            elite_cols = [
-                c
-                for c in df_elite.columns
-                if c not in ["symbol", "id", "open", "high", "low", "close", "volume"]
-            ]
-            before_cols = len(df.columns)
-            df = df.merge(df_elite[elite_cols], on="trade_date", how="left")
-            logger.info(f"   Added {len(df.columns) - before_cols} elite columns")
-
-            # Encode categorical features per execution plan (no dropping, repair instead)
-            df = encode_categorical_features(df)
 
         # Merge FRED macro (MIXED FREQUENCY - use asof merge for weekly/monthly series)
         if len(df_fred) > 0:

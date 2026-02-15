@@ -89,7 +89,7 @@ MODELS = [
     {
         "model_name": "core_model",
         "model_type": "core",
-        "notes": "Core technical features: price action, returns, volatility, elite indicators (27 features)",
+        "notes": "Core technical features: price action, returns, and volatility",
     },
     {
         "model_name": "meta_ensemble",

@@ -1116,7 +1116,7 @@ class FxSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL FX PAIRS
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # Add elite indicators for DXY and all major FX pairs
         for fx_col in [
@@ -1137,7 +1137,7 @@ class FxSignalGenerator(BaseSignalGenerator):
                 fx_data = data.copy()
                 fx_data["close"] = data[fx_col]
                 prefix = fx_col.replace("fred_", "").replace("dex", "")
-                fx_data = self.add_all_elite_indicators(fx_data, "close", prefix)
+                fx_data = self.add_all_technical_indicators(fx_data, "close", prefix)
                 for c in fx_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = fx_data[c]
@@ -1509,7 +1509,7 @@ class FedSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL RATE SERIES
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # Add elite indicators for key rate series
         # NOTE: Using fred_dff (daily) instead of fred_fedfunds (monthly, stale)
@@ -1526,7 +1526,9 @@ class FedSignalGenerator(BaseSignalGenerator):
                 rate_data = data.copy()
                 rate_data["close"] = data[rate_col]
                 prefix = rate_col.replace("fred_", "")
-                rate_data = self.add_all_elite_indicators(rate_data, "close", prefix)
+                rate_data = self.add_all_technical_indicators(
+                    rate_data, "close", prefix
+                )
                 for c in rate_data.columns:
                     if c.startswith(f"{prefix}_") and c not in data.columns:
                         data[c] = rate_data[c]

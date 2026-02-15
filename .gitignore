@@ -74,8 +74,6 @@ training_*.log
 backup_pre_migration_20260118_114613.sql
 *.sql.bak
 
-# Sensitive cookies/sessions
-.barchart_cookies.json
 
 # Machine-specific scripts (contain local IPs/paths)
 scripts/sync_to_mac_b.sh
@@ -84,7 +82,6 @@ scripts/run_fx_options.sh
 
 # Zencoder local state
 .zencoder/
-.zenflow/tasks/
 
 # Local artifacts (ignore permanently)
 Docs/screencapture-app-inngest-env-production-runs-2026-01-20-11_57_04.png

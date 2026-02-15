@@ -61,8 +61,6 @@ TRAINING_TABLES = {
     "training.matrix_1d": {"key": "trade_date", "incremental": True},
     "training.specialist_features": {"key": "as_of_date", "incremental": True},
     "training.specialist_trump_effect_1d": {"key": "as_of_date", "incremental": True},
-    # Features
-    "features.elite_1d": {"key": "as_of_date", "incremental": True},
 }
 
 

@@ -35,7 +35,7 @@ def palm_generator():
     gen = PalmSignalGenerator()
     # Keep tests deterministic and fast; these are not testing elite indicators
     # or statsmodels internals.
-    gen.add_all_elite_indicators = lambda data, _close_col, _prefix: data
+    gen.add_all_technical_indicators = lambda data, _close_col, _prefix: data
     gen._test_cointegration = lambda _zl, _cpo: (True, 0.05, 0.8)
     gen._compute_mean_reversion_speed = lambda spread: pd.Series(
         1.0, index=spread.index

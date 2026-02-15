@@ -11,14 +11,15 @@ PATCHED 2026-01-23: Implemented real Ridge regression model
 - Real FX conversion using FRED MYR/USD when available
 """
 
-from datetime import date
-import os
-from typing import List, Optional, Tuple, Dict, Any
-from pathlib import Path
-import pandas as pd
-import numpy as np
 import logging
+import os
+from datetime import date
+from pathlib import Path
+from typing import Any
+
 import joblib
+import numpy as np
+import pandas as pd
 
 # ML Imports - REAL MODELS
 from sklearn.linear_model import Ridge
@@ -37,8 +38,8 @@ MODELS_DIR = Path(__file__).parent.parent.parent.parent / "models" / "specialist
 
 # Try to import statsmodels for cointegration tests
 try:
-    from statsmodels.tsa.stattools import coint, adfuller  # noqa: F401
-    from statsmodels.regression.linear_model import OLS  # noqa: F401
+    from statsmodels.regression.linear_model import OLS
+    from statsmodels.tsa.stattools import adfuller, coint  # noqa: F401
 
     STATSMODELS_AVAILABLE = True
 except ImportError:
@@ -64,8 +65,8 @@ class PalmMLMixin:
     def __init__(self):
         self.model = None
         self.scaler = StandardScaler()
-        self.feature_names: List[str] = []
-        self.last_train_date: Optional[date] = None
+        self.feature_names: list[str] = []
+        self.last_train_date: date | None = None
         self.train_frequency_days: int = 21  # Retrain monthly
         self.min_train_samples: int = 126  # ~6 months minimum
         self.target_horizon: int = 21  # Predict 21-day forward return
@@ -143,7 +144,7 @@ class PalmMLMixin:
             random_state=42,
         )
 
-    def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    def _prepare_features(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         """Prepare ECM-specific features. Implemented in PalmSignalGenerator."""
         raise NotImplementedError
 
@@ -260,7 +261,7 @@ class PalmMLMixin:
 
     def _predict(
         self, features: pd.DataFrame
-    ) -> Tuple[Optional[np.ndarray], Dict[str, Any]]:
+    ) -> tuple[np.ndarray | None, dict[str, Any]]:
         """Generate predictions from trained model with missingness policy."""
         if self.model is None:
             raise ValueError("Model not trained")
@@ -388,7 +389,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         self._cointegration_result = None
         self._hedge_ratio_cache = None
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """Require FULL palm cointegration complex."""
         missing = []
         if "close" not in data.columns:
@@ -410,11 +411,11 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         else:
             raise ValueError("No palm oil price series available")
 
-    def _get_myr_usd_rate(self, data: pd.DataFrame) -> Optional[pd.Series]:
+    def _get_myr_usd_rate(self, data: pd.DataFrame) -> pd.Series | None:
         """
         Get MYR/USD exchange rate if available (for auxiliary features only).
 
-        Note: CPO data from Yahoo is already in USD/tonne, so MYR FX is NOT
+        Note: CPO data is in USD/tonne, so MYR FX is NOT
         needed for spread calculation. This is only used for FX-as-feature.
         """
         # Try different column name patterns
@@ -436,7 +437,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         self,
         zl: pd.Series,
         cpo: pd.Series,
-    ) -> Tuple[bool, float, Optional[float]]:
+    ) -> tuple[bool, float, float | None]:
         """
         Test for cointegration between ZL and CPO.
 
@@ -471,8 +472,8 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         self,
         zl: pd.Series,
         cpo: pd.Series,
-        hedge_ratio: Optional[float] = None,
-        myr_usd: Optional[pd.Series] = None,
+        hedge_ratio: float | None = None,
+        myr_usd: pd.Series | None = None,
     ) -> pd.Series:
         """
         Compute ZL-CPO spread.
@@ -482,7 +483,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
 
         Units:
         - ZL: cents/lb (CME Soybean Oil)
-        - CPO: USD/tonne (Yahoo Finance palm oil)
+        - CPO: USD/tonne (palm oil futures)
 
         Conversion: CPO USD/tonne → cents/lb
         1 tonne = 2204.6 lbs
@@ -578,7 +579,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         """
         return zl - hedge_ratio * cpo
 
-    def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    def _prepare_features(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         """
         Prepare ECM-specific features for Ridge regression with ALL elite indicators.
 
@@ -595,13 +596,13 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL, CPO, MYR
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # CPO elite indicators
         if "cpo_close" in data.columns and data["cpo_close"].notna().sum() > 30:
             cpo_data = data.copy()
             cpo_data["close"] = data["cpo_close"]
-            cpo_data = self.add_all_elite_indicators(cpo_data, "close", "cpo")
+            cpo_data = self.add_all_technical_indicators(cpo_data, "close", "cpo")
             for c in cpo_data.columns:
                 if c.startswith("cpo_") and c not in data.columns:
                     data[c] = cpo_data[c]
@@ -611,7 +612,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
             if fx_col in data.columns and data[fx_col].notna().sum() > 30:
                 fx_data = data.copy()
                 fx_data["close"] = data[fx_col]
-                fx_data = self.add_all_elite_indicators(fx_data, "close", "myr")
+                fx_data = self.add_all_technical_indicators(fx_data, "close", "myr")
                 for c in fx_data.columns:
                     if c.startswith("myr_") and c not in data.columns:
                         data[c] = fx_data[c]
@@ -621,7 +622,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         if "fred_dexinus" in data.columns and data["fred_dexinus"].notna().sum() > 30:
             idr_data = data.copy()
             idr_data["close"] = data["fred_dexinus"]
-            idr_data = self.add_all_elite_indicators(idr_data, "close", "idr")
+            idr_data = self.add_all_technical_indicators(idr_data, "close", "idr")
             for c in idr_data.columns:
                 if c.startswith("idr_") and c not in data.columns:
                     data[c] = idr_data[c]
@@ -753,7 +754,7 @@ class PalmSignalGenerator(BaseSignalGenerator, PalmMLMixin):
         df = pd.DataFrame(features, index=data.index)
         return df, list(df.columns)
 
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute palm substitution pressure signal using Ridge regression.
 

@@ -370,7 +370,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # ADD ALL 81 ELITE INDICATORS FOR ZL, ZS, ZM
         # =====================================================================
         # ZL elite indicators
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # ZS elite indicators
         if "zs_close" in data.columns:
@@ -382,7 +382,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 zs_data["zs_low_temp"] = data["zs_low"]
             if "zs_volume" in data.columns:
                 zs_data["zs_volume_temp"] = data["zs_volume"]
-            zs_data = self.add_all_elite_indicators(zs_data, "close", "zs")
+            zs_data = self.add_all_technical_indicators(zs_data, "close", "zs")
             for col in zs_data.columns:
                 if col.startswith("zs_") and col not in data.columns:
                     data[col] = zs_data[col]
@@ -391,7 +391,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         if "zm_close" in data.columns:
             zm_data = data.copy()
             zm_data["close"] = data["zm_close"]
-            zm_data = self.add_all_elite_indicators(zm_data, "close", "zm")
+            zm_data = self.add_all_technical_indicators(zm_data, "close", "zm")
             for col in zm_data.columns:
                 if col.startswith("zm_") and col not in data.columns:
                     data[col] = zm_data[col]
@@ -763,7 +763,7 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL AND ALL SUBSTITUTES
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         substitutes = {
             "rs": ("rs_close", 1.0),  # Canola - same units
@@ -781,7 +781,9 @@ class SubstitutesSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if is_daily:
                     sub_data = data.copy()
                     sub_data["close"] = data[col]
-                    sub_data = self.add_all_elite_indicators(sub_data, "close", name)
+                    sub_data = self.add_all_technical_indicators(
+                        sub_data, "close", name
+                    )
                     for c in sub_data.columns:
                         if c.startswith(f"{name}_") and c not in data.columns:
                             data[c] = sub_data[c]
@@ -1103,13 +1105,13 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         # =====================================================================
         # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, SHIPPING
         # =====================================================================
-        data = self.add_all_elite_indicators(data, "close", "zl")
+        data = self.add_all_technical_indicators(data, "close", "zl")
 
         # Copper elite indicators
         if "hg_close" in data.columns:
             hg_data = data.copy()
             hg_data["close"] = data["hg_close"]
-            hg_data = self.add_all_elite_indicators(hg_data, "close", "hg")
+            hg_data = self.add_all_technical_indicators(hg_data, "close", "hg")
             for c in hg_data.columns:
                 if c.startswith("hg_") and c not in data.columns:
                     data[c] = hg_data[c]
@@ -1118,7 +1120,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         if "bdry_close" in data.columns:
             bdry_data = data.copy()
             bdry_data["close"] = data["bdry_close"]
-            bdry_data = self.add_all_elite_indicators(bdry_data, "close", "bdry")
+            bdry_data = self.add_all_technical_indicators(bdry_data, "close", "bdry")
             for c in bdry_data.columns:
                 if c.startswith("bdry_") and c not in data.columns:
                     data[c] = bdry_data[c]
@@ -1127,7 +1129,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         if "sblk_close" in data.columns:
             sblk_data = data.copy()
             sblk_data["close"] = data["sblk_close"]
-            sblk_data = self.add_all_elite_indicators(sblk_data, "close", "sblk")
+            sblk_data = self.add_all_technical_indicators(sblk_data, "close", "sblk")
             for c in sblk_data.columns:
                 if c.startswith("sblk_") and c not in data.columns:
                     data[c] = sblk_data[c]
@@ -1136,7 +1138,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         if "fxi_close" in data.columns:
             fxi_data = data.copy()
             fxi_data["close"] = data["fxi_close"]
-            fxi_data = self.add_all_elite_indicators(fxi_data, "close", "fxi")
+            fxi_data = self.add_all_technical_indicators(fxi_data, "close", "fxi")
             for c in fxi_data.columns:
                 if c.startswith("fxi_") and c not in data.columns:
                     data[c] = fxi_data[c]
