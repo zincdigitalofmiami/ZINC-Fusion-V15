@@ -792,13 +792,13 @@ def db_schemas(_: None = Depends(_require_db_token)) -> dict[str, Any]:
             "econ",
             "features",
             "forecasts",
-            "metadata",
             "mkt",
             "model",
             "ops",
             "pos",
             "supply",
             "training",
+            "vegas",
         ]
     }
 

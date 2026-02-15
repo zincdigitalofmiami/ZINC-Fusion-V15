@@ -54,14 +54,14 @@ for pattern in "${FORBIDDEN_TABLES[@]}"; do
   )
 
   if [ -n "$MATCHES" ]; then
-    echo "    ❌ VIOLATION FOUND:"
+    echo "    VIOLATION FOUND:"
     echo "$MATCHES" | while IFS= read -r line; do
       echo "       $line"
     done
     echo ""
     VIOLATIONS_FOUND=1
   else
-    echo "    ✅ Clean"
+    echo "    Clean"
   fi
 done
 
@@ -69,7 +69,7 @@ echo ""
 echo "==================================================================="
 
 if [ $VIOLATIONS_FOUND -eq 1 ]; then
-  echo "❌ SCHEMA GUARDRAIL FAILED"
+  echo "SCHEMA GUARDRAIL FAILED"
   echo ""
   echo "Forbidden table references found in active code."
   echo ""
@@ -84,7 +84,7 @@ if [ $VIOLATIONS_FOUND -eq 1 ]; then
   echo "==================================================================="
   exit 1
 else
-  echo "✅ SCHEMA GUARDRAIL PASSED"
+  echo "SCHEMA GUARDRAIL PASSED"
   echo ""
   echo "No forbidden table references found in active code paths."
   echo "==================================================================="

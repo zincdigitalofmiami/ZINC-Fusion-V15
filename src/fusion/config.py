@@ -13,7 +13,6 @@ Environment Variables:
 import os
 from pathlib import Path
 
-
 # =============================================================================
 # CANONICAL ENVIRONMENT VARIABLES
 # =============================================================================
@@ -80,11 +79,20 @@ DERIVED_SCHEMAS = ["features", "training"]
 # Output schemas: model artifacts and predictions
 OUTPUT_SCHEMAS = ["model", "forecasts", "analytics"]
 
-# Governance schemas: operations and metadata
-GOVERNANCE_SCHEMAS = ["metadata", "ops"]
+# Governance schemas: operations
+GOVERNANCE_SCHEMAS = ["ops"]
+
+# Domain schemas
+DOMAIN_SCHEMAS = ["vegas"]
 
 # All schemas (canonical list)
-SCHEMAS = LANDING_SCHEMAS + DERIVED_SCHEMAS + OUTPUT_SCHEMAS + GOVERNANCE_SCHEMAS
+SCHEMAS = (
+    LANDING_SCHEMAS
+    + DERIVED_SCHEMAS
+    + OUTPUT_SCHEMAS
+    + GOVERNANCE_SCHEMAS
+    + DOMAIN_SCHEMAS
+)
 
 # BANNED schemas - fail hard if detected in new code
 BANNED_SCHEMAS = [

@@ -9,7 +9,10 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { fetchDatabentoCsv, parseDatabentoStatisticsCsv } from "@/lib/databento";
+import {
+  fetchDatabentoCsv,
+  parseDatabentoStatisticsCsv,
+} from "@/lib/databento";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -65,7 +68,11 @@ const DATABENTO_SYMBOLS = [
   { continuous: "MES.c.0", canonical: "MES", name: "Micro E-mini S&P 500" },
   { continuous: "MNQ.c.0", canonical: "MNQ", name: "Micro E-mini Nasdaq 100" },
   { continuous: "MYM.c.0", canonical: "MYM", name: "Micro E-mini Dow" },
-  { continuous: "M2K.c.0", canonical: "M2K", name: "Micro E-mini Russell 2000" },
+  {
+    continuous: "M2K.c.0",
+    canonical: "M2K",
+    name: "Micro E-mini Russell 2000",
+  },
   // ── Treasury Futures ──
   { continuous: "ZN.c.0", canonical: "ZN", name: "10-Year Treasury" },
   { continuous: "ZB.c.0", canonical: "ZB", name: "30-Year Treasury" },
@@ -130,25 +137,20 @@ interface SymbolResult {
 async function upsertOpenInterest(
   symbol: string,
   eventDate: Date,
-  openInterest: number
+  openInterest: number,
 ): Promise<void> {
   const client = await pool.connect();
   try {
-    // Upsert: insert stub if missing, update if exists (but don't overwrite Yahoo rows)
+    // Databento is the sole source — always upsert
     await client.query(
       `INSERT INTO mkt.futures_1d
         (event_date, symbol, open_interest, source, ingested_at)
        VALUES ($1, $2, $3, 'databento', NOW())
        ON CONFLICT (event_date, symbol) DO UPDATE SET
          open_interest = EXCLUDED.open_interest,
-         source = CASE
-           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
-           THEN EXCLUDED.source
-           ELSE mkt.futures_1d.source
-         END,
-         ingested_at = NOW()
-       WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL`,
-      [eventDate, symbol, openInterest]
+         source = 'databento',
+         ingested_at = NOW()`,
+      [eventDate, symbol, openInterest],
     );
   } finally {
     client.release();
@@ -164,76 +166,87 @@ export const databentoStatisticsDaily = inngest.createFunction(
   },
   { cron: "TZ=America/Chicago 30 6 * * *" }, // Daily at 06:30 CT
   async ({ step, logger }) => {
-    const results = await step.run("fetch-all-stats-symbols-batch", async () => {
-      const batchedResults: SymbolResult[] = [];
+    const results = await step.run(
+      "fetch-all-stats-symbols-batch",
+      async () => {
+        const batchedResults: SymbolResult[] = [];
 
-      for (const config of DATABENTO_SYMBOLS) {
-        try {
-          // Fetch last 5 days for robustness (handles timing edge cases)
-          const endDate = new Date();
-          endDate.setUTCHours(0, 0, 0, 0);
+        for (const config of DATABENTO_SYMBOLS) {
+          try {
+            // Fetch last 5 days for robustness (handles timing edge cases)
+            const endDate = new Date();
+            endDate.setUTCHours(0, 0, 0, 0);
 
-          const startDate = new Date(endDate);
-          startDate.setUTCDate(startDate.getUTCDate() - 5); // Last 5 days
+            const startDate = new Date(endDate);
+            startDate.setUTCDate(startDate.getUTCDate() - 5); // Last 5 days
 
-          logger.info(
-            `Fetching OI stats for ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`
-          );
+            logger.info(
+              `Fetching OI stats for ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+            );
 
-          const csv = await fetchDatabentoCsv({
-            dataset: "GLBX.MDP3",
-            schema: "statistics",
-            symbols: config.continuous,
-            stype_in: "continuous",
-            start: startDate.toISOString(),
-            end: endDate.toISOString(),
-            encoding: "csv",
-            pretty_ts: "true",
-            pretty_px: "true",
-          });
+            const csv = await fetchDatabentoCsv({
+              dataset: "GLBX.MDP3",
+              schema: "statistics",
+              symbols: config.continuous,
+              stype_in: "continuous",
+              start: startDate.toISOString(),
+              end: endDate.toISOString(),
+              encoding: "csv",
+              pretty_ts: "true",
+              pretty_px: "true",
+            });
 
-          const bars = parseDatabentoStatisticsCsv(csv);
-          if (bars.length === 0) {
-            logger.info(`No OI stats returned for ${config.canonical}`);
+            const bars = parseDatabentoStatisticsCsv(csv);
+            if (bars.length === 0) {
+              logger.info(`No OI stats returned for ${config.canonical}`);
+              batchedResults.push({
+                symbol: config.canonical,
+                status: "no_data",
+              });
+              continue;
+            }
+
+            // Upsert each bar
+            let upserted = 0;
+            for (const bar of bars) {
+              const eventDate = new Date(
+                Date.UTC(
+                  bar.tsEvent.getUTCFullYear(),
+                  bar.tsEvent.getUTCMonth(),
+                  bar.tsEvent.getUTCDate(),
+                ),
+              );
+
+              await upsertOpenInterest(
+                config.canonical,
+                eventDate,
+                bar.openInterest,
+              );
+              upserted++;
+            }
+
+            logger.info(`Upserted ${upserted} OI rows for ${config.canonical}`);
             batchedResults.push({
               symbol: config.canonical,
-              status: "no_data",
+              status: "success",
+              rowsUpserted: upserted,
             });
-            continue;
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            logger.error(
+              `Failed to fetch/upsert OI stats for ${config.canonical}: ${errorMsg}`,
+            );
+            batchedResults.push({
+              symbol: config.canonical,
+              status: "error",
+              error: errorMsg,
+            });
           }
-
-          // Upsert each bar
-          let upserted = 0;
-          for (const bar of bars) {
-            const eventDate = new Date(Date.UTC(
-              bar.tsEvent.getUTCFullYear(),
-              bar.tsEvent.getUTCMonth(),
-              bar.tsEvent.getUTCDate()
-            ));
-
-            await upsertOpenInterest(config.canonical, eventDate, bar.openInterest);
-            upserted++;
-          }
-
-          logger.info(`Upserted ${upserted} OI rows for ${config.canonical}`);
-          batchedResults.push({
-            symbol: config.canonical,
-            status: "success",
-            rowsUpserted: upserted,
-          });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          logger.error(`Failed to fetch/upsert OI stats for ${config.canonical}: ${errorMsg}`);
-          batchedResults.push({
-            symbol: config.canonical,
-            status: "error",
-            error: errorMsg,
-          });
         }
-      }
 
-      return batchedResults;
-    });
+        return batchedResults;
+      },
+    );
 
     return {
       status: "complete",
@@ -243,5 +256,5 @@ export const databentoStatisticsDaily = inngest.createFunction(
       errorCount: results.filter((r) => r.status === "error").length,
       noDataCount: results.filter((r) => r.status === "no_data").length,
     };
-  }
+  },
 );

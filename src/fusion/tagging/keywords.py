@@ -4,8 +4,7 @@ Specialist Keywords Dictionary - Single Source of Truth
 This dictionary maps each Big-11 specialist to its trigger keywords.
 Keywords are matched case-insensitively via substring search.
 
-Source: Consolidated from scripts/ingest_barchart_rss.py with additions
-        per Specialist Tagging Audit Report (2026-01-18)
+Source: Specialist Tagging Audit (2026-01-18)
 
 Maintenance:
 - Add new keywords here, they will propagate to all tagging code
@@ -13,9 +12,7 @@ Maintenance:
 - Avoid overlap between tariff and trump_effect (use DUAL_TAG_KEYWORDS for shared cases)
 """
 
-from typing import Dict, List
-
-SPECIALIST_KEYWORDS: Dict[str, List[str]] = {
+SPECIALIST_KEYWORDS: dict[str, list[str]] = {
     # ============================================================
     # CRUSH - Soybean processing, crush margins, meal/oil spread
     # ============================================================

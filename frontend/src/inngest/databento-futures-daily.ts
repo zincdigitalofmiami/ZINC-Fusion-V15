@@ -68,7 +68,11 @@ const DATABENTO_SYMBOLS = [
   { continuous: "MES.c.0", canonical: "MES", name: "Micro E-mini S&P 500" },
   { continuous: "MNQ.c.0", canonical: "MNQ", name: "Micro E-mini Nasdaq 100" },
   { continuous: "MYM.c.0", canonical: "MYM", name: "Micro E-mini Dow" },
-  { continuous: "M2K.c.0", canonical: "M2K", name: "Micro E-mini Russell 2000" },
+  {
+    continuous: "M2K.c.0",
+    canonical: "M2K",
+    name: "Micro E-mini Russell 2000",
+  },
   // ── Treasury Futures ──
   { continuous: "ZN.c.0", canonical: "ZN", name: "10-Year Treasury" },
   { continuous: "ZB.c.0", canonical: "ZB", name: "30-Year Treasury" },
@@ -136,7 +140,7 @@ async function getMaxEventDate(symbol: string): Promise<Date | null> {
       `SELECT MAX(event_date) as max_date
        FROM mkt.futures_1d
        WHERE symbol = $1 AND source = 'databento'`,
-      [symbol]
+      [symbol],
     );
     const maxDate = result.rows[0]?.max_date;
     return maxDate ? new Date(maxDate) : null;
@@ -155,7 +159,7 @@ function computeRowHash(
   high: number | null,
   low: number | null,
   close: number,
-  volume: number
+  volume: number,
 ): string {
   const dateStr = eventDate.toISOString().split("T")[0];
   const hashInput = `${symbol}|${dateStr}|${open ?? ""}|${high ?? ""}|${low ?? ""}|${close}|${volume}`;
@@ -173,11 +177,11 @@ async function upsertOhlcvRow(
   low: number | null,
   close: number,
   volume: number,
-  rowHash: string
+  rowHash: string,
 ): Promise<void> {
   const client = await pool.connect();
   try {
-    // Only update if existing row is from Databento or NULL (don't overwrite Yahoo)
+    // Databento is the sole source — always upsert
     await client.query(
       `INSERT INTO mkt.futures_1d
         (event_date, symbol, open, high, low, close, volume, source, ingested_at, row_hash)
@@ -188,15 +192,10 @@ async function upsertOhlcvRow(
          low = COALESCE(EXCLUDED.low, mkt.futures_1d.low),
          close = EXCLUDED.close,
          volume = COALESCE(EXCLUDED.volume, mkt.futures_1d.volume),
-         source = CASE
-           WHEN mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
-           THEN EXCLUDED.source
-           ELSE mkt.futures_1d.source
-         END,
+         source = 'databento',
          ingested_at = NOW(),
-         row_hash = EXCLUDED.row_hash
-       WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL`,
-      [eventDate, symbol, open, high, low, close, volume, rowHash]
+         row_hash = EXCLUDED.row_hash`,
+      [eventDate, symbol, open, high, low, close, volume, rowHash],
     );
   } finally {
     client.release();
@@ -235,7 +234,9 @@ export const databentoFuturesDaily = inngest.createFunction(
 
           // Ensure start < end
           if (startDate >= endDate) {
-            logger.info(`No new data window for ${config.canonical} (max_date=${maxDate?.toISOString()})`);
+            logger.info(
+              `No new data window for ${config.canonical} (max_date=${maxDate?.toISOString()})`,
+            );
             batchedResults.push({
               symbol: config.canonical,
               status: "skipped",
@@ -244,7 +245,7 @@ export const databentoFuturesDaily = inngest.createFunction(
           }
 
           logger.info(
-            `Fetching ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`
+            `Fetching ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
           );
 
           const csv = await fetchDatabentoCsv({
@@ -272,11 +273,13 @@ export const databentoFuturesDaily = inngest.createFunction(
           // Insert each bar
           let inserted = 0;
           for (const bar of bars) {
-            const eventDate = new Date(Date.UTC(
-              bar.tsEvent.getUTCFullYear(),
-              bar.tsEvent.getUTCMonth(),
-              bar.tsEvent.getUTCDate()
-            ));
+            const eventDate = new Date(
+              Date.UTC(
+                bar.tsEvent.getUTCFullYear(),
+                bar.tsEvent.getUTCMonth(),
+                bar.tsEvent.getUTCDate(),
+              ),
+            );
 
             const rowHash = computeRowHash(
               config.canonical,
@@ -285,7 +288,7 @@ export const databentoFuturesDaily = inngest.createFunction(
               bar.high,
               bar.low,
               bar.close,
-              bar.volume
+              bar.volume,
             );
 
             await upsertOhlcvRow(
@@ -296,7 +299,7 @@ export const databentoFuturesDaily = inngest.createFunction(
               bar.low,
               bar.close,
               bar.volume,
-              rowHash
+              rowHash,
             );
             inserted++;
           }
@@ -309,7 +312,9 @@ export const databentoFuturesDaily = inngest.createFunction(
           });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
-          logger.error(`Failed to fetch/insert ${config.canonical}: ${errorMsg}`);
+          logger.error(
+            `Failed to fetch/insert ${config.canonical}: ${errorMsg}`,
+          );
           batchedResults.push({
             symbol: config.canonical,
             status: "error",
@@ -327,7 +332,9 @@ export const databentoFuturesDaily = inngest.createFunction(
       results,
       successCount: results.filter((r) => r.status === "success").length,
       errorCount: results.filter((r) => r.status === "error").length,
-      skippedCount: results.filter((r) => r.status === "skipped" || r.status === "no_data").length,
+      skippedCount: results.filter(
+        (r) => r.status === "skipped" || r.status === "no_data",
+      ).length,
     };
-  }
+  },
 );

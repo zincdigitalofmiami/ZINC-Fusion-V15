@@ -19,19 +19,19 @@ import inspect
 import logging
 import os
 import re
+from collections.abc import Callable, Iterable
 from enum import Enum, IntEnum
-from functools import wraps, partial
-from typing import Optional, Union, List, Iterable, Callable
+from functools import partial, wraps
+from typing import Union
 
 import numpy as np
 import pandas as pd
-
 from gs_quant.api.gs.data import QueryType
 from gs_quant.api.utils import ThreadPoolManager
 from gs_quant.data import DataContext, Dataset
 from gs_quant.datetime.relative_date import RelativeDate
 from gs_quant.entities.entity import EntityType
-from gs_quant.errors import MqValueError, MqRequestError
+from gs_quant.errors import MqRequestError, MqValueError
 from gs_quant.timeseries.measure_registry import register_measure
 
 ENABLE_DISPLAY_NAME = "GSQ_ENABLE_MEASURE_DISPLAY_NAME"
@@ -226,11 +226,11 @@ def check_forward_looking(pricing_date, source, name="function"):
 
 def plot_measure(
     asset_class: tuple,
-    asset_type: Optional[tuple] = None,
-    dependencies: Optional[List[QueryType]] = tuple(),
-    asset_type_excluded: Optional[tuple] = None,
-    display_name: Optional[str] = None,
-    entitlements: Optional[List[Entitlement]] = None,
+    asset_type: tuple | None = None,
+    dependencies: list[QueryType] | None = tuple(),
+    asset_type_excluded: tuple | None = None,
+    display_name: str | None = None,
+    entitlements: list[Entitlement] | None = None,
 ):
     # Indicates that fn should be exported to plottool as a member function / pseudo-measure.
     # Set category to None for no restrictions, else provide a tuple of allowed values.
@@ -265,7 +265,7 @@ def plot_measure(
 
 
 def plot_measure_entity(
-    entity_type: EntityType, dependencies: Optional[Iterable[QueryType]] = tuple()
+    entity_type: EntityType, dependencies: Iterable[QueryType] | None = tuple()
 ):
     def decorator(fn):
         assert isinstance(entity_type, EntityType)
@@ -385,7 +385,7 @@ def get_dataset_data_with_retries(
 def get_dataset_with_many_assets(
     ds: Dataset,
     *,
-    assets: List[str],
+    assets: list[str],
     start: dt.date,
     end: dt.date,
     batch_limit: int = 100,

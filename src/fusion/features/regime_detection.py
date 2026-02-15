@@ -10,12 +10,12 @@ This module provides:
 4. Historical regime analysis
 """
 
-import pandas as pd
-import numpy as np
-from typing import Dict, Optional
+import warnings
 from dataclasses import dataclass
 from enum import Enum
-import warnings
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
@@ -324,9 +324,9 @@ class RegimeDetector:
 
         # Higher confidence if VIX clearly in regime
         vix = latest.get("vix", 20)
-        if market_regime == MarketRegime.CRISIS and vix > 45:
-            confidence += 0.2
-        elif market_regime == MarketRegime.EUPHORIA and vix < 12:
+        if (market_regime == MarketRegime.CRISIS and vix > 45) or (
+            market_regime == MarketRegime.EUPHORIA and vix < 12
+        ):
             confidence += 0.2
 
         # Higher confidence if crush signals clear
@@ -378,16 +378,16 @@ class DynamicWeightAllocator:
     4. Market conditions
     """
 
-    def __init__(self, regime_detector: Optional[RegimeDetector] = None):
+    def __init__(self, regime_detector: RegimeDetector | None = None):
         self.regime_detector = regime_detector or RegimeDetector()
         self.weight_history = []
         self.performance_tracker = {}
 
-    def get_base_weights(self) -> Dict[str, float]:
+    def get_base_weights(self) -> dict[str, float]:
         """Return base (default) weights."""
         return BASE_WEIGHTS.copy()
 
-    def get_regime_weights(self, regime_state: RegimeState) -> Dict[str, float]:
+    def get_regime_weights(self, regime_state: RegimeState) -> dict[str, float]:
         """
         Get weights adjusted for current regime.
         """
@@ -423,8 +423,8 @@ class DynamicWeightAllocator:
         return weights
 
     def get_performance_adjusted_weights(
-        self, regime_weights: Dict[str, float], bucket_performance: Dict[str, float]
-    ) -> Dict[str, float]:
+        self, regime_weights: dict[str, float], bucket_performance: dict[str, float]
+    ) -> dict[str, float]:
         """
         Adjust weights based on recent bucket performance.
 
@@ -455,8 +455,8 @@ class DynamicWeightAllocator:
         return weights
 
     def get_dynamic_weights(
-        self, df: pd.DataFrame, bucket_performance: Optional[Dict[str, float]] = None
-    ) -> Dict[str, float]:
+        self, df: pd.DataFrame, bucket_performance: dict[str, float] | None = None
+    ) -> dict[str, float]:
         """
         Get fully dynamic weights based on all factors.
         """

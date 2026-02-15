@@ -15,4 +15,4 @@ if [ -z "${DATABASE_URL:-}" ] && [ -f .env ]; then
   set +a
 fi
 
-npx prisma "$@" --config config/prisma.config.ts
+npx --prefix config prisma "$@" --config config/prisma.config.ts

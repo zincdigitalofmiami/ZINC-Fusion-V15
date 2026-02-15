@@ -7,18 +7,16 @@ __test__ = False  # Pytest should not collect integration scripts.
 
 
 import os
-import sys
 
 import psycopg2
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    print("ERROR: DATABASE_URL not set")
-    sys.exit(1)
+import pytest
 
 
 def test_database_query():
     """Test if database query works"""
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    if not DATABASE_URL:
+        pytest.skip("DATABASE_URL not set")
     print("Testing database query...")
 
     conn = psycopg2.connect(DATABASE_URL)

@@ -26,21 +26,19 @@ Usage:
     python scripts/run_monte_carlo.py --horizon all
 """
 
+import argparse
+import logging
 import os
 import sys
-import logging
-import argparse
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-from psycopg2.extras import Json
-from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 import psycopg2
-from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+from psycopg2.extras import Json, execute_batch
 from scipy import stats
 
 # Add project root to path for imports
@@ -209,7 +207,7 @@ def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
     return returns
 
 
-def load_current_regime(conn, as_of_date: Optional[datetime] = None) -> str:
+def load_current_regime(conn, as_of_date: datetime | None = None) -> str:
     """Load the current volatility regime from vol_regimes table."""
     with conn.cursor() as cur:
         if as_of_date:
@@ -379,7 +377,7 @@ def simulate_paths_garch(
     return paths
 
 
-def compute_path_percentiles(paths: np.ndarray) -> Dict:
+def compute_path_percentiles(paths: np.ndarray) -> dict:
     """Compute percentiles at each timestep for visualization."""
     n_sims, n_steps = paths.shape
 
@@ -392,7 +390,7 @@ def compute_path_percentiles(paths: np.ndarray) -> Dict:
     return path_percentiles
 
 
-def fit_distribution(p10: float, p50: float, p90: float) -> Tuple[float, float]:
+def fit_distribution(p10: float, p50: float, p90: float) -> tuple[float, float]:
     """Fit a logistic distribution to quantiles.
 
     Uses P10, P50, P90 to estimate location (mu) and scale (s) parameters
@@ -498,7 +496,7 @@ def calculate_risk_metrics(
     )
 
 
-def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
+def save_risk_metrics(conn, metrics: list[RiskMetrics]) -> int:
     """Save risk metrics to Postgres."""
 
     insert_query = """
@@ -544,7 +542,7 @@ def save_risk_metrics(conn, metrics: List[RiskMetrics]) -> int:
 
 
 def save_path_percentiles(
-    conn, as_of_date: datetime, horizon: int, path_percentiles: Dict, model_version: str
+    conn, as_of_date: datetime, horizon: int, path_percentiles: dict, model_version: str
 ):
     """Save path percentiles to probability_distributions table (atomic upsert)."""
     batch = []
@@ -583,7 +581,7 @@ def save_monte_carlo_run(
     conn,
     as_of_date: datetime,
     horizon: int,
-    path_percentiles: Dict,
+    path_percentiles: dict,
     n_sims: int,
     model_version: str,
 ):
@@ -684,7 +682,7 @@ def write_zone_probabilities(
 
 def run_monte_carlo(
     horizon: int, dry_run: bool = False, use_garch: bool = True
-) -> List[RiskMetrics]:
+) -> list[RiskMetrics]:
     """Run Monte Carlo simulation for a given horizon (L5-A).
 
     Transaction safety: ALL writes for a horizon are committed atomically.
@@ -700,8 +698,8 @@ def run_monte_carlo(
     logger.info("=" * 60)
     logger.info(f"  N_SIMULATIONS: {N_SIMULATIONS:,}")
     logger.info(f"  GARCH volatility: {'ENABLED' if use_garch else 'DISABLED'}")
-    logger.info(f"  Asymmetric diffusion: ENABLED")
-    logger.info(f"  Regime adjustment: ENABLED")
+    logger.info("  Asymmetric diffusion: ENABLED")
+    logger.info("  Regime adjustment: ENABLED")
 
     # Local RNG — reproducible regardless of call order or thread context
     rng = np.random.default_rng(RANDOM_SEED)

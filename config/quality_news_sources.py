@@ -81,12 +81,6 @@ TIER_2_HIGH_VALUE = {
     "oilseed_grain",  # Oilseed & Grain News
     # Macro/FX
     "ecb_press",  # ECB releases
-    # Barchart Professional Feeds
-    "barchart_rss_grain",  # Barchart grain news
-    "barchart_rss_energy",  # Barchart energy
-    "barchart_rss_commodities",  # Barchart all commodities
-    "barchart_rss_interest_rates",  # Barchart rates
-    "barchart_scrape_soybean_oil",  # Barchart ZL specific
     # Political/Policy
     "politico_trade",  # Politico trade coverage
     # Additional EIA/White House
@@ -101,13 +95,6 @@ TIER_2_HIGH_VALUE = {
 # =============================================================================
 
 TIER_3_FINBERT_ONLY = {
-    # Barchart general feeds
-    "barchart_rss_softs",
-    "barchart_rss_fx",
-    "barchart_rss_metals",
-    "barchart_rss_financials",
-    "barchart_rss_etfs",
-    "barchart_rss_options_news",
     # General Ag Media
     "biofuels_digest",
     "feedstuffs",
@@ -246,8 +233,6 @@ def get_source_tier(source_id: str) -> int:
     # Check for partial matches (e.g., "twitter_" prefix)
     if source_lower.startswith("twitter_"):
         return 4  # Default unknown Twitter to noise
-    if source_lower.startswith("barchart_rss_"):
-        return 3  # Default Barchart RSS to FinBERT only
 
     return 0  # Unknown
 

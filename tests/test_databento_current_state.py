@@ -3,7 +3,7 @@
 Test 1: Database State Audit
 
 Audits current database state for Databento live integration:
-- Source distribution (databento vs databento_live vs yahoo)
+- Source distribution (databento vs databento_live)
 - Price distribution analysis (detect discontinuities)
 - Date coverage gaps
 - Volume/OI consistency
@@ -16,9 +16,10 @@ __test__ = False  # Pytest should not collect integration scripts.
 
 import json
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
+
 from fusion.db import get_read_engine
 
 
@@ -27,7 +28,7 @@ def run_query(engine, query: str) -> pd.DataFrame:
     return pd.read_sql(query, engine)
 
 
-def audit_source_distribution(engine) -> Dict[str, Any]:
+def audit_source_distribution(engine) -> dict[str, Any]:
     """Check source tag distribution across all ZL price tables."""
     results = {}
 
@@ -48,7 +49,7 @@ def audit_source_distribution(engine) -> Dict[str, Any]:
     return results
 
 
-def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
+def detect_price_discontinuities(engine, days: int = 7) -> list[dict[str, Any]]:
     """Detect price jumps >5% between consecutive bars."""
     query = f"""
     SELECT
@@ -69,7 +70,7 @@ def detect_price_discontinuities(engine, days: int = 7) -> List[Dict[str, Any]]:
     return discontinuities
 
 
-def check_volume_consistency(engine, days: int = 7) -> Dict[str, Any]:
+def check_volume_consistency(engine, days: int = 7) -> dict[str, Any]:
     """Check volume consistency per day."""
     query = f"""
     SELECT
@@ -88,7 +89,7 @@ def check_volume_consistency(engine, days: int = 7) -> Dict[str, Any]:
     return df.to_dict("records")
 
 
-def check_date_coverage(engine) -> Dict[str, Any]:
+def check_date_coverage(engine) -> dict[str, Any]:
     """Check for gaps in date coverage."""
     results = {}
 
@@ -127,7 +128,7 @@ def check_date_coverage(engine) -> Dict[str, Any]:
     return results
 
 
-def analyze_roll_dates(engine, days: int = 90) -> List[Dict[str, Any]]:
+def analyze_roll_dates(engine, days: int = 90) -> list[dict[str, Any]]:
     """Detect potential roll dates (price jumps >5% on same day)."""
     query = f"""
     WITH daily_stats AS (
@@ -158,7 +159,7 @@ def analyze_roll_dates(engine, days: int = 90) -> List[Dict[str, Any]]:
     return df.to_dict("records")
 
 
-def check_symbol_metadata(engine) -> Dict[str, Any]:
+def check_symbol_metadata(engine) -> dict[str, Any]:
     """Check if we can determine what symbol was used for existing data."""
     # Check if there's any metadata table or source tags that indicate symbol
     query = """
@@ -281,7 +282,7 @@ def main():
     print("=" * 80)
     print("Summary")
     print("=" * 80)
-    print(f"✓ Source distribution analyzed")
+    print("✓ Source distribution analyzed")
     print(f"✓ Price discontinuities: {len(discontinuities)} found")
     print(f"✓ Volume consistency: {len(volume_stats)} days analyzed")
     print(f"✓ Date coverage: {len(coverage)} tables checked")

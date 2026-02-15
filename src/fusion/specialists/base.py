@@ -5,15 +5,15 @@ Each specialist implements BaseSignalGenerator to produce compact signals
 that feed into the Core training matrix.
 """
 
+import hashlib
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional, Dict, List, Tuple, Any
-import hashlib
-import os
-import pandas as pd
-import numpy as np
+from typing import Any
 
+import numpy as np
+import pandas as pd
 
 # =============================================================================
 # CONSTANTS
@@ -79,15 +79,15 @@ class SignalOutput:
     as_of_date: date
     bucket: str
     signal_1: float
-    signal_2: Optional[float] = None
-    confidence: Optional[float] = None
+    signal_2: float | None = None
+    confidence: float | None = None
     model_type: str = "unknown"
     max_input_age_days: int = 0  # REQUIRED: staleness tracking (P0-1 fix)
-    source_tag: Optional[str] = None
-    degraded_level: Optional[int] = None
-    conf: Optional[float] = None
-    data_quality: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    source_tag: str | None = None
+    degraded_level: int | None = None
+    conf: float | None = None
+    data_quality: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         # P0-3: Date validation - reject epoch dates and pre-1990
@@ -116,7 +116,7 @@ class SignalOutput:
                 f"max_input_age_days must be >= 0, got {self.max_input_age_days}"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database insertion."""
         conf_value = self.conf if self.conf is not None else self.confidence
         return {
@@ -153,9 +153,9 @@ class SignalConfig:
 
     bucket: str
     model_type: str
-    primary_features: List[str]
-    secondary_features: List[str]
-    critical_features: List[str] = field(default_factory=list)
+    primary_features: list[str]
+    secondary_features: list[str]
+    critical_features: list[str] = field(default_factory=list)
     strict_mode: bool = True
     lookback_days: int = 252  # 1 year default
     min_data_points: int = 60  # ~3 months minimum
@@ -209,9 +209,9 @@ class BaseSignalGenerator(ABC):
     def generate(
         self,
         data: pd.DataFrame,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-    ) -> List[SignalOutput]:
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[SignalOutput]:
         """
         Main entry point for signal generation.
 
@@ -279,7 +279,7 @@ class BaseSignalGenerator(ABC):
 
         return signals
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """
         Check that required features are present.
 
@@ -292,7 +292,7 @@ class BaseSignalGenerator(ABC):
                 missing.append(feat)
         return missing
 
-    def _required_features(self) -> List[str]:
+    def _required_features(self) -> list[str]:
         """Required features for strict mode enforcement.
 
         FIX 2026-01-30: Enforce primary + critical features in strict mode.
@@ -304,7 +304,7 @@ class BaseSignalGenerator(ABC):
         )
         return list(dict.fromkeys(ordered))
 
-    def _missing_required_features(self, data: pd.DataFrame) -> List[str]:
+    def _missing_required_features(self, data: pd.DataFrame) -> list[str]:
         return [feat for feat in self._required_features() if feat not in data.columns]
 
     def _check_critical_staleness(self, data: pd.DataFrame, as_of_date: date) -> int:
@@ -345,7 +345,7 @@ class BaseSignalGenerator(ABC):
         return max_staleness
 
     @abstractmethod
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute signals for the given data.
 
@@ -384,8 +384,8 @@ class BaseSignalGenerator(ABC):
     def compute_momentum(
         self,
         series: pd.Series,
-        periods: List[int] | None = None,
-    ) -> Dict[str, pd.Series]:
+        periods: list[int] | None = None,
+    ) -> dict[str, pd.Series]:
         """
         Utility: Compute momentum over multiple periods.
 
@@ -403,7 +403,7 @@ class BaseSignalGenerator(ABC):
     def compute_regime(
         self,
         zscore: pd.Series,
-        thresholds: Tuple[float, float, float] = (-1.5, -0.5, 0.5, 1.5),
+        thresholds: tuple[float, float, float] = (-1.5, -0.5, 0.5, 1.5),
     ) -> pd.Series:
         """
         Utility: Map z-score to discrete regime levels.
@@ -434,7 +434,7 @@ class BaseSignalGenerator(ABC):
         self,
         series: pd.Series,
         as_of_date: date,
-        is_real: Optional[pd.Series] = None,
+        is_real: pd.Series | None = None,
     ) -> int:
         """
         Compute days since last non-forward-filled observation.
@@ -484,7 +484,7 @@ class BaseSignalGenerator(ABC):
     def lag_features(
         self,
         data: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         lag: int = 1,
     ) -> pd.DataFrame:
         """
@@ -511,7 +511,7 @@ class BaseSignalGenerator(ABC):
         self,
         data: pd.DataFrame,
         as_of_date: date,
-        columns: Optional[List[str]] = None,
+        columns: list[str] | None = None,
     ) -> int:
         """
         Compute maximum staleness across all specified columns.
@@ -540,10 +540,10 @@ class BaseSignalGenerator(ABC):
     def compute_data_quality_metadata(
         self,
         data: pd.DataFrame,
-        columns: List[str],
-        as_of_date: Optional[date] = None,
-        is_real_masks: Optional[Dict[str, pd.Series]] = None,
-    ) -> Dict[str, Any]:
+        columns: list[str],
+        as_of_date: date | None = None,
+        is_real_masks: dict[str, pd.Series] | None = None,
+    ) -> dict[str, Any]:
         """
         Compute data quality metrics for metadata.
 
@@ -612,6 +612,6 @@ class BaseSignalGenerator(ABC):
         """Legacy no-op hook kept for backward compatibility."""
         return data
 
-    def get_all_elite_indicator_names(self, prefix: str) -> List[str]:
+    def get_all_elite_indicator_names(self, prefix: str) -> list[str]:
         """Legacy no-op hook kept for backward compatibility."""
         return []

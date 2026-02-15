@@ -5,11 +5,11 @@ These specialists use rule-based logic, event studies, and sentiment
 aggregation rather than traditional ML models.
 """
 
-from datetime import date
-from typing import List
-import pandas as pd
-import numpy as np
 import logging
+from datetime import date
+
+import numpy as np
+import pandas as pd
 
 from fusion.specialists.base import (
     BaseSignalGenerator,
@@ -91,7 +91,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
         )
         super().__init__(config)
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """Require FULL EPU complex for tariff risk."""
         missing = []
         if "close" not in data.columns:
@@ -226,7 +226,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
             nearest_deadline_dates,
         )
 
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute tariff risk score with ALL elite indicators.
 
@@ -521,7 +521,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
 
             # P0-1: Compute max staleness across EPU components for this date
             max_staleness = 0
-            for name in epu_components.keys():
+            for name in epu_components:
                 if name in epu_staleness:
                     stale_val = epu_staleness[name].loc[idx]
                     if not pd.isna(stale_val):
@@ -624,7 +624,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         )
         super().__init__(config)
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """Require FULL RIN complex + biodiesel economics."""
         missing = []
         if "close" not in data.columns:
@@ -712,7 +712,7 @@ class BiofuelSignalGenerator(BaseSignalGenerator):
         regime[rin_zscore < -1.0] = -1.0  # Low RIN = bearish
         return regime
 
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute biofuel policy pressure signal with ALL elite indicators.
 
@@ -1080,7 +1080,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         )
         super().__init__(config)
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """
         Validate inputs - ONLY require 95%+ coverage features.
 
@@ -1243,7 +1243,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
             return True
         return False
 
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute Trump Effect signals with ALL elite indicators.
 

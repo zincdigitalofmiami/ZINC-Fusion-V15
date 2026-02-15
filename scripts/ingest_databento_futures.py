@@ -39,15 +39,15 @@ import sys
 # Force unbuffered output
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
+import hashlib
 from datetime import date, datetime, timedelta
 from pathlib import Path
-import hashlib
 
 import databento as db
 import pandas as pd
 import psycopg2
-from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+from psycopg2.extras import execute_batch
 
 # Load environment
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -166,9 +166,7 @@ def upsert_to_database(conn, rows: list[dict]) -> int:
     """
     Upsert rows to mkt.futures_1d.
 
-    ON CONFLICT (event_date, symbol):
-    - If source is already 'databento', update
-    - Otherwise, skip (don't overwrite Yahoo with Databento)
+    ON CONFLICT (event_date, symbol): always update (Databento is sole source).
     """
     if not rows:
         return 0
@@ -192,7 +190,6 @@ def upsert_to_database(conn, rows: list[dict]) -> int:
         ingested_at = NOW(),
         knowledge_time = EXCLUDED.knowledge_time,
         row_hash = EXCLUDED.row_hash
-    WHERE mkt.futures_1d.source = 'databento' OR mkt.futures_1d.source IS NULL
     """
 
     cur = conn.cursor()
@@ -205,12 +202,12 @@ def upsert_to_database(conn, rows: list[dict]) -> int:
 
 
 def get_latest_date_in_db(conn, symbol: str) -> date:
-    """Get latest date for a symbol with source='databento'."""
+    """Get latest date for a symbol."""
     cur = conn.cursor()
     cur.execute(
         """
         SELECT MAX(event_date) FROM mkt.futures_1d
-        WHERE symbol = %s AND source = 'databento'
+        WHERE symbol = %s
         """,
         (symbol,),
     )
@@ -250,7 +247,7 @@ def main():
         print(f"  Fetching from: {start_date}")
 
         if start_date > end_date:
-            print(f"  Up to date (no new data)")
+            print("  Up to date (no new data)")
             continue
 
         # Fetch from Databento

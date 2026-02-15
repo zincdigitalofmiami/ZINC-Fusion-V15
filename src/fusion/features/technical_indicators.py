@@ -12,17 +12,17 @@ Uses the best of: ta, TA-Lib, pandas-ta, finta, stockstats, talipp
 Plus specialist bucket-specific indicators for Big-8 analysis.
 """
 
-import pandas as pd
-import numpy as np
-from typing import Optional, Dict, List
 import warnings
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
 # Import available TA libraries
 try:
     import ta  # noqa: F401
-    from ta import trend, momentum, volatility, volume  # noqa: F401
+    from ta import momentum, trend, volatility, volume
 
     HAS_TA = True
 except ImportError:
@@ -832,7 +832,7 @@ class ZincFusionIndicators:
     # =========================================================================
 
     def add_crush_bucket_indicators(
-        self, zs_df: Optional[pd.DataFrame] = None, zm_df: Optional[pd.DataFrame] = None
+        self, zs_df: pd.DataFrame | None = None, zm_df: pd.DataFrame | None = None
     ) -> pd.DataFrame:
         """
         Add CRUSH bucket specific indicators.
@@ -880,9 +880,9 @@ class ZincFusionIndicators:
 
     def add_energy_bucket_indicators(
         self,
-        cl_df: Optional[pd.DataFrame] = None,
-        ho_df: Optional[pd.DataFrame] = None,
-        rb_df: Optional[pd.DataFrame] = None,
+        cl_df: pd.DataFrame | None = None,
+        ho_df: pd.DataFrame | None = None,
+        rb_df: pd.DataFrame | None = None,
     ) -> pd.DataFrame:
         """
         Add ENERGY/BIOFUEL bucket specific indicators.
@@ -978,7 +978,7 @@ class ZincFusionIndicators:
 
         return self.df
 
-    def get_indicator_summary(self) -> Dict[str, List[str]]:
+    def get_indicator_summary(self) -> dict[str, list[str]]:
         """Return dictionary of indicator names grouped by category."""
         cols = self.df.columns.tolist()
 
@@ -1135,7 +1135,7 @@ def compute_indicators_for_symbol(df: pd.DataFrame, symbol: str = "ZL") -> pd.Da
     result = calculator.compute_all()
 
     summary = calculator.get_indicator_summary()
-    print(f"\nIndicator breakdown:")
+    print("\nIndicator breakdown:")
     for category, indicators in summary.items():
         print(f"  {category.upper()}: {len(indicators)} indicators")
 
@@ -1220,7 +1220,7 @@ if __name__ == "__main__":
         print(
             f"\n📊 Final DataFrame: {result.shape[0]:,} rows × {result.shape[1]} columns"
         )
-        print(f"\n🎯 Sample indicator values (last row):")
+        print("\n🎯 Sample indicator values (last row):")
         key_indicators = ["rsi_14", "macd", "adx", "bb_pct", "obv", "volatility_20d"]
         for ind in key_indicators:
             if ind in result.columns:

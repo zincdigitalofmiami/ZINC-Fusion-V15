@@ -96,12 +96,19 @@ DERIVED_SCHEMAS: tuple[str, ...] = ("features", "training")
 # Output schemas: model artifacts and predictions
 OUTPUT_SCHEMAS: tuple[str, ...] = ("model", "forecasts", "analytics")
 
-# Governance schemas: operations and metadata
-GOVERNANCE_SCHEMAS: tuple[str, ...] = ("metadata", "ops")
+# Governance schemas: operations
+GOVERNANCE_SCHEMAS: tuple[str, ...] = ("ops",)
+
+# Domain schemas
+DOMAIN_SCHEMAS: tuple[str, ...] = ("vegas",)
 
 # All schemas (canonical list)
 SCHEMAS: tuple[str, ...] = (
-    LANDING_SCHEMAS + DERIVED_SCHEMAS + OUTPUT_SCHEMAS + GOVERNANCE_SCHEMAS
+    LANDING_SCHEMAS
+    + DERIVED_SCHEMAS
+    + OUTPUT_SCHEMAS
+    + GOVERNANCE_SCHEMAS
+    + DOMAIN_SCHEMAS
 )
 
 # BANNED schemas - fail hard if detected in new code
@@ -126,8 +133,8 @@ SchemaName = Literal[
     "model",
     "forecasts",
     "analytics",  # Output
-    "metadata",
     "ops",  # Governance
+    "vegas",  # Domain
 ]
 
 # =============================================================================
@@ -331,7 +338,10 @@ def validate_config_compliance() -> dict[str, bool]:
     checks = {}
 
     # Specialist config checks (import from autogluon_config at call time)
-    from fusion.autogluon_config import SPECIALIST_CONFIG, DRIFT_THRESHOLDS  # noqa: F401
+    from fusion.autogluon_config import (
+        DRIFT_THRESHOLDS,
+        SPECIALIST_CONFIG,
+    )
 
     cfg = SPECIALIST_CONFIG
     checks["specialist_bag_folds_sufficient"] = cfg.num_bag_folds >= 5

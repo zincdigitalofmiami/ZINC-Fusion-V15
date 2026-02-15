@@ -12,7 +12,7 @@ Commodity procurement forecasting system for bulk soybean oil (ZL). Provides pro
 - **Frontend:** Next.js on Vercel with Inngest serverless functions
 - **Backend:** Python 3.11, FastAPI, psycopg2
 - **ML:** AutoGluon (CPU-only), custom specialist models
-- **Package Manager:** uv (Python), npm (frontend)
+- **Package Manager:** uv (Python), npm (`frontend/` + `config/` for Prisma CLI)
 - **Testing:** pytest (Python), npm test (frontend)
 - **Tracking:** MLflow (local)
 
@@ -22,13 +22,15 @@ Commodity procurement forecasting system for bulk soybean oil (ZL). Provides pro
 - `frontend/` — Next.js dashboard (deployed to Vercel)
 - `prisma/schema.prisma` — Database schema (single source of truth)
 
-Root `package.json` is for Prisma CLI only. All frontend npm commands use `--prefix frontend`.
+There is intentionally no root `package.json`.
+Prisma CLI dependencies live in `config/package.json`.
+All frontend npm commands use `--prefix frontend`; all Prisma CLI commands use `--prefix config` (or `scripts/prisma.sh`).
 
 ## Database
 
 Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeScript) and psycopg2 (Python). Do not use PrismaClient for runtime queries.
 
-**12 Schemas:** `mkt`, `econ`, `alt`, `pos`, `supply`, `features`, `training`, `model`, `forecasts`, `analytics`, `metadata`, `ops`
+**12 Schemas:** `mkt`, `econ`, `alt`, `pos`, `supply`, `features`, `training`, `model`, `forecasts`, `analytics`, `ops`, `vegas`
 
 **Banned schemas:** `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
 
