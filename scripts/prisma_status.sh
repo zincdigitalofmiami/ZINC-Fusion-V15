@@ -43,6 +43,7 @@ fi
 .venv/bin/python - <<'PY'
 import os
 import sys
+import time
 from pathlib import Path
 
 try:
@@ -69,10 +70,20 @@ if not url:
     print("FALLBACK FAILED: DATABASE_URL not set")
     sys.exit(1)
 
-try:
-    conn = psycopg2.connect(url)
-except Exception as exc:
-    print(f"FALLBACK FAILED: cannot connect to DB ({exc})")
+conn = None
+last_exc = None
+for attempt in range(1, 6):
+    try:
+        conn = psycopg2.connect(url)
+        break
+    except Exception as exc:
+        last_exc = exc
+        print(f"Fallback connect attempt {attempt}/5 failed: {exc}")
+        if attempt < 5:
+            time.sleep(2)
+
+if conn is None:
+    print(f"FALLBACK FAILED: cannot connect to DB after retries ({last_exc})")
     sys.exit(1)
 
 cur = conn.cursor()
