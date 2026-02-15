@@ -3029,6 +3029,7 @@ model specialist_features {
   @@unique([bucket, as_of_date])
   @@index([as_of_date])
   @@index([bucket])
+  @@index([bucket, as_of_date(sort: Desc)], map: "idx_specialist_features_bucket_date")
   @@schema("training")
 }
 
@@ -3057,24 +3058,9 @@ model specialist_signals_1d {
   @@unique([as_of_date, bucket])
   @@index([bucket], map: "idx_specialist_signals_bucket")
   @@index([as_of_date], map: "idx_specialist_signals_date")
+  @@index([bucket, as_of_date(sort: Desc)], map: "idx_specialist_signals_bucket_date")
   @@index([run_hash], map: "idx_specialist_signals_run")
   @@index([max_input_age_days], map: "idx_specialist_signals_staleness")
-  @@schema("training")
-}
-
-model specialist_trump_effect_1d {
-  id         Int       @id @default(autoincrement())
-  as_of_date DateTime  @db.Date
-  symbol     String?   @default("ZL") @db.VarChar(20)
-  signal     Float?
-  confidence Float?
-  features   Json?
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-
-  @@unique([as_of_date, symbol])
-  @@index([as_of_date], map: "idx_trump_1d_date")
-  @@index([as_of_date], map: "idx_trump_effect_1d_date")
-  @@index([as_of_date], map: "idx_trump_effect_date")
   @@schema("training")
 }
 

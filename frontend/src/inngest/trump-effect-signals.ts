@@ -6,7 +6,6 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 const SOURCE_BUCKET = "trump_effect";
-const SOURCE_SYMBOL = "ZL";
 const LOOKBACK_DAYS = 120;
 
 interface TrumpSourceRow {
@@ -51,30 +50,28 @@ async function runTrumpEffectSignalSync() {
   try {
     const sourceResult = await client.query<{
       as_of_date: Date;
-      signal: number | string | null;
-      confidence: number | string | null;
       features: unknown;
     }>(
-      `SELECT as_of_date, signal, confidence, features
-       FROM training.specialist_trump_effect_1d
-       WHERE symbol = $1
+      `SELECT as_of_date, features
+       FROM training.specialist_features
+       WHERE bucket = $1
          AND as_of_date >= CURRENT_DATE - $2::interval
        ORDER BY as_of_date ASC`,
-      [SOURCE_SYMBOL, `${LOOKBACK_DAYS} days`],
+      [SOURCE_BUCKET, `${LOOKBACK_DAYS} days`],
     );
 
     if (!sourceResult.rows.length) {
       return {
         status: "no_data",
-        reason: "No rows in training.specialist_trump_effect_1d",
+        reason: "No rows in training.specialist_features for bucket=trump_effect",
         synced: 0,
       };
     }
 
     const sourceRows: TrumpSourceRow[] = sourceResult.rows.map((row) => ({
       as_of_date: toDateKey(row.as_of_date),
-      signal: row.signal === null ? null : Number(row.signal),
-      confidence: row.confidence === null ? null : Number(row.confidence),
+      signal: null,
+      confidence: null,
       features: parseFeatures(row.features),
     }));
 
@@ -105,11 +102,20 @@ async function runTrumpEffectSignalSync() {
     const now = new Date();
 
     for (const row of rowsToSync) {
-      const eventRisk = clamp(row.signal ?? 0, 0, 1);
-      const confidence = clamp(row.confidence ?? 0.55, 0.2, 0.95);
+      const features = row.features ?? {};
+      const sourceSignal = Number(features.neural_signal ?? features.signal ?? 0);
+      const sourceConfidence = Number(
+        features.neural_confidence ?? features.confidence ?? 0.55,
+      );
+
+      const eventRisk = clamp(Number.isFinite(sourceSignal) ? sourceSignal : 0, 0, 1);
+      const confidence = clamp(
+        Number.isFinite(sourceConfidence) ? sourceConfidence : 0.55,
+        0.2,
+        0.95,
+      );
       const signedSignal = clamp(1 - 2 * eventRisk, -2, 2);
 
-      const features = row.features ?? {};
       const accelValue = Number(features.action_acceleration ?? 0);
       const signal2 = Number.isFinite(accelValue) ? clamp(accelValue, -5, 5) : 0;
 
@@ -139,7 +145,7 @@ async function runTrumpEffectSignalSync() {
       await client.query(
         `INSERT INTO training.specialist_signals_1d
           (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash,
-           max_input_age_days, source_tag, degraded_level, conf, data_quality,
+          max_input_age_days, source_tag, degraded_level, conf, data_quality,
            run_id, abstained, warmup, signal_type)
          VALUES
           ($1::date, $2, $3, $4, $5, 'event_study', $6,
@@ -170,11 +176,11 @@ async function runTrumpEffectSignalSync() {
           confidence,
           runHash,
           ageDays,
-          "training.specialist_trump_effect_1d",
+          "training.specialist_features",
           degradedLevel,
           confidence,
           JSON.stringify({
-            source: "training.specialist_trump_effect_1d",
+            source: "training.specialist_features",
             scoring_version: features.scoring_version ?? null,
             has_epu: hasEpu,
             has_vix: hasVix,

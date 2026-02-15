@@ -1277,7 +1277,7 @@ def load_trump_effect_data(
     - Fed Rates: DFF, DGS2, DGS10, T10Y2Y, SOFR
     - FX Rates: All major USD pairs
     - Tariff: alt.tariff_deadlines_static
-    - Trump Features: training.specialist_trump_effect_1d (features JSON payload)
+    - Trump Features: training.specialist_features (bucket='trump_effect')
     """
     conn = get_connection()
 
@@ -1448,8 +1448,8 @@ def load_trump_effect_data(
            NULLIF(features->>'action_velocity', '')::double precision AS action_velocity,
            NULLIF(features->>'action_acceleration', '')::double precision AS action_acceleration,
            NULLIF(features->>'weighted_action_score', '')::double precision AS weighted_action_score
-    FROM training.specialist_trump_effect_1d
-    WHERE symbol = 'ZL'
+    FROM training.specialist_features
+    WHERE bucket = 'trump_effect'
     ORDER BY as_of_date
     """
     trump_df = pd.read_sql(trump_query, conn)

@@ -42,7 +42,7 @@ LOCAL_DATA_DIR = Path(__file__).parent.parent / "data" / "training_cache"
 # They have been REMOVED from this sync list. Training uses:
 #   - mkt.futures_1d (filter by symbol for each specialist bucket)
 #   - training.specialist_features (computed JSON blob per specialist)
-#   - training.specialist_trump_effect_1d (has signal/confidence columns)
+#   - training.specialist_signals_1d (canonical specialist signals)
 # =============================================================================
 TRAINING_TABLES = {
     # Market data for feature engineering (CANONICAL SOURCE)
@@ -59,8 +59,16 @@ TRAINING_TABLES = {
     "econ.money_1d": {"key": "event_date", "incremental": True},
     # Training tables
     "training.matrix_1d": {"key": "trade_date", "incremental": True},
-    "training.specialist_features": {"key": "as_of_date", "incremental": True},
-    "training.specialist_trump_effect_1d": {"key": "as_of_date", "incremental": True},
+    "training.specialist_features": {
+        "key": "as_of_date",
+        "incremental": True,
+        "dedupe_keys": ["bucket", "as_of_date"],
+    },
+    "training.specialist_signals_1d": {
+        "key": "as_of_date",
+        "incremental": True,
+        "dedupe_keys": ["bucket", "as_of_date"],
+    },
 }
 
 
@@ -132,11 +140,12 @@ def sync_table(conn, table_name: str, config: dict, dry_run: bool = False) -> di
     if last_key is not None and local_path.exists():
         existing_df = pd.read_parquet(local_path)
         df = pd.concat([existing_df, df], ignore_index=True)
-        df = df.drop_duplicates(
-            subset=(
+        dedupe_keys = config.get("dedupe_keys")
+        if not dedupe_keys:
+            dedupe_keys = (
                 [config["key"], "symbol"] if "symbol" in df.columns else [config["key"]]
             )
-        )
+        df = df.drop_duplicates(subset=dedupe_keys)
 
     # Save to parquet
     df.to_parquet(local_path, index=False)
