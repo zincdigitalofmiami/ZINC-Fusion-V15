@@ -111,6 +111,10 @@ if [[ "$MODE" == "all" ]]; then
     gate "Prisma schema validates" \
         npx --yes --prefix config prisma validate --schema prisma/schema.prisma
 
+    # Gate 10: Prisma migration status (no unapplied migrations)
+    gate "Prisma migration status clean (no unapplied migrations)" \
+        bash scripts/prisma_status.sh
+
 fi
 
 # ============================================================================

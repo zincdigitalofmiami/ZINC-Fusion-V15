@@ -53,6 +53,14 @@ repos:
         pass_filenames: false
         always_run: true
 
+      - id: prisma-migrate-status
+        name: Prisma migration status (no unapplied migrations)
+        entry: bash scripts/prisma_status.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
       - id: git-integrity
         name: Git integrity (exclude poisoning / untracked imports)
         entry: bash scripts/check_git_integrity.sh
