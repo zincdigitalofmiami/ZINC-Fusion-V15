@@ -19,6 +19,20 @@ cd "$REPO_ROOT"
 MODE="${1:-interactive}"
 STALE_DAYS=7
 
+prompt_yes_no() {
+    local prompt="$1"
+    local reply=""
+
+    # Read prompts from the terminal, not loop stdin.
+    if [ ! -t 1 ] || [ ! -r /dev/tty ]; then
+        return 1
+    fi
+
+    read -r -n 1 -p "$prompt" reply </dev/tty || true
+    echo
+    [[ "$reply" =~ ^[Yy]$ ]]
+}
+
 echo "============================================"
 echo "  Worktree & Branch Hygiene"
 echo "============================================"
@@ -30,7 +44,7 @@ echo ""
 echo "[1/4] Checking worktrees..."
 WORKTREE_COUNT=0
 
-git worktree list --porcelain | grep "^worktree " | sed 's/^worktree //' | while read -r wt; do
+while IFS= read -r wt; do
     # Skip the main worktree
     if [ "$wt" = "$REPO_ROOT" ]; then
         continue
@@ -46,9 +60,7 @@ git worktree list --porcelain | grep "^worktree " | sed 's/^worktree //' | while
         elif [ "$MODE" = "--dry-run" ]; then
             echo "    (would remove)"
         else
-            read -p "    Remove? [y/N] " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if prompt_yes_no "    Remove? [y/N] "; then
                 git worktree remove --force "$wt" 2>/dev/null || git worktree prune
                 echo "    Removed."
             fi
@@ -73,14 +85,12 @@ git worktree list --porcelain | grep "^worktree " | sed 's/^worktree //' | while
             echo "    Recent (${AGE_DAYS} days). Keeping."
         fi
     else
-        read -p "    Remove this worktree? [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if prompt_yes_no "    Remove this worktree? [y/N] "; then
             git worktree remove --force "$wt" 2>/dev/null || true
             echo "    Removed."
         fi
     fi
-done
+done < <(git worktree list --porcelain | grep "^worktree " | sed 's/^worktree //')
 
 # Always prune dangling references
 git worktree prune 2>/dev/null || true
@@ -96,7 +106,7 @@ CURRENT_BRANCH=$(git branch --show-current)
 AGENT_BRANCHES=$(git branch --list | sed 's/^[* ]*//' | grep -E '^(claude/|copilot/|codex/|agent-|set-up-|inngest-bugwork|frontend-endpoints-)' || true)
 
 if [ -n "$AGENT_BRANCHES" ]; then
-    echo "$AGENT_BRANCHES" | while read -r branch; do
+    while IFS= read -r branch; do
         # Never touch the current branch
         if [ "$branch" = "$CURRENT_BRANCH" ]; then
             echo -e "  ${YELLOW}SKIP: $branch (current branch)${NC}"
@@ -118,14 +128,12 @@ if [ -n "$AGENT_BRANCHES" ]; then
             git branch -d "$branch" 2>/dev/null || true
             echo "    Deleted."
         elif [ "$MODE" != "--auto" ]; then
-            read -p "    Delete? [y/N] " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if prompt_yes_no "    Delete? [y/N] "; then
                 git branch -D "$branch" 2>/dev/null || true
                 echo "    Deleted."
             fi
         fi
-    done
+    done <<< "$AGENT_BRANCHES"
 else
     echo -e "  ${GREEN}No agent branches found${NC}"
 fi
@@ -158,9 +166,7 @@ if [ "$STASH_COUNT" -gt 0 ]; then
     if [ "$MODE" = "--dry-run" ]; then
         echo "    (would prompt for cleanup)"
     elif [ "$MODE" != "--auto" ]; then
-        read -p "  Drop all stashes? [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if prompt_yes_no "  Drop all stashes? [y/N] "; then
             git stash clear
             echo -e "  ${GREEN}Stashes cleared${NC}"
         fi
