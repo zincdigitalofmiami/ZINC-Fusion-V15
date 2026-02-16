@@ -37,7 +37,7 @@ SPECIALIST_BUCKETS = [
 ]
 
 MODEL_TYPES = {
-    "crush": "xgb",
+    "crush": "gbm",
     "china": "gbm",
     "fx": "ardl",
     "fed": "ridge",
@@ -67,7 +67,7 @@ class SignalOutput:
         signal_1: Primary signal value (required)
         signal_2: Secondary signal value
         confidence: Model confidence 0-1
-        model_type: Model class used (xgb, garch, ecm, etc.)
+        model_type: Model class used (gbm, garch, ecm, etc.)
         max_input_age_days: Max input staleness in days
         source_tag: Source identifier
         degraded_level: Degradation level

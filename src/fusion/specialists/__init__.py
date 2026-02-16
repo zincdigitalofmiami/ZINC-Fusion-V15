@@ -16,7 +16,7 @@ Signal Contract:
 - Signals stored in training.specialist_signals_1d
 
 Specialist Buckets (Big-11):
-- crush: Margin z-score + momentum (XGBoost)
+- crush: Margin z-score + momentum (GradientBoosting)
 - china: Demand outlook score (GPR/GBM)
 - fx: FX pressure index (ARDL/GBM)
 - fed: Rates regime + change (Ridge/ARDL)
@@ -37,7 +37,7 @@ from fusion.specialists.base import (
     MODEL_TYPES,
 )
 
-# Group A: XGBoost/GBM-based
+# Group A: GBM/RF-based
 from fusion.specialists.xgb_signals import (
     CrushSignalGenerator,
     SubstitutesSignalGenerator,

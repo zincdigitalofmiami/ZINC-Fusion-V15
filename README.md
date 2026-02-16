@@ -20,6 +20,17 @@ Commodity procurement forecasting platform for bulk soybean oil (ZL), focused on
 - Frontend npm commands must run with `--prefix frontend`.
 - Prisma CLI commands must run with `--prefix config` (or `scripts/prisma.sh`).
 
+## Model Architecture
+
+Multi-level ensemble forecasting system for soybean oil (ZL):
+
+- **L0 Core:** 25-model AutoGluon zoo per horizon (5d/21d/63d/126d), CPU-only, WQL metric, quantiles [0.3, 0.5, 0.7]
+- **Specialists:** 11 domain signal generators (GBM, RF, ARDL, Ridge, VAR, GARCH, ECM, event-based) writing to `training.specialist_signals_1d`
+- **Integration:** Specialist signals feed into core training matrix (~213+ features) as observed covariates
+- **L2/L3:** Quantile calibration + Monte Carlo risk (VaR/CVaR)
+
+See `AGENTS.md` for full model zoo listing and specialist bucket contracts.
+
 ## Quick Commands
 
 ```bash

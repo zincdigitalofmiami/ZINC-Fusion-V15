@@ -1,10 +1,10 @@
 """
-XGBoost/GBM/RF-based signal generators: crush, china, substitutes.
+GBM/RF-based signal generators: crush, china, substitutes.
 
 These specialists use REAL tree-based ML models trained on engineered features.
 
 PATCHED 2026-01-23: Implemented actual ML models
-- XGBoost for Crush
+- GradientBoosting for Crush
 - GradientBoosting for China
 - RandomForest for Substitutes
 - Models train on features, predict forward returns
@@ -23,15 +23,6 @@ import joblib
 # ML Imports - REAL MODELS
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-
-# XGBoost - install if missing
-try:
-    import xgboost as xgb
-
-    HAS_XGBOOST = True
-except ImportError:
-    HAS_XGBOOST = False
-    xgb = None
 
 from fusion.specialists.base import (
     BaseSignalGenerator,
@@ -207,7 +198,7 @@ class MLModelMixin:
         self._save_model()
 
         logger.info(
-            f"   Trained on {len(X_clean)} samples, {len(feature_names)} features"
+            f"   Trained on {len(X_clean)} samples, {len(self.feature_names)} features"
         )
         return True
 
@@ -278,7 +269,7 @@ class MLModelMixin:
 
 
 # =============================================================================
-# CRUSH SIGNAL GENERATOR - REAL XGBOOST
+# CRUSH SIGNAL GENERATOR - REAL GRADIENT BOOSTING
 # =============================================================================
 
 
@@ -286,7 +277,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
     """
     Crush specialist: margin-driven production incentives.
 
-    ACTUAL MODEL: XGBoost Regressor
+    ACTUAL MODEL: GradientBoosting Regressor
 
     Signal Contract:
     - signal_1: Model prediction of forward ZL return based on crush features
@@ -302,13 +293,13 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
     Target: 21-day forward ZL return
 
     PATCHED 2026-01-21: WASDE fundamentals
-    PATCHED 2026-01-23: Real XGBoost model
+    PATCHED 2026-01-23: Real GradientBoosting model
     """
 
     def __init__(self):
         config = SignalConfig(
             bucket="crush",
-            model_type="xgb",
+            model_type="gbm",
             primary_features=[
                 "close",
                 # SOYBEAN COMPLEX - Full crush calculation inputs
@@ -340,27 +331,14 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
         MLModelMixin.__init__(self)
 
     def _create_model(self):
-        """Create XGBoost model."""
-        if HAS_XGBOOST:
-            return xgb.XGBRegressor(
-                n_estimators=100,
-                max_depth=4,
-                learning_rate=0.1,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                random_state=42,
-                n_jobs=-1,
-            )
-        else:
-            # Fallback to sklearn GradientBoosting if XGBoost not installed
-            logger.warning("XGBoost not installed, using sklearn GradientBoosting")
-            return GradientBoostingRegressor(
-                n_estimators=100,
-                max_depth=4,
-                learning_rate=0.1,
-                subsample=0.8,
-                random_state=42,
-            )
+        """Create GradientBoosting model."""
+        return GradientBoostingRegressor(
+            n_estimators=100,
+            max_depth=4,
+            learning_rate=0.1,
+            subsample=0.8,
+            random_state=42,
+        )
 
     def _prepare_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
         """Prepare crush-specific features with ALL elite indicators."""
@@ -512,7 +490,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
         """
-        Compute crush signals using XGBoost model.
+        Compute crush signals using GradientBoosting model.
         """
         signals = []
 
@@ -591,7 +569,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                             signal_1=0.0,
                             signal_2=0.0,  # CONTRACT: Never None on abstain
                             confidence=0.0,  # CONTRACT: Zero confidence on abstain
-                            model_type="xgb",
+                            model_type="gbm",
                             max_input_age_days=999,  # P0-1: Max staleness for abstain
                             source_tag=pred_meta.get(
                                 "source_tag", "insufficient_features"
@@ -654,7 +632,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                         signal_1=float(prediction),  # MODEL PREDICTION
                         signal_2=signal_2_val,  # CONTRACT: Never None
                         confidence=float(confidence),
-                        model_type="xgb",
+                        model_type="gbm",
                         max_input_age_days=max_staleness,  # P0-1: Staleness tracking
                         metadata={
                             "board_crush": float(board_crush.loc[idx]),
@@ -670,7 +648,7 @@ class CrushSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 continue
 
         logger.info(
-            f"CrushSignalGenerator: Generated {len(signals)} signals (XGBoost model)"
+            f"CrushSignalGenerator: Generated {len(signals)} signals (GradientBoosting model)"
         )
         return signals
 

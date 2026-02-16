@@ -36,10 +36,56 @@ Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeSc
 
 ## Model Architecture
 
-- **L0 Core:** 4 AutoGluon models (5d/21d/63d/126d horizons)
+- **L0 Core:** 4 AutoGluon TimeSeriesPredictor models (5d/21d/63d/126d horizons)
 - **Specialists:** 11 signal generators (domain-specific, no horizons)
-- **L1 Meta:** 4 meta-learners combining core + specialist signals
+- **L1 Meta:** Core models consume specialist signals as input features (no separate meta-learner)
 - **L2/L3:** Calibration + Monte Carlo risk (VaR/CVaR)
+
+### L0 Core Model Zoo (25 models per horizon, CPU-only)
+
+Defined in `src/fusion/core_training/train_models.py`. No presets, no time limits, explicit allowlist only.
+
+| Category | Models |
+|----------|--------|
+| Baselines (5) | Naive, SeasonalNaive, Average, SeasonalAverage, Zero |
+| Statistical (10) | ETS, AutoETS, AutoARIMA, AutoCES, Theta, DynamicOptimizedTheta, NPTS, ADIDA, Croston, IMAPA |
+| Deep/ML (5) | DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward |
+| Neural (2) | TiDE, WaveNet |
+| Tabular TS (3) | DirectTabular, PerStepTabular, RecursiveTabular |
+| Pretrained (3, disabled macOS ARM) | Chronos2, Chronos, Toto |
+
+AutoGluon trains all models and selects a WeightedEnsemble. Artifacts in `models/core_v2/{horizon}d/`.
+
+- **Metric:** WQL (Weighted Quantile Loss)
+- **Quantiles:** [0.3, 0.5, 0.7]
+- **Covariates:** All OBSERVED (no known future values)
+- **Validation:** 4 expanding windows
+- **Frequency:** Business day (`B`)
+
+### Specialist Buckets (Big-11)
+
+Each specialist outputs `(signal_1, signal_2, confidence)` per date to `training.specialist_signals_1d`. These are merged into `training.matrix_1d` as core input features.
+
+| Bucket | Model Type | Implementation | Signal Contract |
+|--------|-----------|----------------|-----------------|
+| crush | `gbm` | sklearn GradientBoostingRegressor | Crush margin z-score + momentum |
+| china | `gbm` | sklearn GradientBoostingRegressor | Demand outlook + Brazil competition |
+| substitutes | `rf` | sklearn RandomForestRegressor | Substitution pressure + richness |
+| fx | `ardl` | statsmodels ARDL | FX pressure index + carry |
+| fed | `ridge` | sklearn Ridge | Rates regime + change |
+| tariff | `tree` | Rule-based + EPU analysis | Tariff risk + EPU spike |
+| energy | `var` | statsmodels VAR + IRF | Energy spillover + momentum |
+| biofuel | `nlp_ema` | NLP sentiment + EMA | Policy pressure + trend |
+| palm | `ecm_ridge` | statsmodels ECM + sklearn Ridge | Cointegration + mean reversion |
+| volatility | `garch` | arch GJR-GARCH(1,1) | Conditional variance z-score + regime |
+| trump_effect | `event_study` | Event intensity scoring | Intensity + volatility impact |
+
+### Data Pipeline
+
+1. **Feature Matrix:** ~213+ features in `training.matrix_1d` (FRED macro, FX, commodity, weather, supply, positioning, specialist signals)
+2. **Specialist Signals:** 33 columns (11 buckets x 3: signal_1, signal_2, confidence)
+3. **Core Training:** AutoGluon trains on full matrix including specialist signals
+4. **OOF Predictions:** Written to `training.oof_core_1d` (p30, p50, p70 per horizon)
 
 ## Core Rules
 

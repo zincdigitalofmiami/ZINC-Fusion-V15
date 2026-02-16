@@ -135,7 +135,7 @@ def check_imports():
     optional_imports = [
         ("autogluon.timeseries", "Core model training"),
         ("fastapi", "API server"),
-        ("xgboost", "Specialist models"),
+        ("xgboost", "AutoGluon transitive dependency"),
         ("arch", "GARCH models"),
         ("statsmodels", "Statistical models"),
         ("fredapi", "FRED data access"),

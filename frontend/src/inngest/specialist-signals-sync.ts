@@ -40,7 +40,7 @@ const BUCKETS: BucketConfig[] = [
 	{
 		bucket: "crush",
 		featureTable: "training.specialist_features_crush",
-		modelType: "xgb",
+		modelType: "gbm",
 		signalKeys: ["crush_bucket_signal", "oil_share_zscore"],
 		confidenceKey: "crush_bucket_confidence",
 		fallbackConfidence: 0.6,
