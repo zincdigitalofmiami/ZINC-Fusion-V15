@@ -187,8 +187,7 @@ def check_date_floor_gate(
 
     if "trade_date" in df.columns:
         dates = pd.to_datetime(df["trade_date"]).dt.date
-        floor_pd = floor
-        violations = (dates < floor_pd).sum()
+        violations = (dates < floor).sum()
         if violations > 0:
             failures.append(f"Dates before {floor}: {violations} rows")
 
@@ -247,15 +246,12 @@ def check_cadence_compliance(
     Returns:
         Tuple of (passed, metrics dict)
     """
-    prefix = f"{family}_"
-    if family == "cftc":
-        prefix = "cftc_zl_"
-    elif family == "pmi":
-        prefix = "pmi_cn_nbs_"
-    elif family == "lcfs":
-        prefix = "lcfs_ca_"
-    elif family == "usda_exports":
-        prefix = "usda_exports_"
+    _PREFIX_MAP = {
+        "cftc": "cftc_zl_",
+        "pmi": "pmi_cn_nbs_",
+        "lcfs": "lcfs_ca_",
+    }
+    prefix = _PREFIX_MAP.get(family, f"{family}_")
 
     # Get enforcement start date (default to 2010 if not specified)
     enforce_from = config.get("enforce_from", date(2010, 1, 1))
@@ -280,6 +276,14 @@ def check_cadence_compliance(
         )
         return True, metrics
 
+    # Pre-compute enforcement-period filter once (not per column)
+    trade_dates = pd.to_datetime(df["trade_date"]).dt.date
+    enforce_mask = trade_dates >= enforce_from
+    df_enforce = df[enforce_mask]
+
+    if len(df_enforce) == 0:
+        return True, metrics
+
     # Check each metric's release pattern
     all_passed = True
     for col in release_cols:
@@ -287,14 +291,6 @@ def check_cadence_compliance(
         age_col = f"{metric_name}_age_days"
 
         if age_col not in df.columns:
-            continue
-
-        # Filter to enforcement period first
-        df_filtered = df.copy()
-        df_filtered["_trade_date"] = pd.to_datetime(df_filtered["trade_date"]).dt.date
-        df_enforce = df_filtered[df_filtered["_trade_date"] >= enforce_from]
-
-        if len(df_enforce) == 0:
             continue
 
         # Get data after first release (where is_available = 1) within enforcement period
@@ -312,8 +308,9 @@ def check_cadence_compliance(
         release_count = active_df[col].sum()
 
         # Calculate expected releases based on date range within enforcement period
-        date_min = active_df["_trade_date"].min()
-        date_max = active_df["_trade_date"].max()
+        active_dates = trade_dates[active_df.index]
+        date_min = active_dates.min()
+        date_max = active_dates.max()
         date_range = (date_max - date_min).days
         years = date_range / 365.25
         expected_releases = years * config["expected_per_year"]

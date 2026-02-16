@@ -182,31 +182,32 @@ def write_manifest(
     columns = sorted(df.columns.tolist())
     column_metadata = {}
 
+    _SOURCE_FAMILY_PREFIXES = {
+        "wasde_": "wasde",
+        "cftc_": "cftc",
+        "cot_": "cftc",
+        "pmi_": "pmi",
+        "lcfs_": "lcfs",
+        "usda_": "usda_exports",
+        "fred_": "fred",
+        "wx_": "weather",
+        "sig_": "specialist",
+        "target_": "target",
+    }
+    _OHLCV_COLS = {"open", "high", "low", "close", "volume", "open_interest"}
+
     for col in columns:
         dtype = str(df[col].dtype)
 
         # Determine source family based on column prefix
         source_family = "unknown"
-        if col.startswith("wasde_"):
-            source_family = "wasde"
-        elif col.startswith("cftc_") or col.startswith("cot_"):
-            source_family = "cftc"
-        elif col.startswith("pmi_"):
-            source_family = "pmi"
-        elif col.startswith("lcfs_"):
-            source_family = "lcfs"
-        elif col.startswith("usda_"):
-            source_family = "usda_exports"
-        elif col.startswith("fred_"):
-            source_family = "fred"
-        elif col.startswith("wx_"):
-            source_family = "weather"
-        elif col.startswith("sig_"):
-            source_family = "specialist"
-        elif col in ["open", "high", "low", "close", "volume", "open_interest"]:
-            source_family = "ohlcv"
-        elif col.startswith("target_"):
-            source_family = "target"
+        for prefix, family in _SOURCE_FAMILY_PREFIXES.items():
+            if col.startswith(prefix):
+                source_family = family
+                break
+        else:
+            if col in _OHLCV_COLS:
+                source_family = "ohlcv"
 
         # Determine fill policy
         fill_policy = "none"

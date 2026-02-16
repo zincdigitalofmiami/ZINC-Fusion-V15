@@ -96,6 +96,40 @@ logger = logging.getLogger(__name__)
 #   *_surprise*, *_return*, *_spread*, *_ratio*
 # =============================================================================
 
+
+def _calendar_day_gap(current, last_real):
+    """Calculate calendar day difference between two dates, handling None/NaT."""
+    if pd.isna(current) or pd.isna(last_real):
+        return np.nan
+    try:
+        if isinstance(current, pd.Timestamp):
+            current = current.date()
+        if isinstance(last_real, pd.Timestamp):
+            last_real = last_real.date()
+        return (current - last_real).days
+    except Exception:
+        return np.nan
+
+
+def _subtract_weekend_days(current, last_real, raw_gap):
+    """Subtract weekend days from a calendar-day gap (holidays still count)."""
+    if pd.isna(raw_gap) or raw_gap <= 0:
+        return raw_gap
+    try:
+        if isinstance(current, pd.Timestamp):
+            current = current.date()
+        if isinstance(last_real, pd.Timestamp):
+            last_real = last_real.date()
+        weekend_days = sum(
+            1
+            for i in range(int(raw_gap))
+            if (last_real + timedelta(days=i + 1)).weekday() >= 5
+        )
+        return raw_gap - weekend_days
+    except Exception:
+        return raw_gap
+
+
 # Columns that must NEVER be forward filled (computed, not state)
 FFILL_FORBIDDEN_SUFFIXES = (
     "_delta",
@@ -185,22 +219,9 @@ def ffill_with_ttl(
     last_real_date = dates_series.where(is_real).ffill()
 
     # Calculate gap in calendar days
-    def date_diff_days(current, last_real):
-        """Calculate calendar day difference, handling None/NaT."""
-        if pd.isna(current) or pd.isna(last_real):
-            return np.nan
-        try:
-            if isinstance(current, pd.Timestamp):
-                current = current.date()
-            if isinstance(last_real, pd.Timestamp):
-                last_real = last_real.date()
-            return (current - last_real).days
-        except Exception:
-            return np.nan
-
     gap_days = pd.Series(
         [
-            date_diff_days(d, lr)
+            _calendar_day_gap(d, lr)
             for d, lr in zip(dates_series, last_real_date, strict=False)
         ],
         index=series.index,
@@ -208,30 +229,9 @@ def ffill_with_ttl(
 
     # Weekend-exempt carve-out: weekends don't count toward TTL (holidays still count)
     if weekend_exempt:
-        # Adjust gap_days by subtracting weekend days
-        # For each gap, count weekends spanned
-        def adjust_for_weekends(current, last_real, raw_gap):
-            """Subtract weekend days from gap (holidays are still counted)."""
-            if pd.isna(raw_gap) or raw_gap <= 0:
-                return raw_gap
-            try:
-                if isinstance(current, pd.Timestamp):
-                    current = current.date()
-                if isinstance(last_real, pd.Timestamp):
-                    last_real = last_real.date()
-                # Count weekend days in range
-                weekend_days = sum(
-                    1
-                    for i in range(int(raw_gap))
-                    if (last_real + timedelta(days=i + 1)).weekday() >= 5
-                )
-                return raw_gap - weekend_days
-            except Exception:
-                return raw_gap
-
         gap_days = pd.Series(
             [
-                adjust_for_weekends(d, lr, g)
+                _subtract_weekend_days(d, lr, g)
                 for d, lr, g in zip(
                     dates_series, last_real_date, gap_days, strict=False
                 )
@@ -293,46 +293,19 @@ def ffill_with_age(
     last_real_date = dates_series.where(is_real).ffill()
 
     # Calculate age in calendar days
-    def calc_age(current, last_real):
-        if pd.isna(current) or pd.isna(last_real):
-            return np.nan
-        try:
-            if isinstance(current, pd.Timestamp):
-                current = current.date()
-            if isinstance(last_real, pd.Timestamp):
-                last_real = last_real.date()
-            return (current - last_real).days
-        except Exception:
-            return np.nan
-
     age_days = pd.Series(
-        [calc_age(d, lr) for d, lr in zip(dates_series, last_real_date, strict=False)],
+        [
+            _calendar_day_gap(d, lr)
+            for d, lr in zip(dates_series, last_real_date, strict=False)
+        ],
         index=series.index,
     )
 
     # Market-aligned: adjust age by subtracting weekends
     if weekend_exempt:
-
-        def adjust_for_weekends(current, last_real, raw_age):
-            if pd.isna(raw_age) or raw_age <= 0:
-                return raw_age
-            try:
-                if isinstance(current, pd.Timestamp):
-                    current = current.date()
-                if isinstance(last_real, pd.Timestamp):
-                    last_real = last_real.date()
-                weekend_days = sum(
-                    1
-                    for i in range(int(raw_age))
-                    if (last_real + timedelta(days=i + 1)).weekday() >= 5
-                )
-                return raw_age - weekend_days
-            except Exception:
-                return raw_age
-
         adjusted_age = pd.Series(
             [
-                adjust_for_weekends(d, lr, a)
+                _subtract_weekend_days(d, lr, a)
                 for d, lr, a in zip(
                     dates_series, last_real_date, age_days, strict=False
                 )

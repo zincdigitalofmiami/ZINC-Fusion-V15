@@ -257,10 +257,6 @@ def train_horizon(
     # Get known covariates (NONE - all are observed)
     # Get static features (NONE for single time series)
 
-    # Identify covariate columns
-    exclude = {"item_id", "timestamp", target_col}
-    [c for c in tsdf.columns if c not in exclude]
-
     try:
         # Create predictor
         predictor = TimeSeriesPredictor(
@@ -305,12 +301,9 @@ def _build_target_lookup(source_df: pd.DataFrame | None, horizon: int) -> dict:
     if source_df is None or target_col not in source_df.columns:
         return {}
 
-    lookup = {}
-    for _, src_row in source_df.iterrows():
-        td = src_row.get("trade_date")
-        if td is not None and pd.notna(src_row.get(target_col)):
-            lookup[pd.Timestamp(td).date()] = float(src_row[target_col])
-    return lookup
+    valid = source_df[["trade_date", target_col]].dropna()
+    dates = pd.to_datetime(valid["trade_date"]).dt.date
+    return dict(zip(dates, valid[target_col].astype(float)))
 
 
 def extract_oof_predictions(
@@ -410,12 +403,10 @@ def enforce_monotonic_quantiles(df: pd.DataFrame) -> pd.DataFrame:
     if n_violations > 0:
         logger.warning(f"   Fixing {n_violations} quantile ordering violations")
 
-        # Sort quantiles for each row
-        for idx in df[violations].index:
-            vals = sorted([df.loc[idx, "p30"], df.loc[idx, "p50"], df.loc[idx, "p70"]])
-            df.loc[idx, "p30"] = vals[0]
-            df.loc[idx, "p50"] = vals[1]
-            df.loc[idx, "p70"] = vals[2]
+        # Vectorized sort across quantile columns
+        q_vals = df.loc[violations, ["p30", "p50", "p70"]].values
+        q_vals.sort(axis=1)
+        df.loc[violations, ["p30", "p50", "p70"]] = q_vals
 
     return df
 
