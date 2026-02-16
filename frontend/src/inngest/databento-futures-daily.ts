@@ -202,6 +202,124 @@ async function upsertOhlcvRow(
   }
 }
 
+// Split 84 symbols into batches for resilience — each batch is a separate
+// step.run() so Inngest can retry individual batches on failure.
+const BATCH_SIZE = 21;
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function fetchSymbolBatch(
+  batch: typeof DATABENTO_SYMBOLS,
+  logger: { info: (msg: string) => void; error: (msg: string) => void },
+): Promise<SymbolResult[]> {
+  const batchResults: SymbolResult[] = [];
+
+  for (const config of batch) {
+    try {
+      const maxDate = await getMaxEventDate(config.canonical);
+      const endDate = new Date();
+      endDate.setUTCHours(0, 0, 0, 0);
+
+      let startDate: Date;
+      if (maxDate) {
+        startDate = new Date(maxDate);
+        startDate.setUTCDate(startDate.getUTCDate() + 1);
+      } else {
+        startDate = new Date(endDate);
+        startDate.setUTCDate(startDate.getUTCDate() - 30);
+      }
+
+      if (startDate >= endDate) {
+        logger.info(
+          `No new data window for ${config.canonical} (max_date=${maxDate?.toISOString()})`,
+        );
+        batchResults.push({ symbol: config.canonical, status: "skipped" });
+        continue;
+      }
+
+      logger.info(
+        `Fetching ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+      );
+
+      const csv = await fetchDatabentoCsv({
+        dataset: "GLBX.MDP3",
+        schema: "ohlcv-1d",
+        symbols: config.continuous,
+        stype_in: "continuous",
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        encoding: "csv",
+        pretty_ts: "true",
+        pretty_px: "true",
+      });
+
+      const bars = parseDatabentoOhlcvCsv(csv);
+      if (bars.length === 0) {
+        logger.info(`No bars returned for ${config.canonical}`);
+        batchResults.push({ symbol: config.canonical, status: "no_data" });
+        continue;
+      }
+
+      let inserted = 0;
+      for (const bar of bars) {
+        const eventDate = new Date(
+          Date.UTC(
+            bar.tsEvent.getUTCFullYear(),
+            bar.tsEvent.getUTCMonth(),
+            bar.tsEvent.getUTCDate(),
+          ),
+        );
+
+        const rowHash = computeRowHash(
+          config.canonical,
+          eventDate,
+          bar.open,
+          bar.high,
+          bar.low,
+          bar.close,
+          bar.volume,
+        );
+
+        await upsertOhlcvRow(
+          config.canonical,
+          eventDate,
+          bar.open,
+          bar.high,
+          bar.low,
+          bar.close,
+          bar.volume,
+          rowHash,
+        );
+        inserted++;
+      }
+
+      logger.info(`Inserted ${inserted} rows for ${config.canonical}`);
+      batchResults.push({
+        symbol: config.canonical,
+        status: "success",
+        rowsInserted: inserted,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(
+        `Failed to fetch/insert ${config.canonical}: ${errorMsg}`,
+      );
+      batchResults.push({
+        symbol: config.canonical,
+        status: "error",
+        error: errorMsg,
+      });
+    }
+  }
+
+  return batchResults;
+}
+
 export const databentoFuturesDaily = inngest.createFunction(
   {
     id: "databento-futures-daily",
@@ -211,128 +329,26 @@ export const databentoFuturesDaily = inngest.createFunction(
   },
   { cron: "TZ=America/Chicago 0 6 * * *" }, // Daily at 06:00 CT
   async ({ step, logger }) => {
-    const results = await step.run("fetch-all-symbols-batch", async () => {
-      const batchedResults: SymbolResult[] = [];
+    const batches = chunkArray(DATABENTO_SYMBOLS, BATCH_SIZE);
+    const allResults: SymbolResult[] = [];
 
-      for (const config of DATABENTO_SYMBOLS) {
-        try {
-          // Get incremental window: start = max_date + 1 day, end = today
-          // No T-1 offset: job runs 06:00 CT, ~13h after CME close — yesterday's data is available
-          const maxDate = await getMaxEventDate(config.canonical);
-          const endDate = new Date();
-          endDate.setUTCHours(0, 0, 0, 0);
-
-          let startDate: Date;
-          if (maxDate) {
-            startDate = new Date(maxDate);
-            startDate.setUTCDate(startDate.getUTCDate() + 1);
-          } else {
-            // No existing data: fetch last 30 days
-            startDate = new Date(endDate);
-            startDate.setUTCDate(startDate.getUTCDate() - 30);
-          }
-
-          // Ensure start < end
-          if (startDate >= endDate) {
-            logger.info(
-              `No new data window for ${config.canonical} (max_date=${maxDate?.toISOString()})`,
-            );
-            batchedResults.push({
-              symbol: config.canonical,
-              status: "skipped",
-            });
-            continue;
-          }
-
-          logger.info(
-            `Fetching ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
-          );
-
-          const csv = await fetchDatabentoCsv({
-            dataset: "GLBX.MDP3",
-            schema: "ohlcv-1d",
-            symbols: config.continuous,
-            stype_in: "continuous",
-            start: startDate.toISOString(),
-            end: endDate.toISOString(),
-            encoding: "csv",
-            pretty_ts: "true",
-            pretty_px: "true",
-          });
-
-          const bars = parseDatabentoOhlcvCsv(csv);
-          if (bars.length === 0) {
-            logger.info(`No bars returned for ${config.canonical}`);
-            batchedResults.push({
-              symbol: config.canonical,
-              status: "no_data",
-            });
-            continue;
-          }
-
-          // Insert each bar
-          let inserted = 0;
-          for (const bar of bars) {
-            const eventDate = new Date(
-              Date.UTC(
-                bar.tsEvent.getUTCFullYear(),
-                bar.tsEvent.getUTCMonth(),
-                bar.tsEvent.getUTCDate(),
-              ),
-            );
-
-            const rowHash = computeRowHash(
-              config.canonical,
-              eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume,
-            );
-
-            await upsertOhlcvRow(
-              config.canonical,
-              eventDate,
-              bar.open,
-              bar.high,
-              bar.low,
-              bar.close,
-              bar.volume,
-              rowHash,
-            );
-            inserted++;
-          }
-
-          logger.info(`Inserted ${inserted} rows for ${config.canonical}`);
-          batchedResults.push({
-            symbol: config.canonical,
-            status: "success",
-            rowsInserted: inserted,
-          });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          logger.error(
-            `Failed to fetch/insert ${config.canonical}: ${errorMsg}`,
-          );
-          batchedResults.push({
-            symbol: config.canonical,
-            status: "error",
-            error: errorMsg,
-          });
-        }
-      }
-
-      return batchedResults;
-    });
+    for (let i = 0; i < batches.length; i++) {
+      const batchSymbols = batches[i].map((s) => s.canonical).join(",");
+      const results = await step.run(
+        `fetch-futures-batch-${i + 1}-of-${batches.length}`,
+        async () => fetchSymbolBatch(batches[i], logger),
+      );
+      allResults.push(...results);
+      logger.info(`Batch ${i + 1}/${batches.length} done (${batchSymbols})`);
+    }
 
     return {
       status: "complete",
       timestamp: new Date().toISOString(),
-      results,
-      successCount: results.filter((r) => r.status === "success").length,
-      errorCount: results.filter((r) => r.status === "error").length,
-      skippedCount: results.filter(
+      results: allResults,
+      successCount: allResults.filter((r) => r.status === "success").length,
+      errorCount: allResults.filter((r) => r.status === "error").length,
+      skippedCount: allResults.filter(
         (r) => r.status === "skipped" || r.status === "no_data",
       ).length,
     };

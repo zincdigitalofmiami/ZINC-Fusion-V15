@@ -157,6 +157,94 @@ async function upsertOpenInterest(
   }
 }
 
+// Split 84 symbols into batches for resilience — each batch is a separate
+// step.run() so Inngest can retry individual batches on failure.
+const BATCH_SIZE = 21;
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function fetchStatsBatch(
+  batch: typeof DATABENTO_SYMBOLS,
+  logger: { info: (msg: string) => void; error: (msg: string) => void; warn?: (msg: string) => void },
+): Promise<SymbolResult[]> {
+  const batchResults: SymbolResult[] = [];
+
+  for (const config of batch) {
+    try {
+      const endDate = new Date();
+      endDate.setUTCHours(0, 0, 0, 0);
+
+      const startDate = new Date(endDate);
+      startDate.setUTCDate(startDate.getUTCDate() - 5);
+
+      logger.info(
+        `Fetching OI stats for ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+      );
+
+      const csv = await fetchDatabentoCsv({
+        dataset: "GLBX.MDP3",
+        schema: "statistics",
+        symbols: config.continuous,
+        stype_in: "continuous",
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        encoding: "csv",
+        pretty_ts: "true",
+        pretty_px: "true",
+      });
+
+      const bars = parseDatabentoStatisticsCsv(csv);
+      if (bars.length === 0) {
+        logger.info(`No OI stats returned for ${config.canonical}`);
+        batchResults.push({ symbol: config.canonical, status: "no_data" });
+        continue;
+      }
+
+      let upserted = 0;
+      for (const bar of bars) {
+        const eventDate = new Date(
+          Date.UTC(
+            bar.tsEvent.getUTCFullYear(),
+            bar.tsEvent.getUTCMonth(),
+            bar.tsEvent.getUTCDate(),
+          ),
+        );
+
+        await upsertOpenInterest(
+          config.canonical,
+          eventDate,
+          bar.openInterest,
+        );
+        upserted++;
+      }
+
+      logger.info(`Upserted ${upserted} OI rows for ${config.canonical}`);
+      batchResults.push({
+        symbol: config.canonical,
+        status: "success",
+        rowsUpserted: upserted,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(
+        `Failed to fetch/upsert OI stats for ${config.canonical}: ${errorMsg}`,
+      );
+      batchResults.push({
+        symbol: config.canonical,
+        status: "error",
+        error: errorMsg,
+      });
+    }
+  }
+
+  return batchResults;
+}
+
 export const databentoStatisticsDaily = inngest.createFunction(
   {
     id: "databento-statistics-daily",
@@ -164,97 +252,28 @@ export const databentoStatisticsDaily = inngest.createFunction(
     retries: 3,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "TZ=America/Chicago 30 6 * * *" }, // Daily at 06:30 CT
+  { cron: "TZ=America/Chicago 0 4 * * *" }, // Daily at 04:00 CT — runs overnight after options @ 02:00
   async ({ step, logger }) => {
-    const results = await step.run(
-      "fetch-all-stats-symbols-batch",
-      async () => {
-        const batchedResults: SymbolResult[] = [];
+    const batches = chunkArray(DATABENTO_SYMBOLS, BATCH_SIZE);
+    const allResults: SymbolResult[] = [];
 
-        for (const config of DATABENTO_SYMBOLS) {
-          try {
-            // Fetch last 5 days for robustness (handles timing edge cases)
-            const endDate = new Date();
-            endDate.setUTCHours(0, 0, 0, 0);
-
-            const startDate = new Date(endDate);
-            startDate.setUTCDate(startDate.getUTCDate() - 5); // Last 5 days
-
-            logger.info(
-              `Fetching OI stats for ${config.canonical} (${config.continuous}) from ${startDate.toISOString()} to ${endDate.toISOString()}`,
-            );
-
-            const csv = await fetchDatabentoCsv({
-              dataset: "GLBX.MDP3",
-              schema: "statistics",
-              symbols: config.continuous,
-              stype_in: "continuous",
-              start: startDate.toISOString(),
-              end: endDate.toISOString(),
-              encoding: "csv",
-              pretty_ts: "true",
-              pretty_px: "true",
-            });
-
-            const bars = parseDatabentoStatisticsCsv(csv);
-            if (bars.length === 0) {
-              logger.info(`No OI stats returned for ${config.canonical}`);
-              batchedResults.push({
-                symbol: config.canonical,
-                status: "no_data",
-              });
-              continue;
-            }
-
-            // Upsert each bar
-            let upserted = 0;
-            for (const bar of bars) {
-              const eventDate = new Date(
-                Date.UTC(
-                  bar.tsEvent.getUTCFullYear(),
-                  bar.tsEvent.getUTCMonth(),
-                  bar.tsEvent.getUTCDate(),
-                ),
-              );
-
-              await upsertOpenInterest(
-                config.canonical,
-                eventDate,
-                bar.openInterest,
-              );
-              upserted++;
-            }
-
-            logger.info(`Upserted ${upserted} OI rows for ${config.canonical}`);
-            batchedResults.push({
-              symbol: config.canonical,
-              status: "success",
-              rowsUpserted: upserted,
-            });
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : String(err);
-            logger.error(
-              `Failed to fetch/upsert OI stats for ${config.canonical}: ${errorMsg}`,
-            );
-            batchedResults.push({
-              symbol: config.canonical,
-              status: "error",
-              error: errorMsg,
-            });
-          }
-        }
-
-        return batchedResults;
-      },
-    );
+    for (let i = 0; i < batches.length; i++) {
+      const batchSymbols = batches[i].map((s) => s.canonical).join(",");
+      const results = await step.run(
+        `fetch-stats-batch-${i + 1}-of-${batches.length}`,
+        async () => fetchStatsBatch(batches[i], logger),
+      );
+      allResults.push(...results);
+      logger.info(`Batch ${i + 1}/${batches.length} done (${batchSymbols})`);
+    }
 
     return {
       status: "complete",
       timestamp: new Date().toISOString(),
-      results,
-      successCount: results.filter((r) => r.status === "success").length,
-      errorCount: results.filter((r) => r.status === "error").length,
-      noDataCount: results.filter((r) => r.status === "no_data").length,
+      results: allResults,
+      successCount: allResults.filter((r) => r.status === "success").length,
+      errorCount: allResults.filter((r) => r.status === "error").length,
+      noDataCount: allResults.filter((r) => r.status === "no_data").length,
     };
   },
 );
