@@ -9,6 +9,15 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v));
 }
 
+/** VIX → 0-100 greed scale: 12→100, 20→60, 30→20, 50+→0 */
+function mapVixToFearGreed(vix: number): number {
+  if (vix < 12) return 100;
+  if (vix < 20) return clamp(100 - ((vix - 12) / 8) * 40, 60, 100);
+  if (vix < 30) return clamp(60 - ((vix - 20) / 10) * 40, 20, 60);
+  if (vix < 50) return clamp(20 - ((vix - 30) / 20) * 20, 0, 20);
+  return 0;
+}
+
 function computeFearGreed(
   vix: number | null,
   mmPercentile: number | null,
@@ -19,13 +28,14 @@ function computeFearGreed(
   trumpScore: number | null,
 ) {
   // Each component maps its input to a 0-100 scale (0 = extreme fear, 100 = extreme greed)
-  const vixScore = vix != null ? clamp(100 - ((vix - 15) / 20) * 100, 0, 100) : 50;
+  const vixScore = vix != null ? mapVixToFearGreed(vix) : 50;
   const posScore = mmPercentile ?? 50;
   const total = bullish + bearish;
   const sentScore = total > 0 ? (bullish / total) * 100 : 50;
   const crushScore = crushZscore != null ? clamp(50 + crushZscore * 25, 0, 100) : 50;
   const volScore = realizedVol != null ? clamp(100 - ((realizedVol - 15) / 25) * 100, 0, 100) : 50;
-  const trumpFear = trumpScore != null ? clamp(100 - trumpScore * 50, 0, 100) : 50;
+  // weighted_action_score typically ranges 0-2, can spike to ~4 during intense periods
+  const trumpFear = trumpScore != null ? clamp(100 - trumpScore * 25, 0, 100) : 50;
 
   const composite = Math.round(
     vixScore * 0.20 +
@@ -295,18 +305,18 @@ export async function GET() {
         avg_sentiment_7d: number | null;
         avg_sentiment_30d: number | null;
       }>(
-        `SELECT weighted_action_score::float8,
-                action_velocity::float8,
-                action_acceleration::float8,
-                total_actions_7d::int,
-                total_actions_30d::int,
-                eo_count_7d::int,
-                proclamation_count_7d::int,
-                memorandum_count_7d::int,
-                nomination_count_7d::int,
-                avg_sentiment_7d::float8,
-                avg_sentiment_30d::float8
-         FROM features.trump_effect_1d
+        `SELECT (features->>'weighted_action_score')::float8 AS weighted_action_score,
+                (features->>'action_velocity')::float8       AS action_velocity,
+                (features->>'action_acceleration')::float8   AS action_acceleration,
+                (features->>'total_actions_7d')::int         AS total_actions_7d,
+                (features->>'total_actions_30d')::int        AS total_actions_30d,
+                (features->>'eo_count_7d')::int              AS eo_count_7d,
+                (features->>'proclamation_count_7d')::int    AS proclamation_count_7d,
+                (features->>'memorandum_count_7d')::int      AS memorandum_count_7d,
+                (features->>'nomination_count_7d')::int      AS nomination_count_7d,
+                (features->>'avg_sentiment_7d')::float8      AS avg_sentiment_7d,
+                (features->>'avg_sentiment_30d')::float8     AS avg_sentiment_30d
+         FROM training.specialist_features_trump_effect
          ORDER BY as_of_date DESC LIMIT 1`,
       ),
 

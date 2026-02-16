@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { query } from "@/lib/db";
 
 /**
  * GET /api/zl/price-1h?hours=168
@@ -21,7 +19,16 @@ export async function GET(req: NextRequest) {
     // Clamp hours to reasonable range
     const clampedHours = Math.max(24, Math.min(hours, 8760)); // 1 day to 1 year
 
-    const result = await pool.query(
+    const rows = await query<{
+      timestamp: string;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+      source: string;
+      created_at: string;
+    }>(
       `SELECT
         timestamp,
         open,
@@ -38,7 +45,7 @@ export async function GET(req: NextRequest) {
       [`${clampedHours} hours`],
     );
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return NextResponse.json(
         { error: "No 1h data available", hours: clampedHours },
         { status: 404 },
@@ -49,10 +56,10 @@ export async function GET(req: NextRequest) {
       symbol: "ZL",
       interval: "1h",
       hours: clampedHours,
-      count: result.rows.length,
-      earliest: result.rows[0]?.timestamp,
-      latest: result.rows[result.rows.length - 1]?.timestamp,
-      data: result.rows,
+      count: rows.length,
+      earliest: rows[0]?.timestamp,
+      latest: rows[rows.length - 1]?.timestamp,
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching ZL 1h data:", error);

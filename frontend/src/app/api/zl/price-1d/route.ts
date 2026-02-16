@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { query } from "@/lib/db";
 const INTRADAY_SOURCE_TABLES = [
   { table: "price_5m", interval: "5m" },
   { table: "price_15m", interval: "15m" },
@@ -68,10 +66,10 @@ async function getTodayLiveDailyRollup(): Promise<{
         FROM today
       `;
 
-      const result = await pool.query<LiveDailyRollupRow>(sql, [
+      const rows = await query<LiveDailyRollupRow>(sql, [
         `intraday_rollup_${source.interval}`,
       ]);
-      const row = result.rows[0];
+      const row = rows[0];
       if (!row || row.bar_count <= 0 || row.close == null) {
         continue;
       }
@@ -118,7 +116,7 @@ export async function GET(req: NextRequest) {
       : 90;
 
     // Query analytics.price_1d — ZL-specific, freshest daily data
-    const historicalResult = await pool.query<DailyBarRow>(
+    const historicalRows = await query<DailyBarRow>(
       `SELECT
         event_date as timestamp,
         open,
@@ -136,11 +134,11 @@ export async function GET(req: NextRequest) {
     );
 
     const liveRollup = await getTodayLiveDailyRollup();
-    let mergedRows = historicalResult.rows;
+    let mergedRows = historicalRows;
 
     if (liveRollup.bar) {
       const liveDayKey = toDateKey(liveRollup.bar.timestamp);
-      mergedRows = historicalResult.rows.filter(
+      mergedRows = historicalRows.filter(
         (row) => toDateKey(row.timestamp) !== liveDayKey,
       );
       mergedRows.push(liveRollup.bar);

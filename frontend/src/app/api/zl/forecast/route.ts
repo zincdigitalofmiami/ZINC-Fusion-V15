@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { query } from "@/lib/db";
 
 interface ForecastPoint {
   horizon_days: number;
@@ -21,7 +19,15 @@ interface ForecastPoint {
 export async function GET(_req: NextRequest) {
   try {
     // Query latest forecast per horizon from consolidated production_1d table
-    const result = await pool.query(`
+    const rows = await query<{
+      horizon_days: number;
+      as_of_date: string;
+      forecast_date: string;
+      price_p30: number | null;
+      price_p50: number | null;
+      price_p70: number | null;
+      current_price: number | null;
+    }>(`
       SELECT DISTINCT ON (horizon)
         horizon as horizon_days,
         as_of_date,
@@ -35,14 +41,14 @@ export async function GET(_req: NextRequest) {
       ORDER BY horizon, as_of_date DESC
     `);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       return NextResponse.json(
         { error: "No forecast data available", forecasts: [] },
         { status: 404 },
       );
     }
 
-    const forecasts: ForecastPoint[] = result.rows.map((row) => ({
+    const forecasts: ForecastPoint[] = rows.map((row) => ({
       horizon_days: row.horizon_days,
       as_of_date: row.as_of_date,
       forecast_date: row.forecast_date,

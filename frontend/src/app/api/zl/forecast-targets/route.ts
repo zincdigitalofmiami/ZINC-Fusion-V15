@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { query } from "@/lib/db";
 
 /**
  * GET /api/zl/forecast-targets
@@ -79,7 +77,7 @@ function assignRankLabels(
 export async function GET() {
   try {
     // 1) Latest production forecast per horizon
-    const forecastResult = await pool.query(`
+    const forecastRows = await query<ForecastRow>(`
       SELECT DISTINCT ON (horizon)
         horizon                  AS horizon_days,
         as_of_date,
@@ -99,14 +97,14 @@ export async function GET() {
       ORDER BY horizon, as_of_date DESC
     `);
 
-    if (forecastResult.rows.length === 0) {
+    if (forecastRows.length === 0) {
       return NextResponse.json({ symbol: "ZL", targets: [] });
     }
 
     // 2) Latest MAE per horizon from model_runs (best-effort — non-fatal)
     const maeByHorizon: Record<number, number> = {};
     try {
-      const maeResult = await pool.query(`
+      const maeRows = await query<{ horizon_days: number; mae: string }>(`
         SELECT DISTINCT ON (horizon_days)
           horizon_days,
           mae
@@ -116,7 +114,7 @@ export async function GET() {
           AND horizon_days IN (5, 21, 63, 126)
         ORDER BY horizon_days, created_at DESC
       `);
-      for (const row of maeResult.rows) {
+      for (const row of maeRows) {
         maeByHorizon[row.horizon_days] = parseFloat(row.mae);
       }
     } catch {
@@ -126,20 +124,18 @@ export async function GET() {
     }
 
     // 3) Build response
-    const asOfDates = forecastResult.rows.map((row: ForecastRow) =>
-      String(row.as_of_date),
-    );
+    const asOfDates = forecastRows.map((row) => String(row.as_of_date));
     const asOfDateMin = [...asOfDates].sort()[0];
     const asOfDateMax = [...asOfDates].sort()[asOfDates.length - 1];
     const mixedVintage = new Set(asOfDates).size > 1;
-    const latestRow = forecastResult.rows.reduce(
+    const latestRow = forecastRows.reduce(
       (best: ForecastRow, r: ForecastRow) =>
         String(r.as_of_date) > String(best.as_of_date) ? r : best,
-      forecastResult.rows[0],
+      forecastRows[0],
     );
     const currentPrice = parseFloat(String(latestRow.current_price));
 
-    const targetInputs = forecastResult.rows.map((row: ForecastRow) =>
+    const targetInputs = forecastRows.map((row) =>
       toTargetInput(row, currentPrice, maeByHorizon),
     );
 

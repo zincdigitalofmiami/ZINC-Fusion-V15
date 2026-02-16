@@ -49,6 +49,9 @@ interface AiCacheEntry {
 // Module-level singleton — persists across requests within the same serverless
 // instance. On Vercel, cold starts get a fresh cache = one AI call, then all
 // subsequent requests in that instance reuse it until 5 AM UTC rolls over.
+// NOTE: This is per-Lambda-instance, NOT shared across instances. Multiple
+// concurrent users may each trigger one AI call on their first request if they
+// hit different instances. This is an acceptable trade-off for Vercel serverless.
 let aiCache: AiCacheEntry | null = null;
 
 /** Returns YYYY-MM-DD for the current "AI day" (resets at 5 AM UTC). */

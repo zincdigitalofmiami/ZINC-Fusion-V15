@@ -9,6 +9,8 @@
 
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { calculateVixStress } from '@/lib/services/vix-service'
+import { calculateCrushPressure } from '@/lib/services/crush-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -252,14 +254,20 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       return 'live'
     }
 
-    // Score calculations — null means no data, not neutral
-    const vixScore = vix !== null ? Math.min(100, Math.max(0, ((vix - 12) / 28) * 100)) : null
-    const crushScore = crush !== null
-      ? (crush < 1 ? 90 : crush < 1.25 ? 75 : crush < 1.5 ? 50 : crush < 1.75 ? 35 : 20)
+    // Score calculations — use the same service functions as /api/market-drivers
+    // VIX and Crush use the full multi-component scorers (nulls handled gracefully).
+    // China and Tariff use simplified scoring (no dedicated service module).
+    const vixScore = vix !== null
+      ? calculateVixStress(vix, null, null, null, null, 0, null).score
       : null
+    const crushScore = crush !== null
+      ? calculateCrushPressure(crush, null, null, null).score
+      : null
+    // CNY scoring: weaker yuan (higher CNY/USD) = bearish for US soy exports = higher score
     const chinaScore = cny !== null
       ? (cny > 7.3 ? 70 : cny > 7.2 ? 55 : cny > 7.0 ? 40 : 30)
       : null
+    // TPU scoring: higher uncertainty = higher risk score
     const tariffScore = tpu !== null
       ? (tpu > 200 ? 80 : tpu > 150 ? 60 : tpu > 100 ? 45 : 30)
       : null
@@ -351,44 +359,60 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
 
 // Calculate REAL correlations from database price data (63-day rolling)
 async function getCorrelations(): Promise<CorrelationSummary[]> {
-  const LOOKBACK = 63 // 3-month rolling correlation
+  // LIMIT 64 to get 63 log-returns after the LAG
+  const LOOKBACK = 64 // 64 prices → 63 log-returns → 3-month rolling correlation
 
   try {
-    // Calculate correlations between ZL and key assets using actual price data
+    // Calculate correlations on LOG RETURNS (not price levels) to avoid spurious correlation
     const correlationQueries = await Promise.all([
       // ZL vs Soybean Meal (ZM)
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
-             zm AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZM' ORDER BY event_date DESC LIMIT ${LOOKBACK})
-        SELECT CORR(zl.close, zm.close)::float8 as corr FROM zl JOIN zm ON zl.event_date = zm.event_date
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             zm AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZM' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, zm.ret)::float8 as corr FROM zl JOIN zm ON zl.event_date = zm.event_date
+        WHERE zl.ret IS NOT NULL AND zm.ret IS NOT NULL
       `).catch(() => [{ corr: null }]),
 
       // ZL vs Soybeans (ZS)
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
-             zs AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
-        SELECT CORR(zl.close, zs.close)::float8 as corr FROM zl JOIN zs ON zl.event_date = zs.event_date
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             zs AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, zs.ret)::float8 as corr FROM zl JOIN zs ON zl.event_date = zs.event_date
+        WHERE zl.ret IS NOT NULL AND zs.ret IS NOT NULL
       `).catch(() => [{ corr: null }]),
 
       // ZL vs Crude Oil (CL)
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
-             cl AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'CL' ORDER BY event_date DESC LIMIT ${LOOKBACK})
-        SELECT CORR(zl.close, cl.close)::float8 as corr FROM zl JOIN cl ON zl.event_date = cl.event_date
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             cl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'CL' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, cl.ret)::float8 as corr FROM zl JOIN cl ON zl.event_date = cl.event_date
+        WHERE zl.ret IS NOT NULL AND cl.ret IS NOT NULL
       `).catch(() => [{ corr: null }]),
 
       // ZL vs VIX (inverse relationship expected)
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM analytics.price_1d ORDER BY event_date DESC LIMIT ${LOOKBACK}),
-             vix AS (SELECT event_date, value as close FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
-        SELECT CORR(zl.close, vix.close)::float8 as corr FROM zl JOIN vix ON zl.event_date = vix.event_date
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM analytics.price_1d ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             vix AS (SELECT event_date, LN(value / NULLIF(LAG(value) OVER (ORDER BY event_date), 0)) as ret
+                     FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, vix.ret)::float8 as corr FROM zl JOIN vix ON zl.event_date = vix.event_date
+        WHERE zl.ret IS NOT NULL AND vix.ret IS NOT NULL
       `).catch(() => [{ corr: null }]),
 
       // ZL vs Corn (ZC) - competing biofuel feedstock
       query<{corr: number}>(`
-        WITH zl AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
-             zc AS (SELECT event_date, close FROM mkt.futures_1d WHERE symbol = 'ZC' ORDER BY event_date DESC LIMIT ${LOOKBACK})
-        SELECT CORR(zl.close, zc.close)::float8 as corr FROM zl JOIN zc ON zl.event_date = zc.event_date
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             zc AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZC' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, zc.ret)::float8 as corr FROM zl JOIN zc ON zl.event_date = zc.event_date
+        WHERE zl.ret IS NOT NULL AND zc.ret IS NOT NULL
       `).catch(() => [{ corr: null }])
     ])
 
@@ -471,7 +495,8 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
 }
 
 function getPolicyContext(_avgScore: number): string {
-  // Current policy landscape
+  // Policy context last reviewed: 2026-02-16
+  // Update when: RFS finalized, 45Z credit changes, tariff structure changes
   return `BIOFUELS DRIVING DEMAND: EPA's 2026 RFS proposals boost biomass-based diesel targets to ~5.6B gallons. ` +
     `45Z tax credit (clean fuel) supports renewable diesel economics. Soy oil now ~40%+ of U.S. production goes to biofuels. ` +
     `CHINA REALITY: U.S. faces permanent 13% tariff vs Brazil's 3%. We only compete when Brazil runs short. ` +

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbPool from "@/lib/db";
-
-const pool = dbPool;
+import { query } from "@/lib/db";
 
 /**
  * EPU Factor Thresholds (from refresh_trump_effect_features.py)
@@ -48,13 +46,34 @@ function calculateEpuFactor(epuValue: number | null): number {
  * Classify EPU level for visualization
  */
 function classifyEpuLevel(
-  epuValue: number | null
+  epuValue: number | null,
 ): "low" | "normal" | "elevated" | "crisis" | "unknown" {
   if (epuValue === null) return "unknown";
   if (epuValue < EPU_THRESHOLDS.low) return "low";
   if (epuValue < EPU_THRESHOLDS.normal) return "normal";
   if (epuValue < EPU_THRESHOLDS.elevated) return "elevated";
   return "crisis";
+}
+
+interface EpuRow {
+  event_date: Date;
+  epu_value: string;
+  series_id: string;
+}
+
+interface ChinaTpuRow {
+  event_date: Date;
+  china_tpu_value: string;
+}
+
+interface VixRow {
+  event_date: Date;
+  vix_value: string;
+}
+
+interface ZlRow {
+  event_date: Date;
+  zl_close: string;
 }
 
 /**
@@ -78,13 +97,16 @@ function classifyEpuLevel(
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const days = Math.max(30, Math.min(parseInt(searchParams.get("days") || "365", 10), 3650));
+    const days = Math.max(
+      30,
+      Math.min(parseInt(searchParams.get("days") || "365", 10), 3650),
+    );
     const series = searchParams.get("series") || "all";
     const includeZl = searchParams.get("include_zl") !== "false";
     const includeVix = searchParams.get("include_vix") !== "false";
 
     // Fetch US EPU (daily) from canonical table routing.
-    const epuResult = await pool.query(
+    const epuRows = await query<EpuRow>(
       `SELECT
         event_date,
         value as epu_value,
@@ -93,13 +115,13 @@ export async function GET(req: NextRequest) {
       WHERE series_id = 'USEPUINDXD'
         AND event_date >= CURRENT_DATE - $1::interval
       ORDER BY event_date ASC`,
-      [`${days} days`]
+      [`${days} days`],
     );
 
     // Fetch China TPU if requested
     let chinaTpuData: Record<string, number> = {};
     if (series === "all" || series === "china") {
-      const chinaTpuResult = await pool.query(
+      const chinaTpuRows = await query<ChinaTpuRow>(
         `SELECT
           event_date,
           value as china_tpu_value
@@ -107,20 +129,20 @@ export async function GET(req: NextRequest) {
         WHERE series_id = 'CHNMAINLANDTPU'
           AND event_date >= CURRENT_DATE - $1::interval
         ORDER BY event_date ASC`,
-        [`${days} days`]
+        [`${days} days`],
       );
       chinaTpuData = Object.fromEntries(
-        chinaTpuResult.rows.map((r) => [
+        chinaTpuRows.map((r) => [
           r.event_date.toISOString().split("T")[0],
-          parseFloat(r.china_tpu_value),
-        ])
+          parseFloat(String(r.china_tpu_value)),
+        ]),
       );
     }
 
     // Fetch VIX if requested
     let vixData: Record<string, number> = {};
     if (includeVix) {
-      const vixResult = await pool.query(
+      const vixRows = await query<VixRow>(
         `SELECT
           event_date,
           value as vix_value
@@ -128,20 +150,20 @@ export async function GET(req: NextRequest) {
         WHERE series_id = 'VIXCLS'
           AND event_date >= CURRENT_DATE - $1::interval
         ORDER BY event_date ASC`,
-        [`${days} days`]
+        [`${days} days`],
       );
       vixData = Object.fromEntries(
-        vixResult.rows.map((r) => [
+        vixRows.map((r) => [
           r.event_date.toISOString().split("T")[0],
-          parseFloat(r.vix_value),
-        ])
+          parseFloat(String(r.vix_value)),
+        ]),
       );
     }
 
     // Fetch ZL prices if requested
     let zlData: Record<string, number> = {};
     if (includeZl) {
-      const zlResult = await pool.query(
+      const zlRows = await query<ZlRow>(
         `SELECT
           event_date,
           close as zl_close
@@ -149,18 +171,18 @@ export async function GET(req: NextRequest) {
         WHERE symbol = 'ZL'
           AND event_date >= CURRENT_DATE - $1::interval
         ORDER BY event_date ASC`,
-        [`${days} days`]
+        [`${days} days`],
       );
       zlData = Object.fromEntries(
-        zlResult.rows.map((r) => [
+        zlRows.map((r) => [
           r.event_date.toISOString().split("T")[0],
-          parseFloat(r.zl_close),
-        ])
+          parseFloat(String(r.zl_close)),
+        ]),
       );
     }
 
     // Build combined data with neural factors
-    const data = epuResult.rows.map((row) => {
+    const data = epuRows.map((row) => {
       const dateKey = row.event_date.toISOString().split("T")[0];
       const epuValue = parseFloat(row.epu_value);
       const chinaTpu = chinaTpuData[dateKey] || null;
@@ -274,7 +296,7 @@ export async function GET(req: NextRequest) {
         error: "Failed to fetch EPU data",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -111,10 +111,10 @@ export class PolicyService {
     const sql = `
       SELECT
         as_of_date as date,
-        action_velocity as velocity,
-        action_acceleration as acceleration,
-        weighted_action_score as score
-      FROM features.trump_effect_1d
+        (features->>'action_velocity')::float8 as velocity,
+        (features->>'action_acceleration')::float8 as acceleration,
+        (features->>'weighted_action_score')::float8 as score
+      FROM training.specialist_features_trump_effect
       ORDER BY as_of_date DESC
       LIMIT $1
     `;
@@ -200,8 +200,8 @@ export class PolicyService {
         ORDER BY event_date DESC LIMIT 1
       `),
       query<{ score: number }>(`
-        SELECT weighted_action_score::float8 as score
-        FROM features.trump_effect_1d
+        SELECT (features->>'weighted_action_score')::float8 as score
+        FROM training.specialist_features_trump_effect
         ORDER BY as_of_date DESC LIMIT 1
       `),
       query<{ val: number }>(`

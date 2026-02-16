@@ -119,8 +119,7 @@ export function RegimeAnalysisChart({
       value: d.close,
     })).sort((a, b) => (a.time as number) - (b.time as number))
 
-    // Calculate regimes based on price momentum (simplified)
-    // In production, this comes from the L1 meta-learner
+    // SMA-based regime estimate — L1 meta-learner pending
     const regimeZones: RegimeZone[] = []
     let currentZoneStart = lineData[0]?.time
     let prevRegime: MarketRegime = 'NEUTRAL'
@@ -249,6 +248,9 @@ export function RegimeAnalysisChart({
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-bold text-white">ZL Futures - Regime Analysis</h3>
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            Beta
+          </span>
           <span
             className="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
             style={{

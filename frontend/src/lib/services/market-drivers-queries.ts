@@ -157,11 +157,13 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
       WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
       ORDER BY event_date DESC OFFSET 20 LIMIT 1
     `),
-    // FXI - DISABLED: ETF data has reverse-split artifacts
-    // Returns neutral defaults (0% change)
+    // TODO(data-quality): Re-enable FXI when reverse-split adjusted data available
+    // ETF corporate actions create false 50%+ price gaps in analytics pipeline.
+    // Disabled 2025-12 — revisit when mkt.etf_1d has a corporate-action adjustment column.
     Promise.resolve([{ price: 0, change_20d: 0, change_5d: 0 }]),
-    // BDRY - DISABLED: ETF data has quality issues
-    // Returns neutral default (0% change)
+    // TODO(data-quality): Re-enable BDRY when stale-data detection is in place
+    // Breakwave Dry Bulk Shipping ETF has intermittent feed gaps causing phantom moves.
+    // Disabled 2025-12 — revisit when ingest pipeline validates continuity.
     Promise.resolve([{ change_20d: 0 }]),
     // Soy China News (ProFarmer)
     query<{ count: number }>(`
@@ -386,10 +388,25 @@ export function computeDataFreshness(
           ? "VXVCLS (VIX 3-month) series not found"
           : "Term structure calc enabled",
     },
-    specialist_signals: {
-      available: false,
-      note: "Specialist models not trained yet. No signal data.",
-    },
+    specialist_signals: (() => {
+      const hasSignals =
+        data.volSignal !== null ||
+        data.crushSignal !== null ||
+        data.chinaSignal !== null ||
+        data.tariffSignal !== null;
+      return {
+        available: hasSignals,
+        buckets: {
+          volatility: data.volSignal !== null,
+          crush: data.crushSignal !== null,
+          china: data.chinaSignal !== null,
+          tariff: data.tariffSignal !== null,
+        },
+        note: hasSignals
+          ? "Specialist signals active"
+          : "No specialist signal data within 45-day window",
+      };
+    })(),
   };
 }
 

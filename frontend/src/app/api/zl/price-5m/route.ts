@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import dbPool from "@/lib/db";
+import { query } from "@/lib/db";
 
-const pool = dbPool;
 type IntervalLabel = "5m" | "15m" | "1h";
 
 type SourceTable = {
@@ -48,9 +47,9 @@ async function queryBars(
     source.table,
     "WHERE timestamp >= NOW() - ($1::int * INTERVAL '1 hour') ORDER BY timestamp ASC",
   );
-  const windowResult = await pool.query(windowSql, [hours]);
-  if (windowResult.rows.length > 0) {
-    return { rows: windowResult.rows, mode: "window" };
+  const windowRows = await query(windowSql, [hours]);
+  if (windowRows.length > 0) {
+    return { rows: windowRows, mode: "window" };
   }
 
   // Market-close safety: return latest bars if requested window is empty.
@@ -62,8 +61,8 @@ async function queryBars(
     source.table,
     "ORDER BY timestamp DESC LIMIT $1",
   );
-  const latestResult = await pool.query(latestSql, [fallbackLimit]);
-  return { rows: latestResult.rows.reverse(), mode: "latest" };
+  const latestRows = await query(latestSql, [fallbackLimit]);
+  return { rows: latestRows.reverse(), mode: "latest" };
 }
 
 /**

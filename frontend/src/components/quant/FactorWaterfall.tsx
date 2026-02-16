@@ -18,27 +18,38 @@ interface WaterfallProps {
   factors?: AttributionFactor[];
 }
 
-// Default factors aligned with "Big 11" Specialist Taxonomy
-const DEFAULT_FACTORS: AttributionFactor[] = [
-  { id: '1', label: 'Crush (USDA)', value: 0.35, type: 'positive', category: 'cell' },
-  { id: '2', label: 'China (Imports)', value: 0.22, type: 'positive', category: 'cell' },
-  { id: '3', label: 'Energy (RVO)', value: -0.15, type: 'negative', category: 'cell' },
-  { id: '4', label: 'Trump (Tariff)', value: 0.08, type: 'positive', category: 'macro' },
-  { id: '5', label: 'Macro (Rates)', value: -0.05, type: 'negative', category: 'macro' },
-];
+function WaterfallPlaceholder() {
+  return (
+    <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Factor Attribution</h3>
+          <p className="text-xs text-slate-500">Why the forecast moved (Waterfall)</p>
+        </div>
+      </div>
+      <div className="flex flex-col items-center justify-center h-48 text-center">
+        <div className="text-slate-500 text-sm mb-2">Awaiting L2 Attribution Engine</div>
+        <div className="text-slate-600 text-xs max-w-xs">
+          Factor decomposition will appear here once the L2 attribution pipeline is connected.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallProps) {
-  // Calculate cumulative steps for the waterfall bridge
   const steps = useMemo(() => {
-    const data = factors || DEFAULT_FACTORS;
+    if (!factors || factors.length === 0) return [];
     let runningTotal = prevPrice;
-    return data.map(factor => {
+    return factors.map(factor => {
       const start = runningTotal;
       const end = runningTotal + factor.value;
       runningTotal = end;
       return { ...factor, start, end };
     });
   }, [factors, prevPrice]);
+
+  if (steps.length === 0) return <WaterfallPlaceholder />;
 
   const maxVal = Math.max(prevPrice, currentPrice, ...steps.map(s => Math.max(s.start, s.end)));
   const minVal = Math.min(prevPrice, currentPrice, ...steps.map(s => Math.min(s.start, s.end)));
