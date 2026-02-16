@@ -390,8 +390,12 @@ function splitIntoShards<T>(items: T[], shardCount: number): T[][] {
 const OPTIONS_SHARDS = splitIntoShards(OPTIONS_CONFIG, OPTIONS_SHARD_CRONS.length);
 
 type StepLike = {
-  run: <T>(id: string, fn: () => Promise<T> | T) => Promise<T>;
+  run: (
+    id: string,
+    fn: () => Promise<unknown> | unknown,
+  ) => Promise<unknown>;
 };
+
 type LoggerLike = {
   info: (msg: string) => void;
   warn: (msg: string) => void;
