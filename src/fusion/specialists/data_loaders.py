@@ -552,6 +552,9 @@ def load_fx_data(
     fred_df = pd.read_sql(fred_query, conn)
     if not fred_df.empty:
         fred_df["trade_date"] = pd.to_datetime(fred_df["trade_date"])
+        fred_df = fred_df.drop_duplicates(
+            subset=["trade_date", "series_id"], keep="last"
+        )
         pivot = fred_df.pivot(index="trade_date", columns="series_id", values="value")
         pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
         # No forward-fill (policy)
@@ -1471,7 +1474,10 @@ def load_trump_effect_data(
     GROUP BY event_date, underlying
     ORDER BY event_date, underlying
     """
-    greeks_df = pd.read_sql(greeks_query, conn)
+    try:
+        greeks_df = pd.read_sql(greeks_query, conn)
+    except Exception:
+        greeks_df = pd.DataFrame()
     if not greeks_df.empty:
         greeks_df["trade_date"] = pd.to_datetime(greeks_df["trade_date"])
         for metric in ["avg_iv", "avg_delta", "avg_skew"]:
