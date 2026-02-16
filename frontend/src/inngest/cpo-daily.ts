@@ -21,13 +21,28 @@ interface CpoData {
 async function fetchFromInvestingCom(): Promise<CpoData | null> {
   const url = "https://api.investing.com/api/financialdata/8849/historical/chart/?interval=P1D&pointscount=2";
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-      "Accept": "application/json",
-      "Domain-Id": "www",
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        "Accept": "application/json",
+        "Domain-Id": "www",
+      },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn("Investing.com API timed out after 15s");
+      return null;
+    }
+    console.warn(`Investing.com fetch error: ${err}`);
+    return null;
+  }
+  clearTimeout(timeout);
 
   if (!res.ok) {
     console.warn(`Investing.com API error: ${res.status}`);
@@ -137,13 +152,20 @@ export const cpoTradingEconomics = inngest.createFunction(
 
     const data = await step.run("fetch-te-palm-oil", async () => {
       const url = `https://api.tradingeconomics.com/markets/commodity/palm%20oil?c=${apiKey}`;
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        throw new Error(`Trading Economics API error: ${res.status}`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) throw new Error(`Trading Economics API error: ${res.status}`);
+        return res.json();
+      } catch (err) {
+        clearTimeout(timeout);
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new Error("Trading Economics API timed out after 15s");
+        }
+        throw err;
       }
-
-      return res.json();
     });
 
     const result = await step.run("insert-te-data", async () => {

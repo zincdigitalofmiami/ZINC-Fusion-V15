@@ -202,16 +202,30 @@ async function upsertOhlcvRow(
   }
 }
 
-// Split 84 symbols into batches for resilience — each batch is a separate
-// step.run() so Inngest can retry individual batches on failure.
-const BATCH_SIZE = 21;
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
+// Spread load across 24h: many small shards instead of morning-heavy batches.
+const FUTURES_SHARD_CRONS = [
+  "TZ=America/Chicago 40 2 * * *",
+  "TZ=America/Chicago 40 5 * * *",
+  "TZ=America/Chicago 40 8 * * *",
+  "TZ=America/Chicago 40 11 * * *",
+  "TZ=America/Chicago 40 14 * * *",
+  "TZ=America/Chicago 40 17 * * *",
+  "TZ=America/Chicago 40 20 * * *",
+  "TZ=America/Chicago 40 23 * * *",
+];
+
+function splitIntoShards<T>(items: T[], shardCount: number): T[][] {
+  const shards = Array.from({ length: shardCount }, () => [] as T[]);
+  items.forEach((item, idx) => {
+    shards[idx % shardCount].push(item);
+  });
+  return shards;
 }
+
+const FUTURES_SHARDS = splitIntoShards(
+  DATABENTO_SYMBOLS,
+  FUTURES_SHARD_CRONS.length,
+);
 
 async function fetchSymbolBatch(
   batch: typeof DATABENTO_SYMBOLS,
@@ -320,37 +334,39 @@ async function fetchSymbolBatch(
   return batchResults;
 }
 
-export const databentoFuturesDaily = inngest.createFunction(
-  {
-    id: "databento-futures-daily",
-    name: "Databento Futures Daily OHLCV",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY],
-  },
-  { cron: "TZ=America/Chicago 0 6 * * *" }, // Daily at 06:00 CT
-  async ({ step, logger }) => {
-    const batches = chunkArray(DATABENTO_SYMBOLS, BATCH_SIZE);
-    const allResults: SymbolResult[] = [];
-
-    for (let i = 0; i < batches.length; i++) {
-      const batchSymbols = batches[i].map((s) => s.canonical).join(",");
+export const databentoFuturesDailyShards = FUTURES_SHARDS.map((shard, index) =>
+  inngest.createFunction(
+    {
+      id: `databento-futures-daily-shard-${index + 1}`,
+      name: `Databento Futures Daily OHLCV Shard ${index + 1}/${FUTURES_SHARDS.length}`,
+      retries: 3,
+      concurrency: [DB_CONCURRENCY],
+    },
+    { cron: FUTURES_SHARD_CRONS[index] },
+    async ({ step, logger }) => {
+      const shardSymbols = shard.map((s) => s.canonical).join(",");
       const results = await step.run(
-        `fetch-futures-batch-${i + 1}-of-${batches.length}`,
-        async () => fetchSymbolBatch(batches[i], logger),
+        `fetch-futures-shard-${index + 1}`,
+        async () => fetchSymbolBatch(shard, logger),
       );
-      allResults.push(...results);
-      logger.info(`Batch ${i + 1}/${batches.length} done (${batchSymbols})`);
-    }
 
-    return {
-      status: "complete",
-      timestamp: new Date().toISOString(),
-      results: allResults,
-      successCount: allResults.filter((r) => r.status === "success").length,
-      errorCount: allResults.filter((r) => r.status === "error").length,
-      skippedCount: allResults.filter(
-        (r) => r.status === "skipped" || r.status === "no_data",
-      ).length,
-    };
-  },
+      logger.info(
+        `Futures shard ${index + 1}/${FUTURES_SHARDS.length} completed (${shardSymbols})`,
+      );
+
+      return {
+        status: "complete",
+        timestamp: new Date().toISOString(),
+        shardIndex: index + 1,
+        shardCount: FUTURES_SHARDS.length,
+        symbols: shardSymbols,
+        results,
+        successCount: results.filter((r) => r.status === "success").length,
+        errorCount: results.filter((r) => r.status === "error").length,
+        skippedCount: results.filter(
+          (r) => r.status === "skipped" || r.status === "no_data",
+        ).length,
+      };
+    },
+  ),
 );

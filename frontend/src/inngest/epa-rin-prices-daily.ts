@@ -1,6 +1,22 @@
+/**
+ * EPA RIN Prices (Qlik) Data Ingestion
+ *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
+ * SOURCE: EPA Qlik Public App via WebSocket RPC
+ * - Fetches D3, D4, D5, D6 RIN price points
+ * - No API key required (public WebSocket)
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
+ */
+
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import dbPool from "@/lib/db";
 
 const EPA_RIN_PAGE_URL =
@@ -35,30 +51,8 @@ function parseNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 type PendingRpc = {
   resolve: (value: unknown) => void;
@@ -294,129 +288,148 @@ async function fetchRinPricesFromQlik(maxRetries: number = 3): Promise<{ lastRel
 
 export const epaRinPricesDaily = inngest.createFunction(
   { id: "epa-rin-prices-daily", name: "EPA RIN Prices (Qlik) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "30 6 * * *" }, // Daily at 06:30 UTC
+  { cron: "30 16 * * *" }, // Daily at 16:30 UTC
   async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let rowsAttempted = 0;
-    let rowsInserted = 0;
-    let rowsSkipped = 0;
-    let rowsQuarantined = 0;
-
-    try {
-      await step.run("assert-tables", async () => {
+    // ── Step 1: assert tables exist ──
+    await step.run("assert-tables", async () => {
+      const client = await pool.connect();
+      try {
         await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
         await client.query("SELECT 1 FROM supply.epa_rin_1d LIMIT 1");
-      });
+      } finally {
+        client.release();
+      }
+    });
 
-      runId = await step.run("create-ingest-run", () =>
-        createIngestRun(client, "epa-rin-prices-daily")
-      );
+    // ── Step 2: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["epa-rin-prices-daily"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-      const dbMaxSourceDate = await step.run("db-max-event-date-source", async () => {
-        const r = await client.query(
+    // ── Step 3: load DB state (max dates + existing keys in one step) ──
+    const dbState = await step.run("load-db-state", async () => {
+      const client = await pool.connect();
+      try {
+        const maxSourceRes = await client.query(
           "SELECT MAX(event_date)::date AS max_date FROM supply.epa_rin_1d WHERE source = 'epa_qlik_public'"
         );
-        return r.rows?.[0]?.max_date ?? null;
-      });
+        const dbMaxSourceDate: string | null = maxSourceRes.rows?.[0]?.max_date ?? null;
 
-      const dbMaxOverallDate = await step.run("db-max-event-date-overall", async () => {
-        const r = await client.query(
+        const maxOverallRes = await client.query(
           "SELECT MAX(event_date)::date AS max_date FROM supply.epa_rin_1d"
         );
-        return r.rows?.[0]?.max_date ?? null;
-      });
+        const dbMaxOverallDate: string | null = maxOverallRes.rows?.[0]?.max_date ?? null;
 
-      const { lastReloadTime, points } = await step.run("fetch-epa-qlik", async () => {
-        return await fetchRinPricesFromQlik();
-      });
-
-      const qlikMaxIso =
-        points.length > 0
-          ? points.reduce((mx, p) => (p.isoDate > mx ? p.isoDate : mx), points[0].isoDate)
-          : null;
-
-      logger.info(
-        `EPA Qlik last reload: ${lastReloadTime}, qlik_max=${qlikMaxIso ?? "n/a"}, db_max_source=${dbMaxSourceDate ?? "n/a"}, db_max_overall=${dbMaxOverallDate ?? "n/a"}`
-      );
-
-      if (dbMaxSourceDate && qlikMaxIso && qlikMaxIso <= String(dbMaxSourceDate)) {
-        await step.run("complete-noop", () =>
-          updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined)
-        );
-        return {
-          status: "no_new_data",
-          runId,
-          qlikLastReloadTime: lastReloadTime,
-          qlikMaxIsoDate: qlikMaxIso,
-          dbMaxDate: String(dbMaxSourceDate),
-          attempted: rowsAttempted,
-          inserted: rowsInserted,
-          skipped: rowsSkipped,
-          quarantined: rowsQuarantined,
-        };
-      }
-
-      const existingKeys = await step.run("load-existing-keys", async () => {
-        const r = await client.query(
+        const existingRes = await client.query(
           `SELECT rin_type, event_date::date
            FROM supply.epa_rin_1d
            WHERE source = 'epa_qlik_public'`
         );
-        return r.rows.map((row) => `${row.rin_type}|${row.event_date}`);
+        const existingKeys = existingRes.rows.map((row: { rin_type: string; event_date: string }) => `${row.rin_type}|${row.event_date}`);
+
+        return { dbMaxSourceDate, dbMaxOverallDate, existingKeys };
+      } finally {
+        client.release();
+      }
+    });
+
+    // ── Step 4: fetch from EPA Qlik WebSocket ──
+    const { lastReloadTime, points } = await step.run("fetch-epa-qlik", async () => {
+      return await fetchRinPricesFromQlik();
+    });
+
+    const qlikMaxIso =
+      points.length > 0
+        ? points.reduce((mx, p) => (p.isoDate > mx ? p.isoDate : mx), points[0].isoDate)
+        : null;
+
+    logger.info(
+      `EPA Qlik last reload: ${lastReloadTime}, qlik_max=${qlikMaxIso ?? "n/a"}, db_max_source=${dbState.dbMaxSourceDate ?? "n/a"}, db_max_overall=${dbState.dbMaxOverallDate ?? "n/a"}`
+    );
+
+    // Short-circuit if no new data
+    if (dbState.dbMaxSourceDate && qlikMaxIso && qlikMaxIso <= String(dbState.dbMaxSourceDate)) {
+      await step.run("complete-noop", async () => {
+        const client = await pool.connect();
+        try {
+          await client.query(
+            `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+             rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+            [runId, "success", 0, 0, 0, 0]
+          );
+        } finally {
+          client.release();
+        }
       });
+      return {
+        status: "no_new_data",
+        runId,
+        qlikLastReloadTime: lastReloadTime,
+        qlikMaxIsoDate: qlikMaxIso,
+        dbMaxDate: String(dbState.dbMaxSourceDate),
+        attempted: 0,
+        inserted: 0,
+        skipped: 0,
+        quarantined: 0,
+      };
+    }
 
-      const existing = new Set(existingKeys);
+    // ── Compute rows to insert (pure computation, no DB needed) ──
+    const existing = new Set(dbState.existingKeys);
+    let rowsAttempted = 0;
+    let rowsSkipped = 0;
 
-      const rowsToInsert: Array<
-        [
-          string,  // rin_type
-          string,  // event_date
-          number,  // price
-          string,  // source
-          string,  // row_hash
-          string,  // knowledge_time
-        ]
-      > = [];
+    const rowsToInsert: Array<[string, string, number, string, string, string]> = [];
 
-      for (const p of points) {
-        if (dbMaxSourceDate && p.isoDate <= String(dbMaxSourceDate)) {
-          rowsSkipped++;
-          continue;
-        }
-
-        rowsAttempted++;
-        const key = `${p.rinType}|${p.isoDate}`;
-        if (existing.has(key)) {
-          rowsSkipped++;
-          continue;
-        }
-
-        const rowHash = computeRowHash([
-          "epa_qlik_public",
-          EPA_RIN_PAGE_URL,
-          p.rinType,
-          p.isoDate,
-          String(p.price),
-          p.qlikLastReloadTime,
-        ]);
-
-        rowsToInsert.push([
-          p.rinType,
-          p.isoDate,
-          p.price,
-          "epa_qlik_public",
-          rowHash,
-          p.qlikLastReloadTime,
-        ]);
-
-        existing.add(key);
+    for (const p of points) {
+      if (dbState.dbMaxSourceDate && p.isoDate <= String(dbState.dbMaxSourceDate)) {
+        rowsSkipped++;
+        continue;
       }
 
-      if (rowsToInsert.length > 0) {
-        await step.run("insert-batches", async () => {
-          const cols =
-            "(rin_type, event_date, price, source, row_hash, knowledge_time)";
+      rowsAttempted++;
+      const key = `${p.rinType}|${p.isoDate}`;
+      if (existing.has(key)) {
+        rowsSkipped++;
+        continue;
+      }
+
+      const rowHash = computeRowHash([
+        "epa_qlik_public",
+        EPA_RIN_PAGE_URL,
+        p.rinType,
+        p.isoDate,
+        String(p.price),
+        p.qlikLastReloadTime,
+      ]);
+
+      rowsToInsert.push([
+        p.rinType,
+        p.isoDate,
+        p.price,
+        "epa_qlik_public",
+        rowHash,
+        p.qlikLastReloadTime,
+      ]);
+
+      existing.add(key);
+    }
+
+    // ── Step 5: batch insert new rows ──
+    if (rowsToInsert.length > 0) {
+      await step.run("insert-batches", async () => {
+        const client = await pool.connect();
+        try {
+          const cols = "(rin_type, event_date, price, source, row_hash, knowledge_time)";
           const batchSize = 500;
           const perRow = 6;
 
@@ -438,41 +451,38 @@ export const epaRinPricesDaily = inngest.createFunction(
               params
             );
           }
-        });
-
-        rowsInserted += rowsToInsert.length;
-      }
-
-      await step.run("complete", () =>
-        updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined)
-      );
-
-      return {
-        status: "success",
-        runId,
-        qlikLastReloadTime: lastReloadTime,
-        attempted: rowsAttempted,
-        inserted: rowsInserted,
-        skipped: rowsSkipped,
-        quarantined: rowsQuarantined,
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(
-          client,
-          runId,
-          "failed",
-          rowsAttempted,
-          rowsInserted,
-          rowsSkipped,
-          rowsQuarantined,
-          msg
-        );
-      }
-      throw error;
-    } finally {
-      client.release();
+        } finally {
+          client.release();
+        }
+      });
     }
+
+    const rowsInserted = rowsToInsert.length;
+
+    // ── Step 6: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", rowsAttempted, rowsInserted, rowsSkipped, 0]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Completed: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
+
+    return {
+      status: "success",
+      runId,
+      qlikLastReloadTime: lastReloadTime,
+      attempted: rowsAttempted,
+      inserted: rowsInserted,
+      skipped: rowsSkipped,
+      quarantined: 0,
+    };
   }
 );

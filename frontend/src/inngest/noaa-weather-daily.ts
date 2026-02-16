@@ -1,12 +1,20 @@
 /**
  * NOAA Weather (1D) Data Ingestion
  *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
  * Refreshes `alt.weather_1d` using NOAA CDO API (GHCN-Daily).
  * Pulls only incremental dates per station (no synthetic data, no schema creation).
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
@@ -48,53 +56,8 @@ function computeRowHash(stationId: string, eventDate: string, payload: Record<st
     .digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
-
-async function eventStationExists(client: PoolClient, stationId: string, eventDate: string): Promise<boolean> {
-  const r = await client.query(
-    `SELECT 1 FROM alt.weather_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
-    [stationId, eventDate]
-  );
-  return r.rows.length > 0;
-}
-
-async function getStations(client: PoolClient): Promise<
-  Array<{ station_id: string; max_date: string | null; region: string | null; country: string | null }>
-> {
-  const r = await client.query(
-    `SELECT station_id,
-            MAX(event_date)::date::text as max_date,
-            MAX(region)::text as region,
-            MAX(country)::text as country
-     FROM alt.weather_1d
-     GROUP BY station_id
-     ORDER BY station_id`
-  );
-  return r.rows;
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 async function fetchNoaaStation(
   stationId: string,
@@ -193,43 +156,68 @@ function toNoaaStationId(stationId: string): string | null {
 
 export const noaaWeatherDaily = inngest.createFunction(
   { id: "noaa-weather-daily", name: "NOAA Weather (1D)", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "6 6 * * *" }, // Daily at 06:06 UTC
+  { cron: "30 11 * * *" }, // Daily at 11:30 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");
     }
 
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["noaa-weather-daily"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "noaa-weather-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    logger.info(`Started ingest run: ${runId}`);
 
-      const stations = await step.run("load-stations", () => getStations(client));
-      const stationsNoaa = stations
-        .map((s) => ({ ...s, noaa_station_id: toNoaaStationId(s.station_id) }))
-        .filter((s) => s.noaa_station_id !== null) as Array<
-        (typeof stations)[number] & { noaa_station_id: string }
-      >;
-      logger.info(`Stations: ${stations.length} total, ${stationsNoaa.length} NOAA`);
+    // ── Step 2: load station list ──
+    const stations = await step.run("load-stations", async () => {
+      const client = await pool.connect();
+      try {
+        const r = await client.query(
+          `SELECT station_id,
+                  MAX(event_date)::date::text as max_date,
+                  MAX(region)::text as region,
+                  MAX(country)::text as country
+           FROM alt.weather_1d
+           GROUP BY station_id
+           ORDER BY station_id`
+        );
+        return r.rows as Array<{ station_id: string; max_date: string | null; region: string | null; country: string | null }>;
+      } finally {
+        client.release();
+      }
+    });
 
-      const today = new Date().toISOString().slice(0, 10);
-      const endDate = addDays(today, -1); // avoid same-day partials
+    const stationsNoaa = stations
+      .map((s) => ({ ...s, noaa_station_id: toNoaaStationId(s.station_id) }))
+      .filter((s) => s.noaa_station_id !== null) as Array<
+      (typeof stations)[number] & { noaa_station_id: string }
+    >;
+    logger.info(`Stations: ${stations.length} total, ${stationsNoaa.length} NOAA`);
 
-      const stationErrors: string[] = [];
+    const today = new Date().toISOString().slice(0, 10);
+    const endDate = addDays(today, -1); // avoid same-day partials
 
-      const batchSummary = await step.run("ingest-stations-batch", async () => {
-        let attemptedLocal = 0;
-        let insertedLocal = 0;
-        let skippedLocal = 0;
-        let quarantinedLocal = 0;
-        const stationErrorsLocal: string[] = [];
+    // ── Step 3: fetch from NOAA API + insert (batched in one step) ──
+    // One connection for the entire batch is fine — this is a single step.run().
+    const batchSummary = await step.run("ingest-stations-batch", async () => {
+      let attemptedLocal = 0;
+      let insertedLocal = 0;
+      let skippedLocal = 0;
+      let quarantinedLocal = 0;
+      const stationErrorsLocal: string[] = [];
 
+      const client = await pool.connect();
+      try {
         for (const station of stationsNoaa) {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
           if (startDate > endDate) continue;
@@ -261,7 +249,12 @@ export const noaaWeatherDaily = inngest.createFunction(
 
           for (const [eventDate, values] of byDate.entries()) {
             attemptedLocal++;
-            if (await eventStationExists(client, station.station_id, eventDate)) {
+
+            const exists = await client.query(
+              `SELECT 1 FROM alt.weather_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
+              [station.station_id, eventDate]
+            );
+            if (exists.rows.length > 0) {
               skippedLocal++;
               continue;
             }
@@ -302,38 +295,48 @@ export const noaaWeatherDaily = inngest.createFunction(
             insertedLocal++;
           }
         }
-
-        return {
-          attempted: attemptedLocal,
-          inserted: insertedLocal,
-          skipped: skippedLocal,
-          quarantined: quarantinedLocal,
-          stationErrors: stationErrorsLocal,
-        };
-      });
-
-      attempted += batchSummary.attempted;
-      inserted += batchSummary.inserted;
-      skipped += batchSummary.skipped;
-      quarantined += batchSummary.quarantined;
-      stationErrors.push(...batchSummary.stationErrors);
-
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
-
-      // Log any station errors for debugging (but don't fail the job)
-      if (stationErrors.length > 0) {
-        logger.warn(`Station errors (${stationErrors.length}): ${stationErrors.slice(0, 5).join("; ")}`);
+      } finally {
+        client.release();
       }
 
-      return { status: "success", runId, attempted, inserted, skipped, quarantined, stationErrors: stationErrors.length };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+      return {
+        attempted: attemptedLocal,
+        inserted: insertedLocal,
+        skipped: skippedLocal,
+        quarantined: quarantinedLocal,
+        stationErrors: stationErrorsLocal,
+      };
+    });
+
+    // ── Step 4: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", batchSummary.attempted, batchSummary.inserted, batchSummary.skipped, batchSummary.quarantined]
+        );
+      } finally {
+        client.release();
       }
-      throw error;
-    } finally {
-      client.release();
+    });
+
+    // Log any station errors for debugging (but don't fail the job)
+    if (batchSummary.stationErrors.length > 0) {
+      logger.warn(`Station errors (${batchSummary.stationErrors.length}): ${batchSummary.stationErrors.slice(0, 5).join("; ")}`);
     }
+
+    logger.info(`Completed: ${batchSummary.inserted} inserted, ${batchSummary.skipped} skipped`);
+
+    return {
+      status: "success",
+      runId,
+      attempted: batchSummary.attempted,
+      inserted: batchSummary.inserted,
+      skipped: batchSummary.skipped,
+      quarantined: batchSummary.quarantined,
+      stationErrors: batchSummary.stationErrors.length,
+    };
   }
 );

@@ -1,6 +1,20 @@
+/**
+ * USDA WASDE (Cornell XML) Data Ingestion
+ *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Upserts on (event_date, commodity, country, metric) conflict
+ *
+ * SOURCE: Cornell USDA Library WASDE XML
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
+ */
+
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import { XMLParser } from "fast-xml-parser";
 import dbPool from "@/lib/db";
 
@@ -66,30 +80,8 @@ function mapMetric(rawAttribute: string): string | null {
   return null;
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 type WasdeRelease = {
   reportDateTime: string;
@@ -292,63 +284,73 @@ async function fetchLatestWasdeRows(logger?: { info: (msg: string) => void; warn
 
 export const usdaWasdeMonthly = inngest.createFunction(
   { id: "usda-wasde-monthly", name: "USDA WASDE (Cornell XML) Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "22 6 * * *" }, // Daily at 06:22 UTC to catch monthly WASDE releases
+  { cron: "0 19 * * *" }, // Daily at 19:00 UTC to catch monthly WASDE releases
   async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
-
-    try {
-      await step.run("assert-tables", async () => {
+    // ── Step 1: assert tables exist ──
+    await step.run("assert-tables", async () => {
+      const client = await pool.connect();
+      try {
         await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
         await client.query("SELECT 1 FROM supply.usda_wasde_1m LIMIT 1");
-      });
+      } finally {
+        client.release();
+      }
+    });
 
-      runId = await step.run("create-ingest-run", async () => {
-        return await createIngestRun(client, "usda-wasde-monthly");
-      });
+    // ── Step 2: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["usda-wasde-monthly"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-      const { release, rows } = await step.run("fetch-wasde", async () => {
-        return await fetchLatestWasdeRows(logger);
-      });
+    // ── Step 3: fetch WASDE data from Cornell ──
+    const { release, rows } = await step.run("fetch-wasde", async () => {
+      return await fetchLatestWasdeRows(logger);
+    });
 
-      logger.info(`Latest WASDE release: ${release.reportDateTime} (${release.xmlUrl})`);
+    logger.info(`Latest WASDE release: ${release.reportDateTime} (${release.xmlUrl})`);
 
-      const existingCount = await step.run("check-existing", async () => {
-        const r = await client.query(
+    // ── Step 4: check existing + insert (all DB work in one step) ──
+    const insertResult = await step.run("check-and-insert", async () => {
+      const client = await pool.connect();
+      let attempted = 0;
+      let inserted = 0;
+      let skipped = 0;
+
+      try {
+        // Check existing count
+        const existingRes = await client.query(
           `SELECT COUNT(*)::int AS n
            FROM supply.usda_wasde_1m
            WHERE event_date = $1::date AND source = 'usda_wasde_cornell'`,
           [release.reportDate]
         );
-        return Number(r.rows[0].n);
-      });
+        const existingCount = Number(existingRes.rows[0].n);
 
-      // Skip if we already have data for this report (any amount indicates already processed)
-      if (existingCount >= rows.length) {
-        skipped = existingCount;
-        await step.run("complete-skip", async () => {
-          await updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined);
-        });
-        return { status: "skipped_already_ingested", runId, reportDate: release.reportDate, existingCount };
-      }
+        // Skip if we already have data for this report
+        if (existingCount >= rows.length) {
+          return { status: "skipped_already_ingested" as const, existingCount, attempted: 0, inserted: 0, skipped: existingCount, quarantined: 0 };
+        }
 
-      // If partial data exists, delete and re-ingest to ensure consistency
-      if (existingCount > 0) {
-        await step.run("delete-partial", async () => {
+        // If partial data exists, delete and re-ingest to ensure consistency
+        if (existingCount > 0) {
           await client.query(
             `DELETE FROM supply.usda_wasde_1m
              WHERE event_date = $1::date AND source = 'usda_wasde_cornell'`,
             [release.reportDate]
           );
           logger.warn(`Deleted ${existingCount} partial rows for ${release.reportDate} before re-ingesting`);
-        });
-      }
+        }
 
-      await step.run("insert-rows", async () => {
+        // Insert all rows in a transaction
         await client.query("BEGIN");
         try {
           for (const row of rows) {
@@ -392,28 +394,40 @@ export const usdaWasdeMonthly = inngest.createFunction(
           await client.query("ROLLBACK");
           throw e;
         }
-      });
 
-      await step.run("complete", async () => {
-        const status = inserted === IDEAL_ROW_COUNT ? "success" : "partial_success";
-        await updateIngestRun(client, runId!, status, attempted, inserted, skipped, quarantined);
-      });
-
-      return {
-        status: inserted === IDEAL_ROW_COUNT ? "success" : "partial_success",
-        runId,
-        reportDate: release.reportDate,
-        inserted,
-        expected: IDEAL_ROW_COUNT,
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+        return { status: "inserted" as const, existingCount: 0, attempted, inserted, skipped, quarantined: 0 };
+      } finally {
+        client.release();
       }
-      throw error;
-    } finally {
-      client.release();
+    });
+
+    // ── Step 5: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const finalStatus = insertResult.status === "skipped_already_ingested"
+          ? "success"
+          : (insertResult.inserted === IDEAL_ROW_COUNT ? "success" : "partial_success");
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, finalStatus, insertResult.attempted, insertResult.inserted, insertResult.skipped, insertResult.quarantined]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    if (insertResult.status === "skipped_already_ingested") {
+      return { status: "skipped_already_ingested", runId, reportDate: release.reportDate, existingCount: insertResult.existingCount };
     }
+
+    return {
+      status: insertResult.inserted === IDEAL_ROW_COUNT ? "success" : "partial_success",
+      runId,
+      reportDate: release.reportDate,
+      inserted: insertResult.inserted,
+      expected: IDEAL_ROW_COUNT,
+    };
   }
 );

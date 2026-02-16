@@ -28,12 +28,11 @@
  * - epa, environment, emissions → biofuel
  *
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.1.0
- * @date 2026-01-11
+ * @version 1.2.0
+ * @date 2026-02-16
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 import dbPool from "@/lib/db";
@@ -158,75 +157,8 @@ function computeRowHash(documentNumber: string, pubDate: string): string {
   return createHash("sha256").update(payload).digest("hex");
 }
 
-/**
- * Create a new ingest run record
- */
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at)
-     VALUES ($1, 'running', NOW())
-     RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-/**
- * Update ingest run with final counts
- */
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  rowsAttempted: number,
-  rowsInserted: number,
-  rowsSkipped: number,
-  rowsQuarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run
-     SET status = $2,
-         completed_at = NOW(),
-         rows_attempted = $3,
-         rows_inserted = $4,
-         rows_skipped = $5,
-         rows_quarantined = $6,
-         error_message = $7
-     WHERE id = $1`,
-    [runId, status, rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, errorMessage]
-  );
-}
-
-/**
- * Quarantine an invalid record
- */
-async function quarantineRecord(
-  client: PoolClient,
-  runId: string,
-  sourceTable: string,
-  payload: object,
-  errors: string[],
-  severity: string = "error"
-): Promise<void> {
-  await client.query(
-    `INSERT INTO ops.quarantined_record
-       (ingest_run_id, source_table, raw_payload, validation_errors, severity)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [runId, sourceTable, JSON.stringify(payload), errors, severity]
-  );
-}
-
-/**
- * Check if row hash already exists in database
- */
-async function hashExists(client: PoolClient, rowHash: string): Promise<boolean> {
-  const result = await client.query(
-    `SELECT 1 FROM alt.legislation_1d WHERE row_hash = $1 LIMIT 1`,
-    [rowHash]
-  );
-  return result.rows.length > 0;
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 // =============================================================================
 // FEDERAL REGISTER API TYPES
@@ -339,224 +271,131 @@ export const federalRegisterDaily = inngest.createFunction(
     retries: 1,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "2 6 * * *" }, // Daily at 06:02 UTC
+  { cron: "15 3 * * *" }, // Daily at 03:15 UTC
   async ({ step, logger }) => {
-    // Get database client
-    const client = await pool.connect();
-    let runId: string | null = null;
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["federal-register-daily"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-    // Counters
-    let rowsAttempted = 0;
-    let rowsInserted = 0;
-    let rowsSkipped = 0;
-    let rowsQuarantined = 0;
-    const results: { docNumber: string; status: string; tags?: string[] }[] = [];
+    logger.info(`Started ingest run: ${runId}`);
 
-    try {
-      // Step 1: Create ingest run record
-      runId = await step.run("create-ingest-run", async () => {
-        return await createIngestRun(client, "federal-register-daily");
-      });
+    // ── Step 2: fetch documents from Federal Register API ──
+    const documents = await step.run("fetch-documents", async () => {
+      return await fetchRecentDocuments();
+    });
 
-      logger.info(`Started ingest run: ${runId}`);
+    logger.info(`Fetched ${documents.length} documents from Federal Register`);
 
-      // Step 2: Fetch documents from Federal Register API
-      const documents = await step.run("fetch-documents", async () => {
-        return await fetchRecentDocuments();
-      });
-
-      logger.info(`Fetched ${documents.length} documents from Federal Register`);
-
-      // Step 3: Process all documents in one batched step to reduce operations.
-      const outcomes = await step.run("ingest-documents-batch", async () => {
+    // ── Step 3: process all documents in one batched step ──
+    // One connection for the entire batch is fine — this is a single step.run().
+    const outcomes = await step.run("ingest-documents-batch", async () => {
+      const client = await pool.connect();
+      try {
         const batchedResults: { docNumber: string; status: string; tags?: string[] }[] = [];
 
         for (const doc of documents) {
           try {
-            // Validate required fields
             if (!doc.document_number || !doc.publication_date) {
-              await quarantineRecord(
-                client,
-                runId!,
-                "alt.legislation_1d",
-                doc,
-                ["Missing required fields: document_number or publication_date"],
-                "error"
+              await client.query(
+                `INSERT INTO ops.quarantined_record (ingest_run_id, source_table, raw_payload, validation_errors, severity) VALUES ($1, $2, $3, $4, $5)`,
+                [runId, "alt.legislation_1d", JSON.stringify(doc), ["Missing required fields: document_number or publication_date"], "error"]
               );
-              batchedResults.push({
-                docNumber: doc.document_number || "UNKNOWN",
-                status: "quarantined_missing_fields",
-              });
+              batchedResults.push({ docNumber: doc.document_number || "UNKNOWN", status: "quarantined_missing_fields" });
               continue;
             }
 
-            // Compute row hash for idempotency
             const rowHash = computeRowHash(doc.document_number, doc.publication_date);
 
-            // Check if exact same data already exists (skip duplicate)
-            if (await hashExists(client, rowHash)) {
-              batchedResults.push({
-                docNumber: doc.document_number,
-                status: "skipped_duplicate",
-              });
+            const exists = await client.query(`SELECT 1 FROM alt.legislation_1d WHERE row_hash = $1 LIMIT 1`, [rowHash]);
+            if (exists.rows.length > 0) {
+              batchedResults.push({ docNumber: doc.document_number, status: "skipped_duplicate" });
               continue;
             }
 
-            // Extract agencies
             const agencies = doc.agencies?.map(a => a.name) || [];
+            const tags = assignTags(doc.title || "", doc.abstract || "", doc.type, agencies);
 
-            // Assign specialist tags
-            const tags = assignTags(
-              doc.title || "",
-              doc.abstract || "",
-              doc.type,
-              agencies
-            );
-
-            // Insert new document (append-only)
             await client.query(
               `INSERT INTO alt.legislation_1d (
-                 event_date,
-                 document_number,
-                 document_type,
-                 title,
-                 agency,
-                 source,
-                 url,
-                 raw_payload,
-                 ingestion_batch_id,
-                 row_hash,
-                 specialist_tags
+                 event_date, document_number, document_type, title, agency,
+                 source, url, raw_payload, ingestion_batch_id, row_hash, specialist_tags
                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
               [
-                doc.publication_date,      // event_date
-                doc.document_number,       // document_number
-                doc.type,                  // document_type
-                doc.title,                 // title
-                agencies.join(', '),       // agency (string, not array)
-                "federal_register_api",    // source
-                doc.html_url,              // url
-                JSON.stringify(doc),       // raw_payload
-                runId,                     // ingestion_batch_id
-                rowHash,                   // row_hash
-                tags,                      // specialist_tags
+                doc.publication_date, doc.document_number, doc.type, doc.title,
+                agencies.join(', '), "federal_register_api", doc.html_url,
+                JSON.stringify(doc), runId, rowHash, tags,
               ]
             );
 
-            batchedResults.push({
-              docNumber: doc.document_number,
-              status: "inserted",
-              tags,
-            });
+            batchedResults.push({ docNumber: doc.document_number, status: "inserted", tags });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
-
-            await quarantineRecord(
-              client,
-              runId!,
-              "alt.legislation_1d",
-              doc,
-              ["Insert error: " + errorMsg],
-              "error"
+            await client.query(
+              `INSERT INTO ops.quarantined_record (ingest_run_id, source_table, raw_payload, validation_errors, severity) VALUES ($1, $2, $3, $4, $5)`,
+              [runId, "alt.legislation_1d", JSON.stringify(doc), ["Insert error: " + errorMsg], "error"]
             );
-
-            batchedResults.push({
-              docNumber: doc.document_number || "UNKNOWN",
-              status: "error",
-            });
+            batchedResults.push({ docNumber: doc.document_number || "UNKNOWN", status: "error" });
           }
         }
 
         return batchedResults;
-      });
-
-      for (const outcome of outcomes) {
-        rowsAttempted++;
-        results.push(outcome);
-        if (outcome.status === "inserted") {
-          rowsInserted++;
-        } else if (outcome.status === "skipped_duplicate") {
-          rowsSkipped++;
-        } else {
-          rowsQuarantined++;
-        }
+      } finally {
+        client.release();
       }
+    });
 
-      // Step 4: Update ingest run with final counts
-      await step.run("complete-ingest-run", async () => {
-        await updateIngestRun(
-          client,
-          runId!,
-          "success",
-          rowsAttempted,
-          rowsInserted,
-          rowsSkipped,
-          rowsQuarantined
-        );
-      });
+    // Tally counters from batched outcomes
+    let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
+    const results: { docNumber: string; status: string; tags?: string[] }[] = [];
 
-      logger.info(`Completed ingest run: ${runId}`);
-      logger.info(`  Attempted: ${rowsAttempted}`);
-      logger.info(`  Inserted: ${rowsInserted}`);
-      logger.info(`  Skipped: ${rowsSkipped}`);
-      logger.info(`  Quarantined: ${rowsQuarantined}`);
-
-      // Log tag distribution
-      const tagCounts: Record<string, number> = {};
-      results
-        .filter(r => r.tags)
-        .forEach(r => r.tags!.forEach(tag => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        }));
-      logger.info(`Tag distribution: ${JSON.stringify(tagCounts)}`);
-
-      return {
-        status: "success",
-        runId,
-        date: new Date().toISOString().split("T")[0],
-        summary: {
-          attempted: rowsAttempted,
-          inserted: rowsInserted,
-          skipped: rowsSkipped,
-          quarantined: rowsQuarantined,
-        },
-        tagDistribution: tagCounts,
-        sampleResults: results.slice(0, 10),
-      };
-
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-
-      // Update ingest run as failed
-      if (runId) {
-        await updateIngestRun(
-          client,
-          runId,
-          "failed",
-          rowsAttempted,
-          rowsInserted,
-          rowsSkipped,
-          rowsQuarantined,
-          errorMsg
-        );
-      }
-
-      logger.error(`Ingest run failed: ${errorMsg}`);
-
-      return {
-        status: "failed",
-        runId,
-        error: errorMsg,
-        summary: {
-          attempted: rowsAttempted,
-          inserted: rowsInserted,
-          skipped: rowsSkipped,
-          quarantined: rowsQuarantined,
-        },
-      };
-
-    } finally {
-      client.release();
+    for (const outcome of outcomes) {
+      rowsAttempted++;
+      results.push(outcome);
+      if (outcome.status === "inserted") rowsInserted++;
+      else if (outcome.status === "skipped_duplicate") rowsSkipped++;
+      else rowsQuarantined++;
     }
+
+    // ── Step 4: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Completed ingest run: ${runId}`);
+    logger.info(`  Attempted: ${rowsAttempted}, Inserted: ${rowsInserted}, Skipped: ${rowsSkipped}, Quarantined: ${rowsQuarantined}`);
+
+    const tagCounts: Record<string, number> = {};
+    results.filter(r => r.tags).forEach(r => r.tags!.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    }));
+    logger.info(`Tag distribution: ${JSON.stringify(tagCounts)}`);
+
+    return {
+      status: "success",
+      runId,
+      date: new Date().toISOString().split("T")[0],
+      summary: { attempted: rowsAttempted, inserted: rowsInserted, skipped: rowsSkipped, quarantined: rowsQuarantined },
+      tagDistribution: tagCounts,
+      sampleResults: results.slice(0, 10),
+    };
   }
 );

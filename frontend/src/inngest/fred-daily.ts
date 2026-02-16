@@ -9,12 +9,11 @@
  * - Quarantines invalid records to ops.quarantined_record
  *
  * @author Claude (ZINC-FUSION-V15)
- * @version 2.1.0
- * @date 2026-02-07
+ * @version 3.0.0
+ * @date 2026-02-16
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -593,75 +592,8 @@ function computeRowHash(seriesId: string, date: string, value: number): string {
   return createHash("sha256").update(payload).digest("hex");
 }
 
-/**
- * Create a new ingest run record
- */
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at)
-     VALUES ($1, 'running', NOW())
-     RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-/**
- * Update ingest run with final counts
- */
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  rowsAttempted: number,
-  rowsInserted: number,
-  rowsSkipped: number,
-  rowsQuarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run
-     SET status = $2,
-         completed_at = NOW(),
-         rows_attempted = $3,
-         rows_inserted = $4,
-         rows_skipped = $5,
-         rows_quarantined = $6,
-         error_message = $7
-     WHERE id = $1`,
-    [runId, status, rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, errorMessage]
-  );
-}
-
-/**
- * Quarantine an invalid record
- */
-async function quarantineRecord(
-  client: PoolClient,
-  runId: string,
-  sourceTable: string,
-  payload: object,
-  errors: string[],
-  severity: string = "error"
-): Promise<void> {
-  await client.query(
-    `INSERT INTO ops.quarantined_record
-       (ingest_run_id, source_table, raw_payload, validation_errors, severity)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [runId, sourceTable, JSON.stringify(payload), errors, severity]
-  );
-}
-
-/**
- * Check if row hash already exists in database
- */
-async function hashExists(client: PoolClient, rowHash: string, targetTable: string): Promise<boolean> {
-  const result = await client.query(
-    `SELECT 1 FROM ${targetTable} WHERE row_hash = $1 LIMIT 1`,
-    [rowHash]
-  );
-  return result.rows.length > 0;
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 // =============================================================================
 // FRED API FETCH
@@ -788,7 +720,6 @@ async function fetchFredSeries(
 // =============================================================================
 
 async function ingestFredSegment(
-  client: PoolClient,
   runId: string,
   apiKey: string,
   seriesList: FredSeriesConfig[],
@@ -800,98 +731,102 @@ async function ingestFredSegment(
   let skipped = 0;
   let quarantined = 0;
 
-  for (const series of seriesList) {
-    attempted++;
-    const targetTable = getTargetTable(series.id);
+  const client = await pool.connect();
+  try {
+    for (const series of seriesList) {
+      attempted++;
+      const targetTable = getTargetTable(series.id);
 
-    try {
-      const fetchResult = await fetchFredSeries(series.id, apiKey, options);
+      try {
+        const fetchResult = await fetchFredSeries(series.id, apiKey, options);
 
-      if (fetchResult.status === "not_found") {
-        results.push({ series: series.id, status: "not_found" });
-        skipped++;
-        continue;
-      }
+        if (fetchResult.status === "not_found") {
+          results.push({ series: series.id, status: "not_found" });
+          skipped++;
+          continue;
+        }
 
-      if (fetchResult.status === "no_data") {
-        results.push({ series: series.id, status: "no_data" });
-        skipped++;
-        continue;
-      }
+        if (fetchResult.status === "no_data") {
+          results.push({ series: series.id, status: "no_data" });
+          skipped++;
+          continue;
+        }
 
-      const obs = fetchResult.observation;
-      const value = parseFloat(obs.value);
+        const obs = fetchResult.observation;
+        const value = parseFloat(obs.value);
 
-      if (isNaN(value)) {
-        await quarantineRecord(
-          client,
-          runId,
-          targetTable,
-          { series_id: series.id, date: obs.date, raw_value: obs.value },
-          ["Invalid numeric value: " + obs.value],
-          "error"
+        if (isNaN(value)) {
+          await client.query(
+            `INSERT INTO ops.quarantined_record
+               (ingest_run_id, source_table, raw_payload, validation_errors, severity)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [runId, targetTable, JSON.stringify({ series_id: series.id, date: obs.date, raw_value: obs.value }), ["Invalid numeric value: " + obs.value], "error"]
+          );
+          results.push({ series: series.id, status: "quarantined_invalid_value" });
+          quarantined++;
+          continue;
+        }
+
+        const rowHash = computeRowHash(series.id, obs.date, value);
+
+        const existsResult = await client.query(
+          `SELECT 1 FROM ${targetTable} WHERE row_hash = $1 LIMIT 1`,
+          [rowHash]
         );
-        results.push({ series: series.id, status: "quarantined_invalid_value" });
-        quarantined++;
-        continue;
-      }
+        if (existsResult.rows.length > 0) {
+          results.push({ series: series.id, status: "skipped_duplicate" });
+          skipped++;
+          continue;
+        }
 
-      const rowHash = computeRowHash(series.id, obs.date, value);
+        await client.query(
+          `INSERT INTO ${targetTable} (
+             series_id,
+             value,
+             event_date,
+             knowledge_time,
+             source,
+             row_hash
+           ) VALUES ($1, $2, $3, NOW(), $4, $5)
+           ON CONFLICT (series_id, event_date) DO UPDATE SET
+             value = EXCLUDED.value,
+             knowledge_time = NOW(),
+             source = EXCLUDED.source`,
+          [
+            series.id,
+            value,
+            obs.date,
+            "fred_api",
+            rowHash,
+          ]
+        );
 
-      if (await hashExists(client, rowHash, targetTable)) {
-        results.push({ series: series.id, status: "skipped_duplicate" });
-        skipped++;
-        continue;
-      }
-
-      // Use simplified column set that matches actual econ.* table structure
-      await client.query(
-        `INSERT INTO ${targetTable} (
-           series_id,
-           value,
-           event_date,
-           knowledge_time,
-           source,
-           row_hash
-         ) VALUES ($1, $2, $3, NOW(), $4, $5)
-         ON CONFLICT (series_id, event_date) DO UPDATE SET
-           value = EXCLUDED.value,
-           knowledge_time = NOW(),
-           source = EXCLUDED.source`,
-        [
-          series.id,
+        results.push({
+          series: series.id,
+          status: "inserted",
           value,
-          obs.date,
-          "fred_api",
-          rowHash,
-        ]
-      );
+          tags: series.tags,
+        });
+        inserted++;
 
-      results.push({
-        series: series.id,
-        status: "inserted",
-        value,
-        tags: series.tags,
-      });
-      inserted++;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
 
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+        await client.query(
+          `INSERT INTO ops.quarantined_record
+             (ingest_run_id, source_table, raw_payload, validation_errors, severity)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [runId, targetTable, JSON.stringify({ series_id: series.id, error: errorMsg }), ["Fetch/insert error: " + errorMsg], "error"]
+        );
 
-      await quarantineRecord(
-        client,
-        runId,
-        targetTable,
-        { series_id: series.id, error: errorMsg },
-        ["Fetch/insert error: " + errorMsg],
-        "error"
-      );
+        results.push({ series: series.id, status: "error" });
+        quarantined++;
+      }
 
-      results.push({ series: series.id, status: "error" });
-      quarantined++;
+      await sleep(options.rateLimitMs);
     }
-
-    await sleep(options.rateLimitMs);
+  } finally {
+    client.release();
   }
 
   return {
@@ -922,111 +857,82 @@ function createFredSegmentJob(config: FredSegmentConfig) {
         return { status: "error", message: "FRED_API_KEY not configured" };
       }
 
-      const client = await pool.connect();
-      let runId: string | null = null;
-
-      let rowsAttempted = 0;
-      let rowsInserted = 0;
-      let rowsSkipped = 0;
-      let rowsQuarantined = 0;
-      let results: FredIngestResult[] = [];
-
-      try {
-        runId = await step.run("create-ingest-run", async () => {
-          return await createIngestRun(client, config.jobName);
-        });
-
-        logger.info(`Started ingest run: ${runId} (${config.segment})`);
-
-        const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
-          const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
-          const timeoutMs = config.fetchTimeoutMs ?? DEFAULT_FRED_FETCH_TIMEOUT_MS;
-          const retries = config.fetchRetries ?? DEFAULT_FRED_FETCH_RETRIES;
-          const backoffMs = config.fetchBackoffMs ?? DEFAULT_FRED_FETCH_BACKOFF_MS;
-          return await ingestFredSegment(
-            client,
-            runId!,
-            apiKey,
-            config.series,
-            {
-              rateLimitMs,
-              timeoutMs,
-              retries,
-              backoffMs,
-            }
+      // ── Step 1: create ingest run (fresh connection) ──
+      const runId = await step.run("create-ingest-run", async () => {
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            `INSERT INTO ops.ingest_run (job_name, status, started_at)
+             VALUES ($1, 'running', NOW())
+             RETURNING id`,
+            [config.jobName]
           );
-        });
-
-        rowsAttempted = segmentSummary.attempted;
-        rowsInserted = segmentSummary.inserted;
-        rowsSkipped = segmentSummary.skipped;
-        rowsQuarantined = segmentSummary.quarantined;
-        results = segmentSummary.results;
-
-        await step.run("complete-ingest-run", async () => {
-          await updateIngestRun(
-            client,
-            runId!,
-            "success",
-            rowsAttempted,
-            rowsInserted,
-            rowsSkipped,
-            rowsQuarantined
-          );
-        });
-
-        logger.info(`Completed ingest run: ${runId}`);
-        logger.info(`  Attempted: ${rowsAttempted}`);
-        logger.info(`  Inserted: ${rowsInserted}`);
-        logger.info(`  Skipped: ${rowsSkipped}`);
-        logger.info(`  Quarantined: ${rowsQuarantined}`);
-
-        return {
-          status: "success",
-          runId,
-          segment: config.segment,
-          date: new Date().toISOString().split("T")[0],
-          summary: {
-            attempted: rowsAttempted,
-            inserted: rowsInserted,
-            skipped: rowsSkipped,
-            quarantined: rowsQuarantined,
-          },
-          results,
-        };
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-
-        if (runId) {
-          await updateIngestRun(
-            client,
-            runId,
-            "failed",
-            rowsAttempted,
-            rowsInserted,
-            rowsSkipped,
-            rowsQuarantined,
-            errorMsg
-          );
+          return result.rows[0].id as string;
+        } finally {
+          client.release();
         }
+      });
 
-        logger.error(`Ingest run failed: ${errorMsg}`);
+      logger.info(`Started ingest run: ${runId} (${config.segment})`);
 
-        return {
-          status: "failed",
+      // ── Step 2: fetch FRED data + insert (fresh connection inside ingestFredSegment) ──
+      const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
+        const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
+        const timeoutMs = config.fetchTimeoutMs ?? DEFAULT_FRED_FETCH_TIMEOUT_MS;
+        const retries = config.fetchRetries ?? DEFAULT_FRED_FETCH_RETRIES;
+        const backoffMs = config.fetchBackoffMs ?? DEFAULT_FRED_FETCH_BACKOFF_MS;
+        return await ingestFredSegment(
           runId,
-          segment: config.segment,
-          error: errorMsg,
-          summary: {
-            attempted: rowsAttempted,
-            inserted: rowsInserted,
-            skipped: rowsSkipped,
-            quarantined: rowsQuarantined,
-          },
-        };
-      } finally {
-        client.release();
-      }
+          apiKey,
+          config.series,
+          {
+            rateLimitMs,
+            timeoutMs,
+            retries,
+            backoffMs,
+          }
+        );
+      });
+
+      // ── Step 3: finalize ingest run (fresh connection) ──
+      await step.run("complete-ingest-run", async () => {
+        const client = await pool.connect();
+        try {
+          await client.query(
+            `UPDATE ops.ingest_run
+             SET status = $2,
+                 completed_at = NOW(),
+                 rows_attempted = $3,
+                 rows_inserted = $4,
+                 rows_skipped = $5,
+                 rows_quarantined = $6
+             WHERE id = $1`,
+            [runId, "success", segmentSummary.attempted, segmentSummary.inserted, segmentSummary.skipped, segmentSummary.quarantined]
+          );
+        } finally {
+          client.release();
+        }
+      });
+
+      logger.info(`Completed ingest run: ${runId}`);
+      logger.info(`  Attempted: ${segmentSummary.attempted}`);
+      logger.info(`  Inserted: ${segmentSummary.inserted}`);
+      logger.info(`  Skipped: ${segmentSummary.skipped}`);
+      logger.info(`  Quarantined: ${segmentSummary.quarantined}`);
+
+      return {
+        status: "success",
+        runId,
+        segment: config.segment,
+        date: new Date().toISOString().split("T")[0],
+        summary: {
+          attempted: segmentSummary.attempted,
+          inserted: segmentSummary.inserted,
+          skipped: segmentSummary.skipped,
+          quarantined: segmentSummary.quarantined,
+        },
+        results: segmentSummary.results,
+      };
     }
   );
 }

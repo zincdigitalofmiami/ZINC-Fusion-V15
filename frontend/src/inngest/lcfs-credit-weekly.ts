@@ -1,20 +1,27 @@
-import { inngest } from "./client";
-import { createHash } from "crypto";
-import { type PoolClient } from "pg";
-import { XMLParser } from "fast-xml-parser";
-import JSZip from "jszip";
-import dbPool from "@/lib/db";
-
 /**
  * LCFS Credit Price Ingestion (CARB Weekly Activity Report)
+ *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Upserts on (event_date) conflict
  *
  * Fetches CARB's Weekly LCFS Credit Transfer Activity XLSX,
  * parses transfer-level rows (date completed, price, volume),
  * computes daily VWAP, and upserts into supply.lcfs_1d.
  *
- * Schedule: Weekly on Monday at 14:00 UTC (6:00 AM PT).
+ * Schedule: Weekly on Monday at 08:00 UTC.
  * CARB typically publishes by Friday, so Monday gives margin.
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
  */
+
+import { inngest, DB_CONCURRENCY } from "./client";
+import { createHash } from "crypto";
+import { XMLParser } from "fast-xml-parser";
+import JSZip from "jszip";
+import dbPool from "@/lib/db";
 
 const CARB_WEEKLY_PAGE =
   "https://ww2.arb.ca.gov/resources/documents/weekly-lcfs-credit-transfer-activity-reports";
@@ -22,37 +29,8 @@ const SOURCE_NAME = "carb_weekly_activity_xlsx";
 const USER_AGENT = "ZINC-Fusion/1.0";
 const pool = dbPool;
 
-// ---------------------------------------------------------------------------
-// ops.ingest_run helpers (same pattern as usda-wasde-monthly)
-// ---------------------------------------------------------------------------
-
-async function createIngestRun(
-  client: PoolClient,
-  jobName: string,
-): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName],
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string,
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage],
-  );
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 // ---------------------------------------------------------------------------
 // XLSX parsing via JSZip + fast-xml-parser
@@ -426,104 +404,118 @@ export const lcfsCreditWeekly = inngest.createFunction(
     id: "lcfs-credit-weekly",
     name: "CARB LCFS Credit Price Ingestion",
     retries: 3,
+    concurrency: [DB_CONCURRENCY],
   },
-  { cron: "0 14 * * 1" }, // Monday 2pm UTC (6am PT)
+  { cron: "0 8 * * 1" }, // Monday 08:00 UTC
   async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    const quarantined = 0;
-
-    try {
-      await step.run("assert-tables", async () => {
+    // ── Step 1: assert tables exist ──
+    await step.run("assert-tables", async () => {
+      const client = await pool.connect();
+      try {
         await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
         await client.query("SELECT 1 FROM supply.lcfs_1d LIMIT 1");
-      });
+      } finally {
+        client.release();
+      }
+    });
 
-      runId = await step.run("create-ingest-run", async () => {
-        return await createIngestRun(client, "lcfs-credit-weekly");
-      });
+    // ── Step 2: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["lcfs-credit-weekly"],
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-      const { xlsxUrl, xlsxBuffer, batchId } = await step.run(
-        "fetch-xlsx",
-        async () => {
-          logger.info("Fetching CARB weekly LCFS activity page...");
-          const pageRes = await fetch(CARB_WEEKLY_PAGE, {
-            headers: { "User-Agent": USER_AGENT },
-          });
-          if (!pageRes.ok) {
-            throw new Error(
-              `CARB page fetch failed: ${pageRes.status} ${pageRes.statusText}`,
-            );
-          }
-          const html = await pageRes.text();
-          const url = findActivityXlsxUrl(html);
-          logger.info(`Found activity XLSX: ${url}`);
+    // ── Step 3: fetch XLSX from CARB ──
+    const { xlsxUrl, xlsxBuffer, batchId } = await step.run(
+      "fetch-xlsx",
+      async () => {
+        logger.info("Fetching CARB weekly LCFS activity page...");
+        const pageRes = await fetch(CARB_WEEKLY_PAGE, {
+          headers: { "User-Agent": USER_AGENT },
+        });
+        if (!pageRes.ok) {
+          throw new Error(
+            `CARB page fetch failed: ${pageRes.status} ${pageRes.statusText}`,
+          );
+        }
+        const html = await pageRes.text();
+        const url = findActivityXlsxUrl(html);
+        logger.info(`Found activity XLSX: ${url}`);
 
-          logger.info("Downloading activity XLSX...");
-          const xlsxRes = await fetch(url, {
-            headers: { "User-Agent": USER_AGENT },
-          });
-          if (!xlsxRes.ok) {
-            throw new Error(
-              `XLSX download failed: ${xlsxRes.status} ${xlsxRes.statusText}`,
-            );
-          }
-          const buffer = await xlsxRes.arrayBuffer();
-          const batch = createHash("sha256")
-            .update(`${url}|${buffer.byteLength}`)
-            .digest("hex")
-            .slice(0, 16);
+        logger.info("Downloading activity XLSX...");
+        const xlsxRes = await fetch(url, {
+          headers: { "User-Agent": USER_AGENT },
+        });
+        if (!xlsxRes.ok) {
+          throw new Error(
+            `XLSX download failed: ${xlsxRes.status} ${xlsxRes.statusText}`,
+          );
+        }
+        const buffer = await xlsxRes.arrayBuffer();
+        const batch = createHash("sha256")
+          .update(`${url}|${buffer.byteLength}`)
+          .digest("hex")
+          .slice(0, 16);
 
-          // Return buffer as base64 to cross step boundary
-          return {
-            xlsxUrl: url,
-            xlsxBuffer: Buffer.from(buffer).toString("base64"),
-            batchId: batch,
-          };
-        },
+        return {
+          xlsxUrl: url,
+          xlsxBuffer: Buffer.from(buffer).toString("base64"),
+          batchId: batch,
+        };
+      },
+    );
+
+    // ── Step 4: parse XLSX and compute VWAP (pure computation) ──
+    const vwapRows = await step.run("parse-compute-vwap", async () => {
+      const buffer = Buffer.from(xlsxBuffer, "base64");
+      logger.info(
+        `Parsing XLSX (${(buffer.length / 1024).toFixed(0)} KB)...`,
+      );
+      const sheets = await readXlsxSheets(buffer.buffer as ArrayBuffer);
+      logger.info(
+        `Found ${sheets.size} sheet(s): ${Array.from(sheets.keys()).join(", ")}`,
       );
 
-      const vwapRows = await step.run("parse-compute-vwap", async () => {
-        const buffer = Buffer.from(xlsxBuffer, "base64");
-        logger.info(
-          `Parsing XLSX (${(buffer.length / 1024).toFixed(0)} KB)...`,
-        );
-        const sheets = await readXlsxSheets(buffer.buffer as ArrayBuffer);
-        logger.info(
-          `Found ${sheets.size} sheet(s): ${Array.from(sheets.keys()).join(", ")}`,
-        );
+      const activity = extractActivityRows(sheets);
+      logger.info(`Extracted ${activity.length} activity rows`);
 
-        const activity = extractActivityRows(sheets);
-        logger.info(`Extracted ${activity.length} activity rows`);
+      const vwap = computeDailyVwap(activity);
+      logger.info(
+        `Computed ${vwap.length} daily VWAP rows (${vwap.length > 0 ? vwap[0].eventDate : "?"} → ${vwap.length > 0 ? vwap[vwap.length - 1].eventDate : "?"})`,
+      );
+      return vwap;
+    });
 
-        const vwap = computeDailyVwap(activity);
-        logger.info(
-          `Computed ${vwap.length} daily VWAP rows (${vwap.length > 0 ? vwap[0].eventDate : "?"} → ${vwap.length > 0 ? vwap[vwap.length - 1].eventDate : "?"})`,
-        );
-        return vwap;
-      });
-
-      if (vwapRows.length === 0) {
-        logger.warn("No LCFS VWAP rows computed — skipping upsert");
-        await step.run("complete-empty", async () => {
-          await updateIngestRun(
-            client,
-            runId!,
-            "success",
-            0,
-            0,
-            0,
-            0,
+    if (vwapRows.length === 0) {
+      logger.warn("No LCFS VWAP rows computed — skipping upsert");
+      await step.run("complete-empty", async () => {
+        const client = await pool.connect();
+        try {
+          await client.query(
+            `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+             rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+            [runId, "success", 0, 0, 0, 0],
           );
-        });
-        return { status: "empty", runId, xlsxUrl };
-      }
+        } finally {
+          client.release();
+        }
+      });
+      return { status: "empty", runId, xlsxUrl };
+    }
 
-      await step.run("upsert-rows", async () => {
-        attempted = vwapRows.length;
+    // ── Step 5: upsert VWAP rows ──
+    const upsertResult = await step.run("upsert-rows", async () => {
+      let upserted = 0;
+      const client = await pool.connect();
+      try {
         await client.query("BEGIN");
         try {
           for (const row of vwapRows) {
@@ -537,58 +529,46 @@ export const lcfsCreditWeekly = inngest.createFunction(
                  created_at = NOW()`,
               [row.eventDate, row.priceUsdPerMt, SOURCE_NAME, batchId],
             );
-            inserted++;
+            upserted++;
           }
           await client.query("COMMIT");
         } catch (e) {
           await client.query("ROLLBACK");
           throw e;
         }
-      });
-
-      await step.run("complete", async () => {
-        await updateIngestRun(
-          client,
-          runId!,
-          "success",
-          attempted,
-          inserted,
-          skipped,
-          quarantined,
-        );
-      });
-
-      logger.info(
-        `LCFS ingestion complete: ${inserted} rows upserted (batch ${batchId})`,
-      );
-
-      return {
-        status: "success",
-        runId,
-        xlsxUrl,
-        inserted,
-        dateRange:
-          vwapRows.length > 0
-            ? `${vwapRows[0].eventDate} → ${vwapRows[vwapRows.length - 1].eventDate}`
-            : null,
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(
-          client,
-          runId,
-          "failed",
-          attempted,
-          inserted,
-          skipped,
-          quarantined,
-          msg,
-        );
+      } finally {
+        client.release();
       }
-      throw error;
-    } finally {
-      client.release();
-    }
+      return { attempted: vwapRows.length, upserted };
+    });
+
+    // ── Step 6: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", upsertResult.attempted, upsertResult.upserted, 0, 0],
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(
+      `LCFS ingestion complete: ${upsertResult.upserted} rows upserted (batch ${batchId})`,
+    );
+
+    return {
+      status: "success",
+      runId,
+      xlsxUrl,
+      inserted: upsertResult.upserted,
+      dateRange:
+        vwapRows.length > 0
+          ? `${vwapRows[0].eventDate} → ${vwapRows[vwapRows.length - 1].eventDate}`
+          : null,
+    };
   },
 );

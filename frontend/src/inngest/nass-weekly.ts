@@ -1,129 +1,126 @@
 /**
  * USDA NASS QuickStats API Data Ingestion
  *
- * INGESTION CONTRACT
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
  * SOURCE: https://quickstats.nass.usda.gov/api/api_GET
  * Tags: crush
  *
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-01-13
+ * @version 1.1.0
+ * @date 2026-02-16
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { type PoolClient } from "pg";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
 
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
+
 function computeRowHash(seriesId: string, date: string, value: string): string {
   return createHash("sha256").update(`${seriesId}|${date}|${value}`).digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient, runId: string, status: string,
-  attempted: number, inserted: number, skipped: number, quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
-
-async function hashExists(client: PoolClient, hash: string): Promise<boolean> {
-  const r = await client.query(`SELECT 1 FROM econ.activity_1d WHERE row_hash=$1 LIMIT 1`, [hash]);
-  return r.rows.length > 0;
-}
-
 export const nassWeekly = inngest.createFunction(
   { id: "nass-weekly", name: "USDA NASS API Data Ingestion", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 17 * * 5" }, // Fridays 11AM CT
+  { cron: "0 2 * * 6" }, // Saturdays 02:00 UTC
   async ({ step, logger }) => {
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0, rowsQuarantined = 0;
+    const apiKey = process.env.USDA_API_KEY;
+    if (!apiKey) {
+      throw new Error("USDA_API_KEY not configured");
+    }
 
-    try {
-      const apiKey = process.env.USDA_API_KEY;
-      if (!apiKey) {
-        throw new Error("USDA_API_KEY not configured");
-      }
-
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "nass-weekly"));
-      logger.info(`Started ingest run: ${runId}`);
-
-      const data = await step.run("fetch-api", async () => {
-        const currentYear = new Date().getFullYear();
-        const response = await fetch(
-          `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["nass-weekly"]
         );
-        if (!response.ok) throw new Error(`NASS API error: ${response.status}`);
-        const json = await response.json();
-        return json.data || [];
-      });
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-      logger.info(`Fetched ${data.length} records from NASS API`);
+    logger.info(`Started ingest run: ${runId}`);
 
-      for (const row of data) {
-        rowsAttempted++;
+    // ── Step 2: fetch from NASS API ──
+    const data = await step.run("fetch-api", async () => {
+      const currentYear = new Date().getFullYear();
+      const response = await fetch(
+        `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`
+      );
+      if (!response.ok) throw new Error(`NASS API error: ${response.status}`);
+      const json = await response.json();
+      return json.data || [];
+    });
 
-        const outcome = await step.run(`ingest-${row.year}-${row.short_desc}`, async () => {
+    logger.info(`Fetched ${data.length} records from NASS API`);
+
+    // ── Step 3: insert records (batched in one step) ──
+    const batchResult = await step.run("insert-records-batch", async () => {
+      let rowsAttempted = 0, rowsInserted = 0, rowsSkipped = 0;
+
+      const client = await pool.connect();
+      try {
+        for (const row of data) {
+          rowsAttempted++;
           const obsDate = `${row.year}-01-01`;
           const seriesId = `NASS_${row.commodity_desc}_${row.statisticcat_desc}`.replace(/\s+/g, '_').toUpperCase();
           const value = row.Value ? parseFloat(row.Value.replace(/,/g, "")) : null;
 
           if (value === null || isNaN(value)) {
-            return { status: "skipped_invalid" as const };
+            rowsSkipped++;
+            continue;
           }
 
           const rowHash = computeRowHash(seriesId, obsDate, row.Value);
 
-          if (await hashExists(client, rowHash)) {
-            return { status: "skipped_duplicate" as const };
+          const exists = await client.query(
+            `SELECT 1 FROM econ.activity_1d WHERE row_hash=$1 LIMIT 1`,
+            [rowHash]
+          );
+          if (exists.rows.length > 0) {
+            rowsSkipped++;
+            continue;
           }
 
           await client.query(
-            `INSERT INTO econ.activity_1d (
-               event_date, series_id, value, source, row_hash
-             ) VALUES ($1,$2,$3,$4,$5)`,
-            [
-              obsDate, seriesId, value,
-              "nass_api",
-              rowHash
-            ]
+            `INSERT INTO econ.activity_1d (event_date, series_id, value, source, row_hash) VALUES ($1,$2,$3,$4,$5)`,
+            [obsDate, seriesId, value, "nass_api", rowHash]
           );
-          return { status: "inserted" as const };
-        });
-
-        if (outcome.status === "inserted") {
           rowsInserted++;
-        } else {
-          rowsSkipped++;
         }
+      } finally {
+        client.release();
       }
 
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined));
-      logger.info(`NASS ingestion complete: ${rowsInserted} inserted, ${rowsSkipped} skipped`);
-      return { status: "success", runId, inserted: rowsInserted, skipped: rowsSkipped };
+      return { attempted: rowsAttempted, inserted: rowsInserted, skipped: rowsSkipped };
+    });
 
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) await updateIngestRun(client, runId, "failed", rowsAttempted, rowsInserted, rowsSkipped, rowsQuarantined, msg);
-      logger.error(`NASS API ingestion failed: ${msg}`);
-      throw error;
-    } finally {
-      client.release();
-    }
+    // ── Step 4: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", batchResult.attempted, batchResult.inserted, batchResult.skipped, 0]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`NASS ingestion complete: ${batchResult.inserted} inserted, ${batchResult.skipped} skipped`);
+    return { status: "success", runId, inserted: batchResult.inserted, skipped: batchResult.skipped };
   }
 );

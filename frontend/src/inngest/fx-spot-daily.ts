@@ -1,12 +1,20 @@
 /**
  * FX Spot (1D) Data Ingestion via FRED
  *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
  * Purpose: keep `mkt.fx_1d` fresh for Core/Specialists.
  * Zero tolerance: no synthetic data; fail loudly on missing config.
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
@@ -48,46 +56,8 @@ function computeRowHash(pair: string, eventDate: string, rate: number, seriesId:
   return createHash("sha256").update(`${pair}|${eventDate}|${rate}|${seriesId}`).digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
-
-async function eventPairExists(client: PoolClient, eventDate: string, pair: string): Promise<boolean> {
-  const r = await client.query(
-    `SELECT 1 FROM mkt.fx_1d WHERE event_date=$1::date AND pair=$2 LIMIT 1`,
-    [eventDate, pair]
-  );
-  return r.rows.length > 0;
-}
-
-async function getMaxDate(client: PoolClient, pair: string): Promise<string | null> {
-  const r = await client.query(
-    `SELECT MAX(event_date)::date::text as max_date FROM mkt.fx_1d WHERE pair=$1`,
-    [pair]
-  );
-  return r.rows[0]?.max_date ?? null;
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 function addDays(yyyyMmDd: string, days: number): string {
   const dt = new Date(`${yyyyMmDd}T00:00:00Z`);
@@ -136,84 +106,117 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 
 export const fxSpotDaily = inngest.createFunction(
   { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "8 6 * * *" }, // Daily at 06:08 UTC
+  { cron: "0 9 * * *" }, // Daily at 09:00 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");
     }
 
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["fx-spot-daily"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "fx-spot-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    logger.info(`Started ingest run: ${runId}`);
 
-      for (const { pair, seriesId } of PAIRS) {
-        await step.run(`pair-${pair}`, async () => {
-          const maxDate = await getMaxDate(client, pair);
+    // ── Step 2: process each FX pair ──
+    // Each step.run returns per-pair counters so we can aggregate after.
+    const pairResults: { pair: string; attempted: number; inserted: number; skipped: number; quarantined: number }[] = [];
+
+    for (const { pair, seriesId } of PAIRS) {
+      const outcome = await step.run(`pair-${pair}`, async () => {
+        let pAttempted = 0, pInserted = 0, pSkipped = 0, pQuarantined = 0;
+
+        // Fetch from FRED API (no DB connection needed yet)
+        const client = await pool.connect();
+        try {
+          const maxDateResult = await client.query(
+            `SELECT MAX(event_date)::date::text as max_date FROM mkt.fx_1d WHERE pair=$1`,
+            [pair]
+          );
+          const maxDate = maxDateResult.rows[0]?.max_date ?? null;
           const startDate = maxDate ? addDays(maxDate, 1) : "2000-01-01";
 
           const observations = await fetchFredObservations(seriesId, startDate);
-          logger.info(`${pair}: fetched ${observations.length} obs from ${startDate}`);
 
           for (const obs of observations) {
             const eventDate = obs.date;
             const value = obs.value;
 
             if (!eventDate || value === "." || value === "") {
-              skipped++;
+              pSkipped++;
               continue;
             }
 
             const rate = Number(value);
             if (!Number.isFinite(rate)) {
-              quarantined++;
+              pQuarantined++;
               continue;
             }
 
-            attempted++;
+            pAttempted++;
 
-            if (await eventPairExists(client, eventDate, pair)) {
-              skipped++;
+            const exists = await client.query(
+              `SELECT 1 FROM mkt.fx_1d WHERE event_date=$1::date AND pair=$2 LIMIT 1`,
+              [eventDate, pair]
+            );
+            if (exists.rows.length > 0) {
+              pSkipped++;
               continue;
             }
 
             const rowHash = computeRowHash(pair, eventDate, rate, seriesId);
             await client.query(
-              `INSERT INTO mkt.fx_1d
-                (pair, event_date, rate, source, row_hash)
-               VALUES ($1, $2::date, $3, $4, $5)`,
-              [
-                pair,
-                eventDate,
-                rate,
-                "FRED",
-                rowHash,
-              ]
+              `INSERT INTO mkt.fx_1d (pair, event_date, rate, source, row_hash) VALUES ($1, $2::date, $3, $4, $5)`,
+              [pair, eventDate, rate, "FRED", rowHash]
             );
-            inserted++;
+            pInserted++;
           }
-        });
-      }
+        } finally {
+          client.release();
+        }
 
-      await step.run("complete", () =>
-        updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined)
-      );
+        return { pair, attempted: pAttempted, inserted: pInserted, skipped: pSkipped, quarantined: pQuarantined };
+      });
 
-      return { status: "success", runId, attempted, inserted, skipped, quarantined };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
-      }
-      throw error;
-    } finally {
-      client.release();
+      pairResults.push(outcome);
+      logger.info(`${outcome.pair}: +${outcome.inserted} inserted, ${outcome.skipped} skipped`);
     }
+
+    // Aggregate counters
+    let attempted = 0, inserted = 0, skipped = 0, quarantined = 0;
+    for (const r of pairResults) {
+      attempted += r.attempted;
+      inserted += r.inserted;
+      skipped += r.skipped;
+      quarantined += r.quarantined;
+    }
+
+    // ── Step 3: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", attempted, inserted, skipped, quarantined]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Completed: ${inserted} inserted, ${skipped} skipped across ${PAIRS.length} pairs`);
+
+    return { status: "success", runId, attempted, inserted, skipped, quarantined };
   }
 );

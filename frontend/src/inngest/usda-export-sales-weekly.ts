@@ -1,16 +1,24 @@
 /**
  * USDA FAS Export Sales (Weekly) Data Ingestion
  *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
  * Source: https://apps.fas.usda.gov/export-sales/complete.htm
  * Inserts into: supply.usda_exports_1w
  *
  * Notes:
  * - Data in the report is labeled "1000 METRIC TONS" → stored as metric tons (× 1000).
  * - No schema creation, no synthetic values; insert-only with existence checks.
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
@@ -50,46 +58,8 @@ function computeRowHash(
     .digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
-
-async function rowExists(
-  client: PoolClient,
-  eventDate: string,
-  commodity: string,
-  destinationCountry: string
-): Promise<boolean> {
-  const r = await client.query(
-    `SELECT 1
-     FROM supply.usda_exports_1w
-     WHERE event_date=$1::date AND commodity=$2 AND COALESCE(destination_country,'')=COALESCE($3,'')
-     LIMIT 1`,
-    [eventDate, commodity, destinationCountry]
-  );
-  return r.rows.length > 0;
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 function parseAsOfDate(preText: string): string {
   // Example: "U. S. EXPORT SALES AS OF JANUARY 01, 2026"
@@ -244,129 +214,146 @@ function parseDestinationSection(
 
 export const usdaExportSalesWeekly = inngest.createFunction(
   { id: "usda-export-sales-weekly", name: "USDA Export Sales (Weekly)", retries: 3, concurrency: [DB_CONCURRENCY] },
-  { cron: "0 18 * * 4" }, // Thursdays 12PM CT
+  { cron: "0 21 * * 4" }, // Thursdays 21:00 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");
 
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["usda-export-sales-weekly"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "usda-export-sales-weekly"));
-      logger.info(`Started ingest run: ${runId}`);
+    logger.info(`Started ingest run: ${runId}`);
 
-      const html = await step.run("fetch", async () => {
-        const res = await fetch(SOURCE_URL, { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
-        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-        return await res.text();
-      });
+    // ── Step 2: fetch HTML from USDA FAS ──
+    const html = await step.run("fetch", async () => {
+      const res = await fetch(SOURCE_URL, { headers: { "User-Agent": "ZINC-Fusion/1.0" } });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      return await res.text();
+    });
 
-      const preMatch = html.match(/<pre>([\s\S]*?)<\/pre>/i);
-      if (!preMatch) throw new Error("Failed to extract <pre> content from complete.htm");
-      const preText = preMatch[1];
-      const reportDateYmd = parseAsOfDate(preText);
-      const preLines = preText.split(/\r?\n/);
-      logger.info(`Report AS OF: ${reportDateYmd}`);
+    // ── Parse (pure computation, no DB needed) ──
+    const preMatch = html.match(/<pre>([\s\S]*?)<\/pre>/i);
+    if (!preMatch) throw new Error("Failed to extract <pre> content from complete.htm");
+    const preText = preMatch[1];
+    const reportDateYmd = parseAsOfDate(preText);
+    const preLines = preText.split(/\r?\n/);
+    logger.info(`Report AS OF: ${reportDateYmd}`);
 
-      // 1) Totals from the weekly transaction summary (destination_country='TOTAL').
-      const summary = parseSummaryRows(preLines, reportDateYmd).filter((r) => r.weekEnding === reportDateYmd);
-      for (const r of summary) {
-        attempted++;
-        const destinationCountry = "TOTAL";
-        if (await rowExists(client, r.weekEnding, r.commodity, destinationCountry)) {
-          skipped++;
-          continue;
+    // Parse all rows (pure computation)
+    const summaryRows = parseSummaryRows(preLines, reportDateYmd).filter((r) => r.weekEnding === reportDateYmd);
+    const soyRows = parseDestinationSection(preLines, reportDateYmd, /^SOYBEANS\s+MARKETING YEAR/, "Soybeans");
+    const mealRows = parseDestinationSection(preLines, reportDateYmd, /^SOYBEAN CAKE AND MEAL\s+MARKETING YEAR/, "Soybean Meal");
+    const oilRows = parseDestinationSection(preLines, reportDateYmd, /^SOYBEAN OIL\s+MARKETING YEAR/, "Soybean Oil");
+
+    // ── Step 3: insert all rows (one connection for the batch) ──
+    const batchResult = await step.run("insert-all-rows", async () => {
+      let attempted = 0;
+      let inserted = 0;
+      let skipped = 0;
+
+      const client = await pool.connect();
+      try {
+        // 1) Totals from the weekly transaction summary
+        for (const r of summaryRows) {
+          attempted++;
+          const destinationCountry = "TOTAL";
+
+          const exists = await client.query(
+            `SELECT 1 FROM supply.usda_exports_1w
+             WHERE event_date=$1::date AND commodity=$2 AND COALESCE(destination_country,'')=COALESCE($3,'')
+             LIMIT 1`,
+            [r.weekEnding, r.commodity, destinationCountry]
+          );
+          if (exists.rows.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          const netSalesMt = multiplyKmtToMt(r.netSalesKmt);
+          const exportsMt = multiplyKmtToMt(r.exportsKmt);
+          const outstandingMt = multiplyKmtToMt(r.outstandingKmt);
+          const rowHash = computeRowHash(r.weekEnding, r.commodity, destinationCountry, netSalesMt, exportsMt, outstandingMt);
+
+          await client.query(
+            `INSERT INTO supply.usda_exports_1w
+              (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
+               source, row_hash)
+             VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
+            [r.weekEnding, r.commodity, destinationCountry, netSalesMt, exportsMt, outstandingMt, "usda_fas_export_sales", rowHash]
+          );
+          inserted++;
         }
 
-        const netSalesMt = multiplyKmtToMt(r.netSalesKmt);
-        const exportsMt = multiplyKmtToMt(r.exportsKmt);
-        const outstandingMt = multiplyKmtToMt(r.outstandingKmt);
-        const rowHash = computeRowHash(r.weekEnding, r.commodity, destinationCountry, netSalesMt, exportsMt, outstandingMt);
+        // 2) Destination breakdown
+        for (const row of [...soyRows, ...mealRows, ...oilRows]) {
+          attempted++;
 
-        await client.query(
-          `INSERT INTO supply.usda_exports_1w
-            (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
-             source, row_hash)
-           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
-          [
-            r.weekEnding,
-            r.commodity,
-            destinationCountry,
-            netSalesMt,
-            exportsMt,
-            outstandingMt,
-            "usda_fas_export_sales",
-            rowHash,
-          ]
-        );
-        inserted++;
-      }
+          const exists = await client.query(
+            `SELECT 1 FROM supply.usda_exports_1w
+             WHERE event_date=$1::date AND commodity=$2 AND COALESCE(destination_country,'')=COALESCE($3,'')
+             LIMIT 1`,
+            [row.reportDate, row.commodity, row.destinationCountry]
+          );
+          if (exists.rows.length > 0) {
+            skipped++;
+            continue;
+          }
 
-      // 2) Destination breakdown (outstanding + accumulated exports).
-      const soyRows = parseDestinationSection(
-        preLines,
-        reportDateYmd,
-        /^SOYBEANS\s+MARKETING YEAR/,
-        "Soybeans"
-      );
-      const mealRows = parseDestinationSection(
-        preLines,
-        reportDateYmd,
-        /^SOYBEAN CAKE AND MEAL\s+MARKETING YEAR/,
-        "Soybean Meal"
-      );
-      const oilRows = parseDestinationSection(
-        preLines,
-        reportDateYmd,
-        /^SOYBEAN OIL\s+MARKETING YEAR/,
-        "Soybean Oil"
-      );
+          const netSalesMt = null;
+          const exportsMt = multiplyKmtToMt(row.accumulatedExportsKmt);
+          const outstandingMt = multiplyKmtToMt(row.outstandingSalesKmt);
+          const rowHash = computeRowHash(row.reportDate, row.commodity, row.destinationCountry, netSalesMt, exportsMt, outstandingMt);
 
-      for (const row of [...soyRows, ...mealRows, ...oilRows]) {
-        attempted++;
-        if (await rowExists(client, row.reportDate, row.commodity, row.destinationCountry)) {
-          skipped++;
-          continue;
+          await client.query(
+            `INSERT INTO supply.usda_exports_1w
+              (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
+               source, row_hash)
+             VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
+            [row.reportDate, row.commodity, row.destinationCountry, netSalesMt, exportsMt, outstandingMt, "usda_fas_export_sales", rowHash]
+          );
+          inserted++;
         }
+      } finally {
+        client.release();
+      }
 
-        const netSalesMt = null;
-        const exportsMt = multiplyKmtToMt(row.accumulatedExportsKmt);
-        const outstandingMt = multiplyKmtToMt(row.outstandingSalesKmt);
-        const rowHash = computeRowHash(row.reportDate, row.commodity, row.destinationCountry, netSalesMt, exportsMt, outstandingMt);
+      return { attempted, inserted, skipped };
+    });
 
+    // ── Step 4: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
         await client.query(
-          `INSERT INTO supply.usda_exports_1w
-            (event_date, commodity, destination_country, net_sales_mt, exports_mt, outstanding_sales_mt,
-             source, row_hash)
-           VALUES ($1::date,$2,$3,$4,$5,$6,$7,$8)`,
-          [
-            row.reportDate,
-            row.commodity,
-            row.destinationCountry,
-            netSalesMt,
-            exportsMt,
-            outstandingMt,
-            "usda_fas_export_sales",
-            rowHash,
-          ]
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", batchResult.attempted, batchResult.inserted, batchResult.skipped, 0]
         );
-        inserted++;
+      } finally {
+        client.release();
       }
+    });
 
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
-      return { status: "success", runId, attempted, inserted, skipped, quarantined, reportDate: reportDateYmd };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
-      }
-      throw error;
-    } finally {
-      client.release();
-    }
+    logger.info(`Completed: ${batchResult.inserted} inserted, ${batchResult.skipped} skipped`);
+
+    return {
+      status: "success",
+      runId,
+      attempted: batchResult.attempted,
+      inserted: batchResult.inserted,
+      skipped: batchResult.skipped,
+      quarantined: 0,
+      reportDate: reportDateYmd,
+    };
   }
 );

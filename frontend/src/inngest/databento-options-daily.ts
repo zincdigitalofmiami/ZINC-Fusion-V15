@@ -368,29 +368,61 @@ function parseOptionsOhlcvCsv(
   return results;
 }
 
-export const databentoOptionsDaily = inngest.createFunction(
-  {
-    id: "databento-options-daily",
-    name: "Databento Options Daily OHLCV",
-    retries: 2,
-    concurrency: [DB_CONCURRENCY],
-  },
-  { cron: "TZ=America/Chicago 0 2 * * *" }, // Daily at 02:00 CT — heaviest job runs overnight, no contention
-  async ({ step, logger }) => {
-    const results: OptionResult[] = [];
+const OPTIONS_SHARD_CRONS = [
+  "TZ=America/Chicago 5 0 * * *",
+  "TZ=America/Chicago 5 3 * * *",
+  "TZ=America/Chicago 5 6 * * *",
+  "TZ=America/Chicago 5 9 * * *",
+  "TZ=America/Chicago 5 12 * * *",
+  "TZ=America/Chicago 5 15 * * *",
+  "TZ=America/Chicago 5 18 * * *",
+  "TZ=America/Chicago 5 21 * * *",
+];
 
-    // Calculate date range: last 5 days to handle weekends/holidays
-    const endDate = new Date();
-    const startDate = new Date(endDate);
-    startDate.setUTCDate(startDate.getUTCDate() - 5);
+function splitIntoShards<T>(items: T[], shardCount: number): T[][] {
+  const shards = Array.from({ length: shardCount }, () => [] as T[]);
+  items.forEach((item, idx) => {
+    shards[idx % shardCount].push(item);
+  });
+  return shards;
+}
 
-    const startStr = startDate.toISOString().split("T")[0];
-    const endStr = endDate.toISOString().split("T")[0];
+const OPTIONS_SHARDS = splitIntoShards(OPTIONS_CONFIG, OPTIONS_SHARD_CRONS.length);
 
-    logger.info(`Fetching options data from ${startStr} to ${endStr}`);
+type StepLike = {
+  run: <T>(id: string, fn: () => Promise<T> | T) => Promise<T>;
+};
+type LoggerLike = {
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+  error: (msg: string) => void;
+};
 
-    for (const config of OPTIONS_CONFIG) {
-      await step.run(`fetch-${config.underlying}-options`, async () => {
+async function runOptionsShard(
+  shardConfigs: typeof OPTIONS_CONFIG,
+  shardIndex: number,
+  shardCount: number,
+  step: StepLike,
+  logger: LoggerLike,
+) {
+  const results: OptionResult[] = [];
+
+  // Calculate date range: last 5 days to handle weekends/holidays
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 5);
+
+  const startStr = startDate.toISOString().split("T")[0];
+  const endStr = endDate.toISOString().split("T")[0];
+
+  logger.info(
+    `Options shard ${shardIndex}/${shardCount}: fetching ${shardConfigs.length} symbols from ${startStr} to ${endStr}`,
+  );
+
+  for (const config of shardConfigs) {
+    await step.run(
+      `fetch-options-shard-${shardIndex}-${config.underlying}-${config.optSymbol}`,
+      async () => {
         try {
           logger.info(`Fetching ${config.name} (${config.optSymbol})`);
 
@@ -413,9 +445,7 @@ export const databentoOptionsDaily = inngest.createFunction(
             return;
           }
 
-          logger.info(
-            `${config.underlying}: ${defMap.size} option definitions`
-          );
+          logger.info(`${config.underlying}: ${defMap.size} option definitions`);
 
           // Step 2: Fetch OHLCV
           const ohlcvCsv = await fetchDatabentoCsv({
@@ -433,7 +463,7 @@ export const databentoOptionsDaily = inngest.createFunction(
           const optionBars = parseOptionsOhlcvCsv(
             ohlcvCsv,
             defMap,
-            config.underlying
+            config.underlying,
           );
           if (optionBars.length === 0) {
             logger.info(`No OHLCV data for ${config.underlying}`);
@@ -441,7 +471,7 @@ export const databentoOptionsDaily = inngest.createFunction(
             return;
           }
 
-          // Step 2b: Fetch statistics (open_interest, bid, ask, change, settlement) - Databento statistics schema
+          // Step 2b: Fetch statistics (open_interest, bid, ask, change, settlement)
           let statsByKey = parseDatabentoStatisticsCsvOptions("");
           try {
             const statsCsv = await fetchDatabentoCsv({
@@ -456,9 +486,13 @@ export const databentoOptionsDaily = inngest.createFunction(
               pretty_px: "true",
             });
             statsByKey = parseDatabentoStatisticsCsvOptions(statsCsv);
-            logger.info(`${config.underlying}: stats lookup ${statsByKey.size} symbol-date keys`);
+            logger.info(
+              `${config.underlying}: stats lookup ${statsByKey.size} symbol-date keys`,
+            );
           } catch (err) {
-            logger.warn(`Statistics fetch failed for ${config.underlying}, continuing with OHLCV only: ${err}`);
+            logger.warn(
+              `Statistics fetch failed for ${config.underlying}, continuing with OHLCV only: ${err}`,
+            );
           }
 
           // Merge all 15 statistics into bars by (rawSymbol, eventDate)
@@ -496,7 +530,7 @@ export const databentoOptionsDaily = inngest.createFunction(
                 bar.eventDate,
                 bar.expiration,
                 bar.strike,
-                bar.optionType
+                bar.optionType,
               );
 
               await client.query(
@@ -559,7 +593,7 @@ export const databentoOptionsDaily = inngest.createFunction(
                   bar.impliedVolatility,
                   bar.delta,
                   rowHash,
-                ]
+                ],
               );
               inserted++;
             }
@@ -582,23 +616,38 @@ export const databentoOptionsDaily = inngest.createFunction(
             error: errorMsg,
           });
         }
-      });
-    }
-
-    const successCount = results.filter((r) => r.status === "success").length;
-    const totalRows = results.reduce(
-      (sum, r) => sum + (r.rowsInserted || 0),
-      0
+      },
     );
-
-    return {
-      status: "complete",
-      timestamp: new Date().toISOString(),
-      dateRange: { start: startStr, end: endStr },
-      results,
-      successCount,
-      errorCount: results.filter((r) => r.status === "error").length,
-      totalRowsInserted: totalRows,
-    };
   }
+
+  const successCount = results.filter((r) => r.status === "success").length;
+  const totalRows = results.reduce((sum, r) => sum + (r.rowsInserted || 0), 0);
+  const shardSymbols = shardConfigs.map((s) => s.underlying).join(",");
+
+  return {
+    status: "complete",
+    timestamp: new Date().toISOString(),
+    shardIndex,
+    shardCount,
+    symbols: shardSymbols,
+    dateRange: { start: startStr, end: endStr },
+    results,
+    successCount,
+    errorCount: results.filter((r) => r.status === "error").length,
+    totalRowsInserted: totalRows,
+  };
+}
+
+export const databentoOptionsDailyShards = OPTIONS_SHARDS.map((shard, index) =>
+  inngest.createFunction(
+    {
+      id: `databento-options-daily-shard-${index + 1}`,
+      name: `Databento Options Daily OHLCV Shard ${index + 1}/${OPTIONS_SHARDS.length}`,
+      retries: 2,
+      concurrency: [DB_CONCURRENCY],
+    },
+    { cron: OPTIONS_SHARD_CRONS[index] },
+    async ({ step, logger }) =>
+      runOptionsShard(shard, index + 1, OPTIONS_SHARDS.length, step, logger),
+  ),
 );

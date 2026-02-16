@@ -1,6 +1,11 @@
 /**
  * Open-Meteo Weather (1D) Data Ingestion
  *
+ * INGESTION CONTRACT:
+ * - Logs each run in ops.ingest_run
+ * - Computes row_hash for idempotency
+ * - Append-only inserts (no upserts)
+ *
  * Refreshes `alt.weather_1d` for Open-Meteo-backed station ids:
  * - `OM_*` (US soy belt cities)
  * - `OPENMETEO:*` (region-level codes)
@@ -8,10 +13,13 @@
  * Notes:
  * - Insert-only, idempotent via (station_id, event_date) existence checks + row_hash.
  * - No synthetic data; quarantines when geocoding is ambiguous or missing.
+ *
+ * @author Claude (ZINC-FUSION-V15)
+ * @version 1.1.0
+ * @date 2026-02-16
  */
 
 import { createHash } from "crypto";
-import { type PoolClient } from "pg";
 import { inngest, DB_CONCURRENCY } from "./client";
 import dbPool from "@/lib/db";
 
@@ -58,64 +66,13 @@ function computeRowHash(stationId: string, eventDate: string, payload: Record<st
     .digest("hex");
 }
 
-async function createIngestRun(client: PoolClient, jobName: string): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-    [jobName]
-  );
-  return result.rows[0].id;
-}
-
-async function updateIngestRun(
-  client: PoolClient,
-  runId: string,
-  status: string,
-  attempted: number,
-  inserted: number,
-  skipped: number,
-  quarantined: number,
-  errorMessage?: string
-): Promise<void> {
-  await client.query(
-    `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-     rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-    [runId, status, attempted, inserted, skipped, quarantined, errorMessage]
-  );
-}
+// PoolClient helper functions removed — SQL inlined inside step.run() closures
+// to prevent stale connections across Inngest durable execution boundaries.
 
 function addDays(yyyyMmDd: string, days: number): string {
   const dt = new Date(`${yyyyMmDd}T00:00:00Z`);
   dt.setUTCDate(dt.getUTCDate() + days);
   return dt.toISOString().slice(0, 10);
-}
-
-async function eventStationExists(client: PoolClient, stationId: string, eventDate: string): Promise<boolean> {
-  const r = await client.query(
-    `SELECT 1 FROM alt.weather_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
-    [stationId, eventDate]
-  );
-  return r.rows.length > 0;
-}
-
-async function getStations(client: PoolClient): Promise<
-  Array<{
-    station_id: string;
-    max_date: string | null;
-    region: string | null;
-    country: string | null;
-  }>
-> {
-  const r = await client.query(
-    `SELECT station_id,
-            MAX(event_date)::date::text as max_date,
-            MAX(region)::text as region,
-            MAX(country)::text as country
-     FROM alt.weather_1d
-     WHERE station_id LIKE 'OM\\_%' OR station_id LIKE 'OPENMETEO:%'
-     GROUP BY station_id
-     ORDER BY station_id`
-  );
-  return r.rows;
 }
 
 function resolveGeocodeQuery(
@@ -258,33 +215,61 @@ async function fetchDailyArchive(
 
 export const openmeteoWeatherDaily = inngest.createFunction(
   { id: "openmeteo-weather-daily", name: "Open-Meteo Weather (1D)", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
-  { cron: "10 6 * * *" }, // Daily at 06:10 UTC
+  { cron: "0 14 * * *" }, // Daily at 14:00 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not configured");
 
-    const client = await pool.connect();
-    let runId: string | null = null;
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+    // ── Step 1: create ingest run ──
+    const runId = await step.run("create-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+          ["openmeteo-weather-daily"]
+        );
+        return result.rows[0].id as string;
+      } finally {
+        client.release();
+      }
+    });
 
-    try {
-      runId = await step.run("create-ingest-run", () => createIngestRun(client, "openmeteo-weather-daily"));
-      logger.info(`Started ingest run: ${runId}`);
+    logger.info(`Started ingest run: ${runId}`);
 
-      const stations = await step.run("load-stations", () => getStations(client));
-      logger.info(`Stations: ${stations.length}`);
+    // ── Step 2: load station list ──
+    const stations = await step.run("load-stations", async () => {
+      const client = await pool.connect();
+      try {
+        const r = await client.query(
+          `SELECT station_id,
+                  MAX(event_date)::date::text as max_date,
+                  MAX(region)::text as region,
+                  MAX(country)::text as country
+           FROM alt.weather_1d
+           WHERE station_id LIKE 'OM\\_%' OR station_id LIKE 'OPENMETEO:%'
+           GROUP BY station_id
+           ORDER BY station_id`
+        );
+        return r.rows as Array<{ station_id: string; max_date: string | null; region: string | null; country: string | null }>;
+      } finally {
+        client.release();
+      }
+    });
 
-      const today = new Date().toISOString().slice(0, 10);
-      const endDate = addDays(today, -1); // avoid same-day partials
+    logger.info(`Stations: ${stations.length}`);
 
-      const batchSummary = await step.run("ingest-stations-batch", async () => {
-        let attemptedLocal = 0;
-        let insertedLocal = 0;
-        let skippedLocal = 0;
-        let quarantinedLocal = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const endDate = addDays(today, -1); // avoid same-day partials
 
+    // ── Step 3: fetch + insert (batched in one step) ──
+    // One connection for the entire batch is fine — this is a single step.run().
+    const batchSummary = await step.run("ingest-stations-batch", async () => {
+      let attemptedLocal = 0;
+      let insertedLocal = 0;
+      let skippedLocal = 0;
+      let quarantinedLocal = 0;
+
+      const client = await pool.connect();
+      try {
         for (const station of stations) {
           const startDate = station.max_date ? addDays(station.max_date, 1) : addDays(endDate, -30);
           if (startDate > endDate) continue;
@@ -306,7 +291,12 @@ export const openmeteoWeatherDaily = inngest.createFunction(
             if (!eventDate) continue;
 
             attemptedLocal++;
-            if (await eventStationExists(client, station.station_id, eventDate)) {
+
+            const exists = await client.query(
+              `SELECT 1 FROM alt.weather_1d WHERE station_id=$1 AND event_date=$2::date LIMIT 1`,
+              [station.station_id, eventDate]
+            );
+            if (exists.rows.length > 0) {
               skippedLocal++;
               continue;
             }
@@ -363,30 +353,41 @@ export const openmeteoWeatherDaily = inngest.createFunction(
             insertedLocal++;
           }
         }
-
-        return {
-          attempted: attemptedLocal,
-          inserted: insertedLocal,
-          skipped: skippedLocal,
-          quarantined: quarantinedLocal,
-        };
-      });
-
-      attempted += batchSummary.attempted;
-      inserted += batchSummary.inserted;
-      skipped += batchSummary.skipped;
-      quarantined += batchSummary.quarantined;
-
-      await step.run("complete", () => updateIngestRun(client, runId!, "success", attempted, inserted, skipped, quarantined));
-      return { status: "success", runId, attempted, inserted, skipped, quarantined };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (runId) {
-        await updateIngestRun(client, runId, "failed", attempted, inserted, skipped, quarantined, msg);
+      } finally {
+        client.release();
       }
-      throw error;
-    } finally {
-      client.release();
-    }
+
+      return {
+        attempted: attemptedLocal,
+        inserted: insertedLocal,
+        skipped: skippedLocal,
+        quarantined: quarantinedLocal,
+      };
+    });
+
+    // ── Step 4: finalize ingest run ──
+    await step.run("complete-ingest-run", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
+          [runId, "success", batchSummary.attempted, batchSummary.inserted, batchSummary.skipped, batchSummary.quarantined]
+        );
+      } finally {
+        client.release();
+      }
+    });
+
+    logger.info(`Completed: ${batchSummary.inserted} inserted, ${batchSummary.skipped} skipped`);
+
+    return {
+      status: "success",
+      runId,
+      attempted: batchSummary.attempted,
+      inserted: batchSummary.inserted,
+      skipped: batchSummary.skipped,
+      quarantined: batchSummary.quarantined,
+    };
   }
 );

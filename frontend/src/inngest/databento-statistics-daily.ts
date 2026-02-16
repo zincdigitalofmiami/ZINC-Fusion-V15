@@ -157,16 +157,30 @@ async function upsertOpenInterest(
   }
 }
 
-// Split 84 symbols into batches for resilience — each batch is a separate
-// step.run() so Inngest can retry individual batches on failure.
-const BATCH_SIZE = 21;
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
+// Spread load across 24h: many small shards instead of morning-heavy batches.
+const STATISTICS_SHARD_CRONS = [
+  "TZ=America/Chicago 20 1 * * *",
+  "TZ=America/Chicago 20 4 * * *",
+  "TZ=America/Chicago 20 7 * * *",
+  "TZ=America/Chicago 20 10 * * *",
+  "TZ=America/Chicago 20 13 * * *",
+  "TZ=America/Chicago 20 16 * * *",
+  "TZ=America/Chicago 20 19 * * *",
+  "TZ=America/Chicago 20 22 * * *",
+];
+
+function splitIntoShards<T>(items: T[], shardCount: number): T[][] {
+  const shards = Array.from({ length: shardCount }, () => [] as T[]);
+  items.forEach((item, idx) => {
+    shards[idx % shardCount].push(item);
+  });
+  return shards;
 }
+
+const STATISTICS_SHARDS = splitIntoShards(
+  DATABENTO_SYMBOLS,
+  STATISTICS_SHARD_CRONS.length,
+);
 
 async function fetchStatsBatch(
   batch: typeof DATABENTO_SYMBOLS,
@@ -245,35 +259,38 @@ async function fetchStatsBatch(
   return batchResults;
 }
 
-export const databentoStatisticsDaily = inngest.createFunction(
-  {
-    id: "databento-statistics-daily",
-    name: "Databento Statistics Daily (Open Interest)",
-    retries: 3,
-    concurrency: [DB_CONCURRENCY],
-  },
-  { cron: "TZ=America/Chicago 0 4 * * *" }, // Daily at 04:00 CT — runs overnight after options @ 02:00
-  async ({ step, logger }) => {
-    const batches = chunkArray(DATABENTO_SYMBOLS, BATCH_SIZE);
-    const allResults: SymbolResult[] = [];
+export const databentoStatisticsDailyShards = STATISTICS_SHARDS.map(
+  (shard, index) =>
+    inngest.createFunction(
+      {
+        id: `databento-statistics-daily-shard-${index + 1}`,
+        name: `Databento Statistics Daily (Open Interest) Shard ${index + 1}/${STATISTICS_SHARDS.length}`,
+        retries: 3,
+        concurrency: [DB_CONCURRENCY],
+      },
+      { cron: STATISTICS_SHARD_CRONS[index] },
+      async ({ step, logger }) => {
+        const shardSymbols = shard.map((s) => s.canonical).join(",");
+        const results = await step.run(
+          `fetch-stats-shard-${index + 1}`,
+          async () => fetchStatsBatch(shard, logger),
+        );
 
-    for (let i = 0; i < batches.length; i++) {
-      const batchSymbols = batches[i].map((s) => s.canonical).join(",");
-      const results = await step.run(
-        `fetch-stats-batch-${i + 1}-of-${batches.length}`,
-        async () => fetchStatsBatch(batches[i], logger),
-      );
-      allResults.push(...results);
-      logger.info(`Batch ${i + 1}/${batches.length} done (${batchSymbols})`);
-    }
+        logger.info(
+          `Statistics shard ${index + 1}/${STATISTICS_SHARDS.length} completed (${shardSymbols})`,
+        );
 
-    return {
-      status: "complete",
-      timestamp: new Date().toISOString(),
-      results: allResults,
-      successCount: allResults.filter((r) => r.status === "success").length,
-      errorCount: allResults.filter((r) => r.status === "error").length,
-      noDataCount: allResults.filter((r) => r.status === "no_data").length,
-    };
-  },
+        return {
+          status: "complete",
+          timestamp: new Date().toISOString(),
+          shardIndex: index + 1,
+          shardCount: STATISTICS_SHARDS.length,
+          symbols: shardSymbols,
+          results,
+          successCount: results.filter((r) => r.status === "success").length,
+          errorCount: results.filter((r) => r.status === "error").length,
+          noDataCount: results.filter((r) => r.status === "no_data").length,
+        };
+      },
+    ),
 );
