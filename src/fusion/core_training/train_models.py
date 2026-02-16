@@ -120,6 +120,11 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> TimeSeriesDataFrame:
     # Drop rows where target is null (can't train on them)
     df_clean = df.dropna(subset=[target_col]).copy()
 
+    # Drop known-problematic column before feature selection.
+    if "hurst_exponent" in df_clean.columns:
+        df_clean = df_clean.drop(columns=["hurst_exponent"])
+        logger.warning("   Dropped column 'hurst_exponent' from core training matrix")
+
     # Identify feature columns (everything except metadata and other targets)
     exclude_cols = {"trade_date", "symbol", "matrix_version", "created_at"} | {
         f"target_ret_{h}d" for h in HORIZONS if h != horizon
