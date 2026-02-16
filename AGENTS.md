@@ -36,7 +36,7 @@ Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeSc
 
 ## Model Architecture
 
-- **L0 Core:** 4 AutoGluon TimeSeriesPredictor models (5d/21d/63d/126d horizons)
+- **L0 Core:** 4 AutoGluon TimeSeriesPredictor ensembles (5d/21d/63d/126d), each training a 25-model zoo
 - **Specialists:** 11 signal generators (domain-specific, no horizons)
 - **L1 Meta:** Core models consume specialist signals as input features (no separate meta-learner)
 - **L2/L3:** Calibration + Monte Carlo risk (VaR/CVaR)
