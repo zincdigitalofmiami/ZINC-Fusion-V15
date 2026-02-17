@@ -100,6 +100,17 @@ export const zl1h = inngest.createFunction(
           );
           count++;
         }
+
+        // Keep latest_price current from hourly bars when live 1m feed is down
+        if (bars.length > 0) {
+          const newest = bars[bars.length - 1];
+          await client.query(
+            `UPDATE analytics.latest_price
+             SET price = $1, timestamp = $2, updated_at = NOW()
+             WHERE id = 1 AND (timestamp IS NULL OR timestamp < $2)`,
+            [newest.close, newest.eventTime]
+          );
+        }
       } finally {
         client.release();
       }

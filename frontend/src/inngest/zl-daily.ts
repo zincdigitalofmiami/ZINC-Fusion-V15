@@ -90,6 +90,14 @@ export const zlDaily = inngest.createFunction(
             zlQuote.volume || 0,
           ]
         );
+
+        // Keep latest_price current as batch fallback when live 1m feed is down
+        await client.query(
+          `UPDATE analytics.latest_price
+           SET price = $1, timestamp = $2, updated_at = NOW()
+           WHERE id = 1 AND (timestamp IS NULL OR timestamp < $2)`,
+          [zlQuote.close, zlQuote.eventDate]
+        );
       } finally {
         client.release();
       }

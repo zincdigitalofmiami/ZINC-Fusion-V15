@@ -101,9 +101,30 @@ interface VegasBrief {
 
 async function getCurrentPrice(): Promise<PriceSummary | null> {
   try {
-    // Get latest price
-    const latest = await query<{price: number, timestamp: string}>(`
-      SELECT price, timestamp FROM analytics.latest_price WHERE id = 1
+    // Waterfall: pick freshest price from 1m → 15m → 1h → 1d
+    // (analytics.latest_price is only updated by the live 1m feed which may be stale)
+    const freshest = await query<{price: number, timestamp: string, source: string}>(`
+      SELECT price, timestamp, source FROM (
+        SELECT close AS price, timestamp::text, '1m' AS source
+          FROM analytics.price_1m ORDER BY timestamp DESC LIMIT 1
+      ) t1m
+      UNION ALL
+      SELECT price, timestamp, source FROM (
+        SELECT close AS price, timestamp::text, '15m' AS source
+          FROM analytics.price_15m ORDER BY timestamp DESC LIMIT 1
+      ) t15m
+      UNION ALL
+      SELECT price, timestamp, source FROM (
+        SELECT close AS price, timestamp::text, '1h' AS source
+          FROM analytics.price_1h ORDER BY timestamp DESC LIMIT 1
+      ) t1h
+      UNION ALL
+      SELECT price, timestamp, source FROM (
+        SELECT close AS price, event_date::text AS timestamp, '1d' AS source
+          FROM analytics.price_1d WHERE close IS NOT NULL ORDER BY event_date DESC LIMIT 1
+      ) t1d
+      ORDER BY timestamp DESC
+      LIMIT 1
     `)
 
     // Get recent daily closes for week range
@@ -112,9 +133,9 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
       ORDER BY event_date DESC LIMIT 6
     `)
 
-    if (!latest.length || !dailyCloses.length) return null
+    if (!freshest.length || !dailyCloses.length) return null
 
-    const current = latest[0].price
+    const current = freshest[0].price
     const previousClose = dailyCloses[1]?.close ?? dailyCloses[0].close
     const weekPrices = dailyCloses.map(r => r.close)
 
@@ -125,7 +146,7 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
       changePct: ((current - previousClose) / previousClose) * 100,
       weekHigh: Math.max(...weekPrices, current),
       weekLow: Math.min(...weekPrices, current),
-      asOf: latest[0].timestamp
+      asOf: freshest[0].timestamp
     }
   } catch (e) {
     console.error('Price fetch error:', e)
