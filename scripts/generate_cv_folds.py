@@ -68,16 +68,16 @@ def get_postgres_connection():
 
 
 def get_date_range(conn) -> Tuple[datetime, datetime]:
-    """Get the date range from market_futures_1d for ZL symbol."""
+    """Get the date range from mkt.futures_1d for ZL symbol."""
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT MIN(as_of_date), MAX(as_of_date)
-            FROM market_futures_1d
+            SELECT MIN(event_date), MAX(event_date)
+            FROM mkt.futures_1d
             WHERE symbol = 'ZL'
         """)
         result = cur.fetchone()
         if not result or not result[0]:
-            raise ValueError("No ZL data found in market_futures_1d")
+            raise ValueError("No ZL data found in mkt.futures_1d")
         return result[0], result[1]
 
 

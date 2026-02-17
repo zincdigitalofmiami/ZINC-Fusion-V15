@@ -403,10 +403,10 @@ class AnomalyDetector:
         for idx, row in df.iterrows():
             flags = []
 
-            # Extreme sentiment
-            if pd.notna(row.get("sentiment_score")):
-                if abs(row["sentiment_score"]) > 0.95:
-                    flags.append("sentiment_extreme")
+            # Sentiment validation (zl_sentiment is categorical string)
+            sentiment = row.get("zl_sentiment")
+            if pd.isna(sentiment) or str(sentiment).strip() == "":
+                flags.append("sentiment_missing")
 
             # Empty content
             if (

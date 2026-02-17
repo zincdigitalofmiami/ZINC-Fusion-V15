@@ -66,7 +66,9 @@ try:
         FRED_CONFIG,
     )
 except ImportError:
-    # Fallback defaults if config not available
+    logging.getLogger(__name__).warning(
+        "forward_fill_config not found — using fallback TTL=5d for all sources"
+    )
     get_ttl_days = lambda x: 5  # noqa: E731
     get_source_config = lambda x: None  # noqa: E731
     FRED_CONFIG = {}
@@ -2204,7 +2206,13 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
             VALUES %s
         """
 
-        values = [tuple(row) for row in df.itertuples(index=False, name=None)]
+        # Convert NaN -> None so Postgres stores NULL (not NaN which poisons aggregates).
+        # Reuses double-defense pattern from train_models.py OOF write path.
+        df = df.where(df.notna(), None)
+        values = [
+            tuple(None if pd.isna(v) else v for v in row)
+            for row in df.itertuples(index=False, name=None)
+        ]
 
         chunk_size = 500
         for i in range(0, len(values), chunk_size):

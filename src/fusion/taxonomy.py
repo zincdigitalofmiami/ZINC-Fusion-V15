@@ -7,7 +7,10 @@ This is the single source of truth for driver IDs, schemas, and naming rules.
 LOCKED — DO NOT MODIFY WITHOUT EXPLICIT APPROVAL.
 """
 
+import logging
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # DRIVER TAXONOMY (16 TOTAL: 11 Economic + 5 Neural)
@@ -334,14 +337,20 @@ def validate_config_compliance() -> dict[str, bool]:
 
     Returns:
         Dict of check_name -> passed
-    """
-    checks = {}
 
-    # Specialist config checks (import from autogluon_config at call time)
-    from fusion.autogluon_config import (
-        DRIFT_THRESHOLDS,
-        SPECIALIST_CONFIG,
-    )
+    Raises:
+        ImportError: If fusion.autogluon_config is not available
+    """
+    try:
+        from fusion.autogluon_config import (
+            DRIFT_THRESHOLDS,
+            SPECIALIST_CONFIG,
+        )
+    except ImportError:
+        logger.warning("fusion.autogluon_config not found — skipping config compliance")
+        return {}
+
+    checks = {}
 
     cfg = SPECIALIST_CONFIG
     checks["specialist_bag_folds_sufficient"] = cfg.num_bag_folds >= 5

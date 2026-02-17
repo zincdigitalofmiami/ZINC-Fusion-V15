@@ -44,6 +44,7 @@
     "fast-xml-parser": "^5.3.3",
     "framer-motion": "^12.25.0",
     "inngest": "^3.50.0",
+    "inngest-cli": "^1.17.0",
     "input-otp": "^1.4.2",
     "is-plain-object": "^2.0.4",
     "jszip": "^3.10.1",

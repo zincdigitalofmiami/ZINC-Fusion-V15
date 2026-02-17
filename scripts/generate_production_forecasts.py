@@ -9,6 +9,7 @@ residuals, and upserts into forecasts.production_1d.
 
 import logging
 import sys
+from datetime import date
 
 import pandas as pd
 
@@ -27,6 +28,16 @@ logger = logging.getLogger(__name__)
 
 HORIZONS = [5, 21, 63, 126]
 SYMBOL = "ZL"
+
+# OOF freshness SLAs: maximum business-day lag allowed per horizon.
+# Gates on trained_at (model-run recency), NOT trade_date which is naturally
+# horizon-lagged due to shift(-horizon) target construction in build_matrix.py.
+OOF_FRESHNESS_SLA: dict[int, int] = {
+    5: 3,  # 5d horizon: max 3 business days since last training run
+    21: 5,  # 21d horizon: max 5 business days
+    63: 10,  # 63d horizon: max 10 business days
+    126: 15,  # 126d horizon: max 15 business days
+}
 
 
 def get_latest_zl_close(engine) -> tuple:
@@ -76,6 +87,58 @@ def get_latest_oof_by_horizon(engine, horizon: int) -> pd.DataFrame:
         GROUP BY trade_date
     """
     return pd.read_sql(query, engine, params=(horizon, SYMBOL, horizon, SYMBOL))
+
+
+def check_oof_freshness(
+    engine,
+    horizon: int,
+    as_of_date: date | None = None,
+) -> tuple[bool, int, str]:
+    """
+    Check if OOF predictions are fresh enough for production forecasts.
+
+    Gates on trained_at (when the model was actually run), NOT trade_date
+    which is naturally horizon-lagged by shift(-horizon) in build_matrix.py.
+    Uses business-day counting to avoid penalizing weekends/holidays.
+
+    Returns:
+        (passed, staleness_bdays, message)
+    """
+    if as_of_date is None:
+        as_of_date = date.today()
+
+    max_lag_bdays = OOF_FRESHNESS_SLA.get(horizon, 5)
+
+    query = """
+        SELECT MAX(trained_at) as max_trained_at
+        FROM training.oof_core_1d
+        WHERE horizon_days = %s AND symbol = %s
+    """
+    df = pd.read_sql(query, engine, params=(horizon, SYMBOL))
+
+    if df.empty or pd.isna(df.iloc[0]["max_trained_at"]):
+        return False, 999, f"{horizon}d: NO OOF data"
+
+    max_trained = df.iloc[0]["max_trained_at"]
+    if hasattr(max_trained, "date"):
+        max_trained = max_trained.date()
+
+    # Count business days between max_trained and as_of_date
+    bday_range = pd.bdate_range(start=max_trained, end=as_of_date)
+    staleness_bdays = max(0, len(bday_range) - 1)  # -1 because range is inclusive
+
+    if staleness_bdays <= max_lag_bdays:
+        return (
+            True,
+            staleness_bdays,
+            f"{horizon}d: OK ({staleness_bdays} bdays since training, SLA={max_lag_bdays})",
+        )
+    else:
+        return (
+            False,
+            staleness_bdays,
+            f"{horizon}d: STALE ({staleness_bdays} bdays > SLA={max_lag_bdays})",
+        )
 
 
 def compute_tail_offsets(engine, horizon: int) -> tuple[float, float]:
@@ -156,6 +219,29 @@ def upsert_production_forecast(conn, horizon: int, row: dict) -> bool:
     return True
 
 
+def _gate_oof_freshness(engine) -> bool:
+    """Check OOF freshness for all horizons. Returns True if all pass."""
+    logger.info("Checking OOF prediction freshness...")
+    stale_horizons = []
+    for horizon in HORIZONS:
+        passed, staleness, msg = check_oof_freshness(engine, horizon)
+        if passed:
+            logger.info(f"  OOF freshness: {msg}")
+        else:
+            logger.error(f"  OOF freshness: {msg}")
+            stale_horizons.append(horizon)
+
+    if stale_horizons:
+        logger.error(
+            f"OOF FRESHNESS GATE FAILED: horizons {stale_horizons} exceed SLA. "
+            f"Re-train core models before generating production forecasts."
+        )
+        return False
+
+    logger.info("OOF freshness gate PASSED for all horizons")
+    return True
+
+
 def generate_forecasts():
     """Main entry point: generate production forecasts from OOF predictions."""
     logger.info("=" * 60)
@@ -172,6 +258,10 @@ def generate_forecasts():
             return False
 
         logger.info(f"Current ZL close: {current_price:.4f} (as of {price_date})")
+
+        # Step 1.5: OOF freshness gate (HARD GATE on trained_at recency)
+        if not _gate_oof_freshness(engine):
+            return False
 
         # Step 2: Process each horizon
         total_written = 0

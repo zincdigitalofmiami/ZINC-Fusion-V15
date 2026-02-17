@@ -1602,8 +1602,8 @@ model matrix_1d {
   fisher_signal                                   Float?
   mcginley_dynamic                                Float?
   ttm_squeeze_on                                  BigInt?
-  ttm_squeeze_momentum                            String?
-  schaff_trend_cycle                              String?
+  ttm_squeeze_momentum                            Float?
+  schaff_trend_cycle                              Float?
   rvi                                             Float?
   rvi_signal                                      Float?
   elder_force_index                               Float?
@@ -1612,7 +1612,7 @@ model matrix_1d {
   alma_50                                         Float?
   rsi_2                                           Float?
   rsi_14                                          Float?
-  cumulative_rsi                                  String?
+  cumulative_rsi                                  Float?
   macd                                            Float?
   macd_signal                                     Float?
   macd_histogram                                  Float?

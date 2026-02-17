@@ -3,7 +3,7 @@
 Simple VWAP test to debug the issue
 """
 
-__test__ = False  # Pytest should not collect integration scripts.
+__test__ = True  # Re-enabled: has pytest.skip guard for missing DATABASE_URL.
 
 
 import os

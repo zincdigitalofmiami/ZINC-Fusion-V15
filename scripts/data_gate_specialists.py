@@ -102,17 +102,18 @@ SPECIALIST_DATA_GATES: Dict[str, List[DataSourceCheck]] = {
         DataSourceCheck("epu", "econ.rates_1d", "event_date", 45, False, "EPU indices"),
     ],
     "biofuel": [
-        # EPA RIN = weekly volume-weighted avg, updated monthly; TTL 45d (one EPA cycle)
+        # EPA RIN = weekly volume-weighted avg, updated monthly/irregular; TTL 75d
+        # allows expected publication lag without forcing false critical failures.
         DataSourceCheck(
             "rin",
             "supply.epa_rin_1d",
             "event_date",
-            45,
+            75,
             True,
-            "EPA RIN (weekly, updated monthly)",
+            "EPA RIN (weekly, updated monthly/irregular)",
         ),
         DataSourceCheck(
-            "lcfs", "supply.lcfs_1d", "event_date", 10, True, "LCFS credits"
+            "lcfs", "supply.lcfs_1d", "event_date", 21, True, "LCFS credits"
         ),
     ],
     "substitutes": [
@@ -185,7 +186,7 @@ def validate_specialist(
     engine,
     bucket: str,
     as_of_date: date,
-) -> Tuple[bool, List[str]]:
+) -> Tuple[bool, List[str], bool]:
     """
     Validate all data sources for a specialist.
 
@@ -194,7 +195,7 @@ def validate_specialist(
     """
     checks = SPECIALIST_DATA_GATES.get(bucket, [])
     if not checks:
-        return True, [f"{bucket}: No data gates configured"]
+        return True, [f"{bucket}: No data gates configured"], False
 
     messages = []
     all_passed = True

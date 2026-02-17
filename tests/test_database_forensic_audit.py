@@ -36,10 +36,10 @@ def get_all_tables(conn):
 def get_columns_for_table(conn, schema, table):
     with conn.cursor() as cur:
         cur.execute(
-            f"""
+            """
             SELECT column_name, data_type
             FROM information_schema.columns
-            WHERE table_schema = '{schema}' AND table_name = '{table}'
+            WHERE table_schema = %s AND table_name = %s
         """,
             (schema, table),
         )
@@ -114,8 +114,8 @@ def test_grain_suffix_naming(db_connection):
 
     for schema, table in tables:
         if schema in landing_derived:
-            # Special exceptions for known tables if any
-            if table in ("specialist_features"):  # Example from schema.prisma line 91
+            # Specialist feature tables are per-bucket (e.g. specialist_features_crush)
+            if table.startswith("specialist_features"):
                 continue
 
             if not table.endswith(valid_suffixes):

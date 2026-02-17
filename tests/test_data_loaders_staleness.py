@@ -225,22 +225,113 @@ class TestForwardFillLimitsBySource:
     """Test forward-fill limits match expected cadences."""
 
     def test_wasde_limit_monthly(self):
-        """WASDE should have 35-day limit (monthly + buffer)."""
-        # This is tested implicitly via code review
-        # Limit is set in data_loaders.py:72
-        assert True  # Placeholder - actual limit verified in code
+        """WASDE should have monthly-scale TTL."""
+        from fusion.validation.all_data_policy import SOURCE_FRESHNESS_TTLS
+
+        assert SOURCE_FRESHNESS_TTLS["supply.usda_wasde_1m"] == 45
 
     def test_cftc_limit_weekly(self):
-        """CFTC should have 10-day limit (weekly + buffer)."""
-        assert True  # Placeholder - actual limit verified in code
+        """CFTC should have weekly-scale TTL."""
+        from fusion.validation.all_data_policy import SOURCE_FRESHNESS_TTLS
 
-    def test_rin_limit_weekly(self):
-        """RIN should have 14-day limit (weekly + buffer)."""
-        assert True  # Placeholder - actual limit verified in code
+        assert SOURCE_FRESHNESS_TTLS["pos.cftc_1w"] == 10
+
+    def test_rin_limit_monthly(self):
+        """RIN should allow monthly/irregular publication lag."""
+        from fusion.validation.all_data_policy import SOURCE_FRESHNESS_TTLS
+
+        assert SOURCE_FRESHNESS_TTLS["supply.epa_rin_1d"] == 75
 
     def test_fred_daily_limit(self):
-        """FRED daily sources should have 5-day limit."""
-        assert True  # Placeholder - actual limit verified in code
+        """FRED daily sources should have business-day TTL."""
+        from fusion.validation.all_data_policy import SOURCE_FRESHNESS_TTLS
+
+        assert SOURCE_FRESHNESS_TTLS["econ.rates_1d"] == 3
+
+
+class TestNaNToNoneConversion:
+    """Test that NaN values are converted to None before DB write."""
+
+    def test_nan_to_none_double_defense(self):
+        """Verify the double-defense NaN->None pattern used in write_matrix()."""
+        df = pd.DataFrame(
+            {
+                "a": [1.0, np.nan, 3.0],
+                "b": [np.nan, 2.0, np.nan],
+            }
+        )
+
+        # Apply the same conversion as build_matrix.py write_matrix()
+        df = df.where(df.notna(), None)
+        values = [
+            tuple(None if pd.isna(v) else v for v in row)
+            for row in df.itertuples(index=False, name=None)
+        ]
+
+        assert values[0] == (1.0, None)
+        assert values[1] == (None, 2.0)
+        assert values[2] == (3.0, None)
+
+        # Verify no NaN survives
+        for row in values:
+            for v in row:
+                if v is not None:
+                    assert not pd.isna(v), f"Found NaN in converted row: {row}"
+
+    def test_none_preserved_for_string_columns(self):
+        """Verify None in non-numeric columns is preserved, not mangled."""
+        df = pd.DataFrame(
+            {
+                "num": [1.0, np.nan],
+                "text": ["hello", None],
+            }
+        )
+
+        df = df.where(df.notna(), None)
+        values = [
+            tuple(None if pd.isna(v) else v for v in row)
+            for row in df.itertuples(index=False, name=None)
+        ]
+
+        assert values[0] == (1.0, "hello")
+        assert values[1][0] is None
+        assert values[1][1] is None
+
+
+class TestSourceFreshnessTTLCoverage:
+    """Test that SOURCE_FRESHNESS_TTLS covers all required sources."""
+
+    def test_all_required_sources_have_ttl(self):
+        """Every REQUIRED_DATA_SOURCES entry should have a freshness TTL."""
+        from fusion.validation.all_data_policy import (
+            REQUIRED_DATA_SOURCES,
+            SOURCE_FRESHNESS_TTLS,
+        )
+
+        for table in REQUIRED_DATA_SOURCES:
+            assert table in SOURCE_FRESHNESS_TTLS, (
+                f"{table} in REQUIRED_DATA_SOURCES but missing from SOURCE_FRESHNESS_TTLS"
+            )
+
+    def test_ttl_values_are_positive(self):
+        """All TTL values should be positive integers."""
+        from fusion.validation.all_data_policy import SOURCE_FRESHNESS_TTLS
+
+        for table, ttl in SOURCE_FRESHNESS_TTLS.items():
+            assert isinstance(ttl, int) and ttl > 0, f"{table} has invalid TTL: {ttl}"
+
+    def test_date_columns_are_event_date(self):
+        """All date columns in REQUIRED_DATA_SOURCES should be event_date.
+
+        Catches regressions of the metadata bug where as_of_date/week_ending/
+        release_date were used instead of the actual Prisma schema column name.
+        """
+        from fusion.validation.all_data_policy import REQUIRED_DATA_SOURCES
+
+        for table, (_, _, date_col) in REQUIRED_DATA_SOURCES.items():
+            assert date_col == "event_date", (
+                f"{table} uses date_col='{date_col}' but Prisma schema uses 'event_date'"
+            )
 
 
 if __name__ == "__main__":

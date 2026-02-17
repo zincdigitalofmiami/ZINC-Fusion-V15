@@ -2,8 +2,8 @@
 """
 RIN data refresh: report supply.epa_rin_1d state and how to trigger ingestion.
 
-EPA RIN = weekly volume-weighted avg, updated monthly. TTL 45d (one EPA cycle).
-See Docs/RIN_DATA_CONTRACT.md. This script reports staleness; gate uses TTL=45.
+EPA RIN = weekly volume-weighted avg, updated monthly with irregular lag. TTL 75d.
+See Docs/RIN_DATA_CONTRACT.md. This script reports staleness; gate uses TTL=75.
 
 Usage:
     python scripts/refresh_epa_rin.py           # Report only
@@ -44,8 +44,8 @@ def main():
     parser.add_argument(
         "--ttl-days",
         type=int,
-        default=45,
-        help="TTL in days for EPA weekly-updated-monthly (default 45)",
+        default=75,
+        help="TTL in days for EPA weekly-updated-monthly with lag (default 75)",
     )
     args = parser.parse_args()
 
@@ -98,12 +98,12 @@ def main():
 
         print()
         print(
-            f"Gate check (source=epa_qlik_public): max_date={qlik_max}, max_age_days={age_days}, TTL={args.ttl_days}d (EPA weekly, updated monthly)"
+            f"Gate check (source=epa_qlik_public): max_date={qlik_max}, max_age_days={age_days}, TTL={args.ttl_days}d (EPA weekly, monthly/irregular publish lag)"
         )
         if age_days <= args.ttl_days:
-            print("Result: PASS (within one EPA cycle)")
+            print("Result: PASS (within configured lag window)")
         else:
-            print("Result: FAIL (beyond one EPA cycle - refresh ingestion)")
+            print("Result: FAIL (beyond configured lag window - refresh ingestion)")
             print()
             print("Refresh: ingestion runs every 8h (Inngest epaRinPricesDaily).")
             print("New data appears only when EPA updates their Qlik app.")

@@ -459,26 +459,28 @@ class BaseSignalGenerator(ABC):
             if not is_real.index.equals(series.index):
                 raise ValueError("is_real index must match series index")
 
-            # Find last index where is_real == True
+            # Find last index where is_real == True AND <= as_of_date
             real_mask = is_real.fillna(False)
-            if not real_mask.any():
-                return 999  # No real observations
+            as_of_ts = pd.Timestamp(as_of_date)
+            eligible = series.index[real_mask & (series.index <= as_of_ts)]
+            if len(eligible) == 0:
+                return 999  # No real observations at or before as_of_date
 
-            last_real_idx = series.index[real_mask][-1] if real_mask.any() else None
-            if last_real_idx is None:
-                return 999
+            last_real_idx = eligible[-1]
 
             # Calculate days since last real observation
-            days_since = (pd.Timestamp(as_of_date) - pd.Timestamp(last_real_idx)).days
+            days_since = (as_of_ts - pd.Timestamp(last_real_idx)).days
             return max(0, days_since)
 
-        # Legacy behavior: find last non-null value (may be filled)
-        last_valid_idx = series.last_valid_index()
+        # Legacy behavior: find last non-null value at or before as_of_date
+        as_of_ts = pd.Timestamp(as_of_date)
+        truncated = series.loc[:as_of_ts]
+        last_valid_idx = truncated.last_valid_index()
         if last_valid_idx is None:
             return 999
 
         # Calculate days since last observation
-        days_since = (pd.Timestamp(as_of_date) - pd.Timestamp(last_valid_idx)).days
+        days_since = (as_of_ts - pd.Timestamp(last_valid_idx)).days
         return max(0, days_since)
 
     def lag_features(

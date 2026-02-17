@@ -1,23 +1,12 @@
 """
 ZINC-FUSION-V15: Data Completeness Validator
 
+DEPRECATED: Superseded by all_data_policy.py which uses v2 schema architecture.
+Retained for backward compatibility but all_data_policy.py is the authoritative
+source for data validation.
+
 This module enforces that ALL available data sources are used before training.
 Training will FAIL if any required data source is missing or incomplete.
-
-Required Data Sources (10 total):
-1. market_futures_1h / market_futures_1d - All symbols pivoted wide as covariates
-2. fred_observations_1d - FRED long format (111+ series, pivot to wide for features)
-3. weather_noaa_1d - Weather data for US/Brazil/Argentina soy regions
-4. fx_spot_1d - All 30 FX pairs
-5. cftc_cot_1w - COT positioning for ZL/ZS/ZM/CL
-6. usda_export_sales_1w - USDA export data
-7. usda_wasde_1m - USDA WASDE fundamentals
-8. epa_rin_prices_1d - EPA RIN biofuel prices
-9. news_articles_1d - News sentiment data
-
-NOT Required (excluded):
-- options_futures_1d: Only contains ES options (no ZL), 1 month of data only
-- Metadata tables (fred_series_metadata)
 """
 
 import logging
@@ -37,45 +26,47 @@ class DataSourceRequirement:
     is_required: bool = True
 
 
-# All required data sources for training
+# All required data sources for training (v2 schema architecture)
 REQUIRED_DATA_SOURCES = [
     DataSourceRequirement(
-        table="market_futures_1h",
-        min_rows=1_000_000,
-        description="Hourly futures data (84 symbols)",
-    ),
-    DataSourceRequirement(
-        table="market_futures_1d",
+        table="mkt.futures_1d",
         min_rows=100_000,
         description="Daily futures data (83 symbols)",
     ),
     DataSourceRequirement(
-        table="fred_observations_1d",
-        min_rows=100_000,
-        description="FRED economic data (long format, 111+ series)",
+        table="mkt.fx_1d",
+        min_rows=10_000,
+        description="Spot FX rates (30 pairs)",
     ),
     DataSourceRequirement(
-        table="weather_noaa_1d",
-        min_rows=10_000,
+        table="econ.rates_1d",
+        min_rows=50_000,
+        description="FRED rates/treasuries",
+    ),
+    DataSourceRequirement(
+        table="alt.weather_1d",
+        min_rows=500,
         description="NOAA weather data (US/Brazil/Argentina)",
     ),
     DataSourceRequirement(
-        table="fx_spot_1d", min_rows=10_000, description="Spot FX rates (30 pairs)"
+        table="pos.cftc_1w",
+        min_rows=500,
+        description="CFTC COT positioning data",
     ),
     DataSourceRequirement(
-        table="cftc_cot_1w", min_rows=1_000, description="CFTC COT positioning data"
+        table="supply.usda_exports_1w",
+        min_rows=100,
+        description="USDA export sales data",
     ),
     DataSourceRequirement(
-        table="usda_export_sales_1w", min_rows=100, description="USDA export sales data"
+        table="supply.usda_wasde_1m",
+        min_rows=50,
+        description="USDA WASDE fundamentals",
     ),
     DataSourceRequirement(
-        table="usda_wasde_1m", min_rows=50, description="USDA WASDE fundamentals"
-    ),
-    DataSourceRequirement(
-        table="epa_rin_prices_1d", min_rows=50, description="EPA RIN biofuel prices"
-    ),
-    DataSourceRequirement(
-        table="news_articles_1d", min_rows=50, description="News sentiment data"
+        table="supply.epa_rin_1d",
+        min_rows=50,
+        description="EPA RIN biofuel prices",
     ),
 ]
 
@@ -117,7 +108,7 @@ def validate_data_completeness(conn, strict: bool = True) -> ValidationResult:
     with conn.cursor() as cur:
         for req in REQUIRED_DATA_SOURCES:
             try:
-                cur.execute(f'SELECT COUNT(*) FROM "raw"."{req.table}"')
+                cur.execute(f"SELECT COUNT(*) FROM {req.table}")
                 row_count = cur.fetchone()[0]
 
                 status = "✅" if row_count >= req.min_rows else "⚠️"

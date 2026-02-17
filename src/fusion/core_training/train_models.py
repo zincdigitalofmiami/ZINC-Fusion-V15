@@ -36,6 +36,8 @@ os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = (
 os.environ["PYTORCH_MPS_ENABLED"] = "0"  # Disable MPS backend explicitly
 
 import logging
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -43,7 +45,10 @@ import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 
-from fusion.validation.all_data_policy import enforce_all_data_policy
+from fusion.validation.all_data_policy import (
+    check_source_freshness,
+    enforce_all_data_policy,
+)
 
 from .config import (
     DATABASE_URL,
@@ -520,6 +525,35 @@ def run(
         for horizon in horizons:
             enforce_all_data_policy(conn, horizon=horizon, strict=True)
         logger.info("✅ ALL DATA policy passed for all horizons")
+
+        # Enforce data source freshness (P0-1 fix: check recency, not just row counts)
+        logger.info("")
+        logger.info("Validating data source freshness...")
+        check_source_freshness(conn, strict=True)
+        logger.info("✅ Data freshness gate passed")
+
+        # Enforce specialist data freshness (all 11 buckets, including biofuel RIN/LCFS)
+        # Uses existing data_gate_specialists.py --strict via subprocess to reuse
+        # SPECIALIST_DATA_GATES TTL definitions without cross-directory imports.
+        logger.info("")
+        logger.info("Validating specialist data freshness (all 11 buckets)...")
+        project_root = str(Path(__file__).resolve().parents[3])
+        gate_result = subprocess.run(
+            [sys.executable, "scripts/data_gate_specialists.py", "--strict"],
+            capture_output=True,
+            text=True,
+            cwd=project_root,
+        )
+        if gate_result.returncode != 0:
+            logger.error(gate_result.stdout)
+            logger.error(gate_result.stderr)
+            raise ValueError(
+                "SPECIALIST DATA GATE FAILED. "
+                "All 11 specialist data sources are HARD-REQUIRED. "
+                "Run: python scripts/data_gate_specialists.py --strict "
+                "for full report."
+            )
+        logger.info("✅ Specialist data gate passed (all 11 buckets)")
 
         # Load data once
         df = load_training_data(conn, symbol)

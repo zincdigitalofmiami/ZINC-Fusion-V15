@@ -86,10 +86,12 @@ REQUIRED_DATA_SOURCES = {
     "alt.econ_news_event": (50, "Economic news", "event_date"),
     "alt.profarmer_news_event": (50, "Pro Farmer news", "event_date"),
     # Position data (pos schema)
-    "pos.cftc_1w": (500, "CFTC COT positioning", "as_of_date"),
+    "pos.cftc_1w": (500, "CFTC COT positioning", "event_date"),
     # Supply data (supply schema)
-    "supply.usda_exports_1w": (100, "USDA export sales", "week_ending"),
-    "supply.usda_wasde_1m": (50, "USDA WASDE", "release_date"),
+    "supply.usda_exports_1w": (100, "USDA export sales", "event_date"),
+    "supply.usda_wasde_1m": (50, "USDA WASDE", "event_date"),
+    "supply.epa_rin_1d": (50, "EPA RIN prices (4 types)", "event_date"),
+    "supply.lcfs_1d": (50, "LCFS credits", "event_date"),
 }
 
 # Feature category expectations (for validation)
@@ -106,6 +108,39 @@ FEATURE_CATEGORIES = {
     "news_features": {"min": 3, "prefix": "news_"},
     "usda_features": {"min": 3, "prefix": "usda_"},
     "wasde_features": {"min": 3, "prefix": "wasde_"},
+}
+
+# =============================================================================
+# SOURCE FRESHNESS TTLs (max calendar-day lag for each source)
+# Calibrated per actual release cadence — NOT blanket defaults.
+# =============================================================================
+
+SOURCE_FRESHNESS_TTLS: Dict[str, int] = {
+    # Daily market data: 3 day TTL (business-day tolerance)
+    "mkt.futures_1d": 3,
+    "mkt.fx_1d": 3,
+    # Daily econ data
+    "econ.rates_1d": 3,  # Treasury yields, Fed Funds — daily
+    "econ.vol_indices_1d": 3,  # VIX, NFCI — daily
+    "econ.commodities_1d": 3,  # Oil, grains — daily
+    # Monthly/quarterly econ data
+    "econ.inflation_1d": 45,  # CPI, PCE, PPI — monthly release
+    "econ.labor_1d": 45,  # Unemployment, payrolls — monthly
+    "econ.activity_1d": 120,  # GDP (quarterly) + industrial (monthly)
+    "econ.money_1d": 45,  # M2, reserves — monthly
+    # Alternative data
+    "alt.weather_1d": 10,  # NOAA daily with ingestion lag
+    "alt.policy_news_event": 30,  # Event-driven, sporadic
+    "alt.executive_actions_event": 30,
+    "alt.econ_news_event": 30,
+    "alt.profarmer_news_event": 30,
+    # Positioning: weekly + processing lag
+    "pos.cftc_1w": 10,
+    # Supply data
+    "supply.usda_exports_1w": 21,  # Weekly release
+    "supply.usda_wasde_1m": 45,  # Monthly WASDE
+    "supply.epa_rin_1d": 75,  # Weekly volume-weighted avg, monthly/irregular publish lag
+    "supply.lcfs_1d": 21,  # ~Weekly updates
 }
 
 
@@ -285,6 +320,99 @@ def enforce_all_data_policy(
     return result
 
 
+def _check_single_source_freshness(conn, table_path, date_col, desc, ttl, as_of_date):
+    """Check freshness of a single data source. Returns error message or None."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT MAX({date_col}) FROM {table_path}")
+            result = cur.fetchone()
+            max_date = result[0] if result else None
+
+        if max_date is None:
+            logger.error(f"  [STALE] {table_path}: NO DATA")
+            return f"{table_path}: NO DATA (TTL={ttl}d)"
+
+        if hasattr(max_date, "date"):
+            max_date = max_date.date()
+
+        staleness = (as_of_date - max_date).days
+
+        if staleness > ttl:
+            msg = f"{table_path}: {staleness}d old > TTL {ttl}d -- {desc}"
+            logger.error(f"  [STALE] {msg}")
+            return msg
+
+        logger.info(f"  [OK] {table_path}: {staleness}d old (TTL={ttl}d)")
+        return None
+
+    except psycopg2.errors.UndefinedTable:
+        logger.error(f"  [STALE] {table_path}: TABLE MISSING")
+        conn.rollback()
+        return f"{table_path}: TABLE MISSING"
+    except Exception as e:
+        logger.warning(f"  [ERR] {table_path}: {e}")
+        conn.rollback()
+        return f"{table_path}: query failed: {e}"
+
+
+def check_source_freshness(
+    conn,
+    strict: bool = True,
+    as_of_date=None,
+):
+    """
+    Check that every required data source has recent-enough data.
+
+    Uses SOURCE_FRESHNESS_TTLS for max lag per source, calibrated to
+    actual release cadences (daily=3d, weekly=10d, monthly=45d, etc.).
+
+    Args:
+        conn: psycopg2 connection
+        strict: If True, raise ValueError on failure
+        as_of_date: Reference date (default: date.today())
+
+    Returns:
+        (all_passed: bool, error_messages: list[str])
+
+    Raises:
+        ValueError if strict=True and any source is stale
+    """
+    from datetime import date as _date
+
+    if as_of_date is None:
+        as_of_date = _date.today()
+
+    errors: List[str] = []
+
+    logger.info("\n[FRESHNESS] Checking data source recency...")
+
+    for table_path, (_, desc, date_col) in REQUIRED_DATA_SOURCES.items():
+        ttl = SOURCE_FRESHNESS_TTLS.get(table_path)
+        if ttl is None:
+            continue
+
+        err = _check_single_source_freshness(
+            conn, table_path, date_col, desc, ttl, as_of_date
+        )
+        if err:
+            errors.append(err)
+
+    all_passed = len(errors) == 0
+
+    if all_passed:
+        logger.info("[FRESHNESS] PASSED: All sources within TTL")
+    else:
+        logger.error(f"[FRESHNESS] FAILED: {len(errors)} source(s) stale")
+        if strict:
+            raise ValueError(
+                f"DATA FRESHNESS GATE FAILED. "
+                f"Training CANNOT proceed with stale data. "
+                f"Stale sources: {errors}"
+            )
+
+    return all_passed, errors
+
+
 def validate_specialist_features(df, bucket: str, strict: bool = True) -> bool:
     """
     Validate that specialist features DataFrame has DOMAIN-SPECIFIC features.
@@ -373,7 +501,7 @@ def get_all_data_loading_query(horizon: int) -> str:
         SQL query string
     """
     # All horizons use daily data
-    base_table = "market_futures_1d"
+    base_table = "mkt.futures_1d"
     start_date = "2000-01-01"
 
     # This is a template - actual implementation joins all sources
@@ -383,15 +511,15 @@ def get_all_data_loading_query(horizon: int) -> str:
     -- DO NOT MODIFY - use enforce_all_data_policy() to validate
 
     -- Base: {base_table} from {start_date}
-    -- Joined: fred_observations_1d (pivoted), weather_noaa_1d, fx_spot_1d, cftc_cot_1w,
-    --         usda_export_sales_1w, usda_wasde_1m, epa_rin_prices_1d, news_articles_1d
+    -- Joined: econ.rates_1d, alt.weather_1d, mkt.fx_1d, pos.cftc_1w,
+    --         supply.usda_exports_1w, supply.usda_wasde_1m, supply.epa_rin_1d
     -- All sources forward-filled to base frequency
 
     SELECT * FROM (
-        -- Query implementation in train_core_chronos.py
+        -- Query implementation in build_matrix.py
         -- This stub exists for documentation only
     ) AS all_data
-    WHERE as_of_date >= '{start_date}'
+    WHERE event_date >= '{start_date}'
     """
 
     return query

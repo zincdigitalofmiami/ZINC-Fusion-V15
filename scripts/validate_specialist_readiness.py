@@ -142,7 +142,7 @@ def check_coverage(conn, bucket: str, lookback_days: int = 180) -> float:
     """
     query = f"""
     SELECT
-        COUNT(*) as n_signals,
+        COUNT(DISTINCT as_of_date) as n_signals,
         (SELECT COUNT(DISTINCT event_date)
          FROM mkt.futures_1d
          WHERE symbol = 'ZL'
