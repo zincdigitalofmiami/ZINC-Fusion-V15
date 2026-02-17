@@ -126,6 +126,10 @@ const FRED_FED_SERIES: FredSeriesConfig[] = [
   // Credit conditions - economic health
   { id: "BUSLOANS", name: "Commercial & Industrial Loans", tags: ["fed", "crush"] },
   { id: "DRCCLACBS", name: "Credit Card Delinquency Rate", tags: ["fed", "volatility"] },
+  // Term premium & credit stress (5yr+ backfill value)
+  { id: "THREEFYTP10", name: "10Y Treasury Term Premium (ACM)", tags: ["fed", "volatility"] },
+  { id: "BAAFFM", name: "Baa Corporate Yield minus Fed Funds", tags: ["fed", "volatility"] },
+  { id: "MICH", name: "Michigan 1Y Inflation Expectations", tags: ["fed", "energy", "biofuel"] },
   // Inflation metrics - affect production costs, biofuel economics
   { id: "CPIAUCSL", name: "CPI All Urban", tags: ["fed", "energy", "biofuel"] },
   { id: "CPILFESL", name: "Core CPI", tags: ["fed"] },
@@ -336,6 +340,11 @@ const FRED_GENERAL_SERIES: FredSeriesConfig[] = [
 // Default: rates_1d for interest rates and anything unmapped.
 
 const FRED_TABLE_MAP: Record<string, string> = {
+  // Term premium & credit stress (new 5yr backfill series)
+  THREEFYTP10: "econ.rates_1d",
+  BAAFFM: "econ.vol_indices_1d",
+  MICH: "econ.inflation_1d",
+
   // Inflation (monthly) → econ.inflation_1d
   CPIAUCSL: "econ.inflation_1d",
   CPILFESL: "econ.inflation_1d",

@@ -84,6 +84,12 @@ FRED_SERIES_ROUTING = {
     # Discontinued but may have historical data
     "TEDRATE": "econ.rates_1d",
     # =========================================================================
+    # TERM PREMIUM & CREDIT STRESS (3 series, new 5yr backfill)
+    # =========================================================================
+    "THREEFYTP10": "econ.rates_1d",  # ACM 10Y Treasury Term Premium (daily, 1961+)
+    "BAAFFM": "econ.vol_indices_1d",  # Baa Corporate Yield minus Fed Funds (daily, 1986+)
+    "MICH": "econ.inflation_1d",  # Michigan 1Y Inflation Expectations (monthly, 1978+)
+    # =========================================================================
     # INFLATION (14 series) — CPI, PCE, PPI, inflation expectations, TIPS yields
     # =========================================================================
     # Core inflation
@@ -256,7 +262,7 @@ SPECIALIST_FRED_SERIES: dict[str, list[str]] = {
     "crush": [],
     "china": ["PCOPPUSDM"],
     "fx": ["DTWEXBGS"],
-    "fed": ["FEDFUNDS", "DGS10", "DGS2", "T10Y2Y", "NFCI"],
+    "fed": ["FEDFUNDS", "DGS10", "DGS2", "T10Y2Y", "NFCI", "THREEFYTP10", "BAAFFM"],
     "tariff": ["USEPUINDXM"],
     "energy": ["DCOILWTICO", "DCOILBRENTEU"],
     "biofuel": [],
