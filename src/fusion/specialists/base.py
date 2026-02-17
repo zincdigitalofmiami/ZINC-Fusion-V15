@@ -82,6 +82,9 @@ class SignalOutput:
     signal_2: float | None = None
     confidence: float | None = None
     model_type: str = "unknown"
+    abstained: bool = False
+    warmup: bool = False
+    signal_type: str = "continuous"
     max_input_age_days: int = 0  # REQUIRED: staleness tracking (P0-1 fix)
     source_tag: str | None = None
     degraded_level: int | None = None
@@ -110,6 +113,10 @@ class SignalOutput:
             raise ValueError(f"confidence must be in [0, 1], got {self.confidence}")
         if self.conf is not None and not (0 <= self.conf <= 1):
             raise ValueError(f"conf must be in [0, 1], got {self.conf}")
+        if not isinstance(self.abstained, bool):
+            raise ValueError(f"abstained must be bool, got {type(self.abstained)}")
+        if not isinstance(self.warmup, bool):
+            raise ValueError(f"warmup must be bool, got {type(self.warmup)}")
         # P0-1: Staleness validation - must be non-negative
         if self.max_input_age_days < 0:
             raise ValueError(
@@ -126,11 +133,15 @@ class SignalOutput:
             "signal_2": self.signal_2,
             "confidence": self.confidence,
             "model_type": self.model_type,
+            "abstained": self.abstained,
+            "warmup": self.warmup,
+            "signal_type": self.signal_type,
             "max_input_age_days": self.max_input_age_days,
             "source_tag": self.source_tag,
             "degraded_level": self.degraded_level,
             "conf": conf_value,
             "data_quality": self.data_quality,
+            "metadata": self.metadata,
         }
 
 

@@ -1583,4 +1583,15 @@ def load_specialist_data(
     """Load data for a specific specialist bucket."""
     if bucket not in DATA_LOADERS:
         raise ValueError(f"Unknown bucket: {bucket}")
-    return DATA_LOADERS[bucket](start_date, end_date)
+    df = DATA_LOADERS[bucket](start_date, end_date)
+
+    # Normalize to ZL trading calendar for all specialists.
+    # Some "thick" loaders can introduce dates where non-ZL symbols trade but
+    # ZL is missing; those rows inflate coverage and create off-calendar signals.
+    if "close" in df.columns:
+        df = df[df["close"].notna()]
+
+    if not df.index.is_monotonic_increasing:
+        df = df.sort_index()
+
+    return df

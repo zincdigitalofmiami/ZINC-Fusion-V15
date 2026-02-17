@@ -53,6 +53,7 @@ from fusion.validation.all_data_policy import (
 from .config import (
     DATABASE_URL,
     HORIZONS,
+    MODEL_ZOO_FROZEN,
     OOF_COLUMN_NAMES,
     QUANTILES,
     TARGET_SYMBOL,
@@ -164,60 +165,56 @@ def get_model_config(horizon: int) -> dict:
     """Get model configuration for horizon.
 
     CPU-only: explicit full model list, no presets, no time limits.
+    Model zoo is defined in config.MODEL_ZOO_FROZEN (frozenset, 25 models).
+    Only models in that frozen set are trained. No exceptions.
 
-    Per CORE_TRAINING_SPEC_LOCKED.md, this must include ALL Model Zoo entries:
-    - Baselines (5): Naive, SeasonalNaive, Average, SeasonalAverage, Zero
-    - Statistical (9): ETS, AutoETS, AutoARIMA, AutoCES, Theta, DynamicOptimizedTheta, NPTS, ADIDA, Croston, IMAPA
-    - Deep/ML (5): DeepAR, TemporalFusionTransformer, DLinear, PatchTST, SimpleFeedForward
-    - Neural (2): TiDE, WaveNet
-    - Tabular TS (3): DirectTabular, PerStepTabular, RecursiveTabular
-    - Pretrained (3): Chronos2, Chronos, Toto (disabled on macOS ARM due to HuggingFace mutex)
-
-    AutoGluon trains all models and typically selects a WeightedEnsemble as best.
+    AutoGluon trains all listed models and selects a WeightedEnsemble as best.
     """
 
-    hyperparameters = {
-        # === BASELINES (5) ===
-        "Naive": {},
-        "SeasonalNaive": {},
-        "Average": {},
-        "SeasonalAverage": {},
-        "Zero": {},
-        # === STATISTICAL (10) ===
-        "ETS": {},
-        "AutoETS": {},
-        "AutoARIMA": {},
-        "AutoCES": {},  # Added per spec
-        "Theta": {},
-        "DynamicOptimizedTheta": {},
-        "NPTS": {},
-        "ADIDA": {},
-        "Croston": {},
-        "IMAPA": {},
-        # === DEEP / ML (5) ===
-        "DeepAR": {},
-        "TemporalFusionTransformer": {},
-        "DLinear": {},
-        "PatchTST": {},
-        "SimpleFeedForward": {},
-        # === NEURAL (2) ===
-        "TiDE": {},
-        "WaveNet": {},
-        # === TABULAR TS (3) ===
-        "DirectTabular": {},
-        "PerStepTabular": {},
-        "RecursiveTabular": {},
-        # === PRETRAINED (disabled on macOS ARM - HuggingFace mutex lock issues) ===
-        # Uncomment on Linux/server environments where these run reliably:
-        # "Chronos2": {},
-        # "Chronos": {},
-        # "Toto": {},
-    }
+    # Build hyperparameters from frozen set — no freehand additions possible
+    hyperparameters = {model: {} for model in sorted(MODEL_ZOO_FROZEN)}
+
+    logger.info(f"   Model zoo: {len(hyperparameters)} models from MODEL_ZOO_FROZEN")
 
     return {
         "hyperparameters": hyperparameters,
         "window_start": None,  # Use all available data
     }
+
+
+def validate_trained_models(predictor, horizon: int) -> None:
+    """Assert that ONLY frozen zoo models were trained.
+
+    Raises RuntimeError if any unexpected model appears or any expected
+    model is missing (excluding WeightedEnsemble variants which AutoGluon
+    adds automatically).
+    """
+    trained = set(predictor.model_names())
+
+    # AutoGluon adds WeightedEnsemble_* automatically — that's expected
+    ensemble_models = {m for m in trained if m.startswith("WeightedEnsemble")}
+    base_models = trained - ensemble_models
+
+    # Check for rogue models (trained but not in frozen set)
+    rogue = base_models - MODEL_ZOO_FROZEN
+    if rogue:
+        raise RuntimeError(
+            f"ROGUE MODELS in {horizon}d training: {sorted(rogue)}. "
+            f"Only MODEL_ZOO_FROZEN models are allowed. "
+            f"Remove unauthorized models or update config.MODEL_ZOO_FROZEN."
+        )
+
+    # Check for missing models (in frozen set but didn't train)
+    missing = MODEL_ZOO_FROZEN - base_models
+    if missing:
+        logger.warning(
+            f"   {horizon}d: {len(missing)} models did not train: {sorted(missing)}"
+        )
+
+    logger.info(
+        f"   {horizon}d model validation: {len(base_models)} base + "
+        f"{len(ensemble_models)} ensemble OK"
+    )
 
 
 def filter_to_window(df: pd.DataFrame, window_start: str | None) -> pd.DataFrame:
@@ -288,6 +285,9 @@ def train_horizon(
             num_val_windows=TRAINING_CONFIG.num_val_windows,
             # Let AutoGluon handle observed covariates automatically
         )
+
+        # Validate: only frozen zoo models trained, no rogues
+        validate_trained_models(predictor, horizon)
 
         logger.info(f"✅ Model trained for horizon {horizon}d")
 

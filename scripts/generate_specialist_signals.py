@@ -19,15 +19,15 @@ Usage:
 @date 2026-01-21
 """
 
+import argparse
+import hashlib
+import logging
 import os
 import sys
-import logging
-import argparse
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Optional
-import hashlib
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 
@@ -62,6 +62,11 @@ SPECIALISTS = [
     "substitutes",
     "trump_effect",
 ]
+
+# Approximate conversion from trading-day lookbacks to calendar-day fetch windows.
+# We intentionally over-fetch to ensure each bucket has enough warm history.
+LOOKBACK_TO_CALENDAR_MULTIPLIER = 1.7
+LOOKBACK_CALENDAR_BUFFER_DAYS = 30
 
 
 # =============================================================================
@@ -102,16 +107,41 @@ def generate_signals_for_bucket(
     from fusion.specialists.data_loaders import load_specialist_data
 
     try:
+        generator = get_generator(bucket)
+        requested_start_date = start_date
+
+        # If caller requests a narrow output window, fetch additional history so
+        # lookback-dependent specialists can still compute robustly.
+        load_start_date = start_date
+        if start_date is not None:
+            cfg = getattr(generator, "config", None)
+            min_points = int(getattr(cfg, "min_data_points", 0) or 0)
+            lookback_days = int(getattr(cfg, "lookback_days", 0) or 0)
+            history_points = max(min_points, lookback_days, 1)
+            history_calendar_days = (
+                int(history_points * LOOKBACK_TO_CALENDAR_MULTIPLIER)
+                + LOOKBACK_CALENDAR_BUFFER_DAYS
+            )
+            load_start_date = start_date - timedelta(days=history_calendar_days)
+            logger.info(
+                f"   {bucket} load window padded: output_start={start_date}, "
+                f"load_start={load_start_date}, history_points={history_points}"
+            )
+
         # LOAD THIS SPECIALIST'S OWN DATA
         logger.info(f"   Loading {bucket}-specific data...")
-        specialist_data = load_specialist_data(bucket, start_date, end_date)
+        specialist_data = load_specialist_data(bucket, load_start_date, end_date)
         logger.info(
             f"   {bucket} data: {len(specialist_data)} rows, {len(specialist_data.columns)} columns"
         )
 
         # Get the generator and run
-        generator = get_generator(bucket)
-        signals = generator.generate(specialist_data, start_date, end_date)
+        # Generate on full padded history, then trim to requested output window.
+        # This prevents false "insufficient data" failures on short output ranges.
+        generate_start_date = None if requested_start_date is not None else start_date
+        signals = generator.generate(specialist_data, generate_start_date, end_date)
+        if requested_start_date is not None:
+            signals = [sig for sig in signals if sig.as_of_date >= requested_start_date]
 
         # Convert to dicts for insertion
         return [sig.to_dict() for sig in signals]
@@ -225,31 +255,44 @@ def write_signals_to_db(
             continue
 
         # Prepare values
-        values = [
-            (
-                sig["as_of_date"],
-                sig["bucket"],
-                sig["signal_1"],
-                sig.get("signal_2"),
-                sig.get("confidence"),
-                sig["model_type"],
-                run_hash,
-                sig.get("max_input_age_days"),
-                sig.get("source_tag"),
-                sig.get("degraded_level"),
-                sig.get("conf"),
+        values = []
+        for sig in bucket_signals:
+            metadata = sig.get("metadata") or {}
+            confidence = sig.get("confidence")
+            conf = sig.get("conf")
+            if conf is None:
+                conf = confidence
+
+            abstained = bool(sig.get("abstained", metadata.get("abstained", False)))
+            warmup = bool(sig.get("warmup", metadata.get("warmup", False)))
+            signal_type = sig.get("signal_type", metadata.get("signal_type"))
+            if signal_type is None:
+                signal_type = "continuous"
+
+            values.append(
                 (
-                    Json(sig.get("data_quality"))
-                    if sig.get("data_quality") is not None
-                    else None
-                ),
-                str(uuid.uuid4()),  # run_id - unique UUID per signal
-                sig.get("abstained", False),  # abstained
-                False,  # warmup
-                "continuous",  # signal_type
+                    sig["as_of_date"],
+                    sig["bucket"],
+                    sig["signal_1"],
+                    sig.get("signal_2"),
+                    confidence,
+                    sig["model_type"],
+                    run_hash,
+                    sig.get("max_input_age_days"),
+                    sig.get("source_tag"),
+                    sig.get("degraded_level"),
+                    conf,
+                    (
+                        Json(sig.get("data_quality"))
+                        if sig.get("data_quality") is not None
+                        else None
+                    ),
+                    str(uuid.uuid4()),  # run_id - unique UUID per signal
+                    abstained,
+                    warmup,
+                    signal_type,
+                )
             )
-            for sig in bucket_signals
-        ]
 
         # P0-3: Deduplicate by (as_of_date, bucket) - keep last occurrence
         # This prevents duplicate key violations and wasted DB operations
@@ -362,6 +405,11 @@ def main():
         action="store_true",
         help="Strict mode: fail immediately on missing features or validation errors.",
     )
+    parser.add_argument(
+        "--allow-missing-buckets",
+        action="store_true",
+        help="Allow run to succeed even when one or more buckets produce zero signals.",
+    )
     args = parser.parse_args()
 
     # Determine buckets to process
@@ -374,6 +422,11 @@ def main():
     if args.backfill and not start_date:
         start_date = date(2015, 1, 1)
         logger.info(f"Backfill mode: starting from {start_date}")
+    elif not args.backfill and start_date is None:
+        # Default daily mode: generate only end_date outputs, while loaders still
+        # auto-pad history per bucket for model lookbacks.
+        start_date = end_date
+        logger.info(f"Incremental mode: defaulting start-date to {start_date}")
 
     # Generate run hash
     run_hash = hashlib.sha256(
@@ -394,6 +447,14 @@ def main():
         signals = generate_all_signals(
             buckets, start_date, end_date, strict_mode=strict_mode
         )
+
+        empty_buckets = [b for b in buckets if len(signals.get(b, [])) == 0]
+        if empty_buckets and not args.allow_missing_buckets:
+            raise RuntimeError(
+                "Missing specialist outputs for buckets: "
+                f"{empty_buckets}. Re-run with --allow-missing-buckets "
+                "only for diagnostics."
+            )
 
         # Write to database
         total = sum(len(sigs) for sigs in signals.values())

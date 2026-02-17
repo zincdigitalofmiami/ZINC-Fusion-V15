@@ -343,6 +343,60 @@ class TrainingConfig:
 TRAINING_CONFIG = TrainingConfig()
 
 # =============================================================================
+# FROZEN MODEL ZOO — single source of truth for allowed models
+# =============================================================================
+# LOCKED: 2026-02-17
+# Only models in this set will be trained. Any model NOT listed here is rejected.
+# To add/remove a model, update this set and re-run training.
+
+MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
+    {
+        # Baselines (5)
+        "Naive",
+        "SeasonalNaive",
+        "Average",
+        "SeasonalAverage",
+        "Zero",
+        # Statistical (10)
+        "ETS",
+        "AutoETS",
+        "AutoARIMA",
+        "AutoCES",
+        "Theta",
+        "DynamicOptimizedTheta",
+        "NPTS",
+        "ADIDA",
+        "Croston",
+        "IMAPA",
+        # Deep / ML (5)
+        "DeepAR",
+        "TemporalFusionTransformer",
+        "DLinear",
+        "PatchTST",
+        "SimpleFeedForward",
+        # Neural (2)
+        "TiDE",
+        "WaveNet",
+        # Tabular TS (3)
+        "DirectTabular",
+        "PerStepTabular",
+        "RecursiveTabular",
+    }
+)
+
+# Pretrained models — only enabled on Linux/server (disabled on macOS ARM)
+MODEL_ZOO_PRETRAINED: frozenset[str] = frozenset(
+    {
+        "Chronos2",
+        "Chronos",
+        "Toto",
+    }
+)
+
+# Expected model count: 25 active + WeightedEnsemble = 26 per horizon
+MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 25
+
+# =============================================================================
 # PATHS
 # =============================================================================
 

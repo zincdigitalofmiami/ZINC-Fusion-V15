@@ -190,22 +190,27 @@ async function syncBucket(cfg: BucketConfig): Promise<SyncResult> {
 
 		const now = new Date();
 		const [sig1Key, sig2Key] = cfg.signalKeys;
+		const sourceTag = "specialist-sync-v1";
 
 		for (const row of rows) {
 			const f = row.features ?? {};
 			const dateKey = toDateKey(row.as_of_date);
 
-			const signal1 = clamp(safeNum(f[sig1Key], 0), -5, 5);
-			const signal2 = clamp(safeNum(f[sig2Key], 0), -5, 5);
+			const hasSignal1 = f[sig1Key] != null && f[sig1Key] !== "";
+			const signal1 = hasSignal1 ? clamp(safeNum(f[sig1Key], 0), -5, 5) : 0;
+			const signal2 = hasSignal1 ? clamp(safeNum(f[sig2Key], 0), -5, 5) : 0;
+			const abstained = !hasSignal1;
 
 			let confidence: number;
-			if (cfg.confidenceKey && f[cfg.confidenceKey] != null) {
+			if (!abstained && cfg.confidenceKey && f[cfg.confidenceKey] != null) {
 				const raw = safeNum(f[cfg.confidenceKey], cfg.fallbackConfidence);
 				confidence = raw > 1 ? raw / 100 : raw;
-			} else {
+			} else if (!abstained) {
 				confidence = cfg.fallbackConfidence;
+			} else {
+				confidence = 0;
 			}
-			confidence = clamp(confidence, 0.2, 0.95);
+			confidence = clamp(confidence, 0, 0.95);
 
 			const ageDays = Math.max(
 				0,
@@ -214,7 +219,7 @@ async function syncBucket(cfg: BucketConfig): Promise<SyncResult> {
 				),
 			);
 
-			const degradedLevel = f[sig1Key] != null ? 0 : 1;
+			const degradedLevel = hasSignal1 ? 0 : 2;
 
 			const runHash = createHash("sha256")
 				.update(
@@ -223,54 +228,59 @@ async function syncBucket(cfg: BucketConfig): Promise<SyncResult> {
 				.digest("hex")
 				.slice(0, 16);
 
-			await client.query(
-				`INSERT INTO training.specialist_signals_1d
-				  (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash,
-				   max_input_age_days, source_tag, degraded_level, conf, data_quality,
-				   run_id, abstained, warmup, signal_type)
-				 VALUES
-				  ($1::date, $2, $3, $4, $5, $6, $7,
-				   $8, $9, $10, $11, $12::jsonb,
-				   $13::uuid, false, false, 'continuous')
-				 ON CONFLICT (as_of_date, bucket)
-				 DO UPDATE SET
-				   signal_1 = EXCLUDED.signal_1,
-				   signal_2 = EXCLUDED.signal_2,
-				   confidence = EXCLUDED.confidence,
-				   model_type = EXCLUDED.model_type,
-				   run_hash = EXCLUDED.run_hash,
+				await client.query(
+					`INSERT INTO training.specialist_signals_1d
+					  (as_of_date, bucket, signal_1, signal_2, confidence, model_type, run_hash,
+					   max_input_age_days, source_tag, degraded_level, conf, data_quality,
+					   run_id, abstained, warmup, signal_type)
+					 VALUES
+					  ($1::date, $2, $3, $4, $5, $6, $7,
+					   $8, $9, $10, $11, $12::jsonb,
+					   $13::uuid, $14, false, 'continuous')
+					 ON CONFLICT (as_of_date, bucket)
+					 DO UPDATE SET
+					   signal_1 = EXCLUDED.signal_1,
+					   signal_2 = EXCLUDED.signal_2,
+					   confidence = EXCLUDED.confidence,
+					   model_type = EXCLUDED.model_type,
+					   run_hash = EXCLUDED.run_hash,
 				   max_input_age_days = EXCLUDED.max_input_age_days,
 				   source_tag = EXCLUDED.source_tag,
 				   degraded_level = EXCLUDED.degraded_level,
-				   conf = EXCLUDED.conf,
-				   data_quality = EXCLUDED.data_quality,
-				   run_id = EXCLUDED.run_id,
-				   abstained = EXCLUDED.abstained,
-				   warmup = EXCLUDED.warmup,
-				   signal_type = EXCLUDED.signal_type,
-				   created_at = NOW()`,
-				[
-					dateKey,
-					cfg.bucket,
-					signal1,
-					signal2,
-					confidence,
-					cfg.modelType,
-					runHash,
-					ageDays,
-					cfg.featureTable,
-					degradedLevel,
-					confidence,
-					JSON.stringify({
-						source: cfg.featureTable,
-						signal_key: sig1Key,
-						signal2_key: sig2Key,
-						synced_at: now.toISOString(),
-					}),
-					randomUUID(),
-				],
-			);
-		}
+					   conf = EXCLUDED.conf,
+					   data_quality = EXCLUDED.data_quality,
+					   run_id = EXCLUDED.run_id,
+					   abstained = EXCLUDED.abstained,
+					   warmup = EXCLUDED.warmup,
+					   signal_type = EXCLUDED.signal_type,
+					   created_at = NOW()
+					 WHERE training.specialist_signals_1d.source_tag = EXCLUDED.source_tag
+					    OR training.specialist_signals_1d.source_tag = $15`,
+					[
+						dateKey,
+						cfg.bucket,
+						signal1,
+						signal2,
+						confidence,
+						cfg.modelType,
+						runHash,
+						ageDays,
+						sourceTag,
+						degradedLevel,
+						confidence,
+						JSON.stringify({
+							source: cfg.featureTable,
+							source_tag: sourceTag,
+							signal_key: sig1Key,
+							signal2_key: sig2Key,
+							synced_at: now.toISOString(),
+						}),
+						randomUUID(),
+						abstained,
+						cfg.featureTable,
+					],
+				);
+			}
 
 		return {
 			status: "success",

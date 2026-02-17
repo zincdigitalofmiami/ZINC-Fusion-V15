@@ -210,7 +210,15 @@ class MLModelMixin:
             raise ValueError("Model not trained")
 
         # Ensure feature order matches training
-        X = features[self.feature_names] if self.feature_names else features
+        X = features.copy()
+        if self.feature_names:
+            # Model artifacts can outlive feature schema tweaks.
+            # Add missing trained columns as NaN so missingness policy can abstain
+            # instead of throwing KeyError and silently skipping rows.
+            missing_cols = [c for c in self.feature_names if c not in X.columns]
+            for col in missing_cols:
+                X[col] = np.nan
+            X = X[self.feature_names]
         if X.empty:
             return None, {
                 "degraded_level": 2,
