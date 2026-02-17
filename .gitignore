@@ -57,6 +57,7 @@ logs/
 
 # Models directory (large artifacts)
 models/*
+src/models/
 # Keep only these tracked model artifacts
 !models/core_v2/
 !models/core_v2/**
