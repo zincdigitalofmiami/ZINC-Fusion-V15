@@ -107,6 +107,9 @@ prisma/generated/
 # Claude Code worktrees and local agent state
 .claude/worktrees/
 
+# MCP server config (contains API keys)
+.mcp.json
+
 # Screenshots and one-off captures
 dashboard-*.png
 

@@ -1267,6 +1267,19 @@ model ingest_run {
   @@schema("ops")
 }
 
+model pipeline_alerts {
+  id           Int      @id @default(autoincrement())
+  function_id  String   @db.VarChar
+  run_id       String   @unique @db.VarChar
+  error_message String?
+  error_name   String?  @db.VarChar
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([function_id], map: "idx_pipeline_alerts_function_id")
+  @@index([created_at], map: "idx_pipeline_alerts_created_at")
+  @@schema("ops")
+}
+
 model model_core_audit {
   id                         String   @id @default(dbgenerated("gen_random_uuid()"))
   training_run_id            String   @unique
