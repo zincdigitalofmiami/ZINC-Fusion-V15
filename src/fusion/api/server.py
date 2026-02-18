@@ -332,6 +332,7 @@ def overview_models() -> dict[str, Any]:
         "palm",
         "volatility",
         "substitutes",
+        "trump_effect",
     ]
 
     # Core OOF — query training.oof_core_1d (v3: single core table, no 'source' column)
