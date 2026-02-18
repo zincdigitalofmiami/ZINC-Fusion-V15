@@ -1144,19 +1144,37 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
 
         # Compute derived board crush features
         if not df_crush.empty:
+            _mean = df_crush["board_crush"].rolling(21, min_periods=21).mean()
+            _std = (
+                df_crush["board_crush"]
+                .rolling(21, min_periods=21)
+                .std()
+                .replace(0, np.nan)
+            )
             df_crush["board_crush_zscore_21d"] = (
+                df_crush["board_crush"] - _mean
+            ) / _std
+            _mean = df_crush["board_crush"].rolling(63, min_periods=63).mean()
+            _std = (
                 df_crush["board_crush"]
-                - df_crush["board_crush"].rolling(21, min_periods=21).mean()
-            ) / df_crush["board_crush"].rolling(21, min_periods=21).std()
+                .rolling(63, min_periods=63)
+                .std()
+                .replace(0, np.nan)
+            )
             df_crush["board_crush_zscore_63d"] = (
-                df_crush["board_crush"]
-                - df_crush["board_crush"].rolling(63, min_periods=63).mean()
-            ) / df_crush["board_crush"].rolling(63, min_periods=63).std()
+                df_crush["board_crush"] - _mean
+            ) / _std
             df_crush["board_crush_momentum_5d"] = df_crush["board_crush"].diff(5)
-            df_crush["soy_oil_share_zscore"] = (
+            _mean = df_crush["soy_oil_share"].rolling(63, min_periods=63).mean()
+            _std = (
                 df_crush["soy_oil_share"]
-                - df_crush["soy_oil_share"].rolling(63, min_periods=63).mean()
-            ) / df_crush["soy_oil_share"].rolling(63, min_periods=63).std()
+                .rolling(63, min_periods=63)
+                .std()
+                .replace(0, np.nan)
+            )
+            df_crush["soy_oil_share_zscore"] = (
+                df_crush["soy_oil_share"] - _mean
+            ) / _std
 
         # Cross-commodity ratios from futures closes
         ratio_query = """
@@ -1178,18 +1196,26 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
             df_ratios["zl_cl_ratio"] = df_ratios["zl_close"] / df_ratios[
                 "cl_close"
             ].replace(0, float("nan"))
-            df_ratios["zl_cl_ratio_zscore"] = (
+            _mean = df_ratios["zl_cl_ratio"].rolling(63, min_periods=63).mean()
+            _std = (
                 df_ratios["zl_cl_ratio"]
-                - df_ratios["zl_cl_ratio"].rolling(63, min_periods=63).mean()
-            ) / df_ratios["zl_cl_ratio"].rolling(63, min_periods=63).std()
+                .rolling(63, min_periods=63)
+                .std()
+                .replace(0, np.nan)
+            )
+            df_ratios["zl_cl_ratio_zscore"] = (df_ratios["zl_cl_ratio"] - _mean) / _std
             # ZL/ZS ratio
             df_ratios["zl_zs_ratio"] = df_ratios["zl_close"] / df_ratios[
                 "zs_close"
             ].replace(0, float("nan"))
-            df_ratios["zl_zs_ratio_zscore"] = (
+            _mean = df_ratios["zl_zs_ratio"].rolling(63, min_periods=63).mean()
+            _std = (
                 df_ratios["zl_zs_ratio"]
-                - df_ratios["zl_zs_ratio"].rolling(63, min_periods=63).mean()
-            ) / df_ratios["zl_zs_ratio"].rolling(63, min_periods=63).std()
+                .rolling(63, min_periods=63)
+                .std()
+                .replace(0, np.nan)
+            )
+            df_ratios["zl_zs_ratio_zscore"] = (df_ratios["zl_zs_ratio"] - _mean) / _std
             # Drop raw closes used for computation
             df_ratios = df_ratios.drop(columns=["zl_close", "cl_close", "zs_close"])
 
@@ -1336,17 +1362,17 @@ def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         result = result.reset_index()
 
         # Calculate derived features: ratios
-        if "opt_total_oi_P" in result.columns and "opt_total_oi_C" in result.columns:
-            result["opt_put_call_oi_ratio"] = result["opt_total_oi_P"] / result[
-                "opt_total_oi_C"
+        if "opt_total_oi_p" in result.columns and "opt_total_oi_c" in result.columns:
+            result["opt_put_call_oi_ratio"] = result["opt_total_oi_p"] / result[
+                "opt_total_oi_c"
             ].replace(0, np.nan)
 
         if (
-            "opt_total_volume_P" in result.columns
-            and "opt_total_volume_C" in result.columns
+            "opt_total_volume_p" in result.columns
+            and "opt_total_volume_c" in result.columns
         ):
-            result["opt_put_call_vol_ratio"] = result["opt_total_volume_P"] / result[
-                "opt_total_volume_C"
+            result["opt_put_call_vol_ratio"] = result["opt_total_volume_p"] / result[
+                "opt_total_volume_c"
             ].replace(0, np.nan)
 
         if (
@@ -2303,6 +2329,12 @@ def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
     for horizon in HORIZONS:
         target_col = f"target_ret_{horizon}d"
         df[target_col] = df["close"].pct_change(horizon).shift(-horizon)
+        # Coerce non-finite targets (inf/-inf from zero prices) to NaN
+        non_finite = ~np.isfinite(df[target_col].fillna(0))
+        if non_finite.any():
+            count = non_finite.sum()
+            logger.warning(f"   {target_col}: coerced {count} non-finite values to NaN")
+            df.loc[non_finite, target_col] = np.nan
         logger.info(f"   Created {target_col}")
 
     return df
@@ -3029,11 +3061,15 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         ]
         # Columns already handled by encode_categorical_features (have their own _is_missing flags)
         already_encoded = {"hurst_regime", "ttm_squeeze_on"}
+        # OHLCV columns must NEVER be zero-imputed — they are the base price series
+        # used by create_target_columns(). Zero-imputing close produces inf targets.
+        ohlcv_protected = {"open", "high", "low", "close", "volume", "open_interest"}
         daily_cols = [
             c
             for c in df.columns
             if not any(p in c for p in exclude_patterns)
             and c not in already_encoded
+            and c not in ohlcv_protected
             and np.issubdtype(df[c].dtype, np.number)
         ]
 
@@ -3090,6 +3126,15 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         logger.info("=" * 60)
         logger.info("RUNNING v15.x VALIDATION GATES")
         logger.info("=" * 60)
+
+        # Scrub infinities before validation and write
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        inf_count = np.isinf(df[numeric_cols]).sum().sum()
+        if inf_count > 0:
+            logger.warning(
+                f"Scrubbing {inf_count} infinity values to NaN before validation"
+            )
+            df[numeric_cols] = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
 
         validation_result = validate_matrix(df, strict=True)
 

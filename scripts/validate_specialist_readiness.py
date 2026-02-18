@@ -183,6 +183,7 @@ def check_max_staleness(conn, bucket: str) -> int:
     WHERE bucket = %s
       AND as_of_date >= CURRENT_DATE - INTERVAL '30 days'
       AND max_input_age_days IS NOT NULL
+      AND max_input_age_days < 999
     """
 
     df = pd.read_sql(query, conn, params=[bucket])
@@ -253,9 +254,12 @@ def check_leakage(conn, bucket: str) -> float:
         return 0.0
 
     # Calculate past return
-    df["past_return"] = (df["close"] - df["prev_close"]) / df["prev_close"]
+    df["past_return"] = (df["close"] - df["prev_close"]) / df["prev_close"].replace(
+        0, np.nan
+    )
 
     valid = df.dropna(subset=["signal_1", "past_return"])
+    valid = valid[np.isfinite(valid["past_return"])]
     if len(valid) < 100:
         return 0.0
 

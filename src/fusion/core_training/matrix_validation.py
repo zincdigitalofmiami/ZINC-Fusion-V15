@@ -140,6 +140,11 @@ def check_null_gate(df: pd.DataFrame) -> Tuple[bool, List[str]]:
         or c.startswith("_")  # Debug columns like _hurst_regime_raw
         or c == "created_at"  # Metadata column
         or c == "matrix_version"
+        or c.endswith("_age_days")  # TTL age tracking (NULL before first fill)
+        or c.endswith("_event_value")  # Pure event encoding (NULL between releases)
+        or c.endswith("_event_delta")  # Pure event encoding
+        or c.endswith("_is_release_day")  # Pure event encoding
+        or c.endswith("_is_available")  # Availability flags
     ]
 
     check_cols = [c for c in df.columns if c not in exclude_cols]
@@ -150,6 +155,24 @@ def check_null_gate(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     if len(null_cols) > 0:
         for col, count in null_cols.items():
             failures.append(f"NULL values in {col}: {count} rows")
+
+    return len(failures) == 0, failures
+
+
+def check_infinity_gate(df: pd.DataFrame) -> Tuple[bool, List[str]]:
+    """
+    Gate: No infinity values in numeric columns.
+
+    Returns:
+        Tuple of (passed, list of failure messages)
+    """
+    failures = []
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    for col in numeric_cols:
+        inf_count = np.isinf(df[col]).sum()
+        if inf_count > 0:
+            failures.append(f"Infinity values in {col}: {inf_count} rows")
 
     return len(failures) == 0, failures
 
@@ -441,6 +464,14 @@ def validate_matrix(
             result.add_failure(f"NULL GATE FAILED: {f}")
     else:
         logger.info("   ✅ NULL gate passed (zero NULLs)")
+
+    # Gate 1b: No infinities
+    passed, failures = check_infinity_gate(df)
+    if not passed:
+        for f in failures:
+            result.add_failure(f"INFINITY GATE FAILED: {f}")
+    else:
+        logger.info("   ✅ Infinity gate passed (zero infinities)")
 
     # Gate 2: No epoch dates
     passed, failures = check_epoch_date_gate(df)

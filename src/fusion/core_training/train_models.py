@@ -41,6 +41,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
@@ -125,6 +126,12 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> TimeSeriesDataFrame:
 
     # Drop rows where target is null (can't train on them)
     df_clean = df.dropna(subset=[target_col]).copy()
+    # Also drop rows with non-finite targets (inf/-inf from zero prices)
+    finite_mask = np.isfinite(df_clean[target_col])
+    if not finite_mask.all():
+        n_dropped = (~finite_mask).sum()
+        logger.warning(f"   Dropped {n_dropped} rows with non-finite {target_col}")
+        df_clean = df_clean[finite_mask].copy()
 
     # Drop known-problematic column before feature selection.
     if "hurst_exponent" in df_clean.columns:
@@ -165,7 +172,7 @@ def get_model_config(horizon: int) -> dict:
     """Get model configuration for horizon.
 
     CPU-only: explicit full model list, no presets, no time limits.
-    Model zoo is defined in config.MODEL_ZOO_FROZEN (frozenset, 25 models).
+    Model zoo is defined in config.MODEL_ZOO_FROZEN (frozenset, 17 models).
     Only models in that frozen set are trained. No exceptions.
 
     AutoGluon trains all listed models and selects a WeightedEnsemble as best.
@@ -522,7 +529,9 @@ def run(
     logger.info(f"Run ID: {run_id}")
 
     # Model directory
-    model_dir = Path("models/core_v2")
+    from .config import MODELS_DIR
+
+    model_dir = MODELS_DIR
     model_dir.mkdir(parents=True, exist_ok=True)
 
     results = {}
