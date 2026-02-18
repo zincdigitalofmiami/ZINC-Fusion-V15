@@ -285,16 +285,24 @@ export const boardCrushBackfill = inngest.createFunction(
         let skipped = 0;
 
         try {
+          // Batch fetch existing dates to avoid N+1 queries
+          const dates = batch.map(c => (c as CrushComponents).tradeDate);
+          const existingDates = await client.query(
+            `SELECT trade_date FROM analytics.board_crush_1d WHERE trade_date = ANY($1)`,
+            [dates]
+          );
+          const existingSet = new Set(existingDates.rows.map(r => {
+            const date = r.trade_date;
+            return typeof date === 'string' ? date.split('T')[0] : date.toISOString().split('T')[0];
+          }));
+
           for (const components of batch) {
             const crushResult = calculateBoardCrush(components as CrushComponents);
+            // tradeDate is already a string in ISO format
+            const dateKey = crushResult.tradeDate.split('T')[0];
 
-            // Check if already exists (skip if unchanged)
-            const existing = await client.query(
-              `SELECT board_crush FROM analytics.board_crush_1d WHERE trade_date = $1`,
-              [crushResult.tradeDate]
-            );
-
-            if (existing.rows.length > 0) {
+            // Skip if already exists
+            if (existingSet.has(dateKey)) {
               skipped++;
               continue;
             }

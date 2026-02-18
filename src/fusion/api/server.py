@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import time
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +24,8 @@ from fusion.analytics.pressures import (
 from fusion.api.db import fetch_rows, get_backend, get_query_builder
 from fusion.api.news_sentiment import analyze_articles, get_policy_sentiment
 from fusion.db.connection import get_write_connection
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Fusion API", version="0.1.0")
 
@@ -43,6 +47,73 @@ _SQL_WRITE_VERBS = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+
+
+def handle_db_errors(func: Callable) -> Callable:
+    """
+    Decorator to catch and handle database errors gracefully.
+    
+    Wraps endpoint functions to catch psycopg2 and other database errors,
+    log them, and return proper HTTP 500 responses without exposing
+    internal tracebacks to clients.
+    """
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            # Import here to avoid dependency issues if psycopg2 not installed
+            error_type = type(e).__name__
+            
+            # Check if it's a database error (psycopg2, SQLAlchemy, etc.)
+            if 'psycopg2' in str(type(e).__module__) or 'sqlalchemy' in str(type(e).__module__):
+                logger.error(f"Database error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Database query failed. Please try again later."
+                )
+            # Re-raise HTTPExceptions as-is (they're already properly formatted)
+            elif isinstance(e, HTTPException):
+                raise
+            # Catch all other exceptions
+            else:
+                logger.error(f"Unexpected error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="An unexpected error occurred. Please try again later."
+                )
+    
+    @wraps(func)
+    def sync_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_type = type(e).__name__
+            
+            # Check if it's a database error
+            if 'psycopg2' in str(type(e).__module__) or 'sqlalchemy' in str(type(e).__module__):
+                logger.error(f"Database error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Database query failed. Please try again later."
+                )
+            # Re-raise HTTPExceptions as-is
+            elif isinstance(e, HTTPException):
+                raise
+            # Catch all other exceptions
+            else:
+                logger.error(f"Unexpected error in {func.__name__}: {error_type}: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="An unexpected error occurred. Please try again later."
+                )
+    
+    # Return appropriate wrapper based on whether function is async
+    import asyncio
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return sync_wrapper
 
 
 def _serialize_value(value: Any) -> Any:
@@ -72,6 +143,34 @@ def _require_db_token(x_api_token: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Token.")
 
 
+def verify_api_key(x_api_key: str | None = Header(default=None)) -> str:
+    """
+    Verify API key against environment variable.
+    
+    Used to protect business logic endpoints (dashboard, forecasts, market data).
+    Separate from _require_db_token which protects database explorer endpoints.
+    
+    Set FUSION_API_KEY in environment to enable authentication.
+    If not set, authentication is disabled (development mode).
+    """
+    expected_key = os.environ.get("FUSION_API_KEY", "").strip()
+    
+    # If no API key is configured, allow access (development mode)
+    if not expected_key:
+        logger.warning("FUSION_API_KEY not set - API authentication disabled (development mode)")
+        return "development"
+    
+    # If API key is configured, require it
+    if not x_api_key or x_api_key.strip() != expected_key:
+        logger.warning(f"API authentication failed - invalid or missing X-API-Key header")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing X-API-Key. Please provide a valid API key in the X-API-Key header."
+        )
+    
+    return x_api_key
+
+
 def _validate_readonly_sql(sql: str) -> str:
     normalized = (sql or "").strip()
     if not normalized:
@@ -97,7 +196,11 @@ def health() -> dict[str, str]:
 
 
 @app.get("/api/dashboard/summary")
-def dashboard_summary(symbol: str = "ZL") -> dict[str, Any]:
+@handle_db_errors
+def dashboard_summary(
+    symbol: str = "ZL",
+    _api_key: str = Depends(verify_api_key)
+) -> dict[str, Any]:
     price_rows = _fetch_rows(
         """
         SELECT as_of_date, close
@@ -313,7 +416,8 @@ def _recent_files(glob_path: str, limit: int = 5) -> list[dict[str, Any]]:
 
 
 @app.get("/api/overview/models")
-def overview_models() -> dict[str, Any]:
+@handle_db_errors
+def overview_models(_api_key: str = Depends(verify_api_key)) -> dict[str, Any]:
     """
     Read-only operational snapshot for the /overview dashboard.
 
@@ -348,22 +452,33 @@ def overview_models() -> dict[str, Any]:
             """
         )
 
-    # Specialist OOF — v3 has no specialist OOF tables (legacy v2 concept).
-    # Check for individual training.oof_specialist_*_1d tables if they exist.
+    # Specialist OOF — v3 uses specialist_signals_1d instead of individual tables.
+    # Query all specialists in a single query using GROUP BY.
     specialist_rows = []
-    for s in specialists:
-        table = f"oof_specialist_{s}_1d"
-        if _table_exists("training", table):
-            row = _fetch_rows(
-                f"""
-                SELECT '{s}' as specialist, COUNT(*)::BIGINT as rows,
-                       MIN(trade_date) as start_date, MAX(trade_date) as end_date
-                FROM training.{table}
-                """
-            )[0]
-        else:
-            row = {"specialist": s, "rows": 0, "start_date": None, "end_date": None}
-        specialist_rows.append(row)
+    if _table_exists("training", "specialist_signals_1d"):
+        # Single query to get all specialist stats
+        specialist_data = _fetch_rows(
+            """
+            SELECT bucket as specialist, COUNT(*)::BIGINT as rows,
+                   MIN(as_of_date) as start_date, MAX(as_of_date) as end_date
+            FROM training.specialist_signals_1d
+            WHERE bucket = ANY(%s)
+            GROUP BY bucket
+            """,
+            [specialists]
+        )
+        # Create lookup dict for O(1) access
+        specialist_dict = {row["specialist"]: row for row in specialist_data}
+        # Build result maintaining specialist order
+        for s in specialists:
+            if s in specialist_dict:
+                specialist_rows.append(specialist_dict[s])
+            else:
+                specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
+    else:
+        # Fallback: no specialist_signals_1d table exists
+        for s in specialists:
+            specialist_rows.append({"specialist": s, "rows": 0, "start_date": None, "end_date": None})
 
     # Combined specialist signals — check for specialist_signals_1d table
     combined = {"exists": False, "rows": 0, "start_date": None, "end_date": None}
@@ -570,9 +685,11 @@ def overview_models() -> dict[str, Any]:
 
 
 @app.get("/api/market/zl")
+@handle_db_errors
 def market_zl(
     symbol: str = "ZL",
     limit: int = Query(2000, ge=1, le=10000),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     rows = _fetch_rows(
         """
@@ -599,9 +716,11 @@ def market_zl(
 
 
 @app.get("/api/forecast/quantiles")
+@handle_db_errors
 def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     # Schema: forecast_date (not as_of_date), horizon (not horizon_days)
     rows = _fetch_rows(
@@ -624,6 +743,7 @@ def forecast_quantiles(
 def forecast_bands(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
+    _api_key: str = Depends(verify_api_key)
 ) -> dict[str, Any]:
     if _table_exists("forecasts", "forecast_quantiles"):
         horizon_col = _first_existing_column(
@@ -851,6 +971,7 @@ def db_columns(
 
 
 @app.post("/api/db/query")
+@handle_db_errors
 def db_query(
     payload: dict[str, Any],
     _: None = Depends(_require_db_token),
@@ -1165,7 +1286,7 @@ def zl_intraday(
     Returns data for the specified number of hours.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             timestamp,
             open,
@@ -1174,9 +1295,10 @@ def zl_intraday(
             close,
             volume
         FROM analytics.price_15m
-        WHERE timestamp > NOW() - INTERVAL '{hours} hours'
+        WHERE timestamp > NOW() - INTERVAL '1 hour' * $1
         ORDER BY timestamp ASC
-        """
+        """,
+        [hours]
     )
 
     # Format for charting libraries (TradingView lightweight-charts format)
@@ -1214,7 +1336,7 @@ def zl_intraday_ohlc(
     Returns ISO timestamps for broader compatibility.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             timestamp,
             open,
@@ -1225,9 +1347,10 @@ def zl_intraday_ohlc(
             day_high,
             day_low
         FROM analytics.price_15m
-        WHERE timestamp > NOW() - INTERVAL '{days} days'
+        WHERE timestamp > NOW() - INTERVAL '1 day' * $1
         ORDER BY timestamp ASC
-        """
+        """,
+        [days]
     )
 
     bars = []
@@ -1465,17 +1588,17 @@ def pulse_domain_history(
     Get historical Intel Drops for a specific domain.
     """
     rows = _fetch_rows(
-        f"""
+        """
         SELECT
             id, as_of_ts, domain, horizon, direction, pressure_cents, edge,
             driver_weights, top_drivers, regime_tags, created_at
         FROM features.intel_drops_event
-        WHERE domain = ?
-          AND horizon = ?
-          AND as_of_ts >= NOW() - INTERVAL '{days} days'
+        WHERE domain = $1
+          AND horizon = $2
+          AND as_of_ts >= NOW() - INTERVAL '1 day' * $3
         ORDER BY as_of_ts ASC
         """,
-        [domain.upper(), horizon.upper()],
+        [domain.upper(), horizon.upper(), days],
     )
 
     return {
