@@ -1,37 +1,24 @@
 #!/usr/bin/env python3
 """
-ZINC-FUSION-V15: Full Pipeline Orchestrator (L0→L5)
+DEPRECATED: Legacy Full Pipeline Orchestrator (L0→L5)
 
-Runs the complete training and inference pipeline in sequence:
-    L2: Core Baseline (Chronos-2 + AutoGluon)
-    L3: Specialist Models (10 buckets)
-    L4: Meta-Ensemble + Attribution
-    L5-A: Monte Carlo Simulation
-    L5-D: Historical Analogs
-    L5-C: LLM Synthesis
+This script is SUPERSEDED by:
+    python -m fusion.core_training.run_pipeline
 
-Usage:
-    # Quick mode (Chronos-2 only, ~1 hour total)
-    python scripts/run_pipeline.py --horizon 21 --mode quick
+The active training pipeline (Phase 3 → Phase 6 → Phase 7) lives in:
+    src/fusion/core_training/run_pipeline.py
 
-    # Full mode (AutoML ensemble, ~8+ hours)
-    python scripts/run_pipeline.py --horizon 21 --mode full
+This legacy orchestrator references scripts that no longer exist
+(train_core_chronos.py, train_specialist.py, train_meta_ensemble.py).
+It is kept for reference only. Do NOT use for production training.
 
-    # All horizons, quick mode
-    python scripts/run_pipeline.py --horizon all --mode quick
+For production training:
+    python -m fusion.core_training.run_pipeline
+    python -m fusion.core_training.run_pipeline --skip-matrix  # Train only
+    python -m fusion.core_training.run_pipeline --horizons 5 21
 
-    # Dry run (validate without training)
-    python scripts/run_pipeline.py --horizon 21 --mode quick --dry-run
-
-    # Skip L5-C (no LLM synthesis)
-    python scripts/run_pipeline.py --horizon 21 --mode quick --skip-llm
-
-Environment Variables Required:
-    DATABASE_URL - Prisma Postgres connection string
-
-Optional (for L5-C LLM synthesis):
-    ANTHROPIC_API_KEY - Claude API key (preferred)
-    OPENAI_API_KEY - OpenAI API key (fallback)
+For standalone forecast promotion:
+    python scripts/generate_production_forecasts.py
 """
 
 import os
@@ -39,6 +26,7 @@ import sys
 import subprocess
 import logging
 import argparse
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -50,6 +38,13 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+warnings.warn(
+    "scripts/run_pipeline.py is DEPRECATED. "
+    "Use 'python -m fusion.core_training.run_pipeline' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 # Load environment
 load_dotenv()

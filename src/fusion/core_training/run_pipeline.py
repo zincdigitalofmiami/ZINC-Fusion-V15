@@ -3,9 +3,10 @@
 Core Training Pipeline
 ======================
 
-Simple two-phase pipeline:
+Three-phase pipeline:
   Phase 3: Build feature matrix (training.matrix_1d)
   Phase 6: Train models for all horizons
+  Phase 7: Promote OOF predictions to forecasts.production_1d
 
 Usage:
     python -m fusion.core_training.run_pipeline
@@ -18,12 +19,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import logging
+import subprocess
 import sys
 from datetime import datetime
 
-from . import build_matrix
-from . import train_models
-from .config import TARGET_SYMBOL, HORIZONS
+from . import build_matrix, train_models
+from .config import HORIZONS, PROJECT_ROOT, TARGET_SYMBOL
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,41 @@ def run_pipeline(
         logger.error("PIPELINE COMPLETED WITH ERRORS - Some horizons failed")
         return False
 
+    # =========================================================================
+    # PHASE 7: PROMOTE OOF TO PRODUCTION FORECASTS
+    # =========================================================================
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("PHASE 7: PROMOTE OOF TO PRODUCTION FORECASTS")
+    logger.info("=" * 70)
+
+    forecast_script = PROJECT_ROOT / "scripts" / "generate_production_forecasts.py"
+    if forecast_script.exists():
+        result = subprocess.run(
+            [sys.executable, str(forecast_script)],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        if result.returncode == 0:
+            logger.info("Production forecasts generated successfully")
+            for line in result.stdout.strip().splitlines()[-5:]:
+                logger.info(f"   {line}")
+        else:
+            logger.error("Production forecast generation FAILED (non-fatal)")
+            for line in result.stderr.strip().splitlines()[-10:]:
+                logger.error(f"   {line}")
+            # Phase 7 failure is non-fatal: training succeeded, forecasts
+            # can be regenerated independently via the standalone script.
+            logger.warning(
+                "   Run manually: python scripts/generate_production_forecasts.py"
+            )
+    else:
+        logger.warning(
+            f"   Forecast script not found at {forecast_script} — skipping Phase 7"
+        )
+
     # Final summary
     logger.info("")
     logger.info("=" * 70)
@@ -142,6 +178,7 @@ def main():
 Phases:
   3. Build Core Matrix - Assemble feature matrix from all sources
   6. Train Models - Train AutoGluon models for each horizon
+  7. Promote Forecasts - OOF predictions -> forecasts.production_1d
 
 Examples:
   # Full pipeline (rebuild matrix + train)

@@ -652,15 +652,11 @@ class ZincFusionIndicators:
                 df["high"], df["low"], df["close"], df["volume"], window=14
             )
 
-        # VWAP - Volume Weighted Average Price (intraday reset assumed daily)
-        cumulative_tp_vol = (
-            ((df["high"] + df["low"] + df["close"]) / 3) * df["volume"]
-        ).cumsum()
-        cumulative_vol = df["volume"].cumsum()
-        df["vwap"] = cumulative_tp_vol / cumulative_vol
+        # VWAP proxy - typical price (daily bars only, no intraday accumulation)
+        df["vwap"] = (df["high"] + df["low"] + df["close"]) / 3
 
-        # Price vs VWAP
-        df["price_vs_vwap"] = ((df["close"] / df["vwap"]) - 1) * 100
+        # Price vs VWAP (typical price)
+        df["price_vs_vwap"] = ((df["close"] / df["vwap"].replace(0, np.nan)) - 1) * 100
 
         # Force Index
         if HAS_TA:
@@ -862,13 +858,13 @@ class ZincFusionIndicators:
             df["board_crush"] = (oil_value + meal_value) - (df["zs_close"] / 100)
 
             # Oil share = oil_value / (oil_value + meal_value)
-            df["oil_share"] = oil_value / (oil_value + meal_value)
+            df["oil_share"] = oil_value / (oil_value + meal_value).replace(0, np.nan)
 
             # ZL/ZS ratio
-            df["zl_zs_ratio"] = df["close"] / df["zs_close"]
+            df["zl_zs_ratio"] = df["close"] / df["zs_close"].replace(0, np.nan)
 
             # ZM/ZS ratio
-            df["zm_zs_ratio"] = df["zm_close"] / df["zs_close"]
+            df["zm_zs_ratio"] = df["zm_close"] / df["zs_close"].replace(0, np.nan)
 
             # Crush margin momentum
             if "board_crush" in df.columns:
@@ -915,11 +911,11 @@ class ZincFusionIndicators:
         # BOHO spread (Biodiesel vs Heating Oil)
         if "ho_close" in df.columns:
             df["boho_spread"] = df["close"] - df["ho_close"]
-            df["boho_ratio"] = df["close"] / df["ho_close"]
+            df["boho_ratio"] = df["close"] / df["ho_close"].replace(0, np.nan)
 
         # ZL/CL correlation proxy
         if "cl_close" in df.columns:
-            df["zl_cl_ratio"] = df["close"] / df["cl_close"]
+            df["zl_cl_ratio"] = df["close"] / df["cl_close"].replace(0, np.nan)
             df["zl_cl_spread"] = df["close"] - df["cl_close"]
 
         # 3-2-1 Crack spread proxy (simplified)

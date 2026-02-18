@@ -136,31 +136,9 @@ BANNED_SCHEMAS = [
 # DRIVERS (Canonical - Use taxonomy.py for source of truth)
 # =============================================================================
 
-# NOTE: These are maintained for backward compatibility
-# The canonical source is fusion.taxonomy.ECONOMIC_DRIVERS and fusion.taxonomy.NEURAL_DRIVERS
-
-ECONOMIC_DRIVERS = [
-    "crush",
-    "china",
-    "fx",
-    "fed",
-    "tariff",
-    "energy",  # SEPARATE from biofuel
-    "biofuel",  # SEPARATE from energy
-    "palm",  # Normalized (not palm_oil)
-    "volatility",
-    "substitutes",
-]
-
-NEURAL_DRIVERS = [
-    "neural_trend",
-    "neural_regime",
-    "neural_flow",
-    "neural_sentiment",
-    "neural_residual",
-]
-
-ALL_DRIVERS = ECONOMIC_DRIVERS + NEURAL_DRIVERS
+# Re-export from canonical source (fusion.taxonomy) for backward compatibility.
+# Do NOT maintain a separate list here — taxonomy.py is the single source of truth.
+from fusion.taxonomy import ALL_DRIVERS, ECONOMIC_DRIVERS, NEURAL_DRIVERS  # noqa: E402, F401, I001
 
 
 # =============================================================================
