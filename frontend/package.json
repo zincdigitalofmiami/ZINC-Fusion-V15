@@ -41,7 +41,7 @@
     "d3-force": "^3.0.0",
     "d3-selection": "^3.0.0",
     "date-fns": "^4.1.0",
-    "fast-xml-parser": "^5.3.3",
+    "fast-xml-parser": "^5.3.6",
     "framer-motion": "^12.25.0",
     "inngest": "^3.50.0",
     "inngest-cli": "^1.17.0",
