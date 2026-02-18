@@ -202,15 +202,18 @@ export async function GET() {
     // Waterfall: use the freshest (lowest age_seconds) tier that returned data
     const tiers = [t1m, t15m, t1h, t1d].filter(Boolean) as PriceTier[];
     if (tiers.length === 0) {
-      return NextResponse.json({
-        symbol: "ZL",
-        price: null,
-        timestamp: null,
-        updated_at: new Date().toISOString(),
-        source: "none",
-        live: false,
-        error: "No ZL price data in any table",
-      });
+      return NextResponse.json(
+        {
+          symbol: "ZL",
+          price: null,
+          timestamp: null,
+          updated_at: new Date().toISOString(),
+          source: "none",
+          live: false,
+          error: "No ZL price data in any table",
+        },
+        { headers: { "Cache-Control": "no-store, max-age=0" } },
+      );
     }
 
     // Sort by freshness (lowest age wins)
@@ -229,22 +232,25 @@ export async function GET() {
     const isLive =
       best.source === "1m" && best.age_seconds < LIVE_THRESHOLD_SECONDS;
 
-    return NextResponse.json({
-      symbol: "ZL",
-      price: best.price,
-      timestamp: best.timestamp,
-      volume: best.volume,
-      open: best.open,
-      high: best.high,
-      low: best.low,
-      updated_at: new Date().toISOString(),
-      previous_close: best.previous_close,
-      change: best.change,
-      change_pct: best.change_pct,
-      source: best.source,
-      live: isLive,
-      age_seconds: best.age_seconds,
-    });
+    return NextResponse.json(
+      {
+        symbol: "ZL",
+        price: best.price,
+        timestamp: best.timestamp,
+        volume: best.volume,
+        open: best.open,
+        high: best.high,
+        low: best.low,
+        updated_at: new Date().toISOString(),
+        previous_close: best.previous_close,
+        change: best.change,
+        change_pct: best.change_pct,
+        source: best.source,
+        live: isLive,
+        age_seconds: best.age_seconds,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
   } catch (error) {
     console.error("ZL live price error:", error);
     return NextResponse.json(

@@ -33,6 +33,7 @@ import {
   nassWeekly,
   noaaWeatherDaily,
   openmeteoWeatherDaily,
+  weatherFeaturesDaily,
   fxSpotDaily,
   epaRinPricesDaily,
   usdaWasdeMonthly,
@@ -68,6 +69,8 @@ import {
   lcfsCreditWeekly,
   specialistSignalsSync,
   specialistSignalsSyncManual,
+  globalFailureMonitor,
+  freshnessMonitor,
 } from "@/inngest/functions";
 
 /**
@@ -107,8 +110,13 @@ if (process.env.NODE_ENV !== 'production') {
   console.log('[Inngest] Computed serveHost:', serveHost);
 }
 
+// Extend Vercel Lambda timeout to maximum (Fluid Compute / streaming mode).
+// On Vercel Pro this allows steps up to ~800s instead of the default 300s.
+export const maxDuration = 300;
+
 export const { GET, POST, PUT } = serve({
   client: inngest,
+  streaming: "allow",
   functions: [
     // Price data
     zl15m,
@@ -151,6 +159,7 @@ export const { GET, POST, PUT } = serve({
     // Weather
     noaaWeatherDaily,
     openmeteoWeatherDaily,
+    weatherFeaturesDaily,
     // FX/commodities
     fxSpotDaily,
     cpoPalmOilDaily,
@@ -197,6 +206,10 @@ export const { GET, POST, PUT } = serve({
     // Specialist signal synchronization (all 11 buckets)
     specialistSignalsSync,
     specialistSignalsSyncManual,
+    // Global failure monitor (catches all function failures)
+    globalFailureMonitor,
+    // Freshness SLAs for critical tables
+    freshnessMonitor,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

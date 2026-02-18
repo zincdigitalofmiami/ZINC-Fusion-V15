@@ -52,15 +52,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      symbol: "ZL",
-      interval: "1h",
-      hours: clampedHours,
-      count: rows.length,
-      earliest: rows[0]?.timestamp,
-      latest: rows[rows.length - 1]?.timestamp,
-      data: rows,
-    });
+    return NextResponse.json(
+      {
+        symbol: "ZL",
+        interval: "1h",
+        hours: clampedHours,
+        count: rows.length,
+        earliest: rows[0]?.timestamp,
+        latest: rows[rows.length - 1]?.timestamp,
+        data: rows,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
   } catch (error) {
     console.error("Error fetching ZL 1h data:", error);
     return NextResponse.json(

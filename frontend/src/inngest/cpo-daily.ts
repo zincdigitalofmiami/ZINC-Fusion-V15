@@ -56,9 +56,51 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
 
   const latestCandle = json.data[json.data.length - 1];
   const [timestamp, open, high, low, close] = latestCandle;
+  if (![open, high, low, close].every((v) => Number.isFinite(Number(v)))) {
+    return null;
+  }
   const eventDate = new Date(timestamp).toISOString().split("T")[0];
 
-  return { source: "investing_com", eventDate, open, high, low, close };
+  return {
+    source: "investing_com",
+    eventDate,
+    open: Number(open),
+    high: Number(high),
+    low: Number(low),
+    close: Number(close),
+  };
+}
+
+async function fetchFromTradingEconomics(apiKey: string): Promise<CpoData | null> {
+  const url = `https://api.tradingeconomics.com/markets/commodity/palm%20oil?c=${apiKey}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      console.warn(`Trading Economics API error: ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const last = Number(data[0]?.Last);
+    if (!Number.isFinite(last) || last <= 0) return null;
+    const eventDate = new Date().toISOString().split("T")[0];
+    return {
+      source: "trading_economics",
+      eventDate,
+      close: last,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn("Trading Economics API timed out after 15s");
+      return null;
+    }
+    console.warn(`Trading Economics fetch error: ${err}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
@@ -78,8 +120,26 @@ export const cpoPalmOilDaily = inngest.createFunction(
         return result;
       }
 
-      throw new Error("CPO primary source failed (Investing.com)");
+      const teKey = process.env.TRADING_ECONOMICS_API_KEY;
+      if (!teKey) {
+        logger.warn("Investing.com unavailable and TRADING_ECONOMICS_API_KEY not configured");
+        return null;
+      }
+
+      logger.info("Investing.com unavailable; falling back to Trading Economics...");
+      const fallback = await fetchFromTradingEconomics(teKey);
+      if (fallback) {
+        logger.info(`Got CPO from Trading Economics: ${fallback.close}`);
+        return fallback;
+      }
+
+      logger.warn("Both CPO sources unavailable for this run");
+      return null;
     });
+
+    if (!data) {
+      return { status: "upstream_unavailable", inserted: 0 };
+    }
 
     // Insert the data
     const result = await step.run("insert-cpo-data", async () => {
@@ -150,33 +210,14 @@ export const cpoTradingEconomics = inngest.createFunction(
       return { status: "skipped", reason: "already_have_data", existingClose: existingData };
     }
 
-    const data = await step.run("fetch-te-palm-oil", async () => {
-      const url = `https://api.tradingeconomics.com/markets/commodity/palm%20oil?c=${apiKey}`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      try {
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!res.ok) throw new Error(`Trading Economics API error: ${res.status}`);
-        return res.json();
-      } catch (err) {
-        clearTimeout(timeout);
-        if (err instanceof Error && err.name === "AbortError") {
-          throw new Error("Trading Economics API timed out after 15s");
-        }
-        throw err;
-      }
-    });
+    const data = await step.run("fetch-te-palm-oil", async () => fetchFromTradingEconomics(apiKey));
 
     const result = await step.run("insert-te-data", async () => {
       const client = await pool.connect();
       try {
-        if (!data || data.length === 0) {
+        if (!data) {
           return { status: "no_data" };
         }
-
-        const palmOil = data[0];
-        const eventDate = new Date().toISOString().split("T")[0];
 
         await client.query(
           `INSERT INTO mkt.futures_1d
@@ -186,13 +227,13 @@ export const cpoTradingEconomics = inngest.createFunction(
              close = EXCLUDED.close,
              source = EXCLUDED.source,
              ingested_at = NOW()`,
-          [eventDate, palmOil.Last]
+          [data.eventDate, data.close]
         );
 
         return {
           status: "success",
-          date: eventDate,
-          close: palmOil.Last,
+          date: data.eventDate,
+          close: data.close,
         };
       } finally {
         client.release();

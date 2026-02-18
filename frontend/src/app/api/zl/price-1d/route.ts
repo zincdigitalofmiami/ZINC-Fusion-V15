@@ -36,6 +36,43 @@ function toDateKey(value: string | Date): string {
   return dt.toISOString().slice(0, 10);
 }
 
+/**
+ * Fallback: synthesize today's bar from analytics.latest_price when all intraday
+ * tables are empty (live feed down, market pre-open, etc.). Prevents the chart
+ * from showing yesterday's close as the rightmost bar when we have a more recent
+ * price in the singleton latest_price row.
+ */
+async function getTodayFromLatestPrice(): Promise<{
+  bar: DailyBarRow | null;
+  latestTs: string | null;
+}> {
+  try {
+    const rows = await query<{
+      price: number;
+      timestamp: string | null;
+      updated_at: string;
+    }>(
+      `SELECT price, timestamp::text, updated_at::text
+       FROM analytics.latest_price
+       WHERE id = 1 AND price IS NOT NULL
+         AND updated_at > CURRENT_DATE::timestamptz`,
+    );
+    if (!rows.length || !rows[0].price) return { bar: null, latestTs: null };
+    const r = rows[0];
+    const p = parseFloat(String(r.price));
+    return {
+      bar: {
+        timestamp: new Date().toISOString().slice(0, 10), // today's date
+        open: p, high: p, low: p, close: p, volume: 0,
+        source: "latest_price_fallback",
+      },
+      latestTs: r.updated_at ?? null,
+    };
+  } catch {
+    return { bar: null, latestTs: null };
+  }
+}
+
 async function getTodayLiveDailyRollup(): Promise<{
   bar: DailyBarRow | null;
   sourceTable: string | null;
@@ -133,15 +170,29 @@ export async function GET(req: NextRequest) {
       [`${clampedDays} days`],
     );
 
+    // Try intraday rollup first, then fall back to latest_price singleton
     const liveRollup = await getTodayLiveDailyRollup();
+    let activeRollupBar    = liveRollup.bar;
+    let activeSourceTable  = liveRollup.sourceTable;
+    let activeLatestTs     = liveRollup.latestTs;
+
+    if (!activeRollupBar) {
+      const lpFallback = await getTodayFromLatestPrice();
+      if (lpFallback.bar) {
+        activeRollupBar   = lpFallback.bar;
+        activeSourceTable = "analytics.latest_price";
+        activeLatestTs    = lpFallback.latestTs;
+      }
+    }
+
     let mergedRows = historicalRows;
 
-    if (liveRollup.bar) {
-      const liveDayKey = toDateKey(liveRollup.bar.timestamp);
+    if (activeRollupBar) {
+      const liveDayKey = toDateKey(activeRollupBar.timestamp);
       mergedRows = historicalRows.filter(
         (row) => toDateKey(row.timestamp) !== liveDayKey,
       );
-      mergedRows.push(liveRollup.bar);
+      mergedRows.push(activeRollupBar);
       mergedRows.sort((a, b) =>
         toDateKey(a.timestamp).localeCompare(toDateKey(b.timestamp)),
       );
@@ -150,20 +201,23 @@ export async function GET(req: NextRequest) {
     if (mergedRows.length === 0) {
       return NextResponse.json(
         { error: "No daily data available", days: clampedDays },
-        { status: 404 },
+        { status: 404, headers: { "Cache-Control": "no-store, max-age=0" } },
       );
     }
 
-    return NextResponse.json({
-      symbol: "ZL",
-      interval: "1d",
-      count: mergedRows.length,
-      days: clampedDays,
-      live_rollup: Boolean(liveRollup.bar),
-      live_rollup_source_table: liveRollup.sourceTable,
-      live_rollup_latest_intraday_ts: liveRollup.latestTs,
-      data: mergedRows,
-    });
+    return NextResponse.json(
+      {
+        symbol: "ZL",
+        interval: "1d",
+        count: mergedRows.length,
+        days: clampedDays,
+        live_rollup: Boolean(activeRollupBar),
+        live_rollup_source_table: activeSourceTable,
+        live_rollup_latest_intraday_ts: activeLatestTs,
+        data: mergedRows,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
   } catch (error) {
     console.error("ZL price-1d API error:", error);
     return NextResponse.json(

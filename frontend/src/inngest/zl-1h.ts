@@ -10,8 +10,8 @@ const pool = dbPool;
  */
 export const zl1h = inngest.createFunction(
   { id: "zl-1h", name: "ZL 1h Bars", concurrency: [DB_CONCURRENCY] },
-  { cron: "0 * * * *" }, // Every hour on the hour
-  async ({ step }) => {
+  { cron: "5 * * * *" }, // Every hour at :05 (staggered from zl-15m to avoid DB contention)
+  async ({ step, logger }) => {
     const endStr = await step.run("compute-end-time", async () => {
       const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
       return d.toISOString();
@@ -43,27 +43,33 @@ export const zl1h = inngest.createFunction(
 
     // Step 1: Fetch 1h bars from Databento
     const bars = await step.run("fetch-databento-1h", async () => {
-      const csv = await fetchDatabentoCsv({
-        dataset: "GLBX.MDP3",
-        schema: "ohlcv-1h",
-        symbols: "ZL.n.0",  // OI-ranked for consistency with daily jobs
-        stype_in: "continuous",
-        start: startStr,
-        end: endStr,
-        encoding: "csv",
-        pretty_ts: "true",
-        pretty_px: "true",
-      });
+      try {
+        const csv = await fetchDatabentoCsv({
+          dataset: "GLBX.MDP3",
+          schema: "ohlcv-1h",
+          symbols: "ZL.n.0",  // OI-ranked for consistency with daily jobs
+          stype_in: "continuous",
+          start: startStr,
+          end: endStr,
+          encoding: "csv",
+          pretty_ts: "true",
+          pretty_px: "true",
+        });
 
-      const parsed = parseDatabentoOhlcvCsv(csv);
-      return parsed.map((bar) => ({
-        eventTime: bar.tsEvent,
-        open: bar.open,
-        high: bar.high,
-        low: bar.low,
-        close: bar.close,
-        volume: bar.volume ?? 0,
-      }));
+        const parsed = parseDatabentoOhlcvCsv(csv);
+        return parsed.map((bar) => ({
+          eventTime: bar.tsEvent,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close,
+          volume: bar.volume ?? 0,
+        }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn(`Databento 1h fetch failed; skipping this run: ${message}`);
+        return [];
+      }
     });
 
     if (!bars || bars.length === 0) {

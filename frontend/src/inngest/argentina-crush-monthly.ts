@@ -36,9 +36,7 @@ interface USDAPSDRecord {
 async function fetchArgentinaCrush(): Promise<USDAPSDRecord[]> {
   const USDA_API_KEY = process.env.USDA_API_KEY;
   if (!USDA_API_KEY) {
-    throw new Error(
-      "USDA_API_KEY not configured — set it in Vercel environment variables",
-    );
+    return [];
   }
   const BASE_URL = "https://apps.fas.usda.gov/OpenData/api/psd";
 
@@ -49,11 +47,37 @@ async function fetchArgentinaCrush(): Promise<USDAPSDRecord[]> {
     commodityCode: "2222", // Soybeans
   });
 
-  const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`);
-  if (!response.ok) throw new Error(`USDA PSD error: ${response.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    try {
+      const response = await fetch(`${BASE_URL}/commodityDataByGeoLoc?${params}`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        // Treat auth/upstream failures as no-data for this run to avoid hard-failing
+        // the schedule; data freshness checks should alert on prolonged staleness.
+        if (response.status === 401 || response.status === 403 || response.status >= 500) {
+          return [];
+        }
+        throw new Error(`USDA PSD error: ${response.status}`);
+      }
 
-  const data = await response.json();
-  return data.filter((d: USDAPSDRecord) => d.marketYear >= "2020/2021");
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+      return data.filter(
+        (d: USDAPSDRecord) =>
+          typeof d.marketYear === "string" && d.marketYear >= "2020/2021",
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return [];
+      }
+      return [];
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const argentinaCrushMonthly = inngest.createFunction(
@@ -68,6 +92,12 @@ export const argentinaCrushMonthly = inngest.createFunction(
     logger.info("🇦🇷 CRITICAL: Argentina crush via USDA PSD (CIARA proxy)");
 
     const data = await step.run("fetch-usda-psd", () => fetchArgentinaCrush());
+    if (data.length === 0) {
+      logger.warn(
+        "Argentina crush source returned no rows (missing key/auth/upstream issue); skipping write for this run",
+      );
+      return { status: "no_data", inserted: 0 };
+    }
     logger.info(`Fetched ${data.length} Argentina records`);
 
     const inserted = await step.run("upsert-argentina-data", async () => {

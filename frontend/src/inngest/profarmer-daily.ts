@@ -37,6 +37,10 @@ import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type Page } from "puppeteer-core";
 
+// Vercel/Next output tracing sometimes misses this transitive dependency used
+// by puppeteer-extra/stealth via dynamic require(), causing runtime crashes.
+import "is-plain-object";
+
 import dbPool from "@/lib/db";
 
 const pool = dbPool;

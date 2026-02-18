@@ -47,7 +47,8 @@ const THEME = {
   textColor: "rgba(255,255,255,0.4)",
 };
 
-const DAILY_REFRESH_INTERVAL_MS = 5 * 60_000; // refresh daily bars every 5m
+const DAILY_REFRESH_INTERVAL_MS = 30_000;  // refresh daily bars every 30s
+const LIVE_TICKER_INTERVAL_MS  = 10_000;  // refresh live price ticker every 10s
 const INITIAL_VISIBLE_BARS = 150;
 const RIGHT_PADDING_BARS = 16;
 
@@ -91,12 +92,17 @@ export function LightweightZlCandlestickChart({
             close: parseFloat(String(d.close)),
             volume: parseFloat(String(d.volume)),
           }));
-          // Only update state if data actually changed (prevents chart recreation)
+          // Only update state if data actually changed (prevents chart recreation).
+          // Compare length + latest close/high/low so that an intraday live-rollup
+          // bar updating its range triggers a re-render even when close is unchanged.
           const oldData = priceDataRef.current;
+          const oldLast = oldData[oldData.length - 1];
+          const newLast = parsed[parsed.length - 1];
           const changed =
             oldData.length !== parsed.length ||
-            oldData[oldData.length - 1]?.close !==
-              parsed[parsed.length - 1]?.close;
+            oldLast?.close !== newLast?.close ||
+            oldLast?.high  !== newLast?.high  ||
+            oldLast?.low   !== newLast?.low;
           priceDataRef.current = parsed;
           if (changed) setPriceData(parsed);
           const latest = parsed[parsed.length - 1];
@@ -151,6 +157,62 @@ export function LightweightZlCandlestickChart({
     };
     fetchData();
     const interval = setInterval(fetchData, DAILY_REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Live price ticker — polls /api/zl/live every 10s to update the last candle and header
+  // in real-time without rebuilding the full chart from 730 daily bars.
+  useEffect(() => {
+    const fetchLive = async () => {
+      try {
+        const res = await fetch("/api/zl/live");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.price) return;
+
+        const livePrice: number = parseFloat(String(json.price));
+        const liveOpen: number  = parseFloat(String(json.open  ?? json.price));
+        const liveHigh: number  = parseFloat(String(json.high  ?? json.price));
+        const liveLow: number   = parseFloat(String(json.low   ?? json.price));
+
+        // Update header stats
+        setLastPrice(livePrice);
+        setIsLive(Boolean(json.live));
+        if (json.timestamp) {
+          setLastUpdate(new Date(json.timestamp).toLocaleTimeString());
+        }
+        if (json.change_pct != null) {
+          setPriceChange(parseFloat(String(json.change_pct)));
+        }
+        // Update today's high/low displayed in header
+        if (Number.isFinite(liveHigh) && Number.isFinite(liveLow)) {
+          setHighPrice(liveHigh);
+          setLowPrice(liveLow);
+        }
+
+        // Patch the last candle in-place — no full chart rebuild needed.
+        // This is the key to showing a live-updating rightmost bar.
+        if (candleSeriesRef.current && priceDataRef.current.length > 0) {
+          const lastBar = priceDataRef.current[priceDataRef.current.length - 1];
+          const barTime = Math.floor(
+            new Date(lastBar.timestamp).getTime() / 1000,
+          ) as UTCTimestamp;
+          candleSeriesRef.current.update({
+            time: barTime,
+            open:  liveOpen,
+            high:  Math.max(liveHigh, lastBar.high),
+            low:   Math.min(liveLow,  lastBar.low),
+            close: livePrice,
+          });
+        }
+      } catch {
+        // Live ticker errors are non-fatal — chart continues showing cached data
+      }
+    };
+
+    // Run immediately, then on interval
+    fetchLive();
+    const interval = setInterval(fetchLive, LIVE_TICKER_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 

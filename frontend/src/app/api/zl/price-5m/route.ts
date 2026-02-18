@@ -91,19 +91,22 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        return NextResponse.json({
-          symbol: "ZL",
-          interval: source.interval,
-          requested_interval: "5m",
-          source_table: `analytics.${source.table}`,
-          window_mode: mode,
-          fallback_used: source.table !== "price_5m" || mode === "latest",
-          hours: clampedHours,
-          count: rows.length,
-          earliest: (rows[0] as { timestamp?: string })?.timestamp,
-          latest: (rows[rows.length - 1] as { timestamp?: string })?.timestamp,
-          data: rows,
-        });
+        return NextResponse.json(
+          {
+            symbol: "ZL",
+            interval: source.interval,
+            requested_interval: "5m",
+            source_table: `analytics.${source.table}`,
+            window_mode: mode,
+            fallback_used: source.table !== "price_5m" || mode === "latest",
+            hours: clampedHours,
+            count: rows.length,
+            earliest: (rows[0] as { timestamp?: string })?.timestamp,
+            latest: (rows[rows.length - 1] as { timestamp?: string })?.timestamp,
+            data: rows,
+          },
+          { headers: { "Cache-Control": "no-store, max-age=0" } },
+        );
       } catch (error) {
         // Keep trying lower-frequency fallback tables.
         const message =

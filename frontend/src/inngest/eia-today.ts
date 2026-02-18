@@ -57,9 +57,10 @@ export const eiaDaily = inngest.createFunction(
     concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 17 * * 1-5" }, // 5pm ET weekdays (after market close)
-  async ({ step }) => {
+  async ({ step, logger }) => {
     if (!EIA_API_KEY) {
-      throw new Error("EIA_API_KEY not configured");
+      logger.warn("EIA_API_KEY not configured; skipping eia-petroleum-daily run");
+      return { success: false, status: "skipped_no_api_key", inserted: 0, skipped: 0, total: 0 };
     }
 
     // Step 1: Fetch petroleum spot prices from EIA API v2
@@ -76,20 +77,44 @@ export const eiaDaily = inngest.createFunction(
       url.searchParams.set("start", startStr);
       url.searchParams.set("length", "500"); // Enough for 30 days * 5 products
 
-      const response = await fetch(url.toString());
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      let response: Response;
+      try {
+        response = await fetch(url.toString(), { signal: controller.signal });
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return [];
+        }
+        throw err;
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`EIA API error: ${response.status} - ${text}`);
+        logger.warn(`EIA API error: ${response.status} - ${text.slice(0, 400)}`);
+        return [];
       }
 
       const json: EIAResponse = await response.json();
-      return json.response.data;
+      return json?.response?.data ?? [];
     });
 
     // Step 2: Filter to our target products
     const targetProducts = Object.keys(PRODUCT_MAPPING);
     const filteredData = eiaData.filter((d) => targetProducts.includes(d.product));
+
+    if (filteredData.length === 0) {
+      return {
+        success: false,
+        status: "no_data",
+        source: "EIA API v2 petroleum/pri/spt",
+        inserted: 0,
+        skipped: 0,
+        total: 0,
+      };
+    }
 
     // Step 3: Insert into database
     const result = await step.run("insert-eia-prices", async () => {

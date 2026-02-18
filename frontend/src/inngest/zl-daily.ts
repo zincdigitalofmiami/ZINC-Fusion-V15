@@ -1,6 +1,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
 import dbPool from "@/lib/db";
+import { randomUUID } from "crypto";
 
 const pool = dbPool;
 
@@ -62,12 +63,31 @@ export const zlDaily = inngest.createFunction(
     });
 
     if (!zlQuote) {
+      // Log the no_data event so it's visible in ops.ingest_run queries.
+      // Without this, a Databento outage silently produces a gap in analytics.price_1d.
+      await step.run("log-no-data", async () => {
+        const client = await pool.connect();
+        try {
+          await client.query(
+            `INSERT INTO ops.ingest_run
+               (id, job_name, status, rows_inserted, error_message, started_at, completed_at)
+             VALUES ($1, 'zl-daily', 'success', 0, 'Databento returned no bars', NOW(), NOW())`,
+            [randomUUID()],
+          );
+        } finally {
+          client.release();
+        }
+      });
+      logger.warn("ZL daily: Databento returned no bars — analytics.price_1d not updated");
       return { status: "no_data", symbol: "ZL" };
     }
 
     await step.run("upsert-zl-analytics", async () => {
       const client = await pool.connect();
       try {
+        // Batch settlement is always authoritative at 06:05 CT (well after CME close).
+        // No WHERE clause — prior WHERE source <> 'databento_live' prevented the batch
+        // from correcting bars that were previously marked live, causing stale daily closes.
         await client.query(
           `INSERT INTO analytics.price_1d
             (event_date, open, high, low, close, volume, source, created_at)
@@ -78,9 +98,7 @@ export const zlDaily = inngest.createFunction(
              low = EXCLUDED.low,
              close = EXCLUDED.close,
              volume = EXCLUDED.volume,
-             source = EXCLUDED.source
-           WHERE analytics.price_1d.source IS NULL
-              OR analytics.price_1d.source <> 'databento_live'`,
+             source = EXCLUDED.source`,
           [
             zlQuote.eventDate,
             zlQuote.open,

@@ -10,7 +10,7 @@ const pool = dbPool;
  */
 export const zl15m = inngest.createFunction(
   { id: "zl-15m", name: "ZL 15m Bars", concurrency: [DB_CONCURRENCY] },
-  { cron: "0 * * * *" }, // Hourly (HTTP historical, 24h delayed)
+  { cron: "10,25,40,55 * * * *" }, // Every 15 min at :10/:25/:40/:55 (staggered from zl-1h at :05)
   async ({ step }) => {
     const endStr = await step.run("compute-end-time", async () => {
       const d = new Date(Date.now() - 24 * 60 * 60 * 1000);

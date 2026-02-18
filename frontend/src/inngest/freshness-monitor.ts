@@ -8,6 +8,8 @@
  * Static table references (for sql-table-contract hook):
  *   training.specialist_signals_1d
  *   mkt.futures_1d
+ *   analytics.price_1d
+ *   analytics.latest_price
  *   ops.ingest_run
  *   ops.pipeline_alerts
  */
@@ -25,6 +27,24 @@ interface SlaCheck {
 
 // SLA thresholds — how many calendar days behind is acceptable.
 const SLA_CHECKS: SlaCheck[] = [
+	// Dashboard price tables (most critical — directly visible to users)
+	{
+		name: "analytics_price_1d_zl",
+		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
+		        FROM analytics.price_1d`,
+		maxStaleDays: 1, // Daily bar should arrive by 06:05 CT every trading day
+	},
+	{
+		name: "analytics_latest_price",
+		query: `SELECT COALESCE(
+		          EXTRACT(epoch FROM (NOW() - MAX(updated_at))) / 86400,
+		          999
+		        )::int AS days_stale
+		        FROM analytics.latest_price
+		        WHERE id = 1`,
+		maxStaleDays: 1, // Updated by every live feed; should never be >1 day stale
+	},
+	// Specialist signals
 	{
 		name: "specialist_signals_any_bucket",
 		query: `SELECT CURRENT_DATE - MAX(as_of_date)::date AS days_stale
