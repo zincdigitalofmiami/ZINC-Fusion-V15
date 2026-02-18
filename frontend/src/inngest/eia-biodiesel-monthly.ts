@@ -2,13 +2,14 @@
  * EIA Biodiesel Production Monthly Ingestion
  *
  * Fetches biodiesel & renewable diesel production data from EIA API v2.
- * Source: https://api.eia.gov/v2/biofuels/biodiesel/production/
+ * Source: https://api.eia.gov/v2/petroleum/sum/snd/
+ *   - Biodiesel: product=EPOORDB, process=YNP, duoarea=NUS
+ *   - Renewable diesel: product=EPOORDO, process=YNP, duoarea=NUS
  *
- * Key metrics:
- * - Biodiesel production (million gallons)
- * - Renewable diesel production (million gallons)
- * - Feedstock soybean oil percentage (derived from inputs data)
- * - Capacity utilization percentage
+ * NOTE: The old /v2/biofuels/biodiesel/production/ endpoint was removed by EIA.
+ * Replaced Feb 2026 with petroleum/sum/snd which has the same data under
+ * different product codes. Values are in Thousand Barrels; converted to
+ * Million Gallons (1 barrel = 42 gallons).
  *
  * Schedule: 18th of each month (EIA releases ~15th)
  * Table: supply.eia_biodiesel_1m
@@ -19,20 +20,28 @@ import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
-
 const pool = dbPool;
 
-interface EIADataPoint {
+// EIA petroleum/sum/snd product codes
+const BIODIESEL_PRODUCT = "EPOORDB"; // Biofuels Plant Net Production of Biodiesel
+const RENEWABLE_DIESEL_PRODUCT = "EPOORDO"; // Biofuels Plant Net Production of Renewable Diesel
+const PRODUCTION_PROCESS = "YNP"; // Plant Net Production
+const NATIONAL_AREA = "NUS"; // United States total
+const KB_TO_MGAL = 42 / 1000; // Thousand Barrels → Million Gallons
+
+interface PetroleumDataPoint {
   period: string;
+  product: string;
+  process: string;
+  duoarea: string;
   value: number | null;
-  units: string;
   "series-description"?: string;
 }
 
-interface EIAResponse {
+interface PetroleumResponse {
   response: {
-    data: EIADataPoint[];
-    total: number;
+    data: PetroleumDataPoint[];
+    total: string;
   };
 }
 
@@ -41,11 +50,7 @@ function generateRowHash(reportMonth: string, biodiesel: number | null, renewabl
   return createHash("sha256").update(content).digest("hex");
 }
 
-/**
- * Convert EIA period (YYYY-MM) to first-of-month date string
- */
 function periodToDate(period: string): string {
-  // EIA returns periods like "2025-12" - convert to "2025-12-01"
   return `${period}-01`;
 }
 
@@ -62,97 +67,36 @@ export const eiaBiodieselMonthly = inngest.createFunction(
       throw new Error("EIA_API_KEY not configured - required for biodiesel data");
     }
 
-    // Step 1: Fetch biodiesel production data
-    const biodieselData = await step.run("fetch-biodiesel-production", async () => {
-      // Get last 24 months of data
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 24);
-      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`;
-
-      const url = new URL("https://api.eia.gov/v2/biofuels/biodiesel/production/data/");
-      url.searchParams.set("api_key", EIA_API_KEY);
-      url.searchParams.set("frequency", "monthly");
-      url.searchParams.set("data[0]", "value");
-      url.searchParams.set("start", startStr);
-      url.searchParams.set("sort[0][column]", "period");
-      url.searchParams.set("sort[0][direction]", "desc");
-      url.searchParams.set("length", "100");
-
-      const response = await fetch(url.toString());
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`EIA Biodiesel API error: ${response.status} - ${text}`);
-      }
-
-      const json: EIAResponse = await response.json();
-      return json.response.data;
-    });
-
-    // Step 2: Fetch renewable diesel production data
-    const renewableDieselData = await step.run("fetch-renewable-diesel", async () => {
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 24);
-      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`;
-
-      // Renewable diesel is under a different facet in EIA data
-      // Using the broader biofuels endpoint filtered for renewable diesel
-      const url = new URL("https://api.eia.gov/v2/biofuels/biodiesel/production/data/");
-      url.searchParams.set("api_key", EIA_API_KEY!);
-      url.searchParams.set("frequency", "monthly");
-      url.searchParams.set("data[0]", "value");
-      url.searchParams.set("start", startStr);
-      // Filter for renewable diesel specifically
-      url.searchParams.set("facets[process][]", "RNW");
-      url.searchParams.set("length", "100");
-
-      try {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          // Renewable diesel endpoint may not be available - continue without it
-          return [];
-        }
-        const json: EIAResponse = await response.json();
-        return json.response.data;
-      } catch {
-        // If renewable diesel data is unavailable, continue with biodiesel only
-        return [];
-      }
-    });
-
-    logger.info(`Fetched ${biodieselData.length} biodiesel records, ${renewableDieselData.length} renewable diesel records`);
-
-    // Step 3: Merge and prepare data by period
+    // Step 1: Fetch biodiesel + renewable diesel production in one call
+    // Both products share the same petroleum/sum/snd endpoint
     type MonthlyRecord = {
       reportMonth: string;
       biodieselProductionMgal: number | null;
       renewableDieselProductionMgal: number | null;
     };
 
-    const monthlyRecords = await step.run("merge-monthly-data", async () => {
-      const byPeriod = new Map<string, MonthlyRecord>();
+    const monthlyRecords = await step.run("fetch-production-data", async () => {
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 24);
+      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`;
 
-      // Process biodiesel data
-      for (const point of biodieselData) {
-        if (point.value === null || point.value === undefined) continue;
+      // Fetch both biodiesel (EPOORDB) and renewable diesel (EPOORDO) national production
+      const url = `https://api.eia.gov/v2/petroleum/sum/snd/data/?api_key=${EIA_API_KEY}&frequency=monthly&data[0]=value&facets[duoarea][]=${NATIONAL_AREA}&facets[process][]=${PRODUCTION_PROCESS}&start=${startStr}&length=500&sort[0][column]=period&sort[0][direction]=desc`;
 
-        const monthKey = point.period; // YYYY-MM format
-        if (!byPeriod.has(monthKey)) {
-          byPeriod.set(monthKey, {
-            reportMonth: periodToDate(monthKey),
-            biodieselProductionMgal: null,
-            renewableDieselProductionMgal: null,
-          });
-        }
-
-        const record = byPeriod.get(monthKey)!;
-        // Accumulate if multiple series exist for same period
-        record.biodieselProductionMgal = (record.biodieselProductionMgal ?? 0) + point.value;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`EIA petroleum/sum/snd API error: ${response.status} - ${text}`);
       }
 
-      // Process renewable diesel data
-      for (const point of renewableDieselData) {
+      const json: PetroleumResponse = await response.json();
+      const data = json.response.data;
+
+      // Merge by period
+      const byPeriod = new Map<string, MonthlyRecord>();
+      for (const point of data) {
         if (point.value === null || point.value === undefined) continue;
+        if (point.product !== BIODIESEL_PRODUCT && point.product !== RENEWABLE_DIESEL_PRODUCT) continue;
 
         const monthKey = point.period;
         if (!byPeriod.has(monthKey)) {
@@ -164,11 +108,20 @@ export const eiaBiodieselMonthly = inngest.createFunction(
         }
 
         const record = byPeriod.get(monthKey)!;
-        record.renewableDieselProductionMgal = (record.renewableDieselProductionMgal ?? 0) + point.value;
+        // Convert Thousand Barrels to Million Gallons
+        const mgal = Math.round(point.value * KB_TO_MGAL * 100) / 100;
+
+        if (point.product === BIODIESEL_PRODUCT) {
+          record.biodieselProductionMgal = (record.biodieselProductionMgal ?? 0) + mgal;
+        } else {
+          record.renewableDieselProductionMgal = (record.renewableDieselProductionMgal ?? 0) + mgal;
+        }
       }
 
       return Array.from(byPeriod.values());
     });
+
+    logger.info(`Fetched ${monthlyRecords.length} monthly production records`);
 
     // Step 4: Upsert into database
     const result = await step.run("upsert-biodiesel-data", async () => {
@@ -232,7 +185,7 @@ export const eiaBiodieselMonthly = inngest.createFunction(
 
     return {
       status: "success",
-      source: "EIA API v2 biofuels/biodiesel/production",
+      source: "EIA API v2 petroleum/sum/snd (EPOORDB+EPOORDO)",
       periodsProcessed: monthlyRecords.length,
       ...result,
     };
@@ -289,88 +242,33 @@ export const eiaBiodieselBackfill = inngest.createFunction(
 
     logger.info(`Existing data: ${existingRange.count} rows, ${existingRange.min_date} to ${existingRange.max_date}`);
 
-    // Step 2: Fetch all biodiesel production data for range
-    const biodieselData = await step.run("fetch-biodiesel-production-backfill", async () => {
-      const startStr = `${startYear}-01`;
-      const endStr = `${endYear}-12`;
-
-      const url = new URL("https://api.eia.gov/v2/biofuels/biodiesel/production/data/");
-      url.searchParams.set("api_key", EIA_API_KEY!);
-      url.searchParams.set("frequency", "monthly");
-      url.searchParams.set("data[0]", "value");
-      url.searchParams.set("start", startStr);
-      url.searchParams.set("end", endStr);
-      url.searchParams.set("sort[0][column]", "period");
-      url.searchParams.set("sort[0][direction]", "asc");
-      url.searchParams.set("length", "5000"); // Get all records
-
-      const response = await fetch(url.toString());
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`EIA Biodiesel API error: ${response.status} - ${text}`);
-      }
-
-      const json: EIAResponse = await response.json();
-      return json.response.data;
-    });
-
-    // Step 3: Fetch renewable diesel data for range
-    const renewableDieselData = await step.run("fetch-renewable-diesel-backfill", async () => {
-      const startStr = `${startYear}-01`;
-      const endStr = `${endYear}-12`;
-
-      const url = new URL("https://api.eia.gov/v2/biofuels/biodiesel/production/data/");
-      url.searchParams.set("api_key", EIA_API_KEY!);
-      url.searchParams.set("frequency", "monthly");
-      url.searchParams.set("data[0]", "value");
-      url.searchParams.set("start", startStr);
-      url.searchParams.set("end", endStr);
-      url.searchParams.set("facets[process][]", "RNW");
-      url.searchParams.set("length", "5000");
-
-      try {
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          return [];
-        }
-        const json: EIAResponse = await response.json();
-        return json.response.data;
-      } catch {
-        return [];
-      }
-    });
-
-    logger.info(`Backfill fetched: ${biodieselData.length} biodiesel, ${renewableDieselData.length} renewable diesel`);
-
-    // Step 4: Merge and prepare data
+    // Step 2: Fetch biodiesel + renewable diesel production in one call
+    // Uses petroleum/sum/snd (replaces dead biofuels/biodiesel/production endpoint)
     type MonthlyRecord = {
       reportMonth: string;
       biodieselProductionMgal: number | null;
       renewableDieselProductionMgal: number | null;
     };
 
-    const monthlyRecords = await step.run("merge-backfill-data", async () => {
-      const byPeriod = new Map<string, MonthlyRecord>();
+    const monthlyRecords = await step.run("fetch-production-backfill", async () => {
+      const startStr = `${startYear}-01`;
+      const endStr = `${endYear}-12`;
 
-      for (const point of biodieselData) {
-        if (point.value === null || point.value === undefined) continue;
+      const url = `https://api.eia.gov/v2/petroleum/sum/snd/data/?api_key=${EIA_API_KEY}&frequency=monthly&data[0]=value&facets[duoarea][]=${NATIONAL_AREA}&facets[process][]=${PRODUCTION_PROCESS}&start=${startStr}&end=${endStr}&length=5000&sort[0][column]=period&sort[0][direction]=asc`;
 
-        const monthKey = point.period;
-        if (!byPeriod.has(monthKey)) {
-          byPeriod.set(monthKey, {
-            reportMonth: periodToDate(monthKey),
-            biodieselProductionMgal: null,
-            renewableDieselProductionMgal: null,
-          });
-        }
-
-        const record = byPeriod.get(monthKey)!;
-        record.biodieselProductionMgal = (record.biodieselProductionMgal ?? 0) + point.value;
+      const response = await fetch(url);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`EIA petroleum/sum/snd API error: ${response.status} - ${text}`);
       }
 
-      for (const point of renewableDieselData) {
+      const json: PetroleumResponse = await response.json();
+      const data = json.response.data;
+
+      const byPeriod = new Map<string, MonthlyRecord>();
+      for (const point of data) {
         if (point.value === null || point.value === undefined) continue;
+        if (point.product !== BIODIESEL_PRODUCT && point.product !== RENEWABLE_DIESEL_PRODUCT) continue;
 
         const monthKey = point.period;
         if (!byPeriod.has(monthKey)) {
@@ -382,11 +280,19 @@ export const eiaBiodieselBackfill = inngest.createFunction(
         }
 
         const record = byPeriod.get(monthKey)!;
-        record.renewableDieselProductionMgal = (record.renewableDieselProductionMgal ?? 0) + point.value;
+        const mgal = Math.round(point.value * KB_TO_MGAL * 100) / 100;
+
+        if (point.product === BIODIESEL_PRODUCT) {
+          record.biodieselProductionMgal = (record.biodieselProductionMgal ?? 0) + mgal;
+        } else {
+          record.renewableDieselProductionMgal = (record.renewableDieselProductionMgal ?? 0) + mgal;
+        }
       }
 
       return Array.from(byPeriod.values());
     });
+
+    logger.info(`Backfill fetched: ${monthlyRecords.length} monthly records`);
 
     // Step 5: Upsert into database
     const result = await step.run("upsert-backfill-data", async () => {
@@ -448,7 +354,7 @@ export const eiaBiodieselBackfill = inngest.createFunction(
 
     return {
       status: "success",
-      source: "EIA API v2 biofuels/biodiesel/production",
+      source: "EIA API v2 petroleum/sum/snd (EPOORDB+EPOORDO)",
       range: { startYear, endYear },
       periodsProcessed: monthlyRecords.length,
       ...result,
