@@ -58,7 +58,7 @@ async function main() {
     )
     SELECT
       event_date as report_month,
-      MAX(CASE WHEN commodity = 'Soybeans' AND metric = 'consumption' THEN value END) as crush_volume_mt,
+      MAX(CASE WHEN commodity = 'Soybeans' AND metric IN ('crush', 'consumption') THEN value END) as crush_volume_mt,
       MAX(CASE WHEN commodity = 'Soybean Oil' AND metric = 'production' THEN value END) as oil_production_mt,
       MAX(CASE WHEN commodity = 'Soybean Meal' AND metric = 'production' THEN value END) as meal_production_mt,
       'USDA_WASDE' as source,
@@ -67,9 +67,9 @@ async function main() {
     FROM supply.usda_wasde_1m
     WHERE country = 'Argentina'
       AND commodity IN ('Soybeans', 'Soybean Oil', 'Soybean Meal')
-      AND metric IN ('consumption', 'production')
+      AND metric IN ('crush', 'consumption', 'production')
     GROUP BY event_date
-    HAVING MAX(CASE WHEN commodity = 'Soybeans' AND metric = 'consumption' THEN value END) IS NOT NULL
+    HAVING MAX(CASE WHEN commodity = 'Soybeans' AND metric IN ('crush', 'consumption') THEN value END) IS NOT NULL
     ON CONFLICT (report_month) DO UPDATE SET
       crush_volume_mt = EXCLUDED.crush_volume_mt,
       oil_production_mt = EXCLUDED.oil_production_mt,

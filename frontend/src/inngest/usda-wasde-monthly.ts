@@ -26,10 +26,11 @@ const CORNELL_BASE_URL = "https://usda.library.cornell.edu";
 const pool = dbPool;
 
 // Minimum acceptable rows (allow partial data rather than failing completely)
-// Full expected: 3 commodities × 5 countries × 4 metrics = 60
+// Full expected: 3 commodities × 5 countries × 4 metrics = 60 base
+//   + Soybeans "Crushings" as separate 'crush' metric (~3-5 countries) = ~63-65
 // Minimum: at least get core soy complex data (3 commodities × 2 countries × 2 metrics = 12)
 const MIN_ACCEPTABLE_ROWS = 12;
-const IDEAL_ROW_COUNT = 60;
+const IDEAL_ROW_COUNT = 65;
 
 function computeRowHash(parts: string[]): string {
   return createHash("sha256").update(parts.join("|")).digest("hex");
@@ -76,7 +77,10 @@ function mapMetric(rawAttribute: string): string | null {
   if (attr === "Stocks") return "ending_stocks";
   if (attr === "Domestic Consumption") return "consumption";
   if (attr === "Domestic Use") return "consumption";
-  if (attr === "Crushings") return "consumption";
+  // "Crushings" is soybean-specific: volume crushed into oil + meal.
+  // Stored as its own metric so build_matrix can query metric='crush' directly.
+  // "Domestic Total" (above) still captures total consumption separately.
+  if (attr === "Crushings") return "crush";
   return null;
 }
 

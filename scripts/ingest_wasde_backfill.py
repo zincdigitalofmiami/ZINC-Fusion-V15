@@ -43,7 +43,7 @@ ITEM_TO_METRIC = {
     "Ending Stocks": "ending_stocks",
     "Ending stocks": "ending_stocks",
     "Ending\r\nStocks": "ending_stocks",
-    "Crushings": "consumption",
+    "Crushings": "crush",
     "Domestic Total": "consumption",
     "Domestic\r\nTotal": "consumption",
     "Domestic Disappearance": "consumption",
