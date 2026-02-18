@@ -736,15 +736,30 @@ def forward_fill_low_coverage_series(
     """
     df = df.copy()
 
-    # Identify numeric columns with low coverage
+    # Identify numeric columns with low coverage, EXCLUDING columns that already
+    # have event encoding (those have _event_value/_age_days/_is_release_day siblings
+    # and should NOT be forward-filled — their sparsity is intentional).
+    event_encoded_prefixes = set()
+    for c in df.columns:
+        if c.endswith("_event_value"):
+            event_encoded_prefixes.add(c.replace("_event_value", ""))
+
     numeric_cols = [
         c
         for c in df.columns
         if np.issubdtype(df[c].dtype, np.number)
         and c not in ["trade_date"]
         and not c.endswith(
-            ("_is_release_day", "_age_days", "_is_available", "_is_missing")
+            (
+                "_is_release_day",
+                "_age_days",
+                "_is_available",
+                "_is_missing",
+                "_event_value",
+                "_event_delta",
+            )
         )
+        and not any(c.startswith(prefix) for prefix in event_encoded_prefixes)
     ]
 
     filled_count = 0
@@ -752,17 +767,27 @@ def forward_fill_low_coverage_series(
         coverage = df[col].notna().mean()
         if coverage < threshold and coverage > 0.01:  # Has some data but sparse
             original_nulls = df[col].isna().sum()
-            # TTL UPDATE (2026-02-04): Apply TTL-bounded forward fill WITH age tracking per policy
-            # Default 3-day TTL for daily data (LOCKED threshold)
-            # Age tracking is MANDATORY for state-level features
-            filled, age = ffill_with_age(df[col], ttl_days=3)
+
+            # AUDIT 2026-02-18: Cadence-aware TTL per Forward Fill Policy
+            # Weekly series (~20% coverage): 10-day TTL
+            # Monthly series (~5% coverage): 35-day TTL (slightly over 1 month)
+            # Daily/other: 3-day TTL (default)
+            if coverage < 0.08:  # ~monthly cadence
+                ttl = 35
+            elif coverage < 0.25:  # ~weekly cadence
+                ttl = 10
+            else:
+                ttl = 3
+
+            filled, age = ffill_with_age(df[col], ttl_days=ttl)
             df[col] = filled
             df[f"{col}_age_days"] = age
             new_nulls = df[col].isna().sum()
             if new_nulls < original_nulls:
                 filled_count += 1
                 logger.debug(
-                    f"   Forward-filled {col} (TTL=3d): {original_nulls} → {new_nulls} NULLs + age column"
+                    f"   Forward-filled {col} (TTL={ttl}d, cov={coverage:.1%}): "
+                    f"{original_nulls} → {new_nulls} NULLs + age column"
                 )
 
     if filled_count > 0:
@@ -1120,15 +1145,18 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
         # Compute derived board crush features
         if not df_crush.empty:
             df_crush["board_crush_zscore_21d"] = (
-                df_crush["board_crush"] - df_crush["board_crush"].rolling(21).mean()
-            ) / df_crush["board_crush"].rolling(21).std()
+                df_crush["board_crush"]
+                - df_crush["board_crush"].rolling(21, min_periods=21).mean()
+            ) / df_crush["board_crush"].rolling(21, min_periods=21).std()
             df_crush["board_crush_zscore_63d"] = (
-                df_crush["board_crush"] - df_crush["board_crush"].rolling(63).mean()
-            ) / df_crush["board_crush"].rolling(63).std()
+                df_crush["board_crush"]
+                - df_crush["board_crush"].rolling(63, min_periods=63).mean()
+            ) / df_crush["board_crush"].rolling(63, min_periods=63).std()
             df_crush["board_crush_momentum_5d"] = df_crush["board_crush"].diff(5)
             df_crush["soy_oil_share_zscore"] = (
-                df_crush["soy_oil_share"] - df_crush["soy_oil_share"].rolling(63).mean()
-            ) / df_crush["soy_oil_share"].rolling(63).std()
+                df_crush["soy_oil_share"]
+                - df_crush["soy_oil_share"].rolling(63, min_periods=63).mean()
+            ) / df_crush["soy_oil_share"].rolling(63, min_periods=63).std()
 
         # Cross-commodity ratios from futures closes
         ratio_query = """
@@ -1151,15 +1179,17 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
                 "cl_close"
             ].replace(0, float("nan"))
             df_ratios["zl_cl_ratio_zscore"] = (
-                df_ratios["zl_cl_ratio"] - df_ratios["zl_cl_ratio"].rolling(63).mean()
-            ) / df_ratios["zl_cl_ratio"].rolling(63).std()
+                df_ratios["zl_cl_ratio"]
+                - df_ratios["zl_cl_ratio"].rolling(63, min_periods=63).mean()
+            ) / df_ratios["zl_cl_ratio"].rolling(63, min_periods=63).std()
             # ZL/ZS ratio
             df_ratios["zl_zs_ratio"] = df_ratios["zl_close"] / df_ratios[
                 "zs_close"
             ].replace(0, float("nan"))
             df_ratios["zl_zs_ratio_zscore"] = (
-                df_ratios["zl_zs_ratio"] - df_ratios["zl_zs_ratio"].rolling(63).mean()
-            ) / df_ratios["zl_zs_ratio"].rolling(63).std()
+                df_ratios["zl_zs_ratio"]
+                - df_ratios["zl_zs_ratio"].rolling(63, min_periods=63).mean()
+            ) / df_ratios["zl_zs_ratio"].rolling(63, min_periods=63).std()
             # Drop raw closes used for computation
             df_ratios = df_ratios.drop(columns=["zl_close", "cl_close", "zs_close"])
 
@@ -2488,8 +2518,8 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
         df["oi_momentum"] = df["oi_delta_5d"] - df["oi_delta_5d"].shift(5)
 
         # Z-score: Unusual positioning activity (63d = 1 quarter)
-        oi_mean_63d = df["oi_delta_5d"].rolling(63).mean()
-        oi_std_63d = df["oi_delta_5d"].rolling(63).std()
+        oi_mean_63d = df["oi_delta_5d"].rolling(63, min_periods=63).mean()
+        oi_std_63d = df["oi_delta_5d"].rolling(63, min_periods=63).std()
         df["oi_delta_zscore"] = (df["oi_delta_5d"] - oi_mean_63d) / oi_std_63d.replace(
             0, np.nan
         )
@@ -2499,7 +2529,7 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
     # === 2. VOLUME ACTIVITY ===
     if "volume" in df.columns:
         # Volume moving average (5d = 1 trading week)
-        df["volume_ma_5d"] = df["volume"].rolling(5).mean()
+        df["volume_ma_5d"] = df["volume"].rolling(5, min_periods=5).mean()
 
         # Volume spike detection (>1.5x average)
         df["volume_spike"] = (df["volume"] > df["volume_ma_5d"] * 1.5).astype(int)
@@ -2512,8 +2542,8 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
         df["churn_rate"] = df["volume"] / df["open_interest"].replace(0, np.nan)
 
         # Churn z-score (21d = 1 trading month)
-        churn_mean_21d = df["churn_rate"].rolling(21).mean()
-        churn_std_21d = df["churn_rate"].rolling(21).std()
+        churn_mean_21d = df["churn_rate"].rolling(21, min_periods=21).mean()
+        churn_std_21d = df["churn_rate"].rolling(21, min_periods=21).std()
         df["churn_zscore"] = (
             df["churn_rate"] - churn_mean_21d
         ) / churn_std_21d.replace(0, np.nan)
@@ -2550,8 +2580,8 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
     if "cftc_zl_cot_managed_money_net_event_value" in df.columns:
         # COT net position z-score (52 weeks = 1 year)
         cot_col = "cftc_zl_cot_managed_money_net_event_value"
-        cot_mean_52w = df[cot_col].rolling(52).mean()
-        cot_std_52w = df[cot_col].rolling(52).std()
+        cot_mean_52w = df[cot_col].rolling(52, min_periods=52).mean()
+        cot_std_52w = df[cot_col].rolling(52, min_periods=52).std()
         df["cot_net_zscore"] = (df[cot_col] - cot_mean_52w) / cot_std_52w.replace(
             0, np.nan
         )
@@ -2606,8 +2636,8 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
     # === 7. SHIPPING RATES (Export Competitiveness) ===
     if "fred_bdiy" in df.columns:
         # Baltic Dry Index z-score (63d = 1 quarter)
-        bdiy_mean_63d = df["fred_bdiy"].rolling(63).mean()
-        bdiy_std_63d = df["fred_bdiy"].rolling(63).std()
+        bdiy_mean_63d = df["fred_bdiy"].rolling(63, min_periods=63).mean()
+        bdiy_std_63d = df["fred_bdiy"].rolling(63, min_periods=63).std()
         df["shipping_cost_zscore"] = (
             df["fred_bdiy"] - bdiy_mean_63d
         ) / bdiy_std_63d.replace(0, np.nan)
@@ -2625,8 +2655,8 @@ def compute_daily_positioning_proxies(df: pd.DataFrame) -> pd.DataFrame:
         )
 
         # Z-score (252d = 1 year)
-        meal_mean_252d = df["meal_demand_proxy"].rolling(252).mean()
-        meal_std_252d = df["meal_demand_proxy"].rolling(252).std()
+        meal_mean_252d = df["meal_demand_proxy"].rolling(252, min_periods=252).mean()
+        meal_std_252d = df["meal_demand_proxy"].rolling(252, min_periods=252).std()
         df["meal_demand_zscore"] = (
             df["meal_demand_proxy"] - meal_mean_252d
         ) / meal_std_252d.replace(0, np.nan)
@@ -2833,61 +2863,14 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
                     "This indicates a bug in pure_event_encode prefix handling."
                 )
 
-            # v15.x FIX: Annual WASDE metrics (crush) have ~365 day gaps between releases.
-            # The cadence gate expects ~8 releases/year but crush is only 1/year.
-            # To pass cadence gates, we "monthly-ize" annual data:
-            # 1. Mark the first trading day of each month as a synthetic release
-            # 2. Carry the last real value forward
-            # 3. Cap age_days at 30 to satisfy the max age check
-            annual_wasde_metrics = [
-                "wasde_us_zl_crush",
-                "wasde_us_zm_crush",
-                "wasde_us_zs_crush",
-            ]
-
-            # Get first trading day of each month for synthetic releases
-            df["_year_month"] = pd.to_datetime(df["trade_date"]).dt.to_period("M")
-            monthly_first = df.groupby("_year_month")["trade_date"].transform("min")
-            is_month_start = df["trade_date"] == monthly_first
-
-            for metric in annual_wasde_metrics:
-                age_col = f"{metric}_age_days"
-                release_col = f"{metric}_is_release_day"
-                value_col = f"{metric}_event_value"
-                avail_col = f"{metric}_is_available"
-
-                if release_col in df.columns and value_col in df.columns:
-                    # Mark first trading day of each month as a synthetic release
-                    # But only where data is available (is_available = 1)
-                    if avail_col in df.columns:
-                        synthetic_release = is_month_start & (df[avail_col] == 1)
-                        df[release_col] = df[release_col] | synthetic_release.astype(
-                            int
-                        )
-
-                    # Cap age_days at 30 to satisfy max age check
-                    if age_col in df.columns:
-                        df[age_col] = df[age_col].clip(upper=30)
-
-                    # Forward-fill the event_value on synthetic release days
-                    # First, get the last real value
-                    if avail_col in df.columns:
-                        # Forward-fill within the available period
-                        df[f"_{metric}_last_val"] = (
-                            df[value_col].replace(0.0, np.nan).ffill()
-                        )
-                        # On synthetic release days, use the last real value
-                        synthetic_mask = (df[release_col] == 1) & (df[value_col] == 0.0)
-                        df.loc[synthetic_mask, value_col] = df.loc[
-                            synthetic_mask, f"_{metric}_last_val"
-                        ]
-                        df.drop(columns=[f"_{metric}_last_val"], inplace=True)
-
-                    logger.info(
-                        f"   Monthly-ized {metric} (annual → synthetic monthly releases)"
-                    )
-
-            df.drop(columns=["_year_month"], inplace=True)
+            # AUDIT 2026-02-18: Removed synthetic monthly releases for annual WASDE crush.
+            # Annual data (wasde_us_zl/zm/zs_crush) is legitimately sparse (~1 release/year).
+            # Faking monthly releases and capping age_days at 30 created false signals and
+            # masked staleness. Let the model learn that WASDE crush is sparse — AutoGluon
+            # handles sparsity natively via the event encoding columns (age_days, is_release_day).
+            logger.info(
+                "   WASDE annual crush metrics: preserving true release cadence (no synthetic monthly-ization)"
+            )
 
         # Map WASDE columns to strict specialist expectations (if present)
         if (
