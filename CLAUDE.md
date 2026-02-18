@@ -27,3 +27,8 @@ If this file and `AGENTS.md` ever disagree, follow `AGENTS.md`.
 ## Completion Gate
 
 Before marking coding work complete, run the project verification gate in `AGENTS.md` / `Makefile`.
+
+## Code Review
+
+Before committing, run `cubic review` to catch bugs and improvements.
+Wait 2-3 minutes for the review to complete, then validate the issues found and fix them.
