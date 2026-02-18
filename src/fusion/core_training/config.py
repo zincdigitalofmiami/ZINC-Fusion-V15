@@ -345,9 +345,13 @@ TRAINING_CONFIG = TrainingConfig()
 # =============================================================================
 # FROZEN MODEL ZOO — single source of truth for allowed models
 # =============================================================================
-# LOCKED: 2026-02-17
+# LOCKED: 2026-02-18
 # Only models in this set will be trained. Any model NOT listed here is rejected.
 # To add/remove a model, update this set and re-run training.
+#
+# 2026-02-18: Removed 8 deep learning models (DeepAR, TFT, PatchTST, TiDE,
+# WaveNet, DLinear, SimpleFeedForward, AutoCES) — unstable on macOS ARM.
+# Restore when training moves to Linux/server.
 
 MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
     {
@@ -357,30 +361,34 @@ MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
         "Average",
         "SeasonalAverage",
         "Zero",
-        # Statistical (10)
+        # Statistical (9)
         "ETS",
         "AutoETS",
         "AutoARIMA",
-        "AutoCES",
         "Theta",
         "DynamicOptimizedTheta",
         "NPTS",
         "ADIDA",
         "Croston",
         "IMAPA",
-        # Deep / ML (5)
-        "DeepAR",
-        "TemporalFusionTransformer",
-        "DLinear",
-        "PatchTST",
-        "SimpleFeedForward",
-        # Neural (2)
-        "TiDE",
-        "WaveNet",
         # Tabular TS (3)
         "DirectTabular",
         "PerStepTabular",
         "RecursiveTabular",
+    }
+)
+
+# Deep learning models — disabled on macOS ARM, restore on Linux/server
+MODEL_ZOO_DEEP_LEARNING: frozenset[str] = frozenset(
+    {
+        "AutoCES",
+        "DeepAR",
+        "DLinear",
+        "PatchTST",
+        "SimpleFeedForward",
+        "TemporalFusionTransformer",
+        "TiDE",
+        "WaveNet",
     }
 )
 
@@ -393,8 +401,8 @@ MODEL_ZOO_PRETRAINED: frozenset[str] = frozenset(
     }
 )
 
-# Expected model count: 25 active + WeightedEnsemble = 26 per horizon
-MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 25
+# Expected model count: 17 active + WeightedEnsemble = 18 per horizon
+MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 17
 
 # =============================================================================
 # PATHS

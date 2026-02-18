@@ -818,11 +818,31 @@ def load_futures_base(conn, symbol: str) -> pd.DataFrame:
 
     # NOTE: open_interest is required by strict specialists; backfilled from CFTC where available.
     # v15.x: Enforce date floor >= 1990-01-01 at source load
+    # 2026-02-18: Read ALL indicator columns from mkt.futures_1d (moved from retired elite table)
     query = """
         SELECT
             event_date as trade_date,
             symbol,
-            open, high, low, close, volume, open_interest
+            open, high, low, close, volume, open_interest,
+            -- Technical indicators (from zl_pro_indicators.py)
+            rsi_2, rsi_14, cumulative_rsi, connors_rsi,
+            macd, macd_signal, macd_histogram,
+            cci_14, cci_50,
+            atr_10, atr_50, atr_ratio, atr_14,
+            bb_percent_b, bb_upper, bb_middle, bb_lower,
+            garman_klass_vol, yang_zhang_vol,
+            hurst_exponent, hurst_regime,
+            volume_zscore, unusual_volume,
+            returns_1d, log_returns_1d, range_pct,
+            fisher_transform, fisher_signal,
+            mcginley_dynamic, kama_10, hma_20, alma_50,
+            rvi, rvi_signal,
+            elder_force_index, cmf_21,
+            ttm_squeeze_on, ttm_squeeze_momentum,
+            schaff_trend_cycle,
+            adx, adx_pos, adx_neg,
+            stoch_k, stoch_d,
+            obv
         FROM mkt.futures_1d
         WHERE symbol = %s
           AND event_date >= '1990-01-01'
@@ -1003,15 +1023,162 @@ def load_cross_asset_correlations(conn, target_symbol: str = "ZL") -> pd.DataFra
 
 
 def load_cross_commodity_indicators(conn, target_symbol: str = "ZL") -> pd.DataFrame:
-    """Cross-commodity elite indicators retired."""
-    logger.info("Cross-commodity elite indicators retired; skipping.")
-    return pd.DataFrame()
+    """Load key indicators for cross-commodity symbols from mkt.futures_1d.
+
+    2026-02-18: Re-implemented after elite migration moved indicators into futures table.
+    Reads close + 7 core indicators per symbol, prefixed with lowercase symbol name.
+    """
+    from .config import FEATURE_MATRIX_CONFIG
+
+    symbols = (
+        FEATURE_MATRIX_CONFIG.ENERGY_SYMBOLS + FEATURE_MATRIX_CONFIG.SUBSTITUTE_SYMBOLS
+    )
+    # Also include ES (equities) and DX (dollar index) if not already present
+    for extra in ["ES", "DX"]:
+        if extra not in symbols:
+            symbols.append(extra)
+
+    indicator_cols = [
+        "close",
+        "returns_1d",
+        "rsi_14",
+        "macd",
+        "bb_percent_b",
+        "atr_ratio",
+        "hurst_exponent",
+        "volume_zscore",
+    ]
+
+    logger.info(
+        f"Loading cross-commodity indicators for {len(symbols)} symbols: {symbols}"
+    )
+
+    placeholders = ",".join(["%s"] * len(symbols))
+    col_list = ", ".join(indicator_cols)
+    query = f"""
+        SELECT event_date as trade_date, symbol, {col_list}
+        FROM mkt.futures_1d
+        WHERE symbol IN ({placeholders})
+          AND event_date >= '1990-01-01'
+        ORDER BY event_date
+    """
+
+    try:
+        df = pd.read_sql(query, conn, params=tuple(symbols))
+
+        if df.empty:
+            logger.warning("   No cross-commodity data found")
+            return pd.DataFrame()
+
+        # Pivot: one set of indicator columns per symbol, prefixed
+        result_dfs = []
+        for sym in symbols:
+            sym_df = df[df["symbol"] == sym].copy()
+            if sym_df.empty:
+                continue
+            prefix = sym.lower()
+            rename = {col: f"{prefix}_{col}" for col in indicator_cols}
+            sym_df = sym_df.rename(columns=rename)
+            keep_cols = ["trade_date"] + list(rename.values())
+            result_dfs.append(sym_df[keep_cols].set_index("trade_date"))
+
+        if not result_dfs:
+            return pd.DataFrame()
+
+        result = result_dfs[0].join(result_dfs[1:], how="outer").reset_index()
+        result = normalize_date_column(result, "trade_date")
+
+        logger.info(
+            f"   Loaded {len(result):,} rows, {len(result.columns) - 1} cross-commodity columns "
+            f"({len(result_dfs)} symbols)"
+        )
+        return result
+
+    except Exception as e:
+        logger.warning(f"   Cross-commodity indicators not available: {e}")
+        return pd.DataFrame()
 
 
 def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
-    """Spread features previously tied to elite indicators are retired."""
-    logger.info("Elite-backed spread features retired; skipping.")
-    return pd.DataFrame()
+    """Load spread features from analytics.board_crush_1d and computed cross-ratios.
+
+    2026-02-18: Re-implemented. Board crush data exists in analytics.board_crush_1d.
+    Additional spreads (ZL/CL ratio, ZL/ZS ratio) computed from mkt.futures_1d.
+    """
+    logger.info("Loading spread features...")
+
+    try:
+        # Board crush (ZS crush margin, oil share)
+        crush_query = """
+            SELECT trade_date, board_crush, oil_share as soy_oil_share
+            FROM analytics.board_crush_1d
+            ORDER BY trade_date
+        """
+        df_crush = pd.read_sql(crush_query, conn)
+        df_crush = normalize_date_column(df_crush, "trade_date")
+
+        # Compute derived board crush features
+        if not df_crush.empty:
+            df_crush["board_crush_zscore_21d"] = (
+                df_crush["board_crush"] - df_crush["board_crush"].rolling(21).mean()
+            ) / df_crush["board_crush"].rolling(21).std()
+            df_crush["board_crush_zscore_63d"] = (
+                df_crush["board_crush"] - df_crush["board_crush"].rolling(63).mean()
+            ) / df_crush["board_crush"].rolling(63).std()
+            df_crush["board_crush_momentum_5d"] = df_crush["board_crush"].diff(5)
+            df_crush["soy_oil_share_zscore"] = (
+                df_crush["soy_oil_share"] - df_crush["soy_oil_share"].rolling(63).mean()
+            ) / df_crush["soy_oil_share"].rolling(63).std()
+
+        # Cross-commodity ratios from futures closes
+        ratio_query = """
+            SELECT a.event_date as trade_date,
+                   a.close as zl_close,
+                   cl.close as cl_close,
+                   zs.close as zs_close
+            FROM mkt.futures_1d a
+            LEFT JOIN mkt.futures_1d cl ON cl.symbol = 'CL' AND cl.event_date = a.event_date
+            LEFT JOIN mkt.futures_1d zs ON zs.symbol = 'ZS' AND zs.event_date = a.event_date
+            WHERE a.symbol = %s AND a.event_date >= '1990-01-01'
+            ORDER BY a.event_date
+        """
+        df_ratios = pd.read_sql(ratio_query, conn, params=(target_symbol,))
+        df_ratios = normalize_date_column(df_ratios, "trade_date")
+
+        if not df_ratios.empty:
+            # ZL/CL ratio
+            df_ratios["zl_cl_ratio"] = df_ratios["zl_close"] / df_ratios[
+                "cl_close"
+            ].replace(0, float("nan"))
+            df_ratios["zl_cl_ratio_zscore"] = (
+                df_ratios["zl_cl_ratio"] - df_ratios["zl_cl_ratio"].rolling(63).mean()
+            ) / df_ratios["zl_cl_ratio"].rolling(63).std()
+            # ZL/ZS ratio
+            df_ratios["zl_zs_ratio"] = df_ratios["zl_close"] / df_ratios[
+                "zs_close"
+            ].replace(0, float("nan"))
+            df_ratios["zl_zs_ratio_zscore"] = (
+                df_ratios["zl_zs_ratio"] - df_ratios["zl_zs_ratio"].rolling(63).mean()
+            ) / df_ratios["zl_zs_ratio"].rolling(63).std()
+            # Drop raw closes used for computation
+            df_ratios = df_ratios.drop(columns=["zl_close", "cl_close", "zs_close"])
+
+        # Merge crush + ratios
+        if not df_crush.empty and not df_ratios.empty:
+            result = df_crush.merge(df_ratios, on="trade_date", how="outer")
+        elif not df_crush.empty:
+            result = df_crush
+        else:
+            result = df_ratios
+
+        logger.info(
+            f"   Loaded {len(result):,} spread rows, {len(result.columns) - 1} columns"
+        )
+        return result
+
+    except Exception as e:
+        logger.warning(f"   Spread features not available: {e}")
+        return pd.DataFrame()
 
 
 def load_options_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
@@ -2187,13 +2354,17 @@ def write_matrix(conn, df: pd.DataFrame, matrix_version: str) -> int:
     df["matrix_version"] = matrix_version
     df["created_at"] = datetime.utcnow()
 
-    # Atomic rebuild: TRUNCATE + INSERT in a single transaction.
-    # Uses TRUNCATE (not DROP) to preserve the Prisma-managed schema.
-    # If INSERT fails, explicit rollback ensures table is not left empty.
+    # Full rebuild: DROP + CREATE + INSERT.
+    # Schema is fully derived from the DataFrame — no need to preserve old columns.
     try:
         with conn.cursor() as cur:
-            cur.execute("TRUNCATE TABLE training.matrix_1d")
-            logger.info("   Truncated training.matrix_1d (preserving schema)")
+            cur.execute("DROP TABLE IF EXISTS training.matrix_1d")
+            logger.info("   Dropped training.matrix_1d")
+        conn.commit()
+
+        create_table_from_df(conn, df, "training", "matrix_1d", matrix_version)
+        conn.commit()
+        logger.info(f"   Created training.matrix_1d with {len(df.columns)} columns")
         conn.commit()
 
         # Insert rows in chunks to avoid SSL timeout on Prisma Postgres proxy.

@@ -9,7 +9,7 @@ Model: AutoGluon explicit model zoo (CPU-only, Chronos2 + deep + tabular + stati
 Key Rules:
 - All features as OBSERVED covariates (not known)
 - num_val_windows=4 expanding windows
-- OOF predictions via predictor.backtest()
+- OOF predictions via predictor.backtest_predictions() + backtest_targets()
 - Sequential training: 5 → 21 → 63 → 126
 
 Output:
@@ -323,83 +323,96 @@ def extract_oof_predictions(
     source_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
-    Extract out-of-fold predictions using backtest.
+    Extract out-of-fold predictions using AutoGluon 1.5 backtest API.
+
+    Uses predictor.backtest_predictions() and predictor.backtest_targets()
+    to get cached validation-window predictions from training.
 
     Args:
         predictor: Trained TimeSeriesPredictor
         horizon: Forecast horizon in days
         run_id: Training run identifier
-        source_df: Original training data with target_ret_{horizon}d for
-                   populating target_value (realized return at horizon)
+        source_df: Original training data (unused — targets come from backtest_targets)
 
     Returns DataFrame with columns matching OOF schema.
     """
     try:
-        # Get backtest predictions (OOF)
-        backtest = predictor.backtest(
-            num_val_windows=TRAINING_CONFIG.num_val_windows, return_predictions=True
+        num_windows = TRAINING_CONFIG.num_val_windows
+
+        # Get cached predictions from training (data=None uses saved results)
+        pred_windows = predictor.backtest_predictions(
+            data=None, num_val_windows=num_windows
+        )
+        target_windows = predictor.backtest_targets(
+            data=None, num_val_windows=num_windows
         )
 
-        # backtest returns a dict with 'predictions' and 'info'
-        if isinstance(backtest, dict):
-            preds = backtest.get("predictions", pd.DataFrame())
-            info = backtest.get("info", {})
-        else:
-            preds = backtest
-            info = {}
-
-        if len(preds) == 0:
+        if not pred_windows:
             logger.warning("   No backtest predictions returned")
             return pd.DataFrame()
 
-        # Build lookup once (not per-window)
-        target_lookup = _build_target_lookup(source_df, horizon)
+        logger.info(f"   Got {len(pred_windows)} validation windows")
 
         # Deterministic UUID from string run_id (stable across retries)
         run_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, run_id))
 
-        # Convert to OOF format
+        target_col = f"target_ret_{horizon}d"
         oof_rows = []
 
-        for window_id in range(1, TRAINING_CONFIG.num_val_windows + 1):
-            # Filter predictions for this window
-            window_preds = (
-                preds[preds.get("window_id", window_id) == window_id]
-                if "window_id" in preds.columns
-                else preds
-            )
+        for window_id, (preds_df, targets_df) in enumerate(
+            zip(pred_windows, target_windows), start=1
+        ):
+            # preds_df is a TimeSeriesDataFrame with quantile columns (e.g. "0.3", "0.5", "0.7")
+            # targets_df has the actual target values; last `horizon` rows are the forecast period
 
-            for idx, row in window_preds.iterrows():
-                trade_date = idx if isinstance(idx, datetime) else row.get("timestamp")
-                td_key = (
-                    pd.Timestamp(trade_date).date() if trade_date is not None else None
-                )
-                realized = target_lookup.get(td_key) if td_key else None
+            # Build target lookup from targets_df
+            target_lookup = {}
+            if targets_df is not None and target_col in targets_df.columns:
+                # targets_df index is (item_id, timestamp) — get last `horizon` rows
+                tail = targets_df.tail(horizon)
+                for ts_idx, row in tail.iterrows():
+                    # ts_idx is (item_id, timestamp)
+                    ts = ts_idx[1] if isinstance(ts_idx, tuple) else ts_idx
+                    target_lookup[pd.Timestamp(ts).date()] = float(row[target_col])
+
+            # Cutoff = first prediction timestamp minus 1 business day
+            if len(preds_df) > 0:
+                first_ts = preds_df.index.get_level_values(-1).min()
+                cutoff_date = (
+                    pd.Timestamp(first_ts) - pd.tseries.offsets.BDay(1)
+                ).date()
+            else:
+                cutoff_date = datetime.utcnow().date()
+
+            # Extract quantile predictions
+            for ts_idx, row in preds_df.iterrows():
+                ts = ts_idx[1] if isinstance(ts_idx, tuple) else ts_idx
+                trade_date = pd.Timestamp(ts)
+                td_key = trade_date.date()
 
                 oof_row = {
                     "trade_date": trade_date,
                     "symbol": TARGET_SYMBOL,
                     "horizon_days": horizon,
-                    "p30": row.get("0.3", row.get("mean", 0)),
-                    "p50": row.get("0.5", row.get("mean", 0)),
-                    "p70": row.get("0.7", row.get("mean", 0)),
-                    "target_value": realized,
+                    "p30": float(row.get("0.3", row.get("mean", 0))),
+                    "p50": float(row.get("0.5", row.get("mean", 0))),
+                    "p70": float(row.get("0.7", row.get("mean", 0))),
+                    "target_value": target_lookup.get(td_key),
                     "window_id": window_id,
-                    "cutoff_date": info.get(
-                        f"cutoff_{window_id}", datetime.utcnow().date()
-                    ),
+                    "cutoff_date": cutoff_date,
                     "trained_at": datetime.utcnow(),
                     "run_id": run_uuid,
                 }
                 oof_rows.append(oof_row)
 
         df_oof = pd.DataFrame(oof_rows)
-        logger.info(f"   Extracted {len(df_oof):,} OOF predictions")
+        logger.info(
+            f"   Extracted {len(df_oof):,} OOF predictions across {len(pred_windows)} windows"
+        )
         return df_oof
 
     except Exception as e:
-        logger.warning(f"   Could not extract OOF predictions: {e}")
-        return pd.DataFrame()
+        raise RuntimeError(f"OOF extraction failed for {horizon}d: {e}") from e
 
 
 def enforce_monotonic_quantiles(df: pd.DataFrame) -> pd.DataFrame:
@@ -567,14 +580,18 @@ def run(
 
             predictor, oof_df = train_horizon(df, horizon, model_dir, run_id)
 
-            if predictor is not None:
+            if predictor is not None and oof_df is not None and len(oof_df) > 0:
                 results[horizon] = True
-                if len(oof_df) > 0:
-                    if "horizon_days" not in oof_df.columns:
-                        oof_df["horizon_days"] = horizon
-                    all_oof.append(oof_df)
+                if "horizon_days" not in oof_df.columns:
+                    oof_df["horizon_days"] = horizon
+                all_oof.append(oof_df)
             else:
                 results[horizon] = False
+                if predictor is not None:
+                    logger.error(
+                        f"❌ {horizon}d: Model trained but OOF extraction "
+                        f"returned empty — marking as FAILED"
+                    )
 
         # Combine and write all OOF predictions
         if all_oof:
