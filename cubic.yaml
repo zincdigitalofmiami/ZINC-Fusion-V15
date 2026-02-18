@@ -1,0 +1,357 @@
+# yaml-language-server: $schema=https://cubic.dev/schema/cubic-repository-config.schema.json
+# cubic.yaml — ZINC-FUSION-V15 (Soybean oil procurement forecasting)
+# Surgical rules based on actual codebase audit: 26/45 functions missing logging,
+# inconsistent dedup patterns, quiet corruption via UPDATE on landing tables,
+# missing quarantine on bad data, and cross-project contamination history.
+version: 1
+reviews:
+  enabled: true
+  sensitivity: high
+  incremental_commits: true
+  check_drafts: true
+  architecture_diagrams: false
+  show_ai_feedback_buttons: true
+  resolve_threads_when_addressed: true
+  custom_instructions: |
+    This is ZINC-FUSION-V15 — a soybean oil procurement forecasting system with 88 Inngest
+    functions, 11 specialist signal generators, AutoGluon ML ensemble, and a Postgres data
+    warehouse. The Next.js frontend lives in frontend/. The Inngest client ID MUST be
+    "fusion-jobs". This project shares a Vercel team with Rabid Raccoon — cross-contamination
+    has already caused production incidents. KNOWN ISSUES TO WATCH FOR:
+    - 26 of 45 ingestion functions have NO ops.ingest_run logging (blind spots)
+    - 3 different dedup patterns used inconsistently (SELECT+hash, ON CONFLICT DO UPDATE,
+      ON CONFLICT DO NOTHING) — new code must use ON CONFLICT DO UPDATE with row_hash
+    - Only 19 functions quarantine bad data to ops.quarantined_record
+    - usda-wasde-monthly.ts contains a DELETE FROM on a landing table (quiet corruption risk)
+    - DB_CONCURRENCY capped at 5 with scope "env" — exceeding this kills everything
+    Review every change as if wrong data could cost the business millions in procurement.
+  ignore:
+    files:
+      - "**/*.md"
+      - ".vscode/**"
+      - "frontend/public/**"
+      - "frontend/.next/**"
+      - "frontend/node_modules/**"
+      - "frontend/prisma/migrations/**"
+      - "data/**"
+      - "models/**"
+      - "logs/**"
+      - "reports/**"
+      - "AutogluonModels/**"
+      - ".tmp/**"
+  custom_rules:
+    # ═══════════════════════════════════════════════════════════════════
+    # INNGEST ISOLATION — Root cause of Feb 2026 overload incident
+    # ═══════════════════════════════════════════════════════════════════
+    - name: "CRITICAL: Inngest client ID must be 'fusion-jobs'"
+      description: |
+        The Inngest client MUST use id: "fusion-jobs". Changing this to "rabid-raccoon"
+        or any other value causes cross-project contamination. This was the root cause
+        of our February 2026 incident where RR jobs flooded the V15 dashboard and
+        concurrency pool. Flag ANY change as CRITICAL/blocking.
+      include:
+        - "frontend/src/inngest/client.ts"
+
+    - name: "CRITICAL: DB_CONCURRENCY must be 5 with scope 'env'"
+      description: |
+        DB_CONCURRENCY = { limit: 5, scope: "env" } is the Inngest plan ceiling.
+        Raising the limit causes Inngest to reject excess runs. Lowering it wastes
+        capacity. Changing scope from "env" to "fn" lets preview deployments steal
+        production slots. All three parameters (key, limit, scope) must be preserved.
+      include:
+        - "frontend/src/inngest/client.ts"
+
+    - name: "CRITICAL: All side effects must be inside step.run()"
+      description: |
+        Inngest replays all code outside step.run() on every step execution. With V15's
+        complex multi-step pipelines (FRED has 7 steps, Databento has 5), this means:
+        - Duplicate Databento API calls burning credits
+        - Double-writes to Postgres creating phantom rows
+        - Corrupted ops.ingest_run logs with wrong counts
+        Every fetch(), db query, Date.now(), and console.log with state MUST be in step.run().
+      include:
+        - "frontend/src/inngest/**/*.ts"
+      exclude:
+        - "frontend/src/inngest/client.ts"
+        - "frontend/src/inngest/functions.ts"
+
+    - name: New functions must be registered in serve() and functions.ts
+      description: |
+        With 88 functions, it's easy to create a new file in frontend/src/inngest/ but
+        forget to: (1) export it from functions.ts, (2) add it to the serve() array in
+        route.ts. Missing either step means the function will never execute — no error,
+        no warning, just silently missing data. Count exports vs serve() array on every PR.
+      include:
+        - "frontend/src/inngest/functions.ts"
+        - "frontend/src/app/api/inngest/route.ts"
+
+    - name: Every DB-touching function must spread DB_CONCURRENCY
+      description: |
+        Every createFunction() that queries Postgres must include DB_CONCURRENCY in its
+        concurrency array. Missing this lets the function bypass the pool limit. With
+        5 max concurrent + ~88 functions, a single unthrottled function can exhaust the
+        connection pool (50 connections / 5 lambdas × 2 pool each = 10 safe ceiling).
+      include:
+        - "frontend/src/inngest/**/*.ts"
+      exclude:
+        - "frontend/src/inngest/client.ts"
+        - "frontend/src/inngest/functions.ts"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # DATA INTEGRITY — The 26-function blind spot
+    # ═══════════════════════════════════════════════════════════════════
+    - name: "CRITICAL: Every ingestion function MUST log to ops.ingest_run"
+      description: |
+        CURRENT STATE: 26 of 45 ingestion functions have NO ops.ingest_run logging.
+        The dark functions include ALL Databento jobs (etf-daily, etf-vwap, futures-1h,
+        futures-daily, fx-daily, options-daily, statistics-daily), ALL ZL live/historical
+        jobs, board-crush, argentina-crush, conab-production, cpo-daily, eia-biodiesel,
+        eia-today, mpob-palm, specialist-signals-sync, and more. Without logging, the
+        staleness monitor and cleanup-stale-runs function cannot detect failures. Every
+        function that writes to the database MUST create an ingest_run record with:
+        job_name, status, started_at, completed_at, rows_attempted, rows_inserted,
+        rows_skipped, rows_quarantined, and error_message.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+      exclude:
+        - "frontend/src/inngest/client.ts"
+        - "frontend/src/inngest/functions.ts"
+        - "frontend/src/inngest/cleanup-stale-runs.ts"
+
+    - name: "CRITICAL: Bad data must be quarantined, never silently dropped"
+      description: |
+        Only 19 of 45 functions quarantine invalid records to ops.quarantined_record.
+        The other 26 either silently skip bad data (continue statement) or crash entirely.
+        Every function that processes external data must: (1) validate incoming values
+        (isNaN, null, zero, negative prices), (2) quarantine invalid records with source,
+        reason, and raw payload, (3) count quarantined rows in the ingest_run log.
+        Silent drops hide data quality degradation until forecasts go wrong.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    - name: "CRITICAL: Dedup pattern must be ON CONFLICT DO UPDATE with row_hash"
+      description: |
+        V15 currently uses 3 INCONSISTENT dedup patterns:
+        1. SELECT 1 WHERE row_hash + separate INSERT (aei-trade, nyfed, cftc, etc.)
+        2. ON CONFLICT DO UPDATE SET (fred, databento, mpob, conab, etc.)
+        3. ON CONFLICT DO NOTHING (board-crush, one instance)
+        Pattern #1 has a TOCTOU race condition — another step can insert between the
+        SELECT and INSERT. Pattern #3 silently drops data without logging. The canonical
+        pattern is #2: INSERT ... ON CONFLICT (natural_key) DO UPDATE SET ... with
+        row_hash for change detection. All new code MUST use pattern #2. Flag patterns
+        #1 and #3 in new code as bugs.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    - name: "CRITICAL: No DELETE FROM on landing/time-series tables"
+      description: |
+        FOUND: usda-wasde-monthly.ts line 346 contains DELETE FROM supply.usda_wasde_1m.
+        This is quiet corruption — it destroys historical data that ML models were trained
+        on, breaks point-in-time reproducibility, and creates gaps in the time series.
+        Landing tables are APPEND-ONLY. If data needs correction, use ON CONFLICT DO UPDATE
+        to overwrite with new values (preserving the row). The only acceptable DELETEs are
+        on ops.* tables (cleanup-stale-runs) and temp/staging tables. Flag any DELETE FROM
+        on mkt.*, econ.*, supply.*, pos.*, or alt.* schemas as CRITICAL.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+        - "frontend/scripts/**/*"
+
+    - name: "CRITICAL: No UPDATE on landing tables outside ON CONFLICT"
+      description: |
+        FOUND: mpob-palm-monthly UPDATE on supply table, zl-daily UPDATE on
+        analytics.latest_price, databento-etf-vwap UPDATE on mkt.etf_1d, board-crush
+        UPDATE on alt.tariff_deadlines_static. Standalone UPDATE statements on data
+        tables (outside of ON CONFLICT clauses) violate append-only semantics and destroy
+        the audit trail. The ONLY acceptable UPDATEs are: (1) ON CONFLICT DO UPDATE in
+        upsert patterns, (2) ops.ingest_run status updates, (3) analytics.* derived tables
+        that are explicitly documented as mutable. Flag any other UPDATE as HIGH priority.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    - name: Point-in-time timestamp semantics are mandatory
+      description: |
+        Data ingestion must preserve point-in-time semantics. Every landing table row must
+        represent what was known AT THAT TIME, not what we know now. Never backfill or
+        overwrite historical records with values that weren't available at that timestamp.
+        This is critical for ML training — lookahead bias from PIT violations silently
+        inflates backtest performance while real-world forecasts fail. Watch for UPDATE
+        queries that modify historical rows, or any code that uses "current" values to
+        fill past dates.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+        - "src/**/*.py"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ML TRAINING INTEGRITY — Prevent silent model corruption
+    # ═══════════════════════════════════════════════════════════════════
+    - name: "CRITICAL: Quantile monotonicity across forecast horizons"
+      description: |
+        Forecast outputs across horizons (5d, 1m, 3m, 6m) MUST maintain quantile
+        monotonicity: uncertainty ranges must WIDEN with longer horizons, never narrow.
+        If 5-day P10-P90 range is wider than 3-month range, the model is broken. This
+        contract must be enforced in specialist-signals-sync.ts, specialist-classifier.ts,
+        and any Python training code that generates quantile predictions.
+      include:
+        - "frontend/src/inngest/specialist-signals-sync.ts"
+        - "frontend/src/lib/specialist-classifier.ts"
+        - "src/**/*.py"
+
+    - name: "CRITICAL: Out-of-fold discipline in all ML training"
+      description: |
+        ML training must NEVER evaluate on training data. All validation must use
+        out-of-fold predictions. Watch for these leakage patterns:
+        - Using future data in feature engineering (temporal leakage)
+        - Evaluating on the full dataset instead of holdout
+        - Mixing train/validation splits
+        - pd.merge() without merge_asof() on time-series (lookahead)
+        - Features computed on entire dataset then split (information leakage)
+        AutoGluon's internal CV helps but doesn't prevent feature-level leakage.
+      include:
+        - "src/**/*.py"
+
+    - name: Specialist signal generators must not use placeholder data
+      description: |
+        The 11 specialist signals (CRUSH, CHINA, FX, FED, TARIFF, ENERGY, BIOFUEL,
+        PALM, VOLATILITY, SUBSTITUTES, TRUMP_EFFECT) must produce real forecasts from
+        real data. Flag any code that returns hardcoded values, placeholder ranges,
+        or "NO FAKE FORECASTS" sentinel values in production paths. The brief route
+        already guards against this — ensure no regression.
+      include:
+        - "frontend/src/inngest/specialist-signals-sync.ts"
+        - "frontend/src/lib/specialist-classifier.ts"
+        - "frontend/src/lib/ai-intelligence.ts"
+        - "frontend/src/app/api/zl/**/*.ts"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # SECRETS & ENVIRONMENT SAFETY
+    # ═══════════════════════════════════════════════════════════════════
+    - name: No hardcoded secrets, keys, tokens, or connection strings
+      description: |
+        All sensitive values must come from process.env. This codebase touches: Databento,
+        FRED, EIA, USDA, NOAA, Scrapecreators, Profarmer, Glide, Inngest, OpenAI, Autonoma,
+        and three different database URLs. Flag any string literal that looks like a key,
+        token, or connection string. Also flag any .env file committed to git.
+      include:
+        - "frontend/src/**/*.ts"
+        - "frontend/src/**/*.tsx"
+        - "frontend/scripts/**/*"
+        - "src/**/*.py"
+        - ".env*"
+
+    - name: No Rabid Raccoon env var references
+      description: |
+        V15 must never reference RR-specific environment variables. The WORKFLOW_INNGEST_SIGNING_KEY
+        fallback in client.ts is V15-specific legacy — it must stay V15-only. Flag any new
+        env var that could belong to the RR project.
+      include:
+        - "frontend/src/**/*.ts"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # STALE DATA & ANOMALY DETECTION
+    # ═══════════════════════════════════════════════════════════════════
+    - name: NaN, null, zero, and negative values must be validated
+      description: |
+        Every ingestion function that processes numeric data from external APIs must
+        validate: Number.isFinite(), not NaN, not null, not undefined, and domain-
+        appropriate ranges (prices > 0, volumes >= 0, percentages in [-100, 100]).
+        Current state: fred-daily, futures-legacy, nyfed, and openmeteo validate properly.
+        Most Databento and ZL functions DO NOT validate and insert raw values. A single
+        NaN in a price column propagates through every downstream calculation.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    - name: Row hashes must use consistent inputs
+      description: |
+        Row hash computation varies wildly across functions. Some hash (symbol + date +
+        close), some hash (url + pubDate), some hash full JSON payloads. Within a single
+        table, all rows must use the SAME hash formula. Inconsistent hashing defeats
+        change detection and causes duplicate rows with different hashes. New functions
+        should use: createHash("sha256").update(`${naturalKey}|${value}`).digest("hex")
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    - name: Connection pools must be refreshed across Inngest step boundaries
+      description: |
+        FOUND: fred-daily.ts and openmeteo-weather-daily.ts contain comments about
+        "preventing stale connections across Inngest durable execution boundaries."
+        This is a real issue — Inngest steps can pause for minutes between executions.
+        Postgres connections opened in step 1 may be dead by step 3. Every step.run()
+        that touches the database should use a fresh connection from the pool, not a
+        cached client.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FILE & SCHEMA HYGIENE
+    # ═══════════════════════════════════════════════════════════════════
+    - name: No test data, mocks, or placeholders in production code
+      description: |
+        Flag hardcoded arrays of fake prices, mock API responses, placeholder symbols,
+        or test fixtures outside of test files. Also flag "TODO: remove", "HACK",
+        "FIXME", "temporary", "dummy", or "999999" sentinel values. With 88 functions
+        processing real commodity data, any test artifact in production is a potential
+        data corruption source.
+      include:
+        - "frontend/src/**/*.ts"
+        - "frontend/src/**/*.tsx"
+        - "src/**/*.py"
+      exclude:
+        - "**/*.test.*"
+        - "**/*.spec.*"
+        - "**/__tests__/**"
+
+    - name: New files must follow project directory conventions
+      description: |
+        Inngest functions: frontend/src/inngest/. Library code: frontend/src/lib/.
+        API routes: frontend/src/app/api/. Services: frontend/src/lib/services/.
+        Python ML code: src/. Scripts: frontend/scripts/. Flag any new file created
+        outside these directories. With 48 inngest files already, misplaced functions
+        cause registration failures and maintenance nightmares.
+      include:
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.py"
+
+    - name: Prisma schema changes require migration review
+      description: |
+        Any change to frontend/prisma/schema.prisma must be accompanied by a migration.
+        Bare schema changes without migrations cause deployment failures. Also verify
+        that new tables follow naming conventions: schema.entity_granularity
+        (e.g., mkt.futures_1d, econ.rates_1d, supply.usda_wasde_1m).
+      include:
+        - "frontend/prisma/schema.prisma"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # VERCEL RUNTIME
+    # ═══════════════════════════════════════════════════════════════════
+    - name: API routes must declare runtime and maxDuration
+      description: |
+        All route.ts files must export runtime = 'nodejs' and appropriate maxDuration.
+        Inngest route: 300. User-facing APIs: 30-60. Missing maxDuration on any of the
+        88 function endpoints lets a runaway execution consume the Vercel budget.
+      include:
+        - "frontend/src/app/api/**/route.ts"
+
+    - name: All external API calls must have timeouts
+      description: |
+        Every fetch() to Databento, FRED, EIA, USDA, NOAA, Scrapecreators, Profarmer,
+        and any other external API must include an explicit timeout (AbortSignal.timeout
+        or timeoutMs parameter). Missing timeouts cause Inngest functions to hang,
+        blocking DB_CONCURRENCY slots for the entire env.
+      include:
+        - "frontend/src/inngest/**/*.ts"
+        - "frontend/src/lib/**/*.ts"
+
+pr_descriptions:
+  generate: true
+  cubic_review_link: false
+  instructions: |
+    Highlight changes to: Inngest functions (any of the 48 function files), serve handler,
+    DB_CONCURRENCY, Prisma schema, specialist signal generators, and ML training code.
+    Call out by name which of the 11 specialist signals are affected. Note if the PR touches
+    any of the 26 functions currently missing ops.ingest_run logging. Flag any new data
+    sources added to the pipeline. Warn if the PR modifies dedup patterns.
+
+issues:
+  fix_with_cubic_buttons: true
+  fix_commits_to_pr: true
