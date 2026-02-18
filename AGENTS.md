@@ -97,3 +97,4 @@ Each specialist outputs `(signal_1, signal_2, confidence)` per date to `training
 6. Minimal changes — fix root causes, avoid unrelated refactors
 7. Forward fill is OFF by default — requires explicit approval
 8. Say "I don't know" when uncertain
+9. Before committing, run `cubic review` to catch bugs — fix all P0/P1 issues before pushing
