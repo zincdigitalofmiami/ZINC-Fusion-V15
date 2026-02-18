@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://cubic.dev/schema/cubic-repository-config.schema.json
 # cubic.yaml — ZINC-FUSION-V15 (Soybean oil procurement forecasting)
+# smoke-test: 2026-02-18 Cubic PR trigger (comment-only, no behavior change)
 # Surgical rules based on actual codebase audit: 26/45 functions missing logging,
 # inconsistent dedup patterns, quiet corruption via UPDATE on landing tables,
 # missing quarantine on bad data, and cross-project contamination history.
