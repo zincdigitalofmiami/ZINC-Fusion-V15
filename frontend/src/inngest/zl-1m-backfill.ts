@@ -1,50 +1,30 @@
 /**
  * ZL 1-Minute Historical Backfill via Databento
  *
- * Backfills analytics.price_1m and analytics.price_5m from Databento historical API.
- * Triggered manually or on schedule to fill gaps.
+ * Two functions:
  *
- * Uses Databento's timeseries.get_range API with ohlcv-1m schema.
+ * zl1mBackfill      — event-driven (zl.backfill.1m), for manual or one-off triggers.
+ *                     Accepts { startDate, endDate, daysBack } in event.data.
+ *
+ * zl1mScheduledBackfill — cron (daily 06:00 UTC), calls the refresh helper directly.
+ *                         NO step.sendEvent hop — that was the source of duplicate
+ *                         zl.backfill.1m events on cron retries (RR pattern fix).
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
+import { refreshZl1mFromDatabento } from "@/lib/zl1m-refresh";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
 
-// ZL continuous contract (OI-ranked for crush commodities)
 const ZL_SYMBOL = "ZL.n.0";
 const DATABENTO_DATASET = "GLBX.MDP3";
 
 interface BackfillParams {
-  startDate?: string; // ISO date string, e.g. "2026-01-01"
-  endDate?: string;   // ISO date string, e.g. "2026-02-01"
-  daysBack?: number;  // Alternative: backfill last N days
-}
-
-async function getMinTimestamp(): Promise<Date | null> {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      `SELECT MIN(timestamp) AS min_ts FROM analytics.price_1m`
-    );
-    return result.rows[0]?.min_ts ? new Date(result.rows[0].min_ts) : null;
-  } finally {
-    client.release();
-  }
-}
-
-async function getMaxTimestamp(): Promise<Date | null> {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      `SELECT MAX(timestamp) AS max_ts FROM analytics.price_1m`
-    );
-    return result.rows[0]?.max_ts ? new Date(result.rows[0].max_ts) : null;
-  } finally {
-    client.release();
-  }
+  startDate?: string;
+  endDate?: string;
+  daysBack?: number;
 }
 
 async function insert1mBar(
@@ -77,7 +57,6 @@ async function aggregate5mBars(
   startTime: Date,
   endTime: Date
 ): Promise<number> {
-  // Aggregate all 1m bars into 5m bars for the given range
   const result = await client.query(
     `INSERT INTO analytics.price_5m (timestamp, open, high, low, close, volume, source, created_at)
      SELECT
@@ -105,18 +84,20 @@ async function aggregate5mBars(
   return result.rowCount ?? 0;
 }
 
+// ---------------------------------------------------------------------------
+//  Manual / event-driven backfill (kept for on-demand use)
+// ---------------------------------------------------------------------------
 export const zl1mBackfill = inngest.createFunction(
   {
     id: "zl-1m-backfill",
     name: "ZL 1m/5m Historical Backfill",
-    retries: 2,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }], // DB pool + only one backfill at a time
+    retries: 1,
+    concurrency: [DB_CONCURRENCY, { limit: 1, scope: "fn" }], // one at a time globally
   },
   { event: "zl.backfill.1m" },
   async ({ event, step, logger }) => {
     const params = event.data as BackfillParams;
 
-    // Determine date range
     let startDate: Date;
     let endDate: Date;
 
@@ -128,7 +109,6 @@ export const zl1mBackfill = inngest.createFunction(
       startDate = new Date();
       startDate.setDate(startDate.getDate() - params.daysBack);
     } else {
-      // Default: last 7 days
       endDate = new Date();
       startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -136,41 +116,35 @@ export const zl1mBackfill = inngest.createFunction(
 
     logger.info(`Backfilling ZL 1m from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-    // Step 1: Check current data range
-    const [minTs, maxTs] = await step.run("check-existing-range", async () => {
-      const min = await getMinTimestamp();
-      const max = await getMaxTimestamp();
-      return [min?.toISOString() ?? null, max?.toISOString() ?? null];
-    });
-
-    logger.info(`Existing data range: ${minTs ?? "none"} to ${maxTs ?? "none"}`);
-
-    // Step 2: Fetch 1m data from Databento
     const csvData = await step.run("fetch-databento-1m", async () => {
       const startStr = startDate.toISOString().split("T")[0];
       const endStr = endDate.toISOString().split("T")[0];
-
-      return await fetchDatabentoCsv({
-        dataset: DATABENTO_DATASET,
-        symbols: ZL_SYMBOL,
-        schema: "ohlcv-1m",
-        start: startStr,
-        end: endStr,
-      });
+      return await fetchDatabentoCsv(
+        {
+          dataset: DATABENTO_DATASET,
+          symbols: ZL_SYMBOL,
+          schema: "ohlcv-1m",
+          stype_in: "continuous",
+          start: startStr,
+          end: endStr,
+          encoding: "csv",
+          pretty_ts: "true",
+          pretty_px: "true",
+        },
+        15_000
+      );
     });
 
     if (!csvData || csvData.length === 0) {
       logger.warn("No data returned from Databento");
-      return { status: "no_data", startDate: startDate.toISOString(), endDate: endDate.toISOString() };
+      return { status: "no_data" };
     }
 
-    // Step 3: Parse and insert 1m bars
     const insertResult = await step.run("insert-1m-bars", async () => {
       const bars = parseDatabentoOhlcvCsv(csvData);
       const client = await pool.connect();
       let inserted = 0;
       let skipped = 0;
-
       try {
         for (const bar of bars) {
           const success = await insert1mBar(client, {
@@ -187,13 +161,9 @@ export const zl1mBackfill = inngest.createFunction(
       } finally {
         client.release();
       }
-
       return { total: bars.length, inserted, skipped };
     });
 
-    logger.info(`Inserted ${insertResult.inserted} 1m bars, skipped ${insertResult.skipped}`);
-
-    // Step 4: Aggregate to 5m bars
     const aggregateResult = await step.run("aggregate-5m-bars", async () => {
       const client = await pool.connect();
       try {
@@ -203,36 +173,45 @@ export const zl1mBackfill = inngest.createFunction(
       }
     });
 
-    logger.info(`Aggregated ${aggregateResult} 5m bars`);
+    logger.info(`Inserted ${insertResult.inserted} 1m bars, aggregated ${aggregateResult} 5m bars`);
 
     return {
       status: "success",
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
       bars1m: insertResult,
       bars5m: aggregateResult,
     };
   }
 );
 
-// Scheduled backfill to fill any gaps (runs daily at 6 AM UTC)
+// ---------------------------------------------------------------------------
+//  Scheduled gap-fill — calls refresh helper DIRECTLY (no event hop)
+// ---------------------------------------------------------------------------
 export const zl1mScheduledBackfill = inngest.createFunction(
   {
     id: "zl-1m-scheduled-backfill",
     name: "ZL 1m/5m Scheduled Gap Fill",
-    retries: 2,
+    retries: 0, // no retries — helper has its own gate; duplicate runs = wasted Databento calls
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "0 6 * * *" }, // Daily at 6 AM UTC
-  async ({ step, logger }) => {
-    // Backfill last 3 days to catch any gaps
-    logger.info("Running scheduled ZL 1m backfill for last 3 days");
+  { cron: "0 6 * * *" },
+  async ({ logger }) => {
+    logger.info("Running scheduled ZL 1m gap fill via refresh helper (3-day lookback)");
 
-    await step.sendEvent("trigger-backfill", {
-      name: "zl.backfill.1m",
-      data: { daysBack: 3 },
+    const result = await refreshZl1mFromDatabento({
+      force: true,
+      lookbackMinutes: 3 * 24 * 60,
     });
 
-    return { status: "triggered", daysBack: 3 };
+    if (result.skipped) {
+      logger.info("Refresh gate blocked — already ran recently");
+      return { status: "skipped" };
+    }
+
+    logger.info(`Gap fill complete: ${result.upserted1m} 1m bars, ${result.upserted5m} 5m bars`);
+    return {
+      status: "success",
+      upserted1m: result.upserted1m,
+      upserted5m: result.upserted5m,
+    };
   }
 );
