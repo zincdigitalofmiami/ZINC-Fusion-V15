@@ -1,0 +1,49 @@
+frontend/src/inngest/eia-biodiesel-monthly.ts
+  339cd8569bb4a795 5-7,9-12,25-32,34-36,41,43-44,70-71,77-78,83-84,89,92-93,95,99,111-112,114-117,124,188,245-246,252-253,257,259,262,265-266,269,271,283,285-288,295,357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "235199350ac6b156d6b9c2bd5a843cbd274699a0",
+  "prompts": {
+    "339cd8569bb4a795": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "937c3a54-1ec8-4799-87d6-3bf09c9e759e",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 75,
+      "total_deletions": 169,
+      "accepted_lines": 63,
+      "overriden_lines": 0
+    },
+    "547042e7344a72a9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "414ca27f-bdf2-49b7-ba3e-da358ce3d5ec",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 238,
+      "total_deletions": 86,
+      "accepted_lines": 162,
+      "overriden_lines": 0
+    },
+    "9000d684b5a39e66": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019c6e89-b52d-7440-a4b6-092913748e22",
+        "model": "unknown"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 310,
+      "total_deletions": 160,
+      "accepted_lines": 248,
+      "overriden_lines": 0
+    }
+  }
+}
