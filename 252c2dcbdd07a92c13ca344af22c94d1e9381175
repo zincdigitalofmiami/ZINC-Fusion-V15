@@ -1,0 +1,51 @@
+frontend/src/app/api/epu/route.ts
+  8cac214b6371b08d 188-190
+frontend/src/app/api/vegas/fryers/route.ts
+  8cac214b6371b08d 26-31
+frontend/src/lib/auth.ts
+  8cac214b6371b08d 68-69,86-87
+frontend/src/app/api/sentiment/cot/route.ts
+  8cac214b6371b08d 82,97,103,109
+frontend/src/app/api/sentiment/metrics/route.ts
+  8cac214b6371b08d 92-96,112,125,128,147,150,158,161,192,195,214,217,230,233,247,250,254,257,280,283,297,300,326,329,343
+frontend/src/app/api/vegas/sync/route.ts
+  8cac214b6371b08d 8-9,122,124,129-132,136,141,151,153
+frontend/src/app/api/zl/forecast/route.ts
+  8cac214b6371b08d 62-63
+frontend/src/lib/zl1m-refresh.ts
+  8cac214b6371b08d 86-87,100,102,113
+frontend/src/proxy.ts
+  8cac214b6371b08d 1-14,18-19,24,28-54,58-59,63,65-70,73-74,79
+frontend/src/app/api/refresh-drivers/route.ts
+  8cac214b6371b08d 17-20,22-30,86
+frontend/src/app/api/zl/chart/route.ts
+  8cac214b6371b08d 21-22
+frontend/src/app/api/sentiment/topics/route.ts
+  8cac214b6371b08d 95
+frontend/src/app/api/vegas/route.ts
+  8cac214b6371b08d 598-600
+frontend/src/app/api/zl/raw/route.ts
+  8cac214b6371b08d 19-20
+frontend/src/lib/auth-edge.ts
+  8cac214b6371b08d 49-50,72-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "252c2dcbdd07a92c13ca344af22c94d1e9381175",
+  "prompts": {
+    "8cac214b6371b08d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "57bd32a1-b34b-4c54-b4c1-794bbad80581",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 266,
+      "total_deletions": 142,
+      "accepted_lines": 241,
+      "overriden_lines": 0
+    }
+  }
+}
