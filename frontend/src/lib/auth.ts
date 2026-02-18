@@ -65,6 +65,8 @@ export function signAuthToken(payload: AuthPayload) {
   return `${payloadB64}.${sigB64}`
 }
 
+const MAX_TOKEN_AGE_S = 30 * 24 * 60 * 60 // 30 days — matches cookie maxAge
+
 export function verifyAuthToken(token: string): AuthPayload | null {
   const { secret } = getAuthEnv()
 
@@ -81,6 +83,8 @@ export function verifyAuthToken(token: string): AuthPayload | null {
   try {
     const payload = JSON.parse(base64urlDecode(payloadB64).toString('utf8')) as AuthPayload
     if (!payload || payload.v !== 1 || typeof payload.iat !== 'number') return null
+    // Reject expired tokens
+    if (Date.now() / 1000 - payload.iat > MAX_TOKEN_AGE_S) return null
     return payload
   } catch {
     return null

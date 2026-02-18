@@ -89,6 +89,11 @@ function computeFearGreed(
 
 export async function GET() {
   try {
+    // Wrap each query so a single failure doesn't take down the whole endpoint
+    const safe = async <T,>(p: Promise<T[]>): Promise<T[]> => {
+      try { return await p; } catch (e) { console.error('[metrics] query failed:', e); return []; }
+    };
+
     const [
       priceResult,
       returnsResult,
@@ -104,7 +109,7 @@ export async function GET() {
       sentimentRatioResult,
     ] = await Promise.all([
       // 1. Latest ZL price + volume + OI
-      query<{
+      safe(query<{
         event_date: string;
         open: number;
         high: number;
@@ -117,10 +122,10 @@ export async function GET() {
          FROM mkt.futures_1d
          WHERE symbol = 'ZL' AND close IS NOT NULL
          ORDER BY event_date DESC LIMIT 1`,
-      ),
+      )),
 
       // 2. Returns (5d, 21d, 63d)
-      query<{
+      safe(query<{
         close: number;
         ret_5d: string;
         ret_21d: string;
@@ -139,10 +144,10 @@ export async function GET() {
                 ROUND(((close - c21) / NULLIF(c21, 0) * 100)::numeric, 2) as ret_21d,
                 ROUND(((close - c63) / NULLIF(c63, 0) * 100)::numeric, 2) as ret_63d
          FROM p LIMIT 1`,
-      ),
+      )),
 
       // 3. 21-day realized volatility (annualized)
-      query<{ rvol_21d: string }>(
+      safe(query<{ rvol_21d: string }>(
         `WITH lr AS (
            SELECT LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as r
            FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
@@ -150,10 +155,10 @@ export async function GET() {
          )
          SELECT ROUND((STDDEV(r) * SQRT(252) * 100)::numeric, 2) as rvol_21d
          FROM lr WHERE r IS NOT NULL`,
-      ),
+      )),
 
       // 4. COT z-score + percentile
-      query<{
+      safe(query<{
         mu: string;
         sd: string;
         n: string;
@@ -184,10 +189,10 @@ export async function GET() {
                 ROUND(((l.mm - s.mu) / NULLIF(s.sd, 0))::numeric, 3) as zscore,
                 ROUND((p.pctile * 100)::numeric, 1) as percentile
          FROM stats s, latest l, prank p`,
-      ),
+      )),
 
       // 5. Moving averages
-      query<{
+      safe(query<{
         close: string;
         sma20: string;
         sma50: string;
@@ -206,10 +211,10 @@ export async function GET() {
                 ROUND(sma50::numeric, 2) as sma50,
                 ROUND(sma200::numeric, 2) as sma200
          FROM ordered LIMIT 1`,
-      ),
+      )),
 
       // 6. Compute RSI-14
-      query<{ rsi_14: string }>(
+      safe(query<{ rsi_14: string }>(
         `WITH changes AS (
            SELECT close - LAG(close) OVER (ORDER BY event_date) as chg
            FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
@@ -222,10 +227,10 @@ export async function GET() {
          )
          SELECT ROUND((100 - 100 / (1 + AVG(gain) / NULLIF(AVG(loss), 0)))::numeric, 1) as rsi_14
          FROM gl`,
-      ),
+      )),
 
       // 7. VIX + z-score (1y)
-      query<{ vix: string; vix_avg_1y: string; vix_z: string }>(
+      safe(query<{ vix: string; vix_avg_1y: string; vix_z: string }>(
         `WITH stats AS (
            SELECT AVG(value) as mu, STDDEV(value) as sd
            FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS'
@@ -239,17 +244,17 @@ export async function GET() {
                 ROUND(s.mu::numeric, 2) as vix_avg_1y,
                 ROUND(((l.value - s.mu) / NULLIF(s.sd, 0))::numeric, 3) as vix_z
          FROM stats s, latest l`,
-      ),
+      )),
 
       // 8. OVX (oil volatility)
-      query<{ ovx: string }>(
+      safe(query<{ ovx: string }>(
         `SELECT ROUND(value::numeric, 2) as ovx
          FROM econ.vol_indices_1d WHERE series_id = 'OVXCLS'
          ORDER BY event_date DESC LIMIT 1`,
-      ),
+      )),
 
       // 9. Board crush + oil share z-scores
-      query<{
+      safe(query<{
         crush_now: string;
         crush_z: string;
         os_now: string;
@@ -272,10 +277,10 @@ export async function GET() {
                 ROUND(((l.os::numeric - s.os_mu::numeric) / NULLIF(s.os_sd::numeric, 0))::numeric, 3) as os_z,
                 s.n
          FROM stats s, latest l`,
-      ),
+      )),
 
       // 10. Specialist signals (latest per bucket)
-      query<{
+      safe(query<{
         bucket: string;
         signal_1: number;
         signal_2: number;
@@ -289,10 +294,10 @@ export async function GET() {
                 as_of_date::text, abstained
          FROM training.specialist_signals_1d
          ORDER BY bucket, as_of_date DESC`,
-      ),
+      )),
 
       // 11. Trump Effect (latest row)
-      query<{
+      safe(query<{
         weighted_action_score: number | null;
         action_velocity: number | null;
         action_acceleration: number | null;
@@ -318,10 +323,10 @@ export async function GET() {
                 (features->>'avg_sentiment_30d')::float8     AS avg_sentiment_30d
          FROM training.specialist_features_trump_effect
          ORDER BY as_of_date DESC LIMIT 1`,
-      ),
+      )),
 
       // 12. News sentiment ratio (7d) — for Fear & Greed composite
-      query<{ bullish_count: number; bearish_count: number }>(
+      safe(query<{ bullish_count: number; bearish_count: number }>(
         `SELECT
            COUNT(*) FILTER (WHERE zl_sentiment = 'bullish')::int  AS bullish_count,
            COUNT(*) FILTER (WHERE zl_sentiment = 'bearish')::int  AS bearish_count
@@ -335,7 +340,7 @@ export async function GET() {
            SELECT zl_sentiment FROM econ.news_event
              WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
          ) sub`,
-      ),
+      )),
     ]);
 
     const price = priceResult[0];

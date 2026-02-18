@@ -79,7 +79,7 @@ export async function GET() {
     const latest = latestRows[0];
 
     // Compute managed money positioning as % of open interest for bar display
-    const oi = Number(latest.open_interest) || 1;
+    const oi = Number(latest.open_interest) || null;
     const mmNet = Number(latest.managed_money_net) || 0;
     const pmNet = Number(latest.prod_merc_net) || 0;
     const swNet = Number(latest.swap_net) || 0;
@@ -94,19 +94,19 @@ export async function GET() {
             long: Number(latest.managed_money_long),
             short: Number(latest.managed_money_short),
             net: mmNet,
-            net_pct_oi: latest.managed_money_net_pct_oi ?? (mmNet / oi) * 100,
+            net_pct_oi: latest.managed_money_net_pct_oi ?? (oi ? (mmNet / oi) * 100 : null),
           },
           producers: {
             long: Number(latest.prod_merc_long),
             short: Number(latest.prod_merc_short),
             net: pmNet,
-            net_pct_oi: latest.prod_merc_net_pct_oi ?? (pmNet / oi) * 100,
+            net_pct_oi: latest.prod_merc_net_pct_oi ?? (oi ? (pmNet / oi) * 100 : null),
           },
           swaps: {
             long: Number(latest.swap_long),
             short: Number(latest.swap_short),
             net: swNet,
-            net_pct_oi: (swNet / oi) * 100,
+            net_pct_oi: oi ? (swNet / oi) * 100 : null,
           },
         },
         history: historyRows

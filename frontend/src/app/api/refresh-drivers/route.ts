@@ -14,7 +14,20 @@ import { inngest } from '@/inngest/client'
 
 export const dynamic = 'force-dynamic'
 
+// Per-worker rate gate — prevents Inngest queue flooding
+let lastRefreshAt = 0
+const MIN_REFRESH_INTERVAL_MS = 60_000 // 1 minute
+
 export async function POST() {
+  const now = Date.now()
+  if (now - lastRefreshAt < MIN_REFRESH_INTERVAL_MS) {
+    return NextResponse.json(
+      { status: 'rate_limited', message: 'Please wait 60s between refreshes' },
+      { status: 429 },
+    )
+  }
+  lastRefreshAt = now
+
   try {
     // Send events to trigger the key Inngest functions
     // These functions will run asynchronously and update the database
@@ -70,7 +83,7 @@ export async function POST() {
       {
         status: 'error',
         message: 'Failed to trigger refresh jobs',
-        error: error instanceof Error ? error.message : String(error),
+        error: 'Internal server error',
       },
       { status: 500 }
     )

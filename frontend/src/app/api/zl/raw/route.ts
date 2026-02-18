@@ -16,7 +16,8 @@ interface PriceRow {
 }
 
 export async function GET(request: NextRequest) {
-  const days = parseInt(request.nextUrl.searchParams.get('days') || '365', 10)
+  const rawDays = parseInt(request.nextUrl.searchParams.get('days') || '365', 10)
+  const days = Number.isFinite(rawDays) ? Math.max(1, Math.min(rawDays, 3650)) : 365
 
   try {
     const rows = await query<PriceRow>(`

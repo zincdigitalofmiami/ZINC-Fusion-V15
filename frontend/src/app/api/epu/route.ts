@@ -185,9 +185,9 @@ export async function GET(req: NextRequest) {
     const data = epuRows.map((row) => {
       const dateKey = row.event_date.toISOString().split("T")[0];
       const epuValue = parseFloat(row.epu_value);
-      const chinaTpu = chinaTpuData[dateKey] || null;
-      const vix = vixData[dateKey] || null;
-      const zlClose = zlData[dateKey] || null;
+      const chinaTpu = chinaTpuData[dateKey] ?? null;
+      const vix = vixData[dateKey] ?? null;
+      const zlClose = zlData[dateKey] ?? null;
 
       // Calculate neural factors
       const epuFactor = calculateEpuFactor(epuValue);

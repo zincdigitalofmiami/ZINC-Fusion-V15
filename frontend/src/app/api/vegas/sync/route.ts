@@ -5,7 +5,8 @@
  * Data Flow: Glide API (READ ONLY) → vegas.vegas_* tables
  */
 import { NextResponse } from 'next/server'
-import { Pool } from 'pg'
+import dbPool from '@/lib/db'
+import type { Pool } from 'pg'
 
 // =============================================================================
 // Glide API Configuration
@@ -118,25 +119,26 @@ async function syncTableToPostgres(
 // POST /api/vegas/sync
 // =============================================================================
 
-export async function POST() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  })
+const ALLOWED_TABLES = new Set(Object.keys(GLIDE_TABLES))
 
+export async function POST() {
   const results: Record<string, number | string> = {}
 
   try {
     for (const [tableName, tableId] of Object.entries(GLIDE_TABLES)) {
+      if (!ALLOWED_TABLES.has(tableName)) {
+        results[tableName] = 'error: table not in allowlist'
+        continue
+      }
       try {
         console.log(`Syncing ${tableName}...`)
         const rows = await fetchGlideTable(tableId)
-        const count = await syncTableToPostgres(pool, tableName, rows)
+        const count = await syncTableToPostgres(dbPool, tableName, rows)
         results[tableName] = count
         console.log(`✅ ${tableName}: ${count} rows`)
       } catch (error) {
         console.error(`❌ ${tableName}:`, error)
-        results[tableName] = `error: ${String(error)}`
+        results[tableName] = 'error: sync failed'
       }
     }
 
@@ -146,12 +148,11 @@ export async function POST() {
       results,
     })
   } catch (error) {
+    console.error('Vegas sync error:', error)
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    await pool.end()
   }
 }
 

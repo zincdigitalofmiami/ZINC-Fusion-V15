@@ -59,8 +59,8 @@ export async function GET(_req: NextRequest) {
     }));
 
     // Get the current price from the most recent forecast
-    const currentPrice = forecasts[0]?.current_price || null;
-    const asOfDate = forecasts[0]?.as_of_date || null;
+    const currentPrice = forecasts[0]?.current_price ?? null;
+    const asOfDate = forecasts[0]?.as_of_date ?? null;
 
     return NextResponse.json({
       symbol: "ZL",

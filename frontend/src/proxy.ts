@@ -1,59 +1,82 @@
+/**
+ * Auth proxy — protects pages (redirect to /login) AND API routes (401).
+ *
+ * Uses Edge-compatible HMAC-SHA256 verification from auth-edge.ts.
+ *
+ * Fully public (no auth):
+ *   /_next/*, /favicon*, /login, /
+ *   /api/auth/*      — login / logout / check
+ *   /api/health      — uptime probe
+ *   /api/inngest     — Inngest webhook (has its own signing key)
+ *
+ * Auth-gated API routes return 401 JSON for unauthenticated requests.
+ * Auth-gated pages redirect to /login.
+ */
 import { NextResponse, type NextRequest } from "next/server";
 import { getAuthCookieName, verifyAuthToken } from "@/lib/auth-edge";
 
-const PUBLIC_PATH_PREFIXES = [
+// ── Routes that need zero auth ─────────────────────────────────────────
+const FULLY_PUBLIC_PREFIXES = [
   "/_next",
   "/favicon",
   "/api/health",
   "/api/auth",
-  "/api/inngest", // Public - Inngest handles its own auth via signing key
-  "/api/zl", // Public - ZL price data endpoints
-  "/api/vegas", // Public - Vegas intel endpoints (restaurants, sync, fryers)
-  "/api/market-drivers", // Public - Key market drivers for dashboard
-  "/api/epu", // Public - Economic policy uncertainty
-  "/api/refresh-drivers", // Public - Manual data refresh trigger
-  "/api/sentiment", // Public - Sentiment, news, COT data
-  "/api/options", // Public - Options data
+  "/api/inngest", // Inngest handles its own auth via signing key
   "/login",
 ];
 
+const MAX_TOKEN_AGE_S = 30 * 24 * 60 * 60; // 30 days — matches cookie maxAge
+
+function isFullyPublic(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return FULLY_PUBLIC_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p),
+  );
+}
+
+// ── Token verification (shared by API and page gates) ──────────────────
+async function verifyRequest(
+  req: NextRequest,
+): Promise<{ valid: true } | { valid: false; expired?: boolean }> {
+  const token = req.cookies.get(getAuthCookieName())?.value;
+  if (!token) return { valid: false };
+
+  const payload = await verifyAuthToken(token);
+  if (!payload) return { valid: false };
+
+  // Reject expired tokens
+  const ageSeconds = Date.now() / 1000 - payload.iat;
+  if (ageSeconds > MAX_TOKEN_AGE_S) return { valid: false, expired: true };
+
+  return { valid: true };
+}
+
+// ── Main proxy ─────────────────────────────────────────────────────────
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths
-  if (
-    PUBLIC_PATH_PREFIXES.some(
-      (p) =>
-        pathname === p ||
-        pathname.startsWith(p + "/") ||
-        pathname.startsWith(p),
-    )
-  ) {
+  // Fully public — no auth needed
+  if (isFullyPublic(pathname)) {
     return NextResponse.next();
   }
 
-  // Allow home page
-  if (pathname === "/") {
+  const auth = await verifyRequest(req);
+
+  // ── API routes: return 401 JSON ────────────────────────────────────
+  if (pathname.startsWith("/api/")) {
+    if (!auth.valid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.next();
   }
 
-  // Check for auth token
-  const token = req.cookies.get(getAuthCookieName())?.value;
-  if (!token) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // Verify token
-  const payload = await verifyAuthToken(token);
-  if (!payload) {
-    // Invalid token - clear it and redirect to login
+  // ── Page routes: redirect to /login ────────────────────────────────
+  if (!auth.valid) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     const response = NextResponse.redirect(url);
+    // Clear stale/invalid cookie
     response.cookies.delete(getAuthCookieName());
     return response;
   }

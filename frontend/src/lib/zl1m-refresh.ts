@@ -83,8 +83,8 @@ export async function refreshZl1mFromDatabento(opts: {
     for (const bar of toUpsert) {
       await client.query(
         `INSERT INTO analytics.price_1m
-           (timestamp, open, high, low, close, volume, source, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'databento_backfill', NOW())
+           (symbol, timestamp, open, high, low, close, volume, source, created_at)
+         VALUES ('ZL', $1, $2, $3, $4, $5, $6, 'databento_backfill', NOW())
          ON CONFLICT (symbol, timestamp) DO NOTHING`,
         [bar.tsEvent, bar.open, bar.high, bar.low, bar.close, bar.volume ?? 0],
       );
@@ -97,8 +97,9 @@ export async function refreshZl1mFromDatabento(opts: {
 
     const agg = await client.query(
       `INSERT INTO analytics.price_5m
-         (timestamp, open, high, low, close, volume, source, created_at)
+         (symbol, timestamp, open, high, low, close, volume, source, created_at)
        SELECT
+         'ZL',
          date_trunc('hour', timestamp) +
            INTERVAL '5 min' * FLOOR(EXTRACT(MINUTE FROM timestamp) / 5) AS bar_time,
          (ARRAY_AGG(open ORDER BY timestamp))[1],
@@ -109,7 +110,7 @@ export async function refreshZl1mFromDatabento(opts: {
          'aggregated_backfill',
          NOW()
        FROM analytics.price_1m
-       WHERE timestamp >= $1 AND timestamp <= $2
+       WHERE symbol = 'ZL' AND timestamp >= $1 AND timestamp <= $2
        GROUP BY bar_time
        HAVING COUNT(*) >= 3
        ON CONFLICT (symbol, timestamp) DO UPDATE SET

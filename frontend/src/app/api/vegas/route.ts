@@ -595,7 +595,9 @@ async function getDailySpend(): Promise<NextResponse> {
     // Calculate summary stats
     const totalSpend = results.reduce((sum, r) => sum + (r.spend_total || 0), 0)
     const avgDailySpend = results.length > 0 ? Math.round(totalSpend / results.length) : 0
-    const peakDay = results.reduce((max, r) => (r.spend_total || 0) > (max.spend_total || 0) ? r : max, results[0])
+    const peakDay = results.length > 0
+      ? results.reduce((max, r) => (r.spend_total || 0) > (max.spend_total || 0) ? r : max, results[0])
+      : null
 
     return NextResponse.json({
       daily: results.map(r => ({

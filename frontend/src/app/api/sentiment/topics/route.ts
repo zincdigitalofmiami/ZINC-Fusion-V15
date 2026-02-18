@@ -92,7 +92,7 @@ export async function GET() {
     // Convert to bubble nodes
     const maxCount = Math.max(...sorted.map(([, v]) => v.cnt), 1);
     const topics = sorted.map(([tag, stats]) => {
-      const total = stats.bullish + stats.bearish || 1;
+      const total = (stats.bullish + stats.bearish) || 1; // explicit: neutral excluded from ratio
       const sentiment = (stats.bullish - stats.bearish) / total;
       return {
         id: tag.toLowerCase().replace(/\s+/g, "-"),

@@ -46,6 +46,8 @@ async function hmacSha256(secret: string, message: string): Promise<Uint8Array> 
   return new Uint8Array(sig)
 }
 
+const MAX_TOKEN_AGE_S = 30 * 24 * 60 * 60 // 30 days — matches cookie maxAge
+
 export async function verifyAuthToken(token: string): Promise<AuthPayload | null> {
   const secret = process.env.AUTH_SECRET
   if (!secret) return null
@@ -67,6 +69,8 @@ export async function verifyAuthToken(token: string): Promise<AuthPayload | null
     const payloadJson = new TextDecoder().decode(bytesFromBase64url(payloadB64))
     const payload = JSON.parse(payloadJson) as AuthPayload
     if (!payload || payload.v !== 1 || typeof payload.iat !== 'number') return null
+    // Reject expired tokens
+    if (Date.now() / 1000 - payload.iat > MAX_TOKEN_AGE_S) return null
     return payload
   } catch {
     return null

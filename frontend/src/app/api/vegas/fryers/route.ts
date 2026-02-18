@@ -23,9 +23,12 @@ export async function GET() {
       ...row.data
     }))
 
-    // Calculate totals
-    let totalCapacity = 0
-    let totalFryers = fryers.length
+    // Calculate totals — capacity lives in Glide field 'xhrM0' or mapped 'capacity_lb'
+    const totalCapacity = fryers.reduce(
+      (sum, f) => sum + Number((f as Record<string, unknown>)['xhrM0'] ?? (f as Record<string, unknown>)['capacity_lb'] ?? 0),
+      0,
+    )
+    const totalFryers = fryers.length
 
     return NextResponse.json({
       count: fryers.length,
