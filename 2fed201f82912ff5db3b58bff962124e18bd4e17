@@ -1,0 +1,25 @@
+src/fusion/core_training/run_pipeline.py
+  8cac214b6371b08d 6,9,22,26-27,124-158,181
+scripts/run_pipeline.py
+  8cac214b6371b08d 3,5-6,8-9,11-13,15-18,20-21,29,42-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "2fed201f82912ff5db3b58bff962124e18bd4e17",
+  "prompts": {
+    "8cac214b6371b08d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "57bd32a1-b34b-4c54-b4c1-794bbad80581",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 62,
+      "overriden_lines": 0
+    }
+  }
+}
