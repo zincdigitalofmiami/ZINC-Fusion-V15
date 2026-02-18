@@ -1,0 +1,41 @@
+src/fusion/core_training/config.py
+  7dd2744937bb3de2 348,351-354,364,378-384,389,404-405
+src/fusion/core_training/train_models.py
+  7dd2744937bb3de2 12,326,328-329,335,340,342-347,350,354,359,362-363,365-385,387-391,397-400,402,410,415,583,590-594
+src/fusion/core_training/build_matrix.py
+  cb8ac71199277082 821
+  7dd2744937bb3de2 826-845,1026-1098,1103-1180,2357-2358,2361-2367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "b3bf5f700b89a3e4e08ea66fb1531afd21e159a3",
+  "prompts": {
+    "7dd2744937bb3de2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97282196-0212-496b-9bc3-e0806ee37a1d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 295,
+      "total_deletions": 107,
+      "accepted_lines": 256,
+      "overriden_lines": 0
+    },
+    "cb8ac71199277082": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "30d12cb1-df09-4108-af19-6294abd04c16",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
