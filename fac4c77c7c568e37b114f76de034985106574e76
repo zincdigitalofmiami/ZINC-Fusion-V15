@@ -1,0 +1,23 @@
+scripts/migrate_wasde_crush_metric.py
+  cb8ac71199277082 1-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "fac4c77c7c568e37b114f76de034985106574e76",
+  "prompts": {
+    "cb8ac71199277082": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "30d12cb1-df09-4108-af19-6294abd04c16",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 166,
+      "total_deletions": 0,
+      "accepted_lines": 174,
+      "overriden_lines": 0
+    }
+  }
+}
