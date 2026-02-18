@@ -26,24 +26,19 @@ const MAX_BACKFILL = 720; // 30 days of 1h bars
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const backfill = Math.max(
-    1,
-    Math.min(
-      parseInt(url.searchParams.get("backfill") || String(DEFAULT_BACKFILL), 10),
-      MAX_BACKFILL,
-    ),
-  );
+  const parsed = parseInt(url.searchParams.get("backfill") || String(DEFAULT_BACKFILL), 10);
+  const backfill = Math.max(1, Math.min(Number.isNaN(parsed) ? DEFAULT_BACKFILL : parsed, MAX_BACKFILL));
 
   const encoder = new TextEncoder();
-  let intervalId: ReturnType<typeof setInterval> | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
   let latestTs: string | null = null;
 
   function cleanup() {
     closed = true;
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
     }
   }
 
@@ -91,7 +86,7 @@ export async function GET(req: Request) {
           `SELECT timestamp::text, open::float8, high::float8, low::float8,
                   close::float8, volume::bigint
            FROM analytics.price_1h
-           WHERE close IS NOT NULL
+           WHERE symbol = 'ZL' AND close IS NOT NULL
            ORDER BY timestamp DESC
            LIMIT $1`,
           [backfill],
@@ -110,49 +105,51 @@ export async function GET(req: Request) {
         send(JSON.stringify({ type: "snapshot", bars: [], count: 0, error: "db_read_failed" }));
       }
 
-      // ── Phase 2: Poll loop ────────────────────────────────────────
-      intervalId = setInterval(async () => {
-        if (closed) {
-          cleanup();
-          return;
-        }
+      // ── Phase 2: Poll loop (recursive setTimeout to prevent overlap) ──
+      async function poll() {
+        if (closed) return;
 
         try {
           const result = await refreshZl1hFromDatabento({ force: false });
 
           if (result.skipped || result.bars.length === 0) {
             keepalive();
-            return;
+          } else {
+            // Filter for bars newer than the last emitted
+            let newBars = result.bars;
+            if (latestTs) {
+              const cutoff = new Date(latestTs).getTime();
+              newBars = result.bars.filter((b) => b.tsEvent.getTime() > cutoff);
+            }
+
+            if (newBars.length === 0) {
+              keepalive();
+            } else {
+              const mapped = newBars.map((b) => ({
+                timestamp: b.tsEvent.toISOString(),
+                open: b.open,
+                high: b.high,
+                low: b.low,
+                close: b.close,
+                volume: b.volume,
+              }));
+
+              latestTs = mapped[mapped.length - 1].timestamp;
+              send(JSON.stringify({ type: "update", bars: mapped, count: mapped.length }));
+            }
           }
-
-          // Filter for bars newer than the last emitted
-          let newBars = result.bars;
-          if (latestTs) {
-            const cutoff = new Date(latestTs).getTime();
-            newBars = result.bars.filter((b) => b.tsEvent.getTime() > cutoff);
-          }
-
-          if (newBars.length === 0) {
-            keepalive();
-            return;
-          }
-
-          const mapped = newBars.map((b) => ({
-            timestamp: b.tsEvent.toISOString(),
-            open: b.open,
-            high: b.high,
-            low: b.low,
-            close: b.close,
-            volume: b.volume,
-          }));
-
-          latestTs = mapped[mapped.length - 1].timestamp;
-          send(JSON.stringify({ type: "update", bars: mapped, count: mapped.length }));
         } catch (err) {
           console.error("[zl1h-sse] Poll error:", err);
           keepalive();
         }
-      }, POLL_INTERVAL_MS);
+
+        // Schedule next tick only after current completes (no overlap)
+        if (!closed) {
+          timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
+        }
+      }
+
+      timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
     },
 
     cancel() {
