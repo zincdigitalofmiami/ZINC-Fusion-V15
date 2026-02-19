@@ -1,0 +1,58 @@
+src/fusion/core_training/persistence.py
+  2363051feae2cfeb 1-120
+src/fusion/core_training/matrix_validation.py
+  2363051feae2cfeb 125
+scripts/autorun_reports.py
+  2363051feae2cfeb 223,228-229
+src/fusion/core_training/config.py
+  2363051feae2cfeb 356-357,359-362,372,376,387-388,405,408-409,413-414
+scripts/v2_training/train_l0_specialist.py
+  2363051feae2cfeb 112,134
+scripts/diagnostic_signal_report.py
+  2363051feae2cfeb 82,102,104,214,223,253,257
+src/fusion/core_training/_utils.py
+  2363051feae2cfeb 1-92
+scripts/validate_specialist_readiness.py
+  2363051feae2cfeb 209,218
+src/fusion/taxonomy.py
+  2363051feae2cfeb 233-234,236-239,242-245
+src/fusion/core_training/train_models.py
+  2363051feae2cfeb 124,142,253,316,346-350,361
+AGENTS.md
+  2363051feae2cfeb 44,46,48-55,57-58,60,136-140
+src/fusion/core_training/build_matrix.py
+  2363051feae2cfeb 2326,2328-2333,2336,2387,3156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "5a6f271db92f18866305e8fb12df52f91c4a853d",
+  "prompts": {
+    "1df5552c91ab8d50": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019c72fe-fcdc-7521-b25e-b4bd1410364f",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "2363051feae2cfeb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "640e7156-c2d2-4c6f-9c48-8fb9f025419f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 75,
+      "accepted_lines": 291,
+      "overriden_lines": 0
+    }
+  }
+}
