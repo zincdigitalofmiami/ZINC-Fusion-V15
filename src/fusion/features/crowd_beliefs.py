@@ -612,18 +612,13 @@ def enhance_trump_effect_features(
 
 if __name__ == "__main__":
     # Test the feature engine
-    import os
     from dotenv import load_dotenv
+    from fusion.db.connection import get_write_connection
 
     load_dotenv()
     load_dotenv(".env.vercel")
 
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
-    if not database_url:
-        print("DATABASE_URL not found")
-        exit(1)
-
-    conn = psycopg2.connect(database_url)
+    conn = get_write_connection()
 
     engine = CrowdBeliefsFeatureEngine(conn)
     features = engine.compute_features(

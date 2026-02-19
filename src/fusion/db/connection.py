@@ -53,14 +53,9 @@ load_dotenv(_PROJECT_ROOT / ".env", override=False)
 _engine_cache: Optional[Engine] = None
 
 
-def get_database_url() -> str:
+def normalize_database_url(url: str) -> str:
     """
-    Get Prisma Postgres connection URL from environment.
-
-    Priority:
-      1) DIRECT_DATABASE_URL
-      2) POSTGRES_URL
-      3) DATABASE_URL
+    Validate and normalize a direct Postgres connection URL.
 
     Rejects Prisma Accelerate proxy URLs (prisma+postgres://) because
     psycopg2 / SQLAlchemy direct DB operations require postgres://.
@@ -69,17 +64,15 @@ def get_database_url() -> str:
     which tries GSSAPI encryption before SSL, and the Prisma Postgres proxy
     drops the connection when it receives a GSSENCRequest it doesn't understand.
 
+    Args:
+        url: Candidate database URL
+
     Returns:
-        Connection URL string
+        Normalized connection URL string
 
     Raises:
-        ValueError: If no direct URL is configured or URL is incompatible
+        ValueError: If URL is missing or incompatible
     """
-    url = (
-        os.getenv("DIRECT_DATABASE_URL")
-        or os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_URL")
-    )
     if not url:
         raise ValueError(
             "Database URL not set. Configure DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL)."
@@ -95,6 +88,29 @@ def get_database_url() -> str:
     if "gssencmode" not in url:
         url += "&gssencmode=disable" if "?" in url else "?gssencmode=disable"
     return url
+
+
+def get_database_url() -> str:
+    """
+    Get Prisma Postgres connection URL from environment.
+
+    Priority:
+      1) DIRECT_DATABASE_URL
+      2) POSTGRES_URL
+      3) DATABASE_URL
+
+    Returns:
+        Normalized connection URL string
+
+    Raises:
+        ValueError: If no direct URL is configured or URL is incompatible
+    """
+    url = (
+        os.getenv("DIRECT_DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("DATABASE_URL")
+    )
+    return normalize_database_url(url)
 
 
 def _normalize_url_for_sqlalchemy(url: str) -> str:
@@ -131,12 +147,18 @@ def get_read_engine() -> Engine:
     return _engine_cache
 
 
-def get_write_connection() -> "psycopg2.extensions.connection":
+def get_write_connection(
+    database_url: str | None = None,
+) -> "psycopg2.extensions.connection":
     """
     Get psycopg2 connection for bulk write operations.
 
     Use with execute_batch for high-performance inserts.
     Caller is responsible for closing the connection.
+
+    Args:
+        database_url: Optional explicit URL. If omitted, resolves using
+            DIRECT_DATABASE_URL -> POSTGRES_URL -> DATABASE_URL.
 
     Returns:
         psycopg2 connection object
@@ -150,7 +172,9 @@ def get_write_connection() -> "psycopg2.extensions.connection":
         finally:
             conn.close()
     """
-    return psycopg2.connect(get_database_url())
+    return psycopg2.connect(
+        normalize_database_url(database_url) if database_url else get_database_url()
+    )
 
 
 @contextmanager

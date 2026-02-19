@@ -1176,21 +1176,15 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Test with existing data from Prisma Postgres
-    import os
     import sys
 
-    import psycopg2
     from dotenv import load_dotenv
+    from fusion.db.connection import get_write_connection
 
     load_dotenv()
 
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        print("DATABASE_URL not set")
-        sys.exit(1)
-
     try:
-        conn = psycopg2.connect(database_url)
+        conn = get_write_connection()
         df = pd.read_sql(
             """
             SELECT event_date as trade_date, symbol, open, high, low, close, volume
@@ -1222,6 +1216,9 @@ if __name__ == "__main__":
             if ind in result.columns:
                 print(f"   {ind}: {result[ind].iloc[-1]:.4f}")
 
+    except ValueError as e:
+        print(f"DB configuration error: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"❌ Error: {e}")
         print("\nUsage: Import and use ZincFusionIndicators class")

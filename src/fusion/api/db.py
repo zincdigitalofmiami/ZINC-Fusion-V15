@@ -5,13 +5,13 @@ Prisma Postgres is the ONLY production database.
 All training, inference, and operations use Prisma Postgres.
 """
 
-import os
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from fusion.db.connection import get_database_url, get_write_connection
+
 try:
-    import psycopg2
     from psycopg2.extras import RealDictCursor
 
     HAS_POSTGRES = True
@@ -20,45 +20,11 @@ except ImportError:
 
 
 def _get_postgres_url() -> str | None:
-    """Get direct Postgres URL (not Prisma Accelerate proxy)."""
-    url = (
-        os.getenv("DIRECT_DATABASE_URL")
-        or os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_URL")
-    )
-    if url:
-        if url.startswith("prisma+postgres://"):
-            raise RuntimeError(
-                "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
-            )
-        return url
-
-    # Try loading from .env file
-    from pathlib import Path
-
-    env_path = Path(__file__).parent.parent.parent.parent / ".env"
-    if env_path.exists():
-        candidates: dict[str, str] = {}
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                if key not in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
-                    continue
-                candidates[key] = value.strip().strip('"').strip("'")
-        for key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
-            parsed = candidates.get(key)
-            if not parsed:
-                continue
-            if parsed.startswith("prisma+postgres://"):
-                raise RuntimeError(
-                    "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
-                )
-            return parsed
-    return None
+    """Resolve direct Postgres URL using the shared connection helper."""
+    try:
+        return get_database_url()
+    except ValueError:
+        return None
 
 
 def get_backend() -> str:
@@ -102,7 +68,7 @@ class DatabaseConnection:
             raise RuntimeError(
                 "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
             )
-        self._conn = psycopg2.connect(url)
+        self._conn = get_write_connection(url)
         return self
 
     def close(self):
@@ -159,7 +125,7 @@ def get_connection():
         raise RuntimeError(
             "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
         )
-    return psycopg2.connect(url)
+    return get_write_connection(url)
 
 
 # V2 Institutional Schema Table Mappings

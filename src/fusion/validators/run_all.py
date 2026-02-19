@@ -13,9 +13,10 @@ Exit codes:
     2 = Warnings only (stale data, but can proceed with caution)
 """
 
-import os
 import sys
 from datetime import datetime
+
+from fusion.db.connection import get_database_url
 
 # Only import validators that exist
 from .quarantine_verifier import QuarantineVerifier
@@ -35,10 +36,10 @@ def _status_label(val):
 def main():
     """Run all pre-training validators."""
 
-    conn_string = os.environ.get("DATABASE_URL", os.environ.get("POSTGRES_URL"))
-
-    if not conn_string:
-        print("ERROR: DATABASE_URL or POSTGRES_URL environment variable required")
+    try:
+        conn_string = get_database_url()
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
         sys.exit(1)
 
     print("\n" + "=" * 70)

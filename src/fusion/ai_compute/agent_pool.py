@@ -33,7 +33,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-import psycopg2
+from fusion.db.connection import get_write_connection
 
 logging.basicConfig(
     level=logging.INFO,
@@ -355,20 +355,8 @@ Return your JSON analysis:"""
 
 
 def get_connection():
-    env_path = PROJECT_ROOT / ".env"
-    database_url = None
-
-    if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                if line.startswith("DATABASE_URL="):
-                    database_url = line.split("=", 1)[1].strip().strip('"')
-                    break
-
-    if not database_url:
-        raise ValueError("DATABASE_URL not found")
-
-    return psycopg2.connect(database_url)
+    """Get database connection using shared URL resolution."""
+    return get_write_connection()
 
 
 def fetch_articles_for_scoring(

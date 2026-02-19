@@ -43,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import psycopg2
+from fusion.db.connection import get_write_connection
 from psycopg2.extras import execute_values
 
 from fusion.validation.all_data_policy import (
@@ -52,7 +52,6 @@ from fusion.validation.all_data_policy import (
 )
 
 from .config import (
-    DATABASE_URL,
     HORIZONS,
     MODEL_ZOO_FROZEN,
     OOF_COLUMN_NAMES,
@@ -538,7 +537,7 @@ def run(
     all_oof = []
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = get_write_connection()
         logger.info("✅ Database connected")
 
         # Enforce ALL DATA policy before training (per CORE_TRAINING_SPEC_LOCKED.md)

@@ -15,22 +15,20 @@ Rule: If a table has specialist_tags[], and an article has 'crush' in that array
       then the CRUSH specialist gets that article in its feature matrix.
 """
 
-import pandas as pd
-from typing import Optional
-from datetime import date
 import logging
-import os
-import psycopg2
+from datetime import date
+from typing import Optional
+
+import pandas as pd
+
+from fusion.db.connection import get_write_connection
 
 logger = logging.getLogger(__name__)
 
 
 def get_connection():
     """Get database connection."""
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise ValueError("DATABASE_URL not set")
-    return psycopg2.connect(database_url)
+    return get_write_connection()
 
 
 def load_news_for_specialist(

@@ -49,11 +49,11 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
-import psycopg2
+from fusion.db.connection import get_write_connection
 from pandas.api.types import is_numeric_dtype
 from psycopg2.extras import execute_values
 
-from .config import DATABASE_URL, HORIZONS, TARGET_SYMBOL
+from .config import HORIZONS, TARGET_SYMBOL
 from .config import FeatureMatrixConfig as FMC
 from .matrix_manifest import check_schema_drift, write_manifest
 from .matrix_validation import validate_matrix
@@ -2734,7 +2734,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
     logger.info("=" * 70)
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = get_write_connection()
         logger.info("✅ Database connected")
 
         # Load ALL source tables - NO DATE LIMITS

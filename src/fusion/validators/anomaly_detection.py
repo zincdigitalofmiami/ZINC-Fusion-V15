@@ -15,7 +15,6 @@ Usage:
     python -m src.fusion.validators.anomaly_detection --check-all --dry-run
 """
 
-import os
 import sys
 import argparse
 import logging
@@ -24,7 +23,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 import pandas as pd
-import psycopg2
+from fusion.db.connection import get_write_connection
 from psycopg2.extras import Json
 
 logging.basicConfig(
@@ -755,12 +754,11 @@ def main():
             print(f"  {table}")
         return 0
 
-    conn_string = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
-    if not conn_string:
-        print("ERROR: DATABASE_URL or POSTGRES_URL required")
+    try:
+        conn = get_write_connection()
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
         sys.exit(1)
-
-    conn = psycopg2.connect(conn_string)
 
     try:
         if args.check_all:

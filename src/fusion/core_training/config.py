@@ -13,14 +13,18 @@ from typing import List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file to ensure DATABASE_URL is available
+# Load .env file so DB URL vars are available during local execution
 load_dotenv()
 
 # =============================================================================
 # DATABASE
 # =============================================================================
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = (
+    os.getenv("DIRECT_DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+    or os.getenv("DATABASE_URL")
+)
 
 # =============================================================================
 # SYMBOLS & HORIZONS
@@ -421,7 +425,9 @@ SCALERS_DIR = PROJECT_ROOT / "models" / "core_v2" / "scalers"
 def validate_config():
     """Validate configuration on import."""
     if not DATABASE_URL:
-        raise EnvironmentError("DATABASE_URL not set")
+        raise EnvironmentError(
+            "Database URL not set (DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL)"
+        )
 
     # Ensure model dirs exist
     MODELS_DIR.mkdir(parents=True, exist_ok=True)

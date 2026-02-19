@@ -39,15 +39,13 @@ Pressures:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import psycopg2
-from dotenv import load_dotenv
+from fusion.db.connection import get_write_connection
 
 # Import domain-specific calculators
 from .pressures.crush_pressure import calculate_crush_pressure as _calc_crush
@@ -63,8 +61,6 @@ from .pressures.trade_pressure import score_spy_gld_corr as _score_spy_gld_corr
 from .pressures.trade_pressure import score_dxy_strength as _score_dxy_strength
 from .pressures.news_pressure import calculate_news_pressure as _calc_news
 from .pressures.news_pressure import calculate_geopolitical_pressure as _calc_geo
-
-load_dotenv()
 
 
 class PressureLevel(Enum):
@@ -229,7 +225,7 @@ class PressureReading:
 
 def get_connection():
     """Get database connection."""
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+    return get_write_connection()
 
 
 def score_to_level(score: float) -> PressureLevel:

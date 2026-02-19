@@ -14,7 +14,6 @@ Exit codes:
     1 = Quarantine pipeline broken
 """
 
-import os
 import sys
 import json
 import argparse
@@ -22,8 +21,9 @@ from typing import Dict, List
 from datetime import datetime
 from uuid import uuid4
 
+from fusion.db.connection import get_write_connection
+
 try:
-    import psycopg2
     from psycopg2.extras import RealDictCursor
 except ImportError:
     print("ERROR: psycopg2 not installed. Run: pip install psycopg2-binary")
@@ -38,8 +38,8 @@ except ImportError:
 class QuarantineVerifier:
     """Verifies and manages the quarantine pipeline."""
 
-    def __init__(self, connection_string: str):
-        self.conn = psycopg2.connect(connection_string)
+    def __init__(self, connection_string: str | None = None):
+        self.conn = get_write_connection(connection_string)
 
     def close(self):
         if self.conn:
@@ -244,13 +244,11 @@ def main():
     parser.add_argument("--test", action="store_true", help="Run verification tests")
     args = parser.parse_args()
 
-    conn_string = os.environ.get("DATABASE_URL", os.environ.get("POSTGRES_URL"))
-
-    if not conn_string:
-        print("ERROR: DATABASE_URL or POSTGRES_URL environment variable required")
+    try:
+        verifier = QuarantineVerifier()
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
         sys.exit(1)
-
-    verifier = QuarantineVerifier(conn_string)
 
     try:
         if args.stats:
