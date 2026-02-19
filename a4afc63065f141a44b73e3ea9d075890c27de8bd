@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "a4afc63065f141a44b73e3ea9d075890c27de8bd",
+  "prompts": {
+    "2363051feae2cfeb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "640e7156-c2d2-4c6f-9c48-8fb9f025419f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 214,
+      "overriden_lines": 0
+    }
+  }
+}
