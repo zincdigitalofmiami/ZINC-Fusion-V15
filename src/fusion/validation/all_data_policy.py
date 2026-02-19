@@ -42,11 +42,42 @@ Usage:
 """
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Dict, List
 import psycopg2
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+#  SQL identifier allowlist — prevents injection via table/column names
+# ---------------------------------------------------------------------------
+_VALID_IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def _validate_identifier(name: str, kind: str = "identifier") -> str:
+    """Validate that a SQL identifier contains only safe characters."""
+    if not _VALID_IDENTIFIER.match(name):
+        raise ValueError(f"Invalid SQL {kind}: {name!r} — must match [a-z_][a-z0-9_]*")
+    return name
+
+
+def _safe_table_ref(table_path: str) -> str:
+    """Validate 'schema.table' and return quoted identifier string."""
+    parts = table_path.split(".", 1)
+    if len(parts) != 2:
+        raise ValueError(f"Expected 'schema.table', got: {table_path!r}")
+    schema, table = parts
+    _validate_identifier(schema, "schema")
+    _validate_identifier(table, "table")
+    return f"{schema}.{table}"
+
+
+def _safe_column(col: str) -> str:
+    """Validate a column name against the identifier pattern."""
+    return _validate_identifier(col, "column")
+
 
 # ==============================================================================
 # ALL DATA POLICY CONSTANTS - DO NOT REDUCE THESE
@@ -199,8 +230,8 @@ def enforce_all_data_policy(
     with conn.cursor() as cur:
         for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
-                # Table path is now "schema.table" format
-                cur.execute(f"SELECT COUNT(*) FROM {table_path}")
+                safe_table = _safe_table_ref(table_path)
+                cur.execute(f"SELECT COUNT(*) FROM {safe_table}")
                 row_count = cur.fetchone()[0]
 
                 if row_count >= min_rows:
@@ -324,7 +355,9 @@ def _check_single_source_freshness(conn, table_path, date_col, desc, ttl, as_of_
     """Check freshness of a single data source. Returns error message or None."""
     try:
         with conn.cursor() as cur:
-            cur.execute(f"SELECT MAX({date_col}) FROM {table_path}")
+            safe_table = _safe_table_ref(table_path)
+            safe_col = _safe_column(date_col)
+            cur.execute(f"SELECT MAX({safe_col}) FROM {safe_table}")
             result = cur.fetchone()
             max_date = result[0] if result else None
 
@@ -583,9 +616,11 @@ def log_all_data_summary(conn, horizon: int) -> None:
     with conn.cursor() as cur:
         for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
+                safe_table = _safe_table_ref(table_path)
+                safe_col = _safe_column(date_col)
                 cur.execute(f"""
-                    SELECT COUNT(*), MIN({date_col}), MAX({date_col})
-                    FROM {table_path}
+                    SELECT COUNT(*), MIN({safe_col}), MAX({safe_col})
+                    FROM {safe_table}
                 """)
                 count, min_date, max_date = cur.fetchone()
                 logger.info(

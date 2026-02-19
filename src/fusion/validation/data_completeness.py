@@ -10,10 +10,27 @@ Training will FAIL if any required data source is missing or incomplete.
 """
 
 import logging
+import re
 from dataclasses import dataclass
 import psycopg2
 
 logger = logging.getLogger(__name__)
+
+# SQL identifier allowlist — prevents injection via table names
+_VALID_IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]*$")
+
+
+def _safe_table_ref(table_path: str) -> str:
+    """Validate 'schema.table' and return safe identifier string."""
+    parts = table_path.split(".", 1)
+    if len(parts) != 2:
+        raise ValueError(f"Expected 'schema.table', got: {table_path!r}")
+    for part in parts:
+        if not _VALID_IDENTIFIER.match(part):
+            raise ValueError(
+                f"Invalid SQL identifier: {part!r} — must match [a-z_][a-z0-9_]*"
+            )
+    return table_path
 
 
 @dataclass
@@ -108,7 +125,7 @@ def validate_data_completeness(conn, strict: bool = True) -> ValidationResult:
     with conn.cursor() as cur:
         for req in REQUIRED_DATA_SOURCES:
             try:
-                cur.execute(f"SELECT COUNT(*) FROM {req.table}")
+                cur.execute(f"SELECT COUNT(*) FROM {_safe_table_ref(req.table)}")
                 row_count = cur.fetchone()[0]
 
                 status = "✅" if row_count >= req.min_rows else "⚠️"

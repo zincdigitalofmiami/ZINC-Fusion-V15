@@ -434,12 +434,29 @@ def build_specialist_query(bucket: str) -> str | None:
     # Group series by their canonical table
     table_series = get_tables_for_series(series)
 
+    # Collect all valid table names from the routing config for allowlist check
+    _all_valid_tables = {
+        tbl for tbls in SPECIALIST_ECON_TABLES.values() for tbl in tbls
+    }
+    # Collect all valid series IDs from the routing config
+    _all_valid_series = {
+        sid for sids in SPECIALIST_FRED_SERIES.values() for sid in sids
+    }
+
     # Build UNION ALL only across tables this bucket actually needs
     queries = []
     for tbl in tables:
+        # Defense-in-depth: validate table name against config allowlist
+        if tbl not in _all_valid_tables:
+            continue
         series_in_table = table_series.get(tbl, [])
         if series_in_table:
-            placeholders = ", ".join(f"'{s}'" for s in series_in_table)
+            # Validate each series ID against allowlist before interpolation
+            safe_series = [s for s in series_in_table if s in _all_valid_series]
+            if not safe_series:
+                continue
+            # Series IDs are alphanumeric FRED codes from hardcoded config
+            placeholders = ", ".join(f"'{s}'" for s in safe_series)
             queries.append(
                 f"SELECT event_date AS as_of_date, series_id, value "
                 f"FROM {tbl} WHERE series_id IN ({placeholders})"

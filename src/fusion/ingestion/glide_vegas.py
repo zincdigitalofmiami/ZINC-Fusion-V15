@@ -180,7 +180,14 @@ def save_to_postgres(
         logger.warning(f"⚠️ No data to save to {table_name}")
         return 0
 
-    # Build table reference
+    # Validate table_name against GLIDE_TABLES allowlist
+    _ALLOWED_VEGAS_TABLES = frozenset(GLIDE_TABLES.keys())
+    if table_name not in _ALLOWED_VEGAS_TABLES:
+        raise ValueError(
+            f"Table name {table_name!r} not in allowlist: {sorted(_ALLOWED_VEGAS_TABLES)}"
+        )
+
+    # Build table reference (safe — table_name is from allowlist)
     full_table = f"{POSTGRES_SCHEMA}.{table_name}"
 
     conn = get_write_connection()
@@ -202,7 +209,7 @@ def save_to_postgres(
                     f"Missing table {full_table}. Create ops.vegas_* tables via explicit migration; this script will not auto-create schemas/tables."
                 )
 
-            # Truncate existing data (full refresh)
+            # Truncate existing data (full refresh) — table_name validated above
             cur.execute(f"TRUNCATE TABLE {full_table}")
 
             # Insert as JSON rows (stable schema: glide_row_id + data JSONB + ingested_at).

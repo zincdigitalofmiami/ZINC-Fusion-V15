@@ -72,10 +72,47 @@ def _require_db_token(x_api_token: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Token.")
 
 
+# Maximum SQL query length (prevents abuse / exfiltration-via-query)
+_MAX_SQL_LENGTH = 4096
+
+# Schemas the DB explorer is allowed to read from
+_ALLOWED_QUERY_SCHEMAS = frozenset(
+    {
+        "mkt",
+        "econ",
+        "alt",
+        "pos",
+        "supply",
+        "analytics",
+        "ops",
+        "features",
+        "training",
+        "public",
+        "information_schema",  # needed for introspection endpoints
+    }
+)
+
+# Additional dangerous patterns beyond write verbs
+_SQL_DANGEROUS_PATTERNS = re.compile(
+    r"\b("
+    r"pg_read_file|pg_ls_dir|pg_stat_file|"  # filesystem access
+    r"lo_import|lo_export|"  # large object I/O
+    r"pg_sleep|"  # resource abuse
+    r"dblink|copy"  # external access
+    r")\b",
+    re.IGNORECASE,
+)
+
+
 def _validate_readonly_sql(sql: str) -> str:
     normalized = (sql or "").strip()
     if not normalized:
         raise HTTPException(status_code=400, detail="SQL is required.")
+    if len(normalized) > _MAX_SQL_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Query exceeds maximum length of {_MAX_SQL_LENGTH} characters.",
+        )
 
     lowered = normalized.lower()
     if ";" in lowered:
@@ -87,6 +124,10 @@ def _validate_readonly_sql(sql: str) -> str:
     if _SQL_WRITE_VERBS.search(lowered):
         raise HTTPException(
             status_code=400, detail="Query contains a forbidden keyword."
+        )
+    if _SQL_DANGEROUS_PATTERNS.search(lowered):
+        raise HTTPException(
+            status_code=400, detail="Query contains a restricted function."
         )
     return normalized
 

@@ -31,6 +31,8 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 import psycopg2
 
 logging.basicConfig(
@@ -270,12 +272,7 @@ class SentimentScorerAgent(BaseAgent):
         logger.info(f"SentimentScorerAgent initialized with {self.model}")
 
     def _load_api_key(self) -> str:
-        env_path = PROJECT_ROOT / ".env"
-        if env_path.exists():
-            with open(env_path) as f:
-                for line in f:
-                    if line.startswith("ANTHROPIC_API_KEY="):
-                        return line.split("=", 1)[1].strip().strip('"')
+        load_dotenv(PROJECT_ROOT / ".env", override=False)
         return os.environ.get("ANTHROPIC_API_KEY")
 
     def get_system_prompt(self) -> str:

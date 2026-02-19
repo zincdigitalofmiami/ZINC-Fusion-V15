@@ -7,15 +7,36 @@ IMPORTANT: ALL specialists now automatically include news/alt data articles
 tagged for them from ANY table with specialist_tags column.
 """
 
-import os
-import pandas as pd
-import numpy as np
-import psycopg2
-from typing import Optional, Tuple
-from datetime import date
 import logging
+from datetime import date
+from typing import Optional, Tuple
+
+import numpy as np
+import pandas as pd
+
+from fusion.db.connection import get_write_connection
 
 logger = logging.getLogger(__name__)
+
+# Allowlist of valid specialist buckets (Big-11 + extras)
+VALID_SPECIALIST_BUCKETS = frozenset(
+    {
+        "crush",
+        "china",
+        "energy",
+        "fx",
+        "fed",
+        "volatility",
+        "substitutes",
+        "palm",
+        "biofuel",
+        "tariff",
+        "trump_effect",
+    }
+)
+
+# Allowlist of schemas that may contain specialist-tagged news tables
+_ALLOWED_NEWS_SCHEMAS = frozenset({"alt", "econ", "features"})
 
 
 def load_news_for_specialist(
@@ -41,7 +62,17 @@ def load_news_for_specialist(
         - news_article_count: count of articles for this specialist on this date
         - news_headline_text: concatenated headlines for NLP features
     """
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    # Validate specialist_bucket against allowlist
+    if specialist_bucket not in VALID_SPECIALIST_BUCKETS:
+        logger.warning(
+            f"Invalid specialist_bucket '{specialist_bucket}', "
+            f"must be one of {sorted(VALID_SPECIALIST_BUCKETS)}"
+        )
+        return pd.DataFrame(
+            columns=["trade_date", "news_article_count", "news_headline_text"]
+        ).set_index("trade_date")
+
+    conn = get_connection()
 
     # Dynamically find all tables with specialist_tags
     tables_query = """
@@ -57,37 +88,43 @@ def load_news_for_specialist(
 
     for full_name in tables_df["full_name"]:
         try:
-            # Check available columns
+            # Validate schema.table from DB against allowlist
             schema, table = full_name.split(".")
-            cols_query = f"""
+            if schema not in _ALLOWED_NEWS_SCHEMAS:
+                logger.warning(f"Skipping table in disallowed schema: {full_name}")
+                continue
+
+            # Use parameterized query for column discovery
+            cols_query = """
             SELECT column_name
             FROM information_schema.columns
-            WHERE table_schema = '{schema}' AND table_name = '{table}'
+            WHERE table_schema = %s AND table_name = %s
               AND column_name IN ('event_date', 'published_at', 'headline',
                                   'content', 'summary')
             """
-            cols_df = pd.read_sql(cols_query, conn)
+            cols_df = pd.read_sql(cols_query, conn, params=[schema, table])
             available = set(cols_df["column_name"])
 
-            # Determine date column
+            # Determine date column (allowlisted values only)
             date_col = "event_date" if "event_date" in available else "published_at"
             if date_col not in available:
                 continue
 
-            # Build query
+            # Build query with allowlisted column names and parameterized bucket
+            _ALLOWED_COLS = {"event_date", "published_at", "headline", "summary"}
             select_parts = [f"{date_col} as trade_date"]
-            if "headline" in available:
-                select_parts.append("headline")
-            if "summary" in available:
-                select_parts.append("summary")
+            for col in ("headline", "summary"):
+                if col in available and col in _ALLOWED_COLS:
+                    select_parts.append(col)
 
+            # table name comes from information_schema (trusted) + schema allowlist
             query = f"""
             SELECT {", ".join(select_parts)}
             FROM {full_name}
-            WHERE '{specialist_bucket}' = ANY(specialist_tags)
+            WHERE %s = ANY(specialist_tags)
             """
 
-            df = pd.read_sql(query, conn)
+            df = pd.read_sql(query, conn, params=[specialist_bucket])
             if not df.empty:
                 df["trade_date"] = pd.to_datetime(df["trade_date"])
                 df["source_table"] = full_name
@@ -177,13 +214,8 @@ def ffill_with_real_mask(
 
 
 def get_connection():
-    """Get database connection - reads DATABASE_URL lazily to avoid import-time capture."""
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise ValueError(
-            "DATABASE_URL not set - ensure .env is loaded (or env var exported)"
-        )
-    return psycopg2.connect(database_url)
+    """Get database connection from standardized URL resolution."""
+    return get_write_connection()
 
 
 def load_crush_data(

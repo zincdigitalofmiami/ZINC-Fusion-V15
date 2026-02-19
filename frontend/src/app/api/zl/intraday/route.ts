@@ -18,7 +18,8 @@ interface IntradayRow {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const hours = Math.min(Math.max(parseInt(searchParams.get('hours') || '24', 10) || 24, 1), 168)
+  const rawHours = parseInt(searchParams.get('hours') || '24', 10)
+  const hours = Number.isFinite(rawHours) ? Math.max(1, Math.min(rawHours, 168)) : 24
 
   try {
     const rows = await query<IntradayRow>(`
