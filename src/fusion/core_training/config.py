@@ -353,9 +353,13 @@ TRAINING_CONFIG = TrainingConfig()
 # Only models in this set will be trained. Any model NOT listed here is rejected.
 # To add/remove a model, update this set and re-run training.
 #
-# 2026-02-18: Removed 8 deep learning models (DeepAR, TFT, PatchTST, TiDE,
-# WaveNet, DLinear, SimpleFeedForward, AutoCES) — unstable on macOS ARM.
+# 2026-02-18: Removed 7 deep learning models (DeepAR, TFT, PatchTST, TiDE,
+# WaveNet, DLinear, SimpleFeedForward) — unstable on macOS ARM.
 # Restore when training moves to Linux/server.
+#
+# 2026-02-18: Re-enabled AutoCES (statistical, CPU-safe — was incorrectly
+# grouped with deep learning). Added Chronos2 (foundation model, zero-shot
+# with native covariate support, inference-only — no training loop).
 
 MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
     {
@@ -365,10 +369,11 @@ MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
         "Average",
         "SeasonalAverage",
         "Zero",
-        # Statistical (9)
+        # Statistical (10)
         "ETS",
         "AutoETS",
         "AutoARIMA",
+        "AutoCES",  # Complex exponential smoothing — CPU-safe
         "Theta",
         "DynamicOptimizedTheta",
         "NPTS",
@@ -379,13 +384,14 @@ MODEL_ZOO_FROZEN: frozenset[str] = frozenset(
         "DirectTabular",
         "PerStepTabular",
         "RecursiveTabular",
+        # Foundation / Pretrained (1)
+        "Chronos2",  # 120M-param zero-shot, native covariate support
     }
 )
 
 # Deep learning models — disabled on macOS ARM, restore on Linux/server
 MODEL_ZOO_DEEP_LEARNING: frozenset[str] = frozenset(
     {
-        "AutoCES",
         "DeepAR",
         "DLinear",
         "PatchTST",
@@ -396,17 +402,16 @@ MODEL_ZOO_DEEP_LEARNING: frozenset[str] = frozenset(
     }
 )
 
-# Pretrained models — only enabled on Linux/server (disabled on macOS ARM)
+# Pretrained models not yet active (enable after Chronos2 proves stable)
 MODEL_ZOO_PRETRAINED: frozenset[str] = frozenset(
     {
-        "Chronos2",
-        "Chronos",
-        "Toto",
+        "Chronos",  # Original Chronos (no covariate support)
+        "Toto",  # Databricks foundation model
     }
 )
 
-# Expected model count: 17 active + WeightedEnsemble = 18 per horizon
-MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 17
+# Expected model count: 19 active + WeightedEnsemble = 20 per horizon
+MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 19
 
 # =============================================================================
 # PATHS

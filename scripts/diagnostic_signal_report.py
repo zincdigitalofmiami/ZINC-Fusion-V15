@@ -79,7 +79,7 @@ def fetch_market_data(conn) -> pd.DataFrame:
 
     Returns DataFrame with:
     - close, volume
-    - target_ret_{1,5,21}d (forward returns)
+    - target_price_{1,5,21}d (forward returns)
     - vol_21d (rolling volatility)
     - regime (High Vol / Low Vol)
     """
@@ -99,9 +99,9 @@ def fetch_market_data(conn) -> pd.DataFrame:
     df = pd.read_sql(query, conn, parse_dates=["trade_date"])
     df = df.set_index("trade_date")
 
-    # Calculate Forward Returns for Targets
+    # Calculate Forward Price Levels for Targets
     for h in HORIZONS:
-        df[f"target_ret_{h}d"] = df["close"].pct_change(h).shift(-h)
+        df[f"target_price_{h}d"] = df["close"].shift(-h)
 
     # Volatility Regime
     df["vol_21d"] = df["close"].pct_change().rolling(REGIME_WINDOW).std()
@@ -211,7 +211,7 @@ def compute_diagnostics(
             continue
 
         # Get valid subset
-        required_cols = [col, "target_ret_5d", "target_ret_21d", "regime"]
+        required_cols = [col, "target_price_5d", "target_price_21d", "regime"]
         valid_df = merged.dropna(subset=required_cols)
 
         if len(valid_df) < 252:
@@ -220,7 +220,7 @@ def compute_diagnostics(
         # 2. IC (Rank Correlation) with forward returns
         ic_results = {}
         for h in HORIZONS:
-            target_col = f"target_ret_{h}d"
+            target_col = f"target_price_{h}d"
             if target_col in valid_df.columns:
                 ic, p_val = stats.spearmanr(
                     valid_df[col].dropna(),
@@ -250,11 +250,11 @@ def compute_diagnostics(
         ic_lv = 0.0
 
         if len(hv_df) >= 100:
-            ic_hv, _ = stats.spearmanr(hv_df[col], hv_df["target_ret_21d"])
+            ic_hv, _ = stats.spearmanr(hv_df[col], hv_df["target_price_21d"])
             ic_hv = ic_hv if not np.isnan(ic_hv) else 0.0
 
         if len(lv_df) >= 100:
-            ic_lv, _ = stats.spearmanr(lv_df[col], lv_df["target_ret_21d"])
+            ic_lv, _ = stats.spearmanr(lv_df[col], lv_df["target_price_21d"])
             ic_lv = ic_lv if not np.isnan(ic_lv) else 0.0
 
         report.append(

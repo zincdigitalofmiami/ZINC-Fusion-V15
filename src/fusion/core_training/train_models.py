@@ -121,7 +121,7 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> TimeSeriesDataFrame:
     import_autogluon()
 
     # Target column
-    target_col = f"target_ret_{horizon}d"
+    target_col = f"target_price_{horizon}d"
 
     # Drop rows where target is null (can't train on them)
     df_clean = df.dropna(subset=[target_col]).copy()
@@ -139,7 +139,7 @@ def prepare_ts_dataframe(df: pd.DataFrame, horizon: int) -> TimeSeriesDataFrame:
 
     # Identify feature columns (everything except metadata and other targets)
     exclude_cols = {"trade_date", "symbol", "matrix_version", "created_at"} | {
-        f"target_ret_{h}d" for h in HORIZONS if h != horizon
+        f"target_price_{h}d" for h in HORIZONS if h != horizon
     }
 
     feature_cols = [
@@ -250,7 +250,7 @@ def train_horizon(
     logger.info(f"Training horizon {horizon}d...")
 
     config = get_model_config(horizon)
-    target_col = f"target_ret_{horizon}d"
+    target_col = f"target_price_{horizon}d"
 
     # Filter to window
     df_window = filter_to_window(df, config["window_start"])
@@ -313,7 +313,7 @@ def _build_target_lookup(source_df: pd.DataFrame | None, horizon: int) -> dict:
 
     Returns empty dict if source_df is None or target column missing.
     """
-    target_col = f"target_ret_{horizon}d"
+    target_col = f"target_price_{horizon}d"
     if source_df is None or target_col not in source_df.columns:
         return {}
 
@@ -343,15 +343,11 @@ def extract_oof_predictions(
     Returns DataFrame with columns matching OOF schema.
     """
     try:
-        num_windows = TRAINING_CONFIG.num_val_windows
-
-        # Get cached predictions from training (data=None uses saved results)
-        pred_windows = predictor.backtest_predictions(
-            data=None, num_val_windows=num_windows
-        )
-        target_windows = predictor.backtest_targets(
-            data=None, num_val_windows=num_windows
-        )
+        # Get cached predictions from training.
+        # AutoGluon 1.5: when data=None, num_val_windows MUST also be None
+        # (it returns the cached backtest results from fit()).
+        pred_windows = predictor.backtest_predictions(data=None, num_val_windows=None)
+        target_windows = predictor.backtest_targets(data=None, num_val_windows=None)
 
         if not pred_windows:
             logger.warning("   No backtest predictions returned")
@@ -362,7 +358,7 @@ def extract_oof_predictions(
         # Deterministic UUID from string run_id (stable across retries)
         run_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, run_id))
 
-        target_col = f"target_ret_{horizon}d"
+        target_col = f"target_price_{horizon}d"
         oof_rows = []
 
         for window_id, (preds_df, targets_df) in enumerate(

@@ -109,7 +109,7 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
     """Load ALL available features from training.matrix_1d for this horizon."""
 
     start_date = TACTICAL_START if horizon in [5, 21] else STRATEGIC_START
-    target_col = f"target_ret_{horizon}d"
+    target_col = f"target_price_{horizon}d"
 
     logger.info(f"Loading {bucket} specialist data for {horizon}d from {start_date}...")
 
@@ -131,7 +131,7 @@ def load_specialist_data(conn, bucket: str, horizon: int) -> pd.DataFrame:
 
     # Drop non-feature columns
     drop_cols = {"symbol", "matrix_version", "created_at"} | {
-        f"target_ret_{h}d" for h in HORIZONS
+        f"target_price_{h}d" for h in HORIZONS
     }
     drop_cols = [c for c in df.columns if c in drop_cols]
     df = df.drop(columns=drop_cols, errors="ignore")

@@ -122,7 +122,7 @@ def check_null_gate(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     """
     Gate: No NULLs in feature columns (targets and debug columns excluded).
 
-    Per execution plan: Target columns (target_ret_*) have expected NULLs at the end
+    Per execution plan: Target columns (target_price_*) have expected NULLs at the end
     due to forward return calculation. Debug columns (_*_raw) are also excluded.
 
     Returns:

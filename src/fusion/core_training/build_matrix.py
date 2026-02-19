@@ -2323,18 +2323,18 @@ def validate_specialist_signals_for_core(
 
 
 def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Create forward returns as training targets (for supervised OOF)."""
-    logger.info("Creating target columns...")
+    """Create future price level targets for procurement forecasting.
+
+    Target is the actual ZL price at horizon — NOT returns.
+    This produces Target Zones in price terms (cents/lb) for the dashboard.
+
+    AGENTS.md §3: "Target is price level (close.shift(-horizon)), not returns"
+    """
+    logger.info("Creating target columns (price level, NOT returns)...")
 
     for horizon in HORIZONS:
-        target_col = f"target_ret_{horizon}d"
-        df[target_col] = df["close"].pct_change(horizon).shift(-horizon)
-        # Coerce non-finite targets (inf/-inf from zero prices) to NaN
-        non_finite = ~np.isfinite(df[target_col].fillna(0))
-        if non_finite.any():
-            count = non_finite.sum()
-            logger.warning(f"   {target_col}: coerced {count} non-finite values to NaN")
-            df.loc[non_finite, target_col] = np.nan
+        target_col = f"target_price_{horizon}d"
+        df[target_col] = df["close"].shift(-horizon)
         logger.info(f"   Created {target_col}")
 
     return df
@@ -2384,7 +2384,7 @@ def enforce_feature_guardrails(df: pd.DataFrame) -> tuple[pd.DataFrame, bool]:
     FMC_INSTANCE = FMC()
 
     exclude_cols = {"trade_date", "symbol", "item_id", "timestamp"} | {
-        f"target_ret_{h}d" for h in HORIZONS
+        f"target_price_{h}d" for h in HORIZONS
     }
 
     feature_cols = [c for c in df.columns if c not in exclude_cols]
@@ -3153,7 +3153,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
 
         # Count features (excluding metadata and targets)
         exclude_cols = {"trade_date", "symbol", "matrix_version", "created_at"} | {
-            f"target_ret_{h}d" for h in HORIZONS
+            f"target_price_{h}d" for h in HORIZONS
         }
         feature_count = len([c for c in df.columns if c not in exclude_cols])
 

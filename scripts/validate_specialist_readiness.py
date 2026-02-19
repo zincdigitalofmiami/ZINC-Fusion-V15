@@ -206,7 +206,7 @@ def check_ic(conn, bucket: str, horizon: int = 21) -> float:
     query = f"""
     SELECT
         s.signal_1,
-        m.target_ret_{horizon}d as target
+        m.target_price_{horizon}d as target
     FROM training.specialist_signals_1d s
     JOIN training.matrix_1d m
         ON s.as_of_date = m.trade_date
@@ -215,7 +215,7 @@ def check_ic(conn, bucket: str, horizon: int = 21) -> float:
       AND s.as_of_date >= CURRENT_DATE - INTERVAL '365 days'
       AND s.as_of_date < CURRENT_DATE - INTERVAL '130 days'
       AND s.signal_1 IS NOT NULL
-      AND m.target_ret_{horizon}d IS NOT NULL
+      AND m.target_price_{horizon}d IS NOT NULL
     ORDER BY s.as_of_date
     """
 

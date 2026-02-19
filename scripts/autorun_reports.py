@@ -220,13 +220,13 @@ def compute_shap_summary_for_horizon(horizon: int, run_label: str) -> List[Dict]
         conn.close()
 
     drop_cols = {"symbol", "matrix_version", "created_at"} | {
-        f"target_ret_{h}d" for h in HORIZONS
+        f"target_price_{h}d" for h in HORIZONS
     }
     df = df.drop(columns=[c for c in df.columns if c in drop_cols], errors="ignore")
     df = df.rename(columns={"trade_date": "as_of_date"})
     df["target"] = (
-        df[f"target_ret_{horizon}d"]
-        if f"target_ret_{horizon}d" in df.columns
+        df[f"target_price_{horizon}d"]
+        if f"target_price_{horizon}d" in df.columns
         else np.nan
     )
     df = df.dropna(subset=["target"])

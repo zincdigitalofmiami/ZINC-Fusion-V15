@@ -230,17 +230,19 @@ HORIZON_STEPS: dict[str, int] = {
     "6m": 126,
 }
 
-# Target column naming convention (AutoGluon standard)
+# Target column naming convention — PRICE LEVEL, not returns
+# AGENTS.md §3: Target is close.shift(-horizon), the future price of ZL
 TARGET_COLUMNS: dict[int, str] = {
-    5: "target_return_5d",
-    21: "target_return_21d",
-    63: "target_return_63d",
-    126: "target_return_126d",
+    5: "target_price_5d",
+    21: "target_price_21d",
+    63: "target_price_63d",
+    126: "target_price_126d",
 }
 
-# Quantile regression standards
-QUANTILE_LEVELS: tuple[float, ...] = (0.1, 0.5, 0.9)
-QUANTILE_COLUMNS: tuple[str, ...] = ("p10", "p50", "p90")
+# Quantile regression standards — P30/P50/P70 primary, P10/P90 Monte Carlo outliers only
+# AGENTS.md §2: QUANTILES = [0.3, 0.5, 0.7] — locked
+QUANTILE_LEVELS: tuple[float, ...] = (0.3, 0.5, 0.7)
+QUANTILE_COLUMNS: tuple[str, ...] = ("p30", "p50", "p70")
 
 # =============================================================================
 # SYMBOLS
