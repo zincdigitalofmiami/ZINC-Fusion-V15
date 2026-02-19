@@ -27,7 +27,7 @@ DATA SOURCES (ALL MUST BE USED):
 1. Market Futures (83 symbols daily) - ALL pivoted wide
 2. FRED Economic (111+ features) - ALL series
 3. Spot FX (30 pairs) - ALL pairs
-4. CFTC COT (4 contracts × 5 features = 20) - ALL positioning data
+4. CFTC COT (4 contracts x 5 features = 20) - ALL positioning data
 5. USDA Export Sales (5 features) - ALL commodities
 6. USDA WASDE (5 features) - ALL metrics
 7. EPA RIN Prices (4 types) - ALL RIN types
@@ -44,7 +44,7 @@ Usage:
 import logging
 import re
 from dataclasses import dataclass
-from typing import Dict, List
+
 import psycopg2
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def _safe_column(col: str) -> str:
 
 # Minimum feature counts by horizon
 # These are ABSOLUTE MINIMUMS - actual counts should be higher
-# All horizons use daily data: 83 symbols × 5 OHLCV + all covariates
+# All horizons use daily data: 83 symbols x 5 OHLCV + all covariates
 MIN_FEATURES_5D = 600
 MIN_FEATURES_21D = 600
 MIN_FEATURES_63D = 600
@@ -146,7 +146,7 @@ FEATURE_CATEGORIES = {
 # Calibrated per actual release cadence — NOT blanket defaults.
 # =============================================================================
 
-SOURCE_FRESHNESS_TTLS: Dict[str, int] = {
+SOURCE_FRESHNESS_TTLS: dict[str, int] = {
     # Daily market data: 3 day TTL (business-day tolerance)
     "mkt.futures_1d": 3,
     "mkt.fx_1d": 3,
@@ -183,11 +183,11 @@ class AllDataValidationResult:
     horizon: int
     feature_count: int
     min_required: int
-    sources_loaded: List[str]
-    sources_missing: List[str]
-    category_counts: Dict[str, int]
-    errors: List[str]
-    warnings: List[str]
+    sources_loaded: list[str]
+    sources_missing: list[str]
+    category_counts: dict[str, int]
+    errors: list[str]
+    warnings: list[str]
 
 
 def enforce_all_data_policy(
@@ -228,7 +228,7 @@ def enforce_all_data_policy(
     # 1. Check all data sources exist and have data
     logger.info("\n[1/3] Checking data source availability...")
     with conn.cursor() as cur:
-        for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
+        for table_path, (min_rows, desc, _date_col) in REQUIRED_DATA_SOURCES.items():
             try:
                 safe_table = _safe_table_ref(table_path)
                 cur.execute(f"SELECT COUNT(*) FROM {safe_table}")
@@ -415,7 +415,7 @@ def check_source_freshness(
     if as_of_date is None:
         as_of_date = _date.today()
 
-    errors: List[str] = []
+    errors: list[str] = []
 
     logger.info("\n[FRESHNESS] Checking data source recency...")
 
@@ -610,11 +610,11 @@ def log_all_data_summary(conn, horizon: int) -> None:
     logger.info("ALL DATA SUMMARY FOR TRAINING")
     logger.info("=" * 70)
     logger.info(f"Horizon: {horizon}d")
-    logger.info(f"Policy: USE ALL DATASETS, ALL DATA, ALL THE TIME")
+    logger.info("Policy: USE ALL DATASETS, ALL DATA, ALL THE TIME")
     logger.info("-" * 70)
 
     with conn.cursor() as cur:
-        for table_path, (min_rows, desc, date_col) in REQUIRED_DATA_SOURCES.items():
+        for table_path, (_min_rows, _desc, date_col) in REQUIRED_DATA_SOURCES.items():
             try:
                 safe_table = _safe_table_ref(table_path)
                 safe_col = _safe_column(date_col)

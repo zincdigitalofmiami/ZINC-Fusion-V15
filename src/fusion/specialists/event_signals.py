@@ -7,6 +7,7 @@ aggregation rather than traditional ML models.
 
 import logging
 from datetime import date
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -56,7 +57,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
     """
 
     # Key tariff event dates for regime detection
-    TARIFF_EVENTS = [
+    TARIFF_EVENTS: ClassVar[list[tuple[str, str]]] = [
         ("2018-03-22", "Section 301 investigation"),
         ("2018-07-06", "First $34B tariffs"),
         ("2018-09-24", "$200B tariffs at 10%"),
@@ -1239,9 +1240,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         # Trump 2.0: 2025-01-20 onwards
         if dt >= pd.Timestamp("2017-01-20") and dt < pd.Timestamp("2021-01-20"):
             return True
-        if dt >= pd.Timestamp("2025-01-20"):
-            return True
-        return False
+        return dt >= pd.Timestamp("2025-01-20")
 
     def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
@@ -1330,7 +1329,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
             )
 
         # EPU decomposition (handles monthly EPUTRADE properly)
-        total_zscore, trade_share, trade_epu_zscore = self._compute_epu_decomposition(
+        _total_zscore, trade_share, trade_epu_zscore = self._compute_epu_decomposition(
             data
         )
         has_decomposition = not trade_share.isna().all()
@@ -1416,13 +1415,13 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                 try:
                     if not pd.isna(data.loc[idx, "fred_eputrade"]):
                         confidence += 0.15
-                except Exception:
+                except (KeyError, IndexError):
                     pass
             if "hg_close" in data.columns:
                 try:
                     if not pd.isna(data.loc[idx, "hg_close"]):
                         confidence += 0.1
-                except Exception:
+                except (KeyError, IndexError):
                     pass
             if has_decomposition:
                 confidence += 0.1  # Bonus for EPU decomposition

@@ -1,2 +1,8 @@
+# ZINC-FUSION-V15 — API server pinned versions
+#
+# AUTHORITATIVE SOURCE: pyproject.toml + uv.lock
+# This file pins exact versions for the Python API server (FastAPI/Uvicorn).
+# Kept in sync with pyproject.toml; uv.lock is the full lock file.
+#
 fastapi==0.116.1
 uvicorn[standard]==0.35.0
