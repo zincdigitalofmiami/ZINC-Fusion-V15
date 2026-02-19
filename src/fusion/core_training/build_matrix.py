@@ -2325,10 +2325,10 @@ def validate_specialist_signals_for_core(
 def create_target_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Create future price level targets for procurement forecasting.
 
-    Target is the actual ZL price at horizon — NOT returns.
-    This produces Target Zones in price terms (cents/lb) for the dashboard.
+    Target is the actual ZL futures contract price at horizon — NOT returns.
+    Core predicts price; L2/L3 calibration wraps with probability for Target Zones.
 
-    AGENTS.md §3: "Target is price level (close.shift(-horizon)), not returns"
+    AGENTS.md §3: "Target is ZL futures price (close.shift(-horizon)), not returns"
     """
     logger.info("Creating target columns (price level, NOT returns)...")
 
@@ -3086,7 +3086,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             f"   {cols_with_missingness} features had missing values (now encoded)"
         )
 
-        # Create target columns (forward returns)
+        # Create target columns (future ZL futures price)
         df = create_target_columns(df)
 
         # NO FORWARD FILL for low-freq sources - they use pure event encoding

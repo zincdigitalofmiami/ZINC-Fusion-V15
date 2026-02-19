@@ -11,6 +11,17 @@ alwaysApply: true
 
 If this file and `AGENTS.md` ever disagree, follow `AGENTS.md`.
 
+## 🚨 MANDATORY SESSION STARTUP — NO EXCEPTIONS
+
+This applies to every Claude session, every task, no matter how small.
+
+1. **Read AGENTS.md completely** before taking any action.
+2. **Memory MCP** — Search for prior decisions and corrections: task keywords + "ZINC-FUSION" + "Kirk".
+3. **Sequential Thinking MCP** — Plan before acting on any non-trivial task.
+4. **Context7 MCP** — Fetch live library docs when writing/reviewing code that calls external APIs.
+
+If you skipped any of these and the task warranted them — stop, acknowledge it, run them, then continue.
+
 ## Environment Boundaries
 
 - Root (`/`) is Python/ML (`uv`/`pip`, `pytest`, `ruff`).

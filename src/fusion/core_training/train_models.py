@@ -55,7 +55,6 @@ from .config import (
     HORIZONS,
     MODEL_ZOO_FROZEN,
     OOF_COLUMN_NAMES,
-    QUANTILES,
     TARGET_SYMBOL,
     TRAINING_CONFIG,
 )
@@ -276,8 +275,7 @@ def train_horizon(
             path=str(model_path),
             target=target_col,
             prediction_length=horizon,
-            quantile_levels=QUANTILES,
-            eval_metric=TRAINING_CONFIG.eval_metric,  # Use WQL from config
+            eval_metric=TRAINING_CONFIG.eval_metric,  # MAE — core = price predictor
             known_covariates_names=[],  # EMPTY - all features are observed
             freq="B",  # Business day frequency (trading days have gaps)
         )
@@ -364,7 +362,7 @@ def extract_oof_predictions(
         for window_id, (preds_df, targets_df) in enumerate(
             zip(pred_windows, target_windows), start=1
         ):
-            # preds_df is a TimeSeriesDataFrame with quantile columns (e.g. "0.3", "0.5", "0.7")
+            # preds_df is a TimeSeriesDataFrame with "mean" column (point forecast)
             # targets_df has the actual target values; last `horizon` rows are the forecast period
 
             # Build target lookup from targets_df
@@ -386,7 +384,7 @@ def extract_oof_predictions(
             else:
                 cutoff_date = datetime.utcnow().date()
 
-            # Extract quantile predictions
+            # Extract point price forecast (mean)
             for ts_idx, row in preds_df.iterrows():
                 ts = ts_idx[1] if isinstance(ts_idx, tuple) else ts_idx
                 trade_date = pd.Timestamp(ts)
@@ -396,9 +394,7 @@ def extract_oof_predictions(
                     "trade_date": trade_date,
                     "symbol": TARGET_SYMBOL,
                     "horizon_days": horizon,
-                    "p30": float(row.get("0.3", row.get("mean", 0))),
-                    "p50": float(row.get("0.5", row.get("mean", 0))),
-                    "p70": float(row.get("0.7", row.get("mean", 0))),
+                    "predicted_price": float(row.get("mean", row.get("0.5", 0))),
                     "target_value": target_lookup.get(td_key),
                     "window_id": window_id,
                     "cutoff_date": cutoff_date,
@@ -417,25 +413,6 @@ def extract_oof_predictions(
         raise RuntimeError(f"OOF extraction failed for {horizon}d: {e}") from e
 
 
-def enforce_monotonic_quantiles(df: pd.DataFrame) -> pd.DataFrame:
-    """Ensure p30 <= p50 <= p70."""
-    if len(df) == 0:
-        return df
-
-    violations = (df["p30"] > df["p50"]) | (df["p50"] > df["p70"])
-    n_violations = violations.sum()
-
-    if n_violations > 0:
-        logger.warning(f"   Fixing {n_violations} quantile ordering violations")
-
-        # Vectorized sort across quantile columns
-        q_vals = df.loc[violations, ["p30", "p50", "p70"]].values
-        q_vals.sort(axis=1)
-        df.loc[violations, ["p30", "p50", "p70"]] = q_vals
-
-    return df
-
-
 def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
     """Write OOF predictions to training.oof_core_1d."""
     if len(df_oof) == 0:
@@ -447,9 +424,6 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
     # Add version columns
     df_oof["run_hash"] = versions.get("run_hash")
     df_oof["matrix_version"] = versions.get("matrix_version")
-
-    # Enforce monotonic quantiles
-    df_oof = enforce_monotonic_quantiles(df_oof)
 
     # Ensure all required columns exist
     for col in OOF_COLUMN_NAMES:
@@ -466,9 +440,7 @@ def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
         VALUES %s
         ON CONFLICT (trade_date, symbol, horizon_days, window_id)
         DO UPDATE SET
-            p30 = EXCLUDED.p30,
-            p50 = EXCLUDED.p50,
-            p70 = EXCLUDED.p70,
+            predicted_price = EXCLUDED.predicted_price,
             target_value = EXCLUDED.target_value,
             cutoff_date = EXCLUDED.cutoff_date,
             run_hash = EXCLUDED.run_hash,
@@ -516,7 +488,7 @@ def run(
     logger.info("=" * 60)
     logger.info(f"Symbol: {symbol}")
     logger.info(f"Horizons: {horizons}")
-    logger.info(f"Quantiles: {QUANTILES}")
+    logger.info(f"Metric: {TRAINING_CONFIG.eval_metric} (point forecast)")
     logger.info("=" * 60)
 
     # Generate run ID

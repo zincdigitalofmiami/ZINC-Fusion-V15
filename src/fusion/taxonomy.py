@@ -239,10 +239,10 @@ TARGET_COLUMNS: dict[int, str] = {
     126: "target_price_126d",
 }
 
-# Quantile regression standards — P30/P50/P70 primary, P10/P90 Monte Carlo outliers only
-# AGENTS.md §2: QUANTILES = [0.3, 0.5, 0.7] — locked
-QUANTILE_LEVELS: tuple[float, ...] = (0.3, 0.5, 0.7)
-QUANTILE_COLUMNS: tuple[str, ...] = ("p30", "p50", "p70")
+# Core outputs a single predicted_price (point forecast). No quantiles from core.
+# Probability ranges (Target Zones) come from L2/L3 calibration layers:
+# Monte Carlo (10k runs), pinball loss, MAE/accuracy %.
+CORE_OUTPUT_COLUMN: str = "predicted_price"
 
 # =============================================================================
 # SYMBOLS

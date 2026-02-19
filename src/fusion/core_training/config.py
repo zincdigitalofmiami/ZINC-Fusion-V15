@@ -2,7 +2,12 @@
 Core Training Package - Shared Configuration
 =============================================
 
-LOCKED: 2026-01-24
+LOCKED: 2026-01-24 | UPDATED: 2026-02-19
+
+Core = PRICE PREDICTOR. Predicts the future ZL futures contract price.
+Optimized with MAE (point forecast accuracy). No quantile outputs from core.
+Probability/Target Zones come from L2/L3 calibration layers (Monte Carlo, pinball, MAE/accuracy %).
+
 Core uses AutoGluon TimeSeries with an explicit Model Zoo allowlist (CPU-only).
 No presets, no time limits. Specialists are separate and unchanged.
 """
@@ -32,7 +37,9 @@ DATABASE_URL = (
 
 TARGET_SYMBOL = "ZL"
 HORIZONS = [5, 21, 63, 126]
-QUANTILES = [0.3, 0.5, 0.7]
+
+# NOTE: Core does NOT produce quantiles. Core predicts a single price.
+# Quantile/probability outputs come from L2/L3 calibration layers.
 
 # Tactical vs Strategic split
 TACTICAL_HORIZONS = [5, 21]
@@ -284,16 +291,20 @@ OOF_TABLE_NAME = "training.oof_core_1d"
 MATRIX_TABLE_NAME = "training.matrix_1d"
 
 # Column definitions: (name, sql_type, description)
+# UPDATED 2026-02-19: Core outputs a single predicted_price (not quantiles).
+# Quantile/probability ranges come from L2/L3 calibration layers.
 OOF_COLUMNS = [
     ("trade_date", "DATE NOT NULL", "Date forecasting FROM"),
     ("symbol", "VARCHAR(20) NOT NULL DEFAULT 'ZL'", "Target symbol"),
     ("horizon_days", "INTEGER NOT NULL", "Forecast horizon (5/21/63/126)"),
     ("window_id", "INTEGER NOT NULL", "AutoGluon validation window index"),
     ("cutoff_date", "DATE NOT NULL", "Last date in training window"),
-    ("p30", "DOUBLE PRECISION NOT NULL", "30th percentile forecast"),
-    ("p50", "DOUBLE PRECISION NOT NULL", "50th percentile (median)"),
-    ("p70", "DOUBLE PRECISION NOT NULL", "70th percentile forecast"),
-    ("target_value", "DOUBLE PRECISION", "Realized return at horizon"),
+    (
+        "predicted_price",
+        "DOUBLE PRECISION NOT NULL",
+        "Core model price forecast (ZL futures price)",
+    ),
+    ("target_value", "DOUBLE PRECISION", "Realized ZL futures price at horizon"),
     ("trained_at", "TIMESTAMP NOT NULL DEFAULT NOW()", "Training timestamp"),
     ("run_hash", "VARCHAR(64) NOT NULL", "Hash of matrix + config"),
     ("matrix_version", "VARCHAR(64)", "Hash of matrix_1d"),
@@ -305,13 +316,13 @@ OOF_COLUMN_NAMES = [col[0] for col in OOF_COLUMNS]
 
 # L1 Interface Contract
 L1_CONTRACT = {
-    # Core OOF: 4 horizons × 3 quantiles
-    "core_columns": 12,
+    # Core OOF: 1 predicted_price × 4 horizons
+    "core_columns": 4,
     # Specialist signals (table-level contract; signal columns vary by bucket)
     "specialist_signals_table": "training.specialist_signals_1d",
     "specialist_signal_columns": ["signal_1", "signal_2", "confidence"],
     "specialists": 11,
-    "loss": "quantile_pinball",
+    "loss": "mae",
 }
 
 # =============================================================================
@@ -335,7 +346,7 @@ class TrainingConfig:
     covariate_type: str = "observed"
 
     # Predictor settings
-    eval_metric: str = "WQL"  # Weighted Quantile Loss
+    eval_metric: str = "MAE"  # Point forecast accuracy (core = price predictor)
     presets: Optional[str] = None  # Not used (explicit model allowlist)
     time_limit: Optional[int] = None  # Not used (no time limits)
 

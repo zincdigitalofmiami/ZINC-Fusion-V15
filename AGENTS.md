@@ -1,8 +1,23 @@
 # ZINC-FUSION-V15 Workspace Guide
 
+---
+## 🚨 MANDATORY SESSION STARTUP — NO EXCEPTIONS
+
+Before ANY response, code, or analysis — Claude MUST execute this checklist in order:
+
+1. **Memory MCP** — Search memory for prior decisions, corrections, and architect context relevant to the current task. Query: task keywords + "ZINC-FUSION" + "Kirk".
+2. **Sequential Thinking MCP** — Use for any non-trivial question. Plan before acting.
+3. **Context7 MCP** — Fetch live library docs (AutoGluon, pandas, psycopg2, etc.) when writing or reviewing code that calls external APIs. NOT for internal project architecture questions.
+
+**If you skipped any of these and the task warranted them — you failed the protocol. Acknowledge it and run them before continuing.**
+
+This is not optional. This is not situational. This runs every session.
+
+---
+
 ## What This Project Is
 
-Commodity procurement forecasting system for bulk soybean oil (ZL). Provides probabilistic multi-horizon forecasts (1W/1M/3M/6M) to support procurement timing and hedging decisions. Intelligence only — no execution or trade logic.
+Commodity procurement forecasting system for ZL (soybean oil futures). Core predicts the future ZL futures contract price. L2/L3 calibration layers wrap that price forecast with probability, rendered as **horizontal Target Zones** on the dashboard (e.g. "ZL has an 88% chance of hitting 48.52 by July 7th"). Probability is always derived from three named sources: Monte Carlo (10,000 runs), pinball loss calibration, and MAE/accuracy %. Intelligence only — no execution or trade logic.
 
 **Client:** US Oil Solutions
 
@@ -36,10 +51,10 @@ Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeSc
 
 ## Model Architecture
 
-- **L0 Core:** 4 AutoGluon TimeSeriesPredictor ensembles (5d/21d/63d/126d), each training a 25-model zoo
+- **L0 Core = PRICE PREDICTOR:** 4 AutoGluon TimeSeriesPredictor ensembles (5d/21d/63d/126d), each training a 19-model zoo. Core predicts ONE number: the future ZL futures contract price. No quantile outputs from core.
 - **Specialists:** 11 signal generators (domain-specific, no horizons)
 - **L1 Meta:** Core models consume specialist signals as input features (no separate meta-learner)
-- **L2/L3:** Calibration + Monte Carlo risk (VaR/CVaR)
+- **L2/L3 = PROBABILITY ENGINE:** Calibration + Monte Carlo risk (10,000 runs). Takes core's price prediction and wraps it with probability: "ZL has an 88% chance of hitting XX.XX by July 7th." Output rendered as horizontal **Target Zones** on the chart. Probability derived from: Monte Carlo (10k runs) + pinball loss + MAE/accuracy %. Never use: cones, bands, funnels.
 
 ### L0 Core Model Zoo (19 active models per horizon, CPU-only)
 
@@ -50,16 +65,16 @@ Defined in `src/fusion/core_training/config.py` → `MODEL_ZOO_FROZEN`. No prese
 | Baselines (5) | Naive, SeasonalNaive, Average, SeasonalAverage, Zero | Active |
 | Statistical (10) | ETS, AutoETS, AutoARIMA, AutoCES, Theta, DynamicOptimizedTheta, NPTS, ADIDA, Croston, IMAPA | Active |
 | Tabular TS (3) | DirectTabular, PerStepTabular, RecursiveTabular | Active |
-| Foundation (1) | Chronos2 (120M-param, zero-shot, covariate-aware) | Active |
+| Foundation (1) | Chronos2 (120M-param, zero-shot, covariate-aware) | Active (in MODEL_ZOO_FROZEN — see Correction #5) |
 | Deep/ML (7) | DeepAR, TFT, DLinear, PatchTST, SimpleFeedForward, TiDE, WaveNet | Disabled (macOS ARM) |
 | Pretrained (2) | Chronos (original), Toto | Disabled |
 
 AutoGluon trains all active models and selects a WeightedEnsemble. Artifacts in `models/core_v2/{horizon}d/`.
 Source of truth: `config.py` → `MODEL_ZOO_FROZEN` (frozenset, currently 19 models).
 
-- **Target:** Future PRICE LEVEL (`close.shift(-horizon)`), NOT returns
-- **Metric:** WQL (Weighted Quantile Loss)
-- **Quantiles:** [0.3, 0.5, 0.7]
+- **Target:** Future ZL futures contract price (`close.shift(-horizon)`), NOT returns. Columns named `target_price_{h}d`.
+- **Metric:** MAE (point forecast accuracy). Core optimizes for predicting the price, not a distribution.
+- **Output:** Single `predicted_price` per horizon — the core model's price forecast. No quantile columns (p30/p50/p70) from core.
 - **Covariates:** All OBSERVED (no known future values)
 - **Validation:** 4 expanding windows
 - **Frequency:** Business day (`B`)
@@ -87,7 +102,7 @@ Each specialist outputs `(signal_1, signal_2, confidence)` per date to `training
 1. **Feature Matrix:** ~213+ features in `training.matrix_1d` (FRED macro, FX, commodity, weather, supply, positioning, specialist signals)
 2. **Specialist Signals:** 33 columns (11 buckets x 3: signal_1, signal_2, confidence)
 3. **Core Training:** AutoGluon trains on full matrix including specialist signals
-4. **OOF Predictions:** Written to `training.oof_core_1d` (p30, p50, p70 per horizon)
+4. **OOF Predictions:** Written to `training.oof_core_1d` (`predicted_price` per horizon). These are ZL futures contract prices — not returns. L2/L3 calibration layers then wrap these with probability to produce Target Zones on the dashboard.
 
 ## Claude Hard-Coded Corrections (DO NOT REPEAT THESE ERRORS)
 
@@ -101,17 +116,24 @@ The Big-11 specialists are: crush, china, fx, fed, tariff, energy, biofuel, palm
 Any code, doc, or statement that says "10 specialists" is WRONG.
 Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list (11 items).
 
-### 2. Quantiles, Visualization, and Probability Language — Full Spec
+### 2. Core = Price Predictor, Probability = L2/L3 (FIXED 2026-02-19)
 
-**Quantile Schema (locked):**
-- Core OOF schema columns: `p30`, `p50`, `p70` — these are the forecast distribution.
-- `QUANTILES = [0.3, 0.5, 0.7]` in `config.py` — locked, do not change.
-- P10 / P90 exist ONLY as outlier bounds in the Monte Carlo L3 risk layer.
+**Core Architecture (locked):**
+- Core outputs a single `predicted_price` per horizon — the ZL futures contract price forecast.
+- Core metric: **MAE** (point forecast accuracy). NOT WQL.
+- Core does NOT produce quantiles. No p30/p50/p70 from core. No `quantile_levels` in core config.
+- OOF table (`training.oof_core_1d`) stores `predicted_price` and `target_value` — both are ZL futures prices.
+
+**Probability comes from L2/L3 calibration layers:**
+- Takes core's `predicted_price` as input.
+- Monte Carlo (10,000 runs) + pinball loss + MAE/accuracy % produce probability ranges.
+- These become the **Target Zones** on the dashboard.
 
 **Banned words (never use these):**
 - **"cones"** — banned. Do not use. Ever. For anything.
 - **"probability cone"** — banned.
 - **"confidence band"** — banned.
+- **"cents/lb"** — banned. Use "ZL futures contract price" or just "price."
 
 **Correct visualization language:**
 - The forecast output renders as **horizontal "Target Zones"** on the chart — price levels, not shapes or bands.
@@ -119,25 +141,25 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - NOT a wedge, NOT a funnel, NOT a cone. Flat horizontal zones at discrete price levels.
 
 **Correct probability language (for chart UI and stakeholder-facing copy):**
-- "X% probability of this price area in N months" — this is the approved phrasing.
+- "ZL has an 88% chance of hitting XX.XX by July 7th" — this is the approved phrasing.
 - Probability is derived from: Monte Carlo simulation + pinball loss calibration + MAE/accuracy %.
-- Example approved phrase: "72% probability ZL trades in the 48–52 range within 6 months"
 - The three sources of that probability statement are always: (1) Monte Carlo (10,000 runs), (2) pinball loss score, (3) MAE/accuracy %.
 - These three terms — **Monte Carlo, pinball, MAE/accuracy %** — are the approved chart/app language.
 
 **Correct language summary:**
 - ✅ "Target Zones"
-- ✅ "P30/50/70 forecast distribution"
-- ✅ "P10/P90 outlier bounds (Monte Carlo)"
-- ✅ "X% probability of this price area in N months"
+- ✅ "predicted_price" (core output)
+- ✅ "ZL futures contract price"
+- ✅ "ZL has an X% chance of hitting XX.XX by [date]"
 - ✅ "Monte Carlo", "pinball", "MAE/accuracy %"
-- ❌ "cones", "probability cone", "confidence band", "funnel"
+- ❌ "cones", "probability cone", "confidence band", "funnel", "cents/lb"
 
-### 3. Target Is Price Level, NOT Returns (FIXED 2026-02-19)
-- `create_target_columns()` in `build_matrix.py` uses `close.shift(-horizon)` — the actual future price of ZL.
+### 3. Target Is ZL Futures Price, NOT Returns (FIXED 2026-02-19)
+- `create_target_columns()` in `build_matrix.py` uses `close.shift(-horizon)` — the actual future ZL futures contract price.
 - Target columns are named `target_price_{h}d` (NOT `target_ret_*`).
-- The model predicts PRICE LEVELS in cents/lb — directly usable as Target Zones on the dashboard.
-- Never revert to `pct_change()` returns — price-level targets align with Chronos2 pretraining, procurement use case, and Target Zone visualization.
+- The core model predicts the ZL futures price. L2/L3 wraps it with probability for Target Zones.
+- Never revert to `pct_change()` returns — price targets align with Chronos2 pretraining, procurement use case, and Target Zone visualization.
+- **Why this matters:** Core output `predicted_price=48.52` means "ZL will be at 48.52." L2/L3 adds "88% chance by July 7th." If the target were returns, the core output would be a meaningless percentage.
 
 ### 4. Raw Crush Features ≠ Crush Specialist Output
 - `board_crush`, `soy_oil_share`, `zl_cl_ratio`, etc. in the matrix come from `analytics.board_crush_1d` via `load_spread_features()` in `build_matrix.py`. These are RAW inputs.
@@ -145,17 +167,17 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - The dry run matrix had raw crush features but NO specialist signals (table was empty).
 - Never conflate the two.
 
-### 5. Chronos2 Is in MODEL_ZOO_FROZEN (Active) Despite AGENTS.md Table Listing It as Disabled
+### 5. Chronos2 Is in MODEL_ZOO_FROZEN and IS Active (Table Above Has Been Corrected)
 - `config.py` `MODEL_ZOO_FROZEN` includes Chronos2 — it ran in the dry run.
-- AGENTS.md model zoo table incorrectly lists Chronos2 under "disabled macOS ARM".
+- The model zoo table above now correctly lists Chronos2 as Active. The previous version of this table was wrong — that error is fixed.
 - The `config.py` frozen set is the source of truth for what actually trains.
-- Chronos2 underperforms on this system because: (a) all covariates are OBSERVED not KNOWN, (b) single item_id = no cross-learning, (c) target is currently returns not price (mismatch with pretraining), (d) CPU-only on macOS ARM.
+- Chronos2 underperforms on this system because: (a) all covariates are OBSERVED not KNOWN, (b) single item_id = no cross-learning, (c) CPU-only on macOS ARM. Note: target is ZL futures price (not returns), which better aligns with Chronos2 pretraining.
 
 ### 6. The Dry Run Context
 - The leaderboard results shared were a DRY RUN with NO specialist signals and a dropped/fresh matrix.
 - It was a mechanics validation, not a performance benchmark for the full system.
-- WeightedEnsemble WQL of -0.747 (5d) / -0.709 (21d) is the FLOOR — Core alone, blind, no specialists.
-- Do not compare these numbers to the full system's expected performance.
+- The dry run used the OLD config (WQL metric, returns target, quantile outputs). All three are now fixed: MAE metric, price target, single predicted_price output.
+- Do not compare dry run numbers to the full system's expected performance.
 
 ## Core Rules
 
@@ -168,3 +190,33 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 7. Forward fill is OFF by default — requires explicit approval
 8. Say "I don't know" when uncertain
 9. Before committing, run `cubic review` to catch bugs — fix all P0/P1 issues before pushing
+
+## MCP Server Rules (Workspace-Only — `.vscode/mcp.json`)
+
+Three MCP servers are configured for this workspace: **context7**, **memory**, **sequential-thinking**. All agents must follow these rules without exception.
+
+### 8 Non-Negotiable Rules
+
+1. **THINK FIRST** — Must use sequential-thinking before writing any code. No exceptions.
+2. **MEMORY FIRST** — Must check memory at conversation start, must store decisions immediately during conversation.
+3. **CONTEXT7 FOR DOCS** — No relying on training data for any library. Fetch real docs via Context7 or don't answer.
+4. **NO GOING ROGUE** — No unrequested changes, no surprise refactors, no "while I'm here" improvements.
+5. **CONFIRM DESTRUCTIVE ACTIONS** — Must state intent and wait before deleting, overwriting, migrating, etc.
+6. **ONE TASK AT A TIME** — Finish what was asked before touching anything else.
+7. **REPORT** — State every file touched and every change made.
+8. **NO GUESSING** — Don't know? Say so. Check memory → Context7 → ask Kirk.
+
+### Mandatory Execution Order
+
+Every task follows this sequence:
+
+```
+Memory(search) → Sequential Thinking(plan) → Context7(docs) → Execute → Memory(store) → Report
+```
+
+- **Memory search** — Check the knowledge graph for prior decisions, corrections, and context before doing anything.
+- **Sequential thinking** — Plan the approach step-by-step. No cowboying.
+- **Context7 docs** — If the task touches any library/framework, fetch current docs. Never rely on stale training data.
+- **Execute** — Implement the plan. One task at a time.
+- **Memory store** — Persist any new decisions, corrections, or architectural facts to the knowledge graph immediately.
+- **Report** — List every file touched, every change made, every decision taken.

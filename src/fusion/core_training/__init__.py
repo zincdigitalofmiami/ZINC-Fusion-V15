@@ -31,7 +31,7 @@
 # All configurations are centralized in `config.py`:
 # - TARGET_SYMBOL = "ZL"
 # - HORIZONS = [5, 21, 63, 126]
-# - QUANTILES = [0.3, 0.5, 0.7]
+# - eval_metric = MAE (core = price predictor, no quantiles)
 # - All features as OBSERVED covariates
 # - CPU-only execution (no MPS/CUDA)
 # - Explicit Model Zoo allowlist (no presets, no time limits)
@@ -52,7 +52,6 @@ __locked_date__ = "2026-01-15"
 from .config import (
     TARGET_SYMBOL,
     HORIZONS,
-    QUANTILES,
     OptionsConfig,
     FeatureMatrixConfig,
     TrainingConfig,
@@ -63,7 +62,6 @@ from .config import (
 __all__ = [
     "TARGET_SYMBOL",
     "HORIZONS",
-    "QUANTILES",
     "OptionsConfig",
     "FeatureMatrixConfig",
     "TrainingConfig",

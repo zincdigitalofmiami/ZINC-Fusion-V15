@@ -113,7 +113,7 @@ def compute_core_accuracy(conn) -> Dict[str, float]:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT p50, target_value
+                SELECT predicted_price, target_value
                 FROM training.oof_core_1d
                 WHERE horizon_days = %s
                   AND target_value IS NOT NULL
@@ -123,13 +123,19 @@ def compute_core_accuracy(conn) -> Dict[str, float]:
             rows = cur.fetchall()
         if not rows:
             continue
-        df = pd.DataFrame(rows, columns=["p50", "target"])
+        df = pd.DataFrame(rows, columns=["predicted_price", "target"])
         eps = 1e-6
         mape = float(
-            np.mean(np.abs((df["target"] - df["p50"]) / (df["target"].abs() + eps)))
+            np.mean(
+                np.abs(
+                    (df["target"] - df["predicted_price"]) / (df["target"].abs() + eps)
+                )
+            )
         )
-        mae = float(np.mean(np.abs(df["target"] - df["p50"])))
-        directional = float(np.mean(np.sign(df["target"]) == np.sign(df["p50"])))
+        mae = float(np.mean(np.abs(df["target"] - df["predicted_price"])))
+        directional = float(
+            np.mean(np.sign(df["target"]) == np.sign(df["predicted_price"]))
+        )
         mean_ret = df["target"].mean()
         std_ret = df["target"].std(ddof=1)
         sharpe = (

@@ -2,9 +2,12 @@
 Generate Production Forecasts from OOF Predictions
 ==================================================
 
-Reads latest OOF predictions from training.oof_core_1d, converts return
-quantiles to price levels, calibrates p10/p90 tails from realized OOF
-residuals, and upserts into forecasts.production_1d.
+Reads latest OOF predicted_price from training.oof_core_1d (core = price predictor),
+then calibrates probability ranges (p10/p30/p70/p90) from historical OOF residuals.
+Upserts results into forecasts.production_1d.
+
+Core outputs a single predicted_price per horizon. ALL quantile ranges in the
+production table come from L2/L3 residual calibration — not from core.
 """
 
 import logging
@@ -60,20 +63,18 @@ def get_latest_zl_close(engine) -> tuple:
 
 
 def get_latest_oof_by_horizon(engine, horizon: int) -> pd.DataFrame:
-    """Get the most recent OOF predictions for a given horizon.
+    """Get the most recent OOF predicted_price for a given horizon.
 
-    For production forecasts, we want the latest trade_date's median
-    prediction across all CV windows (ensemble by averaging windows).
+    Core outputs a single predicted_price (point forecast). We average across
+    CV windows to get the ensemble prediction for the latest trade_date.
 
     Returns:
-        DataFrame with columns: trade_date, p30, p50, p70, run_hash
+        DataFrame with columns: trade_date, predicted_price, run_hash
     """
     query = """
         SELECT
             trade_date,
-            AVG(p30) as p30,
-            AVG(p50) as p50,
-            AVG(p70) as p70,
+            AVG(predicted_price) as predicted_price,
             MAX(run_hash) as run_hash,
             MAX(run_id::text) as run_id
         FROM training.oof_core_1d
@@ -141,18 +142,22 @@ def check_oof_freshness(
         )
 
 
-def compute_tail_offsets(engine, horizon: int) -> tuple[float, float]:
-    """Compute p10/p90 residual offsets from historical OOF rows.
+def compute_residual_offsets(engine, horizon: int) -> dict[str, float]:
+    """Compute calibration offsets from historical OOF residuals.
 
-    Residuals are measured against the median forecast (target_value - p50).
+    Residuals = target_value - predicted_price. We take quantiles of the
+    residual distribution to produce p10/p30/p70/p90 ranges around the
+    core price prediction.
+
+    Returns dict with keys: p10_off, p30_off, p70_off, p90_off
     """
     query = """
-        SELECT target_value, p50
+        SELECT target_value, predicted_price
         FROM training.oof_core_1d
         WHERE horizon_days = %s
           AND symbol = %s
           AND target_value IS NOT NULL
-          AND p50 IS NOT NULL
+          AND predicted_price IS NOT NULL
         ORDER BY trade_date DESC
         LIMIT 5000
     """
@@ -162,20 +167,19 @@ def compute_tail_offsets(engine, horizon: int) -> tuple[float, float]:
         logger.warning(
             f"  {horizon}d: insufficient OOF residuals ({len(df)}) for calibration"
         )
-        return 0.0, 0.0
+        return {"p10_off": 0.0, "p30_off": 0.0, "p70_off": 0.0, "p90_off": 0.0}
 
-    residuals = (df["target_value"] - df["p50"]).astype(float)
-    low_off = float(residuals.quantile(0.10))
-    high_off = float(residuals.quantile(0.90))
-    return low_off, high_off
+    residuals = (df["target_value"] - df["predicted_price"]).astype(float)
+    return {
+        "p10_off": float(residuals.quantile(0.10)),
+        "p30_off": float(residuals.quantile(0.30)),
+        "p70_off": float(residuals.quantile(0.70)),
+        "p90_off": float(residuals.quantile(0.90)),
+    }
 
 
 def upsert_production_forecast(conn, horizon: int, row: dict) -> bool:
-    """Upsert a single forecast row into the production table.
-
-    Returns:
-        True if inserted/updated, False if skipped.
-    """
+    """Upsert a single forecast row into the production table."""
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -243,7 +247,12 @@ def _gate_oof_freshness(engine) -> bool:
 
 
 def generate_forecasts():
-    """Main entry point: generate production forecasts from OOF predictions."""
+    """Main entry point: generate production forecasts from OOF predictions.
+
+    Core outputs a single predicted_price. This script calibrates probability
+    ranges (p10/p30/p70/p90) from historical OOF residuals and writes
+    everything to forecasts.production_1d.
+    """
     logger.info("=" * 60)
     logger.info("Generating production forecasts from OOF predictions")
     logger.info("=" * 60)
@@ -274,47 +283,35 @@ def generate_forecasts():
 
             row = df_oof.iloc[0]
             as_of_date = row["trade_date"]
-            p30 = float(row["p30"])
-            p50 = float(row["p50"])
-            p70 = float(row["p70"])
+            predicted_price = float(row["predicted_price"])
 
-            # Calibrate tails from empirical OOF residuals
-            low_off, high_off = compute_tail_offsets(engine, horizon)
-            p10_cal = p50 + low_off
-            p90_cal = p50 + high_off
-
-            # Fallback when calibration unavailable
-            if low_off == 0.0 and high_off == 0.0:
-                p10_cal = p30 - (p50 - p30)
-                p90_cal = p70 + (p70 - p50)
+            # Calibrate ALL quantile ranges from historical residuals
+            offsets = compute_residual_offsets(engine, horizon)
+            p30 = predicted_price + offsets["p30_off"]
+            p70 = predicted_price + offsets["p70_off"]
+            p10_cal = predicted_price + offsets["p10_off"]
+            p90_cal = predicted_price + offsets["p90_off"]
 
             run_hash = row["run_hash"]
             run_id = row.get("run_id")
 
-            # Convert return quantiles to price levels
-            price_p30 = round(current_price * (1 + p30), 4)
-            price_p50 = round(current_price * (1 + p50), 4)
-            price_p70 = round(current_price * (1 + p70), 4)
-            price_p10_cal = round(current_price * (1 + p10_cal), 4)
-            price_p90_cal = round(current_price * (1 + p90_cal), 4)
-
-            # Forecast date = as_of_date + horizon trading days (~1.4x calendar days)
+            # All values are already ZL futures prices — no conversion needed
             forecast_date = pd.Timestamp(as_of_date) + pd.tseries.offsets.BDay(horizon)
 
             forecast_row = {
                 "horizon": horizon,
                 "as_of_date": as_of_date,
                 "forecast_date": forecast_date.date(),
-                "p30": p30,
-                "p50": p50,
-                "p70": p70,
-                "p10_cal": p10_cal,
-                "p90_cal": p90_cal,
-                "price_p30": price_p30,
-                "price_p50": price_p50,
-                "price_p70": price_p70,
-                "price_p10_cal": price_p10_cal,
-                "price_p90_cal": price_p90_cal,
+                "p30": round(p30, 4),
+                "p50": round(predicted_price, 4),
+                "p70": round(p70, 4),
+                "p10_cal": round(p10_cal, 4),
+                "p90_cal": round(p90_cal, 4),
+                "price_p30": round(p30, 4),
+                "price_p50": round(predicted_price, 4),
+                "price_p70": round(p70, 4),
+                "price_p10_cal": round(p10_cal, 4),
+                "price_p90_cal": round(p90_cal, 4),
                 "current_price": current_price,
                 "model_version": run_hash,
                 "run_id": run_id,
@@ -325,10 +322,9 @@ def generate_forecasts():
 
             logger.info(
                 f"  {horizon:>3}d: as_of={as_of_date} | "
-                f"p30={price_p30:.2f} p50={price_p50:.2f} p70={price_p70:.2f} "
-                f"p10={price_p10_cal:.2f} p90={price_p90_cal:.2f} | "
-                f"return=[{p30:+.4f}, {p50:+.4f}, {p70:+.4f}] "
-                f"cal=[{p10_cal:+.4f}, {p90_cal:+.4f}]"
+                f"predicted={predicted_price:.2f} | "
+                f"p30={p30:.2f} p70={p70:.2f} | "
+                f"p10={p10_cal:.2f} p90={p90_cal:.2f}"
             )
 
         # Commit all writes
