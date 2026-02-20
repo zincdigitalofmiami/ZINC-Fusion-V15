@@ -1,0 +1,36 @@
+.envrc
+  e69095a9d67d884e 11-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "1b3e0f0098b4f480ae99c114104ee9bd9887c06e",
+  "prompts": {
+    "80c9862aed5c2851": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8856fd19-d6ae-43ef-9c6f-4b93ff6f3e31",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 112,
+      "overriden_lines": 0
+    },
+    "e69095a9d67d884e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d4e0db4-f6a8-4d8d-b0d7-6c4a8f945ad0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 6,
+      "total_deletions": 5,
+      "accepted_lines": 6,
+      "overriden_lines": 0
+    }
+  }
+}
