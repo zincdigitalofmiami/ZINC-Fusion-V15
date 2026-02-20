@@ -7,7 +7,8 @@ Trains Core models for all 4 horizons using AutoGluon TimeSeriesPredictor.
 Model: AutoGluon explicit model zoo (CPU-only, Chronos2 + deep + tabular + statistical).
 
 Key Rules:
-- All features as OBSERVED covariates (not known)
+- Seasonal calendar features as KNOWN covariates (deterministic from date)
+- All other features as OBSERVED covariates
 - num_val_windows=4 expanding windows
 - OOF predictions via predictor.backtest_predictions() + backtest_targets()
 - Sequential training: 5 → 21 → 63 → 126
@@ -19,6 +20,7 @@ Output:
 
 from __future__ import annotations
 
+import hashlib
 import os
 import uuid
 
@@ -55,6 +57,7 @@ from .config import (
     HORIZONS,
     MODEL_ZOO_FROZEN,
     OOF_COLUMN_NAMES,
+    SEASONAL_FEATURES,
     TARGET_SYMBOL,
     TRAINING_CONFIG,
 )
@@ -266,7 +269,8 @@ def train_horizon(
     logger.info(f"   Validation windows: {TRAINING_CONFIG.num_val_windows}")
     logger.info(f"   Model path: {model_path}")
 
-    # Get known covariates (NONE - all are observed)
+    # Known covariates = seasonal features (deterministic from date)
+    # All other features remain observed covariates
     # Get static features (NONE for single time series)
 
     try:
@@ -276,7 +280,7 @@ def train_horizon(
             target=target_col,
             prediction_length=horizon,
             eval_metric=TRAINING_CONFIG.eval_metric,  # MAE — core = price predictor
-            known_covariates_names=[],  # EMPTY - all features are observed
+            known_covariates_names=SEASONAL_FEATURES,  # Phase 1A: seasonal calendar
             freq="B",  # Business day frequency (trading days have gaps)
         )
 
@@ -413,6 +417,27 @@ def extract_oof_predictions(
         raise RuntimeError(f"OOF extraction failed for {horizon}d: {e}") from e
 
 
+def compute_run_hash(df: pd.DataFrame, horizons: list[int]) -> dict:
+    """Compute deterministic run_hash and matrix_version from config + data."""
+    # run_hash: hash of model zoo + training config + horizons
+    config_str = "|".join(
+        [
+            ",".join(sorted(MODEL_ZOO_FROZEN)),
+            TRAINING_CONFIG.eval_metric,
+            str(TRAINING_CONFIG.num_val_windows),
+            TRAINING_CONFIG.covariate_type,
+            ",".join(str(h) for h in sorted(horizons)),
+        ]
+    )
+    run_hash = hashlib.sha256(config_str.encode()).hexdigest()[:16]
+
+    # matrix_version: hash of matrix shape + date range
+    matrix_str = f"{len(df)}x{len(df.columns)}|{df.index.min()}|{df.index.max()}"
+    matrix_version = hashlib.sha256(matrix_str.encode()).hexdigest()[:16]
+
+    return {"run_hash": run_hash, "matrix_version": matrix_version}
+
+
 def write_oof_predictions(conn, df_oof: pd.DataFrame, versions: dict):
     """Write OOF predictions to training.oof_core_1d."""
     if len(df_oof) == 0:
@@ -546,6 +571,12 @@ def run(
 
         # Load data once
         df = load_training_data(conn, symbol)
+
+        # Compute run_hash and matrix_version if not provided
+        if not versions.get("run_hash"):
+            versions.update(compute_run_hash(df, horizons))
+            logger.info(f"   run_hash:       {versions['run_hash']}")
+            logger.info(f"   matrix_version: {versions['matrix_version']}")
 
         # Train each horizon sequentially
         for horizon in horizons:

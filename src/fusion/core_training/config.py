@@ -425,6 +425,24 @@ MODEL_ZOO_PRETRAINED: frozenset[str] = frozenset(
 MODEL_ZOO_ACTIVE_COUNT = len(MODEL_ZOO_FROZEN)  # 19
 
 # =============================================================================
+# SEASONAL / KNOWN COVARIATES — deterministic from date index
+# =============================================================================
+# These are the ONLY features that qualify as "known future" covariates.
+# They can be computed for any future date without market data.
+# Used by AutoGluon's known_covariates_names to unlock models that
+# leverage future information (Chronos2, Tabular models).
+SEASONAL_FEATURES: list[str] = [
+    "month_sin",
+    "month_cos",
+    "week_of_year_sin",
+    "week_of_year_cos",
+    "is_planting_season",
+    "is_harvest_season",
+    "is_crush_season",
+    "is_south_america_harvest",
+]
+
+# =============================================================================
 # PATHS
 # =============================================================================
 
