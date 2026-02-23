@@ -1,0 +1,37 @@
+frontend/src/app/api/zl/price-5m/route.ts
+  7b38bfc943a3f958 94-106,116-119
+frontend/src/app/api/zl/price-1h/route.ts
+  7b38bfc943a3f958 55-64,70-73
+frontend/src/app/strategy/page.tsx
+  7b38bfc943a3f958 3,10,12-77,80-156,160-168,170-176,181,183-185,187-204,206,208-232,236,244-245,248-252,254-260,262-271,273-274,277-278,280,283,285,319-320,331-332,334-337,339-340,342-343,345-347,349-355,357-358,360-364,366
+frontend/src/app/api/zl/chart/route.ts
+  7b38bfc943a3f958 38,41-45
+frontend/src/components/RegimeAnalysisChart.tsx
+  7b38bfc943a3f958 119
+.claude/launch.json
+  7b38bfc943a3f958 1-17
+frontend/src/app/api/zl/price-1m/route.ts
+  7b38bfc943a3f958 61-70,76-79
+frontend/src/app/api/zl/price-1d/route.ts
+  7b38bfc943a3f958 208-217,222,227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "2ee47213a18bc22532b464da192036841f4a8d65",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 374,
+      "total_deletions": 94,
+      "accepted_lines": 355,
+      "overriden_lines": 0
+    }
+  }
+}
