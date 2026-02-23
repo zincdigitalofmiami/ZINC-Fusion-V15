@@ -113,45 +113,24 @@
   "python.testing.pytestEnabled": true,
   "python.testing.pytestArgs": ["-q"],
   "python.testing.unittestEnabled": false,
-  "chat.mcp.serverSampling": {
-    "ZINC-FUSION-V15/.vscode/mcp.json: sequential-thinking": {
-      "allowedModels": [
-        "copilot/claude-opus-4.6",
-        "copilot/claude-sonnet-4.5",
-        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
-        "copilot/gpt-5.2-codex"
-      ]
-    },
-    "ZINC-FUSION-V15/.vscode/mcp.json: context7": {
-      "allowedModels": [
-        "copilot/claude-opus-4.6",
-        "copilot/claude-sonnet-4.5",
-        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
-        "copilot/gpt-5.2-codex"
-      ]
-    },
-    "ZINC-FUSION-V15/.vscode/mcp.json: filesystem": {
-      "allowedModels": [
-        "copilot/claude-opus-4.6",
-        "copilot/claude-sonnet-4.5",
-        "anthropic/Anthropic/claude-sonnet-4-5-20250929",
-        "copilot/gpt-5.2-codex"
-      ]
-    },
-    "ZINC-FUSION-V15/.vscode/mcp.json: Prisma-Remote": {
-      "allowedModels": [
-        "copilot/claude-sonnet-4.5",
-        "copilot/claude-opus-4.6",
-        "copilot/gpt-5.2-codex"
-      ]
-    },
-    "ZINC-FUSION-V15/.vscode/mcp.json: memory": {
-      "allowedModels": [
-        "copilot/claude-sonnet-4.5",
-        "copilot/claude-opus-4.6",
-        "copilot/gpt-5.2-codex"
-      ]
+  "chat.mcp.autostart": true,
+  "codescene.enableAutoRefactor": false,
+
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "file": ".github/copilot-instructions.md" }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" }
+  ],
+
+  "cline.customInstructions": "MANDATORY PRE-FLIGHT FOR EVERY RESPONSE — NO EXCEPTIONS:\n\nBefore answering ANY prompt, you MUST do these IN ORDER:\n1. Call memory MCP search_nodes with keywords from the request. Show what you found. ALWAYS.\n2. Read AGENTS.md fully before any work.\n\nYour response MUST begin with this block:\n\nPREFLIGHT:\n- Memory searched: [yes/no — what you found]\n\nIf this block is missing, you violated the rules. Start over.\n\nRULES (ZINC-FUSION-V15):\n- Read AGENTS.md fully before any work\n- 11 specialists — NEVER say 10. trump_effect is the 11th.\n- Target = future PRICE LEVEL close.shift(-horizon) named target_price_{h}d. Never returns.\n- Visualization = horizontal Target Zones. BANNED: cones, bands, funnels.\n- Probability: 'X% probability of this price area in N months' — always cite Monte Carlo + pinball + MAE/accuracy%\n- NEVER make unrequested changes. NEVER guess. ONE task at a time.\n- Store all decisions/corrections to memory IMMEDIATELY.",
+
+  "chat.instructions": [
+    {
+      "text": "MANDATORY PRE-FLIGHT FOR EVERY RESPONSE — NO EXCEPTIONS:\n\nBefore answering ANY prompt, you MUST do these IN ORDER:\n1. Call memory MCP search_nodes with keywords from the request. Show what you found. ALWAYS.\n2. Read AGENTS.md fully before any work.\n\nYour response MUST begin with this block:\n\nPREFLIGHT:\n- Memory searched: [yes/no — what you found]\n\nIf this block is missing, you violated the rules. Start over.\n\nRULES (ZINC-FUSION-V15):\n- Read AGENTS.md fully before any work\n- 11 specialists — NEVER say 10. trump_effect is the 11th.\n- Target = future PRICE LEVEL close.shift(-horizon) named target_price_{h}d. Never returns.\n- Visualization = horizontal Target Zones. BANNED: cones, bands, funnels.\n- Probability: 'X% probability of this price area in N months' — always cite Monte Carlo + pinball + MAE/accuracy%\n- NEVER make unrequested changes. NEVER guess. ONE task at a time.\n- Store all decisions/corrections to memory IMMEDIATELY."
     }
-  },
-  "codescene.enableAutoRefactor": false
+  ]
 }

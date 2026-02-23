@@ -1,0 +1,41 @@
+# ZINC-FUSION-V15 — Cline Rules
+
+## 🚨 MANDATORY SESSION STARTUP — NO EXCEPTIONS
+
+Before ANY response, code, or analysis — execute this checklist in order:
+
+1. **Read AGENTS.md completely** — it is the single source of truth for architecture, rules, and hard-coded corrections.
+2. **Memory MCP** — Search memory for prior decisions and architect corrections relevant to the current task. Query: task keywords + "ZINC-FUSION" + "Kirk".
+3. **Sequential Thinking MCP** — Use for any non-trivial question. Plan before acting.
+4. **Context7 MCP** — Fetch live library docs (AutoGluon, pandas, psycopg2, etc.) when writing or reviewing code that calls external APIs. NOT for internal project architecture questions.
+
+**If you skipped any of these and the task warranted them — stop, acknowledge it, run them, then continue. No exceptions.**
+
+---
+
+## Hard Rules (summary — full detail in AGENTS.md)
+
+- Specialists: ALWAYS 11 (Big-11 includes trump_effect). Never say 10.
+- Target: PRICE LEVEL (`close.shift(-horizon)`) named `target_price_{h}d`. Never returns or pct_change.
+- Quantiles: P30/P50/P70 are the forecast distribution. P10/P90 are Monte Carlo outlier bounds only.
+- Visualization: **Target Zones** = horizontal price lines on chart. Probability stated as "X% probability of this price area in N months".
+- Probability sources (always cite all three): Monte Carlo (10,000 runs), pinball loss, MAE/accuracy %.
+- BANNED words: "cones", "probability cone", "confidence band", "funnel".
+- Raw crush features ≠ crush specialist signals. Never conflate.
+- Chronos2 IS active (in MODEL_ZOO_FROZEN). config.py is source of truth for what trains.
+- Dry run WQL scores (-0.747 / -0.709) are the floor — no specialists, mechanics-only validation.
+
+## Source of Truth Hierarchy
+
+1. `config.py` — what models train
+2. `AGENTS.md` — architecture, rules, corrections
+3. `prisma/schema.prisma` — database schema
+4. This file — Cline-specific startup enforcement
+
+## No Fabrication
+
+Never invent schemas, tables, files, columns, or endpoints. If uncertain — say so and check.
+
+## No Execution Logic
+
+This system produces intelligence only. No buy/sell/act logic. Ever.
