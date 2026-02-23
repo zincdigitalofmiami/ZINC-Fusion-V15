@@ -1,0 +1,123 @@
+models/core_v2/5d/logs/predictor_log.txt
+  80c9862aed5c2851 2609-2636
+  1df5552c91ab8d50 743-2127
+models/core_v2/21d/logs/predictor_log.txt
+  80c9862aed5c2851 1834-1861
+  1df5552c91ab8d50 447-1398
+scripts/evaluate_oof.py
+  3233aceb37d7a9c5 1-37,39-41,43-45,47-238,241-311
+frontend/playwright.config.ts
+  1df5552c91ab8d50 1-20
+.vscode/settings.json
+  fd584109e2d00e49 116,119,122,127
+models/core_v2/126d/logs/predictor_log.txt
+  80c9862aed5c2851 582-609
+  1df5552c91ab8d50 149-464
+frontend/e2e/hello.spec.ts
+  1df5552c91ab8d50 1-7
+.clinerules
+  fd584109e2d00e49 3,5-6
+models/core_v2/63d/logs/predictor_log.txt
+  1df5552c91ab8d50 298-931
+  80c9862aed5c2851 1208-1235
+reports/phase1a_seasonal_covariates_2026-02-20.md
+  3233aceb37d7a9c5 1-383
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "ea7d12d8479ca944873e29252dfefdde6eaba0c4",
+  "prompts": {
+    "3233aceb37d7a9c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d544fb73-60b9-4243-a0b8-4c25a2fecf45",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 659,
+      "total_deletions": 0,
+      "accepted_lines": 689,
+      "overriden_lines": 5
+    },
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 110,
+      "total_deletions": 292,
+      "accepted_lines": 109,
+      "overriden_lines": 0
+    },
+    "80c9862aed5c2851": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8856fd19-d6ae-43ef-9c6f-4b93ff6f3e31",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 112,
+      "overriden_lines": 0
+    },
+    "927d0d80caa99b1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2edbbb06-fba2-4251-81df-f775e69de4e9",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 147,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "c62ec94d3cc62e45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a4dcd96b-c173-4ce5-988e-aac9925aea08",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 293,
+      "total_deletions": 55,
+      "accepted_lines": 272,
+      "overriden_lines": 0
+    },
+    "ef3f0fba836fc64e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86d2dbcf-be3f-4349-9cf0-e810525e6445",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 183,
+      "total_deletions": 2,
+      "accepted_lines": 180,
+      "overriden_lines": 0
+    },
+    "fd584109e2d00e49": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019c8bba-f7f7-78e0-ac05-799f1c98768a",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 49,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    }
+  }
+}
