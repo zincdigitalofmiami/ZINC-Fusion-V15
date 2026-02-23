@@ -1,0 +1,33 @@
+frontend/src/components/viz/FusionBrain.tsx
+  7b38bfc943a3f958 3,7,17-23,32-53,55-61,63-95,97,99-100,104-175,177,180,182-184,186-189,192-194,196,200,206,213,217-218,220,241,248,252,279-282,290,301,312,323-429
+frontend/src/app/strategy/page.tsx
+  7b38bfc943a3f958 46-54,66,137,303,364,374,408,417-418
+frontend/src/components/RegimeAnalysisChart.tsx
+  7b38bfc943a3f958 238
+frontend/src/app/api/zl/brief/route.ts
+  7b38bfc943a3f958 14-16,202,227-242,244-252,254-256,263,278,280-281,284-285,288-290,293-294,296-298,302,344,354-366,370-372,374,390-391,441,456-465,469,532-541,552-553,579,598-599,629
+frontend/src/components/quant/FactorWaterfall.tsx
+  7b38bfc943a3f958 74
+frontend/src/components/tools/ContractImpactCalculator.tsx
+  7b38bfc943a3f958 3,9-30,35-39,41-42,44-45,47,49-51,54,59,61,90,119,122,124,155,157,159,165-170,172-173,175-176,187-191,193-194,196-198,200,208-212,214-215,217-221,223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "b51c036987295a13b054c6a6a8c21982ad08a484",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 535,
+      "total_deletions": 241,
+      "accepted_lines": 481,
+      "overriden_lines": 0
+    }
+  }
+}
