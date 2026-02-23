@@ -35,14 +35,14 @@ export async function GET(request: NextRequest) {
       LIMIT $1
     `, [days])
 
-    // Reverse to chronological order and format for lightweight-charts
+    // Reverse to chronological order, coerce DECIMAL strings to numbers
     const series = rows.reverse().map(row => ({
       time: row.event_date,
-      open: row.open,
-      high: row.high,
-      low: row.low,
-      close: row.close,
-      volume: row.volume,
+      open: parseFloat(String(row.open)),
+      high: parseFloat(String(row.high)),
+      low: parseFloat(String(row.low)),
+      close: parseFloat(String(row.close)),
+      volume: parseFloat(String(row.volume)),
     }))
 
     return NextResponse.json({

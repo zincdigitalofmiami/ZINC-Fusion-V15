@@ -205,16 +205,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // PostgreSQL DECIMAL columns come back as strings — coerce to numbers
+    const numericRows = mergedRows.map((row) => ({
+      ...row,
+      open: parseFloat(String(row.open)),
+      high: parseFloat(String(row.high)),
+      low: parseFloat(String(row.low)),
+      close: parseFloat(String(row.close)),
+      volume: parseFloat(String(row.volume)),
+    }));
+
     return NextResponse.json(
       {
         symbol: "ZL",
         interval: "1d",
-        count: mergedRows.length,
+        count: numericRows.length,
         days: clampedDays,
         live_rollup: Boolean(activeRollupBar),
         live_rollup_source_table: activeSourceTable,
         live_rollup_latest_intraday_ts: activeLatestTs,
-        data: mergedRows,
+        data: numericRows,
       },
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );

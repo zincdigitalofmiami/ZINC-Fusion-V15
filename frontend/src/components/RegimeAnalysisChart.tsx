@@ -116,7 +116,7 @@ export function RegimeAnalysisChart({
     // Transform price data
     const lineData = priceData.map(d => ({
       time: Math.floor(new Date(d.timestamp).getTime() / 1000) as UTCTimestamp,
-      value: d.close,
+      value: parseFloat(String(d.close)),
     })).sort((a, b) => (a.time as number) - (b.time as number))
 
     // SMA-based regime estimate — L1 meta-learner pending

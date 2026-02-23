@@ -91,6 +91,19 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
+        // PostgreSQL DECIMAL columns come back as strings — coerce to numbers
+        const numericRows = rows.map((row) => {
+          const r = row as Record<string, unknown>;
+          return {
+            ...r,
+            open: parseFloat(String(r.open)),
+            high: parseFloat(String(r.high)),
+            low: parseFloat(String(r.low)),
+            close: parseFloat(String(r.close)),
+            volume: parseFloat(String(r.volume ?? 0)),
+          };
+        });
+
         return NextResponse.json(
           {
             symbol: "ZL",
@@ -100,10 +113,10 @@ export async function GET(req: NextRequest) {
             window_mode: mode,
             fallback_used: source.table !== "price_5m" || mode === "latest",
             hours: clampedHours,
-            count: rows.length,
-            earliest: (rows[0] as { timestamp?: string })?.timestamp,
-            latest: (rows[rows.length - 1] as { timestamp?: string })?.timestamp,
-            data: rows,
+            count: numericRows.length,
+            earliest: (numericRows[0] as { timestamp?: string })?.timestamp,
+            latest: (numericRows[numericRows.length - 1] as { timestamp?: string })?.timestamp,
+            data: numericRows,
           },
           { headers: { "Cache-Control": "no-store, max-age=0" } },
         );
