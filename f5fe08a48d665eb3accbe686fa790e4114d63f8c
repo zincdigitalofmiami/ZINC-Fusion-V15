@@ -1,0 +1,82 @@
+.claude/skills/run-review/SKILL.md
+  c62ec94d3cc62e45 3,8-10,12,20-110,115-120,122-127,129,131,133-137,139,141,143-147
+.gitattributes
+  c62ec94d3cc62e45 1-40
+tests/integration/test_vwap_simple.py
+  7b38bfc943a3f958 14-15
+AGENTS.md
+  7b38bfc943a3f958 191
+.github/workflows/quality-gates.yml
+  7b38bfc943a3f958 98-103,105-106
+tests/test_persistence.py
+  7b38bfc943a3f958 1-113
+frontend/vitest.config.ts
+  7b38bfc943a3f958 1-14
+tests/integration/test_database_forensic_audit.py
+  7b38bfc943a3f958 8-9
+.claude/skills/run-pipeline/SKILL.md
+  ef3f0fba836fc64e 1-44
+tests/test_signal_output.py
+  7b38bfc943a3f958 1-96
+.claude/settings.json
+  ef3f0fba836fc64e 1-28
+tests/test_ffill_forbidden.py
+  7b38bfc943a3f958 1-66
+frontend/src/lib/colors.test.ts
+  7b38bfc943a3f958 1-38
+frontend/src/lib/sentiment-scorer.test.ts
+  7b38bfc943a3f958 1-42
+tests/test_matrix_validation.py
+  7b38bfc943a3f958 1-126
+frontend/package.json
+  7b38bfc943a3f958 14-15
+.codescene/code-health-rules.json
+  c62ec94d3cc62e45 1-99
+cubic.yaml
+  7b38bfc943a3f958 3-4,15-64,69,73,80,82-85,87,89,91-97,102,104-110,116,118-125,133,135-141,149,151-157,162-163,169-172
+.vscode/settings.json
+  fd584109e2d00e49 13,58
+  c62ec94d3cc62e45 115
+frontend/src/lib/parse-ai-json.test.ts
+  7b38bfc943a3f958 1-35
+tests/test_api_common.py
+  7b38bfc943a3f958 1-72
+.claude/skills/verify/SKILL.md
+  ef3f0fba836fc64e 1-35
+tests/test_volatility_specialist.py
+  7b38bfc943a3f958 22-23
+tests/test_anomaly_detection.py
+  7b38bfc943a3f958 1-32,34-35,37-118
+tests/conftest.py
+  7b38bfc943a3f958 1-2,5,8-9,13-16,18-29,31-33,51-55,57-67,69-89,91-116,118-137,139-155
+.claude/agents/inngest-auditor.md
+  ef3f0fba836fc64e 1-69
+tests/test_base_generator.py
+  7b38bfc943a3f958 1-107
+frontend/src/lib/specialist-classifier.test.ts
+  7b38bfc943a3f958 1-66
+tests/test_config_invariants.py
+  7b38bfc943a3f958 1-37
+tests/test_matrix_manifest.py
+  7b38bfc943a3f958 1-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "f5fe08a48d665eb3accbe686fa790e4114d63f8c",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 1163,
+      "total_deletions": 27,
+      "accepted_lines": 1253,
+      "overriden_lines": 1
+    }
+  }
+}
