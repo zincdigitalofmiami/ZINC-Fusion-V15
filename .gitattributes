@@ -1,0 +1,40 @@
+# Binary model artifacts — skip diff, mark as generated
+*.pkl binary linguist-generated
+*.onnx binary linguist-generated
+*.pt binary linguist-generated
+*.bin binary linguist-generated
+*.joblib binary linguist-generated
+*.h5 binary linguist-generated
+*.safetensors binary linguist-generated
+
+# Data files
+*.parquet binary linguist-generated
+*.csv linguist-generated
+*.feather binary linguist-generated
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg linguist-vendored
+
+# Fonts
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Lock files — generated, skip review
+frontend/package-lock.json linguist-generated
+uv.lock linguist-generated
+
+# Prisma generated client — skip review
+prisma/generated/** linguist-generated
+
+# Test results — generated
+frontend/test-results/** linguist-generated
+
+# Model directories — treat everything in models/ as generated binary
+models/**/*.pkl binary linguist-generated

@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+pytestmark = pytest.mark.slow
+
 
 class TestVolatilityDataContract:
     """Test the volatility specialist's data contract enforcement."""

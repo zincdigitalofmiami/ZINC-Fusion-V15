@@ -11,6 +11,8 @@ import os
 import psycopg2
 import pytest
 
+pytestmark = pytest.mark.integration
+
 
 def test_database_query():
     """Test if database query works"""

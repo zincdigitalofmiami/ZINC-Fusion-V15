@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && filepath=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty') && if [ -n \"$filepath\" ] && [[ \"$filepath\" == *.py ]]; then ruff format --quiet \"$filepath\" 2>/dev/null; ruff check --fix --quiet \"$filepath\" 2>/dev/null; fi",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && filepath=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty') && if [ -n \"$filepath\" ]; then case \"$filepath\" in *.env|*.env.*|*/.env|*/.env.*) echo 'BLOCKED: Do not edit .env files directly. Use .envrc or ask the user.' >&2; exit 2;; */migration_lock.toml) echo 'BLOCKED: Do not edit Prisma migration lock directly.' >&2; exit 2;; esac; fi",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

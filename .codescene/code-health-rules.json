@@ -1,0 +1,99 @@
+{
+  "usage": "Persist this file inside your repositories as .codescene/code-health-rules.json",
+  "rule_sets": [
+    {
+      "matching_content_path": "scripts/**",
+      "matching_content_path_doc": "CLI scripts — one-off pipeline runners, allow slightly larger methods",
+      "rules": [
+        { "name": "Large Method", "weight": 0.5 },
+        { "name": "Bumpy Road Ahead", "weight": 0.7 }
+      ],
+      "thresholds": [
+        { "name": "function_cyclomatic_complexity_warning", "value": 20 }
+      ]
+    },
+    {
+      "matching_content_path": "src/fusion/features/**",
+      "matching_content_path_doc": "Feature engineering — inherently long transform chains, relax method size",
+      "rules": [
+        { "name": "Large Method", "weight": 0.5 }
+      ],
+      "thresholds": [
+        { "name": "function_cyclomatic_complexity_warning", "value": 18 }
+      ]
+    },
+    {
+      "matching_content_path": "src/fusion/validators/**",
+      "matching_content_path_doc": "Validation code — many conditionals by design, relax complexity",
+      "rules": [
+        { "name": "Complex Method", "weight": 0.5 },
+        { "name": "Bumpy Road Ahead", "weight": 0.5 }
+      ],
+      "thresholds": [
+        { "name": "function_cyclomatic_complexity_warning", "value": 25 }
+      ]
+    },
+    {
+      "matching_content_path": "src/fusion/specialists/**",
+      "matching_content_path_doc": "Specialist signal generators — domain-heavy compute methods",
+      "rules": [
+        { "name": "Large Method", "weight": 0.7 }
+      ],
+      "thresholds": [
+        { "name": "function_cyclomatic_complexity_warning", "value": 20 }
+      ]
+    },
+    {
+      "matching_content_path": "src/fusion/core_training/**",
+      "matching_content_path_doc": "Core training pipeline — critical path, keep all rules at full weight",
+      "rules": [],
+      "thresholds": []
+    },
+    {
+      "matching_content_path": "frontend/src/inngest/**",
+      "matching_content_path_doc": "Inngest serverless functions — data parsing, allow larger methods",
+      "rules": [
+        { "name": "Large Method", "weight": 0.5 }
+      ],
+      "thresholds": [
+        { "name": "function_cyclomatic_complexity_warning", "value": 20 }
+      ]
+    },
+    {
+      "matching_content_path": "frontend/src/app/**",
+      "matching_content_path_doc": "Next.js app routes and pages — full strictness for user-facing code",
+      "rules": [],
+      "thresholds": []
+    },
+    {
+      "matching_content_path": "frontend/src/components/**",
+      "matching_content_path_doc": "React components — full strictness",
+      "rules": [],
+      "thresholds": []
+    },
+    {
+      "matching_content_path": "frontend/src/lib/**",
+      "matching_content_path_doc": "Shared library code — full strictness",
+      "rules": [],
+      "thresholds": []
+    },
+    {
+      "matching_content_path": "frontend/e2e/**",
+      "matching_content_path_doc": "E2E tests — disable most rules",
+      "rules": [
+        { "name": "Large Method", "weight": 0.0 },
+        { "name": "Complex Method", "weight": 0.0 },
+        { "name": "Bumpy Road Ahead", "weight": 0.0 }
+      ]
+    },
+    {
+      "matching_content_path": "tests/**",
+      "matching_content_path_doc": "Python tests — relax method size and complexity",
+      "rules": [
+        { "name": "Large Method", "weight": 0.0 },
+        { "name": "Complex Method", "weight": 0.0 },
+        { "name": "Bumpy Road Ahead", "weight": 0.0 }
+      ]
+    }
+  ]
+}

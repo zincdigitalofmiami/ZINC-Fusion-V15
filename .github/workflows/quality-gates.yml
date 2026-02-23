@@ -95,8 +95,15 @@ jobs:
           printf '%s\n' "${CODE_FILES[@]}"
           python scripts/check_sql_table_references.py "${CODE_FILES[@]}"
 
-      - name: Pytest
-        run: pytest -q
+      - name: Pytest (unit)
+        run: pytest -m "not integration and not training" --cov=src/fusion --cov-report=term-missing --cov-fail-under=12
+
+      - name: Pytest (integration)
+        if: env.DATABASE_URL != ''
+        run: pytest -m integration -q
+
+      - name: Frontend unit tests
+        run: npm --prefix frontend run test:unit
 
       - name: TypeScript typecheck
         run: npx --prefix frontend tsc --noEmit -p frontend/tsconfig.json

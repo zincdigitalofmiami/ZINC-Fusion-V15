@@ -6,10 +6,9 @@
 Before ANY response, code, or analysis — Claude MUST execute this checklist in order:
 
 1. **Memory MCP** — Search memory for prior decisions, corrections, and architect context relevant to the current task. Query: task keywords + "ZINC-FUSION" + "Kirk".
-2. **Sequential Thinking MCP** — Use for any non-trivial question. Plan before acting.
-3. **Context7 MCP** — Fetch live library docs (AutoGluon, pandas, psycopg2, etc.) when writing or reviewing code that calls external APIs. NOT for internal project architecture questions.
+2. **Plan before acting** — Think through the task step-by-step before making changes.
 
-**If you skipped any of these and the task warranted them — you failed the protocol. Acknowledge it and run them before continuing.**
+**If memory MCP is unavailable, explicitly state it and continue with local evidence.**
 
 This is not optional. This is not situational. This runs every session.
 
@@ -189,34 +188,33 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 6. Minimal changes — fix root causes, avoid unrelated refactors
 7. Forward fill is OFF by default — requires explicit approval
 8. Say "I don't know" when uncertain
-9. Before committing, run `cubic review` to catch bugs — fix all P0/P1 issues before pushing
+9. Before pushing, open a PR to trigger cubic PR review — fix all P0/P1 issues before merging (cubic CLI requires paid plan; PR reviews work on free open source plan)
 
 ## MCP Server Rules (Workspace-Only — `.vscode/mcp.json`)
 
-Three MCP servers are configured for this workspace: **context7**, **memory**, **sequential-thinking**. All agents must follow these rules without exception.
+One MCP server is configured for this workspace: **memory**. All agents must follow these rules without exception.
 
 ### 8 Non-Negotiable Rules
 
-1. **THINK FIRST** — Must use sequential-thinking before writing any code. No exceptions.
+1. **THINK FIRST** — Must plan before writing any code. No exceptions.
 2. **MEMORY FIRST** — Must check memory at conversation start, must store decisions immediately during conversation.
-3. **CONTEXT7 FOR DOCS** — No relying on training data for any library. Fetch real docs via Context7 or don't answer.
+3. **SOURCE CHECK FOR DOCS** — No relying on stale assumptions for external APIs; verify against current primary docs when needed.
 4. **NO GOING ROGUE** — No unrequested changes, no surprise refactors, no "while I'm here" improvements.
 5. **CONFIRM DESTRUCTIVE ACTIONS** — Must state intent and wait before deleting, overwriting, migrating, etc.
 6. **ONE TASK AT A TIME** — Finish what was asked before touching anything else.
 7. **REPORT** — State every file touched and every change made.
-8. **NO GUESSING** — Don't know? Say so. Check memory → Context7 → ask Kirk.
+8. **NO GUESSING** — Don't know? Say so. Check memory and ask Kirk.
 
 ### Mandatory Execution Order
 
 Every task follows this sequence:
 
 ```
-Memory(search) → Sequential Thinking(plan) → Context7(docs) → Execute → Memory(store) → Report
+Memory(search) → Plan → Execute → Memory(store) → Report
 ```
 
 - **Memory search** — Check the knowledge graph for prior decisions, corrections, and context before doing anything.
-- **Sequential thinking** — Plan the approach step-by-step. No cowboying.
-- **Context7 docs** — If the task touches any library/framework, fetch current docs. Never rely on stale training data.
+- **Plan** — Work the approach step-by-step. No cowboying.
 - **Execute** — Implement the plan. One task at a time.
 - **Memory store** — Persist any new decisions, corrections, or architectural facts to the knowledge graph immediately.
 - **Report** — List every file touched, every change made, every decision taken.

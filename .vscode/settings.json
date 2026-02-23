@@ -10,7 +10,7 @@
 
   "editor.rulers": [88, 120],
   "editor.parameterHints.enabled": true,
-  "editor.hover.enabled": "on",
+  "editor.hover.enabled": true,
   "editor.suggestOnTriggerCharacters": true,
   "editor.quickSuggestions": {
     "other": true,
@@ -55,9 +55,7 @@
     "*.md": "markdown",
     "*.sql": "sql",
     "*.yaml": "yaml",
-    "CLAUDE.md": "markdown",
-    "AGENTS.md": "markdown",
-    ".clinerules": "markdown"
+    "AGENTS.md": "markdown"
   },
 
   "files.exclude": {
@@ -114,23 +112,22 @@
   "python.testing.pytestArgs": ["-q"],
   "python.testing.unittestEnabled": false,
   "chat.mcp.autostart": true,
-  "codescene.enableAutoRefactor": false,
+  "codescene.enableAutoRefactor": true,
+  "codescene.enableReviewCodeLenses": true,
 
   "github.copilot.chat.codeGeneration.instructions": [
-    { "file": ".github/copilot-instructions.md" }
+    { "file": "AGENTS.md" }
   ],
   "github.copilot.chat.reviewSelection.instructions": [
-    { "file": ".github/copilot-instructions.md" }
+    { "file": "AGENTS.md" }
   ],
   "github.copilot.chat.testGeneration.instructions": [
-    { "file": ".github/copilot-instructions.md" }
+    { "file": "AGENTS.md" }
   ],
-
-  "cline.customInstructions": "MANDATORY PRE-FLIGHT FOR EVERY RESPONSE — NO EXCEPTIONS:\n\nBefore answering ANY prompt, you MUST do these IN ORDER:\n1. Call memory MCP search_nodes with keywords from the request. Show what you found. ALWAYS.\n2. Read AGENTS.md fully before any work.\n\nYour response MUST begin with this block:\n\nPREFLIGHT:\n- Memory searched: [yes/no — what you found]\n\nIf this block is missing, you violated the rules. Start over.\n\nRULES (ZINC-FUSION-V15):\n- Read AGENTS.md fully before any work\n- 11 specialists — NEVER say 10. trump_effect is the 11th.\n- Target = future PRICE LEVEL close.shift(-horizon) named target_price_{h}d. Never returns.\n- Visualization = horizontal Target Zones. BANNED: cones, bands, funnels.\n- Probability: 'X% probability of this price area in N months' — always cite Monte Carlo + pinball + MAE/accuracy%\n- NEVER make unrequested changes. NEVER guess. ONE task at a time.\n- Store all decisions/corrections to memory IMMEDIATELY.",
 
   "chat.instructions": [
     {
-      "text": "MANDATORY PRE-FLIGHT FOR EVERY RESPONSE — NO EXCEPTIONS:\n\nBefore answering ANY prompt, you MUST do these IN ORDER:\n1. Call memory MCP search_nodes with keywords from the request. Show what you found. ALWAYS.\n2. Read AGENTS.md fully before any work.\n\nYour response MUST begin with this block:\n\nPREFLIGHT:\n- Memory searched: [yes/no — what you found]\n\nIf this block is missing, you violated the rules. Start over.\n\nRULES (ZINC-FUSION-V15):\n- Read AGENTS.md fully before any work\n- 11 specialists — NEVER say 10. trump_effect is the 11th.\n- Target = future PRICE LEVEL close.shift(-horizon) named target_price_{h}d. Never returns.\n- Visualization = horizontal Target Zones. BANNED: cones, bands, funnels.\n- Probability: 'X% probability of this price area in N months' — always cite Monte Carlo + pinball + MAE/accuracy%\n- NEVER make unrequested changes. NEVER guess. ONE task at a time.\n- Store all decisions/corrections to memory IMMEDIATELY."
+      "text": "Follow AGENTS.md as the single source of truth for architecture and terminology. If AGENTS.md conflicts with any other file, AGENTS.md wins. Use memory MCP when available; if it is unavailable, state that explicitly and continue with local evidence. Never fabricate schemas, files, tables, endpoints, or metrics. Make only requested changes and report every file touched."
     }
   ]
 }
