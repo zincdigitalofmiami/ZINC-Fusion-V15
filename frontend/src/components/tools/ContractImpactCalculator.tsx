@@ -1,68 +1,64 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Scale } from "lucide-react";
 
 type Horizon = "5d" | "21d" | "63d" | "126d";
 
-export function ContractImpactCalculator() {
+interface ForecastInput {
+  label: string;
+  days: number;
+  targetLow: number | null;
+  targetMid: number | null;
+  targetHigh: number | null;
+  source: 'model' | 'unavailable';
+}
+
+interface ContractImpactProps {
+  currentPrice?: number;
+  forecasts?: ForecastInput[];
+}
+
+const HORIZON_DAYS: Record<Horizon, number> = {
+  "5d": 5,
+  "21d": 21,
+  "63d": 63,
+  "126d": 126,
+};
+
+export function ContractImpactCalculator({ currentPrice = 0, forecasts = [] }: ContractImpactProps) {
   const [contracts, setContracts] = useState(1);
   const [horizon, setHorizon] = useState<Horizon>("63d");
   const POUNDS_PER_CONTRACT = 60000;
 
-  // Data sourced from COMPLETE_DATA_INVENTORY.md (Horizons & Models)
-  const SCENARIOS = {
-    "5d": {
-      label: "1 Week",
-      model: "Ensemble (Chronos2 + DeepAR)",
-      current: 48.25,
-      p10: 47.9,
-      p50: 48.4,
-      p90: 48.95,
-      trend: "Neutral",
-    },
-    "21d": {
-      label: "1 Month",
-      model: "WeightedEnsemble (L1)",
-      current: 48.25,
-      p10: 46.5,
-      p50: 49.1,
-      p90: 51.2,
-      trend: "Bullish",
-    },
-    "63d": {
-      label: "3 Months",
-      model: "DirectTabular (Quarterly)",
-      current: 48.25,
-      p10: 45.0,
-      p50: 49.8,
-      p90: 53.1,
-      trend: "Bullish",
-    },
-    "126d": {
-      label: "6 Months",
-      model: "Chronos2SmallFineTuned",
-      current: 48.25,
-      p10: 42.0,
-      p50: 47.5,
-      p90: 55.0,
-      trend: "High Vol",
-    },
-  };
+  // Map forecasts by days for quick lookup
+  const forecastByDays = useMemo(() => {
+    const map: Record<number, ForecastInput> = {};
+    for (const fc of forecasts) {
+      map[fc.days] = fc;
+    }
+    return map;
+  }, [forecasts]);
 
-  const currentScenario = SCENARIOS[horizon];
-  const { current, p10, p50, p90 } = currentScenario;
+  const targetDays = HORIZON_DAYS[horizon];
+  const fc = forecastByDays[targetDays];
+
+  const hasData = fc && fc.source === 'model' && fc.targetMid !== null && currentPrice > 0;
+
+  const p30 = fc?.targetLow ?? 0;
+  const p50 = fc?.targetMid ?? 0;
+  const p70 = fc?.targetHigh ?? 0;
 
   const calculatePnL = (forecastPrice: number) => {
-    const diff = forecastPrice - current; // cents/lb
+    const diff = forecastPrice - currentPrice; // cents/lb
     const diffDollars = diff / 100; // dollars/lb
     return diffDollars * (contracts * POUNDS_PER_CONTRACT);
   };
 
-  const pnlP10 = calculatePnL(p10);
+  const pnlP70 = calculatePnL(p70);
   const pnlP50 = calculatePnL(p50);
-  const pnlP90 = calculatePnL(p90);
+  const pnlP30 = calculatePnL(p30);
 
   const formatCurrency = (val: number) => {
     const sign = val >= 0 ? "+" : "";
@@ -91,7 +87,7 @@ export function ContractImpactCalculator() {
               Scenario Analysis
             </h3>
             <p className="text-xs text-slate-500">
-              PnL Simulation vs Confidence Bands
+              PnL Simulation — P30 / P50 / P70
             </p>
           </div>
         </div>
@@ -120,10 +116,13 @@ export function ContractImpactCalculator() {
         </div>
       </div>
 
+      {/* Current price context */}
       <div className="mb-4">
         <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono bg-white/5 p-2 rounded border border-white/5">
-          <span>ACTIVE MODEL:</span>
-          <span className="text-blue-400">{SCENARIOS[horizon].model}</span>
+          <span>CURRENT ZL:</span>
+          <span className="text-blue-400">
+            {currentPrice > 0 ? `$${currentPrice.toFixed(2)}` : '—'}
+          </span>
         </div>
       </div>
 
@@ -153,69 +152,75 @@ export function ContractImpactCalculator() {
       </div>
 
       {/* Scenarios */}
-      <div className="space-y-3">
-        {/* P90 Upside */}
-        <motion.div
-          key={`${horizon}-p90`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10"
-        >
-          <div>
-            <div className="text-xs text-emerald-500 font-bold uppercase tracking-wider">
-              Blue Sky (P90)
+      {hasData ? (
+        <div className="space-y-3">
+          {/* P70 Upside */}
+          <motion.div
+            key={`${horizon}-p70`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10"
+          >
+            <div>
+              <div className="text-xs text-emerald-500 font-bold uppercase tracking-wider">
+                Upside (P70)
+              </div>
+              <div className="text-[10px] text-emerald-500/60">
+                Price hits ${p70.toFixed(2)}
+              </div>
             </div>
-            <div className="text-[10px] text-emerald-500/60">
-              Price hits {p90.toFixed(2)}
+            <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP70)}`}>
+              {formatCurrency(pnlP70)}
             </div>
-          </div>
-          <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP90)}`}>
-            {formatCurrency(pnlP90)}
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* P50 Base */}
-        <motion.div
-          key={`${horizon}-p50`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-500/10"
-        >
-          <div>
-            <div className="text-xs text-blue-400 font-bold uppercase tracking-wider">
-              Base Case (P50)
+          {/* P50 Base */}
+          <motion.div
+            key={`${horizon}-p50`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-500/10"
+          >
+            <div>
+              <div className="text-xs text-blue-400 font-bold uppercase tracking-wider">
+                Base Case (P50)
+              </div>
+              <div className="text-[10px] text-blue-400/60">
+                Price hits ${p50.toFixed(2)}
+              </div>
             </div>
-            <div className="text-[10px] text-blue-400/60">
-              Price hits {p50.toFixed(2)}
+            <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP50)}`}>
+              {formatCurrency(pnlP50)}
             </div>
-          </div>
-          <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP50)}`}>
-            {formatCurrency(pnlP50)}
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* P10 Downside */}
-        <motion.div
-          key={`${horizon}-p10`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/10"
-        >
-          <div>
-            <div className="text-xs text-red-400 font-bold uppercase tracking-wider">
-              Downside Risk (P10)
+          {/* P30 Downside */}
+          <motion.div
+            key={`${horizon}-p30`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/10"
+          >
+            <div>
+              <div className="text-xs text-red-400 font-bold uppercase tracking-wider">
+                Downside (P30)
+              </div>
+              <div className="text-[10px] text-red-400/60">
+                Price hits ${p30.toFixed(2)}
+              </div>
             </div>
-            <div className="text-[10px] text-red-400/60">
-              Price hits {p10.toFixed(2)}
+            <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP30)}`}>
+              {formatCurrency(pnlP30)}
             </div>
-          </div>
-          <div className={`text-lg font-mono font-bold ${getPnlColor(pnlP10)}`}>
-            {formatCurrency(pnlP10)}
-          </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center py-8 text-sm text-slate-500">
+          No forecast data for {horizon.toUpperCase()} horizon
+        </div>
+      )}
     </div>
   );
 }

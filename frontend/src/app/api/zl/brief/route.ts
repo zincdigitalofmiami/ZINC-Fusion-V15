@@ -11,6 +11,9 @@ import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { calculateVixStress } from '@/lib/services/vix-service'
 import { calculateCrushPressure } from '@/lib/services/crush-service'
+import { calculateChinaTension } from '@/lib/services/china-service'
+import { calculateTariffThreat } from '@/lib/services/policy-service'
+import { fetchMarketDriversData } from '@/lib/services/market-drivers-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -196,7 +199,7 @@ function formatForecast(f: {horizon_days: number, price_p30: number, price_p50: 
     targetLow: f.price_p30,
     targetMid: f.price_p50,
     targetHigh: f.price_p70,
-    expectedChange: (change >= 0 ? '+' : '') + change.toFixed(2) + '¢',
+    expectedChange: (change >= 0 ? '+$' : '-$') + Math.abs(change).toFixed(2),
     expectedChangePct: (changePct >= 0 ? '+' : '') + changePct.toFixed(1) + '%',
     direction: changePct > 2 ? 'UP' : changePct < -2 ? 'DOWN' : 'FLAT',
     source: 'model'
@@ -221,46 +224,43 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
   const dataIssues: string[] = []
 
   try {
-    // VIX data - from econ.vol_indices_1d (with date for freshness check)
-    const vixData = await query<{value: number, event_date: string}>(`
-      SELECT value::float8, event_date::text FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS'
-      AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1
-    `)
+    // Fetch ALL market driver data via the shared data layer (23 parallel queries)
+    // Plus Trump Effect data (specialist signal + action score)
+    const [rawData, trumpSignalData, trumpActionData] = await Promise.all([
+      fetchMarketDriversData(),
+      query<{signal: number, as_of_date: string}>(`
+        SELECT signal_1::float8 as signal, as_of_date::text
+        FROM training.specialist_signals_1d
+        WHERE bucket = 'trump_effect' AND as_of_date >= CURRENT_DATE - INTERVAL '45 days' AND abstained = false
+        ORDER BY as_of_date DESC LIMIT 1
+      `).catch(() => [] as {signal: number, as_of_date: string}[]),
+      query<{score: number, as_of_date: string}>(`
+        SELECT (features->>'weighted_action_score')::float8 as score, as_of_date::text
+        FROM training.specialist_features_trump_effect
+        ORDER BY as_of_date DESC LIMIT 1
+      `).catch(() => [] as {score: number, as_of_date: string}[])
+    ])
 
-    // Crush margin - from analytics.board_crush_1d
-    const crushData = await query<{board_crush: number, oil_share: number, trade_date: string}>(`
-      SELECT board_crush::float8 as board_crush, oil_share::float8 as oil_share, trade_date::text
-      FROM analytics.board_crush_1d WHERE board_crush IS NOT NULL
-      ORDER BY trade_date DESC LIMIT 1
-    `)
+    // Extract values from rawData
+    const vix = rawData.vix
+    const vixDate = rawData.vixDate
+    const crush = rawData.crush
+    const crushDate = rawData.crushDate
+    const cny = rawData.cnyRate
+    const cnyDate = rawData.cnyDate
+    const tpu = rawData.tpu
+    const tpuDate = rawData.tpuDate
 
-    // CNY rate - from mkt.fx_1d
-    const cnyData = await query<{rate: number, event_date: string}>(`
-      SELECT rate::float8, event_date::text FROM mkt.fx_1d WHERE pair IN ('USD/CNY', 'USDCNY')
-      AND rate IS NOT NULL ORDER BY event_date DESC LIMIT 1
-    `)
-
-    // Trade policy uncertainty - from econ.vol_indices_1d
-    const tpuData = await query<{value: number, event_date: string}>(`
-      SELECT value::float8, event_date::text FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM'
-      AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1
-    `)
-
-    // Extract values - track what's missing
-    const vix = vixData[0]?.value ?? null
-    const vixDate = vixData[0]?.event_date ?? null
-    const crush = crushData[0]?.board_crush ?? null
-    const crushDate = crushData[0]?.trade_date ?? null
-    const cny = cnyData[0]?.rate ?? null
-    const cnyDate = cnyData[0]?.event_date ?? null
-    const tpu = tpuData[0]?.value ?? null
-    const tpuDate = tpuData[0]?.event_date ?? null
+    // Trump Effect data
+    const trumpAction = trumpActionData[0]?.score ?? null
+    const trumpDate = trumpActionData[0]?.as_of_date ?? trumpSignalData[0]?.as_of_date ?? null
 
     // Track missing data
     if (!vix) dataIssues.push('VIX data unavailable')
     if (!crush) dataIssues.push('Crush margin data unavailable')
     if (!cny) dataIssues.push('CNY/USD rate unavailable')
     if (!tpu) dataIssues.push('Trade policy index unavailable')
+    if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
 
     // Check data freshness (warn if > 3 days old)
     const today = new Date()
@@ -275,26 +275,31 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       return 'live'
     }
 
-    // Score calculations — use the same service functions as /api/market-drivers
-    // VIX and Crush use the full multi-component scorers (nulls handled gracefully).
-    // China and Tariff use simplified scoring (no dedicated service module).
+    // Score calculations — FULL multi-component scorers matching /api/market-drivers
     const vixScore = vix !== null
-      ? calculateVixStress(vix, null, null, null, null, 0, null).score
+      ? calculateVixStress(vix, rawData.vix3m, rawData.ovx, rawData.realizedVol,
+          rawData.vixZlCorr, rawData.hedgeCount, rawData.volSignal).score
       : null
     const crushScore = crush !== null
-      ? calculateCrushPressure(crush, null, null, null).score
+      ? calculateCrushPressure(crush, rawData.oilShare, rawData.oilShare5dAgo,
+          rawData.crushSignal).score
       : null
-    // CNY scoring: weaker yuan (higher CNY/USD) = bearish for US soy exports = higher score
     const chinaScore = cny !== null
-      ? (cny > 7.3 ? 70 : cny > 7.2 ? 55 : cny > 7.0 ? 40 : 30)
+      ? calculateChinaTension(rawData.fxiChange20d, rawData.fxiChange5d, cny,
+          rawData.cnyChange20d, rawData.bdryChange20d, rawData.soyChinaNews,
+          rawData.totalNews, rawData.chinaSignal).score
       : null
-    // TPU scoring: higher uncertainty = higher risk score
     const tariffScore = tpu !== null
-      ? (tpu > 200 ? 80 : tpu > 150 ? 60 : tpu > 100 ? 45 : 30)
+      ? calculateTariffThreat(tpu, rawData.emv, rawData.legislationCount,
+          rawData.soyTariffNews, rawData.tariffSignal).score
+      : null
+    // Trump Effect: weighted_action_score (0–2 scale) → 0–100
+    const trumpScore = trumpAction !== null
+      ? Math.min(100, Math.round(trumpAction * 50))
       : null
 
     // Only average scores that actually have data
-    const validScores = [vixScore, crushScore, chinaScore, tariffScore].filter((s): s is number => s !== null)
+    const validScores = [vixScore, crushScore, chinaScore, tariffScore, trumpScore].filter((s): s is number => s !== null)
     const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0
 
     const drivers: DriverSummary[] = [
@@ -336,7 +341,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         source: checkFreshness(cnyDate, 'CNY')
       },
       {
-        name: 'Trade',
+        name: 'Tariffs',
         score: tariffScore ?? 0,
         status: tariffScore === null ? 'NO DATA' : tariffScore >= 65 ? 'WAR RISK' : tariffScore >= 50 ? 'NOISY' : 'QUIET',
         impact: tariffScore === null ? 'Policy index unavailable — score excluded from average' :
@@ -346,14 +351,27 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         unit: 'index',
         asOfDate: tpuDate,
         source: checkFreshness(tpuDate, 'TPU')
+      },
+      {
+        name: 'Trump Effect',
+        score: trumpScore ?? 0,
+        status: trumpScore === null ? 'NO DATA' : trumpScore >= 65 ? 'HIGH IMPACT' : trumpScore >= 40 ? 'ELEVATED' : 'LOW',
+        impact: trumpScore === null ? 'Trump Effect data unavailable — score excluded from average' :
+                trumpScore >= 65 ? `Action velocity high (${trumpAction!.toFixed(2)}) - executive actions disrupting markets` :
+                trumpScore >= 40 ? `Moderate activity (${trumpAction!.toFixed(2)}) - watch for escalation` :
+                `Low action velocity (${trumpAction!.toFixed(2)}) - policy stable`,
+        rawValue: trumpAction,
+        unit: 'action score',
+        asOfDate: trumpDate,
+        source: checkFreshness(trumpDate, 'Trump Effect')
       }
     ]
 
-    const missingCount = 4 - validScores.length
-    const summary = missingCount >= 3
-      ? `${missingCount} of 4 drivers have no data. Brief is unreliable.`
+    const missingCount = 5 - validScores.length
+    const summary = missingCount >= 4
+      ? `${missingCount} of 5 drivers have no data. Brief is unreliable.`
       : dataIssues.length > 2
-      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores based on ${validScores.length}/4 drivers.`
+      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores based on ${validScores.length}/5 drivers.`
       : avgScore >= 60
       ? 'Multiple headwinds. Markets nervous, trade uncertain.'
       : avgScore <= 40
@@ -369,7 +387,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         { name: 'Markets', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'VIX points', asOfDate: null, source: 'unavailable' },
         { name: 'Crush', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/bushel', asOfDate: null, source: 'unavailable' },
         { name: 'China', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'CNY/USD', asOfDate: null, source: 'unavailable' },
-        { name: 'Trade', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' }
+        { name: 'Tariffs', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' },
+        { name: 'Trump Effect', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'action score', asOfDate: null, source: 'unavailable' }
       ],
       avgScore: 0,
       summary: 'DATABASE ERROR: Unable to fetch driver data. Do not rely on this brief.',
@@ -419,7 +438,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
       // ZL vs VIX (inverse relationship expected)
       query<{corr: number}>(`
         WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
-                    FROM analytics.price_1d ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
              vix AS (SELECT event_date, LN(value / NULLIF(LAG(value) OVER (ORDER BY event_date), 0)) as ret
                      FROM econ.vol_indices_1d WHERE series_id = 'VIXCLS' ORDER BY event_date DESC LIMIT ${LOOKBACK})
         SELECT CORR(zl.ret, vix.ret)::float8 as corr FROM zl JOIN vix ON zl.event_date = vix.event_date
@@ -434,10 +453,20 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
                     FROM mkt.futures_1d WHERE symbol = 'ZC' ORDER BY event_date DESC LIMIT ${LOOKBACK})
         SELECT CORR(zl.ret, zc.ret)::float8 as corr FROM zl JOIN zc ON zl.event_date = zc.event_date
         WHERE zl.ret IS NOT NULL AND zc.ret IS NOT NULL
+      `).catch(() => [{ corr: null }]),
+
+      // ZL vs Palm Oil (CPO) - global substitution competitor
+      query<{corr: number}>(`
+        WITH zl AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                    FROM mkt.futures_1d WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT ${LOOKBACK}),
+             cpo AS (SELECT event_date, LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as ret
+                     FROM mkt.futures_1d WHERE symbol = 'CPO' ORDER BY event_date DESC LIMIT ${LOOKBACK})
+        SELECT CORR(zl.ret, cpo.ret)::float8 as corr FROM zl JOIN cpo ON zl.event_date = cpo.event_date
+        WHERE zl.ret IS NOT NULL AND cpo.ret IS NOT NULL
       `).catch(() => [{ corr: null }])
     ])
 
-    const [zmCorr, zsCorr, clCorr, vixCorr, zcCorr] = correlationQueries.map(r => r[0]?.corr ?? null)
+    const [zmCorr, zsCorr, clCorr, vixCorr, zcCorr, cpoCorr] = correlationQueries.map(r => r[0]?.corr ?? null)
 
     const formatDirection = (corr: number | null): string => {
       if (corr === null) return 'No data'
@@ -500,6 +529,16 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
           : 'Oil trading on its own fundamentals vs corn.',
         lookbackDays: LOOKBACK,
         source: zcCorr !== null ? 'calculated' : 'unavailable'
+      },
+      {
+        asset: 'Palm Oil (CPO)',
+        correlation: cpoCorr,
+        direction: formatDirection(cpoCorr),
+        implication: cpoCorr !== null && cpoCorr > 0.4
+          ? 'Global substitution link active. Palm and soy oil moving together.'
+          : 'Substitution link weak. Regional factors dominating.',
+        lookbackDays: LOOKBACK,
+        source: cpoCorr !== null ? 'calculated' : 'unavailable'
       }
     ]
   } catch (e) {
@@ -510,7 +549,8 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
       { asset: 'Soybeans (ZS)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
       { asset: 'Crude Oil (CL)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
       { asset: 'VIX (Fear Index)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
-      { asset: 'Corn (ZC)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' }
+      { asset: 'Corn (ZC)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
+      { asset: 'Palm Oil (CPO)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' }
     ]
   }
 }
@@ -536,7 +576,7 @@ function generateTLDR(
   const f1m = fcHorizons.find(f => f.days === 21) || fcHorizons[1]
   const f6m = fcHorizons.find(f => f.days === 126) || fcHorizons[3]
 
-  const priceDesc = `Soybean oil (ZL) at ${price.current.toFixed(2)}¢/lb`
+  const priceDesc = `Soybean oil (ZL) at $${price.current.toFixed(2)}/lb`
   const change = price.changePct >= 0
     ? `up ${price.changePct.toFixed(1)}% today`
     : `down ${Math.abs(price.changePct).toFixed(1)}% today`
@@ -555,8 +595,8 @@ function generateTLDR(
   // Build forecast summary only if model data available
   let forecastSummary: string
   if (f1m?.targetMid !== null && f6m?.targetMid !== null) {
-    forecastSummary = `1-month target: ${f1m.targetMid.toFixed(1)}¢ (${f1m.expectedChangePct}). ` +
-      `6-month target: ${f6m.targetMid.toFixed(1)}¢ (${f6m.expectedChangePct}).`
+    forecastSummary = `1-month target: $${f1m.targetMid.toFixed(2)} (${f1m.expectedChangePct}). ` +
+      `6-month target: $${f6m.targetMid.toFixed(2)} (${f6m.expectedChangePct}).`
   } else {
     forecastSummary = `Model forecasts not yet available - prices based on current drivers only.`
   }
@@ -586,7 +626,7 @@ function getKeyRisks(driverData: {drivers: DriverSummary[], avgScore: number}): 
   const risks: string[] = []
 
   const vix = driverData.drivers.find(d => d.name === 'Markets')
-  const tariff = driverData.drivers.find(d => d.name === 'Trade')
+  const tariff = driverData.drivers.find(d => d.name === 'Tariffs')
   const china = driverData.drivers.find(d => d.name === 'China')
   const crush = driverData.drivers.find(d => d.name === 'Crush')
 

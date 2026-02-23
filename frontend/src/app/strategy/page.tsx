@@ -43,6 +43,15 @@ interface DriverSummary {
   source: 'live' | 'stale' | 'unavailable';
 }
 
+interface CorrelationSummary {
+  asset: string;
+  correlation: number | null;
+  direction: string;
+  implication: string;
+  lookbackDays: number;
+  source: 'calculated' | 'unavailable';
+}
+
 interface BriefData {
   generatedAt: string;
   asOfDate: string;
@@ -54,6 +63,7 @@ interface BriefData {
   forecastsAvailable: boolean;
   drivers: DriverSummary[];
   driversSummary: string;
+  correlations: CorrelationSummary[];
   keyRisks: string[];
   keyPositives: string[];
   dataIssues: string[];
@@ -124,7 +134,7 @@ export default function StrategyPage() {
         const items: { title: string; detail: string; primary: boolean }[] = [];
 
         if (brief.recommendation === 'LOCK IN COVERAGE' || brief.recommendation === 'BUY NOW') {
-          items.push({ title: 'Lock In Coverage', detail: `Price at ${brief.price.current.toFixed(2)}¢`, primary: true });
+          items.push({ title: 'Lock In Coverage', detail: `Price at $${brief.price.current.toFixed(2)}`, primary: true });
         } else if (brief.recommendation === 'WAIT') {
           items.push({ title: 'Hold Off Buying', detail: 'Headwinds detected', primary: true });
         } else if (brief.recommendation === 'NORMAL SCHEDULE') {
@@ -290,7 +300,7 @@ export default function StrategyPage() {
 
       {/* Driver Scores Strip */}
       {brief && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           {brief.drivers.map((driver) => {
             const scoreColor = driver.source === 'unavailable' ? 'text-slate-600'
               : driver.score >= 65 ? 'text-red-400'
@@ -351,7 +361,7 @@ export default function StrategyPage() {
                   {fc.source === 'model' && fc.targetMid !== null ? (
                     <>
                       <div className="text-2xl font-bold text-white font-mono mb-1">
-                        {fc.targetMid.toFixed(1)}¢
+                        ${fc.targetMid.toFixed(2)}
                       </div>
                       <div className="flex items-center gap-1.5 mb-3">
                         <DirectionIcon size={14} className={dirColor} />
@@ -361,7 +371,7 @@ export default function StrategyPage() {
                       </div>
                       {fc.targetLow !== null && fc.targetHigh !== null && (
                         <div className="text-[10px] text-slate-600 font-mono">
-                          Range: {fc.targetLow.toFixed(1)} — {fc.targetHigh.toFixed(1)}¢
+                          Range: ${fc.targetLow.toFixed(2)} — ${fc.targetHigh.toFixed(2)}
                         </div>
                       )}
                     </>
@@ -395,7 +405,7 @@ export default function StrategyPage() {
 
         <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
-          <FusionBrain />
+          <FusionBrain drivers={brief?.drivers} correlations={brief?.correlations} />
         </div>
       </div>
 
@@ -403,7 +413,10 @@ export default function StrategyPage() {
       <div className="grid grid-cols-12 gap-6 mb-8">
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ContractImpactCalculator />
+            <ContractImpactCalculator
+              currentPrice={brief?.price.current}
+              forecasts={brief?.forecasts}
+            />
             <FactorWaterfall
               prevPrice={brief?.price.previousClose ?? 0}
               currentPrice={brief?.price.current ?? 0}

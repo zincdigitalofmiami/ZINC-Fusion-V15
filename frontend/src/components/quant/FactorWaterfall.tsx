@@ -71,7 +71,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
         <div className="text-right">
           <div className="text-xs text-slate-500 font-mono mb-1">NET CHANGE</div>
           <div className={`text-lg font-mono font-bold ${(currentPrice - prevPrice) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {(currentPrice - prevPrice) > 0 ? '+' : ''}{(currentPrice - prevPrice).toFixed(2)}¢
+            {(currentPrice - prevPrice) >= 0 ? '+$' : '-$'}{Math.abs(currentPrice - prevPrice).toFixed(2)}
           </div>
         </div>
       </div>

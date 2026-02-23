@@ -68,10 +68,6 @@ export function RegimeAnalysisChart({
   useEffect(() => {
     if (!chartContainerRef.current || priceData.length === 0) return
 
-    if (chartRef.current) {
-      chartRef.current.remove()
-    }
-
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: height,
@@ -239,6 +235,7 @@ export function RegimeAnalysisChart({
     return () => {
       resizeObserver.disconnect()
       chart.remove()
+      chartRef.current = null
     }
   }, [priceData, height])
 
