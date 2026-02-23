@@ -1,0 +1,23 @@
+frontend/src/app/strategy/page.tsx
+  7b38bfc943a3f958 10,150,153-155,291-377,420-436,440-447,451-454,456-457,459-460,463
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "c630d0c036c577225209926f344fba07f29eed8e",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 134,
+      "total_deletions": 34,
+      "accepted_lines": 126,
+      "overriden_lines": 0
+    }
+  }
+}
