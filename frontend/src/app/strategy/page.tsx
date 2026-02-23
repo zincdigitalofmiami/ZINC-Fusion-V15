@@ -7,7 +7,7 @@ import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalcu
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // Brief API types
 interface PriceSummary {
@@ -147,10 +147,12 @@ export default function StrategyPage() {
       })()
     : [];
 
-  // Build risk cards from keyRisks
+  // Build risk cards from keyRisks — extract a short label from the first phrase
   const riskCards = brief?.keyRisks.slice(0, 3).map((risk, i) => {
     const colors = RISK_COLORS[i % RISK_COLORS.length];
-    const label = risk.split(' — ')[0].split(' - ')[0].toUpperCase().slice(0, 20);
+    // Extract first 2-3 words as label, fallback to first 25 chars
+    const words = risk.split(/[\s—\-,]+/).filter(Boolean);
+    const label = words.slice(0, 3).join(' ').toUpperCase();
     return { label, text: risk, colors };
   }) ?? [];
 
@@ -286,6 +288,93 @@ export default function StrategyPage() {
         </div>
       </div>
 
+      {/* Driver Scores Strip */}
+      {brief && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {brief.drivers.map((driver) => {
+            const scoreColor = driver.source === 'unavailable' ? 'text-slate-600'
+              : driver.score >= 65 ? 'text-red-400'
+              : driver.score >= 50 ? 'text-amber-400'
+              : driver.score >= 35 ? 'text-yellow-400'
+              : 'text-emerald-400';
+            const barColor = driver.source === 'unavailable' ? 'bg-slate-700'
+              : driver.score >= 65 ? 'bg-red-500'
+              : driver.score >= 50 ? 'bg-amber-500'
+              : driver.score >= 35 ? 'bg-yellow-500'
+              : 'bg-emerald-500';
+            return (
+              <div key={driver.name} className="bg-[#0a0a0a] border border-white/5 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">{driver.name}</span>
+                  <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${
+                    driver.source === 'stale' ? 'bg-amber-500/10 text-amber-400' :
+                    driver.source === 'unavailable' ? 'bg-slate-500/10 text-slate-500' :
+                    'bg-white/5 text-slate-400'
+                  }`}>
+                    {driver.source === 'stale' ? 'STALE' : driver.source === 'unavailable' ? 'N/A' : driver.status}
+                  </span>
+                </div>
+                <div className={`text-2xl font-bold font-mono mb-2 ${scoreColor}`}>
+                  {driver.source === 'unavailable' ? '—' : driver.score}
+                </div>
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                    style={{ width: `${driver.source === 'unavailable' ? 0 : driver.score}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-slate-600 leading-tight line-clamp-2">
+                  {driver.impact.split('.')[0]}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Forecast Targets */}
+      {brief && brief.forecastsAvailable && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-blue-500">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              Target Zones
+            </h3>
+            <span className="text-[10px] text-slate-500 font-mono">Model Forecasts</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {brief.forecasts.map((fc) => {
+              const DirectionIcon = fc.direction === 'UP' ? TrendingUp : fc.direction === 'DOWN' ? TrendingDown : Minus;
+              const dirColor = fc.direction === 'UP' ? 'text-emerald-400' : fc.direction === 'DOWN' ? 'text-red-400' : 'text-slate-400';
+              return (
+                <div key={fc.days} className="bg-[#0a0a0a] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-colors">
+                  <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-3">{fc.label}</div>
+                  {fc.source === 'model' && fc.targetMid !== null ? (
+                    <>
+                      <div className="text-2xl font-bold text-white font-mono mb-1">
+                        {fc.targetMid.toFixed(1)}¢
+                      </div>
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <DirectionIcon size={14} className={dirColor} />
+                        <span className={`text-sm font-bold font-mono ${dirColor}`}>
+                          {fc.expectedChangePct}
+                        </span>
+                      </div>
+                      {fc.targetLow !== null && fc.targetHigh !== null && (
+                        <div className="text-[10px] text-slate-600 font-mono">
+                          Range: {fc.targetLow.toFixed(1)} — {fc.targetHigh.toFixed(1)}¢
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-lg text-slate-600 font-mono">—</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Regime Analysis Chart */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-purple-500">
@@ -328,40 +417,51 @@ export default function StrategyPage() {
         </div>
       </div>
 
-      {/* Risk Footer — driven by keyRisks from brief API */}
-      {riskCards.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {riskCards.map((card, i) => {
-            const IconComponent = card.colors.icon;
-            return (
-              <div key={i} className={`p-4 rounded-xl border ${card.colors.border} ${card.colors.bg}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <IconComponent size={14} className={card.colors.text} />
-                  <span className={`text-xs font-bold ${card.colors.text}`}>{card.label}</span>
+      {/* Risk & Tailwind Footer */}
+      {brief && (riskCards.length > 0 || brief.keyPositives.length > 0) && (
+        <div className="space-y-4">
+          {/* Section label */}
+          <div className="flex items-center gap-2 pl-1 border-l-4 border-red-500">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              Risk & Tailwinds
+            </h3>
+          </div>
+
+          {/* Combined grid — risks then tailwinds, auto-fit columns */}
+          <div className={`grid gap-4 ${
+            riskCards.length + Math.min(brief.keyPositives.length, 2) >= 3
+              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              : 'grid-cols-1 md:grid-cols-2'
+          }`}>
+            {/* Risk cards */}
+            {riskCards.map((card, i) => {
+              const IconComponent = card.colors.icon;
+              return (
+                <div key={`risk-${i}`} className={`p-4 rounded-xl border ${card.colors.border} ${card.colors.bg}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <IconComponent size={14} className={card.colors.text} />
+                    <span className={`text-xs font-bold ${card.colors.text}`}>{card.label}</span>
+                  </div>
+                  <p className={`text-[11px] ${card.colors.textMuted} leading-relaxed`}>
+                    {card.text}
+                  </p>
                 </div>
-                <p className={`text-[11px] ${card.colors.textMuted} leading-relaxed`}>
-                  {card.text}
+              );
+            })}
+
+            {/* Tailwind cards — fill remaining grid slots */}
+            {brief.keyPositives.slice(0, Math.max(1, 3 - riskCards.length)).map((positive, i) => (
+              <div key={`pos-${i}`} className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield size={14} className="text-emerald-400" />
+                  <span className="text-xs font-bold text-emerald-400">TAILWIND</span>
+                </div>
+                <p className="text-[11px] text-emerald-300/60 leading-relaxed">
+                  {positive}
                 </p>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Key Positives */}
-      {brief && brief.keyPositives.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {brief.keyPositives.slice(0, 2).map((positive, i) => (
-            <div key={i} className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={14} className="text-emerald-400" />
-                <span className="text-xs font-bold text-emerald-400">TAILWIND</span>
-              </div>
-              <p className="text-[11px] text-emerald-300/60 leading-relaxed">
-                {positive}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
