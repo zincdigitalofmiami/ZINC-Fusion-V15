@@ -1,0 +1,44 @@
+frontend/src/inngest/cftc-weekly.ts
+  9ebfb05d29a4008e 32-50,130-140,142-149,258-300
+frontend/src/inngest/freshness-monitor.ts
+  9ebfb05d29a4008e 10,12,15-17,76-125
+frontend/src/lib/services/market-drivers-queries.ts
+  9ebfb05d29a4008e 413-467
+frontend/src/app/api/zl/brief/route.ts
+  9ebfb05d29a4008e 99-102,269,271,275-276,320,333,345,357,370,721-731,754-758
+frontend/src/inngest/fx-spot-daily.ts
+  9ebfb05d29a4008e 108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "70c21514bffab971742e9ea07232bdd902c35457",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 235,
+      "overriden_lines": 0
+    },
+    "9ebfb05d29a4008e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6dced10b-7552-4268-9e1f-c510ec056ab2",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 223,
+      "total_deletions": 23,
+      "accepted_lines": 222,
+      "overriden_lines": 0
+    }
+  }
+}
