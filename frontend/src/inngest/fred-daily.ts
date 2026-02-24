@@ -266,6 +266,11 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "VXEEMCLS", name: "EM ETF Volatility Index", tags: ["volatility", "china", "trump_effect"] },
   { id: "VXFXICLS", name: "China ETF (FXI) Volatility", tags: ["volatility", "china", "trump_effect"] },  // Discontinued but has history
   { id: "EVZCLS", name: "EuroCurrency Volatility Index", tags: ["volatility", "fx", "trump_effect"] },  // Discontinued but has history
+  // Cross-asset CBOE VIX indices — risk regime / correlation drivers
+  { id: "VXNCLS", name: "CBOE Nasdaq 100 VIX", tags: ["volatility"] },
+  { id: "RVXCLS", name: "CBOE Russell 2000 VIX", tags: ["volatility"] },
+  { id: "VXDCLS", name: "CBOE DJIA VIX", tags: ["volatility"] },
+  { id: "VXEWZCLS", name: "CBOE Brazil ETF VIX", tags: ["volatility", "china", "crush"] },  // EM soy proxy
   // Financial stress (weekly) - credit conditions, demand destruction risk
   // NOTE: STLFSI discontinued 2020, TEDRATE discontinued 2022 - using replacements
   { id: "STLFSI4", name: "St. Louis Financial Stress Index", tags: ["volatility", "fed"] },
@@ -409,6 +414,10 @@ const FRED_TABLE_MAP: Record<string, string> = {
   VXEEMCLS: "econ.vol_indices_1d",  // EM ETF Volatility
   VXFXICLS: "econ.vol_indices_1d",  // China ETF Volatility (discontinued)
   EVZCLS: "econ.vol_indices_1d",    // EuroCurrency Volatility (discontinued)
+  VXNCLS: "econ.vol_indices_1d",    // Nasdaq 100 VIX
+  RVXCLS: "econ.vol_indices_1d",    // Russell 2000 VIX
+  VXDCLS: "econ.vol_indices_1d",    // DJIA VIX
+  VXEWZCLS: "econ.vol_indices_1d",  // Brazil ETF VIX
   SP500: "econ.vol_indices_1d",
   NASDAQCOM: "econ.vol_indices_1d",
   USEPUINDXD: "econ.vol_indices_1d",
