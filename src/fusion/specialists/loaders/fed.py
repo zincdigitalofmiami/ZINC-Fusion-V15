@@ -96,7 +96,7 @@ def load_fed_data(
         logger.info(f"  Inflation expectations loaded: {list(pivot.columns)}")
 
     # ==========================================================================
-    # 3. FINANCIAL CONDITIONS (econ.vol_indices_1d) - NFCI, credit spreads
+    # 3. FINANCIAL CONDITIONS (econ.vol_indices_1d) - NFCI, credit spreads, EMV
     # ==========================================================================
     # NOTE: NFCI is weekly (released Thursdays) - will have NaN on non-release days
     # NOTE: BAMLH0A0HYM2 (HY spread) replaces discontinued TEDRATE
@@ -105,7 +105,18 @@ def load_fed_data(
     FROM econ.vol_indices_1d
     WHERE series_id IN (
         'NFCI', 'ANFCI', 'STLFSI4',  -- Financial stress (weekly)
-        'BAMLH0A0HYM2', 'BAMLC0A0CM'  -- Credit spreads (daily)
+        'BAMLH0A0HYM2', 'BAMLC0A0CM',  -- Credit spreads (daily)
+        'VIXCLS',                       -- Market volatility (daily)
+        -- EMV monetary policy trackers (directly relevant to Fed specialist)
+        'EMVMONETARYPOL',    -- Monetary policy uncertainty
+        'EMVMACROINTEREST',  -- Interest rate macro uncertainty
+        'EMVMACROINFLATION', -- Inflation macro uncertainty
+        'EMVFISCALPOL',      -- Fiscal policy uncertainty
+        'EMVFINCRISES',      -- Financial crises uncertainty
+        -- EPU subcategories
+        'USEPUINDXD',        -- US EPU daily
+        'USEPUINDXM',        -- US EPU monthly
+        'EPUFINREG'          -- Financial regulation uncertainty
     )
     ORDER BY event_date, series_id
     """
@@ -124,6 +135,36 @@ def load_fed_data(
             logger.info(
                 f"  NFCI coverage: {nfci_coverage:.1f}% (weekly release - expected ~20%)"
             )
+
+    # ==========================================================================
+    # 4. LABOR MARKET (econ.labor_1d) - Fed dual mandate inputs
+    # ==========================================================================
+    labor_query = """
+    SELECT event_date as trade_date, series_id, value
+    FROM econ.labor_1d
+    WHERE series_id IN (
+        'UNRATE',      -- Unemployment rate (monthly)
+        'PAYEMS',      -- Total nonfarm payrolls (monthly)
+        'ICSA',        -- Initial jobless claims (weekly)
+        'CCSA',        -- Continued jobless claims (weekly)
+        'AWHMAN',      -- Avg weekly hours manufacturing (monthly)
+        'CES0500000003' -- Avg hourly earnings (monthly)
+    )
+    ORDER BY event_date, series_id
+    """
+    try:
+        labor_df = pd.read_sql(labor_query, conn)
+        if not labor_df.empty:
+            labor_df["trade_date"] = pd.to_datetime(labor_df["trade_date"])
+            pivot = labor_df.pivot(
+                index="trade_date", columns="series_id", values="value"
+            )
+            pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
+            for c in pivot.columns:
+                result[c] = pivot.reindex(result.index)[c]
+            logger.info(f"  Labor market: {len(pivot.columns)} series loaded")
+    except Exception as e:
+        logger.warning(f"Labor data unavailable: {e}")
 
     conn.close()
 

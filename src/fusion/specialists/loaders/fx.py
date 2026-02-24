@@ -64,7 +64,16 @@ def load_fx_data(
         -- Financial Conditions
         'NFCI', 'VIXCLS',
         -- Foreign Interest Rates (for direct carry calc)
-        'IR3TIB01CNM156N', 'IR3TIB01BRM156N', 'IR3TIB01MXM156N', 'IR3TIB01JPM156N'
+        'IR3TIB01CNM156N', 'IR3TIB01BRM156N', 'IR3TIB01MXM156N', 'IR3TIB01JPM156N',
+        -- EMV exchange rate & trade policy uncertainty (added 2026-02-24)
+        'EMVEXRATES',       -- Exchange rate uncertainty
+        'EMVTRADEPOLEMV',   -- Trade policy uncertainty (affects FX flows)
+        'EMVCOMMMKT',       -- Commodity market uncertainty (commodity FX)
+        -- Global policy uncertainty
+        'GEPUCURRENT',      -- Global EPU current
+        'EUEPUINDXM',       -- EU EPU monthly
+        'CHNMAINLANDEPU',   -- China EPU
+        'USEPUINDXD'        -- US EPU daily
     )
     ORDER BY event_date, series_id
     """

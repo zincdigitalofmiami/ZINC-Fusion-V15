@@ -138,6 +138,71 @@ def load_crush_data(
                 pc_ratio = put_vol / call_vol.replace(0, np.nan)
                 result[f"{ul_lower}_put_call_ratio"] = pc_ratio
 
+    # ==========================================================================
+    # Board Crush analytics — pre-computed crush spread + oil share (added 2026-02-24)
+    # ==========================================================================
+    crush_query = """
+    SELECT trade_date, board_crush, oil_share
+    FROM analytics.board_crush_1d
+    WHERE board_crush IS NOT NULL
+    ORDER BY trade_date
+    """
+    try:
+        crush_df = pd.read_sql(crush_query, conn)
+        if not crush_df.empty:
+            crush_df["trade_date"] = pd.to_datetime(crush_df["trade_date"])
+            crush_df.set_index("trade_date", inplace=True)
+            result["board_crush"] = crush_df["board_crush"].reindex(result.index)
+            result["oil_share"] = crush_df["oil_share"].reindex(result.index)
+            logger.info(f"  Board crush analytics: {crush_df.shape[0]} days loaded")
+    except Exception as e:
+        logger.warning(f"Board crush analytics unavailable: {e}")
+
+    # ==========================================================================
+    # USDA export volumes for crush context (added 2026-02-24)
+    # ==========================================================================
+    usda_query = """
+    SELECT event_date as trade_date, commodity,
+           SUM(CASE WHEN destination_country = 'TOTAL' THEN net_sales_mt ELSE 0 END) as total_sales,
+           SUM(CASE WHEN destination_country = 'TOTAL' THEN exports_mt ELSE 0 END) as total_exports
+    FROM supply.usda_exports_1w
+    WHERE commodity IN ('Soybeans', 'Soybean Oil', 'Soybean Meal')
+      AND destination_country = 'TOTAL'
+    GROUP BY event_date, commodity
+    ORDER BY event_date, commodity
+    """
+    usda_df = pd.read_sql(usda_query, conn)
+    if not usda_df.empty:
+        usda_df["trade_date"] = pd.to_datetime(usda_df["trade_date"])
+        for commodity in ["Soybeans", "Soybean Oil", "Soybean Meal"]:
+            slug = commodity.lower().replace(" ", "_")
+            c_df = usda_df[usda_df["commodity"] == commodity].set_index("trade_date")
+            if not c_df.empty:
+                result[f"usda_{slug}_net_sales"] = c_df["total_sales"].reindex(
+                    result.index
+                )
+                result[f"usda_{slug}_shipments"] = c_df["total_exports"].reindex(
+                    result.index
+                )
+
+    # ==========================================================================
+    # EIA biodiesel production (monthly, added 2026-02-24)
+    # ==========================================================================
+    eia_query = """
+    SELECT report_month as trade_date, biodiesel_production_mgal, feedstock_soybean_oil_pct
+    FROM supply.eia_biodiesel_1m
+    ORDER BY report_month
+    """
+    try:
+        eia_df = pd.read_sql(eia_query, conn)
+        if not eia_df.empty:
+            eia_df["trade_date"] = pd.to_datetime(eia_df["trade_date"])
+            eia_df.set_index("trade_date", inplace=True)
+            for c in eia_df.columns:
+                result[f"eia_{c}"] = eia_df[c].reindex(result.index)
+    except Exception as e:
+        logger.warning(f"EIA biodiesel data unavailable: {e}")
+
     conn.close()
 
     if start_date:

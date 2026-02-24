@@ -89,10 +89,33 @@ def load_trump_effect_data(
     SELECT event_date as trade_date, series_id, value
     FROM econ.vol_indices_1d
     WHERE series_id IN (
+        -- Core volatility
         'VIXCLS', 'OVXCLS', 'GVZCLS', 'VXVCLS',
+        -- EPU/EMV trade & policy (existing)
         'USEPUINDXD', 'USEPUINDXM', 'EPUTRADE', 'EMVTRADEPOLEMV',
+        -- Financial conditions (existing)
         'NFCI', 'ANFCI', 'STLFSI4',
-        'BAMLC0A0CM', 'BAMLH0A0HYM2'
+        'BAMLC0A0CM', 'BAMLH0A0HYM2',
+        -- EMV policy trackers — Trump signature domains (added 2026-02-24)
+        'EMVAGRPOLICY',      -- Agricultural policy uncertainty
+        'EMVFISCALPOL',      -- Fiscal policy uncertainty
+        'EMVGOVTSPEND',      -- Government spending uncertainty
+        'EMVTAXESEMV',       -- Tax policy uncertainty
+        'EMVNATSEC',         -- National security uncertainty
+        'EMVIMMIGRATION',    -- Immigration uncertainty
+        'EMVELECTGOVRN',     -- Election/governance uncertainty
+        'EMVMONETARYPOL',    -- Monetary policy uncertainty
+        'EMVMACROINFLATION', -- Inflation uncertainty
+        'EMVMACROINTEREST',  -- Interest rate uncertainty
+        'EMVENRGYENVREG',    -- Energy/environment regulation
+        'EMVOVERALLEMV',     -- Overall EMV (composite)
+        -- EPU subcategories (monthly)
+        'EPUFISCAL', 'EPUTAXES', 'EPUNATSEC', 'EPUFINREG', 'EPUGOVTSPEND',
+        -- International uncertainty
+        'EUEPUINDXM',        -- EU economic policy uncertainty
+        'CHNMAINLANDEPU',    -- China economic policy uncertainty
+        -- Daily tracker
+        'INFECTDISEMVTRACKD'  -- Infectious disease EMV
     )
     ORDER BY event_date, series_id
     """
@@ -271,24 +294,26 @@ def load_trump_effect_data(
     WHERE is_active = true
     ORDER BY deadline_date
     """
-    tariff_df = pd.read_sql(tariff_query, conn)
-    if not tariff_df.empty:
-        # Create daily tariff risk indicator
-        result["tariff_deadline_count"] = 0
-        result["tariff_renewal_risk"] = 0.0
-        for _, row in tariff_df.iterrows():
-            deadline = pd.to_datetime(row["deadline_date"])
-            # Mark days leading up to deadline
-            mask = (result.index <= deadline) & (
-                result.index >= deadline - pd.Timedelta(days=90)
-            )
-            result.loc[mask, "tariff_deadline_count"] += 1
-            renewal_prob = row.get("renewal_probability")
-            if renewal_prob is None:
-                renewal_prob = 0.5
-            result.loc[mask, "tariff_renewal_risk"] = max(
-                result.loc[mask, "tariff_renewal_risk"].max(), float(renewal_prob)
-            )
+    try:
+        tariff_df = pd.read_sql(tariff_query, conn)
+        if not tariff_df.empty:
+            result["tariff_deadline_count"] = 0
+            result["tariff_renewal_risk"] = 0.0
+            for _, row in tariff_df.iterrows():
+                deadline = pd.to_datetime(row["deadline_date"])
+                mask = (result.index <= deadline) & (
+                    result.index >= deadline - pd.Timedelta(days=90)
+                )
+                result.loc[mask, "tariff_deadline_count"] += 1
+                renewal_prob = row.get("renewal_probability")
+                if renewal_prob is None:
+                    renewal_prob = 0.5
+                result.loc[mask, "tariff_renewal_risk"] = max(
+                    result.loc[mask, "tariff_renewal_risk"].max(),
+                    float(renewal_prob),
+                )
+    except Exception as e:
+        logger.warning(f"Tariff deadlines unavailable: {e}")
 
     conn.close()
 

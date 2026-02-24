@@ -78,6 +78,53 @@ def load_palm_data(
             result[c] = mpob_daily[c]
         logger.info(f"  MPOB fundamentals: {mpob_df.shape[0]} months joined")
 
+    # ==========================================================================
+    # Competing veg oil prices from FRED (added 2026-02-24)
+    # ==========================================================================
+    comm_query = """
+    SELECT event_date as trade_date, series_id, value
+    FROM econ.commodities_1d
+    WHERE series_id IN (
+        'PPOILUSDM',  -- Palm oil (IMF monthly)
+        'PSOILUSDM',  -- Soybean oil (IMF monthly — substitution reference)
+        'PSUNOUSDM',  -- Sunflower oil (IMF monthly)
+        'PROILUSDM'   -- Rapeseed oil (IMF monthly)
+    )
+    ORDER BY event_date, series_id
+    """
+    comm_df = pd.read_sql(comm_query, conn)
+    if not comm_df.empty:
+        comm_df["trade_date"] = pd.to_datetime(comm_df["trade_date"])
+        pivot = comm_df.pivot(index="trade_date", columns="series_id", values="value")
+        rename = {
+            "PPOILUSDM": "palm_oil_imf",
+            "PSOILUSDM": "soybean_oil_imf",
+            "PSUNOUSDM": "sunflower_oil_imf",
+            "PROILUSDM": "rapeseed_oil_imf",
+        }
+        for series_id, col_name in rename.items():
+            if series_id in pivot.columns:
+                result[col_name] = pivot[series_id].reindex(result.index)
+
+    # ==========================================================================
+    # USDA soybean oil export volumes (competitor context, added 2026-02-24)
+    # ==========================================================================
+    usda_query = """
+    SELECT event_date as trade_date,
+           SUM(CASE WHEN destination_country = 'TOTAL' THEN exports_mt ELSE 0 END) as total_exports
+    FROM supply.usda_exports_1w
+    WHERE commodity = 'Soybean Oil' AND destination_country = 'TOTAL'
+    GROUP BY event_date
+    ORDER BY event_date
+    """
+    usda_df = pd.read_sql(usda_query, conn)
+    if not usda_df.empty:
+        usda_df["trade_date"] = pd.to_datetime(usda_df["trade_date"])
+        usda_df.set_index("trade_date", inplace=True)
+        result["usda_soybean_oil_exports"] = usda_df["total_exports"].reindex(
+            result.index
+        )
+
     conn.close()
 
     if start_date:

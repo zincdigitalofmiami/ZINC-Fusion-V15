@@ -136,6 +136,74 @@ def load_biofuel_data(
         logger.warning(f"LCFS data unavailable: {e}")
         result["lcfs_credit"] = np.nan  # Explicit NaN, not silent skip
 
+    # ==========================================================================
+    # EIA biodiesel production (monthly, added 2026-02-24)
+    # ==========================================================================
+    eia_query = """
+    SELECT report_month as trade_date, biodiesel_production_mgal, feedstock_soybean_oil_pct
+    FROM supply.eia_biodiesel_1m
+    ORDER BY report_month
+    """
+    try:
+        eia_df = pd.read_sql(eia_query, conn)
+        if not eia_df.empty:
+            eia_df["trade_date"] = pd.to_datetime(eia_df["trade_date"])
+            eia_df.set_index("trade_date", inplace=True)
+            for c in eia_df.columns:
+                result[f"eia_{c}"] = eia_df[c].reindex(result.index)
+            logger.info(f"  EIA biodiesel: {eia_df.shape[0]} months loaded")
+    except Exception as e:
+        logger.warning(f"EIA biodiesel data unavailable: {e}")
+
+    # ==========================================================================
+    # Energy regulation uncertainty (added 2026-02-24)
+    # ==========================================================================
+    vol_query = """
+    SELECT event_date as trade_date, series_id, value
+    FROM econ.vol_indices_1d
+    WHERE series_id IN (
+        'EMVENRGYENVREG',  -- Energy/environment regulation uncertainty
+        'OVXCLS'           -- Crude oil volatility
+    )
+    ORDER BY event_date, series_id
+    """
+    vol_df = pd.read_sql(vol_query, conn)
+    if not vol_df.empty:
+        vol_df["trade_date"] = pd.to_datetime(vol_df["trade_date"])
+        pivot = vol_df.pivot(index="trade_date", columns="series_id", values="value")
+        pivot.columns = [f"fred_{c.lower()}" for c in pivot.columns]
+        for c in pivot.columns:
+            result[c] = pivot.reindex(result.index)[c]
+
+    # ==========================================================================
+    # Tariff deadlines relevant to biofuel (RFS, SRE, LCFS, added 2026-02-24)
+    # ==========================================================================
+    tariff_query = """
+    SELECT deadline_name, deadline_date, renewal_probability
+    FROM alt.tariff_deadlines_static
+    WHERE is_active = true AND policy_type = 'BIOFUEL'
+    ORDER BY deadline_date
+    """
+    try:
+        tariff_df = pd.read_sql(tariff_query, conn)
+        if not tariff_df.empty:
+            result["biofuel_deadline_count"] = 0
+            result["biofuel_renewal_risk"] = 0.0
+            for _, row in tariff_df.iterrows():
+                deadline = pd.to_datetime(row["deadline_date"])
+                mask = (result.index <= deadline) & (
+                    result.index >= deadline - pd.Timedelta(days=90)
+                )
+                result.loc[mask, "biofuel_deadline_count"] += 1
+                renewal_prob = row.get("renewal_probability")
+                if renewal_prob is None:
+                    renewal_prob = 0.5
+                result.loc[mask, "biofuel_renewal_risk"] = max(
+                    result.loc[mask, "biofuel_renewal_risk"].max(), float(renewal_prob)
+                )
+    except Exception as e:
+        logger.warning(f"Tariff deadlines unavailable: {e}")
+
     conn.close()
 
     if start_date:

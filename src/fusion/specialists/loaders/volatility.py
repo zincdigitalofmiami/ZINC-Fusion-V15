@@ -16,18 +16,22 @@ def load_volatility_data(
     """
     Load ALL data for VOLATILITY specialist.
 
-    ZL + full VIX complex + OVX + GVZ + VXEEM.
+    ZL + full VIX complex + CBOE cross-asset vol + financial stress +
+    credit spreads + EMV policy uncertainty + market benchmarks.
 
     NO FFILL - missing data is missing.
 
     Data sources:
     - mkt.futures_1d: ZL for returns
-    - econ.vol_indices_1d: VIX complex, commodity vol, EM vol
+    - econ.vol_indices_1d: VIX complex, CBOE cross-asset, financial stress,
+      credit spreads, EMV/EPU uncertainty trackers, market benchmarks
 
     NOTE: Discontinued series removed:
     - EVZCLS (Euro FX vol) - discontinued March 2025
     - VXFXICLS (China FXI vol) - discontinued Feb 2022
     - VIX9DCLS - not available in FRED
+    - STLFSI - replaced by STLFSI4
+    - TEDRATE - discontinued Jan 2022
     """
     conn = get_connection()
 
@@ -55,11 +59,34 @@ def load_volatility_data(
     SELECT event_date as trade_date, series_id, value
     FROM econ.vol_indices_1d
     WHERE series_id IN (
-        'VIXCLS',   -- VIX spot (30-day implied)
-        'VXVCLS',   -- VIX 3-month (for term structure)
-        'OVXCLS',   -- Crude oil volatility
-        'GVZCLS',   -- Gold volatility
-        'VXEEMCLS'  -- EM volatility
+        -- Core VIX complex
+        'VIXCLS',    -- VIX spot (30-day implied)
+        'VXVCLS',    -- VIX 3-month (term structure)
+        'OVXCLS',    -- Crude oil volatility
+        'GVZCLS',    -- Gold volatility
+        'VXEEMCLS',  -- EM volatility
+        -- CBOE cross-asset VIX (added 2026-02-24)
+        'VXDCLS',    -- DJIA volatility
+        'VXNCLS',    -- Nasdaq volatility
+        'RVXCLS',    -- Russell 2000 volatility
+        'VXEWZCLS',  -- EM ETF volatility
+        -- Financial stress indices
+        'NFCI',      -- Chicago Fed National Financial Conditions (weekly)
+        'ANFCI',     -- Adjusted NFCI (weekly)
+        'STLFSI4',   -- St. Louis Financial Stress Index (weekly)
+        -- Credit spreads (daily)
+        'BAMLC0A0CM',    -- Investment-grade corporate spread
+        'BAMLH0A0HYM2',  -- High-yield corporate spread
+        -- EMV policy uncertainty (monthly, relevant to vol regimes)
+        'EMVCOMMMKT',        -- Commodity market uncertainty
+        'EMVFINCRISES',      -- Financial crisis uncertainty
+        'EMVMACROINFLATION', -- Inflation uncertainty
+        'EMVMACROINTEREST',  -- Interest rate uncertainty
+        -- Daily uncertainty + market benchmarks
+        'USEPUINDXD',        -- Daily EPU (policy uncertainty)
+        'INFECTDISEMVTRACKD', -- Infectious disease EMV tracker
+        'SP500',             -- S&P 500 level
+        'NASDAQCOM'          -- Nasdaq composite
     )
     ORDER BY event_date, series_id
     """
