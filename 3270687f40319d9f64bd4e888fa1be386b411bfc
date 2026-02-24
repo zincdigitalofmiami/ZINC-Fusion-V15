@@ -1,0 +1,43 @@
+frontend/src/components/tools/ContractImpactCalculator.tsx
+  7b38bfc943a3f958 54-55
+frontend/src/app/api/zl/brief/route.ts
+  7b38bfc943a3f958 508,538,659
+frontend/src/components/ZlBrief.tsx
+  7b38bfc943a3f958 151,186,198
+frontend/src/components/ui/MarketCommentary.tsx
+  7b38bfc943a3f958 33
+frontend/src/lib/ai-intelligence.ts
+  7b38bfc943a3f958 130,161
+frontend/src/lib/sentiment-scorer.ts
+  7b38bfc943a3f958 21,85
+frontend/src/lib/ai-driver-intel.ts
+  7b38bfc943a3f958 240,244,249,252,273,275,289
+frontend/src/app/sentiment/page.tsx
+  7b38bfc943a3f958 520,536,763
+frontend/src/inngest/databento-options-daily.ts
+  7b38bfc943a3f958 42
+frontend/src/components/quant/FactorWaterfall.tsx
+  7b38bfc943a3f958 10
+frontend/src/components/viz/FusionBrain.tsx
+  7b38bfc943a3f958 117-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "3270687f40319d9f64bd4e888fa1be386b411bfc",
+  "prompts": {
+    "7b38bfc943a3f958": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e9e0a86-53e9-4bc3-950d-22782a42558d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Kirk Musick, MS, MBA <zincmiami@gmail.com>",
+      "messages": [],
+      "total_additions": 363,
+      "total_deletions": 29,
+      "accepted_lines": 361,
+      "overriden_lines": 0
+    }
+  }
+}
