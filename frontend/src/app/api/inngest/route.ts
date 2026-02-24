@@ -72,6 +72,7 @@ import {
   globalFailureMonitor,
   freshnessMonitor,
   yahooIndicesDaily,
+  yahooIndicesBackfill,
 } from "@/inngest/functions";
 
 /**
@@ -213,6 +214,7 @@ export const { GET, POST, PUT } = serve({
     freshnessMonitor,
     // Yahoo Finance indices (VIX + DX)
     yahooIndicesDaily,
+    yahooIndicesBackfill,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

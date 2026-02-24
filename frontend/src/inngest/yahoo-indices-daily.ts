@@ -10,12 +10,15 @@
  *   - VIX  (^VIX)    — CBOE Volatility Index
  *   - DX   (DX-Y.NYB) — ICE US Dollar Index futures
  *
- * NOTE: symbol "DXY" in mkt.futures_1d is contaminated (FRED DTWEXBGS ~118
- * mixed with Yahoo DX ~97, two different instruments). This job writes to
- * symbol "DX" which is the correct ICE Dollar Index.
+ * NOTE: symbol "DXY" in mkt.futures_1d was contaminated (FRED DTWEXBGS ~118
+ * mixed with Yahoo DX ~97, two different instruments) and was purged.
+ * This job writes to symbol "DX" which is the correct ICE Dollar Index.
  *
- * Cron: daily at 01:00 CT (after US market close + settlement)
- * Event: yahoo.indices.daily (for manual trigger / backfill)
+ * Triggers:
+ *   Cron:  daily 01:00 CT  — 14-day rolling window (keeps fresh)
+ *   Event: yahoo.indices.daily       — { range: "3mo" } etc.
+ *   Event: yahoo.indices.backfill    — full historical pull (year-by-year chunks)
+ *          optional { startYear: 1990 } to control start
  */
 
 import { createHash } from "crypto";
@@ -34,15 +37,17 @@ interface YahooIndexConfig {
   yahooTicker: string;
   /** Human-readable name for logging */
   name: string;
+  /** Earliest year Yahoo has daily data for this ticker */
+  historyStart: number;
 }
 
 const INDICES: YahooIndexConfig[] = [
-  { dbSymbol: "VIX", yahooTicker: "^VIX", name: "CBOE VIX" },
-  { dbSymbol: "DX", yahooTicker: "DX-Y.NYB", name: "ICE US Dollar Index" },
+  { dbSymbol: "VIX", yahooTicker: "^VIX", name: "CBOE VIX", historyStart: 1990 },
+  { dbSymbol: "DX", yahooTicker: "DX-Y.NYB", name: "ICE US Dollar Index", historyStart: 1985 },
 ];
 
 // ---------------------------------------------------------------------------
-//  Yahoo v8 chart API fetch
+//  Yahoo v8 chart API — shared response parser
 // ---------------------------------------------------------------------------
 interface YahooBar {
   eventDate: string;
@@ -53,6 +58,23 @@ interface YahooBar {
   volume: number | null;
 }
 
+type YahooChartResponse = {
+  chart?: {
+    result?: Array<{
+      timestamp?: number[];
+      indicators?: {
+        quote?: Array<{
+          open?: Array<number | null>;
+          high?: Array<number | null>;
+          low?: Array<number | null>;
+          close?: Array<number | null>;
+          volume?: Array<number | null>;
+        }>;
+      };
+    }>;
+  };
+};
+
 function toDateStringUtc(epochSeconds: number): string {
   const dt = new Date(epochSeconds * 1000);
   return new Date(
@@ -62,41 +84,7 @@ function toDateStringUtc(epochSeconds: number): string {
     .slice(0, 10);
 }
 
-async function fetchYahooBars(
-  ticker: string,
-  range: string,
-): Promise<YahooBar[]> {
-  const url = new URL(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`,
-  );
-  url.searchParams.set("interval", "1d");
-  url.searchParams.set("range", range);
-
-  const res = await fetch(url.toString(), {
-    headers: { "User-Agent": "Mozilla/5.0" },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Yahoo ${ticker} HTTP ${res.status}: ${await res.text()}`);
-  }
-
-  const json = (await res.json()) as {
-    chart?: {
-      result?: Array<{
-        timestamp?: number[];
-        indicators?: {
-          quote?: Array<{
-            open?: Array<number | null>;
-            high?: Array<number | null>;
-            low?: Array<number | null>;
-            close?: Array<number | null>;
-            volume?: Array<number | null>;
-          }>;
-        };
-      }>;
-    };
-  };
-
+function parseBars(json: YahooChartResponse): YahooBar[] {
   const result = json.chart?.result?.[0];
   const quote = result?.indicators?.quote?.[0];
   const timestamps = result?.timestamp ?? [];
@@ -125,6 +113,50 @@ async function fetchYahooBars(
   return [...byDate.values()].sort((a, b) =>
     a.eventDate < b.eventDate ? -1 : 1,
   );
+}
+
+/** Fetch with `range` param (e.g. "14d", "3mo") — good for short windows */
+async function fetchYahooBars(
+  ticker: string,
+  range: string,
+): Promise<YahooBar[]> {
+  const url = new URL(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`,
+  );
+  url.searchParams.set("interval", "1d");
+  url.searchParams.set("range", range);
+
+  const res = await fetch(url.toString(), {
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
+  if (!res.ok) {
+    throw new Error(`Yahoo ${ticker} HTTP ${res.status}: ${await res.text()}`);
+  }
+  return parseBars((await res.json()) as YahooChartResponse);
+}
+
+/** Fetch with explicit period1/period2 UNIX timestamps — daily resolution for any window */
+async function fetchYahooPeriod(
+  ticker: string,
+  period1: number,
+  period2: number,
+): Promise<YahooBar[]> {
+  const url = new URL(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`,
+  );
+  url.searchParams.set("interval", "1d");
+  url.searchParams.set("period1", String(period1));
+  url.searchParams.set("period2", String(period2));
+
+  const res = await fetch(url.toString(), {
+    headers: { "User-Agent": "Mozilla/5.0" },
+  });
+  if (!res.ok) {
+    // 422 = no data for period (e.g. ticker didn't exist yet) — not fatal
+    if (res.status === 422) return [];
+    throw new Error(`Yahoo ${ticker} HTTP ${res.status}: ${await res.text()}`);
+  }
+  return parseBars((await res.json()) as YahooChartResponse);
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +216,7 @@ async function upsertBars(
 }
 
 // ---------------------------------------------------------------------------
-//  Inngest function — daily cron + manual event trigger
+//  Inngest function — daily cron + manual range trigger
 // ---------------------------------------------------------------------------
 export const yahooIndicesDaily = inngest.createFunction(
   {
@@ -198,7 +230,6 @@ export const yahooIndicesDaily = inngest.createFunction(
     { event: "yahoo.indices.daily" },
   ],
   async ({ event, step, logger }) => {
-    // Allow backfill range override via event data (default: 14d for cron)
     const range =
       (event?.data as { range?: string } | undefined)?.range ?? "14d";
     const source = "yahoo_eod";
@@ -237,11 +268,78 @@ export const yahooIndicesDaily = inngest.createFunction(
       });
     }
 
+    return { status: "complete", timestamp: new Date().toISOString(), range, results };
+  },
+);
+
+// ---------------------------------------------------------------------------
+//  Inngest function — full historical backfill (year-by-year chunks)
+//
+//  Yahoo v8 API downsamples to monthly for large ranges. To get daily
+//  resolution we must use period1/period2 in ≤1-year windows.
+// ---------------------------------------------------------------------------
+export const yahooIndicesBackfill = inngest.createFunction(
+  {
+    id: "yahoo-indices-backfill",
+    name: "Yahoo VIX + DX Full Backfill",
+    retries: 2,
+    concurrency: [DB_CONCURRENCY],
+  },
+  { event: "yahoo.indices.backfill" },
+  async ({ event, step, logger }) => {
+    const startYearOverride =
+      (event?.data as { startYear?: number } | undefined)?.startYear;
+    const source = "yahoo_eod";
+    const currentYear = new Date().getUTCFullYear();
+
+    const totals: Record<string, number> = {};
+
+    for (const idx of INDICES) {
+      const fromYear = startYearOverride ?? idx.historyStart;
+      let totalBars = 0;
+
+      for (let year = fromYear; year <= currentYear; year++) {
+        const written = await step.run(
+          `backfill-${idx.dbSymbol}-${year}`,
+          async () => {
+            const p1 = Math.floor(
+              new Date(Date.UTC(year, 0, 1)).getTime() / 1000,
+            );
+            const p2 = Math.floor(
+              new Date(Date.UTC(year + 1, 0, 1)).getTime() / 1000,
+            );
+
+            const bars = await fetchYahooPeriod(
+              idx.yahooTicker,
+              p1,
+              p2,
+            );
+            if (bars.length === 0) {
+              logger.info(`${idx.name} ${year}: no data`);
+              return 0;
+            }
+
+            const w = await upsertBars(idx.dbSymbol, bars, source);
+            logger.info(
+              `${idx.name} ${year}: ${w} bars [${bars[0].eventDate} → ${bars[bars.length - 1].eventDate}]`,
+            );
+            return w;
+          },
+        );
+
+        totalBars += written as number;
+      }
+
+      totals[idx.dbSymbol] = totalBars;
+      logger.info(
+        `${idx.name}: backfill complete — ${totalBars} total bars (${fromYear}–${currentYear})`,
+      );
+    }
+
     return {
       status: "complete",
       timestamp: new Date().toISOString(),
-      range,
-      results,
+      totals,
     };
   },
 );
