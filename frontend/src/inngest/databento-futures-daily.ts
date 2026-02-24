@@ -131,7 +131,9 @@ interface SymbolResult {
 }
 
 /**
- * Get maximum event_date for a symbol from Databento-sourced rows
+ * Get maximum event_date for a symbol from Databento-sourced rows.
+ * Only considers rows with actual OHLCV data (close IS NOT NULL) so that
+ * stub rows created by the statistics/OI shard don't poison the cursor.
  */
 async function getMaxEventDate(symbol: string): Promise<Date | null> {
   const client = await pool.connect();
@@ -139,7 +141,7 @@ async function getMaxEventDate(symbol: string): Promise<Date | null> {
     const result = await client.query(
       `SELECT MAX(event_date) as max_date
        FROM mkt.futures_1d
-       WHERE symbol = $1 AND source = 'databento'`,
+       WHERE symbol = $1 AND source = 'databento' AND close IS NOT NULL`,
       [symbol],
     );
     const maxDate = result.rows[0]?.max_date;

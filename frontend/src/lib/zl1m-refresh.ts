@@ -52,6 +52,9 @@ export async function refreshZl1mFromDatabento(opts: {
 
   const now = new Date();
   const start = new Date(now.getTime() - lookback * 60_000);
+  // Databento GLBX.MDP3 data has a processing lag (~10-30 min).
+  // Clamp end to 30 min before now to avoid 422 "end after available range".
+  const end = new Date(now.getTime() - 30 * 60_000);
 
   const csv = await fetchDatabentoCsv(
     {
@@ -60,7 +63,7 @@ export async function refreshZl1mFromDatabento(opts: {
       symbols: "ZL.n.0",
       stype_in: "continuous",
       start: start.toISOString(),
-      end: now.toISOString(),
+      end: end.toISOString(),
       encoding: "csv",
       pretty_ts: "true",
       pretty_px: "true",
