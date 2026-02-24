@@ -8,6 +8,7 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
+import { STANDARD_OPTIONS_UNDERLYINGS } from "./databento-options-daily";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -100,31 +101,9 @@ export const optionsStalenessCheck = inngest.createFunction(
       );
     }
 
-    // Check for expected underlyings that are missing entirely
-    const expectedUnderlyings = [
-      "ZL",
-      "ZS",
-      "ZM",
-      "ZC",
-      "ZW",
-      "CL",
-      "NG",
-      "HO",
-      "RB",
-      "GC",
-      "SI",
-      "HG",
-      "ES",
-      "NQ",
-      "ZN",
-      "ZB",
-      "ZF",
-      "6E",
-      "6J",
-      "6B",
-      "6A",
-      "6C",
-    ];
+    // Check for expected underlyings that are missing entirely.
+    // Derived from OPTIONS_CONFIG standard .OPT symbols (single source of truth).
+    const expectedUnderlyings = STANDARD_OPTIONS_UNDERLYINGS;
 
     const presentUnderlyings = new Set(totalCoverage.map((r) => r.underlying));
     const missingUnderlyings = expectedUnderlyings.filter(

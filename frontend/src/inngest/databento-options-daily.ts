@@ -18,113 +18,161 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 // =============================================================================
-// COMPLETE OPTIONS COVERAGE - ALL 75+ PRODUCTS
-// Standard options (.OPT parent symbology) + ALL weekly options (product codes)
-// NO FAKE DATA - All data from Databento API only
+// OPTIONS SYMBOL REGISTRY
 // =============================================================================
-const OPTIONS_CONFIG = [
-  // ===== AGRICULTURE OPTIONS (STANDARD) =====
-  { optSymbol: "OZL.OPT", underlying: "ZL", name: "Soybean Oil Options" },
-  { optSymbol: "OZS.OPT", underlying: "ZS", name: "Soybean Options" },
-  { optSymbol: "OZM.OPT", underlying: "ZM", name: "Soybean Meal Options" },
-  { optSymbol: "OZC.OPT", underlying: "ZC", name: "Corn Options" },
-  { optSymbol: "OZW.OPT", underlying: "ZW", name: "Wheat Options" },
-  { optSymbol: "OKE.OPT", underlying: "KE", name: "KC HRW Wheat Options" },
+// Standard options (.OPT parent symbology) + weekly options (product codes).
+// NO FAKE DATA — all data from Databento API only.
+//
+//   dumpDefs  — historical definitions available in the Databento Data Dump
+//               (GLBX-20260202-WH33638BK6, definition schema, 2010-06 → 2026-02)
+//               20 parent symbols with ~15.7 years of strike/expiry metadata.
+//               Path: /Volumes/Satechi Hub/Databento Data Dump/Options/
+//   category  — asset class for filtering / shard prioritisation
+//
+// Symbols WITHOUT dumpDefs still work for daily ingestion (definitions fetched
+// live from Databento API each run) but lack historical backfill potential.
+// =============================================================================
 
-  // ===== AGRICULTURE WEEKLY OPTIONS =====
-  { optSymbol: "1WC", underlying: "ZW", name: "Wheat Wed Weekly W1" },
-  { optSymbol: "1WB", underlying: "ZW", name: "Wheat Tue Weekly W1" },
-  { optSymbol: "1WA", underlying: "ZW", name: "Wheat Mon Weekly W1" },
-  { optSymbol: "1WD", underlying: "ZW", name: "Wheat Thu Weekly W1" },
-  { optSymbol: "2WA", underlying: "ZW", name: "Wheat Mon Weekly W2" },
-  { optSymbol: "1SD", underlying: "ZS", name: "Soybean Thu Weekly W1" },
-  { optSymbol: "1SA", underlying: "ZS", name: "Soybean Mon Weekly W1" },
-  { optSymbol: "ZL5", underlying: "ZL", name: "Soybean Oil Fri Weekly W5" },
-  { optSymbol: "CN5", underlying: "ZC", name: "Corn Weekly W5" },
-  { optSymbol: "OE1", underlying: "KE", name: "KC Wheat Fri Weekly W1" },
-  { optSymbol: "OE5", underlying: "KE", name: "KC Wheat Fri Weekly W5" },
+type OptionCategory =
+  | "agriculture"
+  | "agriculture_weekly"
+  | "energy"
+  | "metals"
+  | "equity"
+  | "treasury"
+  | "fx"
+  | "fx_weekly"
+  | "livestock";
 
-  // ===== ENERGY OPTIONS =====
-  { optSymbol: "LO.OPT", underlying: "CL", name: "Crude Oil Options" },
-  { optSymbol: "ON.OPT", underlying: "NG", name: "Natural Gas Options" },
-  { optSymbol: "OH.OPT", underlying: "HO", name: "Heating Oil Options" },
-  { optSymbol: "OB.OPT", underlying: "RB", name: "RBOB Gasoline Options" },
-  { optSymbol: "BZ.OPT", underlying: "BZ", name: "Brent Crude Options" },
+interface OptionConfig {
+  optSymbol: string;
+  underlying: string;
+  name: string;
+  category: OptionCategory;
+  dumpDefs: boolean; // true = definitions in Databento Data Dump (2010-2026)
+}
 
-  // ===== METALS OPTIONS =====
-  { optSymbol: "OG.OPT", underlying: "GC", name: "Gold Options" },
-  { optSymbol: "SO.OPT", underlying: "SI", name: "Silver Options" },
-  { optSymbol: "HXE.OPT", underlying: "HG", name: "Copper Options" },
-  { optSymbol: "PO.OPT", underlying: "PL", name: "Platinum Options" },
-  { optSymbol: "PAO.OPT", underlying: "PA", name: "Palladium Options" },
+const OPTIONS_CONFIG: OptionConfig[] = [
+  // ===== AGRICULTURE OPTIONS (STANDARD) — all in dump =====
+  { optSymbol: "OZL.OPT", underlying: "ZL", name: "Soybean Oil Options",    category: "agriculture", dumpDefs: true  },
+  { optSymbol: "OZS.OPT", underlying: "ZS", name: "Soybean Options",        category: "agriculture", dumpDefs: true  },
+  { optSymbol: "OZM.OPT", underlying: "ZM", name: "Soybean Meal Options",   category: "agriculture", dumpDefs: true  },
+  { optSymbol: "OZC.OPT", underlying: "ZC", name: "Corn Options",           category: "agriculture", dumpDefs: true  },
+  { optSymbol: "OZW.OPT", underlying: "ZW", name: "Wheat Options",          category: "agriculture", dumpDefs: true  },
+  { optSymbol: "OKE.OPT", underlying: "KE", name: "KC HRW Wheat Options",   category: "agriculture", dumpDefs: true  },
 
-  // ===== EQUITY INDEX OPTIONS =====
-  { optSymbol: "ES.OPT", underlying: "ES", name: "E-mini S&P Options" },
-  { optSymbol: "NQ.OPT", underlying: "NQ", name: "E-mini Nasdaq Options" },
-  { optSymbol: "YM.OPT", underlying: "YM", name: "Mini Dow Options" },
-  { optSymbol: "RTO.OPT", underlying: "RTY", name: "E-mini Russell Options" },
+  // ===== AGRICULTURE WEEKLY OPTIONS — no dump (live defs only) =====
+  { optSymbol: "1WC", underlying: "ZW", name: "Wheat Wed Weekly W1",        category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "1WB", underlying: "ZW", name: "Wheat Tue Weekly W1",        category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "1WA", underlying: "ZW", name: "Wheat Mon Weekly W1",        category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "1WD", underlying: "ZW", name: "Wheat Thu Weekly W1",        category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "2WA", underlying: "ZW", name: "Wheat Mon Weekly W2",        category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "1SD", underlying: "ZS", name: "Soybean Thu Weekly W1",      category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "1SA", underlying: "ZS", name: "Soybean Mon Weekly W1",      category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "ZL5", underlying: "ZL", name: "Soybean Oil Fri Weekly W5",  category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "CN5", underlying: "ZC", name: "Corn Weekly W5",             category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "OE1", underlying: "KE", name: "KC Wheat Fri Weekly W1",     category: "agriculture_weekly", dumpDefs: false },
+  { optSymbol: "OE5", underlying: "KE", name: "KC Wheat Fri Weekly W5",     category: "agriculture_weekly", dumpDefs: false },
 
-  // ===== TREASURY OPTIONS =====
-  { optSymbol: "OZN.OPT", underlying: "ZN", name: "10Y Treasury Options" },
-  { optSymbol: "OZB.OPT", underlying: "ZB", name: "30Y Treasury Options" },
-  { optSymbol: "OZF.OPT", underlying: "ZF", name: "5Y Treasury Options" },
-  { optSymbol: "OZT.OPT", underlying: "ZT", name: "2Y Treasury Options" },
+  // ===== ENERGY OPTIONS — LO, ON, OH, OB in dump =====
+  { optSymbol: "LO.OPT", underlying: "CL", name: "Crude Oil Options",       category: "energy", dumpDefs: true  },
+  { optSymbol: "ON.OPT", underlying: "NG", name: "Natural Gas Options",     category: "energy", dumpDefs: true  },
+  { optSymbol: "OH.OPT", underlying: "HO", name: "Heating Oil Options",     category: "energy", dumpDefs: true  },
+  { optSymbol: "OB.OPT", underlying: "RB", name: "RBOB Gasoline Options",   category: "energy", dumpDefs: true  },
+  { optSymbol: "BZ.OPT", underlying: "BZ", name: "Brent Crude Options",     category: "energy", dumpDefs: false },
 
-  // ===== FX OPTIONS (STANDARD) =====
-  { optSymbol: "EUU.OPT", underlying: "6E", name: "Euro FX Options" },
-  { optSymbol: "JPU.OPT", underlying: "6J", name: "Yen FX Options" },
-  { optSymbol: "GBU.OPT", underlying: "6B", name: "GBP Options" },
-  { optSymbol: "ADU.OPT", underlying: "6A", name: "AUD Options" },
-  { optSymbol: "CAU.OPT", underlying: "6C", name: "CAD Options" },
-  { optSymbol: "SFU.OPT", underlying: "6S", name: "CHF Options" },
-  { optSymbol: "6M.OPT", underlying: "6M", name: "MXN Options" },
-  { optSymbol: "NZU.OPT", underlying: "6N", name: "NZD Options" },
-  { optSymbol: "DX.OPT", underlying: "DX", name: "Dollar Index Options" },
+  // ===== METALS OPTIONS — OG, SO, HXE in dump =====
+  { optSymbol: "OG.OPT", underlying: "GC", name: "Gold Options",            category: "metals", dumpDefs: true  },
+  { optSymbol: "SO.OPT", underlying: "SI", name: "Silver Options",          category: "metals", dumpDefs: true  },
+  { optSymbol: "HXE.OPT", underlying: "HG", name: "Copper Options",        category: "metals", dumpDefs: true  },
+  { optSymbol: "PO.OPT", underlying: "PL", name: "Platinum Options",        category: "metals", dumpDefs: false },
+  { optSymbol: "PAO.OPT", underlying: "PA", name: "Palladium Options",      category: "metals", dumpDefs: false },
+
+  // ===== EQUITY INDEX OPTIONS — ES, NQ in dump =====
+  { optSymbol: "ES.OPT", underlying: "ES", name: "E-mini S&P Options",      category: "equity", dumpDefs: true  },
+  { optSymbol: "NQ.OPT", underlying: "NQ", name: "E-mini Nasdaq Options",   category: "equity", dumpDefs: true  },
+  { optSymbol: "YM.OPT", underlying: "YM", name: "Mini Dow Options",        category: "equity", dumpDefs: false },
+  { optSymbol: "RTO.OPT", underlying: "RTY", name: "E-mini Russell Options", category: "equity", dumpDefs: false },
+
+  // ===== TREASURY OPTIONS — OZN, OZB, OZF in dump =====
+  { optSymbol: "OZN.OPT", underlying: "ZN", name: "10Y Treasury Options",   category: "treasury", dumpDefs: true  },
+  { optSymbol: "OZB.OPT", underlying: "ZB", name: "30Y Treasury Options",   category: "treasury", dumpDefs: true  },
+  { optSymbol: "OZF.OPT", underlying: "ZF", name: "5Y Treasury Options",    category: "treasury", dumpDefs: true  },
+  { optSymbol: "OZT.OPT", underlying: "ZT", name: "2Y Treasury Options",    category: "treasury", dumpDefs: false },
+
+  // ===== FX OPTIONS (STANDARD) — EUU, JPU in dump =====
+  { optSymbol: "EUU.OPT", underlying: "6E", name: "Euro FX Options",        category: "fx", dumpDefs: true  },
+  { optSymbol: "JPU.OPT", underlying: "6J", name: "Yen FX Options",         category: "fx", dumpDefs: true  },
+  { optSymbol: "GBU.OPT", underlying: "6B", name: "GBP Options",            category: "fx", dumpDefs: false },
+  { optSymbol: "ADU.OPT", underlying: "6A", name: "AUD Options",            category: "fx", dumpDefs: false },
+  { optSymbol: "CAU.OPT", underlying: "6C", name: "CAD Options",            category: "fx", dumpDefs: false },
+  { optSymbol: "SFU.OPT", underlying: "6S", name: "CHF Options",            category: "fx", dumpDefs: false },
+  { optSymbol: "6M.OPT", underlying: "6M", name: "MXN Options",             category: "fx", dumpDefs: false },
+  { optSymbol: "NZU.OPT", underlying: "6N", name: "NZD Options",            category: "fx", dumpDefs: false },
+  { optSymbol: "DX.OPT", underlying: "DX", name: "Dollar Index Options",    category: "fx", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - EUR/USD (6E) =====
-  { optSymbol: "TU2", underlying: "6E", name: "EUR Tue Weekly W2" },
-  { optSymbol: "3EU", underlying: "6E", name: "EUR Fri Weekly W3" },
-  { optSymbol: "MO2", underlying: "6E", name: "EUR Mon Weekly W2" },
-  { optSymbol: "MO4", underlying: "6E", name: "EUR Mon Weekly W4" },
-  { optSymbol: "WE2", underlying: "6E", name: "EUR Wed Weekly W2" },
+  { optSymbol: "TU2", underlying: "6E", name: "EUR Tue Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "3EU", underlying: "6E", name: "EUR Fri Weekly W3",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "MO2", underlying: "6E", name: "EUR Mon Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "MO4", underlying: "6E", name: "EUR Mon Weekly W4",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "WE2", underlying: "6E", name: "EUR Wed Weekly W2",          category: "fx_weekly", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - JPY/USD (6J) =====
-  { optSymbol: "MJ1", underlying: "6J", name: "JPY Mon Weekly W1" },
-  { optSymbol: "5JY", underlying: "6J", name: "JPY Fri Weekly W5" },
-  { optSymbol: "WJ3", underlying: "6J", name: "JPY Wed Weekly W3" },
-  { optSymbol: "WJ2", underlying: "6J", name: "JPY Wed Weekly W2" },
-  { optSymbol: "3JY", underlying: "6J", name: "JPY Fri Weekly W3" },
-  { optSymbol: "SJ5", underlying: "6J", name: "JPY Thu Weekly W5" },
+  { optSymbol: "MJ1", underlying: "6J", name: "JPY Mon Weekly W1",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "5JY", underlying: "6J", name: "JPY Fri Weekly W5",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "WJ3", underlying: "6J", name: "JPY Wed Weekly W3",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "WJ2", underlying: "6J", name: "JPY Wed Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "3JY", underlying: "6J", name: "JPY Fri Weekly W3",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "SJ5", underlying: "6J", name: "JPY Thu Weekly W5",          category: "fx_weekly", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - GBP/USD (6B) =====
-  { optSymbol: "MB2", underlying: "6B", name: "GBP Mon Weekly W2" },
-  { optSymbol: "3BP", underlying: "6B", name: "GBP Fri Weekly W3" },
-  { optSymbol: "2BP", underlying: "6B", name: "GBP Fri Weekly W2" },
-  { optSymbol: "SB1", underlying: "6B", name: "GBP Thu Weekly W1" },
-  { optSymbol: "TG1", underlying: "6B", name: "GBP Tue Weekly W1" },
+  { optSymbol: "MB2", underlying: "6B", name: "GBP Mon Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "3BP", underlying: "6B", name: "GBP Fri Weekly W3",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "2BP", underlying: "6B", name: "GBP Fri Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "SB1", underlying: "6B", name: "GBP Thu Weekly W1",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "TG1", underlying: "6B", name: "GBP Tue Weekly W1",          category: "fx_weekly", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - AUD/USD (6A) =====
-  { optSymbol: "WA1", underlying: "6A", name: "AUD Wed Weekly W1" },
-  { optSymbol: "WA2", underlying: "6A", name: "AUD Wed Weekly W2" },
-  { optSymbol: "SA1", underlying: "6A", name: "AUD Thu Weekly W1" },
-  { optSymbol: "MA1", underlying: "6A", name: "AUD Mon Weekly W1" },
-  { optSymbol: "2AD", underlying: "6A", name: "AUD Fri Weekly W2" },
-  { optSymbol: "TA2", underlying: "6A", name: "AUD Tue Weekly W2" },
+  { optSymbol: "WA1", underlying: "6A", name: "AUD Wed Weekly W1",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "WA2", underlying: "6A", name: "AUD Wed Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "SA1", underlying: "6A", name: "AUD Thu Weekly W1",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "MA1", underlying: "6A", name: "AUD Mon Weekly W1",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "2AD", underlying: "6A", name: "AUD Fri Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "TA2", underlying: "6A", name: "AUD Tue Weekly W2",          category: "fx_weekly", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - CAD/USD (6C) =====
-  { optSymbol: "WD2", underlying: "6C", name: "CAD Wed Weekly W2" },
-  { optSymbol: "WD3", underlying: "6C", name: "CAD Wed Weekly W3" },
-  { optSymbol: "TL1", underlying: "6C", name: "CAD Tue Weekly W1" },
+  { optSymbol: "WD2", underlying: "6C", name: "CAD Wed Weekly W2",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "WD3", underlying: "6C", name: "CAD Wed Weekly W3",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "TL1", underlying: "6C", name: "CAD Tue Weekly W1",          category: "fx_weekly", dumpDefs: false },
 
   // ===== FX WEEKLY OPTIONS - CHF/USD (6S) =====
-  { optSymbol: "4SF", underlying: "6S", name: "CHF Fri Weekly W4" },
-  { optSymbol: "5SF", underlying: "6S", name: "CHF Fri Weekly W5" },
-  { optSymbol: "2SF", underlying: "6S", name: "CHF Fri Weekly W2" },
+  { optSymbol: "4SF", underlying: "6S", name: "CHF Fri Weekly W4",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "5SF", underlying: "6S", name: "CHF Fri Weekly W5",          category: "fx_weekly", dumpDefs: false },
+  { optSymbol: "2SF", underlying: "6S", name: "CHF Fri Weekly W2",          category: "fx_weekly", dumpDefs: false },
 
-  // ===== LIVESTOCK OPTIONS =====
-  { optSymbol: "HE.OPT", underlying: "HE", name: "Lean Hogs Options" },
-  { optSymbol: "LE.OPT", underlying: "LE", name: "Live Cattle Options" },
-  { optSymbol: "GF.OPT", underlying: "GF", name: "Feeder Cattle Options" },
+  // ===== LIVESTOCK OPTIONS — no dump =====
+  { optSymbol: "HE.OPT", underlying: "HE", name: "Lean Hogs Options",      category: "livestock", dumpDefs: false },
+  { optSymbol: "LE.OPT", underlying: "LE", name: "Live Cattle Options",     category: "livestock", dumpDefs: false },
+  { optSymbol: "GF.OPT", underlying: "GF", name: "Feeder Cattle Options",   category: "livestock", dumpDefs: false },
+];
+
+// Derived counts for logging / monitoring
+const _DUMP_COVERED = OPTIONS_CONFIG.filter((c) => c.dumpDefs).length;   // 20
+const _LIVE_ONLY    = OPTIONS_CONFIG.filter((c) => !c.dumpDefs).length;  // rest
+
+/**
+ * Unique underlyings from standard options (`.OPT` parent symbols only).
+ * Weekly product codes are excluded — they don't independently indicate
+ * staleness since they share underlyings with the standard contracts.
+ * Exported for use by the options-staleness-check monitor.
+ */
+export const STANDARD_OPTIONS_UNDERLYINGS: readonly string[] = [
+  ...new Set(
+    OPTIONS_CONFIG
+      .filter((c) => c.optSymbol.endsWith(".OPT"))
+      .map((c) => c.underlying),
+  ),
 ];
 
 interface OptionResult {
