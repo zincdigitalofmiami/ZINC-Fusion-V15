@@ -237,19 +237,19 @@ export function generateFallbackDriverIntel(
     vix: {
       whatsHappening:
         data.score >= 65
-          ? `Wall Street is panicking. When the stock market sells off hard, big funds dump commodities too - including soy oil. Expect wild price swings and wider spreads until this calms down.`
+          ? `Wall Street is panicking. When the stock market sells off hard, big funds dump commodities too - including soybean oil. Expect wild price swings and wider spreads until this calms down.`
           : data.score >= 50
             ? `Markets are nervous. Stock volatility is elevated, which sometimes spills into commodities. Prices may be jumpier than usual - not crisis mode, but stay alert.`
             : data.score >= 35
-              ? `Markets are calm. No panic selling, no fund liquidations. Soy oil is trading on its own fundamentals - supply, demand, crush economics. Normal conditions.`
+              ? `Markets are calm. No panic selling, no fund liquidations. Soybean oil is trading on its own fundamentals - supply, demand, crush economics. Normal conditions.`
               : `Dead calm in the markets. Low volatility usually means steady prices. Good window to lock in coverage without worrying about sudden moves.`,
       macroContext:
         data.score >= 50
           ? `When Wall Street panics, hedge funds sell everything including commodities. We're seeing that spillover effect now.`
-          : `Stock market volatility is low. Soy oil prices are being driven by actual supply/demand, not financial market chaos.`,
+          : `Stock market volatility is low. Soybean oil prices are being driven by actual supply/demand, not financial market chaos.`,
       supplyDemand:
         data.score >= 50
-          ? `Biodiesel buyers may hesitate to commit when energy prices are swinging wildly. Could temporarily soften soy oil demand.`
+          ? `Biodiesel buyers may hesitate to commit when energy prices are swinging wildly. Could temporarily soften soybean oil demand.`
           : `Stable conditions support normal buying patterns from biodiesel producers and food manufacturers.`,
       geopolitical: `Middle East tensions, Fed policy, and trade headlines can spike volatility without warning. Keep some dry powder.`,
       investorSentiment:
@@ -270,9 +270,9 @@ export function generateFallbackDriverIntel(
     crush: {
       whatsHappening:
         data.score >= 65
-          ? `Crushers are getting squeezed hard. At $${crushValue?.toFixed(2) ?? "<1.25"}/bu margins, some plants will slow down or shut. Less crushing = less soy oil supply = prices should firm up.`
+          ? `Crushers are getting squeezed hard. At $${crushValue?.toFixed(2) ?? "<1.25"}/bu margins, some plants will slow down or shut. Less crushing = less soybean oil supply = prices should firm up.`
           : data.score <= 35
-            ? `Crushers are printing money at $${crushValue?.toFixed(2) ?? ">1.75"}/bu margins. Every plant is running full tilt. That means a flood of soy oil hitting the market. Prices face headwinds.`
+            ? `Crushers are printing money at $${crushValue?.toFixed(2) ?? ">1.75"}/bu margins. Every plant is running full tilt. That means a flood of soybean oil hitting the market. Prices face headwinds.`
             : `Crush margins around $${crushValue?.toFixed(2) ?? "1.50"}/bu are workable. Plants running normal schedules. Supply is steady, nothing dramatic either way.`,
       macroContext:
         crushValue && crushValue < 1.25
@@ -286,7 +286,7 @@ export function generateFallbackDriverIntel(
           : oilShare && oilShare < 44
             ? `Meal is driving crush decisions right now (only ${oilShare.toFixed(0)}% oil share). Oil is almost a byproduct.`
             : `Oil and meal values are balanced. Crush decisions based on overall economics.`,
-      geopolitical: `Renewable diesel mandates (45Z tax credit, RVO requirements) put a floor under soy oil demand. Biofuel is now ~40% of domestic use.`,
+      geopolitical: `Renewable diesel mandates (45Z tax credit, RVO requirements) put a floor under soybean oil demand. Biofuel is now ~40% of domestic use.`,
       investorSentiment:
         crushValue && crushValue > 1.5
           ? `Crushers are locking in forward sales to protect these margins. They expect things to tighten.`

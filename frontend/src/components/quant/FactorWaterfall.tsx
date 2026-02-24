@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 interface AttributionFactor {
   id: string;
   label: string;
-  value: number; // impact in cents/lb
+  value: number; // impact in $/lb
   type: 'positive' | 'negative';
   category: 'cell' | 'macro' | 'technical' | 'noise';
 }

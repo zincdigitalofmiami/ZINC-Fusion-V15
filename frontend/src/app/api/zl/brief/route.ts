@@ -505,7 +505,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
         correlation: clCorr,
         direction: formatDirection(clCorr),
         implication: clCorr !== null && clCorr > 0.3
-          ? 'Energy complex link via biofuels. Crude rallies support soy oil.'
+          ? 'Energy complex link via biofuels. Crude rallies support soybean oil.'
           : 'Limited energy complex correlation currently.',
         lookbackDays: LOOKBACK,
         source: clCorr !== null ? 'calculated' : 'unavailable'
@@ -535,7 +535,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
         correlation: cpoCorr,
         direction: formatDirection(cpoCorr),
         implication: cpoCorr !== null && cpoCorr > 0.4
-          ? 'Global substitution link active. Palm and soy oil moving together.'
+          ? 'Global substitution link active. Palm and soybean oil moving together.'
           : 'Substitution link weak. Regional factors dominating.',
         lookbackDays: LOOKBACK,
         source: cpoCorr !== null ? 'calculated' : 'unavailable'
@@ -656,7 +656,7 @@ function getKeyPositives(driverData: {drivers: DriverSummary[], avgScore: number
   const crush = driverData.drivers.find(d => d.name === 'Crush')
 
   // Always include biofuel tailwind
-  positives.push('EPA 2026 RFS increases boost biofuel demand - >50% of soy oil to biodiesel/renewable diesel')
+  positives.push('EPA 2026 RFS increases boost biofuel demand - >50% of soybean oil to biodiesel/renewable diesel')
   positives.push('45Z clean fuel tax credit supports renewable diesel economics through 2027')
 
   if (vix && vix.score <= 40) {

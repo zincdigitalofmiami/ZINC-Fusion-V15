@@ -18,7 +18,7 @@
  *
  * Sources:
  *   - Loughran-McDonald financial sentiment dictionary categories
- *   - ZL/soy oil domain terminology from USDA, NOPA, EPA, MPOB
+ *   - ZL/soybean oil domain terminology from USDA, NOPA, EPA, MPOB
  *   - FinVADER/VADER financial extensions for market-direction terms
  */
 
@@ -82,7 +82,7 @@ const BULLISH_PATTERNS: [RegExp, number][] = [
   [/\b(crop condition[s]? deteriorat|poor crop rating)\b/i, 1.5],
   [/\b(stocks[- ]to[- ]use ratio.{0,10}low|tight ending stocks)\b/i, 2.0],
 
-  // ── Biofuel demand (bullish for soy oil) ──
+  // ── Biofuel demand (bullish for soybean oil) ──
   [/\b(biofuel mandate|biodiesel|renewable diesel|blending)\b/i, 1.5],
   [/\b(sustainable aviation fuel|saf\b|rin price[s]?|lcfs)\b/i, 1.5],
   [/\b(renewable fuel standard|rfs\b|rvo increase|higher rvo)\b/i, 1.5],

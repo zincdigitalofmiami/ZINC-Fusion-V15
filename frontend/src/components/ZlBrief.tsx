@@ -148,7 +148,7 @@ export function ZlBrief() {
       <div className="p-4 border-b border-slate-700">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-3xl font-bold text-white">
-            {brief.price.current.toFixed(2)}¢
+            ${brief.price.current.toFixed(2)}
           </span>
           <span
             className={`text-lg font-semibold ${
@@ -183,7 +183,7 @@ export function ZlBrief() {
                 <>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-bold text-white">
-                      {f.targetMid.toFixed(1)}¢
+                      ${f.targetMid.toFixed(2)}
                     </span>
                     <span
                       className={`text-sm font-semibold ${
@@ -195,7 +195,7 @@ export function ZlBrief() {
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-500 mt-1">
-                    Range: {f.targetLow?.toFixed(1) ?? '--'} - {f.targetHigh?.toFixed(1) ?? '--'}
+                    Range: ${f.targetLow?.toFixed(2) ?? '--'} - ${f.targetHigh?.toFixed(2) ?? '--'}
                   </div>
                 </>
               ) : (

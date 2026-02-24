@@ -517,7 +517,7 @@ export default function SentimentPage() {
                 </div>
                 <div className="flex items-baseline gap-4">
                   <span className="text-5xl md:text-6xl font-bold text-white font-mono">
-                    ¢{metrics.price.close.toFixed(2)}
+                    ${metrics.price.close.toFixed(2)}
                   </span>
                   {metrics.as_of && (
                     <span className="text-sm text-slate-500">
@@ -533,7 +533,7 @@ export default function SentimentPage() {
                       Day Range
                     </div>
                     <div className="text-lg font-mono text-slate-300">
-                      ¢{metrics.price.low.toFixed(2)} — ¢
+                      ${metrics.price.low.toFixed(2)} — $
                       {metrics.price.high.toFixed(2)}
                     </div>
                     {metrics.price.volume != null && (
@@ -760,7 +760,7 @@ export default function SentimentPage() {
             loading={loading && !metrics}
           />
           <SnapshotCard
-            label="Soy Oil Share"
+            label="Soybean Oil Share"
             value={
               metrics?.crush.oil_share != null
                 ? `${(metrics.crush.oil_share * 100).toFixed(1)}%`

@@ -39,7 +39,7 @@ const OPTIONS_CONFIG = [
   { optSymbol: "2WA", underlying: "ZW", name: "Wheat Mon Weekly W2" },
   { optSymbol: "1SD", underlying: "ZS", name: "Soybean Thu Weekly W1" },
   { optSymbol: "1SA", underlying: "ZS", name: "Soybean Mon Weekly W1" },
-  { optSymbol: "ZL5", underlying: "ZL", name: "Soy Oil Fri Weekly W5" },
+  { optSymbol: "ZL5", underlying: "ZL", name: "Soybean Oil Fri Weekly W5" },
   { optSymbol: "CN5", underlying: "ZC", name: "Corn Weekly W5" },
   { optSymbol: "OE1", underlying: "KE", name: "KC Wheat Fri Weekly W1" },
   { optSymbol: "OE5", underlying: "KE", name: "KC Wheat Fri Weekly W5" },

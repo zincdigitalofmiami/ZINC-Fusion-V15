@@ -51,8 +51,8 @@ export function ContractImpactCalculator({ currentPrice = 0, forecasts = [] }: C
   const p70 = fc?.targetHigh ?? 0;
 
   const calculatePnL = (forecastPrice: number) => {
-    const diff = forecastPrice - currentPrice; // cents/lb
-    const diffDollars = diff / 100; // dollars/lb
+    const diff = forecastPrice - currentPrice; // diff in cents/lb (ZL quoted in cents)
+    const diffDollars = diff / 100; // convert to dollars/lb for P&L
     return diffDollars * (contracts * POUNDS_PER_CONTRACT);
   };
 

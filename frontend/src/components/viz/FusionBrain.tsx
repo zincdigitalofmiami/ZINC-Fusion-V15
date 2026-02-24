@@ -114,8 +114,8 @@ export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProp
 
     const builtNodes: Node[] = [
       {
-        id: 'ZL', group: 'center', val: 40, label: 'ZL Soy Oil', icon: Wheat, status: zlStatus,
-        hoverTitle: 'ZL Soy Oil', hoverScore: Math.round(avgScore), hoverStatus: zlStatus === 'critical' ? 'ELEVATED' : zlStatus === 'active' ? 'ACTIVE' : 'CALM',
+        id: 'ZL', group: 'center', val: 40, label: 'ZL Soybean Oil', icon: Wheat, status: zlStatus,
+        hoverTitle: 'ZL Soybean Oil', hoverScore: Math.round(avgScore), hoverStatus: zlStatus === 'critical' ? 'ELEVATED' : zlStatus === 'active' ? 'ACTIVE' : 'CALM',
         hoverDetail: `Avg driver score: ${Math.round(avgScore)}/100`,
       },
     ];

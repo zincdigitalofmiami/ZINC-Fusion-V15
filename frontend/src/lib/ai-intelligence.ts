@@ -127,7 +127,7 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
     "tldr": "Quick summary paragraph covering: current price level, short-term outlook (1 week to 1 quarter) with direction and reasoning, longer-term view (6 months+) with key risks/supports, and forecasted percentage moves by timeframe. Be specific with numbers.",
     "currentSnapshot": "Current ZL price level, recent session action, and where it sits in recent range. Include specific price references.",
     "keyDrivers": "Detailed breakdown of: (1) Biofuel Use & Legislation (45Z, RVOs, biodiesel demand), (2) Weather & Supply (US and South America), (3) Macro & Correlations (VIX relationship, Fed rates, FX impacts, China relations), (4) Trade Policy & Tariffs (current tariff levels, impact on competitiveness).",
-    "forecasts": "Time-horizon forecasts: 1 Week (+X-Y% move to ~XX cents/lb - reasoning), 1 Month (+X-Y% to ~XX cents/lb), 1 Quarter (+X-Y% to ~XX cents/lb if conditions hold), 6 Months (direction and range with reasoning).",
+    "forecasts": "Time-horizon forecasts: 1 Week (+X-Y% move to ~XX $/lb - reasoning), 1 Month (+X-Y% to ~XX $/lb), 1 Quarter (+X-Y% to ~XX $/lb if conditions hold), 6 Months (direction and range with reasoning).",
     "correlations": "Summary of key correlations: Palm oil substitution (~0.7-0.8), Canola (~0.6-0.8), China/Brazil/Argentina (negative for US), VIX (positive), Fed rates/USD (negative). Include specific correlation estimates where relevant.",
     "technicalOutlook": "Support and resistance levels, trend direction, potential breakout/breakdown scenarios, and key levels to watch."
   }
@@ -158,7 +158,7 @@ export async function generateAIIntelligence(
   // Build ZL price section if available
   const zlPriceSection = data.zlPrice
     ? `\nZL PRICE DATA:
-- Current ZL Price: ${data.zlPrice.toFixed(2)} cents/lb
+- Current ZL Price: ${data.zlPrice.toFixed(2)} $/lb
 - 5-Day Change: ${data.zlChange5d !== undefined ? `${(data.zlChange5d * 100).toFixed(2)}%` : "N/A"}
 - 20-Day Change: ${data.zlChange20d !== undefined ? `${(data.zlChange20d * 100).toFixed(2)}%` : "N/A"}`
     : "";
