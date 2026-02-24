@@ -58,3 +58,4 @@ export { lcfsCreditWeekly } from "./lcfs-credit-weekly";
 export { specialistSignalsSync, specialistSignalsSyncManual } from "./specialist-signals-sync";
 export { globalFailureMonitor } from "./global-failure-monitor";
 export { freshnessMonitor } from "./freshness-monitor";
+export { yahooIndicesDaily } from "./yahoo-indices-daily";

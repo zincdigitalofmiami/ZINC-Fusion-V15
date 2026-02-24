@@ -71,6 +71,7 @@ import {
   specialistSignalsSyncManual,
   globalFailureMonitor,
   freshnessMonitor,
+  yahooIndicesDaily,
 } from "@/inngest/functions";
 
 /**
@@ -210,6 +211,8 @@ export const { GET, POST, PUT } = serve({
     globalFailureMonitor,
     // Freshness SLAs for critical tables
     freshnessMonitor,
+    // Yahoo Finance indices (VIX + DX)
+    yahooIndicesDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
