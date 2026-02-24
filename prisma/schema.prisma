@@ -1560,18 +1560,25 @@ model mpob_palm_1m {
 }
 
 model usda_exports_1w {
-  id                   Int       @id @default(autoincrement())
-  event_date           DateTime  @db.Date
-  commodity            String    @db.VarChar(50)
-  destination_country  String?   @db.VarChar(100)
-  net_sales_mt         Float?
-  exports_mt           Float?
-  outstanding_sales_mt Float?
-  source               String?   @default("USDA") @db.VarChar(50)
-  ingested_at          DateTime? @default(now()) @db.Timestamptz(6)
-  knowledge_time       DateTime? @default(now()) @db.Timestamptz(6)
-  row_hash             String?   @db.VarChar(64)
+  id                          Int       @id @default(autoincrement())
+  event_date                  DateTime  @db.Date
+  commodity                   String    @db.VarChar(50)
+  destination_country         String?   @db.VarChar(100)
+  net_sales_mt                Float?
+  exports_mt                  Float?
+  outstanding_sales_mt        Float?
+  outstanding_sales_yr_ago_mt Float?
+  exports_yr_ago_mt           Float?
+  outstanding_next_my_mt      Float?
+  is_region                   Boolean?  @default(false)
+  parent_region               String?   @db.VarChar(100)
+  marketing_year              String?   @db.VarChar(20)
+  source                      String?   @default("USDA") @db.VarChar(50)
+  ingested_at                 DateTime? @default(now()) @db.Timestamptz(6)
+  knowledge_time              DateTime? @default(now()) @db.Timestamptz(6)
+  row_hash                    String?   @db.VarChar(64)
 
+  @@unique([event_date, commodity, destination_country])
   @@schema("supply")
 }
 

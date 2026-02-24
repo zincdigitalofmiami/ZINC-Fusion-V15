@@ -103,6 +103,21 @@ Each specialist outputs `(signal_1, signal_2, confidence)` per date to `training
 3. **Core Training:** AutoGluon trains on full matrix including specialist signals
 4. **OOF Predictions:** Written to `training.oof_core_1d` (`predicted_price` per horizon). These are ZL futures contract prices — not returns. L2/L3 calibration layers then wrap these with probability to produce Target Zones on the dashboard.
 
+### Country-Level Export Data = Geopolitical Signal Layer
+
+USDA FAS Export Sales reports (`supply.usda_exports_1w`) contain **country-level** purchase data for soybeans, soybean oil, and soybean meal. This is NOT just aggregate demand — it is a granular geopolitical intelligence feed.
+
+**Why country-level matters for the model:**
+- **Demand shifts by country** are early signals of policy changes. When a country's purchases collapse or spike YoY, it often precedes or coincides with tariffs, sanctions, trade agreements, or domestic regulation.
+- **China specialist** directly consumes China's share of soy complex purchases — outstanding sales, accumulated exports, YoY comparison.
+- **Trump_effect specialist** can correlate country-level purchase anomalies with lobbying, sanctions, executive orders, and "regulations that don't make sense" — e.g., a country whose imports drop despite no economic reason points to political interference.
+- **Crush specialist** uses oil/meal destination flows to understand global crush economics — where is oil going vs. meal vs. beans? Country ratios reveal processing capacity shifts.
+- **Tariff specialist** uses bilateral trade flow disruptions as direct signal — when purchases reroute (e.g., China drops, Pakistan/Egypt surge 4x), that's trade diversion from tariff impact.
+
+**Ingestion depth:** Every country in the report is captured with 6 columns: outstanding sales (this week + YoY), accumulated exports (this week + YoY), and next marketing year outstanding. Region subtotals and individual country rows are both stored. Abbreviated country names are resolved to full names via lookup table.
+
+**Source reports:** Soybeans, Soybean Oil, Soybean Meal pages at `apps.fas.usda.gov/export-sales/`
+
 ## Claude Hard-Coded Corrections (DO NOT REPEAT THESE ERRORS)
 
 <!-- LAST UPDATED: 2026-02-19 by Kirk (architect) -->
