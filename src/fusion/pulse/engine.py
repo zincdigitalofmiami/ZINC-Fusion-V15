@@ -249,7 +249,7 @@ EXAMPLE_SIGNAL_SNAPSHOT = {
     "CHINA": {
         "import_pace_ytd": {"value": 85.2, "unit": "mmt", "vs_ly": -3.2},
         "port_stocks": {"value": 4.8, "unit": "mmt", "trend": "building"},
-        "dce_soyoil": {"value": 7850, "unit": "cny/mt", "change_5d": -120},
+        "dce_soybean_oil": {"value": 7850, "unit": "cny/mt", "change_5d": -120},
         "usd_cny": {"value": 7.25, "change_5d": 0.02},
         "hog_margins": {"value": 150, "unit": "cny/head", "status": "profitable"},
     },

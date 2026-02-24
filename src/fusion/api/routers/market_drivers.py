@@ -125,7 +125,7 @@ def market_driver_crush_pressure(
 
     Domain expertise:
     - Board crush economics ($0.75 danger, $1.25 tight, $1.50 neutral, $1.75+ healthy)
-    - Oil share dynamics (falling = bearish soyoil)
+    - Oil share dynamics (falling = bearish soybean oil)
     - Crush specialist model signal
     - Processor margin regime classification
     """

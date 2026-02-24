@@ -458,7 +458,7 @@ def calculate_volatility_pressure(conn, as_of_date: date | None = None) -> dict:
     1. VIX Level (45%): Absolute level scoring
     2. Term Structure (25%): VIX vs VIX3M
     3. OVX (15%): Energy volatility
-    4. Realized ZL Vol (15%): Actual soyoil volatility
+    4. Realized ZL Vol (15%): Actual soybean oil volatility
 
     Returns PressureReading-compatible dict.
     """

@@ -61,7 +61,7 @@ from .regime_detection import (
     # Regime enums
     MarketRegime,
     CommodityRegime,
-    SoyOilRegime,
+    SoybeanOilRegime,
     RegimeState,
     # Base weights
     BASE_WEIGHTS,
@@ -92,7 +92,7 @@ __all__ = [
     # Regime detection
     "MarketRegime",
     "CommodityRegime",
-    "SoyOilRegime",
+    "SoybeanOilRegime",
     "RegimeState",
     "BASE_WEIGHTS",
     "REGIME_WEIGHT_OVERRIDES",

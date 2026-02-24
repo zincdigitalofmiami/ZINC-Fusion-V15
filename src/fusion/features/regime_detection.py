@@ -46,7 +46,7 @@ class CommodityRegime(Enum):
     BACKWARDATION_STEEP = "backwardation_steep"  # Strong carry positive
 
 
-class SoyOilRegime(Enum):
+class SoybeanOilRegime(Enum):
     """Soybean oil specific regimes."""
 
     CRUSH_SQUEEZE = "crush_squeeze"  # Low crush margins
@@ -63,7 +63,7 @@ class RegimeState:
 
     market_regime: MarketRegime
     commodity_regime: CommodityRegime
-    soy_oil_regime: SoyOilRegime
+    soybean_oil_regime: SoybeanOilRegime
     confidence: float  # 0-1
     regime_age_days: int
     transition_probability: float
@@ -129,8 +129,8 @@ REGIME_WEIGHT_OVERRIDES = {
         "fed": 0.02,
         "volatility": 0.01,
     },
-    # SoyOil Regimes
-    SoyOilRegime.CRUSH_SQUEEZE: {
+    # Soybean Oil Regimes
+    SoybeanOilRegime.CRUSH_SQUEEZE: {
         "crush": 0.45,  # Crush margins dominate
         "china": 0.16,
         "energy": 0.08,
@@ -142,7 +142,7 @@ REGIME_WEIGHT_OVERRIDES = {
         "fed": 0.02,
         "volatility": 0.02,
     },
-    SoyOilRegime.BIOFUEL_DRIVEN: {
+    SoybeanOilRegime.BIOFUEL_DRIVEN: {
         "crush": 0.20,
         "china": 0.10,
         "energy": 0.16,  # Energy coupling strengthens
@@ -154,7 +154,7 @@ REGIME_WEIGHT_OVERRIDES = {
         "fed": 0.03,
         "volatility": 0.03,
     },
-    SoyOilRegime.DEMAND_SHOCK: {
+    SoybeanOilRegime.DEMAND_SHOCK: {
         "crush": 0.22,
         "china": 0.32,  # China dominates
         "energy": 0.08,
@@ -254,7 +254,7 @@ class RegimeDetector:
         else:
             return CommodityRegime.FLAT
 
-    def detect_soyoil_regime(self, df: pd.DataFrame) -> SoyOilRegime:
+    def detect_soybean_oil_regime(self, df: pd.DataFrame) -> SoybeanOilRegime:
         """
         Detect soybean oil specific regime.
         """
@@ -268,25 +268,25 @@ class RegimeDetector:
 
         # Check for crush squeeze
         if crush_zscore < -1.5:
-            return SoyOilRegime.CRUSH_SQUEEZE
+            return SoybeanOilRegime.CRUSH_SQUEEZE
 
         # Check for oil premium (biodiesel/RD demand)
         if oil_share > 0.45:
-            return SoyOilRegime.OIL_PREMIUM
+            return SoybeanOilRegime.OIL_PREMIUM
 
         # Check for meal premium
         if oil_share < 0.35:
-            return SoyOilRegime.MEAL_PREMIUM
+            return SoybeanOilRegime.MEAL_PREMIUM
 
         # Check for biofuel driven
         if rin_d4 > 1.50:
-            return SoyOilRegime.BIOFUEL_DRIVEN
+            return SoybeanOilRegime.BIOFUEL_DRIVEN
 
         # Check for demand shock
         if china_demand > 80 or china_demand < 20:
-            return SoyOilRegime.DEMAND_SHOCK
+            return SoybeanOilRegime.DEMAND_SHOCK
 
-        return SoyOilRegime.NORMAL
+        return SoybeanOilRegime.NORMAL
 
     def get_current_regime(self, df: pd.DataFrame) -> RegimeState:
         """
@@ -294,10 +294,10 @@ class RegimeDetector:
         """
         market_regime = self.detect_market_regime(df)
         commodity_regime = self.detect_commodity_regime(df)
-        soyoil_regime = self.detect_soyoil_regime(df)
+        soybean_oil_regime = self.detect_soybean_oil_regime(df)
 
         # Calculate confidence based on signal clarity
-        confidence = self._calculate_confidence(df, market_regime, soyoil_regime)
+        confidence = self._calculate_confidence(df, market_regime, soybean_oil_regime)
 
         # Calculate regime age
         regime_age = self._calculate_regime_age(market_regime)
@@ -308,14 +308,17 @@ class RegimeDetector:
         return RegimeState(
             market_regime=market_regime,
             commodity_regime=commodity_regime,
-            soy_oil_regime=soyoil_regime,
+            soybean_oil_regime=soybean_oil_regime,
             confidence=confidence,
             regime_age_days=regime_age,
             transition_probability=transition_prob,
         )
 
     def _calculate_confidence(
-        self, df: pd.DataFrame, market_regime: MarketRegime, soyoil_regime: SoyOilRegime
+        self,
+        df: pd.DataFrame,
+        market_regime: MarketRegime,
+        soybean_oil_regime: SoybeanOilRegime,
     ) -> float:
         """Calculate confidence in regime classification."""
         latest = df.iloc[-1]
@@ -404,17 +407,19 @@ class DynamicWeightAllocator:
                     + (1 - regime_state.confidence) * weights[bucket]
                 )
 
-        # Apply soy oil regime override if more relevant
-        if regime_state.soy_oil_regime in REGIME_WEIGHT_OVERRIDES:
-            soyoil_weights = REGIME_WEIGHT_OVERRIDES[regime_state.soy_oil_regime]
+        # Apply soybean oil regime override if more relevant
+        if regime_state.soybean_oil_regime in REGIME_WEIGHT_OVERRIDES:
+            soybean_oil_weights = REGIME_WEIGHT_OVERRIDES[
+                regime_state.soybean_oil_regime
+            ]
             # Use stronger signal
-            for bucket, weight in soyoil_weights.items():
-                soyoil_adj = (
+            for bucket, weight in soybean_oil_weights.items():
+                soybean_oil_adj = (
                     regime_state.confidence * weight
                     + (1 - regime_state.confidence) * weights[bucket]
                 )
-                # Take average of market and soyoil adjustments
-                weights[bucket] = (weights[bucket] + soyoil_adj) / 2
+                # Take average of market and soybean oil adjustments
+                weights[bucket] = (weights[bucket] + soybean_oil_adj) / 2
 
         # Normalize to sum to 1
         total = sum(weights.values())

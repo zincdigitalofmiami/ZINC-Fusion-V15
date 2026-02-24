@@ -88,8 +88,8 @@ INPUTS:
 ALLOWED top_drivers.driver_id:
 - crush_margin_change
 - crush_margin_percentile
-- soyoil_share_strength
-- soyoil_share_percentile
+- soybean_oil_share_strength
+- soybean_oil_share_percentile
 - soymeal_offset_pressure
 - processor_utilization
 - utilization_change

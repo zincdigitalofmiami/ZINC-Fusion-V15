@@ -106,7 +106,7 @@ ALLOWED top_drivers.driver_id:
 - palm_reference_price
 - palm_weather_impact
 - palm_yield_deviation
-- palm_soyoil_spread
+- palm_soybean_oil_spread
 - palm_spread_percentile
 - palm_spread_mean_reversion
 - palm_biodiesel_mandate

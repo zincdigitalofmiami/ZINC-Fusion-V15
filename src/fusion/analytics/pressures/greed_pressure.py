@@ -2,7 +2,7 @@
 ZINC-FUSION-V15: Greed Pressure Index Calculator
 
 CNN Fear/Greed style composite sentiment indicator.
-Adapted for commodity/soyoil market context.
+Adapted for commodity/soybean oil market context.
 
 CNN Fear & Greed Methodology (7 equally-weighted indicators):
 1. Stock Price Momentum - S&P 500 vs 125-day MA

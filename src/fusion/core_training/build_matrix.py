@@ -1135,7 +1135,7 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
     try:
         # Board crush (ZS crush margin, oil share)
         crush_query = """
-            SELECT trade_date, board_crush, oil_share as soy_oil_share
+            SELECT trade_date, board_crush, oil_share as soybean_oil_share
             FROM analytics.board_crush_1d
             ORDER BY trade_date
         """
@@ -1165,15 +1165,15 @@ def load_spread_features(conn, target_symbol: str = "ZL") -> pd.DataFrame:
                 df_crush["board_crush"] - _mean
             ) / _std
             df_crush["board_crush_momentum_5d"] = df_crush["board_crush"].diff(5)
-            _mean = df_crush["soy_oil_share"].rolling(63, min_periods=63).mean()
+            _mean = df_crush["soybean_oil_share"].rolling(63, min_periods=63).mean()
             _std = (
-                df_crush["soy_oil_share"]
+                df_crush["soybean_oil_share"]
                 .rolling(63, min_periods=63)
                 .std()
                 .replace(0, np.nan)
             )
-            df_crush["soy_oil_share_zscore"] = (
-                df_crush["soy_oil_share"] - _mean
+            df_crush["soybean_oil_share_zscore"] = (
+                df_crush["soybean_oil_share"] - _mean
             ) / _std
 
         # Cross-commodity ratios from futures closes
@@ -2903,7 +2903,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             logger.info("Merging USDA export sales (PURE EVENT ENCODING)...")
             before_cols = len(df.columns)
             # Per plan: 4 USDA Exports metrics
-            # Note: loader returns columns like usda_soybeans_net_sales, usda_soyoil_shipments, etc.
+            # Note: loader returns columns like usda_soybeans_net_sales, usda_soybean_oil_shipments, etc.
             usda_export_cols = [c for c in df_exports.columns if c != "trade_date"]
             df = pure_event_encode(
                 df, df_exports, usda_export_cols, prefix="usda_exports"

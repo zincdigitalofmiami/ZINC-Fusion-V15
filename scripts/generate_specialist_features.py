@@ -92,7 +92,7 @@ SPECIALIST_FEATURE_CONFIGS = {
             # From specialist_buckets.py BUCKET_CONFIGS
             "board_crush",  # ZS*11 - ZL*11 - ZM (processing economics)
             "oil_share",  # ZL value / (ZL + ZM) - value split
-            "zl_zs_ratio",  # SoyOil/Soybean ratio
+            "zl_zs_ratio",  # Soybean Oil/Soybean ratio
             "zm_zs_ratio",  # SoyMeal/Soybean ratio
             "crush_margin",  # Crush profitability
             "nopa_crush_utilization",  # US processing capacity usage
@@ -165,7 +165,7 @@ SPECIALIST_FEATURE_CONFIGS = {
     # =========================================================================
     # ENERGY - Petroleum complex
     # =========================================================================
-    # Biodiesel economics: SoyOil competes with Heating Oil.
+    # Biodiesel economics: Soybean Oil competes with Heating Oil.
     "energy": {
         "description": "Petroleum complex - crude, HO, crack spreads, BOHO",
         "symbols": ["ZL", "CL", "HO", "RB", "NG"],
@@ -175,7 +175,7 @@ SPECIALIST_FEATURE_CONFIGS = {
             "rb_close",  # Gasoline
             "ng_close",  # Natural gas
             "crack_spread_321",  # Refining margin
-            "boho_spread",  # SoyOil - HO = biodiesel premium
+            "boho_spread",  # Soybean Oil - HO = biodiesel premium
         ],
         "secondary_features": [
             "brent_wti_spread",  # Crude arbitrage

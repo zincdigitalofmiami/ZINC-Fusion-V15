@@ -78,7 +78,7 @@ class CrushRegime:
 
     name: str
     description: str
-    implications_oil: str  # What this means for soyoil
+    implications_oil: str  # What this means for soybean oil
     implications_meal: str  # What this means for soymeal
 
 
@@ -185,7 +185,7 @@ def score_oil_share_level(oil_share: float) -> Tuple[float, str]:
     """
     Score oil share level using domain thresholds.
 
-    From a soyoil perspective:
+    From a soybean oil perspective:
     - Low oil share = bearish (meal driving the crush)
     - High oil share = bullish (oil commanding premium)
 
@@ -211,7 +211,7 @@ def score_oil_share_trend(
     current: float, prior: float, days: int = 5
 ) -> Tuple[float, str]:
     """
-    Score oil share trend (direction matters for soyoil traders).
+    Score oil share trend (direction matters for soybean oil traders).
 
     Returns (adjustment, description).
     """
@@ -282,7 +282,7 @@ def generate_crush_narrative(
     else:
         parts.append(f"Oil share at {oil_share * 100:.1f}% is stable.")
 
-    # Implication for soyoil
+    # Implication for soybean oil
     parts.append(regime_info.implications_oil)
 
     narrative = " ".join(parts)

@@ -104,7 +104,7 @@ KEY RELATIONSHIPS YOU UNDERSTAND:
 2. Crush Margins → ZL: Tight margins = processor slowdowns = less oil supply. Strong margins = max crush = heavy oil supply.
 3. China/CNY → ZL: China is #1 soy importer. Weak CNY = Brazil more competitive vs US. Trade war = export demand cliff. Negative correlation with USD strength.
 4. Tariff/TPU → ZL: Trade Policy Uncertainty from Baker-Bloom-Davis. High TPU = soy export risk.
-5. Biofuels: 45Z tax credit, RVO volumes, biodiesel/renewable diesel demand drives 50%+ of domestic soyoil consumption.
+5. Biofuels: 45Z tax credit, RVO volumes, biodiesel/renewable diesel demand drives 50%+ of domestic soybean oil consumption.
 6. Substitutes: Palm oil (~0.7-0.8 correlation), canola (~0.6-0.8 correlation) compete as biofuel feedstocks.
 
 THRESHOLDS YOU KNOW:
