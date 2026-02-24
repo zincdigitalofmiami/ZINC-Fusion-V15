@@ -59,3 +59,5 @@ export { specialistSignalsSync, specialistSignalsSyncManual } from "./specialist
 export { globalFailureMonitor } from "./global-failure-monitor";
 export { freshnessMonitor } from "./freshness-monitor";
 export { yahooIndicesDaily, yahooIndicesBackfill } from "./yahoo-indices-daily";
+export { esmisPublicationsDaily, esmisPublicationsBackfill } from "./esmis-publications-daily";
+export { fasReportsDaily } from "./fas-reports-daily";

@@ -73,6 +73,9 @@ import {
   freshnessMonitor,
   yahooIndicesDaily,
   yahooIndicesBackfill,
+  esmisPublicationsDaily,
+  esmisPublicationsBackfill,
+  fasReportsDaily,
 } from "@/inngest/functions";
 
 /**
@@ -215,6 +218,11 @@ export const { GET, POST, PUT } = serve({
     // Yahoo Finance indices (VIX + DX)
     yahooIndicesDaily,
     yahooIndicesBackfill,
+    // USDA ESMIS publications (WASDE, Oil Crops, Crush, Biofuels, Trade)
+    esmisPublicationsDaily,
+    esmisPublicationsBackfill,
+    // FAS reports (oilseeds, biofuels, GAIN, attaché)
+    fasReportsDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
