@@ -271,6 +271,17 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "RVXCLS", name: "CBOE Russell 2000 VIX", tags: ["volatility"] },
   { id: "VXDCLS", name: "CBOE DJIA VIX", tags: ["volatility"] },
   { id: "VXEWZCLS", name: "CBOE Brazil ETF VIX", tags: ["volatility", "china", "crush"] },  // EM soy proxy
+  // ── EMV macro trackers (release 279) — market-focused ──
+  { id: "EMVOVERALLEMV", name: "EMV: Overall", tags: ["volatility", "trump_effect"] },
+  { id: "WLEMUINDXD", name: "Equity Market Uncertainty (Daily)", tags: ["volatility"] },
+  { id: "EMVMACROBUS", name: "EMV: Business Outlook", tags: ["volatility"] },
+  { id: "EMVMACROINFLATION", name: "EMV: Inflation", tags: ["volatility", "fed", "energy"] },
+  { id: "EMVMACROINTEREST", name: "EMV: Interest Rates", tags: ["volatility", "fed"] },
+  { id: "EMVEXRATES", name: "EMV: Exchange Rates", tags: ["volatility", "fx", "trump_effect"] },
+  { id: "EMVFINCRISES", name: "EMV: Financial Crises", tags: ["volatility"] },
+  { id: "EMVMONETARYPOL", name: "EMV: Monetary Policy", tags: ["volatility", "fed"] },
+  { id: "EMVCOMMMKT", name: "EMV: Commodity Markets", tags: ["volatility", "crush", "energy"] },
+  { id: "INFECTDISEMVTRACKD", name: "EMV: Infectious Disease (Daily)", tags: ["volatility"] },
   // Financial stress (weekly) - credit conditions, demand destruction risk
   // NOTE: STLFSI discontinued 2020, TEDRATE discontinued 2022 - using replacements
   { id: "STLFSI4", name: "St. Louis Financial Stress Index", tags: ["volatility", "fed"] },
@@ -294,6 +305,27 @@ const FRED_TRUMP_EFFECT_SERIES: FredSeriesConfig[] = [
   { id: "B235RC1Q027SBEA", name: "Customs Duties (Tariff Receipts)", tags: ["trump_effect", "tariff", "china"] },
   // China imports - trade war barometer
   { id: "IMPCH", name: "US Imports from China", tags: ["trump_effect", "tariff", "china"] },
+  // ── EPU categorical indices (release 279) ──
+  { id: "EPUMONETARY", name: "EPU: Monetary Policy", tags: ["trump_effect", "volatility", "fed"] },
+  { id: "EPUFISCAL", name: "EPU: Fiscal Policy", tags: ["trump_effect", "volatility"] },
+  { id: "EPUFINREG", name: "EPU: Financial Regulation", tags: ["trump_effect", "volatility"] },
+  { id: "EPUNATSEC", name: "EPU: National Security", tags: ["trump_effect", "volatility"] },
+  { id: "EPUTAXES", name: "EPU: Taxes", tags: ["trump_effect", "volatility", "tariff"] },
+  { id: "EPUGOVTSPEND", name: "EPU: Government Spending", tags: ["trump_effect", "volatility"] },
+  { id: "EPUSOVDEBT", name: "EPU: Sovereign Debt/Currency", tags: ["trump_effect", "volatility", "fx"] },
+  // ── Global/regional EPU ──
+  { id: "GEPUCURRENT", name: "Global EPU Index (Current Price)", tags: ["trump_effect", "volatility", "china"] },
+  { id: "EUEPUINDXM", name: "Europe EPU Index", tags: ["trump_effect", "volatility"] },
+  { id: "CHNMAINLANDEPU", name: "China EPU Index (Mainland)", tags: ["trump_effect", "china", "tariff", "crush"] },
+  // ── EMV categorical trackers (release 279) — policy-focused ──
+  { id: "EMVELECTGOVRN", name: "EMV: Elections & Governance", tags: ["trump_effect", "volatility"] },
+  { id: "EMVIMMIGRATION", name: "EMV: Immigration", tags: ["trump_effect", "volatility"] },
+  { id: "EMVGOVTSPEND", name: "EMV: Govt Spending & Deficit", tags: ["trump_effect", "volatility"] },
+  { id: "EMVFISCALPOL", name: "EMV: Fiscal Policy", tags: ["trump_effect", "volatility"] },
+  { id: "EMVTAXESEMV", name: "EMV: Taxes", tags: ["trump_effect", "volatility", "tariff"] },
+  { id: "EMVAGRPOLICY", name: "EMV: Agricultural Policy", tags: ["trump_effect", "crush", "tariff"] },
+  { id: "EMVENRGYENVREG", name: "EMV: Energy & Environmental Regulation", tags: ["trump_effect", "energy", "biofuel"] },
+  { id: "EMVNATSEC", name: "EMV: National Security Policy", tags: ["trump_effect", "volatility"] },
 ];
 
 const FRED_CHINA_SERIES: FredSeriesConfig[] = [
@@ -418,6 +450,35 @@ const FRED_TABLE_MAP: Record<string, string> = {
   RVXCLS: "econ.vol_indices_1d",    // Russell 2000 VIX
   VXDCLS: "econ.vol_indices_1d",    // DJIA VIX
   VXEWZCLS: "econ.vol_indices_1d",  // Brazil ETF VIX
+  // EMV/EPU trackers (release 279 — Economic Policy Uncertainty & EMV)
+  EMVOVERALLEMV: "econ.vol_indices_1d",
+  WLEMUINDXD: "econ.vol_indices_1d",
+  EMVMACROBUS: "econ.vol_indices_1d",
+  EMVMACROINFLATION: "econ.vol_indices_1d",
+  EMVMACROINTEREST: "econ.vol_indices_1d",
+  EMVEXRATES: "econ.vol_indices_1d",
+  EMVFINCRISES: "econ.vol_indices_1d",
+  EMVMONETARYPOL: "econ.vol_indices_1d",
+  EMVCOMMMKT: "econ.vol_indices_1d",
+  INFECTDISEMVTRACKD: "econ.vol_indices_1d",
+  EPUMONETARY: "econ.vol_indices_1d",
+  EPUFISCAL: "econ.vol_indices_1d",
+  EPUFINREG: "econ.vol_indices_1d",
+  EPUNATSEC: "econ.vol_indices_1d",
+  EPUTAXES: "econ.vol_indices_1d",
+  EPUGOVTSPEND: "econ.vol_indices_1d",
+  EPUSOVDEBT: "econ.vol_indices_1d",
+  GEPUCURRENT: "econ.vol_indices_1d",
+  EUEPUINDXM: "econ.vol_indices_1d",
+  CHNMAINLANDEPU: "econ.vol_indices_1d",
+  EMVELECTGOVRN: "econ.vol_indices_1d",
+  EMVIMMIGRATION: "econ.vol_indices_1d",
+  EMVGOVTSPEND: "econ.vol_indices_1d",
+  EMVFISCALPOL: "econ.vol_indices_1d",
+  EMVTAXESEMV: "econ.vol_indices_1d",
+  EMVAGRPOLICY: "econ.vol_indices_1d",
+  EMVENRGYENVREG: "econ.vol_indices_1d",
+  EMVNATSEC: "econ.vol_indices_1d",
   SP500: "econ.vol_indices_1d",
   NASDAQCOM: "econ.vol_indices_1d",
   USEPUINDXD: "econ.vol_indices_1d",
