@@ -410,6 +410,61 @@ export function computeDataFreshness(
   };
 }
 
+// =============================================================================
+// STALENESS-AWARE METADATA
+// =============================================================================
+
+export interface SourceStaleness {
+  source: string;
+  date: string | null;
+  daysStale: number | null;
+  slaMaxDays: number;
+  isFresh: boolean;
+}
+
+/** Per-source SLA thresholds (calendar days). */
+const SOURCE_SLAS: Record<string, number> = {
+  vix: 3,    // Daily VIX
+  crush: 5,  // Daily crush (business-day cadence)
+  cny: 5,    // Daily FX (business-day cadence)
+  tpu: 45,   // Monthly EPU series
+};
+
+/** Returns per-source staleness info with SLA-aware thresholds. */
+export function computeStalenessAwareness(
+  data: MarketDriversRawData,
+): Record<string, SourceStaleness> {
+  const today = new Date();
+  const daysSince = (dateStr: string | null): number | null => {
+    if (!dateStr) return null;
+    return Math.floor(
+      (today.getTime() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24),
+    );
+  };
+
+  const assess = (
+    source: string,
+    date: string | null,
+    sla: number,
+  ): SourceStaleness => {
+    const days = daysSince(date);
+    return {
+      source,
+      date,
+      daysStale: days,
+      slaMaxDays: sla,
+      isFresh: days !== null && days <= sla,
+    };
+  };
+
+  return {
+    vix: assess("econ.vol_indices_1d VIXCLS", data.vixDate, SOURCE_SLAS.vix),
+    crush: assess("analytics.board_crush_1d", data.crushDate, SOURCE_SLAS.crush),
+    cny: assess("mkt.fx_1d CNY/USD", data.cnyDate, SOURCE_SLAS.cny),
+    tpu: assess("econ.vol_indices_1d USEPUINDXM", data.tpuDate, SOURCE_SLAS.tpu),
+  };
+}
+
 /** Assembles MarketData for AI calls. */
 export function buildMarketData(
   data: MarketDriversRawData,

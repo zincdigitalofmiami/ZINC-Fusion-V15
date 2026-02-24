@@ -105,7 +105,7 @@ async function fetchFredObservations(seriesId: string, startDate: string): Promi
 }
 
 export const fxSpotDaily = inngest.createFunction(
-  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { id: "fx-spot-daily", name: "FX Spot (1D) via FRED", retries: 3, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
   { cron: "0 9 * * *" }, // Daily at 09:00 UTC
   async ({ step, logger }) => {
     if (!process.env.DATABASE_URL) {

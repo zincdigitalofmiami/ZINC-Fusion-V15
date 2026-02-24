@@ -29,6 +29,25 @@ function computeRowHash(payload: Record<string, unknown>): string {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
+/**
+ * Resolve CFTC API field names which are inconsistent across categories.
+ * Some fields have `_all` suffix (e.g. m_money_positions_long_all),
+ * some don't (e.g. prod_merc_positions_long), and swap fields sometimes
+ * use a double underscore (swap__positions_short_all).
+ */
+function cftcField(row: Record<string, string>, base: string, suffix = ""): string {
+  const candidates = [
+    `${base}${suffix}`,
+    base,
+    base.replace("swap_", "swap__") + suffix,
+    base.replace("swap_", "swap__"),
+  ];
+  for (const key of candidates) {
+    if (row[key] !== undefined && row[key] !== "") return row[key];
+  }
+  return "0";
+}
+
 // CFTC contract codes for key commodities
 const CFTC_CONTRACTS = [
   { code: "007601", symbol: "ZL", name: "Soybean Oil" },
@@ -108,17 +127,26 @@ export const cftcWeekly = inngest.createFunction(
             const reportDate = row.report_date_as_yyyy_mm_dd;
             if (!reportDate) continue;
 
-            const openInterest = parseInt(row.open_interest_all || "0");
-            const managedLong = parseInt(row.m_money_positions_long_all || "0");
-            const managedShort = parseInt(row.m_money_positions_short_all || "0");
-            const prodMercLong = parseInt(row.prod_merc_positions_long_all || "0");
-            const prodMercShort = parseInt(row.prod_merc_positions_short_all || "0");
-            const swapLong = parseInt(row.swap_positions_long_all || "0");
-            const swapShort = parseInt(row.swap_positions_short_all || "0");
-            const otherLong = parseInt(row.other_rept_positions_long_all || "0");
-            const otherShort = parseInt(row.other_rept_positions_short_all || "0");
-            const nonreptLong = parseInt(row.nonrept_positions_long_all || "0");
-            const nonreptShort = parseInt(row.nonrept_positions_short_all || "0");
+            const openInterest = parseInt(cftcField(row, "open_interest", "_all"));
+            const managedLong = parseInt(cftcField(row, "m_money_positions_long", "_all"));
+            const managedShort = parseInt(cftcField(row, "m_money_positions_short", "_all"));
+            const prodMercLong = parseInt(cftcField(row, "prod_merc_positions_long", "_all"));
+            const prodMercShort = parseInt(cftcField(row, "prod_merc_positions_short", "_all"));
+            const swapLong = parseInt(cftcField(row, "swap_positions_long", "_all"));
+            const swapShort = parseInt(cftcField(row, "swap_positions_short", "_all"));
+            const otherLong = parseInt(cftcField(row, "other_rept_positions_long", "_all"));
+            const otherShort = parseInt(cftcField(row, "other_rept_positions_short", "_all"));
+            const nonreptLong = parseInt(cftcField(row, "nonrept_positions_long", "_all"));
+            const nonreptShort = parseInt(cftcField(row, "nonrept_positions_short", "_all"));
+
+            // Warn if producer/merchant positions resolve to 0 despite non-zero OI
+            if (prodMercLong === 0 && prodMercShort === 0 && openInterest > 0) {
+              logger.warn({
+                symbol: contract.symbol,
+                reportDate,
+                availableKeys: Object.keys(row).filter(k => k.includes("prod_merc")),
+              }, "prod_merc positions are 0/0 with non-zero OI — possible CFTC API field name change");
+            }
 
             const managedNet = managedLong - managedShort;
             const prodMercNet = prodMercLong - prodMercShort;
@@ -226,6 +254,49 @@ export const cftcWeekly = inngest.createFunction(
       totalInserted += r.inserted;
       totalSkipped += r.skipped;
     }
+
+    // ── Step 3b: validate COT data quality ──
+    await step.run("validate-cot-quality", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query<{
+          event_date: string;
+          open_interest: number;
+          prod_merc_long: number;
+          prod_merc_short: number;
+        }>(`
+          SELECT event_date::text, open_interest, prod_merc_long, prod_merc_short
+          FROM pos.cftc_1w
+          WHERE symbol = 'ZL'
+          ORDER BY event_date DESC LIMIT 1
+        `);
+
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          if (row.open_interest > 0 && row.prod_merc_long === 0 && row.prod_merc_short === 0) {
+            logger.error({
+              event_date: row.event_date,
+              open_interest: row.open_interest,
+              prod_merc_long: row.prod_merc_long,
+              prod_merc_short: row.prod_merc_short,
+            }, "COT DATA QUALITY ALERT: ZL producer/merchant positions are 0/0 with non-zero OI");
+
+            await client.query(
+              `INSERT INTO ops.pipeline_alerts
+                 (function_id, run_id, error_message, error_name, created_at)
+               VALUES ('cftc-weekly', $1, $2, 'DataQualityAlert', NOW())
+               ON CONFLICT (run_id) DO NOTHING`,
+              [
+                `cot-quality-${row.event_date}`,
+                `ZL COT prod_merc 0/0 with OI=${row.open_interest} on ${row.event_date} — likely CFTC API field name change`,
+              ]
+            );
+          }
+        }
+      } finally {
+        client.release();
+      }
+    });
 
     // ── Step 4: finalize ingest run ──
     await step.run("complete-ingest-run", async () => {

@@ -7,9 +7,14 @@
  *
  * Static table references (for sql-table-contract hook):
  *   training.specialist_signals_1d
+ *   training.specialist_features_trump_effect
  *   mkt.futures_1d
+ *   mkt.fx_1d
  *   analytics.price_1d
  *   analytics.latest_price
+ *   analytics.board_crush_1d
+ *   econ.vol_indices_1d
+ *   pos.cftc_1w
  *   ops.ingest_run
  *   ops.pipeline_alerts
  */
@@ -67,6 +72,56 @@ const SLA_CHECKS: SlaCheck[] = [
 		        FROM ops.ingest_run
 		        WHERE status = 'success'`,
 		maxStaleDays: 2,
+	},
+	// ── Driver-specific freshness checks (added 2026-02-23) ──
+	// Trade Policy Uncertainty — MONTHLY FRED series (USEPUINDXM)
+	{
+		name: "tpu_usepuindxm",
+		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
+		        FROM econ.vol_indices_1d
+		        WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL`,
+		maxStaleDays: 45, // Monthly series: 30 days + 15 day publication lag
+	},
+	// Trade Policy Uncertainty — DAILY FRED series (USEPUINDXD)
+	{
+		name: "tpu_usepuindxd",
+		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
+		        FROM econ.vol_indices_1d
+		        WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL`,
+		maxStaleDays: 7, // Daily series — 7+ days means ingestion is broken
+	},
+	// CNY/USD exchange rate (business-day cadence from FRED DEXCHUS)
+	{
+		name: "fx_cny_usd",
+		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
+		        FROM mkt.fx_1d
+		        WHERE pair IN ('CNY/USD', 'USDCNY') AND rate IS NOT NULL`,
+		maxStaleDays: 5, // Business days only, but 5+ calendar days = stale
+	},
+	// Board Crush spread (depends on ZS/ZL/ZM daily closes)
+	{
+		name: "board_crush_1d",
+		query: `SELECT CURRENT_DATE - MAX(trade_date)::date AS days_stale
+		        FROM analytics.board_crush_1d
+		        WHERE board_crush IS NOT NULL`,
+		maxStaleDays: 5, // Trading-day cadence, 5 calendar days = stale
+	},
+	// CFTC COT data (weekly Friday release)
+	{
+		name: "cftc_cot_zl",
+		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
+		        FROM pos.cftc_1w
+		        WHERE symbol = 'ZL'`,
+		maxStaleDays: 10, // Weekly: 7 days + 3 day buffer for holidays
+	},
+	// Trump Effect specialist features (populated by Python pipeline)
+	{
+		name: "trump_effect_features",
+		query: `SELECT CURRENT_DATE - MAX(as_of_date)::date AS days_stale
+		        FROM training.specialist_features_trump_effect
+		        WHERE features IS NOT NULL
+		          AND features->>'weighted_action_score' IS NOT NULL`,
+		maxStaleDays: 7, // Python pipeline should run at least weekly
 	},
 ];
 

@@ -96,6 +96,10 @@ interface VegasBrief {
   // Data quality
   dataIssues: string[]
   dataQuality: 'good' | 'partial' | 'poor'
+  dataStaleness?: {
+    allFresh: boolean
+    staleSources: Array<{ driver: string; daysStale: number | null; sla: number }>
+  }
 }
 
 // =============================================================================
@@ -262,14 +266,14 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     if (!tpu) dataIssues.push('Trade policy index unavailable')
     if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
 
-    // Check data freshness (warn if > 3 days old)
+    // Check data freshness with per-source SLA thresholds
     const today = new Date()
-    const checkFreshness = (dateStr: string | null, name: string): 'live' | 'stale' | 'unavailable' => {
+    const checkFreshness = (dateStr: string | null, name: string, slaDays = 3): 'live' | 'stale' | 'unavailable' => {
       if (!dateStr) return 'unavailable'
       const dataDate = new Date(dateStr)
       const daysDiff = Math.floor((today.getTime() - dataDate.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysDiff > 3) {
-        dataIssues.push(`${name} data is ${daysDiff} days old`)
+      if (daysDiff > slaDays) {
+        dataIssues.push(`${name} data is ${daysDiff} days old (SLA: ${slaDays}d)`)
         return 'stale'
       }
       return 'live'
@@ -313,7 +317,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: vix,
         unit: 'VIX points',
         asOfDate: vixDate,
-        source: checkFreshness(vixDate, 'VIX')
+        source: checkFreshness(vixDate, 'VIX', 3)
       },
       {
         name: 'Crush',
@@ -326,7 +330,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: crush,
         unit: 'USD/bushel',
         asOfDate: crushDate,
-        source: checkFreshness(crushDate, 'Crush')
+        source: checkFreshness(crushDate, 'Crush', 5)
       },
       {
         name: 'China',
@@ -338,7 +342,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: cny,
         unit: 'CNY/USD',
         asOfDate: cnyDate,
-        source: checkFreshness(cnyDate, 'CNY')
+        source: checkFreshness(cnyDate, 'CNY', 5)
       },
       {
         name: 'Tariffs',
@@ -350,7 +354,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: tpu,
         unit: 'index',
         asOfDate: tpuDate,
-        source: checkFreshness(tpuDate, 'TPU')
+        source: checkFreshness(tpuDate, 'TPU', 45)
       },
       {
         name: 'Trump Effect',
@@ -363,7 +367,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: trumpAction,
         unit: 'action score',
         asOfDate: trumpDate,
-        source: checkFreshness(trumpDate, 'Trump Effect')
+        source: checkFreshness(trumpDate, 'Trump Effect', 7)
       }
     ]
 
@@ -714,6 +718,17 @@ export async function GET() {
       dataQuality = 'good'
     }
 
+    // Compute staleness summary from driver dates
+    const staleSources = driverData.drivers
+      .filter(d => d.source === 'stale')
+      .map(d => {
+        const daysStale = d.asOfDate
+          ? Math.floor((now.getTime() - new Date(d.asOfDate).getTime()) / (1000 * 60 * 60 * 24))
+          : null
+        const slaMap: Record<string, number> = { Markets: 3, VIX: 3, Crush: 5, China: 5, Tariffs: 45, 'Trump Effect': 7 }
+        return { driver: d.name, daysStale, sla: slaMap[d.name] ?? 3 }
+      })
+
     const brief: VegasBrief = {
       generatedAt: now.toISOString(),
       asOfDate,
@@ -736,7 +751,11 @@ export async function GET() {
       keyPositives: getKeyPositives(driverData),
 
       dataIssues: driverData.dataIssues,
-      dataQuality
+      dataQuality,
+      dataStaleness: {
+        allFresh: staleSources.length === 0,
+        staleSources,
+      },
     }
 
     return NextResponse.json(brief)
