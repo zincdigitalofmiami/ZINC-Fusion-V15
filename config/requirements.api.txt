@@ -4,5 +4,5 @@
 # This file pins exact versions for the Python API server (FastAPI/Uvicorn).
 # Kept in sync with pyproject.toml; uv.lock is the full lock file.
 #
-fastapi==0.116.1
-uvicorn[standard]==0.35.0
+fastapi==0.128.7
+uvicorn[standard]==0.41.0
