@@ -24,16 +24,6 @@ const EPU_THRESHOLDS = {
   HIGH: 250,
 };
 
-export interface PolicyNewsItem {
-  id: number;
-  event_date: string;
-  headline: string;
-  url: string | null;
-  source: string | null;
-  specialist_tags: string[];
-  published_at: string | null;
-}
-
 export class PolicyService {
   /**
    * Fetches recent legislation events from the Federal Register
@@ -130,9 +120,7 @@ export class PolicyService {
   }
 
   /**
-   * Aggregates ZL-RELEVANT legislation frequency by agency.
-   * Filters to trade, tariff, biofuel, agriculture, energy, and sanctions filings.
-   * Raw agency counts without keyword filtering are meaningless (SEC always tops).
+   * Aggregates legislation frequency by agency for the Heatmap.
    */
   static async getAgencyHeatmap(): Promise<AgencyActivity[]> {
     const sql = `
@@ -143,25 +131,9 @@ export class PolicyService {
       FROM alt.legislation_1d
       WHERE agency IS NOT NULL
         AND event_date >= CURRENT_DATE - INTERVAL '90 days'
-        AND (
-          title ILIKE '%trade%' OR title ILIKE '%tariff%'
-          OR title ILIKE '%import%' OR title ILIKE '%export%'
-          OR title ILIKE '%biofuel%' OR title ILIKE '%biodiesel%'
-          OR title ILIKE '%renewable fuel%' OR title ILIKE '%renewable diesel%'
-          OR title ILIKE '%soybean%' OR title ILIKE '%vegetable oil%'
-          OR title ILIKE '%ethanol%' OR title ILIKE '%clean fuel%'
-          OR title ILIKE '%petroleum%' OR title ILIKE '%crude%'
-          OR title ILIKE '%sanction%' OR title ILIKE '%embargo%'
-          OR title ILIKE '%agriculture%' OR title ILIKE '%grain%'
-          OR title ILIKE '%oilseed%' OR title ILIKE '%palm%'
-          OR title ILIKE '%energy%' OR title ILIKE '%fuel%'
-          OR title ILIKE '%customs%' OR title ILIKE '%duty%'
-          OR title ILIKE '%rin %' OR title ILIKE '%rfs%'
-          OR title ILIKE '%epa%' OR title ILIKE '%environmental protection%'
-        )
       GROUP BY agency
       ORDER BY count DESC
-      LIMIT 15
+      LIMIT 50
     `;
     const rows = await query<AgencyActivity>(sql);
     return rows;
@@ -192,9 +164,7 @@ export class PolicyService {
   }
 
   /**
-   * Fetches Executive Actions joined with ZL price performance.
-   * Shows ALL recent executive actions with price impact when available,
-   * prioritizing those with significant ZL moves but not excluding others.
+   * Fetches Executive Actions joined with ZL price performance
    */
   static async getShockwaveEvents(limit = 20): Promise<ExecutiveEvent[]> {
     const sql = `
@@ -212,10 +182,8 @@ export class PolicyService {
       FROM alt.executive_actions_event e
       LEFT JOIN mkt.futures_1d m
         ON e.event_date = m.event_date AND m.symbol = 'ZL'
-      WHERE e.event_date >= CURRENT_DATE - INTERVAL '90 days'
-      ORDER BY
-        CASE WHEN ABS(COALESCE(m.returns_1d, 0)) > 0.01 THEN 0 ELSE 1 END,
-        e.event_date DESC
+      WHERE ABS(m.returns_1d) > 0.01
+      ORDER BY e.event_date DESC
       LIMIT $1
     `;
     const rows = await query<ExecutiveEvent>(sql, [limit]);
@@ -246,34 +214,8 @@ export class PolicyService {
     }));
   }
 
-  /**
-   * Fetches recent news articles from Google News + ProFarmer (alt.policy_news_event).
-   * Used by the Policy Intelligence page news feed and AI briefing.
-   */
-  static async getPolicyNews(limit = 50, daysBack = 7): Promise<PolicyNewsItem[]> {
-    const sql = `
-      SELECT
-        id, event_date, headline, url, source,
-        specialist_tags, published_at
-      FROM alt.policy_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '${daysBack} days'
-        AND headline IS NOT NULL
-      ORDER BY event_date DESC, published_at DESC NULLS LAST
-      LIMIT $1
-    `;
-    const rows = await query<PolicyNewsItem>(sql, [limit]);
-    return rows.map((row) => ({
-      ...row,
-      event_date: new Date(row.event_date).toISOString().split("T")[0],
-      published_at: row.published_at
-        ? new Date(row.published_at).toISOString()
-        : null,
-    }));
-  }
-
   static async getRegimeStatus(): Promise<RegimeState> {
     // Fetch all 5 components for calculateTariffThreat() in parallel
-    // Also fetch freshness dates for transparency
     const [
       dailyTpu,
       monthlyTpu,
@@ -282,8 +224,8 @@ export class PolicyService {
       legisCount,
       newsCount,
     ] = await Promise.all([
-      query<{ val: number; dt: string }>(`
-        SELECT value::float8 as val, event_date::text as dt FROM econ.vol_indices_1d
+      query<{ val: number }>(`
+        SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
@@ -292,50 +234,28 @@ export class PolicyService {
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ val: number; dt: string }>(`
-        SELECT value::float8 as val, event_date::text as dt FROM econ.vol_indices_1d
+      query<{ val: number }>(`
+        SELECT value::float8 as val FROM econ.vol_indices_1d
         WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ signal: number; dt: string }>(`
-        SELECT (features->>'neural_signal')::float8 as signal, as_of_date::text as dt
+      query<{ signal: number }>(`
+        SELECT (features->>'neural_signal')::float8 as signal
         FROM training.specialist_features_trump_effect
         WHERE (features->>'neural_signal') IS NOT NULL
         ORDER BY as_of_date DESC LIMIT 1
       `),
-      // Legislation velocity: trade/tariff + biofuel/EPA/energy policy
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
         WHERE event_date >= CURRENT_DATE - INTERVAL '14 days'
-        AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%'
-         OR title ILIKE '%biofuel%' OR title ILIKE '%biodiesel%' OR title ILIKE '%renewable fuel%'
-         OR title ILIKE '%renewable diesel%' OR title ILIKE '%soybean%' OR title ILIKE '%vegetable oil%'
-         OR title ILIKE '%ethanol%' OR title ILIKE '%clean fuel%')
+        AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%')
       `),
-      // News velocity: BOTH ProFarmer + Google News (policy_news_event)
-      // ProFarmer has been dead since Feb 14 2026; Google News RSS fills the gap.
-      // Broadened keywords: trade/tariff + biofuel/EPA/RFS + sanctions/geopolitical
       query<{ count: number }>(`
-        SELECT COUNT(*)::int as count FROM (
-          SELECT headline FROM alt.profarmer_news_event
-          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-          AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
-           OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
-           OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%')
-           OR headline ILIKE '%rfs%' OR headline ILIKE '%biodiesel%' OR headline ILIKE '%renewable diesel%'
-           OR headline ILIKE '%sanctions%' OR headline ILIKE '%crude oil%'
-           OR headline ILIKE '%biofuel%' OR headline ILIKE '%epa%')
-          UNION ALL
-          SELECT headline FROM alt.policy_news_event
-          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-          AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
-           OR (headline ILIKE '%soy%' AND (headline ILIKE '%duty%' OR headline ILIKE '%oil%'))
-           OR (headline ILIKE '%china%' AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade%'))
-           OR headline ILIKE '%rfs%' OR headline ILIKE '%biodiesel%' OR headline ILIKE '%renewable diesel%'
-           OR headline ILIKE '%sanctions%' OR headline ILIKE '%crude oil%'
-           OR headline ILIKE '%biofuel%' OR headline ILIKE '%epa%'
-           OR headline ILIKE '%ethanol%' OR headline ILIKE '%import duty%')
-        ) combined
+        SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+        AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
+         OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
+         OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%'))
       `),
     ]);
 
@@ -366,11 +286,6 @@ export class PolicyService {
         news_velocity: nCount,
       },
       tariff_components: threat.components,
-      freshness: {
-        tpu_date: dailyTpu[0]?.dt ?? null,
-        emv_date: emvData[0]?.dt ?? null,
-        specialist_date: specialistData[0]?.dt ?? null,
-      },
     };
   }
 }

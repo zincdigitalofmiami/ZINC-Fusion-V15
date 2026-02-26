@@ -91,10 +91,4 @@ export interface RegimeState {
     legis_velocity: number; // Count of recent bills
   };
   tariff_components?: TariffComponents;
-  // Data freshness (optional, added for transparency)
-  freshness?: {
-    tpu_date: string | null;
-    emv_date: string | null;
-    specialist_date: string | null;
-  };
 }
