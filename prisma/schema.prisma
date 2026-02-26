@@ -97,6 +97,8 @@ model legislation_1d {
   raw_payload        Json?
   ingestion_batch_id String?   @db.Uuid
 
+  @@index([event_date(sort: Desc)], map: "idx_legislation_1d_event_date")
+  @@index([specialist_tags], map: "idx_legislation_1d_tags", type: Gin)
   @@schema("alt")
 }
 

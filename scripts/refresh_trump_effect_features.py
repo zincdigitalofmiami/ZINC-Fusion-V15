@@ -313,7 +313,7 @@ def main():
     # Load FRED Economic Policy Uncertainty Index (USEPUINDXD - daily)
     cur.execute("""
         SELECT event_date, value
-        FROM econ.activity_1d
+        FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD'
         ORDER BY event_date
     """)
@@ -323,7 +323,7 @@ def main():
     # Also load China Trade Policy Uncertainty for trade-related signal boost
     cur.execute("""
         SELECT event_date, value
-        FROM econ.activity_1d
+        FROM econ.vol_indices_1d
         WHERE series_id = 'CHNMAINLANDTPU'
         ORDER BY event_date
     """)
@@ -779,7 +779,7 @@ def main():
                features->>'base_signal' as base,
                features->>'scoring_version' as version
         FROM training.specialist_features_trump_effect
-          AND NULLIF(features->>'neural_signal', '')::double precision > 0
+        WHERE NULLIF(features->>'neural_signal', '')::double precision > 0
         ORDER BY as_of_date DESC
         LIMIT 10
     """)
@@ -800,7 +800,7 @@ def main():
                features->>'era' as era,
                features->>'total_actions_7d' as actions
         FROM training.specialist_features_trump_effect
-          AND NULLIF(features->>'neural_signal', '')::double precision > 0
+        WHERE NULLIF(features->>'neural_signal', '')::double precision > 0
         ORDER BY NULLIF(features->>'neural_signal', '')::double precision DESC
         LIMIT 5
     """)
