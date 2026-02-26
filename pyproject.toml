@@ -28,7 +28,6 @@ dependencies = [
     "mlflow>=3.9",
     "autogluon-tabular>=1.5",
     "autogluon-timeseries>=1.5",
-    "gs-quant>=1.4",
     "ta-lib>=0.6",
 ]
 
@@ -51,10 +50,6 @@ target-version = "py311"
 line-length = 88
 src = ["src", "scripts", "tests"]
 exclude = [
-    "src/fusion/features/gs_quant_lib",
-    "src/fusion/features/macrosynergy_signal",
-    "src/fusion/features/jpm_bt_algos.py",
-    "src/fusion/features/jpm_bt_core.py",
     "AutogluonModels",
     "archive",
     "data",
@@ -108,14 +103,7 @@ markers = [
 # === COVERAGE ===
 [tool.coverage.run]
 source = ["src/fusion"]
-omit = [
-    # Vendored / third-party libraries — not our code
-    "src/fusion/features/gs_quant_lib/*",
-    "src/fusion/features/gs_quant_*.py",
-    "src/fusion/features/jpm_bt_*.py",
-    "src/fusion/features/macrosynergy_signal/*",
-    "src/fusion/features/fredapi_official/*",
-]
+omit = []
 
 [tool.coverage.report]
 fail_under = 15
