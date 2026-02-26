@@ -1015,18 +1015,13 @@ model futures_1d {
   hurst_exponent       Float?
   hurst_regime         String?   @db.VarChar(20)
   connors_rsi          Float?
-  fisher_transform     Float?
-  fisher_signal        Float?
-  mcginley_dynamic     Float?
-  ttm_squeeze_on       Boolean?
-  ttm_squeeze_momentum Float?
-  schaff_trend_cycle   Float?
   rvi                  Float?
   rvi_signal           Float?
-  elder_force_index    Float?
   kama_10              Float?
-  hma_20               Float?
-  alma_50              Float?
+  ema_21               Float?
+  ema_50               Float?
+  ema_100              Float?
+  ema_200              Float?
   rsi_2                Float?
   rsi_14               Float?
   cumulative_rsi       Float?
@@ -1041,7 +1036,6 @@ model futures_1d {
   garman_klass_vol     Float?
   yang_zhang_vol       Float?
   bb_percent_b         Float?
-  cmf_21               Float?
   volume_zscore        Float?
   unusual_volume       Boolean?
   returns_1d           Float?
@@ -1620,18 +1614,13 @@ model matrix_1d {
   open_interest                                   Float?
   hurst_exponent                                  Float?
   connors_rsi                                     Float?
-  fisher_transform                                Float?
-  fisher_signal                                   Float?
-  mcginley_dynamic                                Float?
-  ttm_squeeze_on                                  BigInt?
-  ttm_squeeze_momentum                            Float?
-  schaff_trend_cycle                              Float?
   rvi                                             Float?
   rvi_signal                                      Float?
-  elder_force_index                               Float?
   kama_10                                         Float?
-  hma_20                                          Float?
-  alma_50                                         Float?
+  ema_21                                          Float?
+  ema_50                                          Float?
+  ema_100                                         Float?
+  ema_200                                         Float?
   rsi_2                                           Float?
   rsi_14                                          Float?
   cumulative_rsi                                  Float?
@@ -1646,7 +1635,6 @@ model matrix_1d {
   garman_klass_vol                                Float?
   yang_zhang_vol                                  Float?
   bb_percent_b                                    Float?
-  cmf_21                                          Float?
   volume_zscore                                   Float?
   unusual_volume                                  BigInt?
   created_at                                      String?
@@ -1656,7 +1644,6 @@ model matrix_1d {
   hurst_regime_raw                                String?  @map("_hurst_regime_raw")
   hurst_regime                                    BigInt?
   hurst_regime_is_missing                         BigInt?
-  ttm_squeeze_on_is_missing                       BigInt?
   fred_anfci                                      Float?
   fred_apu000074714                               Float?
   fred_b235rc1q027sbea                            Float?
@@ -2358,15 +2345,9 @@ model matrix_1d {
   open_interest_is_missing                        BigInt?
   hurst_exponent_is_missing                       BigInt?
   connors_rsi_is_missing                          BigInt?
-  fisher_transform_is_missing                     BigInt?
-  fisher_signal_is_missing                        BigInt?
-  mcginley_dynamic_is_missing                     BigInt?
   rvi_is_missing                                  BigInt?
   rvi_signal_is_missing                           BigInt?
-  elder_force_index_is_missing                    BigInt?
   kama_10_is_missing                              BigInt?
-  hma_20_is_missing                               BigInt?
-  alma_50_is_missing                              BigInt?
   rsi_2_is_missing                                BigInt?
   rsi_14_is_missing                               BigInt?
   macd_is_missing                                 BigInt?
@@ -2380,7 +2361,6 @@ model matrix_1d {
   garman_klass_vol_is_missing                     BigInt?
   yang_zhang_vol_is_missing                       BigInt?
   bb_percent_b_is_missing                         BigInt?
-  cmf_21_is_missing                               BigInt?
   volume_zscore_is_missing                        BigInt?
   unusual_volume_is_missing                       BigInt?
   returns_1d_is_missing                           BigInt?
