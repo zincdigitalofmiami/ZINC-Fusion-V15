@@ -208,7 +208,7 @@ async function getMaxEventDate(symbol: string): Promise<Date | null> {
     const result = await client.query(
       `SELECT MAX(event_date) as max_date
        FROM mkt.etf_1d
-       WHERE symbol = $1 AND source = 'databento'`,
+       WHERE symbol = $1 AND source = 'databento' AND close IS NOT NULL`,
       [symbol]
     );
     const maxDate = result.rows[0]?.max_date;

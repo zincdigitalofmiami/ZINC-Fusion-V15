@@ -42,6 +42,22 @@ export async function GET() {
 
         UNION ALL
 
+        -- Federal Register legislation (2,900+ rows, actively ingested)
+        SELECT
+          id,
+          event_date::text,
+          title AS headline,
+          CONCAT(document_type, ' — ', agency) AS summary,
+          NULL AS content,
+          COALESCE(source, 'Federal Register') AS source,
+          NULL AS zl_sentiment,
+          specialist_tags,
+          'legislation' AS table_source
+        FROM alt.legislation_1d
+        WHERE event_date >= NOW() - INTERVAL '30 days'
+
+        UNION ALL
+
         -- Policy news
         SELECT
           id,

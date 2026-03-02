@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { FusionBrain } from '@/components/viz/FusionBrain';
 import { RegimeAnalysisChart } from '@/components/RegimeAnalysisChart';
 import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalculator';
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react';
 
 // Brief API types
 interface PriceSummary {
@@ -67,7 +67,12 @@ interface BriefData {
   keyRisks: string[];
   keyPositives: string[];
   dataIssues: string[];
+  stalenessWarnings: string[];
   dataQuality: 'good' | 'partial' | 'poor';
+  dataStaleness?: {
+    allFresh: boolean;
+    staleSources: Array<{ driver: string; daysStale: number | null; sla: number }>;
+  };
 }
 
 // Map recommendation to posture display
@@ -111,6 +116,46 @@ export default function StrategyPage() {
     const interval = setInterval(fetchBrief, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchBrief]);
+
+  const [aiContext, setAiContext] = useState<string>('');
+  const [aiContextLoading, setAiContextLoading] = useState(false);
+  const aiContextFetched = useRef(false);
+
+  // Stream AI context when brief data loads
+  useEffect(() => {
+    if (!brief || aiContextFetched.current) return;
+    aiContextFetched.current = true;
+    setAiContextLoading(true);
+
+    fetch('/api/zl/context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        price: brief.price ? { current: brief.price.current, changePct: brief.price.changePct } : undefined,
+        drivers: brief.drivers,
+        forecastsAvailable: brief.forecastsAvailable,
+        dataIssues: brief.dataIssues,
+        stalenessWarnings: brief.stalenessWarnings,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok || !res.body) {
+          setAiContextLoading(false);
+          return;
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let text = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+          setAiContext(text);
+        }
+        setAiContextLoading(false);
+      })
+      .catch(() => setAiContextLoading(false));
+  }, [brief]);
 
   const posture = brief ? (POSTURE_MAP[brief.recommendation] ?? POSTURE_MAP['CHECK DATA']) : null;
 
@@ -179,10 +224,42 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* Data quality banner */}
+      {/* Data quality banner — only show for truly poor data (most drivers missing) */}
       {brief?.dataQuality === 'poor' && (
-        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm">
-          Data quality: POOR — {brief.dataIssues.join(', ')}
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          Multiple data sources offline — {brief.dataIssues.join(', ')}
+        </div>
+      )}
+      {/* Staleness notice — informational, not blocking */}
+      {brief?.dataQuality === 'partial' && brief.stalenessWarnings?.length > 0 && (
+        <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
+          <AlertTriangle size={12} />
+          <span>{brief.stalenessWarnings.length} source{brief.stalenessWarnings.length > 1 ? 's' : ''} past freshness SLA — scores still usable</span>
+        </div>
+      )}
+
+      {/* AI Context — What's Happening Now */}
+      {(aiContext || aiContextLoading) && (
+        <div className="mb-6 bg-[#0a0a0a] border border-cyan-500/10 rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/3 to-transparent pointer-events-none" />
+          <div className="flex items-start gap-3 relative">
+            <div className="p-1.5 rounded bg-cyan-500/10 text-cyan-400 shrink-0 mt-0.5">
+              <Brain size={14} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-cyan-500/60 uppercase tracking-widest font-bold mb-1">
+                AI Market Context
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                {aiContext || (
+                  <span className="text-slate-500 animate-pulse">Analyzing market conditions...</span>
+                )}
+                {aiContextLoading && aiContext && (
+                  <span className="inline-block w-1.5 h-3.5 bg-cyan-400/60 ml-0.5 animate-pulse" />
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -213,7 +290,9 @@ export default function StrategyPage() {
                 </p>
                 {brief.dataQuality === 'partial' && (
                   <div className="mt-2 text-[10px] text-amber-500/60 uppercase tracking-wider">
-                    Partial data — {brief.dataIssues.length} issue{brief.dataIssues.length !== 1 ? 's' : ''}
+                    {brief.dataIssues.length > 0 && `${brief.dataIssues.length} source${brief.dataIssues.length !== 1 ? 's' : ''} offline`}
+                    {brief.dataIssues.length > 0 && brief.stalenessWarnings?.length > 0 && ' · '}
+                    {brief.stalenessWarnings?.length > 0 && `${brief.stalenessWarnings.length} past SLA`}
                   </div>
                 )}
               </div>
@@ -336,6 +415,11 @@ export default function StrategyPage() {
                 <div className="text-[10px] text-slate-600 leading-tight line-clamp-2">
                   {driver.impact.split('.')[0]}
                 </div>
+                {driver.source === 'stale' && driver.asOfDate && (
+                  <div className="text-[9px] text-amber-500/50 mt-1 font-mono">
+                    {Math.floor((Date.now() - new Date(driver.asOfDate).getTime()) / 86400000)}d ago
+                  </div>
+                )}
               </div>
             );
           })}

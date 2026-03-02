@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { generateText } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +36,10 @@ function toNum(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   return null;
 }
+
+// =============================================================================
+// STATIC FALLBACK TEMPLATES (used when AI is unavailable)
+// =============================================================================
 
 function buildFearGreedNarrative(input?: FearGreedPayload): string | null {
   if (!input) return null;
@@ -110,6 +117,80 @@ function buildVolatilityNarrative(input?: VolatilityPayload): string | null {
   return `${vixState}; ${ovxState}; ${realizedState}. Expect wider intraday ranges when all three remain elevated together.`;
 }
 
+// =============================================================================
+// AI NARRATIVE GENERATION (Vercel AI SDK + Claude Sonnet 4.5)
+// =============================================================================
+
+async function generateAINarratives(payload: NarrativeRequest): Promise<{
+  fearGreedNarrative: string | null;
+  trumpEffectNarrative: string | null;
+  volatilityNarrative: string | null;
+} | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+
+  // Build context from available data
+  const dataPoints: string[] = [];
+
+  if (payload.fearGreed) {
+    const fg = payload.fearGreed;
+    dataPoints.push(`Fear & Greed Index: ${fg.score ?? 'N/A'} (Zone: ${fg.label || fg.zone || 'unknown'})`);
+  }
+
+  if (payload.trumpEffect) {
+    const te = payload.trumpEffect;
+    dataPoints.push(
+      `Trump Effect: weighted_action_score=${te.weighted_action_score ?? 'N/A'}, ` +
+      `actions_7d=${te.total_actions_7d ?? 'N/A'}, ` +
+      `EOs_7d=${te.eo_count_7d ?? 'N/A'}, ` +
+      `proclamations_7d=${te.proclamation_count_7d ?? 'N/A'}, ` +
+      `avg_sentiment_7d=${te.avg_sentiment_7d ?? 'N/A'}, ` +
+      `velocity=${te.action_velocity ?? 'N/A'}`
+    );
+  }
+
+  if (payload.volatility) {
+    const vol = payload.volatility;
+    dataPoints.push(
+      `Volatility: VIX=${vol.vix ?? 'N/A'}, OVX=${vol.ovx ?? 'N/A'}, realized_21d=${vol.realized_21d ?? 'N/A'}%`
+    );
+  }
+
+  if (dataPoints.length === 0) return null;
+
+  try {
+    const { text } = await generateText({
+      model: anthropic(MODEL_DRIVER_INTEL),
+      maxOutputTokens: 600,
+      system: `You are a commodity procurement analyst for a US soybean oil buyer. Write concise, actionable intelligence narratives. No preamble, no hedging. Speak directly to a procurement buyer who needs to decide when to buy.
+
+Return EXACTLY a JSON object with these keys (use null if no data for that section):
+- fearGreedNarrative: 1-2 sentences on market sentiment and what it means for timing
+- trumpEffectNarrative: 1-2 sentences on policy activity and procurement implications
+- volatilityNarrative: 1-2 sentences on vol regime and what it means for coverage decisions
+
+Be specific. Use the numbers. Tell them what to DO, not what might happen.`,
+      prompt: `Current market data:\n${dataPoints.join('\n')}\n\nGenerate procurement intelligence narratives.`,
+    });
+
+    // Parse JSON response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      fearGreedNarrative: parsed.fearGreedNarrative || null,
+      trumpEffectNarrative: parsed.trumpEffectNarrative || null,
+      volatilityNarrative: parsed.volatilityNarrative || null,
+    };
+  } catch (e) {
+    console.error("[narrative] AI generation failed, using static fallback:", e);
+    return null;
+  }
+}
+
+// =============================================================================
+// HANDLER
+// =============================================================================
+
 export async function POST(request: Request) {
   let payload: NarrativeRequest = {};
   try {
@@ -118,13 +199,23 @@ export async function POST(request: Request) {
     // Keep empty payload; return null narratives instead of failing the page.
   }
 
-  const fearGreedNarrative = buildFearGreedNarrative(payload.fearGreed);
-  const trumpEffectNarrative = buildTrumpNarrative(payload.trumpEffect);
-  const volatilityNarrative = buildVolatilityNarrative(payload.volatility);
+  // Try AI narratives first, fall back to static templates
+  const aiNarratives = await generateAINarratives(payload);
 
+  if (aiNarratives) {
+    return NextResponse.json({
+      fearGreedNarrative: aiNarratives.fearGreedNarrative ?? buildFearGreedNarrative(payload.fearGreed),
+      trumpEffectNarrative: aiNarratives.trumpEffectNarrative ?? buildTrumpNarrative(payload.trumpEffect),
+      volatilityNarrative: aiNarratives.volatilityNarrative ?? buildVolatilityNarrative(payload.volatility),
+      source: 'ai',
+    });
+  }
+
+  // Static fallback
   return NextResponse.json({
-    fearGreedNarrative,
-    trumpEffectNarrative,
-    volatilityNarrative,
+    fearGreedNarrative: buildFearGreedNarrative(payload.fearGreed),
+    trumpEffectNarrative: buildTrumpNarrative(payload.trumpEffect),
+    volatilityNarrative: buildVolatilityNarrative(payload.volatility),
+    source: 'static',
   });
 }

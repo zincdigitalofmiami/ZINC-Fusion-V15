@@ -76,6 +76,14 @@ import {
   esmisPublicationsDaily,
   esmisPublicationsBackfill,
   fasReportsDaily,
+  usdaAmsFatsOilsDaily,
+  fedSpeechesDaily,
+  congressBillsDaily,
+  eiaBiodieselWeekly,
+  eiaBiodieselWeeklyBackfill,
+  profarmerWeeklyBackfill,
+  yahooEtfFallbackDaily,
+  yahooEtfBackfill,
 } from "@/inngest/functions";
 
 /**
@@ -223,6 +231,20 @@ export const { GET, POST, PUT } = serve({
     esmisPublicationsBackfill,
     // FAS reports (oilseeds, biofuels, GAIN, attaché)
     fasReportsDaily,
+    // USDA AMS fats & oils (UCO, yellow grease, tallow prices)
+    usdaAmsFatsOilsDaily,
+    // Federal Reserve speeches (hawkish/dovish sentiment)
+    fedSpeechesDaily,
+    // Congress.gov bills & legislation tracker
+    congressBillsDaily,
+    // EIA biodiesel weekly production (EPOORDB + EPOORDO)
+    eiaBiodieselWeekly,
+    eiaBiodieselWeeklyBackfill,
+    // ProFarmer weekly auto-backfill (Sunday catch-up)
+    profarmerWeeklyBackfill,
+    // Yahoo Finance ETF fallback (when Databento ETF stale)
+    yahooEtfFallbackDaily,
+    yahooEtfBackfill,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

@@ -55,12 +55,33 @@ export const nassWeekly = inngest.createFunction(
     // ── Step 2: fetch from NASS API ──
     const data = await step.run("fetch-api", async () => {
       const currentYear = new Date().getFullYear();
-      const response = await fetch(
-        `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${currentYear}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`
-      );
-      if (!response.ok) throw new Error(`NASS API error: ${response.status}`);
-      const json = await response.json();
-      return json.data || [];
+      // Also fetch previous year for complete crop cycle data
+      const years = [currentYear - 1, currentYear];
+      const allData: Array<{ year: string; commodity_desc: string; statisticcat_desc: string; Value: string }> = [];
+
+      for (const year of years) {
+        const url = `https://quickstats.nass.usda.gov/api/api_GET?key=${apiKey}&commodity_desc=SOYBEANS&year=${year}&format=JSON&statisticcat_desc=PRODUCTION,YIELD,AREA PLANTED`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
+        try {
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeout);
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`NASS API error ${response.status} for year ${year}: ${text}`);
+          }
+          const json = await response.json();
+          if (json.data) allData.push(...json.data);
+        } catch (err) {
+          clearTimeout(timeout);
+          if (err instanceof Error && err.name === "AbortError") {
+            throw new Error(`NASS API timeout after 30s for year ${year}`);
+          }
+          throw err;
+        }
+      }
+
+      return allData;
     });
 
     logger.info(`Fetched ${data.length} records from NASS API`);

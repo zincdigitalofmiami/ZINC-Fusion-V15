@@ -94,7 +94,8 @@ interface VegasBrief {
   keyPositives: string[]
 
   // Data quality
-  dataIssues: string[]
+  dataIssues: string[]           // Truly missing data (unavailable)
+  stalenessWarnings: string[]    // Data exists but past SLA
   dataQuality: 'good' | 'partial' | 'poor'
   dataStaleness?: {
     allFresh: boolean
@@ -224,8 +225,9 @@ function getEmptyForecasts(): ForecastHorizon[] {
   ]
 }
 
-async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: number, summary: string, dataIssues: string[]}> {
-  const dataIssues: string[] = []
+async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: number, summary: string, dataIssues: string[], stalenessWarnings: string[]}> {
+  const dataIssues: string[] = []        // Truly missing data (no value at all)
+  const stalenessWarnings: string[] = [] // Data exists but past SLA freshness
 
   try {
     // Fetch ALL market driver data via the shared data layer (23 parallel queries)
@@ -259,7 +261,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     const trumpAction = trumpActionData[0]?.score ?? null
     const trumpDate = trumpActionData[0]?.as_of_date ?? trumpSignalData[0]?.as_of_date ?? null
 
-    // Track missing data
+    // Track truly MISSING data (no value at all) — these are critical
     if (!vix) dataIssues.push('VIX data unavailable')
     if (!crush) dataIssues.push('Crush margin data unavailable')
     if (!cny) dataIssues.push('CNY/USD rate unavailable')
@@ -267,13 +269,14 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
 
     // Check data freshness with per-source SLA thresholds
+    // Stale data is a WARNING, not a critical issue — the data still has value
     const today = new Date()
     const checkFreshness = (dateStr: string | null, name: string, slaDays = 3): 'live' | 'stale' | 'unavailable' => {
       if (!dateStr) return 'unavailable'
       const dataDate = new Date(dateStr)
       const daysDiff = Math.floor((today.getTime() - dataDate.getTime()) / (1000 * 60 * 60 * 24))
       if (daysDiff > slaDays) {
-        dataIssues.push(`${name} data is ${daysDiff} days old (SLA: ${slaDays}d)`)
+        stalenessWarnings.push(`${name} data is ${daysDiff} days old (SLA: ${slaDays}d)`)
         return 'stale'
       }
       return 'live'
@@ -372,17 +375,22 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     ]
 
     const missingCount = 5 - validScores.length
+    const staleCount = stalenessWarnings.length
     const summary = missingCount >= 4
       ? `${missingCount} of 5 drivers have no data. Brief is unreliable.`
-      : dataIssues.length > 2
-      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores based on ${validScores.length}/5 drivers.`
+      : missingCount >= 2
+      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/5 drivers.`
+      : staleCount > 0 && avgScore >= 60
+      ? `Multiple headwinds. ${staleCount} source${staleCount > 1 ? 's' : ''} past SLA but usable.`
       : avgScore >= 60
       ? 'Multiple headwinds. Markets nervous, trade uncertain.'
       : avgScore <= 40
       ? 'Favorable conditions. Stable markets, solid crush.'
+      : staleCount > 0
+      ? `Mixed picture. ${staleCount} source${staleCount > 1 ? 's' : ''} past freshness SLA.`
       : 'Mixed picture. No clear direction.'
 
-    return { drivers, avgScore, summary, dataIssues }
+    return { drivers, avgScore, summary, dataIssues, stalenessWarnings }
   } catch (e) {
     console.error('Driver fetch error:', e)
     // Return unavailable drivers - NO FAKE SCORES
@@ -396,7 +404,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       ],
       avgScore: 0,
       summary: 'DATABASE ERROR: Unable to fetch driver data. Do not rely on this brief.',
-      dataIssues: ['Database connection failed']
+      dataIssues: ['Database connection failed'],
+      stalenessWarnings: []
     }
   }
 }
@@ -586,8 +595,8 @@ function generateTLDR(
     : `down ${Math.abs(price.changePct).toFixed(1)}% today`
 
   let outlook: string
-  if (driverData.dataIssues.length >= 3) {
-    outlook = 'DATA ISSUES - some indicators unavailable, proceed with caution'
+  if (driverData.dataIssues.length >= 4) {
+    outlook = 'LIMITED DATA - most indicators unavailable, proceed with caution'
   } else if (driverData.avgScore >= 60) {
     outlook = 'CAUTIOUS - multiple headwinds (volatility, trade uncertainty)'
   } else if (driverData.avgScore <= 40) {
@@ -611,8 +620,10 @@ function generateTLDR(
 }
 
 function getRecommendation(avgScore: number, dataIssues: string[]): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string} {
-  // If too many data issues, warn user to check data
-  if (dataIssues.length >= 3) {
+  // Only trigger CHECK DATA for truly MISSING data (unavailable),
+  // NOT for stale data. Stale data still has value and is scored.
+  // dataIssues now only contains "unavailable" entries (not staleness).
+  if (dataIssues.length >= 4) {
     return { text: 'CHECK DATA', color: '#6B7280' }
   }
   if (avgScore >= 65) {
@@ -707,12 +718,14 @@ export async function GET() {
     const forecastsAvailable = fcHorizons.some(f => f.source === 'model')
 
     // Determine overall data quality
+    // Only truly unavailable sources count as "poor" — stale data is "partial"
     const unavailableDrivers = driverData.drivers.filter(d => d.source === 'unavailable').length
+    const staleDrivers = driverData.drivers.filter(d => d.source === 'stale').length
     const unavailableCorrs = correlations.filter(c => c.source === 'unavailable').length
     let dataQuality: 'good' | 'partial' | 'poor'
-    if (unavailableDrivers >= 2 || unavailableCorrs >= 3) {
+    if (unavailableDrivers >= 3 || unavailableCorrs >= 4) {
       dataQuality = 'poor'
-    } else if (unavailableDrivers >= 1 || unavailableCorrs >= 2 || !forecastsAvailable) {
+    } else if (unavailableDrivers >= 1 || staleDrivers >= 2 || unavailableCorrs >= 2 || !forecastsAvailable) {
       dataQuality = 'partial'
     } else {
       dataQuality = 'good'
@@ -751,6 +764,7 @@ export async function GET() {
       keyPositives: getKeyPositives(driverData),
 
       dataIssues: driverData.dataIssues,
+      stalenessWarnings: driverData.stalenessWarnings,
       dataQuality,
       dataStaleness: {
         allFresh: staleSources.length === 0,
