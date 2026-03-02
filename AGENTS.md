@@ -118,9 +118,155 @@ USDA FAS Export Sales reports (`supply.usda_exports_1w`) contain **country-level
 
 **Source reports:** Soybeans, Soybean Oil, Soybean Meal pages at `apps.fas.usda.gov/export-sales/`
 
+## Data Source Registration Audit
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+### What build_matrix.py ACTUALLY reads (the ONLY things that reach training)
+
+The core matrix builder (`src/fusion/core_training/build_matrix.py`) has explicit `load_*()` functions for each data source. If a table is NOT listed below, it does NOT reach the core training pipeline, period.
+
+| Loader Function | Source Table(s) | Status |
+|----------------|-----------------|--------|
+| `load_futures_base()` | `mkt.futures_1d` (ZL, ZS, ZM, etc.) | ✅ Current |
+| `load_fred_macro()` | `econ.rates_1d`, `econ.inflation_1d`, `econ.labor_1d`, `econ.activity_1d`, `econ.vol_indices_1d`, `econ.commodities_1d`, `econ.money_1d` | ✅ Current |
+| `load_fx_rates()` | `mkt.fx_1d` | ✅ Current |
+| `load_spread_features()` | `analytics.board_crush_1d`, `mkt.futures_1d` (cross-commodity) | ✅ Current |
+| `load_cross_asset_correlations()` | `mkt.futures_1d` | ✅ Current |
+| `load_cross_commodity_indicators()` | `mkt.futures_1d` | ✅ Current |
+| `load_options_features()` | `mkt.options_1d` | ⚠️ Table exists but may be empty |
+| `load_weather_aggregates()` | `alt.weather_1d` | ✅ Current |
+| `load_cftc_positioning()` | `pos.cftc_1w` | ✅ Current |
+| `load_epa_rin_prices()` | `supply.epa_rin_1d` | ⚠️ At source limit (Jan 19) |
+| `load_usda_exports()` | `supply.usda_exports_1w` | ✅ Current |
+| `load_usda_wasde()` | `supply.usda_wasde_1m` | ✅ Current |
+| `load_lcfs_credit()` | `supply.lcfs_1d` | ✅ Current |
+| `load_china_pmi()` | `econ.activity_1d` (CN PMI) | ✅ Current |
+| `load_dalian_soy()` | `mkt.futures_1d` (Dalian) | ✅ Current |
+| `load_news_counts()` | `alt.policy_news_event`, `alt.executive_actions_event`, `alt.econ_news_event`, `alt.profarmer_news_event` (UNION ALL → count/day) | ✅ Current |
+| `load_specialist_signals()` | `training.specialist_signals_1d` (11 buckets × 3 cols) | ✅ Current |
+
+### Tables WIRED INTO build_matrix.py on 2026-02-27
+
+These were previously missing from the matrix builder and are now wired in:
+
+| Table | Loader Function | Merge Strategy | Status |
+|-------|----------------|----------------|--------|
+| `mkt.etf_1d` | `load_etf_data()` | Left join on trade_date (12 key ETFs pivoted wide) | ✅ WIRED (46K rows, stale at Feb 2) |
+| `alt.legislation_1d` | `load_legislation_events()` | Left join (count/type per day) | ✅ WIRED (2,944 rows, current) |
+| `supply.eia_biodiesel_1m` | `load_eia_biodiesel()` | Asof merge (45-day tolerance) | ✅ WIRED (179 rows, at source limit Nov 2025) |
+
+### Tables that STILL need work
+
+| Table | Rows | Issue | Priority |
+|-------|------|-------|----------|
+| `supply.eia_biodiesel_1w` | 0 | Inngest function registered, backfill triggered 2026-02-27 | P1 |
+| `supply.uco_prices_1w` | 0 | Inngest function registered but USDA AMS source unverified | P0 — zero data |
+
+### Inngest functions using SHARED tables (corrected 2026-02-27)
+
+These functions write to existing shared tables — NO new tables needed:
+
+| Function | Target Table | Status |
+|----------|-------------|--------|
+| `fedSpeechesDaily` | `alt.policy_news_event` | ✅ Shared table (with farmdoc-rins, etc.) |
+| `congressBillsDaily` | `alt.legislation_1d` | ✅ Shared table (with federal-register-daily) |
+
+**Previous audit was WRONG** — said these needed `alt.fed_speeches_event` and `alt.congress_bills_event`.
+They actually write to existing shared tables. Check env vars: congressBillsDaily requires `CONGRESS_API_KEY`.
+
+### Data Freshness Audit (2026-02-27)
+
+| Table | Max Date | Status |
+|-------|----------|--------|
+| `mkt.futures_1d` (ZL) | Feb 26 | ✅ Current |
+| `mkt.fx_1d` | Feb 26 | ✅ Current |
+| `alt.legislation_1d` | Feb 26 | ✅ Current |
+| `alt.weather_1d` | Feb 25 | ✅ Current |
+| `training.specialist_signals_1d` | Feb 25 | ✅ Current |
+| `training.matrix_1d` | Feb 25 | ✅ Current |
+| `analytics.board_crush_1d` | Feb 24 | ✅ Current |
+| `supply.usda_exports_1w` | Feb 19 | ✅ Weekly cadence |
+| `pos.cftc_1w` | Feb 17 | ✅ Weekly cadence |
+| `supply.lcfs_1d` | Feb 13 | ⚠️ 2 weeks stale |
+| `alt.profarmer_news_event` | Feb 14 | 🔴 DEAD since Feb 15 (is-plain-object crash). Fix deployed 2026-02-27, backfill triggered. |
+| `mkt.etf_1d` | Feb 2 | 🔴 DEAD since Feb 2 (Databento failure). Yahoo fallback created, both backfills triggered. |
+| `supply.epa_rin_1d` | Jan 19 | ⚠️ EPA source limit (monthly publishing). Tiered fallback active. |
+| `supply.eia_biodiesel_1m` | Nov 2025 | ⚠️ EIA source limit |
+| `supply.eia_biodiesel_1w` | — | 🔴 EMPTY. Backfill triggered 2026-02-27. |
+| `supply.uco_prices_1w` | — | 🔴 EMPTY. USDA AMS source unverified. |
+
+### Inngest Function Run Audit (Feb 2026)
+
+| Function | Runs | Successes | Failures | Status |
+|----------|------|-----------|----------|--------|
+| `profarmer-daily` | 74 | **0** | 37 | 🔴 ALL FAILED (is-plain-object). Fix deployed. |
+| `fas-reports-daily` | 2 | 0 | 0 | 🔴 Never succeeded |
+| `nass-weekly` | 2 | 1 | 0 | ⚠️ Last success Feb 6 |
+| `fred-daily-*` (all) | ~500 | ~450 | 0 | ✅ Running |
+| `federal-register-daily` | 44 | 17 | 0 | ⚠️ Low success rate (39%) |
+| `epa-rin-prices-daily` | 33 | 30 | 0 | ✅ Running (source limited) |
+| `cftc-weekly` | 3 | 2 | 0 | ✅ Running |
+| `usda-export-sales-weekly` | 4 | 4 | 0 | ✅ Running |
+
+### ProFarmer data usage
+
+ProFarmer articles are in `alt.profarmer_news_event` and ARE included in the matrix — but ONLY as a daily article **count** (via `load_news_counts()` UNION ALL). The actual article content, sentiment, and section routing are NOT used by the matrix builder. The specialist signal generators (`generate_specialist_features.py`) DO use ProFarmer content for the crush, china, energy, biofuel, and tariff specialists through separate loaders.
+
+## Specialist Signal Generators — What They Actually Are
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+**CRITICAL TRUTH: The specialists are NOT properly trained ML models.** They are pre-baked feature engineering pipelines with hardcoded model types. Running `generate_specialist_features.py` + `generate_specialist_signals.py` is feature engineering, NOT training.
+
+**What "training" the specialists actually means today:**
+1. `generate_specialist_features.py` — Queries hand-picked features per domain from the DB, writes to `training.specialist_features_{bucket}`
+2. `generate_specialist_signals.py` — Applies pre-baked models (GBM, Ridge, GARCH, etc.) with hardcoded hyperparameters to produce `(signal_1, signal_2, confidence)` per day, writes to `training.specialist_signals_1d`
+
+**What they should be (from plan `foamy-spinning-steele.md`):**
+- 5-fold cross-validation with 3600s/fold training time
+- Leakage-proof calibration (fit on odd folds, evaluate on even)
+- Purge/embargo from label overlap geometry
+- IC-priority hierarchical correlation dedup
+- Feature selection stability tracking
+- Full reproducibility manifest
+
+**The REAL training** happens in the core pipeline: `python -m fusion.core_training.run_pipeline` → Phase 3 (build ~1,487-feature matrix) → Phase 6 (AutoGluon 19-model ensemble) → Phase 7 (promote OOF to production).
+
+## Pipeline Execution — How To Actually Run Things
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+### The CORRECT way to train (core pipeline)
+```bash
+# Full pipeline: matrix build → train → promote forecasts
+.venv/bin/python -m fusion.core_training.run_pipeline
+
+# Skip matrix rebuild (if matrix is current)
+.venv/bin/python -m fusion.core_training.run_pipeline --skip-matrix
+```
+
+### The CORRECT way to generate specialist signals
+```bash
+# Features first, then signals. Must use --start-date or defaults are too narrow.
+.venv/bin/python scripts/generate_specialist_features.py --bucket all --start-date 2025-01-01
+.venv/bin/python scripts/generate_specialist_signals.py --bucket all --start-date 2025-01-01
+```
+
+### Scripts that are WRONG / misleading
+- `scripts/populate_core_matrix.py` — lightweight 25-column script, NOT the real matrix builder. The real builder is `src/fusion/core_training/build_matrix.py` (3,259 lines, 1,487 features). **DO NOT USE populate_core_matrix.py.**
+
+### Last successful pipeline run (2026-02-27)
+- Matrix: 1,487 features, 7,976 rows
+- Horizons: 5d, 21d, 63d, 126d
+- All 11 specialist buckets passed data gate
+- All 4 horizons trained via AutoGluon
+- Production forecasts promoted
+- Run hash: `2c189bf007b936c4`
+
 ## Claude Hard-Coded Corrections (DO NOT REPEAT THESE ERRORS)
 
-<!-- LAST UPDATED: 2026-02-19 by Kirk (architect) -->
+<!-- LAST UPDATED: 2026-02-27 -->
 
 These are verified facts burned in from architect corrections. Claude must never contradict these.
 
@@ -192,6 +338,31 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - It was a mechanics validation, not a performance benchmark for the full system.
 - The dry run used the OLD config (WQL metric, returns target, quantile outputs). All three are now fixed: MAE metric, price target, single predicted_price output.
 - Do not compare dry run numbers to the full system's expected performance.
+
+### 7. Biofuel Specialist min_periods Bug (FIXED 2026-02-27)
+- `src/fusion/specialists/events/biofuel.py` had `compute_zscore(rin_series, window=126, min_periods=42)` on **weekly** EPA RIN data
+- Weekly data = ~18 observations per 126 calendar days → never reaches 42 min_periods → always NaN → 0 signals
+- **Fixed**: Changed `min_periods=42` → `min_periods=12` (≈3 months of weekly data)
+- This was the reason biofuel specialist always produced 0 signals
+
+### 8. populate_core_matrix.py Is WRONG (DISCOVERED 2026-02-27)
+- `scripts/populate_core_matrix.py` is a lightweight 25-column script that uses wrong column names (`as_of_date` instead of `trade_date`, `target_5d` instead of `target_ret_5d`)
+- The REAL matrix builder is `src/fusion/core_training/build_matrix.py` (3,259 lines, 1,487 features)
+- Run `python -m fusion.core_training.run_pipeline` for the real pipeline. NEVER use `populate_core_matrix.py`.
+
+### 10. ProFarmer Scraper Crash: is-plain-object (FIXED 2026-02-27)
+- ProFarmer daily scraper has been crashing since Feb 15 with `Cannot find module 'is-plain-object'`
+- Root cause: turbopack tree-shakes the bare `import "is-plain-object"` side-effect import because it sees no actual usage
+- puppeteer-extra/stealth uses `require('is-plain-object')` dynamically at runtime
+- **Fix**: Added `serverExternalPackages` to `next.config.ts` with `is-plain-object`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`, `puppeteer-core`
+- This tells Next.js to load these at runtime from node_modules instead of bundling them
+- **Requires redeployment to Vercel** to take effect
+
+### 9. Specialist "Training" Is NOT Real Training (DISCOVERED 2026-02-27)
+- Running `generate_specialist_features.py` + `generate_specialist_signals.py` is **feature engineering**, not ML training
+- The specialists use pre-baked models with hardcoded hyperparameters — no cross-validation, no hyperparameter search, no model persistence
+- Real training only happens in the core pipeline (AutoGluon Phase 6)
+- Plans exist to properly train specialists (5-fold CV, purge/embargo, calibration) but are NOT yet implemented
 
 ## Core Rules
 
