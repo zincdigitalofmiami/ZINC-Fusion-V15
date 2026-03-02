@@ -923,10 +923,15 @@ function generateTLDR(
     `Key watch: VIX, crush margins, trade headlines.`
 }
 
-function getRecommendation(avgScore: number, dataIssues: string[]): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string} {
+function getRecommendation(
+  avgScore: number,
+  dataIssues: string[],
+  eventPulse?: EventPulse,
+  forecastDirection?: 'UP' | 'DOWN' | 'FLAT' | 'NO DATA',
+  forecastChangePct?: number,
+): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string, overrideReason?: string} {
   // Only trigger CHECK DATA for truly MISSING data (unavailable),
   // NOT for stale data. Stale data still has value and is scored.
-  // dataIssues now only contains "unavailable" entries (not staleness).
   if (dataIssues.length >= 4) {
     return { text: 'CHECK DATA', color: '#6B7280' }
   }

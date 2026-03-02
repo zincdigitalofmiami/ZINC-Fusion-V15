@@ -7,7 +7,7 @@ import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalcu
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain, Radio } from 'lucide-react';
 
 // Brief API types
 interface PriceSummary {
@@ -169,6 +169,15 @@ export default function StrategyPage() {
         forecastsAvailable: brief.forecastsAvailable,
         dataIssues: brief.dataIssues,
         stalenessWarnings: brief.stalenessWarnings,
+        recentEvents: brief.eventPulse?.recentEvents?.map(e => ({
+          headline: e.headline,
+          source: e.source,
+          hoursAgo: e.hoursAgo,
+          sentiment: e.sentiment,
+          confidence: e.confidence,
+        })),
+        eventVelocity: brief.eventPulse?.velocity?.velocityRatio,
+        overrideReason: brief.overrideReason,
       }),
     })
       .then(async (res) => {
@@ -190,7 +199,15 @@ export default function StrategyPage() {
       .catch(() => setAiContextLoading(false));
   }, [brief]);
 
-  const posture = brief ? (POSTURE_MAP[brief.recommendation] ?? POSTURE_MAP['CHECK DATA']) : null;
+  // When there's an event-driven override, use the override variant
+  const postureKey = brief
+    ? (brief.overrideReason
+        ? (brief.recommendation === 'LOCK IN COVERAGE' ? 'LOCK IN COVERAGE:OVERRIDE'
+           : brief.recommendation === 'WAIT' ? 'WAIT:OVERRIDE'
+           : brief.recommendation)
+        : brief.recommendation)
+    : 'CHECK DATA';
+  const posture = brief ? (POSTURE_MAP[postureKey] ?? POSTURE_MAP['CHECK DATA']) : null;
 
   // Derive confidence from driver data quality — percentage of drivers with live data
   const confidence = brief
@@ -316,6 +333,65 @@ export default function StrategyPage() {
         <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
           <AlertTriangle size={12} />
           <span>{brief.stalenessWarnings.length} source{brief.stalenessWarnings.length > 1 ? 's' : ''} past freshness SLA — scores still usable</span>
+        </div>
+      )}
+
+      {/* Event-Driven Override Banner */}
+      {brief?.overrideReason && (
+        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent pointer-events-none" />
+          <div className="flex items-start gap-3 relative">
+            <div className="p-1.5 rounded bg-red-500/20 text-red-400 shrink-0 mt-0.5">
+              <AlertTriangle size={14} />
+            </div>
+            <div>
+              <div className="text-[10px] text-red-400/80 uppercase tracking-widest font-bold mb-1">
+                Posture Override
+              </div>
+              <p className="text-sm text-red-300 leading-relaxed">{brief.overrideReason}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Pulse Indicator */}
+      {brief?.eventPulse && brief.eventPulse.velocity.velocityRatio >= 1.5 && (
+        <div className={`mb-4 p-3 rounded-xl border flex items-center gap-3 ${
+          brief.eventPulse.velocity.velocityRatio > 3 ? 'bg-red-500/5 border-red-500/20' :
+          brief.eventPulse.velocity.velocityRatio > 2 ? 'bg-amber-500/5 border-amber-500/20' :
+          'bg-blue-500/5 border-blue-500/20'
+        }`}>
+          <div className={`relative flex h-2.5 w-2.5 ${
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          }`}>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current" />
+          </div>
+          <Radio size={12} className={
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          } />
+          <span className={`text-xs font-bold uppercase tracking-wider ${
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          }`}>
+            Event Pulse: {brief.eventPulse.velocity.velocityRatio}x normal
+          </span>
+          <span className="text-xs text-slate-500">
+            {brief.eventPulse.velocity.last24h} events in 24h
+          </span>
+          <span className="text-xs text-slate-600">|</span>
+          <span className={`text-xs font-mono font-bold ${
+            brief.eventPulse.netSentiment.signal.includes('BEARISH') ? 'text-red-400' :
+            brief.eventPulse.netSentiment.signal.includes('BULLISH') ? 'text-emerald-400' :
+            'text-slate-400'
+          }`}>
+            Net: {brief.eventPulse.netSentiment.signal.replace('_', ' ')}
+          </span>
         </div>
       )}
 
