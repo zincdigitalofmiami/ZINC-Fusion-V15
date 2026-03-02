@@ -7,7 +7,7 @@ import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalcu
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain, Radio } from 'lucide-react';
 
 // Brief API types
 interface PriceSummary {
@@ -52,6 +52,34 @@ interface CorrelationSummary {
   source: 'calculated' | 'unavailable';
 }
 
+interface EventPulseEvent {
+  headline: string;
+  source: string;
+  event_date: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  confidence: number;
+  tags: string[];
+  hoursAgo: number;
+}
+
+interface EventPulse {
+  recentEvents: EventPulseEvent[];
+  velocity: {
+    last24h: number;
+    last48h: number;
+    last72h: number;
+    baseline7d: number;
+    velocityRatio: number;
+  };
+  netSentiment: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+    netScore: number;
+    signal: 'STRONGLY_BULLISH' | 'BULLISH' | 'NEUTRAL' | 'BEARISH' | 'STRONGLY_BEARISH';
+  };
+}
+
 interface BriefData {
   generatedAt: string;
   asOfDate: string;
@@ -66,6 +94,8 @@ interface BriefData {
   correlations: CorrelationSummary[];
   keyRisks: string[];
   keyPositives: string[];
+  eventPulse: EventPulse;
+  overrideReason?: string;
   dataIssues: string[];
   stalenessWarnings: string[];
   dataQuality: 'good' | 'partial' | 'poor';
@@ -76,11 +106,14 @@ interface BriefData {
 }
 
 // Map recommendation to posture display
+// When overrideReason is set, LOCK IN COVERAGE = urgent (red). Without override = favorable (green).
 const POSTURE_MAP: Record<string, { label: string; color: string; gradient: string }> = {
   'LOCK IN COVERAGE': { label: 'ACCUMULATE', color: 'text-emerald-400', gradient: 'from-emerald-500/5' },
+  'LOCK IN COVERAGE:OVERRIDE': { label: 'LOCK IN NOW', color: 'text-red-400', gradient: 'from-red-500/5' },
   'BUY NOW': { label: 'BUY NOW', color: 'text-emerald-400', gradient: 'from-emerald-500/5' },
   'NORMAL SCHEDULE': { label: 'HOLD', color: 'text-amber-400', gradient: 'from-amber-500/5' },
   'WAIT': { label: 'WAIT', color: 'text-red-400', gradient: 'from-red-500/5' },
+  'WAIT:OVERRIDE': { label: 'WAIT — VOLATILE', color: 'text-amber-400', gradient: 'from-amber-500/5' },
   'CHECK DATA': { label: 'CHECK DATA', color: 'text-slate-400', gradient: 'from-slate-500/5' },
 };
 
@@ -136,6 +169,15 @@ export default function StrategyPage() {
         forecastsAvailable: brief.forecastsAvailable,
         dataIssues: brief.dataIssues,
         stalenessWarnings: brief.stalenessWarnings,
+        recentEvents: brief.eventPulse?.recentEvents?.map(e => ({
+          headline: e.headline,
+          source: e.source,
+          hoursAgo: e.hoursAgo,
+          sentiment: e.sentiment,
+          confidence: e.confidence,
+        })),
+        eventVelocity: brief.eventPulse?.velocity?.velocityRatio,
+        overrideReason: brief.overrideReason,
       }),
     })
       .then(async (res) => {
@@ -157,7 +199,15 @@ export default function StrategyPage() {
       .catch(() => setAiContextLoading(false));
   }, [brief]);
 
-  const posture = brief ? (POSTURE_MAP[brief.recommendation] ?? POSTURE_MAP['CHECK DATA']) : null;
+  // When there's an event-driven override, use the override variant
+  const postureKey = brief
+    ? (brief.overrideReason
+        ? (brief.recommendation === 'LOCK IN COVERAGE' ? 'LOCK IN COVERAGE:OVERRIDE'
+           : brief.recommendation === 'WAIT' ? 'WAIT:OVERRIDE'
+           : brief.recommendation)
+        : brief.recommendation)
+    : 'CHECK DATA';
+  const posture = brief ? (POSTURE_MAP[postureKey] ?? POSTURE_MAP['CHECK DATA']) : null;
 
   // Derive confidence from driver data quality — percentage of drivers with live data
   const confidence = brief
@@ -238,6 +288,65 @@ export default function StrategyPage() {
         </div>
       )}
 
+      {/* Event-Driven Override Banner */}
+      {brief?.overrideReason && (
+        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent pointer-events-none" />
+          <div className="flex items-start gap-3 relative">
+            <div className="p-1.5 rounded bg-red-500/20 text-red-400 shrink-0 mt-0.5">
+              <AlertTriangle size={14} />
+            </div>
+            <div>
+              <div className="text-[10px] text-red-400/80 uppercase tracking-widest font-bold mb-1">
+                Posture Override
+              </div>
+              <p className="text-sm text-red-300 leading-relaxed">{brief.overrideReason}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Pulse Indicator */}
+      {brief?.eventPulse && brief.eventPulse.velocity.velocityRatio >= 1.5 && (
+        <div className={`mb-4 p-3 rounded-xl border flex items-center gap-3 ${
+          brief.eventPulse.velocity.velocityRatio > 3 ? 'bg-red-500/5 border-red-500/20' :
+          brief.eventPulse.velocity.velocityRatio > 2 ? 'bg-amber-500/5 border-amber-500/20' :
+          'bg-blue-500/5 border-blue-500/20'
+        }`}>
+          <div className={`relative flex h-2.5 w-2.5 ${
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          }`}>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current" />
+          </div>
+          <Radio size={12} className={
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          } />
+          <span className={`text-xs font-bold uppercase tracking-wider ${
+            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
+            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
+            'text-blue-400'
+          }`}>
+            Event Pulse: {brief.eventPulse.velocity.velocityRatio}x normal
+          </span>
+          <span className="text-xs text-slate-500">
+            {brief.eventPulse.velocity.last24h} events in 24h
+          </span>
+          <span className="text-xs text-slate-600">|</span>
+          <span className={`text-xs font-mono font-bold ${
+            brief.eventPulse.netSentiment.signal.includes('BEARISH') ? 'text-red-400' :
+            brief.eventPulse.netSentiment.signal.includes('BULLISH') ? 'text-emerald-400' :
+            'text-slate-400'
+          }`}>
+            Net: {brief.eventPulse.netSentiment.signal.replace('_', ' ')}
+          </span>
+        </div>
+      )}
+
       {/* AI Context — What's Happening Now */}
       {(aiContext || aiContextLoading) && (
         <div className="mb-6 bg-[#0a0a0a] border border-cyan-500/10 rounded-xl p-4 relative overflow-hidden">
@@ -285,8 +394,8 @@ export default function StrategyPage() {
                 <h2 className={`text-5xl font-bold tracking-tight mb-2 ${posture.color}`}>
                   {posture.label}
                 </h2>
-                <p className="text-slate-500 max-w-md text-sm leading-relaxed">
-                  {brief.driversSummary}
+                <p className={`max-w-md text-sm leading-relaxed ${brief.overrideReason ? 'text-red-400/80 font-medium' : 'text-slate-500'}`}>
+                  {brief.overrideReason || brief.driversSummary}
                 </p>
                 {brief.dataQuality === 'partial' && (
                   <div className="mt-2 text-[10px] text-amber-500/60 uppercase tracking-wider">
@@ -423,6 +532,59 @@ export default function StrategyPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Event Timeline */}
+      {brief?.eventPulse && brief.eventPulse.recentEvents.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-orange-500">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              Recent Events
+            </h3>
+            <span className="text-[10px] text-slate-500 font-mono">Last 72h</span>
+          </div>
+          <div className="space-y-1.5">
+            {brief.eventPulse.recentEvents.slice(0, 5).map((event, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 bg-[#0a0a0a] border border-white/5 rounded-lg hover:border-white/10 transition-colors">
+                {/* Sentiment dot */}
+                <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
+                  event.sentiment === 'bullish' ? 'bg-emerald-400' :
+                  event.sentiment === 'bearish' ? 'bg-red-400' :
+                  'bg-slate-500'
+                }`} />
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-300 leading-snug line-clamp-1">{event.headline}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-mono text-slate-600">
+                      {event.hoursAgo <= 24 ? `${event.hoursAgo}h ago` : `${Math.round(event.hoursAgo / 24)}d ago`}
+                    </span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                      event.source === 'Federal Register' ? 'bg-blue-500/10 text-blue-400' :
+                      event.source === 'ProFarmer' ? 'bg-amber-500/10 text-amber-400' :
+                      'bg-slate-500/10 text-slate-400'
+                    }`}>
+                      {event.source}
+                    </span>
+                    {event.tags?.slice(0, 2).map((tag, j) => (
+                      <span key={j} className="text-[9px] text-slate-600 font-mono">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                {/* Confidence bar */}
+                {event.sentiment !== 'neutral' && (
+                  <div className="text-right shrink-0">
+                    <span className={`text-[10px] font-mono font-bold ${
+                      event.sentiment === 'bullish' ? 'text-emerald-400/60' : 'text-red-400/60'
+                    }`}>
+                      {(event.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
