@@ -8,6 +8,12 @@ interface Props {
   data: Array<Record<string, unknown>>;
 }
 
+const SECTION_TITLES: Record<string, string> = {
+  agency: "AI Agency Intel",
+  executive: "AI Executive Action Synthesis",
+  news: "AI News Intel Synthesis",
+};
+
 export function PolicySectionBrief({ section, regime, data }: Props) {
   const [text, setText] = useState("");
   const [done, setDone] = useState(false);
@@ -58,12 +64,10 @@ export function PolicySectionBrief({ section, regime, data }: Props) {
 
   return (
     <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mb-4">
-      <div className="flex items-start gap-2">
-        <span className="text-xs text-slate-500 uppercase tracking-widest font-bold shrink-0 mt-0.5">
-          AI
-        </span>
-        <p className="text-sm text-slate-300 leading-relaxed">{text}</p>
+      <div className="text-xs text-white uppercase tracking-widest font-bold mb-2">
+        {SECTION_TITLES[section] ?? "AI Analysis"}
       </div>
+      <p className="text-sm text-slate-300 leading-relaxed">{text}</p>
     </div>
   );
 }
