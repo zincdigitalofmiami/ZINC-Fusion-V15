@@ -66,3 +66,4 @@ export { fasReportsDaily } from "./fas-reports-daily";
 export { usdaAmsFatsOilsDaily } from "./usda-ams-fats-oils";
 export { fedSpeechesDaily } from "./fed-speeches-daily";
 export { congressBillsDaily } from "./congress-bills-daily";
+export { googleNewsDaily } from "./google-news-daily";

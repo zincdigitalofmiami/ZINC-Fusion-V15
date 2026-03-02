@@ -84,6 +84,10 @@ import {
   profarmerWeeklyBackfill,
   yahooEtfFallbackDaily,
   yahooEtfBackfill,
+  // epaRinGenerationMonthly,   // Needs Prisma schema table first
+  // epaRinGenerationBackfill,  // Needs Prisma schema table first
+  // eiaBiofuelMerMonthly,      // Needs Prisma schema table first
+  googleNewsDaily,
 } from "@/inngest/functions";
 
 function isUnsafeServeHost(hostname: string): boolean {
@@ -254,6 +258,10 @@ export const { GET, POST, PUT } = serve({
     // Yahoo Finance ETF fallback (when Databento ETF stale)
     yahooEtfFallbackDaily,
     yahooEtfBackfill,
+    // EPA RIN generation + EIA biofuel MER: commented out until Prisma tables created
+    // epaRinGenerationMonthly, epaRinGenerationBackfill, eiaBiofuelMerMonthly,
+    // Google News RSS (all 11 specialists — daily headlines)
+    googleNewsDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
