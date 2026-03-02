@@ -9,13 +9,12 @@ import {
 } from "@/components/policy/types";
 import { PolicyAiBriefing } from "@/components/policy/PolicyAiBriefing";
 import { PolicyNewsFeed } from "@/components/policy/PolicyNewsFeed";
+import { PolicySectionBrief } from "@/components/policy/PolicySectionBrief";
 import {
   Gavel,
-  FileSignature,
   TrendingUp,
   Building2,
   CalendarClock,
-  ExternalLink,
   ShieldAlert,
   Activity,
   Siren,
@@ -214,34 +213,38 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
   const maxCount = Math.max(...agencies.map((a) => a.count), 1);
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
-      <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">
-        ZL-Relevant Agency Activity
-      </div>
-      <p className="text-xs text-slate-600 mb-6">Trade, biofuel, energy, agriculture filings (90d)</p>
-      <div className="space-y-4">
-        {agencies.slice(0, 10).map((agency) => (
-          <div key={agency.agency}>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-slate-300 font-medium" title={agency.agency}>
-                {agency.agency}
-              </span>
-              <span className="text-slate-400 font-mono text-sm font-bold">{agency.count}</span>
+    <div className="mb-8">
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
+        <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-cyan-500 pl-3 mb-8">
+          ZL-Relevant Agency Activity
+        </div>
+        <p className="text-xs text-slate-500 pl-5 -mt-6 mb-8">Trade, biofuel, energy, agriculture filings (90d)</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5">
+          {agencies.slice(0, 10).map((agency) => (
+            <div key={agency.agency}>
+              <div className="flex justify-between text-sm mb-1.5">
+                <span className="text-slate-300 font-medium" title={agency.agency}>
+                  {agency.agency}
+                </span>
+                <span className="text-slate-400 font-mono font-bold">{agency.count}</span>
+              </div>
+              <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${(agency.count / maxCount) * 100}%`,
+                    backgroundColor: getScoreColor(
+                      (agency.count / maxCount) * 100,
+                    ).stroke,
+                    boxShadow: `0 0 8px ${getScoreColor((agency.count / maxCount) * 100).glow}`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${(agency.count / maxCount) * 100}%`,
-                  backgroundColor: getScoreColor(
-                    (agency.count / maxCount) * 100,
-                  ).stroke,
-                  boxShadow: `0 0 8px ${getScoreColor((agency.count / maxCount) * 100).glow}`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
       </div>
     </div>
   );
@@ -249,46 +252,50 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
 
 function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
-      <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">
-        Executive Actions
-      </div>
-      <p className="text-xs text-slate-600 mb-6">Recent orders &amp; memoranda with ZL price impact</p>
-      {events.length === 0 ? (
-        <p className="text-sm text-slate-600 italic">No executive actions in the last 90 days.</p>
-      ) : (
-        <div className="space-y-5">
-          {events.slice(0, 8).map((evt) => (
-            <div
-              key={evt.id}
-              className="relative pl-5 border-l-2 border-slate-800 hover:border-slate-400 transition-colors"
-            >
-              <div className="absolute -left-[5px] top-2 w-2 h-2 rounded-full bg-slate-600 ring-2 ring-[#0a0a0a]" />
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-xs text-slate-500 font-mono">
-                  {evt.event_date}
-                </span>
-                {Math.abs(evt.price_return_1d || 0) > 0.005 && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                    (evt.price_return_1d || 0) > 0
-                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                      : "bg-red-500/10 text-red-400 border border-red-500/20"
-                  }`}>
-                    ZL {(evt.price_return_1d! * 100) > 0 ? "+" : ""}{(evt.price_return_1d! * 100).toFixed(1)}%
-                  </span>
-                )}
-              </div>
-              <a
-                href={evt.url || "#"}
-                target="_blank"
-                className="block text-base text-slate-300 hover:text-white transition-colors leading-relaxed"
-              >
-                {evt.headline}
-              </a>
-            </div>
-          ))}
+    <div className="mb-8">
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
+        <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-amber-500 pl-3 mb-8">
+          Executive Actions
         </div>
-      )}
+        <p className="text-xs text-slate-500 pl-5 -mt-6 mb-8">Recent orders &amp; memoranda with ZL price impact</p>
+
+        {events.length === 0 ? (
+          <p className="text-sm text-slate-500 italic">No executive actions in the last 90 days.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            {events.slice(0, 8).map((evt) => (
+              <div
+                key={evt.id}
+                className="relative pl-5 border-l-2 border-slate-800 hover:border-slate-400 transition-colors"
+              >
+                <div className="absolute -left-[5px] top-2 w-2 h-2 rounded-full bg-slate-600 ring-2 ring-[#0a0a0a]" />
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xs text-slate-500 font-mono">
+                    {evt.event_date}
+                  </span>
+                  {Math.abs(evt.price_return_1d || 0) > 0.005 && (
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      (evt.price_return_1d || 0) > 0
+                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                        : "bg-red-500/10 text-red-400 border border-red-500/20"
+                    }`}>
+                      ZL {(evt.price_return_1d! * 100) > 0 ? "+" : ""}{(evt.price_return_1d! * 100).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                <a
+                  href={evt.url || "#"}
+                  target="_blank"
+                  className="block text-sm text-slate-300 hover:text-white transition-colors leading-relaxed"
+                >
+                  {evt.headline}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
@@ -304,16 +311,15 @@ interface FeedColumnProps {
 
 function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
   return (
-    <div className="col-span-1 bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all duration-300">
-      <div className="p-5 border-b border-white/5">
-        <div className="text-xs text-slate-500 uppercase tracking-widest font-bold flex items-center gap-2">
-          <Icon className="w-4 h-4 text-slate-500" />
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <Icon className="w-4 h-4 text-slate-400" />
+        <span className="text-xs text-white uppercase tracking-widest font-bold">
           {title}
-        </div>
+        </span>
       </div>
-      <div className="p-5 space-y-4">
-        {items.slice(0, 8).map((item) => {
-          // Helper to safely extract common fields
+      <div className="space-y-3">
+        {items.slice(0, 6).map((item) => {
           const titleText =
             "title" in item
               ? item.title
@@ -322,7 +328,6 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
                 : item.deadline_name;
           const dateText =
             "event_date" in item ? item.event_date : item.deadline_date;
-          const tags = "specialist_tags" in item ? (item.specialist_tags ?? []) : [];
           const url = "url" in item ? item.url : undefined;
           const docType =
             "document_type" in item ? item.document_type : undefined;
@@ -330,72 +335,45 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
             "days_to_expiry" in item ? item.days_to_expiry : undefined;
 
           return (
-            <div
-              key={item.id}
-              className="group p-4 bg-slate-950 border border-white/5 rounded-xl hover:border-white/20 transition-all"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-slate-700 text-slate-300`}
-                >
-                  {type === "deadline"
-                    ? `${daysToExpiry} DAYS`
-                    : docType || "RULE"}
-                </span>
-                <span className="text-xs text-slate-500 font-mono">
+            <div key={item.id} className="group">
+              <div className="flex items-start gap-3">
+                <span className="text-xs text-slate-600 font-mono shrink-0 mt-0.5 w-20">
                   {dateText}
                 </span>
-              </div>
-
-              <h4 className="text-sm font-medium text-slate-200 leading-snug mb-2 group-hover:text-white">
-                {titleText}
-              </h4>
-
-              {type === "deadline" && daysToExpiry !== undefined && (
-                <div className="w-full bg-slate-900 h-1.5 rounded-full mt-2 overflow-hidden">
-                  {(() => {
-                    const urgencyScore = Math.max(
-                      0,
-                      Math.min(100, 100 - (daysToExpiry / 365) * 100),
-                    );
-                    const c = getScoreColor(urgencyScore);
-                    return (
-                      <div
-                        className="h-full rounded-full transition-all duration-700 ease-out"
-                        style={{
-                          width: `${Math.max(5, urgencyScore)}%`,
-                          backgroundColor: c.stroke,
-                          boxShadow: `0 0 8px ${c.glow}`,
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Tags for legislation/executive */}
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {tags.slice(0, 3).map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="text-[10px] bg-slate-900 text-slate-500 px-1.5 py-0.5 rounded border border-slate-800"
+                <div className="flex-1 min-w-0">
+                  {url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      className="text-sm text-slate-300 hover:text-white transition-colors leading-relaxed"
                     >
-                      #{tag}
+                      {titleText}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-300 leading-relaxed">
+                      {titleText}
                     </span>
-                  ))}
+                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    {type === "deadline" && daysToExpiry !== undefined && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        daysToExpiry <= 30
+                          ? "bg-red-500/10 text-red-400"
+                          : daysToExpiry <= 90
+                            ? "bg-amber-500/10 text-amber-400"
+                            : "bg-slate-800 text-slate-400"
+                      }`}>
+                        {daysToExpiry}d
+                      </span>
+                    )}
+                    {docType && (
+                      <span className="text-[10px] text-slate-600 uppercase">
+                        {docType}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-
-              {url && (
-                <a
-                  href={url}
-                  target="_blank"
-                  className="flex items-center gap-1 text-xs text-cyan-400 mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  Source <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+              </div>
             </div>
           );
         })}
@@ -518,6 +496,23 @@ export default async function PolicyPage() {
       tags: n.specialist_tags,
     })),
   };
+
+  // Per-section AI brief data (serialized for client components)
+  const briefRegime = { score: regime.score, label: regime.label };
+  const agencyBriefData = agencies.slice(0, 8).map((a) => ({
+    agency: a.agency,
+    count: a.count,
+  }));
+  const execBriefData = shockwaves.slice(0, 6).map((e) => ({
+    headline: e.headline,
+    date: e.event_date,
+    zl_impact: e.price_return_1d != null ? `${(e.price_return_1d * 100).toFixed(1)}%` : "none",
+  }));
+  const newsBriefData = policyNews.slice(0, 8).map((n) => ({
+    headline: n.headline,
+    source: n.source || "unknown",
+    date: n.event_date,
+  }));
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-36 pb-20">
@@ -642,26 +637,33 @@ export default async function PolicyPage() {
           />
         </div>
 
-        {/* ANALYTICS ROW */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AgencyHeatmap agencies={agencies} />
-          <ShockwaveList events={shockwaves} />
-        </div>
+        {/* ═══════════ AGENCY ACTIVITY ═══════════ */}
+        <PolicySectionBrief section="agency" regime={briefRegime} data={agencyBriefData} />
+        <AgencyHeatmap agencies={agencies} />
 
-        {/* NEWS INTELLIGENCE + FEED COLUMNS */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* News Intelligence Feed — Google News + ProFarmer */}
-          <div className="lg:col-span-1">
+        {/* ═══════════ EXECUTIVE ACTIONS ═══════════ */}
+        <PolicySectionBrief section="executive" regime={briefRegime} data={execBriefData} />
+        <ShockwaveList events={shockwaves} />
+
+        {/* ═══════════ NEWS INTELLIGENCE ═══════════ */}
+        <PolicySectionBrief section="news" regime={briefRegime} data={newsBriefData} />
+        <div className="mb-8">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
+            <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-emerald-500 pl-3 mb-8">
+              News Intelligence
+            </div>
+            <p className="text-xs text-slate-500 pl-5 -mt-6 mb-8">Google News + ProFarmer · Policy-relevant headlines</p>
             <PolicyNewsFeed articles={policyNews} />
           </div>
+        </div>
 
-          {/* Live Policy Feeds */}
-          <div className="lg:col-span-3">
-            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-              <FileSignature className="w-5 h-5 text-cyan-400" />
+        {/* ═══════════ LIVE POLICY FEEDS ═══════════ */}
+        <div className="mb-8">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
+            <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-slate-500 pl-3 mb-8">
               Live Policy Feeds
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               <FeedColumn
                 title="Federal Register"
                 icon={Building2}

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
+    return new Response("AI unavailable", { status: 503 });
   }
 
   const lines: string[] = [];
