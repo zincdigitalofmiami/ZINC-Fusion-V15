@@ -6,18 +6,24 @@
  * - Computes row_hash for idempotency
  * - Append-only inserts (ON CONFLICT DO NOTHING)
  *
- * SOURCE: USDA MARS API v1.2 (free, no auth required)
- * - Report: LM_GR850 (Daily National Grease and Rendered Products Report)
- * - Products: yellow grease, tallow (bleachable fancy, edible, inedible),
- *             choice white grease, lard, poultry fat, UCO
+ * SOURCE: USDA MARS API v1.2 (REQUIRES AUTHENTICATION — register at mymarketnews.ams.usda.gov)
+ * - Report 2839: NW_LS906 (Weekly Tallow & Protein Report) — CORRECT report for grease/tallow
+ * - Report 2837: NW_LS442 (Daily Tallow & Protein Report) — daily version
+ * - Products: yellow grease, tallow (bleachable, edible, inedible),
+ *             choice white grease, lard, poultry fat
+ *
+ * STATUS: BLOCKED — MARS API v1.2 requires API key (403 Forbidden without auth).
+ *   - Report 2464 was WRONG (that's boxed beef, not grease/tallow)
+ *   - As a fallback, tallow/grease PPI data flows via FRED series WPU06410132
+ *     and PCU3116133116132 in fred-daily.ts biofuel segment.
+ *   - To fix: register at https://mymarketnews.ams.usda.gov/mars-api/getting-started
+ *     and set USDA_MARS_API_KEY env var.
  *
  * TARGET TABLE: supply.uco_prices_1w
- * NOTE: Table must be added to prisma/schema.prisma before first successful run.
- *       The function wraps inserts in try/catch and logs if the table is missing.
  *
  * @author Claude (ZINC-FUSION-V15)
- * @version 1.0.0
- * @date 2026-02-26
+ * @version 1.1.0
+ * @date 2026-03-02
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
@@ -27,7 +33,7 @@ import dbPool from "@/lib/db";
 const pool = dbPool;
 
 const MARS_API_BASE = "https://marsapi.ams.usda.gov/services/v1.2/reports";
-const REPORT_SLUG = "2464"; // LM_GR850 slug ID
+const REPORT_SLUG = "2839"; // NW_LS906 Weekly Tallow & Protein Report (was 2464 = boxed beef, WRONG)
 const SOURCE_NAME = "usda_ams";
 const USER_AGENT = "ZINC-Fusion/1.0";
 

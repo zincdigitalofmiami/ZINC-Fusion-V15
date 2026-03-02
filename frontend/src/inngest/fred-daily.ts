@@ -227,6 +227,9 @@ const FRED_BIOFUEL_SERIES: FredSeriesConfig[] = [
   { id: "GASDESW", name: "US Diesel Price", tags: ["biofuel", "energy", "crush"] },
   // Ethanol PPI - corn ethanol economics, competes with soy biodiesel
   { id: "WPU06140341", name: "PPI Ethanol", tags: ["biofuel", "crush", "substitutes"] },
+  // Tallow/grease PPI - UCO/yellow grease feedstock cost proxy (monthly, FRED)
+  { id: "WPU06410132", name: "PPI Lard Inedible Tallow & Grease", tags: ["biofuel", "crush", "energy"] },
+  { id: "PCU3116133116132", name: "PPI Rendering & Meat Byproduct Processing", tags: ["biofuel", "crush"] },
 ];
 
 const FRED_CRUSH_SERIES: FredSeriesConfig[] = [
