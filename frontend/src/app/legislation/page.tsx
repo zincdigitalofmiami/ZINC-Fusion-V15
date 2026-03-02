@@ -187,7 +187,7 @@ function MetricCard({
   return (
     <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all duration-300">
       <div className="flex justify-between items-start mb-3">
-        <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+        <div className="text-xs text-white uppercase tracking-widest font-bold">
           {title}
         </div>
         {trend != null && (
