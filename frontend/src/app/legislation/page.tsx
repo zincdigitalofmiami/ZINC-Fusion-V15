@@ -182,18 +182,18 @@ function MetricCard({
   title,
   value,
   subtext,
-  icon: Icon,
+  icon: _Icon,
   trend,
 }: MetricCardProps) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 hover:border-white/20 transition-all duration-300">
-      <div className="flex justify-between items-start mb-2">
-        <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
-          <Icon className="w-4 h-4" />
+    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all duration-300">
+      <div className="flex justify-between items-start mb-3">
+        <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+          {title}
         </div>
         {trend != null && (
           <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+            className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
               trend > 0
                 ? "bg-red-500/10 text-red-400 border-red-500/20"
                 : "bg-green-500/10 text-green-400 border-green-500/20"
@@ -204,9 +204,8 @@ function MetricCard({
           </span>
         )}
       </div>
-      <div className="text-2xl font-bold text-white mb-0.5">{value}</div>
-      <div className="text-xs font-medium text-slate-400">{title}</div>
-      {subtext && <div className="text-[10px] text-slate-500 mt-1 leading-tight">{subtext}</div>}
+      <div className="text-3xl font-bold font-mono text-white mb-1">{value}</div>
+      {subtext && <div className="text-xs text-slate-500 mt-1 leading-relaxed">{subtext}</div>}
     </div>
   );
 }
@@ -215,25 +214,21 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
   const maxCount = Math.max(...agencies.map((a) => a.count), 1);
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8 h-full">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Building2 className="w-5 h-5" />
+    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
+      <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">
         ZL-Relevant Agency Activity
-      </h3>
-      <p className="text-[10px] text-slate-600 -mt-3 mb-3">Trade, biofuel, energy, agriculture filings (90d)</p>
-      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-        {agencies.slice(0, 8).map((agency) => (
-          <div key={agency.agency} className="group">
-            <div className="flex justify-between text-sm mb-1">
-              <span
-                className="text-slate-300 font-medium truncate w-3/4"
-                title={agency.agency}
-              >
+      </div>
+      <p className="text-xs text-slate-600 mb-6">Trade, biofuel, energy, agriculture filings (90d)</p>
+      <div className="space-y-4">
+        {agencies.slice(0, 10).map((agency) => (
+          <div key={agency.agency}>
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="text-slate-300 font-medium" title={agency.agency}>
                 {agency.agency}
               </span>
-              <span className="text-slate-400 font-mono">{agency.count}</span>
+              <span className="text-slate-400 font-mono text-sm font-bold">{agency.count}</span>
             </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700 ease-out"
                 style={{
@@ -254,45 +249,46 @@ function AgencyHeatmap({ agencies }: { agencies: AgencyActivity[] }) {
 
 function ShockwaveList({ events }: { events: ExecutiveEvent[] }) {
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8 h-full">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-        <Activity className="w-5 h-5" />
+    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
+      <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">
         Executive Actions
-      </h3>
-      <p className="text-[10px] text-slate-600 -mt-3 mb-3">Recent orders & memoranda with ZL price impact</p>
-      <div className="space-y-4 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
-        {events.length === 0 ? (
-          <p className="text-xs text-slate-600 italic">No executive actions in the last 90 days.</p>
-        ) : events.slice(0, 6).map((evt) => (
-          <div
-            key={evt.id}
-            className="relative pl-4 border-l-2 border-slate-800 hover:border-slate-500 transition-colors"
-          >
-            <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-slate-700 ring-2 ring-slate-900" />
-            <div className="flex justify-between items-start">
-              <span className="text-xs text-slate-500 font-mono">
-                {evt.event_date}
-              </span>
-              {Math.abs(evt.price_return_1d || 0) > 0.005 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${
-                  (evt.price_return_1d || 0) > 0
-                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                    : "bg-red-500/10 text-red-400 border border-red-500/20"
-                }`}>
-                  ZL {(evt.price_return_1d! * 100) > 0 ? "+" : ""}{(evt.price_return_1d! * 100).toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <a
-              href={evt.url || "#"}
-              target="_blank"
-              className="block text-sm text-slate-300 mt-1 hover:text-white transition-colors line-clamp-2"
-            >
-              {evt.headline}
-            </a>
-          </div>
-        ))}
       </div>
+      <p className="text-xs text-slate-600 mb-6">Recent orders &amp; memoranda with ZL price impact</p>
+      {events.length === 0 ? (
+        <p className="text-sm text-slate-600 italic">No executive actions in the last 90 days.</p>
+      ) : (
+        <div className="space-y-5">
+          {events.slice(0, 8).map((evt) => (
+            <div
+              key={evt.id}
+              className="relative pl-5 border-l-2 border-slate-800 hover:border-slate-400 transition-colors"
+            >
+              <div className="absolute -left-[5px] top-2 w-2 h-2 rounded-full bg-slate-600 ring-2 ring-[#0a0a0a]" />
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-xs text-slate-500 font-mono">
+                  {evt.event_date}
+                </span>
+                {Math.abs(evt.price_return_1d || 0) > 0.005 && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                    (evt.price_return_1d || 0) > 0
+                      ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                      : "bg-red-500/10 text-red-400 border border-red-500/20"
+                  }`}>
+                    ZL {(evt.price_return_1d! * 100) > 0 ? "+" : ""}{(evt.price_return_1d! * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <a
+                href={evt.url || "#"}
+                target="_blank"
+                className="block text-base text-slate-300 hover:text-white transition-colors leading-relaxed"
+              >
+                {evt.headline}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -308,15 +304,15 @@ interface FeedColumnProps {
 
 function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
   return (
-    <div className="col-span-1 bg-[#0a0a0a] border border-white/5 rounded-2xl overflow-hidden flex flex-col h-[600px]">
-      <div className="p-4 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur sticky top-0 z-10">
-        <h3 className="font-semibold text-slate-200 flex items-center gap-2">
-          <Icon className="w-4 h-4 text-slate-400" />
+    <div className="col-span-1 bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all duration-300">
+      <div className="p-5 border-b border-white/5">
+        <div className="text-xs text-slate-500 uppercase tracking-widest font-bold flex items-center gap-2">
+          <Icon className="w-4 h-4 text-slate-500" />
           {title}
-        </h3>
+        </div>
       </div>
-      <div className="overflow-y-auto p-4 space-y-4 flex-1 custom-scrollbar">
-        {items.map((item) => {
+      <div className="p-5 space-y-4">
+        {items.slice(0, 8).map((item) => {
           // Helper to safely extract common fields
           const titleText =
             "title" in item
@@ -647,13 +643,9 @@ export default async function PolicyPage() {
         </div>
 
         {/* ANALYTICS ROW */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
-          <div className="lg:col-span-2 h-full">
-            <AgencyHeatmap agencies={agencies} />
-          </div>
-          <div className="lg:col-span-1 h-full">
-            <ShockwaveList events={shockwaves} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AgencyHeatmap agencies={agencies} />
+          <ShockwaveList events={shockwaves} />
         </div>
 
         {/* NEWS INTELLIGENCE + FEED COLUMNS */}
@@ -665,10 +657,10 @@ export default async function PolicyPage() {
 
           {/* Live Policy Feeds */}
           <div className="lg:col-span-3">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <FileSignature className="w-5 h-5" />
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+              <FileSignature className="w-5 h-5 text-cyan-400" />
               Live Policy Feeds
-            </h2>
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <FeedColumn
                 title="Federal Register"
