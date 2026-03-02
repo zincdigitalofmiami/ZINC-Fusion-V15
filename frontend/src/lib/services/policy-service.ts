@@ -6,6 +6,7 @@ import {
   LegislationEvent,
   PolicyUncertaintyIndex,
   TariffDeadline,
+  TariffComponents,
   TrumpEffectMetric,
   RegimeState,
 } from "@/components/policy/types";
@@ -70,10 +71,13 @@ export class PolicyService {
    */
   static async getTariffDeadlines(): Promise<TariffDeadline[]> {
     const sql = `
-      SELECT *
+      SELECT
+        id, deadline_name, deadline_date,
+        (deadline_date - CURRENT_DATE)::int as days_to_expiry,
+        renewal_probability, policy_type, description, is_active
       FROM alt.tariff_deadlines_static
       WHERE is_active = true
-      ORDER BY days_to_expiry ASC
+      ORDER BY (deadline_date - CURRENT_DATE) ASC
     `;
     const rows = await query<TariffDeadline>(sql);
     return rows.map((row) => ({
@@ -83,6 +87,36 @@ export class PolicyService {
         ? Number(row.renewal_probability)
         : null,
     }));
+  }
+
+  /**
+   * Returns real totals for the header summary line.
+   */
+  static async getSummaryCounts(): Promise<{
+    uniqueAgencies: number;
+    activeEvents: number;
+  }> {
+    const sql = `
+      SELECT
+        (SELECT COUNT(DISTINCT agency) FROM alt.legislation_1d
+         WHERE agency IS NOT NULL
+           AND event_date >= CURRENT_DATE - INTERVAL '90 days')::int as unique_agencies,
+        (SELECT COUNT(*) FROM alt.legislation_1d
+         WHERE event_date >= CURRENT_DATE - INTERVAL '90 days')::int
+        +
+        (SELECT COUNT(*) FROM alt.executive_actions_event
+         WHERE event_date >= CURRENT_DATE - INTERVAL '90 days'
+           AND (document_type IN ('executive_order', 'presidential_memorandum', 'proclamation')
+                OR document_type IS NULL))::int as active_events
+    `;
+    const rows = await query<{
+      unique_agencies: number;
+      active_events: number;
+    }>(sql);
+    return {
+      uniqueAgencies: rows[0]?.unique_agencies ?? 0,
+      activeEvents: rows[0]?.active_events ?? 0,
+    };
   }
 
   /**
@@ -96,6 +130,7 @@ export class PolicyService {
         0 as sentiment_score
       FROM alt.legislation_1d
       WHERE agency IS NOT NULL
+        AND event_date >= CURRENT_DATE - INTERVAL '90 days'
       GROUP BY agency
       ORDER BY count DESC
       LIMIT 50
@@ -113,7 +148,10 @@ export class PolicyService {
         as_of_date as date,
         (features->>'action_velocity')::float8 as velocity,
         (features->>'action_acceleration')::float8 as acceleration,
-        (features->>'weighted_action_score')::float8 as score
+        (features->>'weighted_action_score')::float8 as score,
+        (features->>'neural_signal')::float8 as neural_signal,
+        (features->>'neural_confidence')::float8 as neural_confidence,
+        (features->>'epu_7d')::float8 as epu_7d
       FROM training.specialist_features_trump_effect
       ORDER BY as_of_date DESC
       LIMIT $1
@@ -144,8 +182,7 @@ export class PolicyService {
       FROM alt.executive_actions_event e
       LEFT JOIN mkt.futures_1d m
         ON e.event_date = m.event_date AND m.symbol = 'ZL'
-      WHERE e.zl_sentiment IS NOT NULL
-         OR ABS(m.returns_1d) > 0.015
+      WHERE ABS(m.returns_1d) > 0.01
       ORDER BY e.event_date DESC
       LIMIT $1
     `;
@@ -178,14 +215,12 @@ export class PolicyService {
   }
 
   static async getRegimeStatus(): Promise<RegimeState> {
-    // 1. Fetch raw inputs in parallel
-    // Priority: Daily EPU -> Monthly EPU
-    // We fetch raw components to perform a transparent, real-time calculation
+    // Fetch all 5 components for calculateTariffThreat() in parallel
     const [
       dailyTpu,
       monthlyTpu,
-      actionFeatures,
-      vixData,
+      emvData,
+      specialistData,
       legisCount,
       newsCount,
     ] = await Promise.all([
@@ -199,15 +234,16 @@ export class PolicyService {
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ score: number }>(`
-        SELECT (features->>'weighted_action_score')::float8 as score
-        FROM training.specialist_features_trump_effect
-        ORDER BY as_of_date DESC LIMIT 1
-      `),
       query<{ val: number }>(`
         SELECT value::float8 as val FROM econ.vol_indices_1d
-        WHERE series_id = 'VIXCLS' AND value IS NOT NULL
+        WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
+      `),
+      query<{ signal: number }>(`
+        SELECT (features->>'neural_signal')::float8 as signal
+        FROM training.specialist_features_trump_effect
+        WHERE (features->>'neural_signal') IS NOT NULL
+        ORDER BY as_of_date DESC LIMIT 1
       `),
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
@@ -223,60 +259,33 @@ export class PolicyService {
       `),
     ]);
 
-    // Determine EPU level (Daily preferred)
-    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 100; // Default to 100 if missing
-
-    // Get raw inputs for calculation
-    const rawActionScore = actionFeatures[0]?.score ?? 0;
-    const vix = vixData[0]?.val ?? 15; // Default VIX 15
-
-    // "Real Math" Calculation (Transparent Component Summation)
-    // 1. Base Action Score (0-2 scale -> 0-70 points)
-    //    1.4 raw score (typical high) -> ~56 points
-    const actionPoints = Math.min(70, rawActionScore * 40);
-
-    // 2. EPU Stress (0-300 scale -> 0-30 points)
-    //    150 TPU -> 15 points
-    const epuPoints = Math.min(30, (tpu / 300) * 30);
-
-    // 3. VIX Stress (0-60 scale -> 0-10 points)
-    //    15 VIX -> 2.5 points
-    const vixPoints = Math.min(10, (vix / 60) * 10);
-
-    // Total calculation
-    const calculatedScore = Math.min(100, actionPoints + epuPoints + vixPoints);
-
-    // Use the calculated score
-    const score = calculatedScore;
-
+    // Resolve inputs with fallbacks
+    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 100;
+    const emv = emvData[0]?.val ?? null;
+    const specialistSignal = specialistData[0]?.signal ?? null;
     const lCount = legisCount[0]?.count ?? 0;
     const nCount = newsCount[0]?.count ?? 0;
 
-    // 2. Classify Regime (Score-Driven + Thresholds)
-    let label: RegimeState["label"] = "Minimal";
-
-    // Combined Logic: High Score OR High EPU triggers War state
-    if (score >= 80 || tpu >= EPU_THRESHOLDS.HIGH) {
-      label = "Active War";
-    } else if (score >= 60 || tpu >= EPU_THRESHOLDS.ELEVATED) {
-      label = "Retaliation Risk";
-    } else if (score >= 40 || tpu >= EPU_THRESHOLDS.NORMAL) {
-      label = "Elevated";
-    } else if (score >= 20 || tpu >= EPU_THRESHOLDS.LOW) {
-      label = "Background Noise";
-    } else {
-      label = "Minimal";
-    }
+    // Full 5-component tariff threat scoring (matches policy_pressure.py)
+    const threat = calculateTariffThreat(
+      tpu,
+      emv,
+      lCount,
+      nCount,
+      specialistSignal,
+    );
 
     return {
-      score,
-      label,
+      score: threat.score,
+      label: threat.level as RegimeState["label"],
+      headline: threat.headline,
       components: {
         tpu,
-        emv: 0, // No longer primary driver
+        emv: emv ?? 0,
         legis_velocity: lCount,
         news_velocity: nCount,
       },
+      tariff_components: threat.components,
     };
   }
 }
@@ -319,19 +328,6 @@ export function scoreNewsVelocity(count: number): number {
 // TARIFF THREAT SCORING (Full Sophistication)
 // Matches policy_pressure.py exactly
 // ===========================================
-
-export interface TariffComponents {
-  tpu_score: number;
-  tpu_value: number;
-  emv_score: number;
-  emv_value: number | null;
-  legislation_count: number;
-  legislation_adj: number;
-  soy_tariff_news_count: number;
-  soy_tariff_news_adj: number;
-  specialist_signal: number | null;
-  specialist_adj: number;
-}
 
 export function calculateTariffThreat(
   tpu: number,

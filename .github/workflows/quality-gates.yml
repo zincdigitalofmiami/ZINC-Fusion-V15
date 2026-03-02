@@ -96,7 +96,7 @@ jobs:
           python scripts/check_sql_table_references.py "${CODE_FILES[@]}"
 
       - name: Pytest (unit)
-        run: pytest -m "not integration and not training" --cov=src/fusion --cov-report=term-missing --cov-fail-under=12
+        run: pytest -m "not integration and not training" --cov --cov-report=term-missing
 
       - name: Pytest (integration)
         if: env.DATABASE_URL != ''

@@ -859,12 +859,9 @@ def load_futures_base(conn, symbol: str) -> pd.DataFrame:
             hurst_exponent, hurst_regime,
             volume_zscore, unusual_volume,
             returns_1d, log_returns_1d, range_pct,
-            fisher_transform, fisher_signal,
-            mcginley_dynamic, kama_10, hma_20, alma_50,
+            kama_10,
+            ema_21, ema_50, ema_100, ema_200,
             rvi, rvi_signal,
-            elder_force_index, cmf_21,
-            ttm_squeeze_on, ttm_squeeze_momentum,
-            schaff_trend_cycle,
             adx, adx_pos, adx_neg,
             stoch_k, stoch_d,
             obv
@@ -1408,7 +1405,6 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
 
     Per plan: "No feature dropping - repair instead"
     - hurst_regime: ordinal (0=unknown/null, 1=random, 2=trending) + _is_missing flag
-    - ttm_squeeze_on: numeric 0/1 + _is_missing flag
 
     v15.x FIX: Use proper missingness encoding (x=0 when missing, x_is_missing=1)
     instead of forward-fill. This preserves feature integrity.
@@ -1434,17 +1430,6 @@ def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
         missing_count = df["hurst_regime_is_missing"].sum()
         logger.info(
             f"   Encoded hurst_regime as ordinal (0=unknown, 1=random, 2=trending) + _is_missing flag ({missing_count} missing)"
-        )
-
-    # Encode ttm_squeeze_on as numeric 0/1 WITH missingness encoding
-    if "ttm_squeeze_on" in df.columns:
-        # Create missingness flag BEFORE filling
-        df["ttm_squeeze_on_is_missing"] = df["ttm_squeeze_on"].isna().astype(int)
-        # Fill missing with 0 (squeeze off is neutral)
-        df["ttm_squeeze_on"] = df["ttm_squeeze_on"].fillna(False).astype(int)
-        missing_count = df["ttm_squeeze_on_is_missing"].sum()
-        logger.info(
-            f"   Encoded ttm_squeeze_on as 0/1 + _is_missing flag ({missing_count} missing)"
         )
 
     # Encode unusual_volume as numeric 0/1
@@ -3098,7 +3083,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         before_cols = len(df.columns)
 
         # Identify daily feature columns (exclude metadata, targets, and event-encoded cols)
-        # Also exclude hurst_regime and ttm_squeeze_on - they're already handled by encode_categorical_features
+        # Also exclude hurst_regime - already handled by encode_categorical_features
         exclude_patterns = [
             "trade_date",
             "symbol",
@@ -3114,7 +3099,7 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             "_hurst_regime_raw",
         ]
         # Columns already handled by encode_categorical_features (have their own _is_missing flags)
-        already_encoded = {"hurst_regime", "ttm_squeeze_on"}
+        already_encoded = {"hurst_regime"}
         # OHLCV columns must NEVER be zero-imputed — they are the base price series
         # used by create_target_columns(). Zero-imputing close produces inf targets.
         ohlcv_protected = {"open", "high", "low", "close", "volume", "open_interest"}

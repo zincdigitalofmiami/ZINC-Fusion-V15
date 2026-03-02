@@ -19,6 +19,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+export const revalidate = 3600; // ISR: revalidate every 1 hour
+
 // ============================================================================
 // UI COMPONENTS
 // ============================================================================
@@ -112,9 +114,26 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
         {regime.label}
       </div>
 
+      {regime.headline && (
+        <div className="text-xs text-slate-500 mt-1 italic max-w-[280px] text-right">
+          {regime.headline}
+        </div>
+      )}
+
       <div className="text-xs font-mono mt-1 opacity-50">
-        SCORE: {Math.round(regime.score)}/100 | TPU:{" "}
-        {Math.round(regime.components.tpu)}
+        {regime.tariff_components ? (
+          <>
+            TPU: {regime.tariff_components.tpu_score} | EMV:{" "}
+            {regime.tariff_components.emv_score} | LEGIS:{" "}
+            {regime.tariff_components.legislation_count} | NEWS:{" "}
+            {regime.tariff_components.soy_tariff_news_count}
+          </>
+        ) : (
+          <>
+            SCORE: {Math.round(regime.score)}/100 | TPU:{" "}
+            {Math.round(regime.components.tpu)}
+          </>
+        )}
       </div>
     </div>
   );
@@ -141,7 +160,7 @@ function MetricCard({
         <div className="p-2 bg-slate-800 rounded-lg text-slate-400">
           <Icon className="w-5 h-5" />
         </div>
-        {trend && (
+        {trend != null && (
           <span
             className={`text-xs font-medium px-2 py-1 rounded-full border ${
               trend > 0
@@ -268,7 +287,7 @@ function FeedColumn({ title, icon: Icon, items, type }: FeedColumnProps) {
                 : item.deadline_name;
           const dateText =
             "event_date" in item ? item.event_date : item.deadline_date;
-          const tags = "specialist_tags" in item ? item.specialist_tags : [];
+          const tags = "specialist_tags" in item ? (item.specialist_tags ?? []) : [];
           const url = "url" in item ? item.url : undefined;
           const docType =
             "document_type" in item ? item.document_type : undefined;
@@ -389,6 +408,7 @@ export default async function PolicyPage() {
     agencies,
     trumpMetrics,
     shockwaves,
+    summaryCounts,
   ] = await Promise.all([
     withFallback("getRegimeStatus", () => PolicyService.getRegimeStatus(), defaultRegime),
     withFallback("getLegislationEvents", () => PolicyService.getLegislationEvents(30), []),
@@ -397,6 +417,7 @@ export default async function PolicyPage() {
     withFallback("getAgencyHeatmap", () => PolicyService.getAgencyHeatmap(), []),
     withFallback("getTrumpEffectMetrics", () => PolicyService.getTrumpEffectMetrics(), []),
     withFallback("getShockwaveEvents", () => PolicyService.getShockwaveEvents(), []),
+    withFallback("getSummaryCounts", () => PolicyService.getSummaryCounts(), { uniqueAgencies: 0, activeEvents: 0 }),
   ]);
 
   // Extract metric for Bureaucracy Velocity
@@ -426,8 +447,8 @@ export default async function PolicyPage() {
               </h1>
             </div>
             <p className="text-slate-400 text-sm font-mono">
-              Monitoring {agencies.length} agencies and{" "}
-              {legislation.length + executive.length} active regulatory events
+              Monitoring {summaryCounts.uniqueAgencies} agencies and{" "}
+              {summaryCounts.activeEvents} active regulatory events
             </p>
           </div>
 
@@ -439,7 +460,13 @@ export default async function PolicyPage() {
           <MetricCard
             title="Bureaucracy Velocity"
             value={currentMetric?.velocity?.toFixed(1) || "N/A"}
-            subtext={currentMetric ? "Actions per Week" : "No Data"}
+            subtext={
+              currentMetric?.neural_signal != null
+                ? `Signal: ${currentMetric.neural_signal.toFixed(3)} | Conf: ${((currentMetric.neural_confidence ?? 0) * 100).toFixed(0)}%`
+                : currentMetric
+                  ? "Actions per Week"
+                  : "No Data"
+            }
             icon={TrendingUp}
             trend={velocityTrend}
           />
@@ -452,7 +479,11 @@ export default async function PolicyPage() {
           <MetricCard
             title="Trade Uncertainty"
             value={Math.round(regime.components.tpu)}
-            subtext="Fred EPU Index"
+            subtext={
+              currentMetric?.epu_7d != null
+                ? `FRED EPU Index | 7d Avg: ${currentMetric.epu_7d.toFixed(0)}`
+                : "FRED EPU Index"
+            }
             icon={ShieldAlert}
           />
           <MetricCard

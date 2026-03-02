@@ -366,19 +366,22 @@ function computeDailyVwap(activity: ActivityRow[]): VwapRow[] {
 // ---------------------------------------------------------------------------
 
 function findActivityXlsxUrl(html: string): string {
-  const hrefPattern = /href="([^"]+\.xlsx)"/gi;
+  // Match href with both single and double quotes, and .xlsx/.XLSX extensions
+  const hrefPattern = /href=["']([^"']+\.xlsx)["']/gi;
   let match: RegExpExecArray | null;
   const candidates: string[] = [];
 
   while ((match = hrefPattern.exec(html)) !== null) {
     const href = match[1];
     const lower = href.toLowerCase();
-    if (
-      lower.includes("weekly") &&
-      lower.includes("lcfs") &&
-      lower.includes("credit") &&
-      lower.includes("activity")
-    ) {
+    // Relaxed matching: require any 2 of 4 keywords (weekly, lcfs, credit, activity)
+    let keywordHits = 0;
+    if (lower.includes("weekly")) keywordHits++;
+    if (lower.includes("lcfs")) keywordHits++;
+    if (lower.includes("credit")) keywordHits++;
+    if (lower.includes("activity")) keywordHits++;
+
+    if (keywordHits >= 2) {
       candidates.push(
         href.startsWith("http") ? href : `https://ww2.arb.ca.gov${href}`,
       );
@@ -438,9 +441,22 @@ export const lcfsCreditWeekly = inngest.createFunction(
       "fetch-xlsx",
       async () => {
         logger.info("Fetching CARB weekly LCFS activity page...");
-        const pageRes = await fetch(CARB_WEEKLY_PAGE, {
-          headers: { "User-Agent": USER_AGENT },
-        });
+        const pageController = new AbortController();
+        const pageTimeout = setTimeout(() => pageController.abort(), 60_000);
+        let pageRes: Response;
+        try {
+          pageRes = await fetch(CARB_WEEKLY_PAGE, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: pageController.signal,
+          });
+          clearTimeout(pageTimeout);
+        } catch (err) {
+          clearTimeout(pageTimeout);
+          if (err instanceof Error && err.name === "AbortError") {
+            throw new Error("CARB page fetch timed out after 60s");
+          }
+          throw err;
+        }
         if (!pageRes.ok) {
           throw new Error(
             `CARB page fetch failed: ${pageRes.status} ${pageRes.statusText}`,
@@ -451,9 +467,22 @@ export const lcfsCreditWeekly = inngest.createFunction(
         logger.info(`Found activity XLSX: ${url}`);
 
         logger.info("Downloading activity XLSX...");
-        const xlsxRes = await fetch(url, {
-          headers: { "User-Agent": USER_AGENT },
-        });
+        const xlsxController = new AbortController();
+        const xlsxTimeout = setTimeout(() => xlsxController.abort(), 90_000);
+        let xlsxRes: Response;
+        try {
+          xlsxRes = await fetch(url, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: xlsxController.signal,
+          });
+          clearTimeout(xlsxTimeout);
+        } catch (err) {
+          clearTimeout(xlsxTimeout);
+          if (err instanceof Error && err.name === "AbortError") {
+            throw new Error("XLSX download timed out after 90s");
+          }
+          throw err;
+        }
         if (!xlsxRes.ok) {
           throw new Error(
             `XLSX download failed: ${xlsxRes.status} ${xlsxRes.statusText}`,

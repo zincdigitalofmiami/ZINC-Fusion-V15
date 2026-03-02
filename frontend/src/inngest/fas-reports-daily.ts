@@ -123,25 +123,30 @@ function extractReportsFromHTML(html: string, source: string, tags: string[]): F
   return reports;
 }
 
-async function fetchWithRetry(url: string, maxRetries = 3): Promise<string | null> {
+async function fetchWithRetry(url: string, maxRetries = 4, logger?: { warn: (msg: string) => void }): Promise<string | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
+      // Increase timeout per attempt: 45s, 60s, 90s, 120s
+      const timeoutMs = Math.min(45_000 * attempt, 120_000);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(url, {
         headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; ZINC-Fusion/1.0)",
-          Accept: "text/html,application/xhtml+xml",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
         },
         signal: controller.signal,
       });
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.text();
-    } catch (_err) {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger?.warn(`FAS fetch attempt ${attempt}/${maxRetries} failed: ${errMsg} (url: ${url})`);
       if (attempt === maxRetries) return null;
-      // Exponential backoff: 3s, 9s, 27s
-      await new Promise((r) => setTimeout(r, 3000 * Math.pow(3, attempt - 1)));
+      // Exponential backoff: 5s, 15s, 45s, 135s
+      await new Promise((r) => setTimeout(r, 5000 * Math.pow(3, attempt - 1)));
     }
   }
   return null;
@@ -178,9 +183,9 @@ export const fasReportsDaily = inngest.createFunction(
         let inserted = 0;
         let skipped = 0;
 
-        const html = await fetchWithRetry(page.url);
+        const html = await fetchWithRetry(page.url, 4, logger);
         if (!html) {
-          logger.warn(`${page.name}: FAS site unreachable after 3 retries`);
+          logger.warn(`${page.name}: FAS site unreachable after 4 retries`);
           return { name: page.name, inserted: 0, skipped: 0, failed: true };
         }
 

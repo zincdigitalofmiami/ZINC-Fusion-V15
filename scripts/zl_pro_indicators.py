@@ -7,8 +7,7 @@ THE single source of truth for technical indicator computation on mkt.futures_1d
 Replaces ALL deprecated recalculator scripts. Uses ONLY industry-grade libraries.
 
 Library Stack:
-  TA-Lib 0.6.8     — C-backed gold standard (RSI, MACD, BBANDS, ATR, ADX, STOCH, CCI, KAMA, OBV)
-  pandas_ta 0.4.71  — Peer-reviewed Python (HMA, ALMA, McGinley, Fisher, STC, Squeeze, EFI, CMF)
+  TA-Lib 0.6.8     — C-backed gold standard (RSI, MACD, BBANDS, ATR, ADX, STOCH, CCI, KAMA, OBV, EMA)
   hurst 0.0.5       — R/S analysis for Hurst exponent
   Ray 2.52.1         — 22-core parallel processing
 
@@ -27,7 +26,7 @@ Usage:
   python scripts/zl_pro_indicators.py --symbol ZL --dry-run     # Compute only, no DB write
   python scripts/zl_pro_indicators.py --full --no-ray           # All symbols, sequential
 
-Target: mkt.futures_1d (45 indicator columns)
+Target: mkt.futures_1d (39 indicator columns)
 """
 
 import argparse
@@ -61,81 +60,58 @@ load_dotenv(PROJECT_ROOT / ".env", override=False)
 # ---------------------------------------------------------------------------
 from hurst import compute_Hc  # noqa: E402  # Hurst exponent (R/S analysis)
 
-import pandas_ta as pta  # noqa: E402  # pandas_ta 0.4.71 — peer-reviewed
 import talib  # noqa: E402  # TA-Lib 0.6.8 — C-backed gold standard
 
 # ---------------------------------------------------------------------------
 # DB column list — exactly matches prisma/schema.prisma mkt.futures_1d
 # ---------------------------------------------------------------------------
 INDICATOR_COLS = [
-    # ── TA-Lib: RSI ──
+    # ── TA-Lib direct (23) ──────────────────────────────────────────────
     "rsi_2",
     "rsi_14",
     "cumulative_rsi",
-    # ── TA-Lib: MACD ──
     "macd",
     "macd_signal",
     "macd_histogram",
-    # ── TA-Lib: Bollinger Bands ──
     "bb_upper",
     "bb_middle",
     "bb_lower",
     "bb_percent_b",
-    # ── TA-Lib: ATR ──
     "atr_10",
     "atr_14",
     "atr_50",
     "atr_ratio",
-    # ── TA-Lib: ADX + Directional ──
     "adx",
     "adx_pos",
     "adx_neg",
-    # ── TA-Lib: Stochastic ──
     "stoch_k",
     "stoch_d",
-    # ── TA-Lib: CCI ──
     "cci_14",
     "cci_50",
-    # ── TA-Lib: KAMA, OBV ──
     "kama_10",
     "obv",
-    # ── pandas_ta: Moving Averages ──
-    "hma_20",
-    "alma_50",
-    "mcginley_dynamic",
-    # ── pandas_ta: Fisher Transform ──
-    "fisher_transform",
-    "fisher_signal",
-    # ── pandas_ta: Schaff Trend Cycle ──
-    "schaff_trend_cycle",
-    # ── pandas_ta: TTM Squeeze ──
-    "ttm_squeeze_on",
-    "ttm_squeeze_momentum",
-    # ── pandas_ta: Elder Force Index ──
-    "elder_force_index",
-    # ── pandas_ta: Chaikin Money Flow ──
-    "cmf_21",
-    # ── hurst library ──
+    # ── NEW: EMA additions (4) ──────────────────────────────────────────
+    "ema_21",
+    "ema_50",
+    "ema_100",
+    "ema_200",
+    # ── Edge cases — all kept (7) ───────────────────────────────────────
+    "connors_rsi",
     "hurst_exponent",
     "hurst_regime",
-    # ── Published: Connors RSI ──
-    "connors_rsi",
-    # ── Published: Ehlers Relative Vigor Index ──
     "rvi",
     "rvi_signal",
-    # ── TA-Lib: Volume derivatives ──
+    "garman_klass_vol",
+    "yang_zhang_vol",
+    # ── Simple price-derived (5) ────────────────────────────────────────
     "volume_zscore",
     "unusual_volume",
-    # ── Derived: Returns ──
     "returns_1d",
     "log_returns_1d",
     "range_pct",
-    # ── Published: Volatility estimators ──
-    "garman_klass_vol",
-    "yang_zhang_vol",
 ]
 
-BOOL_COLS = {"ttm_squeeze_on", "unusual_volume"}
+BOOL_COLS = {"unusual_volume"}
 STR_COLS = {"hurst_regime"}
 
 SET_CLAUSE = ", ".join(f"{col} = %s" for col in INDICATOR_COLS)
@@ -236,8 +212,8 @@ def _rolling_hurst(close: pd.Series, window: int = 100) -> pd.Series:
             H, _, _ = compute_Hc(w.values, kind="price", simplified=True)
             if 0.0 <= H <= 1.0:
                 result.iloc[i] = H
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [hurst] window {i} failed: {e}")
 
     return result
 
@@ -421,13 +397,13 @@ def _yang_zhang(
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# MAIN COMPUTE FUNCTION — 45 indicators, library-sourced
+# MAIN COMPUTE FUNCTION — 39 indicators, library-sourced
 # ═══════════════════════════════════════════════════════════════════════════
 
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Compute ALL 45 indicator columns on a single-symbol OHLCV DataFrame.
+    Compute ALL 39 indicator columns on a single-symbol OHLCV DataFrame.
 
     Input:  DataFrame with columns [event_date, open, high, low, close, volume]
     Output: Same DataFrame with all INDICATOR_COLS populated.
@@ -456,15 +432,14 @@ def _compute_indicators_inner(df: pd.DataFrame) -> pd.DataFrame:
     open_ = df["open"].values.astype(np.float64)
     volume = df["volume"].fillna(0).values.astype(np.float64)
 
-    # --- Prepare Series for pandas_ta ---
+    # --- Prepare Series for published formula functions ---
     cs = pd.Series(close, index=df.index)
     hs = pd.Series(high, index=df.index)
     ls = pd.Series(low, index=df.index)
     os_ = pd.Series(open_, index=df.index)
-    vs = pd.Series(volume, index=df.index)
 
     # ═══════════════════════════════════════════════════════════════════
-    # TA-LIB (C-backed gold standard) — 23 columns
+    # TA-LIB (C-backed gold standard) — 27 columns
     # ═══════════════════════════════════════════════════════════════════
 
     # RSI (Wilder, 1978)
@@ -520,55 +495,13 @@ def _compute_indicators_inner(df: pd.DataFrame) -> pd.DataFrame:
     df["obv"] = talib.OBV(close, volume)
 
     # ═══════════════════════════════════════════════════════════════════
-    # PANDAS_TA (peer-reviewed Python library) — 9 columns
+    # TA-LIB: Exponential Moving Averages — 4 columns
     # ═══════════════════════════════════════════════════════════════════
 
-    # Hull Moving Average (Hull, 2005)
-    hma_result = pta.hma(cs, length=20)
-    df["hma_20"] = hma_result.values if hma_result is not None else np.nan
-
-    # Arnaud Legoux Moving Average (Legoux & Caillou, 2009)
-    alma_result = pta.alma(cs, length=50)
-    df["alma_50"] = alma_result.values if alma_result is not None else np.nan
-
-    # McGinley Dynamic (McGinley, 1990)
-    mcgd_result = pta.mcgd(cs, length=14)
-    df["mcginley_dynamic"] = mcgd_result.values if mcgd_result is not None else np.nan
-
-    # Ehlers Fisher Transform (Ehlers, 2002)
-    fisher_df = pta.fisher(hs, ls, length=10, signal=1)
-    if fisher_df is not None and len(fisher_df.columns) >= 2:
-        df["fisher_transform"] = fisher_df.iloc[:, 0].values
-        df["fisher_signal"] = fisher_df.iloc[:, 1].values
-    else:
-        df["fisher_transform"] = np.nan
-        df["fisher_signal"] = np.nan
-
-    # Schaff Trend Cycle (Schaff, 2008)
-    stc_df = pta.stc(cs, tclength=10, fast=23, slow=50)
-    if stc_df is not None and len(stc_df.columns) >= 1:
-        df["schaff_trend_cycle"] = stc_df.iloc[:, 0].values
-    else:
-        df["schaff_trend_cycle"] = np.nan
-
-    # TTM Squeeze (Carter, 2012)
-    sqz_df = pta.squeeze(
-        hs, ls, cs, bb_length=20, bb_std=2.0, kc_length=20, kc_scalar=1.5
-    )
-    if sqz_df is not None and "SQZ_ON" in sqz_df.columns:
-        df["ttm_squeeze_momentum"] = sqz_df.iloc[:, 0].values
-        df["ttm_squeeze_on"] = sqz_df["SQZ_ON"].values.astype(float)  # 1.0/0.0/NaN
-    else:
-        df["ttm_squeeze_momentum"] = np.nan
-        df["ttm_squeeze_on"] = np.nan
-
-    # Elder Force Index (Elder, 1993)
-    efi_result = pta.efi(cs, vs, length=13)
-    df["elder_force_index"] = efi_result.values if efi_result is not None else np.nan
-
-    # Chaikin Money Flow (Chaikin, 1966)
-    cmf_result = pta.cmf(hs, ls, cs, vs, length=21)
-    df["cmf_21"] = cmf_result.values if cmf_result is not None else np.nan
+    df["ema_21"] = talib.EMA(close, timeperiod=21)
+    df["ema_50"] = talib.EMA(close, timeperiod=50)
+    df["ema_100"] = talib.EMA(close, timeperiod=100)
+    df["ema_200"] = talib.EMA(close, timeperiod=200)
 
     # ═══════════════════════════════════════════════════════════════════
     # HURST LIBRARY — R/S analysis
@@ -648,7 +581,7 @@ def write_indicators(conn, df: pd.DataFrame, symbol: str) -> int:
 
 def process_symbol(symbol: str, db_url: str, dry_run: bool = False) -> dict:
     """
-    Full pipeline for one symbol: read OHLCV → compute 45 indicators → write.
+    Full pipeline for one symbol: read OHLCV → compute 39 indicators → write.
 
     Returns dict with {symbol, status, rows, elapsed}.
     """
@@ -688,7 +621,7 @@ def process_symbol(symbol: str, db_url: str, dry_run: bool = False) -> dict:
         df["event_date"] = pd.to_datetime(df["event_date"])
         df = df.set_index("event_date")
 
-        # Compute all 45 indicators
+        # Compute all 39 indicators
         df = compute_indicators(df)
 
         # Write to DB
@@ -842,7 +775,6 @@ def main():
     print("ZL PRO INDICATORS — The ONE Definitive Indicator Calculator")
     print("=" * 70)
     print(f"  TA-Lib:     {talib.__version__}")
-    print(f"  pandas_ta:  {pta.version}")
     print(
         f"  Mode:       {'--full' if args.full else '--incremental' if args.incremental else f'--symbol {args.symbol}'}"
     )

@@ -50,6 +50,9 @@ export interface TrumpEffectMetric {
   velocity: number | null;
   acceleration: number | null;
   score: number | null;
+  neural_signal?: number | null;
+  neural_confidence?: number | null;
+  epu_7d?: number | null;
 }
 
 export interface PolicyUncertaintyIndex {
@@ -58,19 +61,34 @@ export interface PolicyUncertaintyIndex {
   series_id: string;
 }
 
+export interface TariffComponents {
+  tpu_score: number;
+  tpu_value: number;
+  emv_score: number;
+  emv_value: number | null;
+  legislation_count: number;
+  legislation_adj: number;
+  soy_tariff_news_count: number;
+  soy_tariff_news_adj: number;
+  specialist_signal: number | null;
+  specialist_adj: number;
+}
+
 // Derived strictly for UI state/scoring (not a table)
 export interface RegimeState {
   score: number; // 0-100 Threat Score
   label:
-    | "Minimal"
+    | "Minimal Threat"
     | "Background Noise"
-    | "Elevated"
+    | "Elevated Noise"
     | "Retaliation Risk"
     | "Active War";
+  headline?: string;
   components: {
     tpu: number; // Trade Policy Uncertainty Index
     emv: number; // Equity Market Volatility (Trade)
     news_velocity: number; // Count of recent news
     legis_velocity: number; // Count of recent bills
   };
+  tariff_components?: TariffComponents;
 }

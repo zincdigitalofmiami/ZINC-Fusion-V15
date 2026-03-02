@@ -335,7 +335,21 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
     });
 
     if (hasCaptcha) {
-      throw new Error("Login blocked by CAPTCHA");
+      // Wait and retry once — CAPTCHAs sometimes clear on page refresh
+      console.log("[profarmer] CAPTCHA detected, waiting 30s and retrying...");
+      await new Promise((r) => setTimeout(r, 30000));
+      await page.reload({ waitUntil: "networkidle2", timeout: 60000 });
+      await new Promise((r) => setTimeout(r, 3000));
+
+      const stillCaptcha = await page.evaluate(() => {
+        return !!document.querySelector(
+          'iframe[src*="recaptcha"], [class*="captcha"], #captcha, .g-recaptcha',
+        );
+      });
+
+      if (stillCaptcha) {
+        throw new Error("Login blocked by CAPTCHA after retry");
+      }
     }
 
     const errorText = await page.evaluate(() => {
@@ -365,7 +379,7 @@ async function scrapeReportArticles(
   reportUrl: string,
   reportSlug: string,
   specialists: string[],
-  maxArticles: number = 15,
+  maxArticles: number = 50,
 ): Promise<ScrapedArticle[]> {
   console.log(`[profarmer] scraping ${reportUrl}...`);
   await page.goto(reportUrl, { waitUntil: "networkidle2", timeout: 60000 });
@@ -514,7 +528,10 @@ export const profarmerDaily = inngest.createFunction(
     retries: 2,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
-  { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // Weekdays 7 AM CT
+  [
+    { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // Weekdays 7 AM CT
+    { event: "profarmer/daily" }, // Manual trigger
+  ],
   async ({ logger }) => {
     // ── Phase 1: create ingest run (quick DB touch, release immediately) ──
     let runId: string;
@@ -572,7 +589,7 @@ export const profarmerDaily = inngest.createFunction(
             report.url,
             report.slug,
             report.specialists,
-            15,
+            50,
           );
           logger.info(`${report.name}: ${articles.length} articles found`);
           allArticles.push(...articles);
@@ -833,5 +850,26 @@ export const profarmerBackfill = inngest.createFunction(
     }
 
     return { status: "success", runId, attempted, inserted, skipped, quarantined };
+  },
+);
+
+/**
+ * Weekly auto-backfill: triggers the backfill event every Sunday at 2 AM CT
+ * to catch any articles missed during the week (CAPTCHA blocks, timeouts, etc.)
+ */
+export const profarmerWeeklyBackfill = inngest.createFunction(
+  {
+    id: "profarmer-weekly-backfill",
+    name: "ProFarmer Weekly Auto-Backfill",
+    retries: 1,
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
+  },
+  { cron: "TZ=America/Chicago 0 2 * * 0" }, // Sunday 2 AM CT
+  async ({ step }) => {
+    await step.sendEvent("trigger-profarmer-backfill", {
+      name: "profarmer/backfill",
+      data: { source: "weekly-auto" },
+    });
+    return { status: "triggered", type: "weekly-auto-backfill" };
   },
 );

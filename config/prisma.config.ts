@@ -23,5 +23,8 @@ export default defineConfig({
   },
   datasource: {
     url: prismaDatasourceUrl,
+    shadowDatabaseUrl:
+      process.env.SHADOW_DATABASE_URL ||
+      "postgresql://zincdigital@localhost:5432/zinc_fusion_shadow",
   },
 });

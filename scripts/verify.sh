@@ -54,12 +54,8 @@ if [[ "$MODE" == "all" || "$MODE" == "python" ]]; then
     gate "ruff binary exists" test -x .venv/bin/ruff
 
     # Gate 3: ruff lint (catches hallucinated imports and undefined names)
-    # Excludes vendored third-party libs that we don't own
     gate "ruff lint (F401/F403/F405/F821/F841)" \
         .venv/bin/ruff check --select F401,F403,F405,F821,F841 \
-        --exclude 'src/fusion/features/gs_quant_lib' \
-        --exclude 'src/fusion/features/macrosynergy_signal' \
-        --exclude 'src/fusion/features/jpm_bt_*' \
         src/ scripts/ tests/
 
     # Gate 4: pytest (skip known DB-dependent integration tests in CI)

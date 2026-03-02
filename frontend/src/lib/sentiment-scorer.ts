@@ -97,10 +97,17 @@ const BULLISH_PATTERNS: [RegExp, number][] = [
   [/\b(china buying|china import|chinese demand|india import)\b/i, 1.5],
   [/\b(restocking|stockpil[eing]+|reserve build)\b/i, 1.0],
 
-  // ── Geopolitical / supply-chain risk ──
+  // ── Geopolitical / supply-chain risk (bullish = prices up) ──
   [/\b(port strike|labor strike|trucker strike|blockade)\b/i, 1.5],
   [/\b(red sea|suez|panama canal draft|shipping disruption)\b/i, 1.5],
   [/\b(sanctions? on russia|export restriction)\b/i, 1.0],
+  [/\b(war|military strike|air strike|missile|bomb(?:ing|ed)?|invasion)\b/i, 2.0],
+  [/\b(hormuz|strait.{0,8}clos|shipping lane.{0,8}clos|naval blockade)\b/i, 2.5],
+  [/\b(geopolitical crisis|armed conflict|escalat(?:ion|ing|ed))\b/i, 1.5],
+  [/\b(crude.{0,8}(?:surge|spike|jump|rally)|oil price.{0,8}(?:surge|spike|jump))\b/i, 2.0],
+  [/\b(energy crisis|oil shock|supply.{0,8}(?:threat|risk|disrupt))\b/i, 1.5],
+  [/\b(sanctions?\b)/i, 1.0],
+  [/\b(ofac|treasury.{0,10}sanction|iran.{0,10}sanction)\b/i, 1.5],
 
   // ── Macro tailwinds for commodities ──
   [/\b(rate cut|easing cycle|dovish|stimulus)\b/i, 1.0],

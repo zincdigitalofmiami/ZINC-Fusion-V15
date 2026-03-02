@@ -14,6 +14,7 @@ import { calculateCrushPressure } from '@/lib/services/crush-service'
 import { calculateChinaTension } from '@/lib/services/china-service'
 import { calculateTariffThreat } from '@/lib/services/policy-service'
 import { fetchMarketDriversData } from '@/lib/services/market-drivers-queries'
+import { scoreZlSentiment, type Sentiment } from '@/lib/sentiment-scorer'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,34 @@ interface CorrelationSummary {
   source: 'calculated' | 'unavailable'
 }
 
+interface EventPulseEvent {
+  headline: string
+  source: string
+  event_date: string
+  sentiment: Sentiment
+  confidence: number
+  tags: string[]
+  hoursAgo: number
+}
+
+interface EventPulse {
+  recentEvents: EventPulseEvent[]
+  velocity: {
+    last24h: number
+    last48h: number
+    last72h: number
+    baseline7d: number
+    velocityRatio: number
+  }
+  netSentiment: {
+    bullish: number
+    bearish: number
+    neutral: number
+    netScore: number
+    signal: 'STRONGLY_BULLISH' | 'BULLISH' | 'NEUTRAL' | 'BEARISH' | 'STRONGLY_BEARISH'
+  }
+}
+
 interface VegasBrief {
   generatedAt: string
   asOfDate: string
@@ -93,8 +122,13 @@ interface VegasBrief {
   keyRisks: string[]
   keyPositives: string[]
 
+  // Event intelligence
+  eventPulse: EventPulse
+  overrideReason?: string
+
   // Data quality
-  dataIssues: string[]
+  dataIssues: string[]           // Truly missing data (unavailable)
+  stalenessWarnings: string[]    // Data exists but past SLA
   dataQuality: 'good' | 'partial' | 'poor'
   dataStaleness?: {
     allFresh: boolean
@@ -224,8 +258,9 @@ function getEmptyForecasts(): ForecastHorizon[] {
   ]
 }
 
-async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: number, summary: string, dataIssues: string[]}> {
-  const dataIssues: string[] = []
+async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: number, summary: string, dataIssues: string[], stalenessWarnings: string[]}> {
+  const dataIssues: string[] = []        // Truly missing data (no value at all)
+  const stalenessWarnings: string[] = [] // Data exists but past SLA freshness
 
   try {
     // Fetch ALL market driver data via the shared data layer (23 parallel queries)
@@ -259,7 +294,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     const trumpAction = trumpActionData[0]?.score ?? null
     const trumpDate = trumpActionData[0]?.as_of_date ?? trumpSignalData[0]?.as_of_date ?? null
 
-    // Track missing data
+    // Track truly MISSING data (no value at all) — these are critical
     if (!vix) dataIssues.push('VIX data unavailable')
     if (!crush) dataIssues.push('Crush margin data unavailable')
     if (!cny) dataIssues.push('CNY/USD rate unavailable')
@@ -267,13 +302,14 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
 
     // Check data freshness with per-source SLA thresholds
+    // Stale data is a WARNING, not a critical issue — the data still has value
     const today = new Date()
     const checkFreshness = (dateStr: string | null, name: string, slaDays = 3): 'live' | 'stale' | 'unavailable' => {
       if (!dateStr) return 'unavailable'
       const dataDate = new Date(dateStr)
       const daysDiff = Math.floor((today.getTime() - dataDate.getTime()) / (1000 * 60 * 60 * 24))
       if (daysDiff > slaDays) {
-        dataIssues.push(`${name} data is ${daysDiff} days old (SLA: ${slaDays}d)`)
+        stalenessWarnings.push(`${name} data is ${daysDiff} days old (SLA: ${slaDays}d)`)
         return 'stale'
       }
       return 'live'
@@ -372,17 +408,22 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     ]
 
     const missingCount = 5 - validScores.length
+    const staleCount = stalenessWarnings.length
     const summary = missingCount >= 4
       ? `${missingCount} of 5 drivers have no data. Brief is unreliable.`
-      : dataIssues.length > 2
-      ? `Data issues detected: ${dataIssues.slice(0, 2).join(', ')}. Scores based on ${validScores.length}/5 drivers.`
+      : missingCount >= 2
+      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/5 drivers.`
+      : staleCount > 0 && avgScore >= 60
+      ? `Multiple headwinds. ${staleCount} source${staleCount > 1 ? 's' : ''} past SLA but usable.`
       : avgScore >= 60
       ? 'Multiple headwinds. Markets nervous, trade uncertain.'
       : avgScore <= 40
       ? 'Favorable conditions. Stable markets, solid crush.'
+      : staleCount > 0
+      ? `Mixed picture. ${staleCount} source${staleCount > 1 ? 's' : ''} past freshness SLA.`
       : 'Mixed picture. No clear direction.'
 
-    return { drivers, avgScore, summary, dataIssues }
+    return { drivers, avgScore, summary, dataIssues, stalenessWarnings }
   } catch (e) {
     console.error('Driver fetch error:', e)
     // Return unavailable drivers - NO FAKE SCORES
@@ -396,7 +437,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       ],
       avgScore: 0,
       summary: 'DATABASE ERROR: Unable to fetch driver data. Do not rely on this brief.',
-      dataIssues: ['Database connection failed']
+      dataIssues: ['Database connection failed'],
+      stalenessWarnings: []
     }
   }
 }
@@ -559,6 +601,255 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
   }
 }
 
+// =============================================================================
+// EVENT PULSE — Real-time event intelligence from DB + live GDELT news
+// =============================================================================
+
+/**
+ * Fetch live headlines from Google News RSS (free, no API key, no rate limits).
+ * Supplements the DB-sourced events with real-time global news about
+ * commodities, energy, and geopolitical events affecting soybean oil.
+ */
+async function fetchLiveHeadlines(): Promise<Array<{
+  headline: string
+  source: string
+  event_date: string
+}>> {
+  try {
+    // Two targeted queries: one for commodity/ag, one for geopolitical
+    // Use separate RSS feeds for better recent coverage
+    const queries = [
+      'soybean oil crude oil soybeans commodities',
+      'Iran war sanctions tariff "Strait of Hormuz" "oil prices"',
+    ]
+    // Fetch both in parallel (Google News RSS has no rate limit)
+    const allItems: Array<{ headline: string; source: string; event_date: string }> = []
+    const seenTitles = new Set<string>()
+
+    await Promise.all(queries.map(async (q) => {
+      try {
+        const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`
+        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) })
+        if (!resp.ok) return
+        const xml = await resp.text()
+        const blocks = xml.split('<item>').slice(1)
+        for (const raw of blocks) {
+          const block = raw.split('</item>')[0] || ''
+          const titleMatch = block.match(/<title>([^<]+)<\/title>/)
+          const pubMatch = block.match(/<pubDate>([^<]+)<\/pubDate>/)
+          if (!titleMatch) continue
+
+          const fullTitle = titleMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'")
+          if (seenTitles.has(fullTitle)) continue
+          seenTitles.add(fullTitle)
+
+          const dashIdx = fullTitle.lastIndexOf(' - ')
+          const headline = dashIdx > 0 ? fullTitle.slice(0, dashIdx) : fullTitle
+          const source = dashIdx > 0 ? fullTitle.slice(dashIdx + 3) : 'Google News'
+
+          let eventDate: string
+          try {
+            eventDate = new Date(pubMatch?.[1] || '').toISOString()
+          } catch {
+            eventDate = new Date().toISOString()
+          }
+
+          allItems.push({ headline, source, event_date: eventDate })
+        }
+      } catch { /* individual query failure ok */ }
+    }))
+
+    console.log(`[LiveHeadlines] Parsed ${allItems.length} total headlines from ${queries.length} queries`)
+    return allItems
+  } catch (e) {
+    console.error('[LiveHeadlines] Fetch error (non-fatal):', e)
+    return [] // Fail silently — DB events still work
+  }
+}
+
+async function getEventPulse(): Promise<EventPulse> {
+  const emptyPulse: EventPulse = {
+    recentEvents: [],
+    velocity: { last24h: 0, last48h: 0, last72h: 0, baseline7d: 0, velocityRatio: 0 },
+    netSentiment: { bullish: 0, bearish: 0, neutral: 0, netScore: 0, signal: 'NEUTRAL' },
+  }
+
+  try {
+    // Fetch DB events + live GDELT headlines in parallel
+    const [rows, liveHeadlines] = await Promise.all([
+      query<{
+        headline: string
+        summary: string | null
+        source: string
+        event_date: string
+        tags: string[]
+      }>(`
+        WITH combined AS (
+          SELECT headline, summary, 'ProFarmer' AS source, event_date, specialist_tags AS tags
+          FROM alt.profarmer_news_event
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+
+          UNION ALL
+
+          SELECT title AS headline, CONCAT(document_type, ' — ', agency) AS summary,
+                 COALESCE(source, 'Federal Register') AS source, event_date, specialist_tags AS tags
+          FROM alt.legislation_1d
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+
+          UNION ALL
+
+          SELECT headline, NULL AS summary, source, event_date, specialist_tags AS tags
+          FROM alt.policy_news_event
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+
+          UNION ALL
+
+          SELECT headline, NULL AS summary, source, event_date, specialist_tags AS tags
+          FROM alt.executive_actions_event
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+
+          UNION ALL
+
+          SELECT headline, summary, source, event_date, specialist_tags AS tags
+          FROM alt.econ_news_event
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+
+          UNION ALL
+
+          SELECT headline, NULL AS summary, source, event_date, specialist_tags AS tags
+          FROM econ.news_event
+          WHERE event_date >= NOW() - INTERVAL '7 days'
+        )
+        SELECT * FROM combined ORDER BY event_date DESC
+      `),
+      fetchLiveHeadlines(),
+    ])
+
+    const now = new Date()
+
+    // Score DB events
+    const scoredDb = rows.map(r => {
+      const sentimentResult = scoreZlSentiment(r.headline, r.summary)
+      const eventDate = new Date(r.event_date)
+      const hoursAgo = Math.round((now.getTime() - eventDate.getTime()) / (1000 * 60 * 60))
+      return {
+        headline: r.headline,
+        source: r.source,
+        event_date: r.event_date,
+        sentiment: sentimentResult.sentiment,
+        confidence: sentimentResult.confidence,
+        bullScore: sentimentResult.bullScore,
+        bearScore: sentimentResult.bearScore,
+        tags: (r.tags || []).slice(0, 4),
+        hoursAgo,
+      }
+    })
+
+    // Score GDELT headlines (live news supplement)
+    const scoredLive = liveHeadlines.map(g => {
+      const sentimentResult = scoreZlSentiment(g.headline, null)
+      const eventDate = new Date(g.event_date)
+      const hoursAgo = Math.max(0, Math.round((now.getTime() - eventDate.getTime()) / (1000 * 60 * 60)))
+      return {
+        headline: g.headline,
+        source: g.source,
+        event_date: g.event_date,
+        sentiment: sentimentResult.sentiment,
+        confidence: sentimentResult.confidence,
+        bullScore: sentimentResult.bullScore,
+        bearScore: sentimentResult.bearScore,
+        tags: ['LIVE'] as string[],
+        hoursAgo,
+      }
+    })
+
+    // Merge: DB events + GDELT live news, dedup by headline similarity
+    const seenHeadlines = new Set(scoredDb.map(e => e.headline.toLowerCase().slice(0, 60)))
+    const uniqueLive = scoredLive.filter(g => {
+      const key = g.headline.toLowerCase().slice(0, 60)
+      if (seenHeadlines.has(key)) return false
+      seenHeadlines.add(key)
+      return true
+    })
+
+    const scored = [...scoredDb, ...uniqueLive]
+
+    // Debug: log merge stats with hoursAgo distribution
+    const liveNonNeutral = uniqueLive.filter(e => e.sentiment !== 'neutral')
+    const liveWithin72h = uniqueLive.filter(e => e.hoursAgo <= 72)
+    const liveWithin168h = uniqueLive.filter(e => e.hoursAgo <= 168)
+    console.log(`[EventPulse] DB: ${scoredDb.length}, Live: ${scoredLive.length}, Unique: ${uniqueLive.length}, NonNeutral: ${liveNonNeutral.length}, within72h: ${liveWithin72h.length}, within168h: ${liveWithin168h.length}, hoursAgoRange: ${uniqueLive.length > 0 ? `${Math.min(...uniqueLive.map(e => e.hoursAgo))}-${Math.max(...uniqueLive.map(e => e.hoursAgo))}` : 'empty'}`)
+
+    if (scored.length === 0) return emptyPulse
+
+    // Velocity metrics (DB events for baseline, all events for current)
+    const dbLast24h = scoredDb.filter(e => e.hoursAgo <= 24).length
+    const liveLast24h = uniqueLive.filter(e => e.hoursAgo <= 24).length
+    const last24h = dbLast24h + liveLast24h
+    const last48h = scored.filter(e => e.hoursAgo <= 48).length
+    const last72h = scored.filter(e => e.hoursAgo <= 72).length
+    const baseline7d = scoredDb.length / 7 // baseline from DB only (stable denominator)
+    const velocityRatio = baseline7d > 0 ? last24h / baseline7d : (last24h > 0 ? last24h : 0)
+
+    // Aggregate sentiment: DB events from 48h, LIVE news from 168h (broader window)
+    // Weight LIVE non-neutral events higher — they're real-time news vs admin filings
+    const recent48h = scored.filter(e => e.tags.includes('LIVE') ? e.hoursAgo <= 168 : e.hoursAgo <= 48)
+    let bullish = 0, bearish = 0, neutral = 0
+    let weightedBull = 0, weightedBear = 0
+
+    for (const e of recent48h) {
+      const isLiveNews = e.tags.includes('LIVE')
+      const liveBoost = isLiveNews ? 1.5 : 1.0 // Live news gets 50% weight boost
+
+      if (e.sentiment === 'bullish') {
+        bullish++
+        weightedBull += e.confidence * (e.bullScore - e.bearScore) * liveBoost
+      } else if (e.sentiment === 'bearish') {
+        bearish++
+        weightedBear += e.confidence * (e.bearScore - e.bullScore) * liveBoost
+      } else {
+        neutral++
+      }
+    }
+
+    const netScore = weightedBull - weightedBear
+
+    let signal: EventPulse['netSentiment']['signal'] = 'NEUTRAL'
+    if (netScore > 3) signal = 'STRONGLY_BULLISH'
+    else if (netScore > 1) signal = 'BULLISH'
+    else if (netScore < -3) signal = 'STRONGLY_BEARISH'
+    else if (netScore < -1) signal = 'BEARISH'
+
+    // Top 10 events: LIVE news with sentiment always first, then DB events
+    // LIVE news gets 168h window (Google News covers broader range), DB stays at 72h
+    const top10 = scored
+      .filter(e => e.tags.includes('LIVE') ? e.hoursAgo <= 168 : e.hoursAgo <= 72)
+      .sort((a, b) => {
+        const aLive = a.tags.includes('LIVE') ? 1 : 0
+        const bLive = b.tags.includes('LIVE') ? 1 : 0
+        // Live non-neutral news gets massive priority boost
+        const aStrength = (a.sentiment !== 'neutral' ? a.confidence + 0.3 : 0) + (aLive * 2.0) + (a.hoursAgo <= 24 ? 0.5 : 0)
+        const bStrength = (b.sentiment !== 'neutral' ? b.confidence + 0.3 : 0) + (bLive * 2.0) + (b.hoursAgo <= 24 ? 0.5 : 0)
+        return bStrength - aStrength || a.hoursAgo - b.hoursAgo
+      })
+      .slice(0, 10)
+      .map(({ bullScore: _b, bearScore: _br, ...rest }) => rest)
+
+    return {
+      recentEvents: top10,
+      velocity: { last24h, last48h, last72h, baseline7d: Math.round(baseline7d * 10) / 10, velocityRatio: Math.round(velocityRatio * 10) / 10 },
+      netSentiment: {
+        bullish, bearish, neutral,
+        netScore: Math.round(netScore * 100) / 100,
+        signal,
+      },
+    }
+  } catch (e) {
+    console.error('Event pulse fetch error:', e)
+    return emptyPulse
+  }
+}
+
 function getPolicyContext(_avgScore: number): string {
   // Policy context last reviewed: 2026-02-16
   // Update when: RFS finalized, 45Z credit changes, tariff structure changes
@@ -586,8 +877,8 @@ function generateTLDR(
     : `down ${Math.abs(price.changePct).toFixed(1)}% today`
 
   let outlook: string
-  if (driverData.dataIssues.length >= 3) {
-    outlook = 'DATA ISSUES - some indicators unavailable, proceed with caution'
+  if (driverData.dataIssues.length >= 4) {
+    outlook = 'LIMITED DATA - most indicators unavailable, proceed with caution'
   } else if (driverData.avgScore >= 60) {
     outlook = 'CAUTIOUS - multiple headwinds (volatility, trade uncertainty)'
   } else if (driverData.avgScore <= 40) {
@@ -610,11 +901,80 @@ function generateTLDR(
     `Key watch: VIX, crush margins, trade headlines.`
 }
 
-function getRecommendation(avgScore: number, dataIssues: string[]): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string} {
-  // If too many data issues, warn user to check data
-  if (dataIssues.length >= 3) {
+function getRecommendation(
+  avgScore: number,
+  dataIssues: string[],
+  eventPulse?: EventPulse,
+  forecastDirection?: 'UP' | 'DOWN' | 'FLAT' | 'NO DATA',
+  forecastChangePct?: number,
+): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string, overrideReason?: string} {
+  // Only trigger CHECK DATA for truly MISSING data (unavailable),
+  // NOT for stale data. Stale data still has value and is scored.
+  if (dataIssues.length >= 4) {
     return { text: 'CHECK DATA', color: '#6B7280' }
   }
+
+  // --- Event-driven posture overrides (evaluated BEFORE score-based logic) ---
+  // These can ESCALATE the posture but never downgrade it.
+  // IMPORTANT: If the model strongly predicts a price DROP (>8%), temper the
+  // bullish override — the spike may be temporary and buying at the top is costly.
+  if (eventPulse) {
+    const { velocity, netSentiment } = eventPulse
+    const topHeadline = eventPulse.recentEvents[0]?.headline
+    const modelPredictsDrop = forecastDirection === 'DOWN' && forecastChangePct !== undefined && forecastChangePct < -8
+
+    // Strong bearish event signal — override to LOCK IN COVERAGE
+    if (netSentiment.netScore < -3) {
+      return {
+        text: 'LOCK IN COVERAGE',
+        color: '#DC2626',
+        overrideReason: `Strong bearish signal from recent events${topHeadline ? `: "${topHeadline}"` : ''}`,
+      }
+    }
+    // High velocity + bearish — override to LOCK IN COVERAGE
+    if (velocity.velocityRatio > 2.0 && netSentiment.netScore < -2) {
+      return {
+        text: 'LOCK IN COVERAGE',
+        color: '#DC2626',
+        overrideReason: `Unusually high bearish event activity (${velocity.velocityRatio}x normal)${topHeadline ? `: "${topHeadline}"` : ''}`,
+      }
+    }
+
+    // Bullish event signals — supply disruption driving prices UP
+    // But if model predicts significant drop, events may be priced in already
+    if (netSentiment.netScore > 3) {
+      if (modelPredictsDrop) {
+        // Events say crisis, model says prices revert — HIGH VOLATILITY regime
+        return {
+          text: 'WAIT',
+          color: '#EF4444',
+          overrideReason: `Supply disruption headlines but model forecasts ${forecastChangePct?.toFixed(0)}% retracement — spike may be temporary. Wait for pullback${topHeadline ? `. Catalyst: "${topHeadline}"` : ''}`,
+        }
+      }
+      return {
+        text: 'LOCK IN COVERAGE',
+        color: '#DC2626',
+        overrideReason: `Prices rising on supply disruption — lock in before further escalation${topHeadline ? `: "${topHeadline}"` : ''}`,
+      }
+    }
+    // High velocity + bullish — supply shock in progress
+    if (velocity.velocityRatio > 2.0 && netSentiment.netScore > 2) {
+      if (modelPredictsDrop) {
+        return {
+          text: 'WAIT',
+          color: '#EF4444',
+          overrideReason: `Event velocity elevated (${velocity.velocityRatio}x) but model sees ${forecastChangePct?.toFixed(0)}% downside — wait for pullback`,
+        }
+      }
+      return {
+        text: 'LOCK IN COVERAGE',
+        color: '#DC2626',
+        overrideReason: `High event velocity (${velocity.velocityRatio}x normal) with prices rising — lock in coverage now`,
+      }
+    }
+  }
+
+  // --- Standard score-based logic ---
   if (avgScore >= 65) {
     return { text: 'WAIT', color: '#EF4444' }
   } else if (avgScore >= 50) {
@@ -694,25 +1054,36 @@ export async function GET() {
       }, { status: 503 })
     }
 
-    const [fcHorizons, driverData, correlations] = await Promise.all([
+    const [fcHorizons, driverData, correlations, eventPulse] = await Promise.all([
       getForecasts(price.current),
       getDriverScores(),
-      getCorrelations()
+      getCorrelations(),
+      getEventPulse()
     ])
 
     const policyContext = getPolicyContext(driverData.avgScore)
-    const recommendation = getRecommendation(driverData.avgScore, driverData.dataIssues)
+    // Get 1-month forecast for recommendation logic
+    const fc1m = fcHorizons.find(f => f.days === 21) || fcHorizons[1]
+    const fc1mChangePct = fc1m?.targetMid && price
+      ? ((fc1m.targetMid - price.current) / price.current) * 100
+      : undefined
+    const recommendation = getRecommendation(
+      driverData.avgScore, driverData.dataIssues, eventPulse,
+      fc1m?.direction, fc1mChangePct,
+    )
 
     // Check if forecasts are available (not all placeholders)
     const forecastsAvailable = fcHorizons.some(f => f.source === 'model')
 
     // Determine overall data quality
+    // Only truly unavailable sources count as "poor" — stale data is "partial"
     const unavailableDrivers = driverData.drivers.filter(d => d.source === 'unavailable').length
+    const staleDrivers = driverData.drivers.filter(d => d.source === 'stale').length
     const unavailableCorrs = correlations.filter(c => c.source === 'unavailable').length
     let dataQuality: 'good' | 'partial' | 'poor'
-    if (unavailableDrivers >= 2 || unavailableCorrs >= 3) {
+    if (unavailableDrivers >= 3 || unavailableCorrs >= 4) {
       dataQuality = 'poor'
-    } else if (unavailableDrivers >= 1 || unavailableCorrs >= 2 || !forecastsAvailable) {
+    } else if (unavailableDrivers >= 1 || staleDrivers >= 2 || unavailableCorrs >= 2 || !forecastsAvailable) {
       dataQuality = 'partial'
     } else {
       dataQuality = 'good'
@@ -750,7 +1121,11 @@ export async function GET() {
       keyRisks: getKeyRisks(driverData),
       keyPositives: getKeyPositives(driverData),
 
+      eventPulse,
+      overrideReason: recommendation.overrideReason,
+
       dataIssues: driverData.dataIssues,
+      stalenessWarnings: driverData.stalenessWarnings,
       dataQuality,
       dataStaleness: {
         allFresh: staleSources.length === 0,

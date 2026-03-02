@@ -17,6 +17,7 @@
     "test:api": "playwright test e2e/api.spec.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.50",
     "@anthropic-ai/sdk": "^0.72.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -37,6 +38,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@types/three": "^0.182.0",
     "2captcha": "^3.0.5-2",
+    "ai": "^6.0.105",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
