@@ -1522,6 +1522,19 @@ model eia_biodiesel_1m {
   @@schema("supply")
 }
 
+model eia_biodiesel_1w {
+  id                                Int       @id @default(autoincrement())
+  week_ending                       DateTime  @unique @db.Date
+  biodiesel_production_kbpd         Float?
+  renewable_diesel_production_kbpd  Float?
+  total_biofuel_production_kbpd     Float?
+  source                            String?   @default("eia_weekly") @db.VarChar(50)
+  row_hash                          String    @unique @db.VarChar(64)
+  ingested_at                       DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@schema("supply")
+}
+
 model epa_rin_1d {
   id             Int       @id @default(autoincrement())
   event_date     DateTime  @db.Date
@@ -1533,6 +1546,24 @@ model epa_rin_1d {
   row_hash       String?   @db.VarChar(64)
 
   @@unique([rin_type, event_date])
+  @@schema("supply")
+}
+
+model uco_prices_1w {
+  id             Int       @id @default(autoincrement())
+  event_date     DateTime  @db.Date
+  product        String    @db.VarChar(100)
+  region         String?   @db.VarChar(100)
+  price_low      Float?
+  price_high     Float?
+  price_avg      Float?
+  unit           String?   @default("cents/lb") @db.VarChar(30)
+  volume         Float?
+  source         String?   @default("usda_ams") @db.VarChar(50)
+  row_hash       String    @unique @db.VarChar(64)
+  knowledge_time DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([event_date, product, region])
   @@schema("supply")
 }
 

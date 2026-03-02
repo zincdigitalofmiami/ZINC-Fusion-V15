@@ -28,7 +28,7 @@ lint-frontend:
 
 # TypeScript type-check only
 tsc:
-	@npx --prefix frontend tsc --noEmit
+	@cd frontend && npx tsc --noEmit
 
 # Prisma validate only
 prisma-validate:
