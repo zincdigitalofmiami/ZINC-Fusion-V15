@@ -84,10 +84,6 @@ import {
   profarmerWeeklyBackfill,
   yahooEtfFallbackDaily,
   yahooEtfBackfill,
-  blsMonthly,
-  chinaSoyImportsMonthly,
-  panamaCanalDaily,
-  fasGatsTradeMonthly,
 } from "@/inngest/functions";
 
 function isUnsafeServeHost(hostname: string): boolean {
@@ -258,14 +254,6 @@ export const { GET, POST, PUT } = serve({
     // Yahoo Finance ETF fallback (when Databento ETF stale)
     yahooEtfFallbackDaily,
     yahooEtfBackfill,
-    // BLS PPI/CPI/employment (monthly)
-    blsMonthly,
-    // China soybean complex imports (UN Comtrade, monthly)
-    chinaSoyImportsMonthly,
-    // Panama Canal operations + transit data (daily)
-    panamaCanalDaily,
-    // FAS GATS soybean complex trade (monthly)
-    fasGatsTradeMonthly,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

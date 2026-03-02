@@ -169,15 +169,6 @@ export default function StrategyPage() {
         forecastsAvailable: brief.forecastsAvailable,
         dataIssues: brief.dataIssues,
         stalenessWarnings: brief.stalenessWarnings,
-        recentEvents: brief.eventPulse?.recentEvents?.map(e => ({
-          headline: e.headline,
-          source: e.source,
-          hoursAgo: e.hoursAgo,
-          sentiment: e.sentiment,
-          confidence: e.confidence,
-        })),
-        eventVelocity: brief.eventPulse?.velocity?.velocityRatio,
-        overrideReason: brief.overrideReason,
       }),
     })
       .then(async (res) => {
@@ -199,15 +190,7 @@ export default function StrategyPage() {
       .catch(() => setAiContextLoading(false));
   }, [brief]);
 
-  // When there's an event-driven override, use the override variant
-  const postureKey = brief
-    ? (brief.overrideReason
-        ? (brief.recommendation === 'LOCK IN COVERAGE' ? 'LOCK IN COVERAGE:OVERRIDE'
-           : brief.recommendation === 'WAIT' ? 'WAIT:OVERRIDE'
-           : brief.recommendation)
-        : brief.recommendation)
-    : 'CHECK DATA';
-  const posture = brief ? (POSTURE_MAP[postureKey] ?? POSTURE_MAP['CHECK DATA']) : null;
+  const posture = brief ? (POSTURE_MAP[brief.recommendation] ?? POSTURE_MAP['CHECK DATA']) : null;
 
   // Derive confidence from driver data quality — percentage of drivers with live data
   const confidence = brief
@@ -333,24 +316,6 @@ export default function StrategyPage() {
         <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
           <AlertTriangle size={12} />
           <span>{brief.stalenessWarnings.length} source{brief.stalenessWarnings.length > 1 ? 's' : ''} past freshness SLA — scores still usable</span>
-        </div>
-      )}
-
-      {/* Event-Driven Override Banner */}
-      {brief?.overrideReason && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent pointer-events-none" />
-          <div className="flex items-start gap-3 relative">
-            <div className="p-1.5 rounded bg-red-500/20 text-red-400 shrink-0 mt-0.5">
-              <AlertTriangle size={14} />
-            </div>
-            <div>
-              <div className="text-[10px] text-red-400/80 uppercase tracking-widest font-bold mb-1">
-                Posture Override
-              </div>
-              <p className="text-sm text-red-300 leading-relaxed">{brief.overrideReason}</p>
-            </div>
-          </div>
         </div>
       )}
 

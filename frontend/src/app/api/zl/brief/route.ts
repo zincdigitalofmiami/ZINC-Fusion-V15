@@ -428,12 +428,12 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       }
     ]
 
-    const missingCount = 6 - validScores.length
+    const missingCount = 5 - validScores.length
     const staleCount = stalenessWarnings.length
     const summary = missingCount >= 4
-      ? `${missingCount} of 6 drivers have no data. Brief is unreliable.`
+      ? `${missingCount} of 5 drivers have no data. Brief is unreliable.`
       : missingCount >= 2
-      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/6 drivers.`
+      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/5 drivers.`
       : staleCount > 0 && avgScore >= 60
       ? `Multiple headwinds. ${staleCount} source${staleCount > 1 ? 's' : ''} past SLA but usable.`
       : avgScore >= 60
@@ -923,15 +923,10 @@ function generateTLDR(
     `Key watch: VIX, crush margins, trade headlines.`
 }
 
-function getRecommendation(
-  avgScore: number,
-  dataIssues: string[],
-  eventPulse?: EventPulse,
-  forecastDirection?: 'UP' | 'DOWN' | 'FLAT' | 'NO DATA',
-  forecastChangePct?: number,
-): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string, overrideReason?: string} {
+function getRecommendation(avgScore: number, dataIssues: string[]): {text: 'BUY NOW' | 'WAIT' | 'NORMAL SCHEDULE' | 'LOCK IN COVERAGE' | 'CHECK DATA', color: string} {
   // Only trigger CHECK DATA for truly MISSING data (unavailable),
   // NOT for stale data. Stale data still has value and is scored.
+  // dataIssues now only contains "unavailable" entries (not staleness).
   if (dataIssues.length >= 4) {
     return { text: 'CHECK DATA', color: '#6B7280' }
   }
