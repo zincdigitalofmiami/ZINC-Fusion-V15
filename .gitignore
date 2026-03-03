@@ -123,3 +123,5 @@ uv.lock
 # PyTorch Lightning run artifacts generated during deep model experiments
 models/core_v2/**/lightning_logs/
 events.out.tfevents.*
+frontend/src/inngest/eia-biofuel-mer-monthly.ts
+frontend/src/inngest/epa-rin-generation-monthly.ts
