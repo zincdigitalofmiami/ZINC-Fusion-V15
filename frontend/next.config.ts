@@ -32,6 +32,31 @@ const nextConfig: NextConfig = {
     'arr-union',
     'deepmerge',
   ],
+
+  // Force Vercel output file tracing to include nested node_modules copies.
+  // merge-deep and clone-deep each have their own node_modules/kind-of (v3)
+  // which differs from the top-level kind-of (v6). Without this, turbopack
+  // marks them external but Vercel's trace misses the nested copies → runtime crash.
+  outputFileTracingIncludes: {
+    '/api/inngest': [
+      './node_modules/puppeteer-extra/**/*',
+      './node_modules/puppeteer-extra-plugin/**/*',
+      './node_modules/puppeteer-extra-plugin-stealth/**/*',
+      './node_modules/puppeteer-extra-plugin-user-preferences/**/*',
+      './node_modules/puppeteer-extra-plugin-user-data-dir/**/*',
+      './node_modules/merge-deep/**/*',
+      './node_modules/clone-deep/**/*',
+      './node_modules/is-plain-object/**/*',
+      './node_modules/kind-of/**/*',
+      './node_modules/shallow-clone/**/*',
+      './node_modules/for-own/**/*',
+      './node_modules/lazy-cache/**/*',
+      './node_modules/arr-union/**/*',
+      './node_modules/deepmerge/**/*',
+      './node_modules/puppeteer-core/**/*',
+      './node_modules/@sparticuz/chromium/**/*',
+    ],
+  },
 }
 
 export default nextConfig
