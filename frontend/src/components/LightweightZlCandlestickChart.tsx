@@ -299,7 +299,7 @@ export function LightweightZlCandlestickChart({
 
     // Clean up previous chart
     if (chartRef.current) {
-      chartRef.current.remove();
+      try { chartRef.current.remove(); } catch { /* already disposed */ }
       chartRef.current = null;
       candleSeriesRef.current = null;
       forecastPrimitiveRef.current = null;
@@ -424,17 +424,21 @@ export function LightweightZlCandlestickChart({
       fitContentCalledRef.current = true;
     }
 
-    // Resize observer
+    // Resize observer — guard against disposed chart
+    let disposed = false;
     const resizeObserver = new ResizeObserver((entries) => {
-      if (entries.length === 0 || !entries[0].target) return;
+      if (disposed || entries.length === 0 || !entries[0].target) return;
       const newRect = entries[0].contentRect;
-      chart.applyOptions({ width: newRect.width, height: newRect.height });
+      try {
+        chart.applyOptions({ width: newRect.width, height: newRect.height });
+      } catch { /* chart already disposed */ }
     });
     resizeObserver.observe(chartContainerRef.current);
 
     return () => {
+      disposed = true;
       resizeObserver.disconnect();
-      chart.remove();
+      try { chart.remove(); } catch { /* already disposed */ }
     };
   }, [priceData, forecastTargets]);
 
