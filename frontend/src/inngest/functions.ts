@@ -36,6 +36,7 @@ export { usdaWasdeMonthly } from "./usda-wasde-monthly";
 export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
 export { glideVegasSync } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
+export { dceSoyOilDaily } from "./dce-soy-oil-daily";
 export { profarmerDaily, profarmerBackfill, profarmerWeeklyBackfill } from "./profarmer-daily";
 export { databentoFuturesDailyShards } from "./databento-futures-daily";
 export { databentoFutures1h } from "./databento-futures-1h";

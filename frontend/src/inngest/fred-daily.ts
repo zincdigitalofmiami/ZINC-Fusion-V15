@@ -520,6 +520,8 @@ const FRED_TABLE_MAP: Record<string, string> = {
   PSUGAISAUSDM: "econ.commodities_1d",
   WPU01830161: "econ.commodities_1d",
   WPU01830171: "econ.commodities_1d",
+  WPU06410132: "econ.commodities_1d",
+  PCU3116133116132: "econ.commodities_1d",
 
   // Money → econ.money_1d
   M2SL: "econ.money_1d",
