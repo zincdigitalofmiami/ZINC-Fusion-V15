@@ -15,7 +15,15 @@ const nextConfig: NextConfig = {
   // These packages use dynamic require() which turbopack drops during tree-shaking.
   // Dependency chain: puppeteer-extra-plugin → merge-deep → kind-of, clone-deep
   //                   clone-deep → is-plain-object, kind-of, shallow-clone, for-own, lazy-cache
+  // Complete puppeteer-extra dependency tree — every transitive package that
+  // uses dynamic require() and gets dropped by turbopack tree-shaking.
+  // Full chain: puppeteer-extra-plugin-stealth → user-preferences → user-data-dir
+  //   → fs-extra → graceful-fs, jsonfile, universalify
+  //   → rimraf, debug
+  //   → puppeteer-extra-plugin → merge-deep → arr-union, clone-deep, kind-of
+  //     → clone-deep → for-own, is-plain-object, kind-of, lazy-cache, shallow-clone
   serverExternalPackages: [
+    '@sparticuz/chromium',
     'puppeteer-core',
     'puppeteer-extra',
     'puppeteer-extra-plugin',
@@ -31,12 +39,19 @@ const nextConfig: NextConfig = {
     'lazy-cache',
     'arr-union',
     'deepmerge',
+    'fs-extra',
+    'graceful-fs',
+    'jsonfile',
+    'universalify',
+    'rimraf',
+    'debug',
+    'ms',
   ],
 
-  // Force Vercel output file tracing to include nested node_modules copies.
-  // merge-deep and clone-deep each have their own node_modules/kind-of (v3)
-  // which differs from the top-level kind-of (v6). Without this, turbopack
-  // marks them external but Vercel's trace misses the nested copies → runtime crash.
+  // Force Vercel output file tracing to include the ENTIRE puppeteer-extra
+  // subtree including nested node_modules (merge-deep/node_modules/kind-of etc).
+  // Without this, turbopack marks packages external but Vercel's trace only
+  // includes top-level copies, not nested version-specific copies.
   outputFileTracingIncludes: {
     '/api/inngest': [
       './node_modules/puppeteer-extra/**/*',
@@ -54,7 +69,14 @@ const nextConfig: NextConfig = {
       './node_modules/arr-union/**/*',
       './node_modules/deepmerge/**/*',
       './node_modules/puppeteer-core/**/*',
-      './node_modules/@sparticuz/chromium/**/*',
+      './node_modules/@sparticuz/**/*',
+      './node_modules/fs-extra/**/*',
+      './node_modules/graceful-fs/**/*',
+      './node_modules/jsonfile/**/*',
+      './node_modules/universalify/**/*',
+      './node_modules/rimraf/**/*',
+      './node_modules/debug/**/*',
+      './node_modules/ms/**/*',
     ],
   },
 }
