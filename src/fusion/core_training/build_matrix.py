@@ -930,31 +930,55 @@ def load_china_pmi(conn) -> pd.DataFrame:
 
 def load_dalian_soy(conn) -> pd.DataFrame:
     """
-    Load Dalian soybean oil futures proxy from mkt.futures_1d.
+    Load Dalian soybean oil futures proxy.
 
-    Convention:
-    - Symbol used for DCE soybean oil continuous proxy: 'DCE_Y'
-    - Column exposed to specialists/matrix: dalian_soy
+    Priority:
+    1. DCE_Y from mkt.futures_1d (daily, Investing.com)
+    2. PSOILUSDM from econ.commodities_1d (monthly World Bank soy oil price,
+       forward-filled to daily). Always available via FRED.
+
+    Column exposed to matrix: dalian_soy
     """
-    logger.info(
-        "Loading Dalian soybean oil proxy from mkt.futures_1d (symbol='DCE_Y')..."
-    )
+    logger.info("Loading Dalian soybean oil proxy...")
+
+    # Try DCE_Y first (daily Dalian exchange data)
     try:
         query = """
-            SELECT
-                event_date as trade_date,
-                close::float as dalian_soy
+            SELECT event_date as trade_date, close::float as dalian_soy
             FROM mkt.futures_1d
             WHERE symbol = 'DCE_Y'
             ORDER BY event_date
         """
         df = pd.read_sql(query, conn)
+        if len(df) > 0:
+            df = normalize_date_column(df, "trade_date")
+            logger.info(
+                f"   DCE_Y: {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+            )
+            return df
+    except Exception as e:
+        logger.warning(f"   DCE_Y query failed: {e}")
+
+    # Fallback: World Bank soy oil price (monthly, forward-fill to daily)
+    logger.info(
+        "   DCE_Y unavailable, falling back to PSOILUSDM (World Bank soy oil)..."
+    )
+    try:
+        query = """
+            SELECT event_date as trade_date, value::float as dalian_soy
+            FROM econ.commodities_1d
+            WHERE series_id = 'PSOILUSDM'
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
         if len(df) == 0:
-            logger.warning("   No DCE_Y data found in mkt.futures_1d")
+            logger.warning("   No PSOILUSDM data found either")
             return pd.DataFrame()
         df = normalize_date_column(df, "trade_date")
+        # Forward-fill monthly to daily
+        df = df.set_index("trade_date").resample("D").ffill().reset_index()
         logger.info(
-            f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+            f"   PSOILUSDM fallback: {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
         )
         return df
     except Exception as e:

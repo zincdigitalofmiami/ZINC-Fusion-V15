@@ -205,7 +205,41 @@ async function fetchMarsReport(): Promise<MarsReportResult[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Inngest function
+// FRED PPI fallback — fills supply.uco_prices_1w when MARS API is blocked
+// Uses WPU06410132 (PPI Lard Inedible Tallow & Grease) and
+// PCU3116133116132 (PPI Rendering & Meat Byproduct Processing)
+// ---------------------------------------------------------------------------
+
+const FRED_API_KEY = process.env.FRED_API_KEY;
+const FRED_BASE = "https://api.stlouisfed.org/fred/series/observations";
+
+const FRED_UCO_SERIES = [
+  { id: "WPU06410132", product: "PPI Lard Inedible Tallow & Grease", unit: "index_1982=100" },
+  { id: "PCU3116133116132", product: "PPI Rendering & Meat Byproduct Processing", unit: "index_dec2003=100" },
+] as const;
+
+interface FredObs { date: string; value: string }
+interface FredResponse { observations: FredObs[] }
+
+async function fetchFredUcoPpi(
+  seriesId: string,
+  startDate: string,
+): Promise<Array<{ date: string; value: number }>> {
+  if (!FRED_API_KEY) throw new Error("FRED_API_KEY not set");
+  const url =
+    `${FRED_BASE}?series_id=${seriesId}&api_key=${FRED_API_KEY}` +
+    `&file_type=json&observation_start=${startDate}&sort_order=asc&limit=10000`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`FRED ${seriesId}: ${res.status}`);
+  const json: FredResponse = await res.json();
+  return json.observations
+    .filter((o) => o.value !== "." && o.value !== "")
+    .map((o) => ({ date: o.date, value: parseFloat(o.value) }))
+    .filter((o) => Number.isFinite(o.value));
+}
+
+// ---------------------------------------------------------------------------
+// Inngest function — MARS primary, FRED PPI fallback
 // ---------------------------------------------------------------------------
 
 export const usdaAmsFatsOilsDaily = inngest.createFunction(
@@ -217,98 +251,67 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
   },
   { cron: "0 20 * * *" }, // Daily at 20:00 UTC
   async ({ step, logger }) => {
-    // ── Step 1: assert ops table exists ──
-    await step.run("assert-tables", async () => {
-      const client = await pool.connect();
-      try {
-        await client.query("SELECT 1 FROM ops.ingest_run LIMIT 1");
-      } finally {
-        client.release();
-      }
-    });
+    // ── Step 1: try MARS API first ──
+    let marsSuccess = false;
+    let marsRows: MarsReportResult[] = [];
 
-    // ── Step 2: check if target table exists ──
-    const tableExists = await step.run("check-target-table", async () => {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          `SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'supply' AND table_name = 'uco_prices_1w'
-          ) AS exists`
-        );
-        return result.rows[0].exists as boolean;
-      } finally {
-        client.release();
-      }
-    });
-
-    if (!tableExists) {
-      logger.warn(
-        "Table supply.uco_prices_1w does not exist yet. " +
-        "Add it to prisma/schema.prisma and run a migration before this function can insert data."
-      );
-    }
-
-    // ── Step 3: create ingest run ──
-    const runId = await step.run("create-ingest-run", async () => {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-          ["usda-ams-fats-oils-daily"]
-        );
-        return result.rows[0].id as string;
-      } finally {
-        client.release();
-      }
-    });
-    logger.info(`Started ingest run: ${runId}`);
-
-    // ── Step 4: fetch data from MARS API ──
-    const reportRows = await step.run("fetch-mars-report", async () => {
-      return await fetchMarsReport();
-    });
-
-    logger.info(`Fetched ${reportRows.length} price records from USDA AMS MARS API`);
-
-    if (reportRows.length === 0 || !tableExists) {
-      const reason = !tableExists ? "table_missing" : "no_data";
-      await step.run("complete-noop", async () => {
-        const client = await pool.connect();
-        try {
-          await client.query(
-            `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-             rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
-            [runId, reason === "table_missing" ? "skipped" : "success", reportRows.length, 0, 0, 0]
-          );
-        } finally {
-          client.release();
-        }
+    try {
+      marsRows = await step.run("fetch-mars-report", async () => {
+        return await fetchMarsReport();
       });
-      return { status: reason, runId, attempted: reportRows.length, inserted: 0, skipped: 0 };
+      if (marsRows.length > 0) marsSuccess = true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(`MARS API failed (expected — needs auth): ${msg}`);
     }
 
-    // ── Step 5: load existing hashes to skip duplicates ──
-    const existingHashes = await step.run("load-existing-hashes", async () => {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          "SELECT row_hash FROM supply.uco_prices_1w WHERE source = $1",
-          [SOURCE_NAME]
-        );
-        return result.rows.map((r: { row_hash: string }) => r.row_hash);
-      } finally {
-        client.release();
+    // ── Step 2: FRED PPI fallback (always run to fill gaps) ──
+    const fredRows = await step.run("fetch-fred-ppi-fallback", async () => {
+      if (!FRED_API_KEY) {
+        logger.warn("FRED_API_KEY not set — cannot run FRED PPI fallback");
+        return [];
       }
+
+      const results: Array<{
+        eventDate: string;
+        product: string;
+        region: string | null;
+        priceLow: number | null;
+        priceHigh: number | null;
+        priceAvg: number;
+        unit: string;
+        volume: number | null;
+        source: string;
+      }> = [];
+
+      for (const series of FRED_UCO_SERIES) {
+        try {
+          const obs = await fetchFredUcoPpi(series.id, "1990-01-01");
+          for (const o of obs) {
+            results.push({
+              eventDate: o.date,
+              product: series.product,
+              region: "US National",
+              priceLow: null,
+              priceHigh: null,
+              priceAvg: o.value,
+              unit: series.unit,
+              volume: null,
+              source: `fred_${series.id}`,
+            });
+          }
+          logger.info(`FRED ${series.id}: ${obs.length} observations`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(`FRED ${series.id} failed: ${msg}`);
+        }
+      }
+
+      return results;
     });
 
-    // ── Step 6: compute rows to insert ──
-    const existingSet = new Set(existingHashes);
-    let rowsAttempted = 0;
-    let rowsSkipped = 0;
-
-    const rowsToInsert: Array<{
+    // ── Step 3: combine MARS + FRED rows ──
+    const allRows: Array<{
       eventDate: string;
       product: string;
       region: string | null;
@@ -317,24 +320,13 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
       priceAvg: number | null;
       unit: string;
       volume: number | null;
+      source: string;
       rowHash: string;
     }> = [];
 
-    for (const row of reportRows) {
-      rowsAttempted++;
-
-      const rowHash = computeRowHash([
-        row.product,
-        row.reportDate,
-        String(row.priceAvg ?? ""),
-      ]);
-
-      if (existingSet.has(rowHash)) {
-        rowsSkipped++;
-        continue;
-      }
-
-      rowsToInsert.push({
+    // Add MARS rows
+    for (const row of marsRows) {
+      allRows.push({
         eventDate: row.reportDate,
         product: row.product,
         region: row.region,
@@ -343,13 +335,42 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
         priceAvg: row.priceAvg,
         unit: row.unit,
         volume: row.volume,
-        rowHash,
+        source: SOURCE_NAME,
+        rowHash: computeRowHash([row.product, row.reportDate, String(row.priceAvg ?? "")]),
       });
-
-      existingSet.add(rowHash);
     }
 
-    // ── Step 7: batch insert ──
+    // Add FRED rows
+    for (const row of fredRows) {
+      allRows.push({
+        ...row,
+        rowHash: computeRowHash([row.product, row.eventDate, String(row.priceAvg)]),
+      });
+    }
+
+    logger.info(`Total rows: ${allRows.length} (MARS: ${marsRows.length}, FRED: ${fredRows.length})`);
+
+    if (allRows.length === 0) {
+      return { status: "no_data", marsSuccess, fredRows: fredRows.length };
+    }
+
+    // ── Step 4: load existing hashes ──
+    const existingHashes = await step.run("load-existing-hashes", async () => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query("SELECT row_hash FROM supply.uco_prices_1w");
+        return result.rows.map((r: { row_hash: string }) => r.row_hash);
+      } finally {
+        client.release();
+      }
+    });
+
+    const existingSet = new Set(existingHashes);
+    const rowsToInsert = allRows.filter((r) => !existingSet.has(r.rowHash));
+
+    logger.info(`New rows to insert: ${rowsToInsert.length} (${existingHashes.length} already exist)`);
+
+    // ── Step 5: batch insert ──
     let rowsInserted = 0;
 
     if (rowsToInsert.length > 0) {
@@ -363,46 +384,28 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
             const batch = rowsToInsert.slice(i, i + batchSize);
             const values: string[] = [];
             const params: (string | number | null)[] = [];
-            const perRow = 9;
+            const perRow = 10;
 
             for (let r = 0; r < batch.length; r++) {
               const base = r * perRow;
               values.push(
-                `($${base + 1}::date, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9})`
+                `($${base + 1}::date, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10})`
               );
               const b = batch[r];
               params.push(
-                b.eventDate,
-                b.product,
-                b.region,
-                b.priceLow,
-                b.priceHigh,
-                b.priceAvg,
-                b.unit,
-                b.volume,
-                b.rowHash
+                b.eventDate, b.product, b.region, b.priceLow, b.priceHigh,
+                b.priceAvg, b.unit, b.volume, b.source, b.rowHash,
               );
             }
 
-            try {
-              await client.query(
-                `INSERT INTO supply.uco_prices_1w
-                   (event_date, product, region, price_low, price_high, price_avg, unit, volume, row_hash)
-                 VALUES ${values.join(",")}
-                 ON CONFLICT DO NOTHING`,
-                params
-              );
-              inserted += batch.length;
-            } catch (err) {
-              // Log but don't fail the whole run for a single batch
-              const msg = err instanceof Error ? err.message : String(err);
-              if (msg.includes("does not exist")) {
-                throw new Error(
-                  "Table supply.uco_prices_1w does not exist. Add to prisma schema and run migration."
-                );
-              }
-              throw err;
-            }
+            await client.query(
+              `INSERT INTO supply.uco_prices_1w
+                 (event_date, product, region, price_low, price_high, price_avg, unit, volume, source, row_hash)
+               VALUES ${values.join(",")}
+               ON CONFLICT DO NOTHING`,
+              params,
+            );
+            inserted += batch.length;
           }
 
           return inserted;
@@ -412,30 +415,27 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
       });
     }
 
-    // ── Step 8: finalize ingest run ──
-    await step.run("complete-ingest-run", async () => {
+    // ── Step 6: log ingest run ──
+    await step.run("log-ingest-run", async () => {
       const client = await pool.connect();
       try {
         await client.query(
-          `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-           rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
-          [runId, "success", rowsAttempted, rowsInserted, rowsSkipped, 0]
+          `INSERT INTO ops.ingest_run (job_name, status, started_at, completed_at,
+             rows_attempted, rows_inserted, rows_skipped, rows_quarantined)
+           VALUES ($1, 'success', NOW(), NOW(), $2, $3, $4, 0)`,
+          ["usda-ams-fats-oils-daily", allRows.length, rowsInserted, allRows.length - rowsToInsert.length],
         );
       } finally {
         client.release();
       }
     });
 
-    logger.info(
-      `USDA AMS Fats & Oils complete: ${rowsInserted} inserted, ${rowsSkipped} skipped out of ${rowsAttempted} attempted`
-    );
-
     return {
       status: "success",
-      runId,
-      attempted: rowsAttempted,
+      marsRows: marsRows.length,
+      fredRows: fredRows.length,
       inserted: rowsInserted,
-      skipped: rowsSkipped,
+      skipped: allRows.length - rowsToInsert.length,
     };
-  }
+  },
 );

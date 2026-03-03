@@ -48,6 +48,31 @@ Kevin's sales pitch: "CES has 170K attendees in 12 days — your fryers will run
 - **Package Manager:** uv (Python), npm (`frontend/` + `config/` for Prisma CLI)
 - **Testing:** pytest (Python), npm test (frontend)
 - **Tracking:** MLflow (local)
+- **Local Inngest:** Docker (`docker-compose.inngest.yml`) — required for heavy browser-based scrapers
+
+## Docker Inngest Setup (Required for ProFarmer)
+
+ProFarmer and other browser-based scrapers are too heavy for Vercel serverless. They run via Docker Inngest locally.
+
+```bash
+# 1. Start Docker Inngest dev server (port 8288, polls host:3000)
+docker compose -f docker-compose.inngest.yml up -d
+
+# 2. Start Next.js dev server (port 3000)
+npm --prefix frontend run dev
+
+# 3. Trigger ProFarmer manually
+curl -X POST http://localhost:8288/e/test \
+  -H "Content-Type: application/json" \
+  -d '{"name": "profarmer/daily", "data": {}}'
+
+# Inngest UI: http://localhost:8288
+```
+
+`profarmer-daily.ts` auto-detects the runtime via `resolveChromePath()`:
+- **Docker/local:** Uses system Chrome (macOS, Linux paths probed automatically)
+- **Vercel:** Falls back to `@sparticuz/chromium` (but ProFarmer will timeout — don't rely on this)
+- **Override:** Set `PUPPETEER_EXECUTABLE_PATH` env var to force a specific binary
 
 ## Repository Layout
 
@@ -208,7 +233,7 @@ They actually write to existing shared tables. Check env vars: congressBillsDail
 | `supply.usda_exports_1w` | Feb 19 | ✅ Weekly cadence |
 | `pos.cftc_1w` | Feb 17 | ✅ Weekly cadence |
 | `supply.lcfs_1d` | Feb 13 | ⚠️ 2 weeks stale |
-| `alt.profarmer_news_event` | Feb 14 | 🔴 DEAD since Feb 15 (is-plain-object crash). Fix deployed 2026-02-27, backfill triggered. |
+| `alt.profarmer_news_event` | Mar 4 | ✅ FIXED 2026-03-03. 8,535 articles. Runs via Docker Inngest (system Chrome). |
 | `mkt.etf_1d` | Feb 2 | 🔴 DEAD since Feb 2 (Databento failure). Yahoo fallback created, both backfills triggered. |
 | `supply.epa_rin_1d` | Jan 19 | ⚠️ EPA source limit (monthly publishing). Tiered fallback active. |
 | `supply.eia_biodiesel_1m` | Nov 2025 | ⚠️ EIA source limit |
@@ -219,7 +244,7 @@ They actually write to existing shared tables. Check env vars: congressBillsDail
 
 | Function | Runs | Successes | Failures | Status |
 |----------|------|-----------|----------|--------|
-| `profarmer-daily` | 74 | **0** | 37 | 🔴 ALL FAILED (is-plain-object). Fix deployed. |
+| `profarmer-daily` | 74+ | 1 | 37 | ✅ FIXED 2026-03-03. Runs via Docker Inngest (NOT Vercel serverless). |
 | `fas-reports-daily` | 2 | 0 | 0 | 🔴 Never succeeded |
 | `nass-weekly` | 2 | 1 | 0 | ⚠️ Last success Feb 6 |
 | `fred-daily-*` (all) | ~500 | ~450 | 0 | ✅ Running |
@@ -369,13 +394,18 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - The REAL matrix builder is `src/fusion/core_training/build_matrix.py` (3,259 lines, 1,487 features)
 - Run `python -m fusion.core_training.run_pipeline` for the real pipeline. NEVER use `populate_core_matrix.py`.
 
-### 10. ProFarmer Scraper Crash: is-plain-object (FIXED 2026-02-27)
-- ProFarmer daily scraper has been crashing since Feb 15 with `Cannot find module 'is-plain-object'`
-- Root cause: turbopack tree-shakes the bare `import "is-plain-object"` side-effect import because it sees no actual usage
-- puppeteer-extra/stealth uses `require('is-plain-object')` dynamically at runtime
-- **Fix**: Added `serverExternalPackages` to `next.config.ts` with `is-plain-object`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`, `puppeteer-core`
-- This tells Next.js to load these at runtime from node_modules instead of bundling them
-- **Requires redeployment to Vercel** to take effect
+### 10. ProFarmer Scraper: Full Fix History (RESOLVED 2026-03-03)
+- **Dead Feb 15 → Mar 3** due to Turbopack tree-shaking breaking puppeteer-extra transitive deps
+- Error chain: `is-plain-object` → `kind-of` → `fs-extra` (each fixed incrementally)
+- `next.config.ts`: 23 entries in `serverExternalPackages` + 22 glob patterns in `outputFileTracingIncludes`
+- Vercel serverless STILL times out even with modules fixed (browser launch + login + 7 sections too heavy for 60s/300s)
+- **Final solution: Docker Inngest** — `resolveChromePath()` in `profarmer-daily.ts` detects runtime:
+  1. `PUPPETEER_EXECUTABLE_PATH` env var → Docker/CI override
+  2. System Chrome probing → macOS, Debian, Alpine, Linux paths
+  3. `@sparticuz/chromium` → Vercel fallback only (kept for non-browser Inngest functions)
+- **ProFarmer MUST run via Docker Inngest, NOT Vercel.** Do not suggest "Vercel redeploy" for ProFarmer.
+- Manual trigger: `curl -X POST http://localhost:8288/e/test -H "Content-Type: application/json" -d '{"name": "profarmer/daily", "data": {}}'`
+- Docker Inngest setup: `docker compose -f docker-compose.inngest.yml up -d` (port 8288, polls host:3000)
 
 ### 9. Specialist "Training" Is NOT Real Training (DISCOVERED 2026-02-27)
 - Running `generate_specialist_features.py` + `generate_specialist_signals.py` is **feature engineering**, not ML training

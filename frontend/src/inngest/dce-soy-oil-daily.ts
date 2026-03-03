@@ -14,9 +14,9 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { getIngestPool } from "@/lib/db";
+import dbPool from "@/lib/db";
 
-const pool = getIngestPool();
+const pool = dbPool;
 
 // Investing.com asset ID for Dalian Soybean Oil Futures
 // If this ID stops working, try: 49777, 8918, 12618
@@ -59,13 +59,6 @@ async function fetchFromInvestingCom(): Promise<OhlcData | null> {
 
   if (!res.ok) {
     console.warn(`[DCE_Y] Investing.com API error: ${res.status}`);
-    return null;
-  }
-
-  // Guard against Cloudflare challenge pages returning HTML
-  const ct = res.headers.get("content-type") ?? "";
-  if (!ct.includes("json")) {
-    console.warn("[DCE_Y] Investing.com returned non-JSON (likely Cloudflare challenge)");
     return null;
   }
 
