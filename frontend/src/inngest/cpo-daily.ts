@@ -49,6 +49,13 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
     return null;
   }
 
+  // Guard against Cloudflare challenge pages returning HTML
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("json")) {
+    console.warn("Investing.com returned non-JSON (likely Cloudflare challenge)");
+    return null;
+  }
+
   const json = await res.json();
   if (!json?.data || json.data.length === 0) {
     return null;

@@ -68,3 +68,5 @@ export { usdaAmsFatsOilsDaily } from "./usda-ams-fats-oils";
 export { fedSpeechesDaily } from "./fed-speeches-daily";
 export { congressBillsDaily } from "./congress-bills-daily";
 export { googleNewsDaily } from "./google-news-daily";
+export { palmMultiSourceDaily } from "./palm-multi-source-daily";
+export { biofuelRssDaily } from "./biofuel-rss-daily";

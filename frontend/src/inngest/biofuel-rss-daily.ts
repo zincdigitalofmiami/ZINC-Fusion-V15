@@ -22,9 +22,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import { getIngestPool } from "@/lib/db";
+import dbPool from "@/lib/db";
 
-const pool = getIngestPool();
+const pool = dbPool;
 
 function computeRowHash(parts: string[]): string {
   return createHash("sha256").update(parts.join("|")).digest("hex");
