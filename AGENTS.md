@@ -253,6 +253,22 @@ They actually write to existing shared tables. Check env vars: congressBillsDail
 | `cftc-weekly` | 3 | 2 | 0 | ✅ Running |
 | `usda-export-sales-weekly` | 4 | 4 | 0 | ✅ Running |
 
+### Docker Inngest Runtime Audit (2026-03-03)
+
+Local Docker runtime inspection (`inngest-dev` container, `/dev` endpoint + logs):
+
+| Check | Observation |
+|-------|-------------|
+| Runtime registration | 133 functions total: 108 `fusion-jobs-*` + 25 `rabid-raccoon-*` |
+| Sync URLs | `http://host.docker.internal:3000/api/inngest` and `http://host.docker.internal:3001/api/inngest` |
+| Step URI routing | 108 functions target port `3000`, 25 functions target port `3001` |
+| Host listeners | Port `3000` had no listener; port `3001` had active Node listener |
+| Log health (last 2h at audit time) | `Unable to reach SDK URL=67`, `status 401=4`, `received_event=89`, `initializing_fn=34` |
+| Highest recent impacted fusion jobs | `global-failure-monitor`, `biofuel-rss-daily`, `zl-15m`, `zl-1h`, `palm-multi-source-daily`, `databento-statistics-daily-shard-6`, `databento-options-daily-shard-6` |
+| Compose drift | `docker compose -f docker-compose.inngest.yml ps` showed no running service while `inngest-dev` was running separately (not compose-managed) |
+
+**Operational implication:** Docker Inngest was scheduling fusion jobs, but fusion handlers on `:3000` were unreachable during the audit window, so scheduled runs repeatedly failed at delivery time.
+
 ### ProFarmer data usage
 
 ProFarmer articles are in `alt.profarmer_news_event` and ARE included in the matrix — but ONLY as a daily article **count** (via `load_news_counts()` UNION ALL). The actual article content, sentiment, and section routing are NOT used by the matrix builder. The specialist signal generators (`generate_specialist_features.py`) DO use ProFarmer content for the crush, china, energy, biofuel, and tariff specialists through separate loaders.
