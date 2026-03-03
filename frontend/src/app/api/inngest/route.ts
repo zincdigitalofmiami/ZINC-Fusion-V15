@@ -88,6 +88,9 @@ import {
   // epaRinGenerationBackfill,  // Needs Prisma schema table first
   // eiaBiofuelMerMonthly,      // Needs Prisma schema table first
   googleNewsDaily,
+  palmMultiSourceDaily,
+  biofuelRssDaily,
+  dceSoyOilDaily,
 } from "@/inngest/functions";
 
 /**
@@ -253,6 +256,12 @@ export const { GET, POST, PUT } = serve({
     // epaRinGenerationMonthly, epaRinGenerationBackfill, eiaBiofuelMerMonthly,
     // Google News RSS (all 11 specialists — daily headlines)
     googleNewsDaily,
+    // Palm oil multi-source (Investing.com olein/kernel + Yahoo FCPO + World Bank)
+    palmMultiSourceDaily,
+    // Biofuel / RIN multi-RSS (Biodiesel Mag, RFA, Clean Fuels, Biofuels Digest, DOE AFDC)
+    biofuelRssDaily,
+    // DCE Dalian soy oil daily (Investing.com)
+    dceSoyOilDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
