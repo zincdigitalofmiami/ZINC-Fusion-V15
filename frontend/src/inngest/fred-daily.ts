@@ -774,7 +774,9 @@ interface FredSeriesIngestOutcome {
   quarantined: number;
 }
 
-type DbClient = Awaited<ReturnType<typeof pool.connect>>;
+type DbClient = {
+  query: (text: string, params?: readonly unknown[]) => Promise<{ rows: readonly unknown[] }>;
+};
 
 interface QuarantineInsertParams {
   client: DbClient;
