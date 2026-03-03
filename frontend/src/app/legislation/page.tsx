@@ -105,7 +105,7 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
 
   return (
     <div
-      className="bg-[#0a0a0a] border rounded-2xl p-6 md:p-7 min-w-[340px]"
+      className="bg-[#0a0a0a] border rounded-2xl p-6 md:p-7 min-w-0 md:min-w-[340px]"
       style={borderStyle}
     >
       <div className="flex items-center justify-between mb-2">
@@ -515,14 +515,14 @@ export default async function PolicyPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-36 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-24 md:pt-36 pb-20">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* HEADER */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Gavel className="w-8 h-8" />
-              <h1 className="text-5xl font-bold tracking-tight text-white">
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white">
                 Policy Intelligence
               </h1>
             </div>

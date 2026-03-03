@@ -18,7 +18,26 @@ This is not optional. This is not situational. This runs every session.
 
 Commodity procurement forecasting system for ZL (soybean oil futures). Core predicts the future ZL futures contract price. L2/L3 calibration layers wrap that price forecast with probability, rendered as **horizontal Target Zones** on the dashboard (e.g. "ZL has an 88% chance of hitting 48.52 by July 7th"). Probability is always derived from three named sources: Monte Carlo (10,000 runs), pinball loss calibration, and MAE/accuracy %. Intelligence only — no execution or trade logic.
 
-**Client:** US Oil Solutions
+**Client:** US Oil Solutions (Las Vegas, NV) — [usoilsolutions.com](https://www.usoilsolutions.com/)
+
+### Client Business Model — READ THIS
+
+**Chris** is the owner. His business:
+
+1. **BUYS raw soybean oil by the trainload** (millions of gallons). This is his PRIMARY cost. When ZL goes up, his input cost rises — **BAD.** When ZL drops, he buys cheaper — **GOOD.** The Strategy page posture language (ACCUMULATE = lock in low prices now, WAIT = prices may soften further) is CORRECT for his buying side.
+
+2. **Delivers fresh cooking oil** to 100+ restaurant kitchens across Las Vegas casinos (Caesars, Boyd Gaming, Resorts World, etc.).
+
+3. **Collects used cooking oil (UCO)** when servicing restaurants (oil changes). He then sells the UCO — likely to biodiesel producers/refiners. This is a SECONDARY revenue stream. When UCO prices rise (which tracks ZL), his collection revenue increases.
+
+So Chris is on BOTH sides of the oil market: he is hurt by rising ZL on the buy side (his biggest cost) but benefits from rising UCO prices on the sell side. Net exposure is primarily as a **BUYER** — the trainloads of raw soy oil dwarf the UCO collection revenue.
+
+**Kevin** is the sales director. He uses the Vegas Intel page to:
+- Pitch restaurants on upgrading their oil service / scheduling ahead of big events
+- Pre-arrange extra oil deliveries and UCO pickups when convention traffic spikes fryer usage
+- Prospect new restaurant accounts (red "PROSPECT" badges)
+
+Kevin's sales pitch: "CES has 170K attendees in 12 days — your fryers will run overtime. Let us pre-schedule extra fresh oil delivery and UCO pickup."
 
 ## Tech Stack
 

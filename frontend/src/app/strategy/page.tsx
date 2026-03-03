@@ -262,7 +262,7 @@ export default function StrategyPage() {
   }) ?? [];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
 
       {/* Error banner */}
       {error && (
@@ -649,7 +649,7 @@ export default function StrategyPage() {
           </h3>
         </div>
 
-        <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
+        <div className="relative w-full h-[300px] md:h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
           <FusionBrain drivers={brief?.drivers} correlations={brief?.correlations} />
         </div>
