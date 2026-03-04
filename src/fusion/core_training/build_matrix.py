@@ -3199,14 +3199,16 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             )
             df[numeric_cols] = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
 
-        validation_result = validate_matrix(df, strict=True)
+        # strict=False: structural gates (NULL/Inf/epoch/dtype/encoding) are hard
+        # failures; observed-rate and cadence gaps are warnings (reflect upstream
+        # outages, not matrix corruption — AutoGluon handles NaN natively).
+        validation_result = validate_matrix(df, strict=False)
 
         if not validation_result.passed:
-            logger.error("❌ MATRIX VALIDATION FAILED - NO-GO")
+            logger.error("❌ MATRIX VALIDATION FAILED - NO-GO (structural)")
             for failure in validation_result.hard_failures:
                 logger.error(f"   {failure}")
-            # Still write for debugging, but mark as failed
-            logger.warning("Writing matrix anyway for debugging (marked as invalid)")
+            logger.error("Pipeline will ABORT — fix structural data issues above")
 
         # Enforce guardrails
         df, guardrail_passed = enforce_feature_guardrails(df)
@@ -3255,11 +3257,10 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             logger.warning(f"   Warnings: {len(validation_result.warnings)}")
         logger.info("=" * 60)
 
-        # Matrix is written and guardrails passed — return success even if
-        # strict validation flagged historical data gaps (options NULLs, dtype
-        # float64 from NaN, OHLCV gaps on non-trading days). AutoGluon handles
-        # NaN natively. Validation warnings are logged but don't block training.
-        success = guardrail_passed and rows_written > 0
+        # Hard-fail on structural validation (NULL/Inf/epoch/dtype/encoding).
+        # Observed-rate and cadence warnings are logged but don't block —
+        # they reflect upstream outages, not matrix corruption.
+        success = guardrail_passed and rows_written > 0 and validation_result.passed
         return success, matrix_version, feature_count
 
     except Exception as e:
