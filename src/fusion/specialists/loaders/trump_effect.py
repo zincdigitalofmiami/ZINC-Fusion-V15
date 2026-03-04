@@ -21,7 +21,7 @@ def load_trump_effect_data(
 
     Data Sources:
     - Futures: ZL, HG + FX futures (6E, 6J, 6M, 6B, 6A, 6C) + Treasury (ZB, ZN, ZF)
-    - ETFs: FXI, KWEB, VXX, UUP, MCHI
+    - No ETF inputs (runtime ETF dependency removed)
     - Volatility: VIX, OVXCLS, GVZCLS, VXVCLS
     - Uncertainty: All EPU indices + Financial Conditions (NFCI, ANFCI, STLFSI4)
     - Credit: BAMLC0A0CM, BAMLH0A0HYM2
@@ -66,24 +66,7 @@ def load_trump_effect_data(
             pass  # Skip if column doesn't exist
 
     # ==========================================================================
-    # 2. ETFs (Databento): FXI, KWEB, MCHI, UUP, SPY, QQQ
-    # ==========================================================================
-    etf_query = """
-    SELECT event_date as trade_date, symbol, close
-    FROM mkt.etf_1d
-    WHERE symbol IN ('FXI', 'KWEB', 'MCHI', 'UUP', 'SPY', 'QQQ')
-    ORDER BY event_date, symbol
-    """
-    etf_df = pd.read_sql(etf_query, conn)
-    if not etf_df.empty:
-        etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
-        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
-        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
-        for c in etf_pivot.columns:
-            result[c] = etf_pivot.reindex(result.index)[c]
-
-    # ==========================================================================
-    # 3. Volatility + Uncertainty + Financial Conditions (ALL INDICES)
+    # 2. Volatility + Uncertainty + Financial Conditions (ALL INDICES)
     # ==========================================================================
     vol_query = """
     SELECT event_date as trade_date, series_id, value
@@ -129,7 +112,7 @@ def load_trump_effect_data(
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 4. Fed Rates: DFF, DGS2, DGS10, T10Y2Y, SOFR
+    # 3. Fed Rates: DFF, DGS2, DGS10, T10Y2Y, SOFR
     # ==========================================================================
     rates_query = """
     SELECT event_date as trade_date, series_id, value
@@ -150,7 +133,7 @@ def load_trump_effect_data(
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 5. FX Rates + Dollar Indices: All major USD pairs + trade-weighted USD indices
+    # 4. FX Rates + Dollar Indices: All major USD pairs + trade-weighted USD indices
     # ==========================================================================
     fx_query = """
     SELECT event_date as trade_date, series_id, value
@@ -188,7 +171,7 @@ def load_trump_effect_data(
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 6. China Activity/Trade Policy
+    # 5. China Activity/Trade Policy
     # ==========================================================================
     china_query = """
     SELECT event_date as trade_date, series_id, value
@@ -206,7 +189,7 @@ def load_trump_effect_data(
             result[c] = pivot.reindex(result.index)[c]
 
     # ==========================================================================
-    # 7. Trump Effect Features (from specialist payload)
+    # 6. Trump Effect Features (from specialist payload)
     # ==========================================================================
     trump_query = """
     SELECT
@@ -233,7 +216,7 @@ def load_trump_effect_data(
             result[f"trump_{c}"] = trump_df[c].reindex(result.index)
 
     # ==========================================================================
-    # 8. Options Greeks (VIX IV, ZL IV, FX IV where available)
+    # 7. Options Greeks (VIX IV, ZL IV, FX IV where available)
     # ==========================================================================
     greeks_query = """
     SELECT event_date as trade_date, underlying,
@@ -266,7 +249,7 @@ def load_trump_effect_data(
                 pass
 
     # ==========================================================================
-    # 9. Executive Orders / Presidential Documents (daily count)
+    # 8. Executive Orders / Presidential Documents (daily count)
     # ==========================================================================
     eo_query = """
     SELECT event_date as trade_date,
@@ -286,7 +269,7 @@ def load_trump_effect_data(
             result[f"legis_{c}"] = eo_df[c].reindex(result.index).fillna(0)
 
     # ==========================================================================
-    # 10. Tariff Deadlines (expand to daily indicators)
+    # 9. Tariff Deadlines (expand to daily indicators)
     # ==========================================================================
     tariff_query = """
     SELECT deadline_name, deadline_date, days_to_expiry, renewal_probability, is_active

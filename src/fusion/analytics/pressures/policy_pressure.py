@@ -269,25 +269,25 @@ def score_executive_velocity(exec_count_7d: int) -> Tuple[float, str]:
         return 30, "Historic executive action pace"
 
 
-def score_china_stress(fxi_change_20d: float) -> Tuple[float, str]:
+def score_china_stress(hg_change_20d: float) -> Tuple[float, str]:
     """
-    Score China equity stress via FXI ETF.
+    Score China demand stress via HG (copper) futures.
 
-    FXI decline often indicates US-China tension or tariff fears.
+    Copper decline often indicates China demand slowdown and trade stress.
     Returns (adjustment, description).
     """
-    if fxi_change_20d > 0.05:
-        return -10, "China equities rallying"
-    elif fxi_change_20d > 0:
-        return -3, "China equities stable to up"
-    elif fxi_change_20d > -0.05:
-        return 5, "China equities slightly weak"
-    elif fxi_change_20d > -0.10:
-        return 12, "China equities under pressure"
-    elif fxi_change_20d > -0.15:
-        return 18, "China equities selling off"
+    if hg_change_20d > 0.05:
+        return -10, "Copper rallying"
+    elif hg_change_20d > 0:
+        return -3, "Copper stable to up"
+    elif hg_change_20d > -0.05:
+        return 5, "Copper slightly weak"
+    elif hg_change_20d > -0.10:
+        return 12, "Copper under pressure"
+    elif hg_change_20d > -0.15:
+        return 18, "Copper selling off"
     else:
-        return 25, "China equities in crisis"
+        return 25, "Copper in crisis"
 
 
 def generate_trump_effect_narrative(
@@ -370,7 +370,7 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     1. EPU Index (40%): Baker-Bloom-Davis index
     2. TPU Index (25%): Trade Policy Uncertainty
     3. Executive Velocity (20%): Recent executive actions
-    4. China Stress (15%): FXI as proxy for US-China tension
+    4. China Stress (15%): HG (copper) as proxy for China demand stress
 
     Returns PressureReading-compatible dict.
     """
@@ -434,26 +434,26 @@ def calculate_trump_effect_pressure(conn, as_of_date: Optional[date] = None) -> 
     components["executive_velocity"] = round(exec_adj, 1)
     components["executive_count_7d"] = exec_count
 
-    # ==== 4. CHINA STRESS (FXI) - Databento ETF ====
+    # ==== 4. CHINA STRESS (HG copper futures) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
+        SELECT event_date, close FROM mkt.futures_1d
+        WHERE symbol = 'HG' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
     """,
         (as_of_date,),
     )
-    fxi_data = cur.fetchall()
-    if len(fxi_data) < 21:
-        raise ValueError("Insufficient FXI data to compute China stress")
+    hg_data = cur.fetchall()
+    if len(hg_data) < 21:
+        raise ValueError("Insufficient HG data to compute China stress")
 
-    current_fxi = float(fxi_data[0][1])
-    fxi_20d = float(fxi_data[20][1])
-    fxi_change_20d = (current_fxi - fxi_20d) / fxi_20d if fxi_20d > 0 else 0
-    china_adj, china_desc = score_china_stress(fxi_change_20d)
+    current_hg = float(hg_data[0][1])
+    hg_20d = float(hg_data[20][1])
+    hg_change_20d = (current_hg - hg_20d) / hg_20d if hg_20d > 0 else 0
+    china_adj, china_desc = score_china_stress(hg_change_20d)
     components["china_stress_adj"] = round(china_adj, 1)
     components["china_stress_score"] = round(50 + china_adj, 1)
-    components["fxi_change_20d"] = round(fxi_change_20d * 100, 2)
+    components["hg_change_20d"] = round(hg_change_20d * 100, 2)
     components["china_stress_desc"] = china_desc
 
     # ==== 5. SPECIALIST SIGNAL ====

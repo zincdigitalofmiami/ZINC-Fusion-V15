@@ -55,14 +55,14 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
     - Copper z-score (demand proxy)
     - CNY z-score (import capacity)
     - BRL z-score (Brazil competition)
-    - BDRY shipping z-score (shipping demand)
+    - BDIY shipping z-score (shipping demand)
     - Seasonality encoding
     - Cross-correlations
 
     Target: 21-day forward ZL return
 
     PATCHED 2026-01-21: Brazil competition, seasonality
-    PATCHED 2026-01-23: BDRY shipping, Real GBM model
+    PATCHED 2026-01-23: shipping proxy, Real GBM model
     """
 
     # China soybean import seasonality (empirical weights)
@@ -95,11 +95,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
             ],
             secondary_features=[
                 # SHIPPING/LOGISTICS (sparse ~13% coverage, moved from primary 2026-01-30)
-                "bdry_close",  # Baltic Dry Index (shipping demand)
-                "sblk_close",  # Dry bulk shipping ETF
-                # Extended China exposure
-                "fxi_close",  # China Large-Cap ETF
-                "kweb_close",  # China Internet ETF
+                "fred_bdiy",  # Baltic Dry Index (shipping demand)
                 "china_pmi",  # Manufacturing PMI
                 # Additional demand proxies
                 "fred_chnprinto01ixpym",  # China industrial production
@@ -125,7 +121,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         )
 
     def validate_inputs(self, data: pd.DataFrame) -> list[str]:
-        """Require China demand features. Shipping (BDRY/SBLK) optional due to coverage variability."""
+        """Require China demand features. Shipping (BDIY) optional due to coverage variability."""
         missing = []
         if "close" not in data.columns:
             missing.append("close")
@@ -134,8 +130,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
             missing.append("hg_close")
         if "usd_cny" not in data.columns:
             missing.append("usd_cny")
-        # Shipping is OPTIONAL (13% coverage in BDRY/SBLK)
-        # Use FXI/KWEB as China sentiment proxies instead
+        # Shipping is OPTIONAL (FRED BDIY may have cadence gaps)
         # REQUIRE Brazil competition
         if "fred_dexbzus" not in data.columns:
             missing.append("fred_dexbzus")
@@ -150,9 +145,8 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
     def _get_shipping_column(self, data: pd.DataFrame) -> str | None:
         """Find shipping column."""
-        for col in ["bdry_close", "sblk_close"]:
-            if col in data.columns and data[col].notna().sum() > 30:
-                return col
+        if "fred_bdiy" in data.columns and data["fred_bdiy"].notna().sum() > 30:
+            return "fred_bdiy"
         return None
 
     def _prepare_features(self, data: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -160,7 +154,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
         features = {}
 
         # =====================================================================
-        # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, SHIPPING
+        # ADD ALL ELITE INDICATORS FOR ZL, HG, SHIPPING
         # =====================================================================
         data = self.add_all_technical_indicators(data, "close", "zl")
 
@@ -173,32 +167,14 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
                 if c.startswith("hg_") and c not in data.columns:
                     data[c] = hg_data[c]
 
-        # BDRY elite indicators
-        if "bdry_close" in data.columns:
-            bdry_data = data.copy()
-            bdry_data["close"] = data["bdry_close"]
-            bdry_data = self.add_all_technical_indicators(bdry_data, "close", "bdry")
-            for c in bdry_data.columns:
-                if c.startswith("bdry_") and c not in data.columns:
-                    data[c] = bdry_data[c]
-
-        # SBLK elite indicators
-        if "sblk_close" in data.columns:
-            sblk_data = data.copy()
-            sblk_data["close"] = data["sblk_close"]
-            sblk_data = self.add_all_technical_indicators(sblk_data, "close", "sblk")
-            for c in sblk_data.columns:
-                if c.startswith("sblk_") and c not in data.columns:
-                    data[c] = sblk_data[c]
-
-        # FXI elite indicators (China proxy)
-        if "fxi_close" in data.columns:
-            fxi_data = data.copy()
-            fxi_data["close"] = data["fxi_close"]
-            fxi_data = self.add_all_technical_indicators(fxi_data, "close", "fxi")
-            for c in fxi_data.columns:
-                if c.startswith("fxi_") and c not in data.columns:
-                    data[c] = fxi_data[c]
+        # BDIY elite indicators
+        if "fred_bdiy" in data.columns:
+            bdiy_data = data.copy()
+            bdiy_data["close"] = data["fred_bdiy"]
+            bdiy_data = self.add_all_technical_indicators(bdiy_data, "close", "bdiy")
+            for c in bdiy_data.columns:
+                if c.startswith("bdiy_") and c not in data.columns:
+                    data[c] = bdiy_data[c]
 
         zl = data["close"]
         hg = data["hg_close"]
@@ -243,9 +219,7 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
             if (
                 col.startswith("zl_")
                 or col.startswith("hg_")
-                or col.startswith("bdry_")
-                or col.startswith("sblk_")
-                or col.startswith("fxi_")
+                or col.startswith("bdiy_")
             ) and col not in features:
                 features[col] = data[col]
 
@@ -302,7 +276,9 @@ class ChinaSignalGenerator(BaseSignalGenerator, MLModelMixin):
 
         # Check data sources
         has_cny = "cny_zscore" in X_full.columns
-        has_shipping = "shipping_zscore" in X_full.columns
+        has_shipping = (
+            "bdiy_zscore_21d" in X_full.columns or "bdiy_zscore_63d" in X_full.columns
+        )
 
         # ZL-Copper correlation for confidence
         zl = data["close"]

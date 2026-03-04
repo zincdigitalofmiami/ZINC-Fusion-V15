@@ -15,16 +15,17 @@ Usage:
     python -m src.fusion.validators.anomaly_detection --check-all --dry-run
 """
 
-import sys
 import argparse
 import logging
-from typing import Dict, Optional, Any
-from datetime import datetime
+import sys
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
 import pandas as pd
-from fusion.db.connection import get_write_connection
 from psycopg2.extras import Json
+
+from fusion.db.connection import get_write_connection
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -43,16 +44,6 @@ TABLE_CONFIG = {
         "query": """
             SELECT event_date, symbol, open, high, low, close, volume
             FROM mkt.futures_1d
-            ORDER BY symbol, event_date
-        """,
-        "detector": "market_futures",
-        "group_by": "symbol",
-        "date_col": "event_date",
-    },
-    "mkt.etf_1d": {
-        "query": """
-            SELECT event_date, symbol, open, high, low, close, volume
-            FROM mkt.etf_1d
             ORDER BY symbol, event_date
         """,
         "detector": "market_futures",
@@ -209,11 +200,11 @@ class AnomalyThresholds:
 class AnomalyDetector:
     """Detects anomalies in data tables."""
 
-    def __init__(self, thresholds: Optional[AnomalyThresholds] = None):
+    def __init__(self, thresholds: AnomalyThresholds | None = None):
         self.thresholds = thresholds or AnomalyThresholds()
 
-    def detect_market_futures(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Detect anomalies in market/ETF OHLCV data."""
+    def detect_market_futures(self, df: pd.DataFrame) -> dict[str, Any]:
+        """Detect anomalies in market OHLCV data."""
         anomalies = []
 
         if df.empty:
@@ -293,7 +284,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_weather(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_weather(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in weather data."""
         anomalies = []
 
@@ -333,7 +324,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_fred(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_fred(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in FRED economic data."""
         anomalies = []
 
@@ -395,7 +386,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_news(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_news(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in news data."""
         anomalies = []
 
@@ -428,7 +419,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_cot(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_cot(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in CFTC COT data."""
         anomalies = []
 
@@ -491,7 +482,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_fx(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_fx(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in FX data."""
         anomalies = []
 
@@ -545,7 +536,7 @@ class AnomalyDetector:
             "quality_issues": list(set(f for a in anomalies for f in a["flags"])),
         }
 
-    def detect_rin(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def detect_rin(self, df: pd.DataFrame) -> dict[str, Any]:
         """Detect anomalies in EPA RIN data."""
         anomalies = []
 
@@ -605,7 +596,7 @@ def log_quality_check(
     conn,
     table_name: str,
     df: pd.DataFrame,
-    anomaly_results: Dict[str, Any],
+    anomaly_results: dict[str, Any],
     date_col: str,
     dry_run: bool = False,
 ) -> None:
@@ -667,7 +658,7 @@ def log_quality_check(
 # =============================================================================
 
 
-def check_table(conn, table_name: str, dry_run: bool = False) -> Dict[str, Any]:
+def check_table(conn, table_name: str, dry_run: bool = False) -> dict[str, Any]:
     """Run anomaly detection on a single table."""
     if table_name not in TABLE_CONFIG:
         logger.error(f"Unknown table: {table_name}")
@@ -704,7 +695,7 @@ def check_table(conn, table_name: str, dry_run: bool = False) -> Dict[str, Any]:
     }
 
 
-def check_all_tables(conn, dry_run: bool = False) -> Dict[str, Any]:
+def check_all_tables(conn, dry_run: bool = False) -> dict[str, Any]:
     """Run anomaly detection on all configured tables."""
     logger.info("=" * 60)
     logger.info("ANOMALY DETECTION - ALL TABLES")

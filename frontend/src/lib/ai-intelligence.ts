@@ -40,9 +40,9 @@ export interface MarketData {
 
   // China/Trade
   cnyRate: number;
-  fxiChange20d: number;
-  fxiChange5d: number;
-  bdryChange20d: number | null;
+  hgChange20d: number;
+  hgChange5d: number;
+  bdiyChange20d: number | null;
 
   // Tariff/Policy
   tpu: number;
@@ -187,7 +187,7 @@ CRUSH ECONOMICS:
 
 CHINA/TRADE:
 - CNY/USD: ${data.cnyRate.toFixed(2)}
-- FXI 20d change: ${(data.fxiChange20d * 100).toFixed(1)}%${data.bdryChange20d !== null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ""}
+- HG 20d change: ${(data.hgChange20d * 100).toFixed(1)}%${data.bdiyChange20d !== null ? ` | BDIY 20d: ${(data.bdiyChange20d * 100).toFixed(1)}%` : ""}
 - Pre-calculated tension score: ${data.scores.china}/100
 
 TARIFF/POLICY:

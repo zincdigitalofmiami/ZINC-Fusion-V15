@@ -21,7 +21,7 @@ Key Indicators:
 - EPU spike detection (vs recent baseline)
 - OVX (oil volatility) - geopolitical often hits energy first
 - EM FX stress (first casualty of geopolitical risk)
-- Gold bid (fear proxy)
+- Gold volatility (fear proxy)
 
 @author Claude (ZINC-FUSION-V15)
 @date 2026-01-31
@@ -504,39 +504,37 @@ def calculate_geopolitical_pressure(conn, as_of_date: Optional[date] = None) -> 
         components["ovx_score"] = round(ovx_score, 1)
         components["ovx_value"] = round(current_ovx, 1)
 
-    # ==== 3. GOLD FEAR (GLD ETF) ====
+    # ==== 3. GOLD FEAR (GVZ volatility index) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
-        ORDER BY event_date DESC LIMIT 25
+        SELECT event_date, value FROM econ.vol_indices_1d
+        WHERE series_id = 'GVZCLS' AND event_date <= %s AND value IS NOT NULL
+        ORDER BY event_date DESC LIMIT 21
     """,
         (as_of_date,),
     )
-    gld_data = cur.fetchall()
-    if len(gld_data) < 21:
-        raise ValueError("Insufficient GLD data for gold fear score")
+    gvz_data = cur.fetchall()
+    if len(gvz_data) < 21:
+        raise ValueError("Insufficient GVZ data for gold fear score")
 
-    current_gld = float(gld_data[0][1])
-    gld_20d = float(gld_data[20][1])
-    gld_change_20d = (current_gld - gld_20d) / gld_20d if gld_20d > 0 else 0
+    current_gvz = float(gvz_data[0][1])
 
-    # Rising gold = fear (higher score)
-    if gld_change_20d > 0.08:
-        gold_score = 85
-    elif gld_change_20d > 0.04:
-        gold_score = 70
-    elif gld_change_20d > 0.01:
-        gold_score = 60
-    elif gld_change_20d > -0.02:
-        gold_score = 50
-    elif gld_change_20d > -0.05:
-        gold_score = 40
-    else:
+    # Higher gold volatility = fear (higher score)
+    if current_gvz < 15:
         gold_score = 30
+    elif current_gvz < 20:
+        gold_score = 40
+    elif current_gvz < 25:
+        gold_score = 50
+    elif current_gvz < 30:
+        gold_score = 65
+    elif current_gvz < 40:
+        gold_score = 80
+    else:
+        gold_score = 90
 
     components["gold_score"] = round(gold_score, 1)
-    components["gld_change_20d"] = round(gld_change_20d * 100, 2)
+    components["gvz_value"] = round(current_gvz, 2)
 
     # ==== 4. EM FX STRESS ====
     cur.execute(

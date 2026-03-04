@@ -48,10 +48,6 @@ import {
   databentoStatisticsDailyShards,
   databentoFxDaily,
   databentoOptionsDailyShards,
-  databentoEtfDaily,
-  databentoEtfBackfill,
-  databentoEtfVwapDaily,
-  databentoEtfVwapBackfill,
   futuresLegacySymbolsNightly,
   boardCrushDaily,
   boardCrushBackfill,
@@ -82,8 +78,6 @@ import {
   eiaBiodieselWeekly,
   eiaBiodieselWeeklyBackfill,
   profarmerWeeklyBackfill,
-  yahooEtfFallbackDaily,
-  yahooEtfBackfill,
   // epaRinGenerationMonthly,   // Needs Prisma schema table first
   // epaRinGenerationBackfill,  // Needs Prisma schema table first
   // eiaBiofuelMerMonthly,      // Needs Prisma schema table first
@@ -93,51 +87,42 @@ import {
   dceSoyOilDaily,
 } from "@/inngest/functions";
 
-function isUnsafeServeHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  return (
-    host === "localhost" ||
-    host === "0.0.0.0" ||
-    host === "::1" ||
-    host === "host.docker.internal" ||
-    host.startsWith("127.") ||
-    host.endsWith(".local")
-  );
-}
-
 /**
- * Only set serveHost for true Vercel production.
- * Local/dev must not advertise host URLs, even if env leakage occurs.
+ * Compute the serve host explicitly to prevent empty URL issues.
+ *
+ * Priority:
+ * 1. APP_ORIGIN (explicit, most reliable)
+ * 2. VERCEL_PROJECT_PRODUCTION_URL (Vercel's production domain)
+ * 3. VERCEL_URL (Vercel's deployment URL - includes preview deploys)
+ *
+ * The empty https:///api/inngest bug happens when none of these resolve.
  */
 function getServeHost(): string | undefined {
-  const isVercelProd = process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
-  if (!isVercelProd) return undefined;
-
-  const candidates = [
-    process.env.APP_ORIGIN,
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : undefined,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-  ];
-
-  for (const candidate of candidates) {
-    const raw = candidate?.trim();
-    if (!raw) continue;
-    try {
-      const parsed = new URL(raw);
-      if (parsed.protocol !== "https:") continue;
-      if (isUnsafeServeHost(parsed.hostname)) continue;
-      return parsed.origin;
-    } catch {
-      // Ignore invalid candidates and continue.
-    }
+  // Explicit override (most reliable)
+  if (process.env.APP_ORIGIN) {
+    return process.env.APP_ORIGIN;
   }
 
+  // Vercel production URL (e.g., zinc-fusion-v15.vercel.app)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+
+  // Vercel deployment URL (works for preview and production)
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // Let the SDK auto-detect (fallback)
   return undefined;
 }
 
 const serveHost = getServeHost();
+
+// Log for debugging (only in development/build)
+if (process.env.NODE_ENV !== "production") {
+  console.log("[Inngest] Computed serveHost:", serveHost);
+}
 
 // Extend Vercel Lambda timeout to maximum (Fluid Compute / streaming mode).
 // On Vercel Pro this allows steps up to ~800s instead of the default 300s.
@@ -204,10 +189,6 @@ export const { GET, POST, PUT } = serve({
     ...databentoStatisticsDailyShards,
     databentoFxDaily,
     ...databentoOptionsDailyShards,
-    databentoEtfDaily,
-    databentoEtfBackfill,
-    databentoEtfVwapDaily,
-    databentoEtfVwapBackfill,
     futuresLegacySymbolsNightly,
     // FX Databento
     fxDatabentoSpotDaily,
@@ -258,9 +239,6 @@ export const { GET, POST, PUT } = serve({
     eiaBiodieselWeeklyBackfill,
     // ProFarmer weekly auto-backfill (Sunday catch-up)
     profarmerWeeklyBackfill,
-    // Yahoo Finance ETF fallback (when Databento ETF stale)
-    yahooEtfFallbackDaily,
-    yahooEtfBackfill,
     // EPA RIN generation + EIA biofuel MER: commented out until Prisma tables created
     // epaRinGenerationMonthly, epaRinGenerationBackfill, eiaBiofuelMerMonthly,
     // Google News RSS (all 11 specialists — daily headlines)

@@ -148,9 +148,9 @@ def market_driver_china_tension(
     Get China Tension indicator.
 
     Domain expertise:
-    - FXI (China Large-Cap ETF) performance
+    - HG (copper futures) performance as China demand proxy
     - CNY/USD level and trend (7.0 psychologically important)
-    - BDRY (Baltic Dry shipping) as trade flow proxy
+    - BDIY (Baltic Dry shipping, FRED) as trade flow proxy
     - China specialist model signal
     - China-related news concentration
 

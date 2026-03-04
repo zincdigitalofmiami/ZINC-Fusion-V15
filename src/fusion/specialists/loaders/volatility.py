@@ -28,7 +28,7 @@ def load_volatility_data(
 
     NOTE: Discontinued series removed:
     - EVZCLS (Euro FX vol) - discontinued March 2025
-    - VXFXICLS (China FXI vol) - discontinued Feb 2022
+    - VXFXICLS (discontinued Feb 2022)
     - VIX9DCLS - not available in FRED
     - STLFSI - replaced by STLFSI4
     - TEDRATE - discontinued Jan 2022
@@ -53,7 +53,7 @@ def load_volatility_data(
     # ==========================================================================
     # NOTE: Removed discontinued series:
     # - EVZCLS (Euro FX vol) - last update 2025-03-11
-    # - VXFXICLS (China FXI vol) - last update 2022-02-11
+    # - VXFXICLS (discontinued) - last update 2022-02-11
     # - VXGSCLS - not available
     vol_query = """
     SELECT event_date as trade_date, series_id, value
@@ -112,23 +112,6 @@ def load_volatility_data(
                 logger.debug(
                     f"  {series}: {coverage:.1f}% coverage, last: {last_valid}"
                 )
-
-    # ==========================================================================
-    # ETFs (Databento): GLD, SLV for precious metals regime
-    # ==========================================================================
-    etf_query = """
-    SELECT event_date as trade_date, symbol, close
-    FROM mkt.etf_1d
-    WHERE symbol IN ('GLD', 'SLV')
-    ORDER BY event_date, symbol
-    """
-    etf_df = pd.read_sql(etf_query, conn)
-    if not etf_df.empty:
-        etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
-        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
-        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
-        for c in etf_pivot.columns:
-            result[c] = etf_pivot.reindex(result.index)[c]
 
     conn.close()
 

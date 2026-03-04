@@ -16,7 +16,7 @@ def load_china_data(
     """
     Load ALL data for CHINA specialist.
 
-    ZL + HG (copper) + ZS (soybeans) + CNY + shipping ETFs + China ETFs.
+    ZL + HG (copper) + ZS (soybeans) + CNY + BRL + China macro + shipping index.
     """
     conn = get_connection()
 
@@ -43,20 +43,18 @@ def load_china_data(
         for c in pivot.columns:
             result[c] = pivot[c].values
 
-    # ETFs: Databento (FXI, KWEB, MCHI, BDRY, SBLK)
-    etf_query = """
-    SELECT event_date as trade_date, symbol, close
-    FROM mkt.etf_1d
-    WHERE symbol IN ('FXI', 'KWEB', 'MCHI', 'BDRY', 'SBLK')
-    ORDER BY event_date, symbol
+    # Shipping index (FRED BDIY) instead of ETF proxies
+    ship_query = """
+    SELECT event_date as trade_date, value as fred_bdiy
+    FROM econ.commodities_1d
+    WHERE series_id = 'BDIY'
+    ORDER BY event_date
     """
-    etf_df = pd.read_sql(etf_query, conn)
-    if not etf_df.empty:
-        etf_df["trade_date"] = pd.to_datetime(etf_df["trade_date"])
-        etf_pivot = etf_df.pivot(index="trade_date", columns="symbol", values="close")
-        etf_pivot.columns = [f"{c.lower()}_close" for c in etf_pivot.columns]
-        for c in etf_pivot.columns:
-            result[c] = etf_pivot.reindex(result.index)[c]
+    ship_df = pd.read_sql(ship_query, conn)
+    if not ship_df.empty:
+        ship_df["trade_date"] = pd.to_datetime(ship_df["trade_date"])
+        ship_df.set_index("trade_date", inplace=True)
+        result["fred_bdiy"] = ship_df["fred_bdiy"].reindex(result.index)
 
     # CNY from FRED
     fx_query = """
@@ -182,7 +180,7 @@ def load_china_data(
 
     conn.close()
 
-    # ETF data quality check removed - ETFs active via Databento
+    # ETF ingestion removed from runtime for China specialist
 
     if start_date:
         result = result[result.index >= pd.Timestamp(start_date)]

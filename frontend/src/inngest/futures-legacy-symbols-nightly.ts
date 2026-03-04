@@ -27,7 +27,6 @@ type MarketRow = {
 
 type SourceConfig =
   | { kind: "fx"; pair: string; sourceTag: string }
-  | { kind: "etf"; symbol: string; sourceTag: string }
   | {
       kind: "econ";
       table: "econ.vol_indices_1d" | "econ.commodities_1d";
@@ -100,34 +99,6 @@ const LEGACY_SYMBOLS: LegacySymbolConfig[] = [
       { kind: "fx", pair: "DXY_BROAD", sourceTag: "fx_bridge" },
       { kind: "yahoo", ticker: "DX-Y.NYB", sourceTag: "yahoo_fallback" },
       { kind: "yahoo", ticker: "DXY", sourceTag: "yahoo_fallback" },
-    ],
-  },
-  {
-    symbol: "FXI",
-    sources: [
-      { kind: "etf", symbol: "FXI", sourceTag: "databento_etf_bridge" },
-      { kind: "yahoo", ticker: "FXI", sourceTag: "yahoo_fallback" },
-    ],
-  },
-  {
-    symbol: "KWEB",
-    sources: [
-      { kind: "etf", symbol: "KWEB", sourceTag: "databento_etf_bridge" },
-      { kind: "yahoo", ticker: "KWEB", sourceTag: "yahoo_fallback" },
-    ],
-  },
-  {
-    symbol: "BDRY",
-    sources: [
-      { kind: "etf", symbol: "BDRY", sourceTag: "databento_etf_bridge" },
-      { kind: "yahoo", ticker: "BDRY", sourceTag: "yahoo_fallback" },
-    ],
-  },
-  {
-    symbol: "SBLK",
-    sources: [
-      { kind: "etf", symbol: "SBLK", sourceTag: "databento_etf_bridge" },
-      { kind: "yahoo", ticker: "SBLK", sourceTag: "yahoo_fallback" },
     ],
   },
   {
@@ -249,7 +220,11 @@ const LEGACY_SYMBOLS: LegacySymbolConfig[] = [
   },
 ];
 
-function computeRowHash(symbol: string, row: MarketRow, sourceTag: string): string {
+function computeRowHash(
+  symbol: string,
+  row: MarketRow,
+  sourceTag: string,
+): string {
   const key = [
     symbol,
     row.eventDate,
@@ -265,7 +240,9 @@ function computeRowHash(symbol: string, row: MarketRow, sourceTag: string): stri
 
 function toDateStringUtc(epochSeconds: number): string {
   const dt = new Date(epochSeconds * 1000);
-  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()))
+  return new Date(
+    Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()),
+  )
     .toISOString()
     .slice(0, 10);
 }
@@ -278,10 +255,15 @@ function normalizeRows(rows: MarketRow[]): MarketRow[] {
     }
     byDate.set(row.eventDate, row);
   }
-  return [...byDate.values()].sort((a, b) => (a.eventDate < b.eventDate ? -1 : 1));
+  return [...byDate.values()].sort((a, b) =>
+    a.eventDate < b.eventDate ? -1 : 1,
+  );
 }
 
-async function fetchFxRows(client: PoolClient, pair: string): Promise<MarketRow[]> {
+async function fetchFxRows(
+  client: PoolClient,
+  pair: string,
+): Promise<MarketRow[]> {
   const r = await client.query(
     `SELECT event_date::date::text AS event_date, rate::double precision AS close
      FROM mkt.fx_1d
@@ -294,27 +276,6 @@ async function fetchFxRows(client: PoolClient, pair: string): Promise<MarketRow[
     r.rows.map((x) => ({
       eventDate: x.event_date as string,
       close: Number(x.close),
-    })),
-  );
-}
-
-async function fetchEtfRows(client: PoolClient, symbol: string): Promise<MarketRow[]> {
-  const r = await client.query(
-    `SELECT event_date::date::text AS event_date, open, high, low, close, volume
-     FROM mkt.etf_1d
-     WHERE symbol = $1
-     ORDER BY event_date DESC
-     LIMIT 14`,
-    [symbol],
-  );
-  return normalizeRows(
-    r.rows.map((x) => ({
-      eventDate: x.event_date as string,
-      open: x.open !== null ? Number(x.open) : null,
-      high: x.high !== null ? Number(x.high) : null,
-      low: x.low !== null ? Number(x.low) : null,
-      close: Number(x.close),
-      volume: x.volume !== null ? Number(x.volume) : null,
     })),
   );
 }
@@ -372,7 +333,9 @@ async function fetchFredApiRows(seriesId: string): Promise<MarketRow[]> {
 }
 
 async function fetchYahooRows(ticker: string): Promise<MarketRow[]> {
-  const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
+  const url = new URL(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`,
+  );
   url.searchParams.set("interval", "1d");
   url.searchParams.set("range", "14d");
 
@@ -427,8 +390,6 @@ async function resolveRows(
     let rows: MarketRow[] = [];
     if (source.kind === "fx") {
       rows = await fetchFxRows(client, source.pair);
-    } else if (source.kind === "etf") {
-      rows = await fetchEtfRows(client, source.symbol);
     } else if (source.kind === "econ") {
       rows = await fetchEconRows(client, source.table, source.seriesId);
     } else if (source.kind === "fred") {

@@ -14,7 +14,7 @@ This is primarily a TRADE WAR indicator mixed with China import/export dynamics.
 
 Priority Components (Soy-Centric Weighting):
 
-1. SHIPPING (BDRY) - 30% weight [INCREASED]
+1. SHIPPING COSTS (BDIY, FRED) - 30% weight
    - Baltic Dry Index = direct soy trade flow proxy
    - Falling rates = weak China commodity demand
    - Soy ships from US Gulf/PNW to China ports
@@ -26,12 +26,11 @@ Priority Components (Soy-Centric Weighting):
    - 7.2 = PBOC defense line
    - 7.3+ = competitive disadvantage for US soy
 
-3. FXI (China Large-Cap ETF) - 20% weight [DECREASED]
-   - Secondary indicator - equity sentiment
-   - Useful for gauging China economic stress
-   - But less direct than shipping for soy demand
+3. COPPER (HG futures) - 20% weight
+   - China industrial demand proxy
+   - Useful for gauging China growth stress
 
-4. Soy Export News (ProFarmer) - 15% weight [INCREASED]
+4. Soy Export News (ProFarmer) - 15% weight
    - "China soy", "export sales", "import demand", "trade war"
    - Real-time sentiment from soy-focused news
    - Captures cancellations, buying pace, policy shifts
@@ -58,14 +57,14 @@ load_dotenv()
 # DOMAIN CONSTANTS - China Market Expertise
 # ==============================================================================
 
-# FXI performance thresholds (20-day % change)
-FXI_CRISIS = -0.15  # 15% drop = crisis
-FXI_SEVERE = -0.10  # 10% drop = severe stress
-FXI_STRESS = -0.05  # 5% drop = stress
-FXI_WEAK = -0.02  # 2% drop = weak
-FXI_NEUTRAL = 0.02  # +/- 2% = neutral
-FXI_STRONG = 0.05  # 5% gain = strong
-FXI_RALLY = 0.10  # 10% gain = rally
+# Copper (HG) performance thresholds (20-day % change)
+HG_CRISIS = -0.15  # 15% drop = crisis
+HG_SEVERE = -0.10  # 10% drop = severe stress
+HG_STRESS = -0.05  # 5% drop = stress
+HG_WEAK = -0.02  # 2% drop = weak
+HG_NEUTRAL = 0.02  # +/- 2% = neutral
+HG_STRONG = 0.05  # 5% gain = strong
+HG_RALLY = 0.10  # 10% gain = rally
 
 # CNY thresholds (USD/CNY rate - higher = weaker yuan)
 CNY_STRONG = 7.00  # Below 7 = strong yuan
@@ -80,7 +79,7 @@ CNY_DEVALUING = 0.01  # 1% weaker
 CNY_STRENGTHENING = -0.01  # 1% stronger
 CNY_STRENGTHENING_FAST = -0.02  # 2% stronger
 
-# Shipping (BDRY) thresholds - 20 day change
+# Shipping cost (BDIY) thresholds - 20 day change
 SHIP_COLLAPSE = -0.25  # 25% drop - soy trade frozen
 SHIP_WEAK = -0.10  # 10% drop - demand concerns
 SHIP_STABLE = 0.10  # +/- 10% = normal trade flow
@@ -151,42 +150,42 @@ CHINA_REGIMES = {
 }
 
 
-def score_fxi_performance(change_20d: float, change_5d: float) -> Tuple[float, str]:
+def score_hg_performance(change_20d: float, change_5d: float) -> Tuple[float, str]:
     """
-    Score FXI performance as China equity sentiment proxy.
+    Score HG (copper) performance as China demand proxy.
 
     Returns (score, description) where higher = more tension.
     """
     # 20-day trend is primary
-    if change_20d <= FXI_CRISIS:
+    if change_20d <= HG_CRISIS:
         base = 90
-        desc = "China equities in freefall"
-    elif change_20d <= FXI_SEVERE:
-        pct = (change_20d - FXI_CRISIS) / (FXI_SEVERE - FXI_CRISIS)
+        desc = "Copper in freefall"
+    elif change_20d <= HG_SEVERE:
+        pct = (change_20d - HG_CRISIS) / (HG_SEVERE - HG_CRISIS)
         base = 80 + (1 - pct) * 10
-        desc = "China equities severely weak"
-    elif change_20d <= FXI_STRESS:
-        pct = (change_20d - FXI_SEVERE) / (FXI_STRESS - FXI_SEVERE)
+        desc = "Copper severely weak"
+    elif change_20d <= HG_STRESS:
+        pct = (change_20d - HG_SEVERE) / (HG_STRESS - HG_SEVERE)
         base = 65 + (1 - pct) * 15
-        desc = "China equities under pressure"
-    elif change_20d <= FXI_WEAK:
-        pct = (change_20d - FXI_STRESS) / (FXI_WEAK - FXI_STRESS)
+        desc = "Copper under pressure"
+    elif change_20d <= HG_WEAK:
+        pct = (change_20d - HG_STRESS) / (HG_WEAK - HG_STRESS)
         base = 55 + (1 - pct) * 10
-        desc = "China equities soft"
-    elif change_20d <= FXI_NEUTRAL:
+        desc = "Copper soft"
+    elif change_20d <= HG_NEUTRAL:
         base = 45
-        desc = "China equities stable"
-    elif change_20d <= FXI_STRONG:
-        pct = (change_20d - FXI_NEUTRAL) / (FXI_STRONG - FXI_NEUTRAL)
+        desc = "Copper stable"
+    elif change_20d <= HG_STRONG:
+        pct = (change_20d - HG_NEUTRAL) / (HG_STRONG - HG_NEUTRAL)
         base = 45 - (pct * 10)
-        desc = "China equities firming"
-    elif change_20d <= FXI_RALLY:
-        pct = (change_20d - FXI_STRONG) / (FXI_RALLY - FXI_STRONG)
+        desc = "Copper firming"
+    elif change_20d <= HG_RALLY:
+        pct = (change_20d - HG_STRONG) / (HG_RALLY - HG_STRONG)
         base = 35 - (pct * 10)
-        desc = "China equities rallying"
+        desc = "Copper rallying"
     else:
         base = 20
-        desc = "China equities surging"
+        desc = "Copper surging"
 
     # Short-term momentum modifier
     if change_5d < -0.05:
@@ -248,7 +247,7 @@ def score_cny_level(rate: float, change_20d: float) -> Tuple[float, str]:
 
 def score_shipping(change_20d: float) -> Tuple[float, str]:
     """
-    Score shipping (BDRY) as trade flow indicator.
+    Score shipping costs (BDIY) as trade flow indicator.
 
     Returns (score, description) where higher = more tension.
     """
@@ -300,7 +299,7 @@ def score_china_news(china_articles: int, total_articles: int) -> Tuple[float, s
 
 
 def generate_china_narrative(
-    fxi_score: float,
+    hg_score: float,
     cny_score: float,
     ship_score: float,
     news_score: float,
@@ -332,10 +331,10 @@ def generate_china_narrative(
     # Drivers
     drivers = []
 
-    if fxi_score >= 60:
-        drivers.append("China equities weak")
-    elif fxi_score <= 35:
-        drivers.append("China equities strong")
+    if hg_score >= 60:
+        drivers.append("Copper weak")
+    elif hg_score <= 35:
+        drivers.append("Copper strong")
 
     if cny_score >= 60:
         drivers.append("Yuan under pressure")
@@ -364,9 +363,9 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     Calculate China Tension pressure.
 
     Components:
-    1. FXI Performance (30%): China equity sentiment
+    1. Copper Performance (20%): China demand proxy
     2. CNY Level/Trend (25%): Currency stress
-    3. Shipping (20%): Trade flow health
+    3. Shipping Costs (30%): Trade flow health
     4. China Specialist (15%): Model signal
     5. News Concentration (10%): Headlines
 
@@ -378,30 +377,30 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. FXI PERFORMANCE (Databento ETF) ====
+    # ==== 1. COPPER PERFORMANCE (HG futures) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'FXI' AND event_date <= %s AND close IS NOT NULL
+        SELECT event_date, close FROM mkt.futures_1d
+        WHERE symbol = 'HG' AND event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 30
     """,
         (as_of_date,),
     )
-    fxi_data = cur.fetchall()
-    if len(fxi_data) < 21:
-        raise ValueError("Insufficient FXI data to compute China tension")
+    hg_data = cur.fetchall()
+    if len(hg_data) < 21:
+        raise ValueError("Insufficient HG data to compute China tension")
 
-    current_fxi = float(fxi_data[0][1])
-    fxi_5d = float(fxi_data[5][1]) if len(fxi_data) > 5 else None
-    fxi_20d = float(fxi_data[20][1])
+    current_hg = float(hg_data[0][1])
+    hg_5d = float(hg_data[5][1]) if len(hg_data) > 5 else None
+    hg_20d = float(hg_data[20][1])
 
-    change_20d = (current_fxi - fxi_20d) / fxi_20d if fxi_20d > 0 else 0
-    change_5d = (current_fxi - fxi_5d) / fxi_5d if fxi_5d and fxi_5d > 0 else 0
+    change_20d = (current_hg - hg_20d) / hg_20d if hg_20d > 0 else 0
+    change_5d = (current_hg - hg_5d) / hg_5d if hg_5d and hg_5d > 0 else 0
 
-    fxi_score, fxi_desc = score_fxi_performance(change_20d, change_5d)
-    components["fxi_score"] = round(fxi_score, 1)
-    components["fxi_change_20d"] = round(change_20d * 100, 2)
-    components["fxi_change_5d"] = round(change_5d * 100, 2)
+    hg_score, hg_desc = score_hg_performance(change_20d, change_5d)
+    components["hg_score"] = round(hg_score, 1)
+    components["hg_change_20d"] = round(change_20d * 100, 2)
+    components["hg_change_5d"] = round(change_5d * 100, 2)
 
     # ==== 2. CNY LEVEL/TREND ====
     cur.execute(
@@ -428,26 +427,26 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
         components["cny_rate"] = round(current_rate, 4)
         components["cny_change_20d"] = round(change_20d * 100, 2)
 
-    # ==== 3. SHIPPING (BDRY) - Databento ETF ====
+    # ==== 3. SHIPPING COSTS (BDIY from FRED) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
+        SELECT event_date, value FROM econ.commodities_1d
+        WHERE series_id = 'BDIY' AND event_date <= %s AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 30
     """,
         (as_of_date,),
     )
     ship_data = cur.fetchall()
     if len(ship_data) < 21:
-        raise ValueError("Insufficient BDRY data to compute shipping stress")
+        raise ValueError("Insufficient BDIY data to compute shipping stress")
 
-    current_bdry = float(ship_data[0][1])
-    bdry_20d = float(ship_data[20][1])
-    bdry_change_20d = (current_bdry - bdry_20d) / bdry_20d if bdry_20d > 0 else 0
+    current_bdiy = float(ship_data[0][1])
+    bdiy_20d = float(ship_data[20][1])
+    bdiy_change_20d = (current_bdiy - bdiy_20d) / bdiy_20d if bdiy_20d > 0 else 0
 
-    ship_score, ship_desc = score_shipping(bdry_change_20d)
+    ship_score, ship_desc = score_shipping(bdiy_change_20d)
     components["ship_score"] = round(ship_score, 1)
-    components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
+    components["bdiy_change_20d"] = round(bdiy_change_20d * 100, 2)
 
     # ==== 4. CHINA SPECIALIST ====
     cur.execute(
@@ -510,15 +509,15 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== COMPOSITE SCORE ====
     # SOY-CENTRIC WEIGHTS:
-    # Shipping (BDRY) 30% - direct trade flow proxy
+    # Shipping (BDIY) 30% - direct trade flow proxy
     # CNY 25% - currency competitiveness
-    # FXI 20% - secondary sentiment
+    # Copper (HG) 20% - China demand proxy
     # Soy News 15% - ProFarmer trade war coverage
     # Specialist 10% - ML signal
     score = (
         (ship_score * 0.30)
         + (cny_score * 0.25)
-        + (fxi_score * 0.20)
+        + (hg_score * 0.20)
         + (news_score * 0.15)
         + (specialist_score * 0.10)
     )
@@ -536,16 +535,16 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
     else:
         regime = "constructive"
 
-    # ==== SPARKLINE (FXI-based) ====
+    # ==== SPARKLINE (HG-based) ====
     sparkline = []
-    if len(fxi_data) >= 10:
-        for i in range(min(10, len(fxi_data))):
-            if i + 20 < len(fxi_data):
-                d20_val = fxi_data[i + 20][1]
-                curr_val = fxi_data[i][1]
+    if len(hg_data) >= 10:
+        for i in range(min(10, len(hg_data))):
+            if i + 20 < len(hg_data):
+                d20_val = hg_data[i + 20][1]
+                curr_val = hg_data[i][1]
                 if d20_val and d20_val > 0:
                     chg = (curr_val - d20_val) / d20_val
-                    hist_score, _ = score_fxi_performance(chg, 0)
+                    hist_score, _ = score_hg_performance(chg, 0)
                     sparkline.insert(0, hist_score)
     if len(sparkline) < 10:
         sparkline = [50] * 10
@@ -585,7 +584,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
 
     # ==== NARRATIVE ====
     headline, narrative, drivers = generate_china_narrative(
-        fxi_score, cny_score, ship_score, news_score, specialist_signal, score, regime
+        hg_score, cny_score, ship_score, news_score, specialist_signal, score, regime
     )
 
     return {
@@ -614,7 +613,7 @@ def calculate_china_tension(conn, as_of_date: Optional[date] = None) -> Dict:
             "trading_action": CHINA_REGIMES.get(
                 regime, CHINA_REGIMES["normal"]
             ).trading_action,
-            "fxi_assessment": fxi_desc,
+            "hg_assessment": hg_desc,
             "cny_assessment": cny_desc,
             "ship_assessment": ship_desc,
             "news_assessment": news_desc,

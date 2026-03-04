@@ -37,7 +37,11 @@ export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
 export { glideVegasSync } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
 export { dceSoyOilDaily } from "./dce-soy-oil-daily";
-export { profarmerDaily, profarmerBackfill, profarmerWeeklyBackfill } from "./profarmer-daily";
+export {
+  profarmerDaily,
+  profarmerBackfill,
+  profarmerWeeklyBackfill,
+} from "./profarmer-daily";
 export { databentoFuturesDailyShards } from "./databento-futures-daily";
 export { databentoFutures1h } from "./databento-futures-1h";
 export { databentoStatisticsDailyShards } from "./databento-statistics-daily";
@@ -45,24 +49,33 @@ export { databentoFxDaily } from "./databento-fx-daily";
 export { databentoOptionsDailyShards } from "./databento-options-daily";
 export { optionsStalenessCheck } from "./options-staleness-check";
 export { boardCrushDaily, boardCrushBackfill } from "./board-crush-daily";
-export { eiaBiodieselMonthly, eiaBiodieselBackfill } from "./eia-biodiesel-monthly";
-export { eiaBiodieselWeekly, eiaBiodieselWeeklyBackfill } from "./eia-biodiesel-weekly";
+export {
+  eiaBiodieselMonthly,
+  eiaBiodieselBackfill,
+} from "./eia-biodiesel-monthly";
+export {
+  eiaBiodieselWeekly,
+  eiaBiodieselWeeklyBackfill,
+} from "./eia-biodiesel-weekly";
 export { mpobPalmMonthly } from "./mpob-palm-monthly";
 export { conabProductionMonthly } from "./conab-production-monthly";
-export { databentoEtfDaily, databentoEtfBackfill } from "./databento-etf-daily";
-export { databentoEtfVwapDaily, databentoEtfVwapBackfill } from "./databento-etf-vwap";
 export { futuresLegacySymbolsNightly } from "./futures-legacy-symbols-nightly";
 export { zl1mBackfill, zl1mScheduledBackfill } from "./zl-1m-backfill";
 export { fredBlogDaily } from "./fred-blog-daily";
 export { argentinaCrushMonthly } from "./argentina-crush-monthly";
 export { cleanupStaleRuns } from "./cleanup-stale-runs";
 export { lcfsCreditWeekly } from "./lcfs-credit-weekly";
-export { specialistSignalsSync, specialistSignalsSyncManual } from "./specialist-signals-sync";
+export {
+  specialistSignalsSync,
+  specialistSignalsSyncManual,
+} from "./specialist-signals-sync";
 export { globalFailureMonitor } from "./global-failure-monitor";
 export { freshnessMonitor } from "./freshness-monitor";
 export { yahooIndicesDaily, yahooIndicesBackfill } from "./yahoo-indices-daily";
-export { yahooEtfFallbackDaily, yahooEtfBackfill } from "./yahoo-etf-fallback";
-export { esmisPublicationsDaily, esmisPublicationsBackfill } from "./esmis-publications-daily";
+export {
+  esmisPublicationsDaily,
+  esmisPublicationsBackfill,
+} from "./esmis-publications-daily";
 export { fasReportsDaily } from "./fas-reports-daily";
 export { usdaAmsFatsOilsDaily } from "./usda-ams-fats-oils";
 export { fedSpeechesDaily } from "./fed-speeches-daily";

@@ -49,12 +49,6 @@ export interface MarketDriversRawData {
   zlPrice: number | null;
   zlChange5d: number | null;
   zlChange20d: number | null;
-  // Energy (CL crude oil)
-  clPrice: number | null;
-  clChange5d: number | null;
-  clChange20d: number | null;
-  clDate: string | null;
-  energyNewsCount: number;
   // News
   recentNews: string[];
 }
@@ -87,8 +81,6 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     chinaSignalRows,
     tariffSignalRows,
     zlPriceRows,
-    clPriceRows,
-    energyNewsRows,
     recentNewsRows,
   ] = await Promise.all([
     // === VIX STRESS DATA ===
@@ -292,34 +284,6 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
              ELSE 0 END::float8 as change_20d
     `),
 
-    // === CL CRUDE OIL DATA (Energy Stress driver) ===
-    query<{ close: number; change_5d: number; change_20d: number; event_date: string }>(`
-      WITH cl AS (
-        SELECT close, event_date, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
-        FROM mkt.futures_1d WHERE symbol = 'CL' AND close IS NOT NULL LIMIT 21
-      )
-      SELECT
-        (SELECT close FROM cl WHERE rn = 1)::float8 as close,
-        (SELECT event_date::text FROM cl WHERE rn = 1) as event_date,
-        CASE WHEN (SELECT close FROM cl WHERE rn = 6) > 0
-             THEN ((SELECT close FROM cl WHERE rn = 1) - (SELECT close FROM cl WHERE rn = 6)) / (SELECT close FROM cl WHERE rn = 6)
-             ELSE 0 END::float8 as change_5d,
-        CASE WHEN (SELECT close FROM cl WHERE rn = 21) > 0
-             THEN ((SELECT close FROM cl WHERE rn = 1) - (SELECT close FROM cl WHERE rn = 21)) / (SELECT close FROM cl WHERE rn = 21)
-             ELSE 0 END::float8 as change_20d
-    `).catch(() => [] as { close: number; change_5d: number; change_20d: number; event_date: string }[]),
-
-    // Energy/Oil News (ProFarmer — 7 days)
-    query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND (headline ILIKE '%crude%' OR headline ILIKE '%oil price%' OR headline ILIKE '%energy%'
-           OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%opec%'
-           OR headline ILIKE '%petroleum%' OR headline ILIKE '%biofuel%' OR headline ILIKE '%biodiesel%'
-           OR headline ILIKE '%renewable diesel%' OR headline ILIKE '%strait%'
-           OR content ILIKE '%crude oil%' OR content ILIKE '%oil spike%' OR content ILIKE '%energy crisis%')
-    `).catch(() => [{ count: 0 }]),
-
     // === RECENT NEWS HEADLINES (for comprehensive reports) ===
     query<{ headline: string }>(`
       SELECT headline FROM alt.profarmer_news_event
@@ -375,12 +339,6 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     zlChange5d: zlPriceRows[0]?.change_5d ?? null,
     zlChange20d: zlPriceRows[0]?.change_20d ?? null,
 
-    clPrice: clPriceRows[0]?.close ?? null,
-    clChange5d: clPriceRows[0]?.change_5d ?? null,
-    clChange20d: clPriceRows[0]?.change_20d ?? null,
-    clDate: clPriceRows[0]?.event_date ?? null,
-    energyNewsCount: energyNewsRows[0]?.count ?? 0,
-
     recentNews: recentNewsRows?.map((r) => r.headline) ?? [],
   };
 }
@@ -408,9 +366,7 @@ export function computeDataFreshness(
   const daysSince = (dateStr: string | null) => {
     if (!dateStr) return null;
     const d = new Date(dateStr);
-    return Math.floor(
-      (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    return Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   return {
@@ -489,10 +445,10 @@ export interface SourceStaleness {
 
 /** Per-source SLA thresholds (calendar days). */
 const SOURCE_SLAS: Record<string, number> = {
-  vix: 3,    // Daily VIX
-  crush: 5,  // Daily crush (business-day cadence)
-  cny: 5,    // Daily FX (business-day cadence)
-  tpu: 45,   // Monthly EPU series
+  vix: 3, // Daily VIX
+  crush: 5, // Daily crush (business-day cadence)
+  cny: 5, // Daily FX (business-day cadence)
+  tpu: 45, // Monthly EPU series
 };
 
 /** Returns per-source staleness info with SLA-aware thresholds. */
@@ -524,16 +480,24 @@ export function computeStalenessAwareness(
 
   return {
     vix: assess("econ.vol_indices_1d VIXCLS", data.vixDate, SOURCE_SLAS.vix),
-    crush: assess("analytics.board_crush_1d", data.crushDate, SOURCE_SLAS.crush),
+    crush: assess(
+      "analytics.board_crush_1d",
+      data.crushDate,
+      SOURCE_SLAS.crush,
+    ),
     cny: assess("mkt.fx_1d CNY/USD", data.cnyDate, SOURCE_SLAS.cny),
-    tpu: assess("econ.vol_indices_1d USEPUINDXM", data.tpuDate, SOURCE_SLAS.tpu),
+    tpu: assess(
+      "econ.vol_indices_1d USEPUINDXM",
+      data.tpuDate,
+      SOURCE_SLAS.tpu,
+    ),
   };
 }
 
 /** Assembles MarketData for AI calls. */
 export function buildMarketData(
   data: MarketDriversRawData,
-  scores: { vix: number; crush: number; china: number; tariff: number; energy: number },
+  scores: { vix: number; crush: number; china: number; tariff: number },
   asOfDate: string,
 ): MarketData {
   return {
@@ -545,10 +509,6 @@ export function buildMarketData(
     hgChange20d: data.hgChange20d,
     hgChange5d: data.hgChange5d,
     bdiyChange20d: data.bdiyChange20d,
-    // Backward-compatible aliases for any older consumers
-    fxiChange20d: data.hgChange20d,
-    fxiChange5d: data.hgChange5d,
-    bdryChange20d: data.bdiyChange20d,
     tpu: data.tpu!,
     emv: data.emv,
     scores,

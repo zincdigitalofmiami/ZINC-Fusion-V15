@@ -12,7 +12,7 @@
 // CNY/USD Rate
 const CNY = { STRONG: 7.0, NORMAL: 7.15, WEAK: 7.3, STRESS: 7.45, CRISIS: 7.6 };
 
-// Shipping (BDRY) 20d change thresholds - DISABLED: ETF data quality issues
+// Shipping (BDIY) 20d change thresholds
 const SHIP = { COLLAPSE: -0.25, WEAK: -0.1, STABLE: 0.1, STRONG: 0.2 };
 
 // =============================================================================
@@ -20,14 +20,14 @@ const SHIP = { COLLAPSE: -0.25, WEAK: -0.1, STABLE: 0.1, STRONG: 0.2 };
 // =============================================================================
 
 export interface ChinaComponents {
-  fxi_score: number;
-  fxi_change_20d: number;
-  fxi_change_5d: number;
+  hg_score: number;
+  hg_change_20d: number;
+  hg_change_5d: number;
   cny_score: number;
   cny_rate: number;
   cny_change_20d: number | null;
   ship_score: number;
-  bdry_change_20d: number | null;
+  bdiy_change_20d: number | null;
   soy_china_news_count: number;
   news_score: number;
   specialist_signal: number | null;
@@ -38,35 +38,35 @@ export interface ChinaComponents {
 // HELPER SCORERS
 // =============================================================================
 
-function scoreFxiPerformance(
+function scoreHgPerformance(
   change20d: number,
   change5d: number,
 ): { score: number; desc: string } {
   let base: number, desc: string;
   if (change20d <= -0.15) {
     base = 90;
-    desc = "China equities in freefall";
+    desc = "Copper in freefall";
   } else if (change20d <= -0.1) {
     base = 80;
-    desc = "China equities severely weak";
+    desc = "Copper severely weak";
   } else if (change20d <= -0.05) {
     base = 65;
-    desc = "China equities under pressure";
+    desc = "Copper under pressure";
   } else if (change20d <= -0.02) {
     base = 55;
-    desc = "China equities soft";
+    desc = "Copper soft";
   } else if (change20d <= 0.02) {
     base = 45;
-    desc = "China equities stable";
+    desc = "Copper stable";
   } else if (change20d <= 0.05) {
     base = 35;
-    desc = "China equities firming";
+    desc = "Copper firming";
   } else if (change20d <= 0.1) {
     base = 25;
-    desc = "China equities rallying";
+    desc = "Copper rallying";
   } else {
     base = 20;
-    desc = "China equities surging";
+    desc = "Copper surging";
   }
 
   // Short-term momentum modifier
@@ -171,11 +171,11 @@ function scoreChinaNews(
 // =============================================================================
 
 export function calculateChinaTension(
-  fxiChange20d: number,
-  fxiChange5d: number,
+  hgChange20d: number,
+  hgChange5d: number,
   cnyRate: number,
   cnyChange20d: number | null,
-  bdryChange20d: number | null,
+  bdiyChange20d: number | null,
   soyChinaNews: number,
   totalNews: number,
   specialistSignal: number | null,
@@ -186,14 +186,14 @@ export function calculateChinaTension(
   headline: string;
   components: ChinaComponents;
 } {
-  // Component 1: FXI Performance (20%)
-  const { score: fxiScore } = scoreFxiPerformance(fxiChange20d, fxiChange5d);
+  // Component 1: HG Performance (20%)
+  const { score: hgScore } = scoreHgPerformance(hgChange20d, hgChange5d);
 
   // Component 2: CNY Level/Trend (25%)
   const { score: cnyScore } = scoreCnyLevel(cnyRate, cnyChange20d);
 
-  // Component 3: Shipping BDRY (30%) - direct trade flow proxy
-  const { score: shipScore } = scoreShipping(bdryChange20d);
+  // Component 3: Shipping BDIY (30%) - direct trade flow proxy
+  const { score: shipScore } = scoreShipping(bdiyChange20d);
 
   // Component 4: Soy China News (15%)
   const { score: newsScore } = scoreChinaNews(soyChinaNews, totalNews);
@@ -206,14 +206,14 @@ export function calculateChinaTension(
   }
 
   // Composite Score (SOY-CENTRIC WEIGHTS from Python)
-  // Shipping 30%, CNY 25%, FXI 20%, News 15%, Specialist 10%
+  // Shipping 30%, CNY 25%, HG 20%, News 15%, Specialist 10%
   const score = Math.max(
     0,
     Math.min(
       100,
       shipScore * 0.3 +
         cnyScore * 0.25 +
-        fxiScore * 0.2 +
+        hgScore * 0.2 +
         newsScore * 0.15 +
         specialistScore * 0.1,
     ),
@@ -256,18 +256,16 @@ export function calculateChinaTension(
     regime,
     headline,
     components: {
-      fxi_score: Math.round(fxiScore * 10) / 10,
-      fxi_change_20d: Math.round(fxiChange20d * 1000) / 10, // As percentage
-      fxi_change_5d: Math.round(fxiChange5d * 1000) / 10,
+      hg_score: Math.round(hgScore * 10) / 10,
+      hg_change_20d: Math.round(hgChange20d * 1000) / 10, // As percentage
+      hg_change_5d: Math.round(hgChange5d * 1000) / 10,
       cny_score: Math.round(cnyScore * 10) / 10,
       cny_rate: Math.round(cnyRate * 100) / 100,
-      cny_change_20d: cnyChange20d
-        ? Math.round(cnyChange20d * 1000) / 10
-        : null,
+      cny_change_20d:
+        cnyChange20d !== null ? Math.round(cnyChange20d * 1000) / 10 : null,
       ship_score: Math.round(shipScore * 10) / 10,
-      bdry_change_20d: bdryChange20d
-        ? Math.round(bdryChange20d * 1000) / 10
-        : null,
+      bdiy_change_20d:
+        bdiyChange20d !== null ? Math.round(bdiyChange20d * 1000) / 10 : null,
       soy_china_news_count: soyChinaNews,
       news_score: Math.round(newsScore * 10) / 10,
       specialist_signal: specialistSignal,
