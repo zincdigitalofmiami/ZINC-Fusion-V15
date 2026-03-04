@@ -14,9 +14,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { refreshZl1mFromDatabento } from "@/lib/zl1m-refresh";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const ZL_SYMBOL = "ZL.n.0";
 const DATABENTO_DATASET = "GLBX.MDP3";

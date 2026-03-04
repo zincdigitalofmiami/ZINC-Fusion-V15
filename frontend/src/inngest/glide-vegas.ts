@@ -1,7 +1,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Glide API Configuration
 const GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables";

@@ -14,9 +14,9 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Investing.com asset ID for Dalian Soybean Oil Futures
 // If this ID stops working, try: 49777, 8918, 12618

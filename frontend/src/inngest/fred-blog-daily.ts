@@ -12,9 +12,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { type PoolClient } from "pg";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Base URL kept for documentation - feed URL used for scraping
 void "https://fredblog.stlouisfed.org/";

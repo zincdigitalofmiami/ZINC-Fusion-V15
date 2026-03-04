@@ -13,9 +13,9 @@ import {
   fetchDatabentoCsv,
   parseDatabentoStatisticsCsv,
 } from "@/lib/databento";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // All GLBX.MDP3 symbols — mirrors databento-futures-daily.ts
 // Crush uses .n.0 (OI-ranked), everything else uses .c.0 (calendar)

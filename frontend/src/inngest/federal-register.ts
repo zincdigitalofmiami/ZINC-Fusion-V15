@@ -35,10 +35,10 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 // Database connection pool
-const pool = dbPool;
+const pool = getIngestPool();
 
 // =============================================================================
 // TAG ASSIGNMENT RULES

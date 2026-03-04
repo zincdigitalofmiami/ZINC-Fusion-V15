@@ -34,7 +34,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -475,7 +475,7 @@ export const whitehouseDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
+      const pool = getIngestPool();
 
       let inserted = 0;
       let skipped = 0;

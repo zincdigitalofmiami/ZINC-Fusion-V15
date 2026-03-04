@@ -27,9 +27,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Keywords to search for bills relevant to ZL soybean oil forecasting
 const BILL_SEARCH_QUERIES = [

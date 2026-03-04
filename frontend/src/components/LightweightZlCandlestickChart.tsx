@@ -47,7 +47,7 @@ const THEME = {
   textColor: "rgba(255,255,255,0.4)",
 };
 
-const DAILY_REFRESH_INTERVAL_MS = 30_000;  // refresh daily bars every 30s
+const DAILY_REFRESH_INTERVAL_MS = 300_000; // refresh daily bars every 5m
 const LIVE_TICKER_INTERVAL_MS  = 10_000;  // refresh live price ticker every 10s
 const INITIAL_VISIBLE_BARS = 150;
 const RIGHT_PADDING_BARS = 16;

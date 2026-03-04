@@ -13,10 +13,10 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
-const pool = dbPool;
+const pool = getIngestPool();
 
 // EIA petroleum/sum/wkly product codes
 const BIODIESEL_PRODUCT = "EPOORDB";
@@ -28,18 +28,9 @@ const NATIONAL_AREA = "NUS";
 const MER_CSV_10_04A = "https://www.eia.gov/totalenergy/data/browser/csv.php?tbl=T10.04A";
 const MER_CSV_10_04B = "https://www.eia.gov/totalenergy/data/browser/csv.php?tbl=T10.04B";
 
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.eia_biodiesel_1w (
-  id SERIAL PRIMARY KEY,
-  week_ending DATE NOT NULL UNIQUE,
-  biodiesel_production_kbpd DOUBLE PRECISION,
-  renewable_diesel_production_kbpd DOUBLE PRECISION,
-  total_biofuel_production_kbpd DOUBLE PRECISION,
-  source VARCHAR(50) DEFAULT 'eia_weekly',
-  row_hash VARCHAR(64) NOT NULL UNIQUE,
-  ingested_at TIMESTAMPTZ DEFAULT NOW()
-);
-`;
+// NOTE: Table schema is managed by Prisma (supply.eia_biodiesel_1w).
+// The previous CREATE TABLE IF NOT EXISTS block was removed to prevent
+// schema drift — Prisma is the single source of truth.
 
 interface PetroleumDataPoint {
   period: string;
@@ -232,9 +223,6 @@ async function upsertWeeklyRecords(
   let skipped = 0;
 
   try {
-    // Ensure the table exists
-    await client.query(CREATE_TABLE_SQL);
-
     for (const record of records) {
       const rowHash = generateRowHash(
         record.weekEnding,

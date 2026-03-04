@@ -16,10 +16,10 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
-const pool = dbPool;
+const pool = getIngestPool();
 
 // CSV download URLs — Monthly Energy Review, no API key required
 const MER_BIODIESEL_CSV = "https://www.eia.gov/totalenergy/data/browser/csv.php?tbl=T10.04A";

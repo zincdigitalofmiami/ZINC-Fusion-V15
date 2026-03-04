@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "crypto";
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 const LOOKBACK_DAYS = 120;
 
 interface BucketConfig {

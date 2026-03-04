@@ -16,9 +16,9 @@
 
 import { createHash } from "crypto";
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const NOAA_API_TOKEN = process.env.NOAA_API_TOKEN || process.env.NOAA_TOKEN;
 const NOAA_BASE_URL = "https://www.ncei.noaa.gov/cdo-web/api/v2/data";

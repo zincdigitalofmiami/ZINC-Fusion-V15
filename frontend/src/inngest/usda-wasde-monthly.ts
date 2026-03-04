@@ -16,14 +16,14 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const CORNELL_PUBLICATIONS_URL =
   "https://usda.library.cornell.edu/concern/publications?locale=en";
 
 const CORNELL_BASE_URL = "https://usda.library.cornell.edu";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Minimum acceptable rows (allow partial data rather than failing completely)
 // Full expected: 3 commodities × 5 countries × 4 metrics = 60 base

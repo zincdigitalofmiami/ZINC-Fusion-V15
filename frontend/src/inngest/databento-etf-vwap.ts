@@ -27,9 +27,9 @@ import {
   parseDatabentoOhlcvCsv,
   type DatabentoOhlcvBar,
 } from "@/lib/databento";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // ETF symbols with their Databento datasets
 const DATABENTO_ETF_SYMBOLS = [

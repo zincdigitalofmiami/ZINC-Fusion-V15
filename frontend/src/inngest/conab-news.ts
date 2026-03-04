@@ -13,9 +13,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 function computeRowHash(url: string, pubDate: string): string {
   return createHash("sha256").update(`${url}|${pubDate}`).digest("hex");

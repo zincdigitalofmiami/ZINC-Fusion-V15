@@ -1,8 +1,8 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 /**
  * Fetch ZL 15-minute bars from Databento and write to analytics.price_15m

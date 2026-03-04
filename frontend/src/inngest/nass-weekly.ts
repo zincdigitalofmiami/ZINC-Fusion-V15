@@ -16,9 +16,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // PoolClient helper functions removed — SQL inlined inside step.run() closures
 // to prevent stale connections across Inngest durable execution boundaries.
