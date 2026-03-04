@@ -1,7 +1,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 /**
  * CPO Data Sources (in order of preference):

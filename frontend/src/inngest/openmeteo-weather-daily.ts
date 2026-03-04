@@ -21,9 +21,9 @@
 
 import { createHash } from "crypto";
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";

@@ -41,9 +41,9 @@ import { type Page } from "puppeteer-core";
 // by puppeteer-extra/stealth via dynamic require(), causing runtime crashes.
 import "is-plain-object";
 
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const PROFARMER_BASE = "https://www.profarmer.com";
 const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;

@@ -12,7 +12,7 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 import {
 	hashFields,
 	createIngestRun,
@@ -20,7 +20,7 @@ import {
 	failIngestRun,
 } from "./utils";
 
-const pool = dbPool;
+const pool = getIngestPool();
 const JOB_NAME = "google-news-daily";
 const SOURCE_NAME = "google_news";
 const USER_AGENT = "Mozilla/5.0 (ZINC-Fusion/1.0)";

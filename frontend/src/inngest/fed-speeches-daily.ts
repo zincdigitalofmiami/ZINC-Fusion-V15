@@ -22,9 +22,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const FED_SPEECHES_RSS = "https://www.federalreserve.gov/feeds/speeches.xml";
 const SOURCE_NAME = "federal_reserve_speeches";

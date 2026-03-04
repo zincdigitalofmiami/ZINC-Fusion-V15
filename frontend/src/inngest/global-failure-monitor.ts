@@ -12,9 +12,9 @@
  */
 
 import { inngest } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 export const globalFailureMonitor = inngest.createFunction(
 	{ id: "global-failure-monitor", name: "Global Failure Monitor", retries: 1 },

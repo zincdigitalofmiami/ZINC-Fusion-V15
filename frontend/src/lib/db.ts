@@ -1,6 +1,6 @@
 /**
- * Database client for Prisma Postgres
- * Queries institutional schema tables (mkt.*, econ.*, features.*, etc.) at runtime
+ * Database client for cloud/local Postgres.
+ * Default behavior is cloud-only for backward compatibility.
  *
  * Pool tuning rationale (serverless on Vercel → Prisma Postgres):
  *   max=2        — each Lambda gets at most 2 connections; prevents pool saturation
@@ -19,13 +19,28 @@ import type { PoolClient } from 'pg'
 /*  Pool configuration                                                 */
 /* ------------------------------------------------------------------ */
 
-type GlobalDbPool = {
-  __zincDbPool?: Pool
+type QueryRouteTarget = 'auto' | 'cloud' | 'local'
+type QueryPurpose = 'read' | 'write'
+
+export type QueryRouteOpts = {
+  target?: QueryRouteTarget
+  purpose?: QueryPurpose
+  allowCloudFallback?: boolean
+  routeTag?: string
 }
 
-const globalDb = globalThis as unknown as GlobalDbPool
+type GlobalDbPools = {
+  __zincDbPool?: Pool
+  __zincLocalDbPool?: Pool
+}
 
-const pool =
+const globalDb = globalThis as unknown as GlobalDbPools
+
+const isVercelRuntime = process.env.VERCEL === '1'
+const routingMode = process.env.DB_ROUTING_MODE ?? 'cloud_only'
+const localRoutingEnabled = routingMode === 'dual' && !isVercelRuntime
+
+const cloudPool =
   globalDb.__zincDbPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -39,7 +54,40 @@ const pool =
   })
 
 if (!globalDb.__zincDbPool) {
-  globalDb.__zincDbPool = pool
+  globalDb.__zincDbPool = cloudPool
+}
+
+function getLocalPool(): Pool {
+  if (isVercelRuntime) {
+    throw new Error(
+      '[db] Local DB routing is disabled on Vercel runtime; use cloud pool.'
+    )
+  }
+  if (routingMode !== 'dual') {
+    throw new Error('[db] Local DB routing requires DB_ROUTING_MODE=dual.')
+  }
+  if (!process.env.LOCAL_DATABASE_URL) {
+    throw new Error(
+      '[db] LOCAL_DATABASE_URL is required when DB_ROUTING_MODE=dual.'
+    )
+  }
+
+  if (!globalDb.__zincLocalDbPool) {
+    globalDb.__zincLocalDbPool = new Pool({
+      connectionString: process.env.LOCAL_DATABASE_URL,
+      ssl: false,
+      max: Number(process.env.LOCAL_PGPOOL_MAX ?? 20),
+      idleTimeoutMillis: Number(
+        process.env.LOCAL_PGPOOL_IDLE_TIMEOUT_MS ?? 5_000
+      ),
+      connectionTimeoutMillis: Number(
+        process.env.LOCAL_PGPOOL_CONNECT_TIMEOUT_MS ?? 10_000
+      ),
+      application_name: process.env.PGAPPNAME_LOCAL ?? 'zinc-frontend-local',
+    })
+  }
+
+  return globalDb.__zincLocalDbPool
 }
 
 /* ------------------------------------------------------------------ */
@@ -49,17 +97,20 @@ if (!globalDb.__zincDbPool) {
 const MAX_RETRIES = Number(process.env.PGPOOL_CONNECT_RETRIES ?? 3)
 const BASE_DELAY_MS = 500
 
-async function connectWithRetry(): Promise<PoolClient> {
+async function connectWithRetry(
+  targetPool: Pool,
+  targetLabel: 'cloud' | 'local'
+): Promise<PoolClient> {
   let lastError: unknown
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return await pool.connect()
+      return await targetPool.connect()
     } catch (err) {
       lastError = err
       if (attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * 2 ** (attempt - 1) // 500, 1000, 2000
         console.warn(
-          `[db] connect attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delay}ms…`,
+          `[db:${targetLabel}] connect attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delay}ms…`,
           err instanceof Error ? err.message : err
         )
         await new Promise((r) => setTimeout(r, delay))
@@ -73,11 +124,44 @@ async function connectWithRetry(): Promise<PoolClient> {
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
-export async function query<T = Record<string, unknown>>(
+function extractSchemaName(sql: string): string | null {
+  const normalized = sql.replace(/\s+/g, ' ').trim()
+  const match =
+    normalized.match(/\b(?:FROM|JOIN|INTO|UPDATE|TABLE|DELETE FROM)\s+([a-z_][a-z0-9_]*)\./i) ??
+    normalized.match(/\bTRUNCATE\s+TABLE\s+([a-z_][a-z0-9_]*)\./i)
+
+  return match?.[1]?.toLowerCase() ?? null
+}
+
+function resolveRouteTarget(sql: string, opts?: QueryRouteOpts): 'cloud' | 'local' {
+  const explicitTarget = opts?.target ?? 'auto'
+
+  if (explicitTarget === 'cloud') return 'cloud'
+  if (explicitTarget === 'local') return 'local'
+
+  if (!localRoutingEnabled) return 'cloud'
+
+  const schema = extractSchemaName(sql)
+  const localSchemas = new Set(
+    (process.env.LOCAL_ROUTE_SCHEMAS ?? 'ops')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  )
+
+  return schema && localSchemas.has(schema) ? 'local' : 'cloud'
+}
+
+function maybeLogRoute(target: 'cloud' | 'local', opts?: QueryRouteOpts): void {
+  if (process.env.DB_ROUTE_LOG !== '1') return
+  console.info(`[db:route] target=${target} mode=${routingMode} tag=${opts?.routeTag ?? 'none'}`)
+}
+
+export async function queryCloud<T = Record<string, unknown>>(
   sql: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const client = await connectWithRetry()
+  const client = await connectWithRetry(cloudPool, 'cloud')
   try {
     const result = await client.query(sql, params)
     return result.rows as T[]
@@ -86,4 +170,85 @@ export async function query<T = Record<string, unknown>>(
   }
 }
 
-export default pool
+export async function queryLocal<T = Record<string, unknown>>(
+  sql: string,
+  params?: unknown[]
+): Promise<T[]> {
+  const client = await connectWithRetry(getLocalPool(), 'local')
+  try {
+    const result = await client.query(sql, params)
+    return result.rows as T[]
+  } finally {
+    client.release()
+  }
+}
+
+export async function queryRouted<T = Record<string, unknown>>(
+  sql: string,
+  params?: unknown[],
+  opts?: QueryRouteOpts
+): Promise<T[]> {
+  const target = resolveRouteTarget(sql, opts)
+  maybeLogRoute(target, opts)
+
+  if (target === 'cloud') {
+    return queryCloud<T>(sql, params)
+  }
+
+  try {
+    return await queryLocal<T>(sql, params)
+  } catch (error) {
+    if (opts?.allowCloudFallback) {
+      console.warn('[db:route] local query failed, falling back to cloud', {
+        error: error instanceof Error ? error.message : String(error),
+        tag: opts.routeTag ?? null,
+      })
+      return queryCloud<T>(sql, params)
+    }
+    throw error
+  }
+}
+
+export async function query<T = Record<string, unknown>>(
+  sql: string,
+  params?: unknown[]
+): Promise<T[]> {
+  return queryCloud<T>(sql, params)
+}
+
+export async function withCloudClient<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await connectWithRetry(cloudPool, 'cloud')
+  try {
+    return await fn(client)
+  } finally {
+    client.release()
+  }
+}
+
+export async function withLocalClient<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await connectWithRetry(getLocalPool(), 'local')
+  try {
+    return await fn(client)
+  } finally {
+    client.release()
+  }
+}
+
+export function getIngestPool(): Pool {
+  if (routingMode === 'dual' && !isVercelRuntime) {
+    return getLocalPool()
+  }
+  return cloudPool
+}
+
+export const localRoutingConfig = {
+  mode: routingMode,
+  enabled: localRoutingEnabled,
+  isVercelRuntime,
+}
+
+export default cloudPool

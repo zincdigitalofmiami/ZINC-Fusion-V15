@@ -21,13 +21,13 @@ import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import { XMLParser } from "fast-xml-parser";
 import JSZip from "jszip";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const CARB_WEEKLY_PAGE =
   "https://ww2.arb.ca.gov/resources/documents/weekly-lcfs-credit-transfer-activity-reports";
 const SOURCE_NAME = "carb_weekly_activity_xlsx";
 const USER_AGENT = "ZINC-Fusion/1.0";
-const pool = dbPool;
+const pool = getIngestPool();
 
 // PoolClient helper functions removed — SQL inlined inside step.run() closures
 // to prevent stale connections across Inngest durable execution boundaries.

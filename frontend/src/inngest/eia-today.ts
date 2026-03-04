@@ -15,7 +15,7 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -122,7 +122,7 @@ export const eiaDaily = inngest.createFunction(
         throw new Error("DATABASE_URL not configured");
       }
 
-      const pool = dbPool;
+      const pool = getIngestPool();
 
       let inserted = 0;
       let skipped = 0;

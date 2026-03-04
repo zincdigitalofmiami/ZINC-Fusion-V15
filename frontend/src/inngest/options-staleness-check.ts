@@ -9,9 +9,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { STANDARD_OPTIONS_UNDERLYINGS } from "./databento-options-daily";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 interface StaleSymbol {
   underlying: string;

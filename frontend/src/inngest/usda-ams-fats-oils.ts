@@ -28,9 +28,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const MARS_API_BASE = "https://marsapi.ams.usda.gov/services/v1.2/reports";
 const REPORT_SLUG = "2839"; // NW_LS906 Weekly Tallow & Protein Report (was 2464 = boxed beef, WRONG)
@@ -402,7 +402,12 @@ export const usdaAmsFatsOilsDaily = inngest.createFunction(
               `INSERT INTO supply.uco_prices_1w
                  (event_date, product, region, price_low, price_high, price_avg, unit, volume, source, row_hash)
                VALUES ${values.join(",")}
-               ON CONFLICT DO NOTHING`,
+               ON CONFLICT (event_date, product, region) DO UPDATE SET
+                 price_avg   = EXCLUDED.price_avg,
+                 price_low   = EXCLUDED.price_low,
+                 price_high  = EXCLUDED.price_high,
+                 source      = EXCLUDED.source,
+                 row_hash    = EXCLUDED.row_hash`,
               params,
             );
             inserted += batch.length;

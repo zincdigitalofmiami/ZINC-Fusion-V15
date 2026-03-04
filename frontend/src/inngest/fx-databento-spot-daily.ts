@@ -11,9 +11,9 @@ import { createHash } from "crypto";
 import { type PoolClient } from "pg";
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // Databento FX pairs not available from FRED
 // Pair names use SLASH format per 20260118_fx_consolidation migration convention.
