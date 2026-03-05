@@ -365,7 +365,7 @@ export default function SentimentPage() {
   const trendBadge = metrics ? getTrendBadge(metrics.technicals.trend) : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20 animate-in fade-in duration-700">
       {/* Header — KEPT AS-IS */}
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
         <div>

@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+}
+
 interface PriceRow {
   date: string
   open: number
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
       source: 'mkt.futures_1d',
       count: rows.length,
       data: rows.reverse()
-    })
+    }, { headers: CACHE_HEADERS })
   } catch (error) {
     console.error('Database error:', error)
     return NextResponse.json({ error: 'Query failed' }, { status: 500 })

@@ -1536,7 +1536,25 @@ html, body {
   }
 
   .nav-links {
-    gap: 20px;
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-header);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 40px;
+    gap: 16px;
+  }
+
+  .nav-links.mobile-open {
+    display: flex;
+  }
+
+  .nav-container {
+    position: relative;
   }
 
   .hero-container {
@@ -1563,6 +1581,120 @@ html, body {
 
   .big-four-gauges {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==========================================================================
+   PHONE BREAKPOINT (480px)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  /* Status bar */
+  .status-bar {
+    padding: 0 12px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 48px;
+    gap: 4px;
+  }
+
+  .status-left {
+    gap: 8px;
+  }
+
+  .zl-price {
+    font-size: 14px;
+  }
+
+  .regime-chip {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  /* Header / nav */
+  .nav-container {
+    padding: 0 16px;
+  }
+
+  .nav-links {
+    padding: 12px 16px;
+  }
+
+  .logo {
+    font-size: 18px;
+  }
+
+  /* Hero (landing page) */
+  .hero-title {
+    font-size: 32px !important;
+  }
+
+  .hero-subtitle {
+    font-size: 16px !important;
+  }
+
+  .hero-container {
+    padding: 20px 16px;
+  }
+
+  .hero-visual {
+    display: none;
+  }
+
+  /* Grids → 1-col on phone */
+  .dashboard-grid,
+  .horizon-grid,
+  .gauges-grid,
+  .current-signal,
+  .big-four-gauges,
+  .intelligence-cards,
+  .forecast-horizons {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards: tighter padding */
+  .posture-card,
+  .signals-card,
+  .metrics-card,
+  .main-content {
+    padding: 16px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  /* Vegas Intel overrides (inline styles need !important) */
+  .vegas-segment-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .vegas-event-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .vegas-event-stats {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .vegas-opp-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  /* Login overrides */
+  .login-wrapper {
+    padding: 16px !important;
+  }
+
+  .login-form-row {
+    flex-direction: column !important;
+    gap: 8px !important;
   }
 }
 

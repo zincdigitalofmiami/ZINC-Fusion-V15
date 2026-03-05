@@ -13,6 +13,7 @@ import { calculateVixStress } from '@/lib/services/vix-service'
 import { calculateCrushPressure } from '@/lib/services/crush-service'
 import { calculateChinaTension } from '@/lib/services/china-service'
 import { calculateTariffThreat } from '@/lib/services/policy-service'
+import { calculateEnergyStress } from '@/lib/services/energy-service'
 import { fetchMarketDriversData } from '@/lib/services/market-drivers-queries'
 import { scoreZlSentiment, type Sentiment } from '@/lib/sentiment-scorer'
 
@@ -325,8 +326,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
           rawData.crushSignal).score
       : null
     const chinaScore = cny !== null
-      ? calculateChinaTension(rawData.fxiChange20d, rawData.fxiChange5d, cny,
-          rawData.cnyChange20d, rawData.bdryChange20d, rawData.soyChinaNews,
+      ? calculateChinaTension(rawData.hgChange20d, rawData.hgChange5d, cny,
+          rawData.cnyChange20d, rawData.bdiyChange20d, rawData.soyChinaNews,
           rawData.totalNews, rawData.chinaSignal).score
       : null
     const tariffScore = tpu !== null
@@ -337,9 +338,15 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     const trumpScore = trumpAction !== null
       ? Math.min(100, Math.round(trumpAction * 50))
       : null
+    // Energy Stress: crude oil + OVX + energy news
+    const energyResult = calculateEnergyStress(
+      rawData.clPrice, rawData.clChange5d, rawData.clChange20d,
+      rawData.ovx, rawData.energyNewsCount,
+    )
+    const energyScore = energyResult.score
 
     // Only average scores that actually have data
-    const validScores = [vixScore, crushScore, chinaScore, tariffScore, trumpScore].filter((s): s is number => s !== null)
+    const validScores = [vixScore, crushScore, chinaScore, tariffScore, trumpScore, energyScore].filter((s): s is number => s !== null)
     const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0
 
     const drivers: DriverSummary[] = [
@@ -404,15 +411,29 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         unit: 'action score',
         asOfDate: trumpDate,
         source: checkFreshness(trumpDate, 'Trump Effect', 7)
+      },
+      {
+        name: 'Energy',
+        score: energyScore,
+        status: energyScore >= 80 ? 'CRISIS' : energyScore >= 65 ? 'SHOCK' : energyScore >= 50 ? 'ELEVATED' : energyScore <= 35 ? 'CALM' : 'OK',
+        impact: energyScore >= 80 ? `Crude oil surging — biofuel economics pushing soy oil UP` :
+                energyScore >= 65 ? `Oil supply shock — energy costs rising, biofuel pressure on soy oil` :
+                energyScore >= 50 ? `Energy markets hot — watch crude for biofuel demand spillover` :
+                energyScore <= 35 ? `Energy calm — falling crude eases biofuel pressure` :
+                `Energy markets normal — no supply disruption`,
+        rawValue: rawData.clPrice,
+        unit: 'USD/barrel',
+        asOfDate: rawData.clDate,
+        source: checkFreshness(rawData.clDate, 'CL Crude', 3)
       }
     ]
 
-    const missingCount = 5 - validScores.length
+    const missingCount = 6 - validScores.length
     const staleCount = stalenessWarnings.length
     const summary = missingCount >= 4
-      ? `${missingCount} of 5 drivers have no data. Brief is unreliable.`
+      ? `${missingCount} of 6 drivers have no data. Brief is unreliable.`
       : missingCount >= 2
-      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/5 drivers.`
+      ? `${missingCount} drivers unavailable. Scores based on ${validScores.length}/6 drivers.`
       : staleCount > 0 && avgScore >= 60
       ? `Multiple headwinds. ${staleCount} source${staleCount > 1 ? 's' : ''} past SLA but usable.`
       : avgScore >= 60
@@ -433,7 +454,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         { name: 'Crush', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/bushel', asOfDate: null, source: 'unavailable' },
         { name: 'China', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'CNY/USD', asOfDate: null, source: 'unavailable' },
         { name: 'Tariffs', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' },
-        { name: 'Trump Effect', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'action score', asOfDate: null, source: 'unavailable' }
+        { name: 'Trump Effect', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'action score', asOfDate: null, source: 'unavailable' },
+        { name: 'Energy', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/barrel', asOfDate: null, source: 'unavailable' }
       ],
       avgScore: 0,
       summary: 'DATABASE ERROR: Unable to fetch driver data. Do not rely on this brief.',
@@ -1005,6 +1027,13 @@ function getKeyRisks(driverData: {drivers: DriverSummary[], avgScore: number}): 
   }
   if (crush && crush.score >= 60) {
     risks.push('Crush margins tight - some plants may slow, tightening supply')
+  }
+
+  const energy = driverData.drivers.find(d => d.name === 'Energy')
+  if (energy && energy.score >= 65) {
+    risks.push('Crude oil surging - biofuel economics diverting more soy oil to renewable diesel')
+  } else if (energy && energy.score >= 50) {
+    risks.push('Energy costs rising - watch for biofuel demand spillover into soy oil')
   }
 
   // Always include these structural risks
