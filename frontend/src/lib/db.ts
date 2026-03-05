@@ -39,6 +39,47 @@ const globalDb = globalThis as unknown as GlobalDbPools
 const isVercelRuntime = process.env.VERCEL === '1'
 const routingMode = process.env.DB_ROUTING_MODE ?? 'cloud_only'
 const localRoutingEnabled = routingMode === 'dual' && !isVercelRuntime
+const expectedLocalDbName =
+  process.env.LOCAL_DB_EXPECTED_NAME ?? 'zinc_fusion_v15_local'
+
+function parseDbIdentityFromUrl(url: string): { host: string; dbName: string } {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch (error) {
+    throw new Error(
+      `[db] Invalid LOCAL_DATABASE_URL: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+
+  const dbName = parsed.pathname.replace(/^\//, '')
+  return { host: parsed.hostname, dbName }
+}
+
+function assertLocalDbIdentity(): void {
+  if (!localRoutingEnabled) return
+
+  const localUrl = process.env.LOCAL_DATABASE_URL
+  if (!localUrl) {
+    throw new Error('[db] LOCAL_DATABASE_URL is required when DB_ROUTING_MODE=dual.')
+  }
+
+  const { host, dbName } = parseDbIdentityFromUrl(localUrl)
+  const allowedHosts = new Set(['localhost', '127.0.0.1', '::1'])
+  if (!allowedHosts.has(host)) {
+    throw new Error(
+      `[db] LOCAL_DATABASE_URL must target local host (${[...allowedHosts].join(', ')}); got '${host}'.`
+    )
+  }
+
+  if (dbName !== expectedLocalDbName) {
+    throw new Error(
+      `[db] LOCAL_DATABASE_URL must use database '${expectedLocalDbName}', got '${dbName || '<empty>'}'.`
+    )
+  }
+}
+
+assertLocalDbIdentity()
 
 const cloudPool =
   globalDb.__zincDbPool ??

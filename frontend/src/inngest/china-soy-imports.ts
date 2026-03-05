@@ -81,25 +81,6 @@ interface ImportRecord {
 // Table DDL
 // ---------------------------------------------------------------------------
 
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.china_imports_1m (
-  id SERIAL PRIMARY KEY,
-  report_month DATE NOT NULL,
-  commodity VARCHAR(50) NOT NULL,
-  symbol VARCHAR(30) NOT NULL,
-  partner_country VARCHAR(100) DEFAULT 'World',
-  value_usd DOUBLE PRECISION,
-  quantity_mt DOUBLE PRECISION,
-  source VARCHAR(30) DEFAULT 'comtrade',
-  specialist_tags TEXT[] DEFAULT '{china,crush}',
-  row_hash VARCHAR(64) NOT NULL,
-  ingested_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(report_month, symbol, partner_country)
-);
-CREATE INDEX IF NOT EXISTS idx_china_imports_month ON supply.china_imports_1m(report_month);
-CREATE INDEX IF NOT EXISTS idx_china_imports_symbol ON supply.china_imports_1m(symbol);
-`;
-
 // ---------------------------------------------------------------------------
 // Fetch from UN Comtrade
 // ---------------------------------------------------------------------------
@@ -204,11 +185,18 @@ export const chinaSoyImportsMonthly = inngest.createFunction(
   async ({ step, logger }) => {
     logger.info("Fetching China soybean complex imports from UN Comtrade");
 
-    // Step 1: Ensure table
-    await step.run("ensure-table", async () => {
+    // Step 1: Assert Prisma migration contract is present
+    await step.run("assert-table-contract", async () => {
       const client = await pool.connect();
       try {
-        await client.query(CREATE_TABLE_SQL);
+        const { rows } = await client.query<{
+          regclass_name: string | null;
+        }>(`SELECT to_regclass('supply.china_imports_1m')::text AS regclass_name`);
+        if (!rows[0]?.regclass_name) {
+          throw new Error(
+            "Missing table supply.china_imports_1m. Apply Prisma migrations before running china-soy-imports-monthly."
+          );
+        }
       } finally {
         client.release();
       }

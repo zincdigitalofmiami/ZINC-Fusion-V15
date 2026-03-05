@@ -35,6 +35,7 @@ import atexit
 import os
 from contextlib import contextmanager
 from typing import Generator, Tuple, Optional
+from urllib.parse import urlparse
 
 from pathlib import Path
 
@@ -90,6 +91,25 @@ def normalize_database_url(url: str) -> str:
     return url
 
 
+def _assert_expected_db_name(url: str) -> None:
+    """
+    Optional identity guard for DB name.
+
+    Set EXPECTED_DB_NAME to enforce that resolved DB URLs target an exact
+    database name (for example, zinc_fusion_v15_local).
+    """
+    expected = os.getenv("EXPECTED_DB_NAME")
+    if not expected:
+        return
+
+    parsed = urlparse(url)
+    actual = parsed.path.lstrip("/")
+    if actual != expected:
+        raise ValueError(
+            f"DB identity mismatch: EXPECTED_DB_NAME='{expected}', got '{actual or '<empty>'}'."
+        )
+
+
 def get_database_url() -> str:
     """
     Get Prisma Postgres connection URL from environment.
@@ -110,7 +130,9 @@ def get_database_url() -> str:
         or os.getenv("POSTGRES_URL")
         or os.getenv("DATABASE_URL")
     )
-    return normalize_database_url(url)
+    normalized = normalize_database_url(url)
+    _assert_expected_db_name(normalized)
+    return normalized
 
 
 def _normalize_url_for_sqlalchemy(url: str) -> str:
@@ -172,9 +194,9 @@ def get_write_connection(
         finally:
             conn.close()
     """
-    return psycopg2.connect(
-        normalize_database_url(database_url) if database_url else get_database_url()
-    )
+    normalized = normalize_database_url(database_url) if database_url else get_database_url()
+    _assert_expected_db_name(normalized)
+    return psycopg2.connect(normalized)
 
 
 @contextmanager

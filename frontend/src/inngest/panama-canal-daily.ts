@@ -42,24 +42,6 @@ interface CanalDayRecord {
 // Table DDL
 // ---------------------------------------------------------------------------
 
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.panama_canal_1d (
-  id SERIAL PRIMARY KEY,
-  event_date DATE NOT NULL UNIQUE,
-  transits_panamax INTEGER,
-  transits_neopanamax INTEGER,
-  transits_total INTEGER,
-  max_draft_ft DOUBLE PRECISION,
-  booking_slots INTEGER,
-  advisory_text TEXT,
-  source VARCHAR(30) DEFAULT 'pancanal',
-  specialist_tags TEXT[] DEFAULT '{tariff,crush,china}',
-  row_hash VARCHAR(64) NOT NULL,
-  ingested_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_panama_canal_date ON supply.panama_canal_1d(event_date);
-`;
-
 // ---------------------------------------------------------------------------
 // Scraping Logic
 // ---------------------------------------------------------------------------
@@ -256,10 +238,17 @@ export const panamaCanalDaily = inngest.createFunction(
   async ({ step, logger }) => {
     logger.info("Fetching Panama Canal daily operations");
 
-    await step.run("ensure-table", async () => {
+    await step.run("assert-table-contract", async () => {
       const client = await pool.connect();
       try {
-        await client.query(CREATE_TABLE_SQL);
+        const { rows } = await client.query<{
+          regclass_name: string | null;
+        }>(`SELECT to_regclass('supply.panama_canal_1d')::text AS regclass_name`);
+        if (!rows[0]?.regclass_name) {
+          throw new Error(
+            "Missing table supply.panama_canal_1d. Apply Prisma migrations before running panama-canal-daily."
+          );
+        }
       } finally {
         client.release();
       }
