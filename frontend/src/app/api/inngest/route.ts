@@ -84,44 +84,57 @@ import {
   profarmerWeeklyBackfill,
   yahooEtfFallbackDaily,
   yahooEtfBackfill,
+  blsMonthly,
+  chinaSoyImportsMonthly,
+  panamaCanalDaily,
+  fasGatsTradeMonthly,
 } from "@/inngest/functions";
 
+function isUnsafeServeHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host === "host.docker.internal" ||
+    host.startsWith("127.") ||
+    host.endsWith(".local")
+  );
+}
+
 /**
- * Compute the serve host explicitly to prevent empty URL issues.
- *
- * Priority:
- * 1. APP_ORIGIN (explicit, most reliable)
- * 2. VERCEL_PROJECT_PRODUCTION_URL (Vercel's production domain)
- * 3. VERCEL_URL (Vercel's deployment URL - includes preview deploys)
- *
- * The empty https:///api/inngest bug happens when none of these resolve.
+ * Only set serveHost for true Vercel production.
+ * Local/dev must not advertise host URLs, even if env leakage occurs.
  */
 function getServeHost(): string | undefined {
-  // Explicit override (most reliable)
-  if (process.env.APP_ORIGIN) {
-    return process.env.APP_ORIGIN;
+  const isVercelProd = process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
+  if (!isVercelProd) return undefined;
+
+  const candidates = [
+    process.env.APP_ORIGIN,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  ];
+
+  for (const candidate of candidates) {
+    const raw = candidate?.trim();
+    if (!raw) continue;
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "https:") continue;
+      if (isUnsafeServeHost(parsed.hostname)) continue;
+      return parsed.origin;
+    } catch {
+      // Ignore invalid candidates and continue.
+    }
   }
 
-  // Vercel production URL (e.g., zinc-fusion-v15.vercel.app)
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-
-  // Vercel deployment URL (works for preview and production)
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  // Let the SDK auto-detect (fallback)
   return undefined;
 }
 
 const serveHost = getServeHost();
-
-// Log for debugging (only in development/build)
-if (process.env.NODE_ENV !== 'production') {
-  console.log('[Inngest] Computed serveHost:', serveHost);
-}
 
 // Extend Vercel Lambda timeout to maximum (Fluid Compute / streaming mode).
 // On Vercel Pro this allows steps up to ~800s instead of the default 300s.
@@ -245,6 +258,14 @@ export const { GET, POST, PUT } = serve({
     // Yahoo Finance ETF fallback (when Databento ETF stale)
     yahooEtfFallbackDaily,
     yahooEtfBackfill,
+    // BLS PPI/CPI/employment (monthly)
+    blsMonthly,
+    // China soybean complex imports (UN Comtrade, monthly)
+    chinaSoyImportsMonthly,
+    // Panama Canal operations + transit data (daily)
+    panamaCanalDaily,
+    // FAS GATS soybean complex trade (monthly)
+    fasGatsTradeMonthly,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),
