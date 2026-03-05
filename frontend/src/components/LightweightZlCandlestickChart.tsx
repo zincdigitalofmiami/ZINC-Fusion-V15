@@ -42,12 +42,12 @@ const THEME = {
   // Grid: 4-7% opacity (TradingView default)
   gridColor: "rgba(255,255,255,0.04)",
   // Crosshair
-  crosshairColor: "rgba(139,92,246,0.6)",
+  crosshairColor: "rgba(255,255,255,0.55)",
   labelBgColor: "rgba(20,10,40,0.9)",
   textColor: "rgba(255,255,255,0.4)",
 };
 
-const DAILY_REFRESH_INTERVAL_MS = 30_000;  // refresh daily bars every 30s
+const DAILY_REFRESH_INTERVAL_MS = 300_000; // refresh daily bars every 5m
 const LIVE_TICKER_INTERVAL_MS  = 10_000;  // refresh live price ticker every 10s
 const INITIAL_VISIBLE_BARS = 150;
 const RIGHT_PADDING_BARS = 16;
@@ -457,8 +457,8 @@ export function LightweightZlCandlestickChart({
             <div
               className={`w-2 h-2 rounded-full ${
                 isLive
-                  ? "bg-green-400 animate-pulse shadow-lg shadow-green-400/50"
-                  : "bg-cyan-400 animate-pulse shadow-lg shadow-cyan-400/50"
+                  ? "bg-green-400 shadow-lg shadow-green-400/50"
+                  : "bg-cyan-400 shadow-lg shadow-cyan-400/50"
               }`}
             />
             <span className="text-sm font-semibold text-white tracking-tight">
