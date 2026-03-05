@@ -26,7 +26,7 @@ const anthropic = new Anthropic({
 // =============================================================================
 
 export interface DriverIntelData {
-  driverName: "vix" | "crush" | "china" | "tariff";
+  driverName: "vix" | "crush" | "china" | "tariff" | "energy";
   score: number;
   level: string;
   regime: string;
@@ -146,6 +146,30 @@ OUTPUT: Valid JSON only, no markdown.
 
 // JSON parsing delegated to shared parseAIJson<T> in parse-ai-json.ts
 
+const ENERGY_EXPERT_PROMPT = `You are an energy markets specialist analyzing crude oil (CL) and its transmission to soybean oil (ZL) via the biofuel channel.
+
+KEY RELATIONSHIPS:
+- Crude oil UP → energy costs up → biofuel economics shift → more soy oil diverted to renewable diesel → ZL UP → BAD for buyer
+- Crude oil DOWN → energy costs ease → less biofuel demand for soy oil → ZL DOWN → GOOD for buyer
+- OVX (oil volatility) → energy market uncertainty
+- Hormuz/OPEC/Iran → supply disruption → crude spike → ZL pressure
+- >50% of US soybean oil now goes to biodiesel/renewable diesel - the energy-ZL link is STRUCTURAL
+- CL 5d change thresholds: 2% normal, 4% notable, 7% supply shock, 12%+ crisis
+
+You analyze how ENERGY MARKETS transmit to soybean oil pricing via the biofuel channel.
+Focus on: crude oil price action, supply disruptions, OPEC policy, biofuel mandate economics, renewable diesel capacity.
+
+OUTPUT: Valid JSON only, no markdown.
+{
+  "whatsHappening": "2-3 sentences on current energy conditions and ZL impact",
+  "macroContext": "Global energy market drivers (geopolitics, OPEC, sanctions)",
+  "supplyDemand": "How energy prices affect biofuel demand for soy oil",
+  "geopolitical": "Geopolitical risk to energy supply (Iran, Hormuz, Russia)",
+  "investorSentiment": "Energy trader positioning and speculative flows",
+  "nearTermOutlook": "Next 5-10 day energy market expectations",
+  "zlImplication": "Direct impact on ZL via biofuel economics and renewable diesel"
+}`;
+
 export async function generateDriverIntel(
   data: DriverIntelData,
 ): Promise<DriverIntel | null> {
@@ -154,6 +178,7 @@ export async function generateDriverIntel(
     crush: CRUSH_EXPERT_PROMPT,
     china: CHINA_EXPERT_PROMPT,
     tariff: TARIFF_EXPERT_PROMPT,
+    energy: ENERGY_EXPERT_PROMPT,
   }[data.driverName];
 
   const componentsList = Object.entries(data.components)
@@ -228,8 +253,10 @@ export function generateFallbackDriverIntel(
     data.components.board_crush_value ?? data.components.board_crush;
   const oilShare = data.components.oil_share_value;
   const cnyRate = data.components.cny_rate;
-  const fxiChange20d = data.components.fxi_change_20d;
-  const bdryChange = data.components.bdry_change_20d;
+  const hgChange20d =
+    data.components.hg_change_20d ?? data.components.fxi_change_20d;
+  const bdiyChange =
+    data.components.bdiy_change_20d ?? data.components.bdry_change_20d;
   const tpuValue = data.components.tpu_value ?? data.components.tpu;
 
   // PLAIN ENGLISH FOR VEGAS BUYERS - NO QUANT JARGON
@@ -321,12 +348,12 @@ export function generateFallbackDriverIntel(
           ? `Trade war risk is real. Remember 2018-2019? China switched to Brazil overnight. Could happen again.`
           : `No immediate trade war threat, but the structural disadvantage is permanent. Don't count on China demand surprises.`,
       investorSentiment:
-        fxiChange20d !== null && fxiChange20d !== undefined && fxiChange20d < -5
-          ? `China's stock market is down ${Math.abs(fxiChange20d).toFixed(0)}% this month. Economic concerns are real.`
-          : `China markets are stable. No panic, but no boom either.`,
+        hgChange20d !== null && hgChange20d !== undefined && hgChange20d < -5
+          ? `Copper is down ${Math.abs(hgChange20d).toFixed(0)}% this month. China demand concerns are real.`
+          : `Copper is stable. No panic, but no boom either.`,
       nearTermOutlook:
-        bdryChange !== null && bdryChange !== undefined && bdryChange < -10
-          ? `Shipping rates are collapsing (${bdryChange.toFixed(0)}% down). That's a red flag for physical trade.`
+        bdiyChange !== null && bdiyChange !== undefined && bdiyChange < -10
+          ? `Shipping rates are collapsing (${bdiyChange.toFixed(0)}% down). That's a red flag for physical trade.`
           : `Shipping steady. Physical trade flowing normally.`,
       zlImplication:
         data.score >= 65
@@ -365,6 +392,48 @@ export function generateFallbackDriverIntel(
           : data.score >= 50
             ? `STAY ALERT but don't overreact. Political noise, not policy action yet. Normal buying with one eye on headlines.`
             : `TRADE POLICY IS SUPPORTIVE. No new tariffs, calm environment. Good window to cover your needs.`,
+    },
+    energy: {
+      whatsHappening:
+        data.score >= 80
+          ? `ENERGY CRISIS. Crude oil is surging on supply disruption. When oil spikes, biofuel economics shift massively - more soybean oil gets diverted to renewable diesel. That means less oil for food use, prices UP.`
+          : data.score >= 65
+            ? `Oil supply shock underway. Crude is rising fast, which pushes biofuel margins and pulls soybean oil into the renewable diesel channel. Expect tighter physical supply and rising basis.`
+            : data.score >= 50
+              ? `Energy markets are running hot. Crude oil trending up, which keeps biofuel demand for soy oil strong. Not crisis mode, but costs are elevated.`
+              : data.score >= 35
+                ? `Energy markets are normal. Crude oil is stable, no supply disruptions. Biofuel demand for soy oil is steady at normal levels.`
+                : `Energy is a tailwind right now. Falling crude eases biofuel cost pressure, meaning less soy oil gets pulled into renewable diesel. More supply for food use.`,
+      macroContext:
+        data.score >= 65
+          ? `Geopolitical supply disruptions (Middle East, OPEC cuts, sanctions) are driving crude higher. The biofuel channel transmits this directly to soy oil.`
+          : `Energy markets are balanced. No major supply disruptions or OPEC surprises moving crude prices.`,
+      supplyDemand:
+        data.score >= 65
+          ? `Over 50% of US soybean oil now goes to biodiesel/renewable diesel. When crude spikes, that channel pulls even harder. Physical soy oil supply for food gets tight.`
+          : `Biofuel demand for soy oil is steady at ~50% of domestic use. No unusual pull from the energy side.`,
+      geopolitical:
+        data.score >= 65
+          ? `Strait of Hormuz risk, Iran/Israel tensions, or OPEC supply cuts can spike crude overnight. Each $10/barrel move in crude shifts biofuel economics significantly.`
+          : `Geopolitical energy risk is background level. Hormuz open, OPEC stable, no active supply disruptions.`,
+      investorSentiment:
+        data.score >= 50
+          ? `Energy traders are positioning for further upside in crude. That spills into soy oil via the biofuel linkage.`
+          : `Energy positioning is neutral. No speculative pressure spilling into soy oil markets.`,
+      nearTermOutlook:
+        data.score >= 65
+          ? `Watch crude oil closely. If CL breaks higher, soy oil will follow via biofuel demand. Basis could widen fast.`
+          : `Energy outlook is stable. No imminent catalysts for crude spikes. Normal biofuel demand patterns expected.`,
+      zlImplication:
+        data.score >= 80
+          ? `LOCK IN COVERAGE NOW. Energy crisis is pulling soy oil into biofuel hard. Prices will keep rising until crude stabilizes. Don't wait.`
+          : data.score >= 65
+            ? `ACT QUICKLY on coverage. Oil supply shock means higher biofuel demand for soy oil. Every day you wait, costs go up.`
+            : data.score >= 50
+              ? `STAY ALERT. Energy costs are elevated. Keep coverage current but don't panic-buy. Watch crude for direction.`
+              : data.score >= 35
+                ? `NORMAL CONDITIONS. Energy isn't pressuring soy oil. Buy on your schedule.`
+                : `GOOD WINDOW. Falling crude means less biofuel pull on soy oil. Favorable conditions for buyers.`,
     },
   };
 
