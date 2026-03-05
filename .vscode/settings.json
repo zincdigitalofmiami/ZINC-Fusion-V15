@@ -10,7 +10,7 @@
 
   "editor.rulers": [88, 120],
   "editor.parameterHints.enabled": true,
-  "editor.hover.enabled": true,
+  "editor.hover.enabled": "on",
   "editor.suggestOnTriggerCharacters": true,
   "editor.quickSuggestions": {
     "other": true,
