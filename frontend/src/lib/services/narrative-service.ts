@@ -28,9 +28,10 @@ export function generateMarketIntelligence(
   oilShare: number | null,
   china: DriverResult,
   cnyRate: number,
-  fxiChange20d: number,
+  _hgChange20d: number,
   tariff: DriverResult,
   _tpuValue: number,
+  energy?: DriverResult,
 ): {
   headline: string;
   summary: string;
@@ -38,19 +39,11 @@ export function generateMarketIntelligence(
   zlOutlook: "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH";
   zlColor: string;
 } {
-  const avgScore = (vix.score + crush.score + china.score + tariff.score) / 4;
-  const highPressureCount = [
-    vix.score,
-    crush.score,
-    china.score,
-    tariff.score,
-  ].filter((s) => s >= 65).length;
-  const lowPressureCount = [
-    vix.score,
-    crush.score,
-    china.score,
-    tariff.score,
-  ].filter((s) => s <= 35).length;
+  const allScores = [vix.score, crush.score, china.score, tariff.score];
+  if (energy) allScores.push(energy.score);
+  const avgScore = allScores.reduce((a, b) => a + b, 0) / allScores.length;
+  const highPressureCount = allScores.filter((s) => s >= 65).length;
+  const lowPressureCount = allScores.filter((s) => s <= 35).length;
 
   let zlOutlook: "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH";
   let zlColor: string;
@@ -123,6 +116,19 @@ export function generateMarketIntelligence(
     summaryParts.push(`Trade policy is quiet - no new threats.`);
   }
 
+  // Energy - crude oil / biofuel channel
+  if (energy) {
+    if (energy.score >= 80) {
+      summaryParts.push(`ENERGY CRISIS - crude oil surging, biofuel costs spiking. Soy oil being diverted to renewable diesel.`);
+    } else if (energy.score >= 65) {
+      summaryParts.push(`Oil supply shock underway - energy costs rising, pushing biofuel economics into soy oil.`);
+    } else if (energy.score >= 50) {
+      summaryParts.push(`Energy markets running hot - watch crude oil for biofuel demand spillover.`);
+    } else if (energy.score <= 35) {
+      summaryParts.push(`Energy markets calm - falling crude eases biofuel pressure on soy oil.`);
+    }
+  }
+
   // Final recommendation
   if (highPressureCount >= 2) {
     summaryParts.push(
@@ -181,6 +187,29 @@ export function generateMarketIntelligence(
             ? "Policy stable"
             : "Headlines, no action",
     },
+    ...(energy
+      ? [
+          {
+            label: "Energy",
+            outlook:
+              energy.score >= 80
+                ? "CRISIS"
+                : energy.score >= 65
+                  ? "SHOCK"
+                  : energy.score >= 50
+                    ? "HOT"
+                    : energy.score <= 35
+                      ? "CALM"
+                      : "OK",
+            detail:
+              energy.score >= 65
+                ? "Crude surging — biofuel costs up"
+                : energy.score <= 35
+                  ? "Energy calm — no pressure"
+                  : "Energy steady",
+          },
+        ]
+      : []),
   ];
 
   return {

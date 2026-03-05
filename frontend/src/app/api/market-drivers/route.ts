@@ -13,6 +13,7 @@ import { calculateVixStress } from "@/lib/services/vix-service";
 import { calculateCrushPressure } from "@/lib/services/crush-service";
 import { calculateChinaTension } from "@/lib/services/china-service";
 import { calculateTariffThreat } from "@/lib/services/policy-service";
+import { calculateEnergyStress } from "@/lib/services/energy-service";
 import { generateMarketIntelligence } from "@/lib/services/narrative-service";
 import {
   fetchMarketDriversData,
@@ -44,6 +45,7 @@ interface AiCacheEntry {
   crushIntel: DriverIntel | null;
   chinaIntel: DriverIntel | null;
   tariffIntel: DriverIntel | null;
+  energyIntel: DriverIntel | null;
 }
 
 // Module-level singleton — persists across requests within the same serverless
@@ -179,11 +181,11 @@ export async function GET() {
       rawData.crushSignal,
     );
     const chinaResult = calculateChinaTension(
-      rawData.fxiChange20d,
-      rawData.fxiChange5d,
+      rawData.hgChange20d,
+      rawData.hgChange5d,
       cny,
       rawData.cnyChange20d,
-      rawData.bdryChange20d,
+      rawData.bdiyChange20d,
       rawData.soyChinaNews,
       rawData.totalNews,
       rawData.chinaSignal,
@@ -195,6 +197,13 @@ export async function GET() {
       rawData.soyTariffNews,
       rawData.tariffSignal,
     );
+    const energyResult = calculateEnergyStress(
+      rawData.clPrice,
+      rawData.clChange5d,
+      rawData.clChange20d,
+      rawData.ovx,
+      rawData.energyNewsCount,
+    );
 
     // 4. Generate rule-based narrative
     const ruleBasedIntelligence = generateMarketIntelligence(
@@ -205,9 +214,10 @@ export async function GET() {
       rawData.oilShare,
       chinaResult,
       cny,
-      rawData.fxiChange20d,
+      rawData.hgChange20d,
       tariffResult,
       tpu,
+      energyResult,
     );
 
     // 5. Build AI MarketData
@@ -218,6 +228,7 @@ export async function GET() {
         crush: crushResult.score,
         china: chinaResult.score,
         tariff: tariffResult.score,
+        energy: energyResult.score,
       },
       asOfDate,
     );
@@ -229,6 +240,7 @@ export async function GET() {
     let crushIntel: DriverIntel | null;
     let chinaIntel: DriverIntel | null;
     let tariffIntel: DriverIntel | null;
+    let energyIntel: DriverIntel | null;
 
     if (cached) {
       // Cache hit — skip ALL Anthropic calls
@@ -237,9 +249,10 @@ export async function GET() {
       crushIntel = cached.crushIntel;
       chinaIntel = cached.chinaIntel;
       tariffIntel = cached.tariffIntel;
+      energyIntel = cached.energyIntel;
     } else {
       // Cache miss — call AI with timeout, then cache for the rest of the day
-      [aiIntelligence, vixIntel, crushIntel, chinaIntel, tariffIntel] =
+      [aiIntelligence, vixIntel, crushIntel, chinaIntel, tariffIntel, energyIntel] =
         await Promise.all([
           withTimeout(
             generateAIIntelligence(marketData).catch(() => null),
@@ -306,6 +319,21 @@ export async function GET() {
             AI_TIMEOUT_MS,
             null,
           ),
+          withTimeout(
+            generateDriverIntel({
+              driverName: "energy",
+              score: energyResult.score,
+              level: energyResult.level,
+              regime: energyResult.regime,
+              components: energyResult.components as unknown as Record<
+                string,
+                number | null
+              >,
+              asOfDate,
+            }).catch(() => null),
+            AI_TIMEOUT_MS,
+            null,
+          ),
         ]);
 
       // Persist to cache — all subsequent requests today skip AI entirely
@@ -316,6 +344,7 @@ export async function GET() {
         crushIntel,
         chinaIntel,
         tariffIntel,
+        energyIntel,
       });
     }
 
@@ -404,6 +433,19 @@ export async function GET() {
         >,
         asOfDate,
       });
+    const energyWhatsHappening =
+      energyIntel ??
+      generateFallbackDriverIntel({
+        driverName: "energy",
+        score: energyResult.score,
+        level: energyResult.level,
+        regime: energyResult.regime,
+        components: energyResult.components as unknown as Record<
+          string,
+          number | null
+        >,
+        asOfDate,
+      });
 
     // 9. Assemble response
     const dataFreshness = computeDataFreshness(rawData);
@@ -463,6 +505,17 @@ export async function GET() {
             aiPowered: tariffIntel !== null,
             dataDate: rawData.tpuDate,
           },
+          energy_stress: {
+            name: "Energy Stress",
+            score: energyResult.score,
+            level: energyResult.level,
+            regime: energyResult.regime,
+            headline: energyResult.headline,
+            components: energyResult.components,
+            whatsHappening: energyWhatsHappening,
+            aiPowered: energyIntel !== null,
+            dataDate: rawData.clDate,
+          },
         },
         summary: {
           average_pressure:
@@ -470,8 +523,9 @@ export async function GET() {
               ((vixResult.score +
                 crushResult.score +
                 chinaResult.score +
-                tariffResult.score) /
-                4) *
+                tariffResult.score +
+                energyResult.score) /
+                5) *
                 10,
             ) / 10,
           highest_pressure: [
@@ -479,12 +533,14 @@ export async function GET() {
             { name: "Crush Pressure", score: crushResult.score },
             { name: "China Tension", score: chinaResult.score },
             { name: "Tariff Threat", score: tariffResult.score },
+            { name: "Energy Stress", score: energyResult.score },
           ].sort((a, b) => b.score - a.score)[0],
           alert_count: [
             vixResult.score,
             crushResult.score,
             chinaResult.score,
             tariffResult.score,
+            energyResult.score,
           ].filter((s) => s >= 65).length,
         },
         intelligence,
