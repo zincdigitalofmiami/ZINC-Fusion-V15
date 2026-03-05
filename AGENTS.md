@@ -18,7 +18,26 @@ This is not optional. This is not situational. This runs every session.
 
 Commodity procurement forecasting system for ZL (soybean oil futures). Core predicts the future ZL futures contract price. L2/L3 calibration layers wrap that price forecast with probability, rendered as **horizontal Target Zones** on the dashboard (e.g. "ZL has an 88% chance of hitting 48.52 by July 7th"). Probability is always derived from three named sources: Monte Carlo (10,000 runs), pinball loss calibration, and MAE/accuracy %. Intelligence only — no execution or trade logic.
 
-**Client:** US Oil Solutions
+**Client:** US Oil Solutions (Las Vegas, NV) — [usoilsolutions.com](https://www.usoilsolutions.com/)
+
+### Client Business Model — READ THIS
+
+**Chris** is the owner. His business:
+
+1. **BUYS raw soybean oil by the trainload** (millions of gallons). This is his PRIMARY cost. When ZL goes up, his input cost rises — **BAD.** When ZL drops, he buys cheaper — **GOOD.** The Strategy page posture language (ACCUMULATE = lock in low prices now, WAIT = prices may soften further) is CORRECT for his buying side.
+
+2. **Delivers fresh cooking oil** to 100+ restaurant kitchens across Las Vegas casinos (Caesars, Boyd Gaming, Resorts World, etc.).
+
+3. **Collects used cooking oil (UCO)** when servicing restaurants (oil changes). He then sells the UCO — likely to biodiesel producers/refiners. This is a SECONDARY revenue stream. When UCO prices rise (which tracks ZL), his collection revenue increases.
+
+So Chris is on BOTH sides of the oil market: he is hurt by rising ZL on the buy side (his biggest cost) but benefits from rising UCO prices on the sell side. Net exposure is primarily as a **BUYER** — the trainloads of raw soy oil dwarf the UCO collection revenue.
+
+**Kevin** is the sales director. He uses the Vegas Intel page to:
+- Pitch restaurants on upgrading their oil service / scheduling ahead of big events
+- Pre-arrange extra oil deliveries and UCO pickups when convention traffic spikes fryer usage
+- Prospect new restaurant accounts (red "PROSPECT" badges)
+
+Kevin's sales pitch: "CES has 170K attendees in 12 days — your fryers will run overtime. Let us pre-schedule extra fresh oil delivery and UCO pickup."
 
 ## Tech Stack
 
@@ -29,6 +48,31 @@ Commodity procurement forecasting system for ZL (soybean oil futures). Core pred
 - **Package Manager:** uv (Python), npm (`frontend/` + `config/` for Prisma CLI)
 - **Testing:** pytest (Python), npm test (frontend)
 - **Tracking:** MLflow (local)
+- **Local Inngest:** Docker (`docker-compose.inngest.yml`) — required for heavy browser-based scrapers
+
+## Docker Inngest Setup (Required for ProFarmer)
+
+ProFarmer and other browser-based scrapers are too heavy for Vercel serverless. They run via Docker Inngest locally.
+
+```bash
+# 1. Start Docker Inngest dev server (port 8288, polls host:3000)
+docker compose -f docker-compose.inngest.yml up -d
+
+# 2. Start Next.js dev server (port 3000)
+npm --prefix frontend run dev
+
+# 3. Trigger ProFarmer manually
+curl -X POST http://localhost:8288/e/test \
+  -H "Content-Type: application/json" \
+  -d '{"name": "profarmer/daily", "data": {}}'
+
+# Inngest UI: http://localhost:8288
+```
+
+`profarmer-daily.ts` auto-detects the runtime via `resolveChromePath()`:
+- **Docker/local:** Uses system Chrome (macOS, Linux paths probed automatically)
+- **Vercel:** Falls back to `@sparticuz/chromium` (but ProFarmer will timeout — don't rely on this)
+- **Override:** Set `PUPPETEER_EXECUTABLE_PATH` env var to force a specific binary
 
 ## Repository Layout
 
@@ -118,9 +162,171 @@ USDA FAS Export Sales reports (`supply.usda_exports_1w`) contain **country-level
 
 **Source reports:** Soybeans, Soybean Oil, Soybean Meal pages at `apps.fas.usda.gov/export-sales/`
 
+## Data Source Registration Audit
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+### What build_matrix.py ACTUALLY reads (the ONLY things that reach training)
+
+The core matrix builder (`src/fusion/core_training/build_matrix.py`) has explicit `load_*()` functions for each data source. If a table is NOT listed below, it does NOT reach the core training pipeline, period.
+
+| Loader Function | Source Table(s) | Status |
+|----------------|-----------------|--------|
+| `load_futures_base()` | `mkt.futures_1d` (ZL, ZS, ZM, etc.) | ✅ Current |
+| `load_fred_macro()` | `econ.rates_1d`, `econ.inflation_1d`, `econ.labor_1d`, `econ.activity_1d`, `econ.vol_indices_1d`, `econ.commodities_1d`, `econ.money_1d` | ✅ Current |
+| `load_fx_rates()` | `mkt.fx_1d` | ✅ Current |
+| `load_spread_features()` | `analytics.board_crush_1d`, `mkt.futures_1d` (cross-commodity) | ✅ Current |
+| `load_cross_asset_correlations()` | `mkt.futures_1d` | ✅ Current |
+| `load_cross_commodity_indicators()` | `mkt.futures_1d` | ✅ Current |
+| `load_options_features()` | `mkt.options_1d` | ⚠️ Table exists but may be empty |
+| `load_weather_aggregates()` | `alt.weather_1d` | ✅ Current |
+| `load_cftc_positioning()` | `pos.cftc_1w` | ✅ Current |
+| `load_epa_rin_prices()` | `supply.epa_rin_1d` | ⚠️ At source limit (Jan 19) |
+| `load_usda_exports()` | `supply.usda_exports_1w` | ✅ Current |
+| `load_usda_wasde()` | `supply.usda_wasde_1m` | ✅ Current |
+| `load_lcfs_credit()` | `supply.lcfs_1d` | ✅ Current |
+| `load_china_pmi()` | `econ.activity_1d` (CN PMI) | ✅ Current |
+| `load_dalian_soy()` | `mkt.futures_1d` (Dalian) | ✅ Current |
+| `load_news_counts()` | `alt.policy_news_event`, `alt.executive_actions_event`, `alt.econ_news_event`, `alt.profarmer_news_event` (UNION ALL → count/day) | ✅ Current |
+| `load_specialist_signals()` | `training.specialist_signals_1d` (11 buckets × 3 cols) | ✅ Current |
+
+### Tables WIRED INTO build_matrix.py on 2026-02-27
+
+These were previously missing from the matrix builder and are now wired in:
+
+| Table | Loader Function | Merge Strategy | Status |
+|-------|----------------|----------------|--------|
+| `mkt.etf_1d` | `load_etf_data()` | Left join on trade_date (12 key ETFs pivoted wide) | ✅ WIRED (46K rows, stale at Feb 2) |
+| `alt.legislation_1d` | `load_legislation_events()` | Left join (count/type per day) | ✅ WIRED (2,944 rows, current) |
+| `supply.eia_biodiesel_1m` | `load_eia_biodiesel()` | Asof merge (45-day tolerance) | ✅ WIRED (179 rows, at source limit Nov 2025) |
+
+### Tables that STILL need work
+
+| Table | Rows | Issue | Priority |
+|-------|------|-------|----------|
+| `supply.eia_biodiesel_1w` | 0 | Inngest function registered, backfill triggered 2026-02-27 | P1 |
+| `supply.uco_prices_1w` | 0 | Inngest function registered but USDA AMS source unverified | P0 — zero data |
+
+### Inngest functions using SHARED tables (corrected 2026-02-27)
+
+These functions write to existing shared tables — NO new tables needed:
+
+| Function | Target Table | Status |
+|----------|-------------|--------|
+| `fedSpeechesDaily` | `alt.policy_news_event` | ✅ Shared table (with farmdoc-rins, etc.) |
+| `congressBillsDaily` | `alt.legislation_1d` | ✅ Shared table (with federal-register-daily) |
+
+**Previous audit was WRONG** — said these needed `alt.fed_speeches_event` and `alt.congress_bills_event`.
+They actually write to existing shared tables. Check env vars: congressBillsDaily requires `CONGRESS_API_KEY`.
+
+### Data Freshness Audit (2026-02-27)
+
+| Table | Max Date | Status |
+|-------|----------|--------|
+| `mkt.futures_1d` (ZL) | Feb 26 | ✅ Current |
+| `mkt.fx_1d` | Feb 26 | ✅ Current |
+| `alt.legislation_1d` | Feb 26 | ✅ Current |
+| `alt.weather_1d` | Feb 25 | ✅ Current |
+| `training.specialist_signals_1d` | Feb 25 | ✅ Current |
+| `training.matrix_1d` | Feb 25 | ✅ Current |
+| `analytics.board_crush_1d` | Feb 24 | ✅ Current |
+| `supply.usda_exports_1w` | Feb 19 | ✅ Weekly cadence |
+| `pos.cftc_1w` | Feb 17 | ✅ Weekly cadence |
+| `supply.lcfs_1d` | Feb 13 | ⚠️ 2 weeks stale |
+| `alt.profarmer_news_event` | Mar 4 | ✅ FIXED 2026-03-03. 8,535 articles. Runs via Docker Inngest (system Chrome). |
+| `mkt.etf_1d` | Feb 2 | 🔴 DEAD since Feb 2 (Databento failure). Yahoo fallback created, both backfills triggered. |
+| `supply.epa_rin_1d` | Jan 19 | ⚠️ EPA source limit (monthly publishing). Tiered fallback active. |
+| `supply.eia_biodiesel_1m` | Nov 2025 | ⚠️ EIA source limit |
+| `supply.eia_biodiesel_1w` | — | 🔴 EMPTY. Backfill triggered 2026-02-27. |
+| `supply.uco_prices_1w` | — | 🔴 EMPTY. USDA AMS source unverified. |
+
+### Inngest Function Run Audit (Feb 2026)
+
+| Function | Runs | Successes | Failures | Status |
+|----------|------|-----------|----------|--------|
+| `profarmer-daily` | 74+ | 1 | 37 | ✅ FIXED 2026-03-03. Runs via Docker Inngest (NOT Vercel serverless). |
+| `fas-reports-daily` | 2 | 0 | 0 | 🔴 Never succeeded |
+| `nass-weekly` | 2 | 1 | 0 | ⚠️ Last success Feb 6 |
+| `fred-daily-*` (all) | ~500 | ~450 | 0 | ✅ Running |
+| `federal-register-daily` | 44 | 17 | 0 | ⚠️ Low success rate (39%) |
+| `epa-rin-prices-daily` | 33 | 30 | 0 | ✅ Running (source limited) |
+| `cftc-weekly` | 3 | 2 | 0 | ✅ Running |
+| `usda-export-sales-weekly` | 4 | 4 | 0 | ✅ Running |
+
+### Docker Inngest Runtime Audit (2026-03-03)
+
+Local Docker runtime inspection (`inngest-dev` container, `/dev` endpoint + logs):
+
+| Check | Observation |
+|-------|-------------|
+| Runtime registration | 133 functions total: 108 `fusion-jobs-*` + 25 `rabid-raccoon-*` |
+| Sync URLs | `http://host.docker.internal:3000/api/inngest` and `http://host.docker.internal:3001/api/inngest` |
+| Step URI routing | 108 functions target port `3000`, 25 functions target port `3001` |
+| Host listeners | Port `3000` had no listener; port `3001` had active Node listener |
+| Log health (last 2h at audit time) | `Unable to reach SDK URL=67`, `status 401=4`, `received_event=89`, `initializing_fn=34` |
+| Highest recent impacted fusion jobs | `global-failure-monitor`, `biofuel-rss-daily`, `zl-15m`, `zl-1h`, `palm-multi-source-daily`, `databento-statistics-daily-shard-6`, `databento-options-daily-shard-6` |
+| Compose drift | `docker compose -f docker-compose.inngest.yml ps` showed no running service while `inngest-dev` was running separately (not compose-managed) |
+
+**Operational implication:** Docker Inngest was scheduling fusion jobs, but fusion handlers on `:3000` were unreachable during the audit window, so scheduled runs repeatedly failed at delivery time.
+
+### ProFarmer data usage
+
+ProFarmer articles are in `alt.profarmer_news_event` and ARE included in the matrix — but ONLY as a daily article **count** (via `load_news_counts()` UNION ALL). The actual article content, sentiment, and section routing are NOT used by the matrix builder. The specialist signal generators (`generate_specialist_features.py`) DO use ProFarmer content for the crush, china, energy, biofuel, and tariff specialists through separate loaders.
+
+## Specialist Signal Generators — What They Actually Are
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+**CRITICAL TRUTH: The specialists are NOT properly trained ML models.** They are pre-baked feature engineering pipelines with hardcoded model types. Running `generate_specialist_features.py` + `generate_specialist_signals.py` is feature engineering, NOT training.
+
+**What "training" the specialists actually means today:**
+1. `generate_specialist_features.py` — Queries hand-picked features per domain from the DB, writes to `training.specialist_features_{bucket}`
+2. `generate_specialist_signals.py` — Applies pre-baked models (GBM, Ridge, GARCH, etc.) with hardcoded hyperparameters to produce `(signal_1, signal_2, confidence)` per day, writes to `training.specialist_signals_1d`
+
+**What they should be (from plan `foamy-spinning-steele.md`):**
+- 5-fold cross-validation with 3600s/fold training time
+- Leakage-proof calibration (fit on odd folds, evaluate on even)
+- Purge/embargo from label overlap geometry
+- IC-priority hierarchical correlation dedup
+- Feature selection stability tracking
+- Full reproducibility manifest
+
+**The REAL training** happens in the core pipeline: `python -m fusion.core_training.run_pipeline` → Phase 3 (build ~1,487-feature matrix) → Phase 6 (AutoGluon 19-model ensemble) → Phase 7 (promote OOF to production).
+
+## Pipeline Execution — How To Actually Run Things
+
+<!-- LAST UPDATED: 2026-02-27 -->
+
+### The CORRECT way to train (core pipeline)
+```bash
+# Full pipeline: matrix build → train → promote forecasts
+.venv/bin/python -m fusion.core_training.run_pipeline
+
+# Skip matrix rebuild (if matrix is current)
+.venv/bin/python -m fusion.core_training.run_pipeline --skip-matrix
+```
+
+### The CORRECT way to generate specialist signals
+```bash
+# Features first, then signals. Must use --start-date or defaults are too narrow.
+.venv/bin/python scripts/generate_specialist_features.py --bucket all --start-date 2025-01-01
+.venv/bin/python scripts/generate_specialist_signals.py --bucket all --start-date 2025-01-01
+```
+
+### Scripts that are WRONG / misleading
+- `scripts/populate_core_matrix.py` — lightweight 25-column script, NOT the real matrix builder. The real builder is `src/fusion/core_training/build_matrix.py` (3,259 lines, 1,487 features). **DO NOT USE populate_core_matrix.py.**
+
+### Last successful pipeline run (2026-02-27)
+- Matrix: 1,487 features, 7,976 rows
+- Horizons: 5d, 21d, 63d, 126d
+- All 11 specialist buckets passed data gate
+- All 4 horizons trained via AutoGluon
+- Production forecasts promoted
+- Run hash: `2c189bf007b936c4`
+
 ## Claude Hard-Coded Corrections (DO NOT REPEAT THESE ERRORS)
 
-<!-- LAST UPDATED: 2026-02-19 by Kirk (architect) -->
+<!-- LAST UPDATED: 2026-02-27 -->
 
 These are verified facts burned in from architect corrections. Claude must never contradict these.
 
@@ -192,6 +398,36 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - It was a mechanics validation, not a performance benchmark for the full system.
 - The dry run used the OLD config (WQL metric, returns target, quantile outputs). All three are now fixed: MAE metric, price target, single predicted_price output.
 - Do not compare dry run numbers to the full system's expected performance.
+
+### 7. Biofuel Specialist min_periods Bug (FIXED 2026-02-27)
+- `src/fusion/specialists/events/biofuel.py` had `compute_zscore(rin_series, window=126, min_periods=42)` on **weekly** EPA RIN data
+- Weekly data = ~18 observations per 126 calendar days → never reaches 42 min_periods → always NaN → 0 signals
+- **Fixed**: Changed `min_periods=42` → `min_periods=12` (≈3 months of weekly data)
+- This was the reason biofuel specialist always produced 0 signals
+
+### 8. populate_core_matrix.py Is WRONG (DISCOVERED 2026-02-27)
+- `scripts/populate_core_matrix.py` is a lightweight 25-column script that uses wrong column names (`as_of_date` instead of `trade_date`, `target_5d` instead of `target_ret_5d`)
+- The REAL matrix builder is `src/fusion/core_training/build_matrix.py` (3,259 lines, 1,487 features)
+- Run `python -m fusion.core_training.run_pipeline` for the real pipeline. NEVER use `populate_core_matrix.py`.
+
+### 10. ProFarmer Scraper: Full Fix History (RESOLVED 2026-03-03)
+- **Dead Feb 15 → Mar 3** due to Turbopack tree-shaking breaking puppeteer-extra transitive deps
+- Error chain: `is-plain-object` → `kind-of` → `fs-extra` (each fixed incrementally)
+- `next.config.ts`: 23 entries in `serverExternalPackages` + 22 glob patterns in `outputFileTracingIncludes`
+- Vercel serverless STILL times out even with modules fixed (browser launch + login + 7 sections too heavy for 60s/300s)
+- **Final solution: Docker Inngest** — `resolveChromePath()` in `profarmer-daily.ts` detects runtime:
+  1. `PUPPETEER_EXECUTABLE_PATH` env var → Docker/CI override
+  2. System Chrome probing → macOS, Debian, Alpine, Linux paths
+  3. `@sparticuz/chromium` → Vercel fallback only (kept for non-browser Inngest functions)
+- **ProFarmer MUST run via Docker Inngest, NOT Vercel.** Do not suggest "Vercel redeploy" for ProFarmer.
+- Manual trigger: `curl -X POST http://localhost:8288/e/test -H "Content-Type: application/json" -d '{"name": "profarmer/daily", "data": {}}'`
+- Docker Inngest setup: `docker compose -f docker-compose.inngest.yml up -d` (port 8288, polls host:3000)
+
+### 9. Specialist "Training" Is NOT Real Training (DISCOVERED 2026-02-27)
+- Running `generate_specialist_features.py` + `generate_specialist_signals.py` is **feature engineering**, not ML training
+- The specialists use pre-baked models with hardcoded hyperparameters — no cross-validation, no hyperparameter search, no model persistence
+- Real training only happens in the core pipeline (AutoGluon Phase 6)
+- Plans exist to properly train specialists (5-fold CV, purge/embargo, calibration) but are NOT yet implemented
 
 ## Core Rules
 

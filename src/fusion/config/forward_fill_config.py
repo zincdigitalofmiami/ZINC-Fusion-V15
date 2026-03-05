@@ -16,7 +16,6 @@ calendar is used.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 
 @dataclass(frozen=True)
@@ -30,7 +29,7 @@ class SourceConfig:
     cadence: str
 
     # Maximum TTL in calendar days (None = no forward fill allowed)
-    ttl_days: Optional[int]
+    ttl_days: int | None
 
     # Whether to use event encoding instead of level forward-fill
     use_event_encoding: bool = False
@@ -50,7 +49,7 @@ class SourceConfig:
 # =============================================================================
 
 # FRED Economic Data (econ.* tables)
-FRED_CONFIG: Dict[str, SourceConfig] = {
+FRED_CONFIG: dict[str, SourceConfig] = {
     # Daily rates - tight TTL
     "DGS2": SourceConfig(
         "DGS2",
@@ -205,7 +204,7 @@ FRED_CONFIG: Dict[str, SourceConfig] = {
 
 
 # CFTC Positioning (pos.* tables)
-CFTC_CONFIG: Dict[str, SourceConfig] = {
+CFTC_CONFIG: dict[str, SourceConfig] = {
     "cftc_1w": SourceConfig(
         "pos.cftc_1w",
         "weekly",
@@ -218,7 +217,7 @@ CFTC_CONFIG: Dict[str, SourceConfig] = {
 
 
 # USDA Supply Data (supply.* tables)
-USDA_CONFIG: Dict[str, SourceConfig] = {
+USDA_CONFIG: dict[str, SourceConfig] = {
     "wasde_1m": SourceConfig(
         "supply.usda_wasde_1m",
         "monthly",
@@ -238,7 +237,7 @@ USDA_CONFIG: Dict[str, SourceConfig] = {
 
 
 # EPA/Biofuel Data (supply.* tables)
-BIOFUEL_CONFIG: Dict[str, SourceConfig] = {
+BIOFUEL_CONFIG: dict[str, SourceConfig] = {
     "epa_rin_1d": SourceConfig(
         "supply.epa_rin_1d", "daily", 14, is_critical=True, description="EPA RIN Prices"
     ),
@@ -253,7 +252,7 @@ BIOFUEL_CONFIG: Dict[str, SourceConfig] = {
 
 
 # Market Data (mkt.* tables) - NO forward fill for prices
-MARKET_CONFIG: Dict[str, SourceConfig] = {
+MARKET_CONFIG: dict[str, SourceConfig] = {
     "futures_1d": SourceConfig(
         "mkt.futures_1d",
         "daily",
@@ -261,14 +260,6 @@ MARKET_CONFIG: Dict[str, SourceConfig] = {
         weekend_exempt=True,
         is_critical=True,
         description="Daily Futures - NO FFILL",
-    ),
-    "etf_1d": SourceConfig(
-        "mkt.etf_1d",
-        "daily",
-        None,
-        weekend_exempt=True,
-        is_critical=True,
-        description="Daily ETFs - NO FFILL",
     ),
     "options_1d": SourceConfig(
         "mkt.options_1d",
@@ -289,7 +280,7 @@ MARKET_CONFIG: Dict[str, SourceConfig] = {
 
 
 # PMI / Activity Data
-PMI_CONFIG: Dict[str, SourceConfig] = {
+PMI_CONFIG: dict[str, SourceConfig] = {
     "cn_caixin_pmi": SourceConfig(
         "cn_caixin_pmi",
         "monthly",
@@ -323,7 +314,7 @@ class SpecialistConfig:
     strict_mode: bool = True  # Fail-hard if any critical source is stale
 
 
-SPECIALIST_CONFIGS: Dict[str, SpecialistConfig] = {
+SPECIALIST_CONFIGS: dict[str, SpecialistConfig] = {
     "crush": SpecialistConfig(
         bucket="crush",
         critical_sources=("mkt.futures_1d", "pos.cftc_1w"),
@@ -398,7 +389,7 @@ SPECIALIST_CONFIGS: Dict[str, SpecialistConfig] = {
 # =============================================================================
 
 
-def get_ttl_days(source: str) -> Optional[int]:
+def get_ttl_days(source: str) -> int | None:
     """Get TTL in days for a source. Returns None if forward fill not allowed."""
     # Check each config dict
     for config_dict in [
@@ -414,7 +405,7 @@ def get_ttl_days(source: str) -> Optional[int]:
     return None
 
 
-def get_source_config(source: str) -> Optional[SourceConfig]:
+def get_source_config(source: str) -> SourceConfig | None:
     """Get full configuration for a source."""
     for config_dict in [
         FRED_CONFIG,
@@ -435,7 +426,7 @@ def should_use_event_encoding(source: str) -> bool:
     return config.use_event_encoding if config else False
 
 
-def get_specialist_config(bucket: str) -> Optional[SpecialistConfig]:
+def get_specialist_config(bucket: str) -> SpecialistConfig | None:
     """Get specialist configuration by bucket name."""
     return SPECIALIST_CONFIGS.get(bucket)
 

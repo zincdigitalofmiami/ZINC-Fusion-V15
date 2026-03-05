@@ -1,0 +1,58 @@
+name: Specialist Pipeline (Daily)
+
+on:
+  schedule:
+    # 5 AM ET weekdays (10:00 UTC), after Inngest data ingestion completes
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      bucket:
+        description: 'Specialist bucket to run (or "all")'
+        required: false
+        default: 'all'
+      start_date:
+        description: 'Start date (YYYY-MM-DD) for feature generation'
+        required: false
+
+jobs:
+  generate-specialist-signals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Generate specialist features
+        run: |
+          BUCKET="${{ github.event.inputs.bucket || 'all' }}"
+          START_DATE="${{ github.event.inputs.start_date || '' }}"
+          CMD="uv run python scripts/generate_specialist_features.py --bucket $BUCKET"
+          if [ -n "$START_DATE" ]; then
+            CMD="$CMD --start-date $START_DATE"
+          fi
+          echo "Running: $CMD"
+          $CMD
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Generate specialist signals
+        run: |
+          BUCKET="${{ github.event.inputs.bucket || 'all' }}"
+          START_DATE="${{ github.event.inputs.start_date || '' }}"
+          CMD="uv run python scripts/generate_specialist_signals.py --bucket $BUCKET"
+          if [ -n "$START_DATE" ]; then
+            CMD="$CMD --start-date $START_DATE"
+          fi
+          echo "Running: $CMD"
+          $CMD
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

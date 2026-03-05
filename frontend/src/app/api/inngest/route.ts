@@ -48,10 +48,6 @@ import {
   databentoStatisticsDailyShards,
   databentoFxDaily,
   databentoOptionsDailyShards,
-  databentoEtfDaily,
-  databentoEtfBackfill,
-  databentoEtfVwapDaily,
-  databentoEtfVwapBackfill,
   futuresLegacySymbolsNightly,
   boardCrushDaily,
   boardCrushBackfill,
@@ -82,8 +78,13 @@ import {
   eiaBiodieselWeekly,
   eiaBiodieselWeeklyBackfill,
   profarmerWeeklyBackfill,
-  yahooEtfFallbackDaily,
-  yahooEtfBackfill,
+  // epaRinGenerationMonthly,   // Needs Prisma schema table first
+  // epaRinGenerationBackfill,  // Needs Prisma schema table first
+  // eiaBiofuelMerMonthly,      // Needs Prisma schema table first
+  googleNewsDaily,
+  palmMultiSourceDaily,
+  biofuelRssDaily,
+  dceSoyOilDaily,
 } from "@/inngest/functions";
 
 /**
@@ -119,8 +120,8 @@ function getServeHost(): string | undefined {
 const serveHost = getServeHost();
 
 // Log for debugging (only in development/build)
-if (process.env.NODE_ENV !== 'production') {
-  console.log('[Inngest] Computed serveHost:', serveHost);
+if (process.env.NODE_ENV !== "production") {
+  console.log("[Inngest] Computed serveHost:", serveHost);
 }
 
 // Extend Vercel Lambda timeout to maximum (Fluid Compute / streaming mode).
@@ -188,10 +189,6 @@ export const { GET, POST, PUT } = serve({
     ...databentoStatisticsDailyShards,
     databentoFxDaily,
     ...databentoOptionsDailyShards,
-    databentoEtfDaily,
-    databentoEtfBackfill,
-    databentoEtfVwapDaily,
-    databentoEtfVwapBackfill,
     futuresLegacySymbolsNightly,
     // FX Databento
     fxDatabentoSpotDaily,
@@ -242,9 +239,16 @@ export const { GET, POST, PUT } = serve({
     eiaBiodieselWeeklyBackfill,
     // ProFarmer weekly auto-backfill (Sunday catch-up)
     profarmerWeeklyBackfill,
-    // Yahoo Finance ETF fallback (when Databento ETF stale)
-    yahooEtfFallbackDaily,
-    yahooEtfBackfill,
+    // EPA RIN generation + EIA biofuel MER: commented out until Prisma tables created
+    // epaRinGenerationMonthly, epaRinGenerationBackfill, eiaBiofuelMerMonthly,
+    // Google News RSS (all 11 specialists — daily headlines)
+    googleNewsDaily,
+    // Palm oil multi-source (Investing.com olein/kernel + Yahoo FCPO + World Bank)
+    palmMultiSourceDaily,
+    // Biofuel / RIN multi-RSS (Biodiesel Mag, RFA, Clean Fuels, Biofuels Digest, DOE AFDC)
+    biofuelRssDaily,
+    // DCE Dalian soy oil daily (Investing.com)
+    dceSoyOilDaily,
   ],
   // Explicit host to prevent empty URL sync issues
   ...(serveHost && { serveHost }),

@@ -1,7 +1,7 @@
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 /**
  * CPO Data Sources (in order of preference):
@@ -46,6 +46,13 @@ async function fetchFromInvestingCom(): Promise<CpoData | null> {
 
   if (!res.ok) {
     console.warn(`Investing.com API error: ${res.status}`);
+    return null;
+  }
+
+  // Guard against Cloudflare challenge pages returning HTML
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("json")) {
+    console.warn("Investing.com returned non-JSON (likely Cloudflare challenge)");
     return null;
   }
 

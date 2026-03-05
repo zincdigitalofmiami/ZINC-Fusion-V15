@@ -52,7 +52,7 @@ export default function LoginPage() {
   const isDisabled = status !== 'idle'
 
   return (
-    <div className="main-content" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 120 }}>
+    <div className="main-content login-wrapper" style={{ maxWidth: 520, margin: '0 auto', paddingTop: 120 }}>
       <div className="card" style={{ marginTop: 60 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 10 }}>
           Client Login
@@ -62,7 +62,7 @@ export default function LoginPage() {
         </p>
 
         <form onSubmit={onSubmit}>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="login-form-row" style={{ display: 'flex', gap: 12 }}>
             <input
               type="password"
               value={password}

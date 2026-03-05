@@ -20,9 +20,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 function computeRowHash(rateType: string, effectiveDate: string, rate: number): string {
   return createHash("sha256").update(`${rateType}|${effectiveDate}|${rate}`).digest("hex");

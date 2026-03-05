@@ -1,9 +1,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 import { randomUUID } from "crypto";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 interface DatabentoDailyQuote {
   eventDate: Date;

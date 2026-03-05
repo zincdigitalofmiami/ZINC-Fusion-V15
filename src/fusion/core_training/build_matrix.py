@@ -930,31 +930,55 @@ def load_china_pmi(conn) -> pd.DataFrame:
 
 def load_dalian_soy(conn) -> pd.DataFrame:
     """
-    Load Dalian soybean oil futures proxy from mkt.futures_1d.
+    Load Dalian soybean oil futures proxy.
 
-    Convention:
-    - Symbol used for DCE soybean oil continuous proxy: 'DCE_Y'
-    - Column exposed to specialists/matrix: dalian_soy
+    Priority:
+    1. DCE_Y from mkt.futures_1d (daily, Investing.com)
+    2. PSOILUSDM from econ.commodities_1d (monthly World Bank soy oil price,
+       forward-filled to daily). Always available via FRED.
+
+    Column exposed to matrix: dalian_soy
     """
-    logger.info(
-        "Loading Dalian soybean oil proxy from mkt.futures_1d (symbol='DCE_Y')..."
-    )
+    logger.info("Loading Dalian soybean oil proxy...")
+
+    # Try DCE_Y first (daily Dalian exchange data)
     try:
         query = """
-            SELECT
-                event_date as trade_date,
-                close::float as dalian_soy
+            SELECT event_date as trade_date, close::float as dalian_soy
             FROM mkt.futures_1d
             WHERE symbol = 'DCE_Y'
             ORDER BY event_date
         """
         df = pd.read_sql(query, conn)
+        if len(df) > 0:
+            df = normalize_date_column(df, "trade_date")
+            logger.info(
+                f"   DCE_Y: {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+            )
+            return df
+    except Exception as e:
+        logger.warning(f"   DCE_Y query failed: {e}")
+
+    # Fallback: World Bank soy oil price (monthly, forward-fill to daily)
+    logger.info(
+        "   DCE_Y unavailable, falling back to PSOILUSDM (World Bank soy oil)..."
+    )
+    try:
+        query = """
+            SELECT event_date as trade_date, value::float as dalian_soy
+            FROM econ.commodities_1d
+            WHERE series_id = 'PSOILUSDM'
+            ORDER BY event_date
+        """
+        df = pd.read_sql(query, conn)
         if len(df) == 0:
-            logger.warning("   No DCE_Y data found in mkt.futures_1d")
+            logger.warning("   No PSOILUSDM data found either")
             return pd.DataFrame()
         df = normalize_date_column(df, "trade_date")
+        # Forward-fill monthly to daily
+        df = df.set_index("trade_date").resample("D").ffill().reset_index()
         logger.info(
-            f"   Loaded {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
+            f"   PSOILUSDM fallback: {len(df):,} rows from {df['trade_date'].min()} to {df['trade_date'].max()}"
         )
         return df
     except Exception as e:
@@ -3175,14 +3199,16 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             )
             df[numeric_cols] = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
 
-        validation_result = validate_matrix(df, strict=True)
+        # strict=False: structural gates (NULL/Inf/epoch/dtype/encoding) are hard
+        # failures; observed-rate and cadence gaps are warnings (reflect upstream
+        # outages, not matrix corruption — AutoGluon handles NaN natively).
+        validation_result = validate_matrix(df, strict=False)
 
         if not validation_result.passed:
-            logger.error("❌ MATRIX VALIDATION FAILED - NO-GO")
+            logger.error("❌ MATRIX VALIDATION FAILED - NO-GO (structural)")
             for failure in validation_result.hard_failures:
                 logger.error(f"   {failure}")
-            # Still write for debugging, but mark as failed
-            logger.warning("Writing matrix anyway for debugging (marked as invalid)")
+            logger.error("Pipeline will ABORT — fix structural data issues above")
 
         # Enforce guardrails
         df, guardrail_passed = enforce_feature_guardrails(df)
@@ -3231,11 +3257,10 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             logger.warning(f"   Warnings: {len(validation_result.warnings)}")
         logger.info("=" * 60)
 
-        # Matrix is written and guardrails passed — return success even if
-        # strict validation flagged historical data gaps (options NULLs, dtype
-        # float64 from NaN, OHLCV gaps on non-trading days). AutoGluon handles
-        # NaN natively. Validation warnings are logged but don't block training.
-        success = guardrail_passed and rows_written > 0
+        # Hard-fail on structural validation (NULL/Inf/epoch/dtype/encoding).
+        # Observed-rate and cadence warnings are logged but don't block —
+        # they reflect upstream outages, not matrix corruption.
+        success = guardrail_passed and rows_written > 0 and validation_result.passed
         return success, matrix_version, feature_count
 
     except Exception as e:

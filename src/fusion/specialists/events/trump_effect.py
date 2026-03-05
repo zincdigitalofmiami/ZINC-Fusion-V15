@@ -57,7 +57,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
     - EPA waiver activity
     - MFP (Market Facilitation Program) payments
 
-    Inputs: EPU indices, news sentiment, proxy tickers (HG copper)
+    Inputs: EPU indices, news sentiment, proxy futures (HG copper)
     Model: Event study + sentiment composite
 
     PATCHED 2026-01-21: Added EPU decomposition (trade share) and regime amplification
@@ -107,8 +107,6 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                 "tariff_deadline_count",  # Tariff deadlines (100%)
                 "legis_eo_count",  # Executive orders (100%)
                 # <95% coverage - sparse but useful when available
-                "fxi_close",  # China ETF (62.6% - starts 2019)
-                "kweb_close",  # China Internet ETF (62.6%)
                 "fred_nfci",  # Financial Conditions (83.3%)
                 "fred_eputrade",  # Trade EPU monthly (19.5%)
                 "usd_cny",  # CNY rate (50%)
@@ -292,7 +290,7 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         signals = []
 
         # =====================================================================
-        # ADD ALL 81 ELITE INDICATORS FOR ZL, HG, FXI, KWEB, EPU
+        # ADD ALL ELITE INDICATORS FOR ZL, HG, and EPU series
         # =====================================================================
         data = self.add_all_technical_indicators(data, "close", "zl")
 
@@ -304,24 +302,6 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
             for c in hg_data.columns:
                 if c.startswith("hg_") and c not in data.columns:
                     data[c] = hg_data[c]
-
-        # FXI elite indicators (China ETF)
-        if "fxi_close" in data.columns and data["fxi_close"].notna().sum() > 30:
-            fxi_data = data.copy()
-            fxi_data["close"] = data["fxi_close"]
-            fxi_data = self.add_all_technical_indicators(fxi_data, "close", "fxi")
-            for c in fxi_data.columns:
-                if c.startswith("fxi_") and c not in data.columns:
-                    data[c] = fxi_data[c]
-
-        # KWEB elite indicators (China tech)
-        if "kweb_close" in data.columns and data["kweb_close"].notna().sum() > 30:
-            kweb_data = data.copy()
-            kweb_data["close"] = data["kweb_close"]
-            kweb_data = self.add_all_technical_indicators(kweb_data, "close", "kweb")
-            for c in kweb_data.columns:
-                if c.startswith("kweb_") and c not in data.columns:
-                    data[c] = kweb_data[c]
 
         # VIX elite indicators
         if "fred_vixcls" in data.columns and data["fred_vixcls"].notna().sum() > 30:
@@ -353,11 +333,11 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
         # =====================================================================
         # COMPUTE INDIVIDUAL EVENT COMPONENT Z-SCORES (Task 4.4)
         # =====================================================================
-        # FXI z-score (China ETF - direct China exposure)
-        fxi_zscore = pd.Series(np.nan, index=data.index)
-        if "fxi_close" in data.columns and data["fxi_close"].notna().sum() > 30:
-            fxi_ret = data["fxi_close"].pct_change(21, fill_method=None)
-            fxi_zscore = self.compute_zscore(fxi_ret, window=126, min_periods=42)
+        # HG z-score (China demand proxy)
+        hg_zscore = pd.Series(np.nan, index=data.index)
+        if "hg_close" in data.columns and data["hg_close"].notna().sum() > 30:
+            hg_ret = data["hg_close"].pct_change(21, fill_method=None)
+            hg_zscore = self.compute_zscore(hg_ret, window=126, min_periods=42)
 
         # VIX z-score (fear gauge)
         vix_zscore = pd.Series(np.nan, index=data.index)
@@ -514,9 +494,9 @@ class TrumpEffectSignalGenerator(BaseSignalGenerator):
                         # Task 4.4: Event detection and component z-scores
                         "event_detected": event_detected,
                         "event_components": {
-                            "fxi_zscore": (
-                                float(fxi_zscore.loc[idx])
-                                if not pd.isna(fxi_zscore.loc[idx])
+                            "hg_zscore": (
+                                float(hg_zscore.loc[idx])
+                                if not pd.isna(hg_zscore.loc[idx])
                                 else None
                             ),
                             "vix_zscore": (

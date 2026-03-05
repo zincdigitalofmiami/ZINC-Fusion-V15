@@ -14,10 +14,10 @@ CNN Fear & Greed Methodology (7 equally-weighted indicators):
 7. Stock Price Strength - 52-week highs vs lows
 
 Our Adaptation for Soyoil Markets:
-1. Market Momentum - SPY vs 125-day MA
-2. Commodity Momentum - DBA (ag ETF) trend
+1. Market Momentum - ZL vs 125-day MA
+2. Soy Complex Momentum - ZS trend
 3. VIX Fear Gauge - VIX level (inverted: low VIX = greed)
-4. Safe Haven Flows - GLD performance (inverted: rising gold = fear)
+4. Safe Haven Flows - GVZ level (gold volatility; high = fear)
 5. Credit Spreads - HY spreads (inverted: tight = greed)
 6. Specialist Consensus - Net bullish/bearish signals
 7. ZL Momentum - Soyoil vs its own moving averages
@@ -352,12 +352,12 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
 
     Components (equally weighted like CNN):
     1. VIX Sentiment (inverted)
-    2. Market Momentum (SPY)
+    2. Market Momentum (ZL)
     3. Credit Spreads (HY)
-    4. Safe Haven Demand (Gold)
+    4. Safe Haven Demand (GVZ)
     5. Specialist Consensus
     6. ZL Momentum
-    7. Commodity Momentum (DBA)
+    7. Soy Complex Momentum (ZS)
 
     Returns PressureReading-compatible dict.
 
@@ -388,28 +388,32 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["vix_value"] = round(current_vix, 1)
         all_scores.append(vix_score)
 
-    # ==== 2. MARKET MOMENTUM (SPY) - Databento ETF ====
+    # ==== 2. MARKET MOMENTUM (ZL) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'SPY' AND event_date <= %s AND close IS NOT NULL
+        SELECT event_date, close FROM analytics.price_1d
+        WHERE event_date <= %s AND close IS NOT NULL
         ORDER BY event_date DESC LIMIT 150
     """,
         (as_of_date,),
     )
-    spy_data = cur.fetchall()
-    if len(spy_data) < 125:
-        raise ValueError("Insufficient SPY data for market momentum")
+    zl_market_data = cur.fetchall()
+    if len(zl_market_data) < 125:
+        raise ValueError("Insufficient ZL data for market momentum")
 
-    spy_values = [float(r[1]) for r in spy_data if r[1] is not None]
-    current_spy = spy_values[0]
-    spy_ma20 = np.mean(spy_values[:20])
-    spy_ma125 = np.mean(spy_values[:125])
+    zl_values = [float(r[1]) for r in zl_market_data if r[1] is not None]
+    current_zl_market = zl_values[0]
+    zl_ma20_market = np.mean(zl_values[:20])
+    zl_ma125_market = np.mean(zl_values[:125])
 
-    spy_score, spy_desc = score_momentum(current_spy, spy_ma20, spy_ma125)
-    components["market_momentum"] = round(spy_score, 1)
-    components["spy_vs_ma125"] = round((current_spy / spy_ma125 - 1) * 100, 2)
-    all_scores.append(spy_score)
+    market_score, market_desc = score_momentum(
+        current_zl_market, zl_ma20_market, zl_ma125_market
+    )
+    components["market_momentum"] = round(market_score, 1)
+    components["zl_vs_ma125"] = round(
+        (current_zl_market / zl_ma125_market - 1) * 100, 2
+    )
+    all_scores.append(market_score)
 
     # ==== 3. CREDIT SPREADS ====
     cur.execute(
@@ -429,33 +433,27 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["hy_spread_bps"] = round(current_spread, 0)
         all_scores.append(spread_score)
 
-    # ==== 4. SAFE HAVEN DEMAND (Gold) - RE-ENABLED with Databento GLD data ====
-    # Rising gold = fear (flight to safety), falling gold = greed (risk-on)
+    # ==== 4. SAFE HAVEN DEMAND (GVZ gold volatility) ====
+    # Rising GVZ = fear, falling GVZ = risk-on
     cur.execute(
         """
-        SELECT
-            close,
-            returns_21d,
-            momentum_21d,
-            zl_corr_63d
-        FROM mkt.etf_1d
-        WHERE symbol = 'GLD' AND event_date <= %s AND close IS NOT NULL
+        SELECT value
+        FROM econ.vol_indices_1d
+        WHERE series_id = 'GVZCLS' AND event_date <= %s AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
     """,
         (as_of_date,),
     )
-    gld_row = cur.fetchone()
+    gvz_row = cur.fetchone()
 
-    if gld_row and gld_row[1] is not None:
-        gld_ret_21d = float(gld_row[1])  # 21-day log return
-        float(gld_row[2]) if gld_row[2] else 0.0
-        gld_zl_corr = float(gld_row[3]) if gld_row[3] else 0.0
-
-        # Score using the existing score_safe_haven logic (inverted: gold up = fear)
-        gold_score, gold_desc = score_safe_haven(gld_ret_21d)
+    if gvz_row and gvz_row[0] is not None:
+        current_gvz = float(gvz_row[0])
+        # Convert GVZ level into a pseudo change input for existing safe-haven scorer
+        # Higher GVZ -> more fear, so map to positive synthetic change
+        synthetic_gold_change = (current_gvz - 20.0) / 100.0
+        gold_score, gold_desc = score_safe_haven(synthetic_gold_change)
         components["safe_haven"] = float(gold_score)
-        components["gld_ret_21d"] = gld_ret_21d
-        components["gld_zl_corr"] = gld_zl_corr
+        components["gvz_value"] = round(current_gvz, 2)
         all_scores.append(gold_score)
     else:
         components["safe_haven"] = 50.0
@@ -512,43 +510,42 @@ def calculate_greed_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         components["zl_vs_ma50"] = round((current_zl / zl_ma50 - 1) * 100, 2)
         all_scores.append(zl_score)
 
-    # ==== 7. COMMODITY MOMENTUM (DBA) - RE-ENABLED with Databento data ====
-    # DBA = Invesco DB Agriculture Fund - broad ag commodity momentum
+    # ==== 7. SOY COMPLEX MOMENTUM (ZS futures) ====
+    # ZS = soybean futures, direct soy complex momentum
     cur.execute(
         """
-        SELECT
-            close,
-            returns_21d,
-            momentum_21d,
-            zl_corr_63d
-        FROM mkt.etf_1d
-        WHERE symbol = 'DBA' AND event_date <= %s AND close IS NOT NULL
-        ORDER BY event_date DESC LIMIT 1
+        SELECT event_date, close
+        FROM mkt.futures_1d
+        WHERE symbol = 'ZS' AND event_date <= %s AND close IS NOT NULL
+        ORDER BY event_date DESC LIMIT 22
     """,
         (as_of_date,),
     )
-    dba_row = cur.fetchone()
+    zs_rows = cur.fetchall()
 
-    if dba_row and dba_row[2] is not None:
-        dba_momentum = float(dba_row[2])  # Price vs 21d SMA in %
+    if len(zs_rows) >= 21:
+        zs_values = [float(r[1]) for r in zs_rows if r[1] is not None]
+        current_zs = zs_values[0]
+        zs_ma21 = np.mean(zs_values[:21])
+        zs_momentum = ((current_zs / zs_ma21) - 1) * 100 if zs_ma21 > 0 else 0.0
 
         # Score: positive momentum = greed, negative = fear
-        if dba_momentum > 5:
-            dba_score = 80  # Strong greed
-        elif dba_momentum > 2:
-            dba_score = 65  # Moderate greed
-        elif dba_momentum > 0:
-            dba_score = 55  # Slight greed
-        elif dba_momentum > -2:
-            dba_score = 45  # Slight fear
-        elif dba_momentum > -5:
-            dba_score = 35  # Moderate fear
+        if zs_momentum > 5:
+            zs_score = 80
+        elif zs_momentum > 2:
+            zs_score = 65
+        elif zs_momentum > 0:
+            zs_score = 55
+        elif zs_momentum > -2:
+            zs_score = 45
+        elif zs_momentum > -5:
+            zs_score = 35
         else:
-            dba_score = 20  # Extreme fear
+            zs_score = 20
 
-        components["commodity_momentum"] = float(dba_score)
-        components["dba_momentum_pct"] = dba_momentum
-        all_scores.append(dba_score)
+        components["commodity_momentum"] = float(zs_score)
+        components["zs_momentum_pct"] = round(zs_momentum, 2)
+        all_scores.append(zs_score)
     else:
         components["commodity_momentum"] = 50.0
         all_scores.append(50.0)

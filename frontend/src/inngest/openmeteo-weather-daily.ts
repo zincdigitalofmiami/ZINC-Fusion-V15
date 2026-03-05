@@ -21,9 +21,9 @@
 
 import { createHash } from "crypto";
 import { inngest, DB_CONCURRENCY } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";
@@ -38,7 +38,7 @@ const US_STATE_NAMES: Record<string, string> = {
 };
 
 const OPENMETEO_REGION_CAPITAL: Record<string, { name: string; country: string }> = {
-  // Brazil
+  // Brazil (8 soy-producing regions)
   BR_MG: { name: "Belo Horizonte", country: "BR" },
   BR_MS: { name: "Campo Grande", country: "BR" },
   BR_MT: { name: "Cuiabá", country: "BR" },
@@ -47,7 +47,7 @@ const OPENMETEO_REGION_CAPITAL: Record<string, { name: string; country: string }
   BR_PR: { name: "Curitiba", country: "BR" },
   BR_RS: { name: "Porto Alegre", country: "BR" },
   BR_SP: { name: "São Paulo", country: "BR" },
-  // Argentina
+  // Argentina (10 soy provinces)
   AR_BA: { name: "Buenos Aires", country: "AR" },
   AR_CH: { name: "Resistencia", country: "AR" },
   AR_CO: { name: "Córdoba", country: "AR" },
@@ -58,6 +58,18 @@ const OPENMETEO_REGION_CAPITAL: Record<string, { name: string; country: string }
   AR_MZ: { name: "Mendoza", country: "AR" },
   AR_SE: { name: "Santiago del Estero", country: "AR" },
   AR_SF: { name: "Santa Fe", country: "AR" },
+  // Malaysia (5 palm oil regions)
+  MY_KL: { name: "Kuala Lumpur", country: "MY" },
+  MY_SB: { name: "Kota Kinabalu", country: "MY" },  // Sabah — #1 palm state
+  MY_SR: { name: "Kuching", country: "MY" },          // Sarawak — #2 palm state
+  MY_JH: { name: "Johor Bahru", country: "MY" },      // Johor — #3 palm state
+  MY_PH: { name: "Kuantan", country: "MY" },           // Pahang — #4 palm state
+  // Indonesia (5 palm oil regions)
+  ID_RI: { name: "Pekanbaru", country: "ID" },        // Riau — #1 palm province
+  ID_SU: { name: "Medan", country: "ID" },             // North Sumatra — #2 palm
+  ID_KB: { name: "Pontianak", country: "ID" },         // West Kalimantan — #3 palm
+  ID_KS: { name: "Banjarmasin", country: "ID" },       // South Kalimantan — #4 palm
+  ID_KT: { name: "Samarinda", country: "ID" },         // East Kalimantan — #5 palm
 };
 
 function computeRowHash(stationId: string, eventDate: string, payload: Record<string, unknown>): string {
@@ -255,7 +267,93 @@ export const openmeteoWeatherDaily = inngest.createFunction(
       }
     });
 
-    logger.info(`Stations: ${stations.length}`);
+    // ── Step 2b: seed any new registry stations not yet in DB ──
+    const COUNTRY_LABELS: Record<string, string> = {
+      US: "United States", BR: "Brazil", AR: "Argentina",
+      MY: "Malaysia", ID: "Indonesia",
+    };
+
+    const seeded = await step.run("seed-new-stations", async () => {
+      const existingIds = new Set(stations.map((s) => s.station_id));
+
+      // Build full registry: OM_* (US) + OPENMETEO:* (BR/AR/MY/ID)
+      const registryIds: string[] = [];
+      for (const stateCode of Object.keys(US_STATE_NAMES)) {
+        const cityName = stateCode === "IA" ? "Des_Moines" : stateCode === "IL" ? "Chicago"
+          : stateCode === "IN" ? "Indianapolis" : stateCode === "MN" ? "Minneapolis"
+          : stateCode === "MO" ? "Kansas_City" : stateCode === "NE" ? "Omaha" : stateCode;
+        registryIds.push(`OM_${stateCode}_${cityName}`);
+      }
+      for (const code of Object.keys(OPENMETEO_REGION_CAPITAL)) {
+        registryIds.push(`OPENMETEO:${code}`);
+      }
+
+      const newIds = registryIds.filter((id) => !existingIds.has(id));
+      if (newIds.length === 0) return { seeded: 0, newStations: 0 };
+
+      // For each new station, geocode + fetch 30 days + insert
+      const client = await pool.connect();
+      let count = 0;
+      try {
+        for (const stationId of newIds) {
+          const q = resolveGeocodeQuery(stationId);
+          if (!q) continue;
+
+          let geo: { latitude: number; longitude: number; label: string };
+          try {
+            geo = await geocodeStrict(q.name, q.country, q.requireAdmin1);
+          } catch {
+            continue; // skip if geocoding fails
+          }
+
+          const seedEnd = addDays(new Date().toISOString().slice(0, 10), -1);
+          const seedStart = addDays(seedEnd, -30);
+
+          let archive;
+          try {
+            archive = await fetchDailyArchive(geo.latitude, geo.longitude, seedStart, seedEnd);
+          } catch {
+            continue;
+          }
+
+          const countryCode = q.country;
+          const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode;
+          const regionLabel = q.requireAdmin1 ?? q.name;
+
+          for (let i = 0; i < archive.time.length; i++) {
+            const eventDate = archive.time[i];
+            if (!eventDate) continue;
+
+            const payload = {
+              station_id: stationId, event_date: eventDate,
+              latitude: geo.latitude, longitude: geo.longitude,
+              temperature_2m_max_c: archive.tmax[i], temperature_2m_min_c: archive.tmin[i],
+              temperature_2m_mean_c: archive.tmean[i], precipitation_sum_mm: archive.prcp[i],
+              snowfall_sum_mm: archive.snowMm[i], source: "openmeteo_archive",
+            };
+            const rowHash = computeRowHash(stationId, eventDate, payload);
+
+            await client.query(
+              `INSERT INTO alt.weather_1d
+                (station_id, event_date, tavg_c, tmin_c, tmax_c, prcp_mm, snow_mm,
+                 region, country, source, raw_payload, ingestion_batch_id, row_hash)
+               VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13)
+               ON CONFLICT DO NOTHING`,
+              [stationId, eventDate, archive.tmean[i], archive.tmin[i], archive.tmax[i],
+               archive.prcp[i], archive.snowMm[i], regionLabel, countryLabel,
+               "openmeteo_archive", JSON.stringify(payload), runId, rowHash]
+            );
+            count++;
+          }
+        }
+      } finally {
+        client.release();
+      }
+      return { seeded: count, newStations: newIds.length };
+    });
+
+    logger.info(`Seeded ${seeded.seeded} rows for ${seeded.newStations ?? 0} new stations`);
+    logger.info(`Existing stations: ${stations.length}`);
 
     const today = new Date().toISOString().slice(0, 10);
     const endDate = addDays(today, -1); // avoid same-day partials

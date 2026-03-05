@@ -17,9 +17,9 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 /**
  * Fetch Malaysia palm oil data from USDA PSD database

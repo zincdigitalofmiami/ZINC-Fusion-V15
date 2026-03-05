@@ -6,9 +6,9 @@
  */
 
 import { inngest } from "./client";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 export const cleanupStaleRuns = inngest.createFunction(
   { id: "cleanup-stale-runs", name: "Cleanup Stale Ingest Runs", retries: 1 },

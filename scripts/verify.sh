@@ -43,6 +43,21 @@ if [[ "${1:-}" == "--python-only" ]]; then MODE="python"; fi
 if [[ "${1:-}" == "--frontend-only" ]]; then MODE="frontend"; fi
 
 # ============================================================================
+#  GIT SAFETY GATE
+# ============================================================================
+if [[ "$MODE" == "all" ]]; then
+
+    # Gate 0: prevent accidental dirty main operations
+    gate "Git preflight (no dirty tree on main)" \
+        bash scripts/git_preflight.sh
+
+    # Gate 0.1: ensure default runtime DB identity is V15 cloud
+    gate "DB identity guard (cloud runtime contract)" \
+        .venv/bin/python scripts/db_identity_guard.py --target cloud
+
+fi
+
+# ============================================================================
 #  PYTHON GATES
 # ============================================================================
 if [[ "$MODE" == "all" || "$MODE" == "python" ]]; then
@@ -99,15 +114,26 @@ if [[ "$MODE" == "all" || "$MODE" == "frontend" ]]; then
 fi
 
 # ============================================================================
+#  INNGEST SYNC CONFIG GUARDRAILS
+# ============================================================================
+if [[ "$MODE" == "all" ]]; then
+
+    # Gate 9: Inngest local sync config is locked to approved host.docker URLs
+    gate "Inngest sync config safe (no rogue cloud URLs)" \
+        bash scripts/inngest_guard.sh --static
+
+fi
+
+# ============================================================================
 #  PRISMA GATES
 # ============================================================================
 if [[ "$MODE" == "all" ]]; then
 
-    # Gate 9: Prisma schema validates
+    # Gate 10: Prisma schema validates
     gate "Prisma schema validates" \
         npx --yes --prefix config prisma validate --schema prisma/schema.prisma
 
-    # Gate 10: Prisma migration status (no unapplied migrations)
+    # Gate 11: Prisma migration status (no unapplied migrations)
     gate "Prisma migration status clean (no unapplied migrations)" \
         bash scripts/prisma_status.sh
 

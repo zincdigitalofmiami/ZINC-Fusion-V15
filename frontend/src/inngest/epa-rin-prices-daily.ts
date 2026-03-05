@@ -17,7 +17,7 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 const EPA_RIN_PAGE_URL =
   "https://www.epa.gov/fuels-registration-reporting-and-compliance-help/rin-trades-and-price-information";
@@ -25,7 +25,7 @@ const EPA_RIN_PAGE_URL =
 const EPA_QLIK_APP_ID = "73b2b6a5-70c6-4820-b3fa-186ac094f10d";
 const EPA_QLIK_WS_URL = `wss://edap.epa.gov/public/app/${EPA_QLIK_APP_ID}`;
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 function computeRowHash(parts: string[]): string {
   return createHash("sha256").update(parts.join("|")).digest("hex");

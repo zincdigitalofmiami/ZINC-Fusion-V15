@@ -8,17 +8,17 @@ Uses shipping indices, FX stress, and China demand signals to gauge
 global commodity trade health. Critical for soybean export demand.
 
 Key Indicators:
-- Baltic Dry Index (BDRY ETF proxy): Dry bulk shipping rates
+- Baltic Dry Index (BDIY FRED): Dry bulk shipping rates
 - Brazil Real (BRL): Key soybean exporter currency
-- China demand signals: FXI, copper, specialist signals
+- China demand signals: copper + specialist signals
 
 Correlation Pressure:
 Measures risk-on/risk-off regime via cross-asset correlations.
 High correlation = risk-off (everything moves together).
 
 Key Metrics:
-- SPY-TLT correlation: Normally negative (diversification works)
-- SPY-GLD correlation: Negative = flight to safety
+- ES-ZN correlation: Equity-bond correlation proxy via futures
+- ES-GC correlation: Equity-gold correlation proxy via futures
 - DXY strength: USD strength = risk-off
 
 @author Claude (ZINC-FUSION-V15)
@@ -97,11 +97,11 @@ TRADE_REGIMES = {
 # CORRELATION PRESSURE THRESHOLDS
 # ==============================================================================
 
-# SPY-TLT correlation thresholds (typically negative)
-SPY_TLT_PANIC = 0.30  # Highly positive = stress
-SPY_TLT_STRESS = 0.10  # Slightly positive = concerning
-SPY_TLT_NORMAL = -0.15  # Typical negative correlation
-SPY_TLT_HEALTHY = -0.35  # Strong negative = diversification works
+# ES-ZN correlation thresholds (typically negative)
+ES_ZN_PANIC = 0.30  # Highly positive = stress
+ES_ZN_STRESS = 0.10  # Slightly positive = concerning
+ES_ZN_NORMAL = -0.15  # Typical negative correlation
+ES_ZN_HEALTHY = -0.35  # Strong negative = diversification works
 
 # DXY change thresholds
 DXY_RALLY = 0.03  # 3% USD rally = risk-off
@@ -141,30 +141,30 @@ CORRELATION_REGIMES = {
 }
 
 
-def score_shipping(bdry_change_20d: float) -> Tuple[float, str]:
+def score_shipping(bdiy_change_20d: float) -> Tuple[float, str]:
     """
-    Score shipping stress from BDRY ETF change.
+    Score shipping stress from BDIY change.
 
     Returns (score, description) where higher = more trade stress.
     """
-    if bdry_change_20d <= BDI_COLLAPSE:
+    if bdiy_change_20d <= BDI_COLLAPSE:
         return 90, "Shipping rates collapsed"
-    elif bdry_change_20d <= BDI_WEAK:
-        pct = (bdry_change_20d - BDI_COLLAPSE) / (BDI_WEAK - BDI_COLLAPSE)
+    elif bdiy_change_20d <= BDI_WEAK:
+        pct = (bdiy_change_20d - BDI_COLLAPSE) / (BDI_WEAK - BDI_COLLAPSE)
         score = 90 - (pct * 20)  # 70-90
         return score, "Shipping very weak"
-    elif bdry_change_20d <= BDI_NORMAL_LOW:
-        pct = (bdry_change_20d - BDI_WEAK) / (BDI_NORMAL_LOW - BDI_WEAK)
+    elif bdiy_change_20d <= BDI_NORMAL_LOW:
+        pct = (bdiy_change_20d - BDI_WEAK) / (BDI_NORMAL_LOW - BDI_WEAK)
         score = 70 - (pct * 20)  # 50-70
         return score, "Shipping soft"
-    elif bdry_change_20d <= BDI_NORMAL_HIGH:
+    elif bdiy_change_20d <= BDI_NORMAL_HIGH:
         return 45, "Shipping stable"
-    elif bdry_change_20d <= BDI_STRONG:
-        pct = (bdry_change_20d - BDI_NORMAL_HIGH) / (BDI_STRONG - BDI_NORMAL_HIGH)
+    elif bdiy_change_20d <= BDI_STRONG:
+        pct = (bdiy_change_20d - BDI_NORMAL_HIGH) / (BDI_STRONG - BDI_NORMAL_HIGH)
         score = 45 - (pct * 15)  # 30-45
         return score, "Shipping firm"
-    elif bdry_change_20d <= BDI_BOOM:
-        pct = (bdry_change_20d - BDI_STRONG) / (BDI_BOOM - BDI_STRONG)
+    elif bdiy_change_20d <= BDI_BOOM:
+        pct = (bdiy_change_20d - BDI_STRONG) / (BDI_BOOM - BDI_STRONG)
         score = 30 - (pct * 15)  # 15-30
         return score, "Shipping strong"
     else:
@@ -198,32 +198,32 @@ def score_brl_stress(brl_change_20d: float) -> Tuple[float, str]:
         return 25, "BRL very strong"
 
 
-def score_spy_tlt_corr(correlation: float) -> Tuple[float, str]:
+def score_es_zn_corr(correlation: float) -> Tuple[float, str]:
     """
-    Score SPY-TLT correlation.
+    Score ES-ZN correlation.
 
     Normally negative. Positive = stress (both selling).
     Returns (score, description).
     """
-    if correlation >= SPY_TLT_PANIC:
+    if correlation >= ES_ZN_PANIC:
         return 90, "Extreme correlation - panic selling"
-    elif correlation >= SPY_TLT_STRESS:
-        pct = (correlation - SPY_TLT_STRESS) / (SPY_TLT_PANIC - SPY_TLT_STRESS)
+    elif correlation >= ES_ZN_STRESS:
+        pct = (correlation - ES_ZN_STRESS) / (ES_ZN_PANIC - ES_ZN_STRESS)
         score = 70 + (pct * 20)  # 70-90
         return score, "Correlation elevated - stress"
     elif correlation >= 0:
         return 60, "Correlation flattening - transitioning"
-    elif correlation >= SPY_TLT_NORMAL:
+    elif correlation >= ES_ZN_NORMAL:
         return 45, "Normal diversification"
-    elif correlation >= SPY_TLT_HEALTHY:
+    elif correlation >= ES_ZN_HEALTHY:
         return 30, "Healthy diversification"
     else:
         return 20, "Strong diversification - risk-on"
 
 
-def score_spy_gld_corr(correlation: float) -> Tuple[float, str]:
+def score_es_gc_corr(correlation: float) -> Tuple[float, str]:
     """
-    Score SPY-GLD correlation.
+    Score ES-GC correlation.
 
     Negative correlation = flight to safety (risk-off).
     Positive correlation = risk-on.
@@ -264,7 +264,7 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     Calculate Trade Pressure.
 
     Components:
-    1. Shipping (BDRY) 35%: Global trade proxy
+    1. Shipping (BDIY) 35%: Global trade proxy
     2. Brazil FX (BRL) 25%: Competitor currency
     3. China Specialist 25%: China demand
     4. Trade News 15%: Headlines
@@ -277,26 +277,26 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. SHIPPING (BDRY) - Databento ETF ====
+    # ==== 1. SHIPPING (BDIY from FRED) ====
     cur.execute(
         """
-        SELECT event_date, close FROM mkt.etf_1d
-        WHERE symbol = 'BDRY' AND event_date <= %s AND close IS NOT NULL
+        SELECT event_date, value FROM econ.commodities_1d
+        WHERE series_id = 'BDIY' AND event_date <= %s AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 25
     """,
         (as_of_date,),
     )
-    bdry_data = cur.fetchall()
-    if len(bdry_data) < 21:
-        raise ValueError("Insufficient BDRY data to compute shipping stress")
+    bdiy_data = cur.fetchall()
+    if len(bdiy_data) < 21:
+        raise ValueError("Insufficient BDIY data to compute shipping stress")
 
-    current_bdry = float(bdry_data[0][1])
-    bdry_20d = float(bdry_data[20][1])
-    bdry_change_20d = (current_bdry - bdry_20d) / bdry_20d if bdry_20d > 0 else 0
+    current_bdiy = float(bdiy_data[0][1])
+    bdiy_20d = float(bdiy_data[20][1])
+    bdiy_change_20d = (current_bdiy - bdiy_20d) / bdiy_20d if bdiy_20d > 0 else 0
 
-    shipping_score, shipping_desc = score_shipping(bdry_change_20d)
+    shipping_score, shipping_desc = score_shipping(bdiy_change_20d)
     components["shipping_score"] = round(shipping_score, 1)
-    components["bdry_change_20d"] = round(bdry_change_20d * 100, 2)
+    components["bdiy_change_20d"] = round(bdiy_change_20d * 100, 2)
 
     # ==== 2. BRAZIL FX ====
     cur.execute(
@@ -448,8 +448,8 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     Calculate Correlation Pressure (risk-on/risk-off).
 
     Components:
-    1. SPY-TLT Correlation 45%: Equity-bond correlation
-    2. SPY-GLD Correlation 30%: Safe haven demand
+    1. ES-ZN Correlation 45%: Equity-bond correlation
+    2. ES-GC Correlation 30%: Safe haven demand
     3. DXY Strength 25%: USD as risk barometer
 
     Returns PressureReading-compatible dict.
@@ -460,15 +460,15 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     cur = conn.cursor()
     components = {}
 
-    # ==== 1. SPY-TLT + SPY-GLD CORRELATIONS (Databento ETFs) ====
+    # ==== 1. ES-ZN + ES-GC CORRELATIONS (futures) ====
     cur.execute(
         """
         SELECT event_date,
-               MAX(CASE WHEN symbol = 'SPY' THEN close END) AS spy_close,
-               MAX(CASE WHEN symbol = 'TLT' THEN close END) AS tlt_close,
-               MAX(CASE WHEN symbol = 'GLD' THEN close END) AS gld_close
-        FROM mkt.etf_1d
-        WHERE symbol IN ('SPY', 'TLT', 'GLD') AND event_date <= %s AND close IS NOT NULL
+               MAX(CASE WHEN symbol = 'ES' THEN close END) AS es_close,
+               MAX(CASE WHEN symbol = 'ZN' THEN close END) AS zn_close,
+               MAX(CASE WHEN symbol = 'GC' THEN close END) AS gc_close
+        FROM mkt.futures_1d
+        WHERE symbol IN ('ES', 'ZN', 'GC') AND event_date <= %s AND close IS NOT NULL
         GROUP BY event_date
         ORDER BY event_date DESC LIMIT 100
     """,
@@ -476,7 +476,7 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     )
     corr_rows = cur.fetchall()
     if len(corr_rows) < 30:
-        raise ValueError("Insufficient ETF data for correlation pressure")
+        raise ValueError("Insufficient futures data for correlation pressure")
 
     corr_rows = list(reversed(corr_rows))
     aligned = [
@@ -485,31 +485,31 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
         if r[1] is not None and r[2] is not None and r[3] is not None
     ]
     if len(aligned) < 30:
-        raise ValueError("Insufficient aligned ETF data for correlation pressure")
+        raise ValueError("Insufficient aligned futures data for correlation pressure")
 
-    spy = np.array([r[0] for r in aligned], dtype=float)
-    tlt = np.array([r[1] for r in aligned], dtype=float)
-    gld = np.array([r[2] for r in aligned], dtype=float)
+    es = np.array([r[0] for r in aligned], dtype=float)
+    zn = np.array([r[1] for r in aligned], dtype=float)
+    gc = np.array([r[2] for r in aligned], dtype=float)
 
     # Returns
-    spy_ret = np.diff(spy) / spy[:-1]
-    tlt_ret = np.diff(tlt) / tlt[:-1]
-    gld_ret = np.diff(gld) / gld[:-1]
+    es_ret = np.diff(es) / es[:-1]
+    zn_ret = np.diff(zn) / zn[:-1]
+    gc_ret = np.diff(gc) / gc[:-1]
 
-    window = min(63, len(spy_ret), len(tlt_ret), len(gld_ret))
+    window = min(63, len(es_ret), len(zn_ret), len(gc_ret))
     if window < 30:
-        raise ValueError("Insufficient ETF return history for correlation pressure")
+        raise ValueError("Insufficient futures return history for correlation pressure")
 
-    spy_tlt_corr = float(np.corrcoef(spy_ret[-window:], tlt_ret[-window:])[0, 1])
-    spy_gld_corr = float(np.corrcoef(spy_ret[-window:], gld_ret[-window:])[0, 1])
+    es_zn_corr = float(np.corrcoef(es_ret[-window:], zn_ret[-window:])[0, 1])
+    es_gc_corr = float(np.corrcoef(es_ret[-window:], gc_ret[-window:])[0, 1])
 
-    spy_tlt_score, spy_tlt_desc = score_spy_tlt_corr(spy_tlt_corr)
-    spy_gld_score, spy_gld_desc = score_spy_gld_corr(spy_gld_corr)
+    es_zn_score, es_zn_desc = score_es_zn_corr(es_zn_corr)
+    es_gc_score, es_gc_desc = score_es_gc_corr(es_gc_corr)
 
-    components["spy_tlt_score"] = round(spy_tlt_score, 1)
-    components["spy_tlt_corr"] = round(spy_tlt_corr, 3)
-    components["spy_gld_score"] = round(spy_gld_score, 1)
-    components["spy_gld_corr"] = round(spy_gld_corr, 3)
+    components["es_zn_score"] = round(es_zn_score, 1)
+    components["es_zn_corr"] = round(es_zn_corr, 3)
+    components["es_gc_score"] = round(es_gc_score, 1)
+    components["es_gc_corr"] = round(es_gc_corr, 3)
 
     # ==== 3. DXY STRENGTH (FRED DXY index) ====
     cur.execute(
@@ -532,7 +532,7 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     components["dxy_change_20d"] = round(dxy_change_20d * 100, 2)
 
     # ==== COMPOSITE ====
-    score = (spy_tlt_score * 0.45) + (spy_gld_score * 0.30) + (dxy_score * 0.25)
+    score = (es_zn_score * 0.45) + (es_gc_score * 0.30) + (dxy_score * 0.25)
     score = float(np.clip(score, 0, 100))
 
     # ==== REGIME ====
@@ -560,9 +560,9 @@ def calculate_correlation_pressure(conn, as_of_date: Optional[date] = None) -> D
     narrative = f"{regime_info.description} {regime_info.positioning}"
 
     drivers = []
-    if spy_tlt_score >= 60:
-        drivers.append(f"SPY-TLT correlation positive ({spy_tlt_corr:.2f})")
-    if spy_gld_score >= 60:
+    if es_zn_score >= 60:
+        drivers.append(f"ES-ZN correlation elevated ({es_zn_corr:.2f})")
+    if es_gc_score >= 60:
         drivers.append("Gold acting as safe haven")
     if dxy_score >= 60:
         drivers.append("Dollar strengthening")

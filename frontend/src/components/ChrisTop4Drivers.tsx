@@ -56,6 +56,7 @@ interface MarketDriversResponse {
     crush_pressure: DriverData;
     china_tension: DriverData;
     tariff_threat: DriverData;
+    energy_stress?: DriverData;
   };
   summary: {
     average_pressure: number;
@@ -74,6 +75,7 @@ const DRIVER_NAMES: Record<string, string> = {
   "Crush Pressure": "Crush Margins",
   "China Tension": "China / Trade Risk",
   "Tariff Threat": "Policy Risk",
+  "Energy Stress": "Energy / Oil",
 };
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -106,6 +108,10 @@ const LEVEL_LABELS: Record<string, string> = {
   "Elevated Noise": "Elevated",
   "Background Noise": "Background",
   "Minimal Threat": "Quiet",
+  // Energy Stress levels
+  Crisis: "Energy Crisis",
+  "Supply Shock": "Supply Shock",
+  "Low Risk": "Low Risk",
 };
 
 function mapDriverName(name: string): string {
@@ -520,7 +526,7 @@ export function ChrisTop4Drivers() {
             </span>
           )}
           {data?.summary?.alert_count && data.summary.alert_count > 0 && (
-            <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
+            <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
               {data.summary.alert_count} ALERT
               {data.summary.alert_count > 1 ? "S" : ""}
             </span>
@@ -528,7 +534,7 @@ export function ChrisTop4Drivers() {
         </div>
         <div className="flex items-center gap-3">
           {refreshMessage && (
-            <span className="text-xs text-cyan-400 animate-pulse">
+            <span className="text-xs text-cyan-400">
               {refreshMessage}
             </span>
           )}
@@ -630,6 +636,38 @@ export function ChrisTop4Drivers() {
           ]}
           loading={loading}
         />
+        {d?.energy_stress && (
+          <DriverCard
+            label="Energy Stress"
+            data={d.energy_stress}
+            metrics={[
+              {
+                key: "cl_price",
+                label: "Crude Oil (CL)",
+                format: (v) => (v ? `$${v.toFixed(2)}` : "--"),
+              },
+              {
+                key: "cl_change_5d",
+                label: "5-Day Change",
+                format: (v) =>
+                  v !== null
+                    ? `${(v! * 100) >= 0 ? "+" : ""}${(v! * 100).toFixed(1)}%`
+                    : "--",
+              },
+              {
+                key: "ovx_value",
+                label: "Oil Volatility (OVX)",
+                format: (v) => v?.toFixed(1) ?? "--",
+              },
+              {
+                key: "energy_news_count",
+                label: "Energy Headlines",
+                format: (v) => (v !== null ? `${v} this week` : "--"),
+              },
+            ]}
+            loading={loading}
+          />
+        )}
       </div>
 
       {/* Summary Bar */}
@@ -781,6 +819,7 @@ export function ChrisTop4Compact() {
     { label: "Crush", score: data?.drivers?.crush_pressure?.score ?? null },
     { label: "China", score: data?.drivers?.china_tension?.score ?? null },
     { label: "Policy", score: data?.drivers?.tariff_threat?.score ?? null },
+    { label: "Energy", score: data?.drivers?.energy_stress?.score ?? null },
   ];
 
   return (

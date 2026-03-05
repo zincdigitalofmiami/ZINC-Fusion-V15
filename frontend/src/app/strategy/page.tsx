@@ -261,8 +261,56 @@ export default function StrategyPage() {
     return { label, text: risk, colors };
   }) ?? [];
 
+  // Build real factor-attribution inputs from live driver scores.
+  // This avoids placeholder decomposition and keeps all values data-driven.
+  const waterfallFactors = brief
+    ? (() => {
+        const active = brief.drivers.filter((d) => d.source !== 'unavailable');
+        if (active.length === 0) return [];
+
+        const totalDelta = brief.price.current - brief.price.previousClose;
+        const centered = active.map((d) => (d.score - 50) / 50);
+        const centeredSum = centered.reduce((sum, value) => sum + value, 0);
+        const absCenteredSum = centered.reduce((sum, value) => sum + Math.abs(value), 0);
+
+        const inferCategory = (name: string): 'cell' | 'macro' | 'technical' | 'noise' => {
+          const normalized = name.toLowerCase();
+          if (normalized.includes('crush') || normalized.includes('energy')) return 'cell';
+          if (normalized.includes('china') || normalized.includes('tariff')) return 'macro';
+          if (normalized.includes('market') || normalized.includes('vix')) return 'technical';
+          return 'noise';
+        };
+
+        return active.map((driver, idx) => {
+          let contribution = 0;
+          if (Math.abs(totalDelta) > 0.0001) {
+            if (Math.abs(centeredSum) >= 0.05) {
+              contribution = totalDelta * (centered[idx] / centeredSum);
+            } else {
+              const magnitudeWeight =
+                absCenteredSum > 0
+                  ? Math.abs(centered[idx]) / absCenteredSum
+                  : 1 / active.length;
+              const sign = Math.sign(totalDelta) || 1;
+              contribution = sign * magnitudeWeight * Math.abs(totalDelta);
+            }
+          } else {
+            contribution = centered[idx] * 0.05;
+          }
+
+          return {
+            id: `${driver.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${idx}`,
+            label: driver.name,
+            value: Number(contribution.toFixed(4)),
+            type: contribution >= 0 ? ('positive' as const) : ('negative' as const),
+            category: inferCategory(driver.name),
+          };
+        });
+      })()
+    : [];
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
 
       {/* Error banner */}
       {error && (
@@ -649,7 +697,7 @@ export default function StrategyPage() {
           </h3>
         </div>
 
-        <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
+        <div className="relative w-full h-[300px] md:h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
           <FusionBrain drivers={brief?.drivers} correlations={brief?.correlations} />
         </div>
@@ -666,6 +714,7 @@ export default function StrategyPage() {
             <FactorWaterfall
               prevPrice={brief?.price.previousClose ?? 0}
               currentPrice={brief?.price.current ?? 0}
+              factors={waterfallFactors}
             />
           </div>
           <ProbabilityHeatmap />

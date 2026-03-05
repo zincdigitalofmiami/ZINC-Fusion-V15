@@ -3,10 +3,11 @@
 Core Training Pipeline
 ======================
 
-Three-phase pipeline:
+Four-phase pipeline:
   Phase 3: Build feature matrix (training.matrix_1d)
   Phase 6: Train models for all horizons
-  Phase 7: Promote OOF predictions to forecasts.production_1d
+  Phase 7: Forward inference → forecasts.production_1d
+  Phase 8: Monte Carlo probability layer (prob_enter_zone, prob_touch_*, mc_runs)
 
 Usage:
     python -m fusion.core_training.run_pipeline
@@ -122,14 +123,14 @@ def run_pipeline(
         return False
 
     # =========================================================================
-    # PHASE 7: PROMOTE OOF TO PRODUCTION FORECASTS
+    # PHASE 7: FORWARD INFERENCE → PRODUCTION FORECASTS
     # =========================================================================
     logger.info("")
     logger.info("=" * 70)
-    logger.info("PHASE 7: PROMOTE OOF TO PRODUCTION FORECASTS")
+    logger.info("PHASE 7: FORWARD INFERENCE → PRODUCTION FORECASTS")
     logger.info("=" * 70)
 
-    forecast_script = PROJECT_ROOT / "scripts" / "generate_production_forecasts.py"
+    forecast_script = PROJECT_ROOT / "scripts" / "generate_forward_forecasts.py"
     if forecast_script.exists():
         result = subprocess.run(
             [sys.executable, str(forecast_script)],
@@ -143,18 +144,45 @@ def run_pipeline(
             for line in result.stdout.strip().splitlines()[-5:]:
                 logger.info(f"   {line}")
         else:
-            logger.error("Production forecast generation FAILED (non-fatal)")
+            logger.error("PIPELINE ABORTED - Production forecast generation FAILED")
             for line in result.stderr.strip().splitlines()[-10:]:
                 logger.error(f"   {line}")
-            # Phase 7 failure is non-fatal: training succeeded, forecasts
-            # can be regenerated independently via the standalone script.
-            logger.warning(
-                "   Run manually: python scripts/generate_production_forecasts.py"
-            )
+            return False
     else:
-        logger.warning(
-            f"   Forecast script not found at {forecast_script} — skipping Phase 7"
+        logger.error(
+            f"PIPELINE ABORTED - Forecast script not found at {forecast_script}"
         )
+        return False
+
+    # =========================================================================
+    # PHASE 8: MONTE CARLO PROBABILITY LAYER
+    # =========================================================================
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("PHASE 8: MONTE CARLO PROBABILITY LAYER")
+    logger.info("=" * 70)
+
+    mc_script = PROJECT_ROOT / "scripts" / "run_monte_carlo.py"
+    if mc_script.exists():
+        result = subprocess.run(
+            [sys.executable, str(mc_script), "--horizon", "all"],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        if result.returncode == 0:
+            logger.info("Monte Carlo probability layer completed successfully")
+            for line in result.stdout.strip().splitlines()[-5:]:
+                logger.info(f"   {line}")
+        else:
+            logger.error("PIPELINE ABORTED - Monte Carlo simulation FAILED")
+            for line in result.stderr.strip().splitlines()[-10:]:
+                logger.error(f"   {line}")
+            return False
+    else:
+        logger.error(f"PIPELINE ABORTED - Monte Carlo script not found at {mc_script}")
+        return False
 
     # Final summary
     logger.info("")
@@ -178,7 +206,8 @@ def main():
 Phases:
   3. Build Core Matrix - Assemble feature matrix from all sources
   6. Train Models - Train AutoGluon models for each horizon
-  7. Promote Forecasts - OOF predictions -> forecasts.production_1d
+  7. Forward Inference - True model predict() -> forecasts.production_1d
+  8. Monte Carlo - Probability layer (prob_enter_zone, prob_touch_*, mc_runs)
 
 Examples:
   # Full pipeline (rebuild matrix + train)

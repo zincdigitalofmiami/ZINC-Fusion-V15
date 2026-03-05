@@ -8,9 +8,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const SYMBOLS = [
   { continuous: "ZL.n.0", canonical: "ZL", name: "Soybean Oil" },

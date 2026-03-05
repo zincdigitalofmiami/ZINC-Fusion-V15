@@ -95,11 +95,6 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             "asset": "spx",
             "desc": "S&P 500 3-month implied vol",
         },
-        "fred_vix9dcls": {
-            "name": "VIX9D",
-            "asset": "spx",
-            "desc": "S&P 500 9-day implied vol",
-        },
         "fred_vxvcls": {
             "name": "VXV",
             "asset": "spx",
@@ -114,11 +109,6 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             "name": "VXEEM",
             "asset": "em",
             "desc": "Emerging markets vol",
-        },
-        "fred_vxfxicls": {
-            "name": "VXFXI",
-            "asset": "china",
-            "desc": "China FXI volatility",
         },
     }
 
@@ -150,11 +140,6 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
                 "vix_zscore_21d",  # VIX z-score
                 "vix_term_slope",  # VIX - VIX3M
                 "realized_vs_implied",  # RV - IV spread
-                # PRECIOUS METALS ETF (computed in _compute_elite_vol_indicators)
-                "gld_momentum_21d",  # Gold ETF momentum (safe haven proxy)
-                "slv_momentum_21d",  # Silver ETF momentum
-                "gold_silver_ratio",  # GLD/SLV ratio (risk-on/off regime)
-                "gold_silver_zscore",  # Z-score of ratio
                 # NOTE: Discontinued series removed:
                 # - fred_vix9dcls (VIX9D) - not available in FRED
                 # - fred_evzcls (Euro FX vol) - discontinued March 2025
@@ -229,34 +214,6 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             realized_vol = data["returns_1d"].rolling(21).std() * np.sqrt(252) * 100
             elite["realized_vol_21d"] = realized_vol
             elite["rv_iv_spread"] = realized_vol - data["fred_vixcls"]
-
-        # Precious Metals ETF indicators (GLD, SLV from mkt.etf_1d)
-        # These are loaded separately and merged - check if available
-        if "gld_close" in data.columns:
-            gld = data["gld_close"]
-            elite["gld_momentum_21d"] = (gld / gld.rolling(21).mean() - 1) * 100
-            elite["gld_zscore_63d"] = self.compute_zscore(gld, 63)
-
-        if "slv_close" in data.columns:
-            slv = data["slv_close"]
-            elite["slv_momentum_21d"] = (slv / slv.rolling(21).mean() - 1) * 100
-            elite["slv_zscore_63d"] = self.compute_zscore(slv, 63)
-
-        # Gold/Silver ratio (risk regime indicator)
-        if "gld_close" in data.columns and "slv_close" in data.columns:
-            gld = data["gld_close"]
-            slv = data["slv_close"]
-            gs_ratio = gld / slv.replace(0, np.nan)
-            elite["gold_silver_ratio"] = gs_ratio
-            elite["gold_silver_zscore"] = self.compute_zscore(gs_ratio, 63)
-
-            # Ratio regime: high ratio = flight to quality (fear), low = risk-on
-            # Historical range ~40-100, elevated >80 = fear, depressed <60 = greed
-            elite["gold_silver_regime"] = pd.cut(
-                gs_ratio,
-                bins=[0, 55, 65, 75, 85, float("inf")],
-                labels=[1, 2, 3, 4, 5],  # 1=extreme risk-on, 5=extreme fear
-            ).astype(float)
 
         return elite
 
@@ -486,8 +443,6 @@ class VolatilitySignalGenerator(BaseSignalGenerator):
             "fred_gvzcls",
             "fred_vxvcls",
             "fred_vxeemcls",
-            "fred_vxfxicls",
-            "fred_evzcls",
         ]:
             if vol_col in data.columns and data[vol_col].notna().sum() > 30:
                 vol_data = data.copy()

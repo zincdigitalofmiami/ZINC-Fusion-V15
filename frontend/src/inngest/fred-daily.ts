@@ -15,10 +15,10 @@
 
 import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
 // Database connection pool
-const pool = dbPool;
+const pool = getIngestPool();
 
 // =============================================================================
 // FRED SERIES CONFIGURATION WITH SPECIALIST TAGS
@@ -266,22 +266,6 @@ const FRED_VOLATILITY_SERIES: FredSeriesConfig[] = [
   { id: "VXEEMCLS", name: "EM ETF Volatility Index", tags: ["volatility", "china", "trump_effect"] },
   { id: "VXFXICLS", name: "China ETF (FXI) Volatility", tags: ["volatility", "china", "trump_effect"] },  // Discontinued but has history
   { id: "EVZCLS", name: "EuroCurrency Volatility Index", tags: ["volatility", "fx", "trump_effect"] },  // Discontinued but has history
-  // Cross-asset CBOE VIX indices — risk regime / correlation drivers
-  { id: "VXNCLS", name: "CBOE Nasdaq 100 VIX", tags: ["volatility"] },
-  { id: "RVXCLS", name: "CBOE Russell 2000 VIX", tags: ["volatility"] },
-  { id: "VXDCLS", name: "CBOE DJIA VIX", tags: ["volatility"] },
-  { id: "VXEWZCLS", name: "CBOE Brazil ETF VIX", tags: ["volatility", "china", "crush"] },  // EM soy proxy
-  // ── EMV macro trackers (release 279) — market-focused ──
-  { id: "EMVOVERALLEMV", name: "EMV: Overall", tags: ["volatility", "trump_effect"] },
-  { id: "WLEMUINDXD", name: "Equity Market Uncertainty (Daily)", tags: ["volatility"] },
-  { id: "EMVMACROBUS", name: "EMV: Business Outlook", tags: ["volatility"] },
-  { id: "EMVMACROINFLATION", name: "EMV: Inflation", tags: ["volatility", "fed", "energy"] },
-  { id: "EMVMACROINTEREST", name: "EMV: Interest Rates", tags: ["volatility", "fed"] },
-  { id: "EMVEXRATES", name: "EMV: Exchange Rates", tags: ["volatility", "fx", "trump_effect"] },
-  { id: "EMVFINCRISES", name: "EMV: Financial Crises", tags: ["volatility"] },
-  { id: "EMVMONETARYPOL", name: "EMV: Monetary Policy", tags: ["volatility", "fed"] },
-  { id: "EMVCOMMMKT", name: "EMV: Commodity Markets", tags: ["volatility", "crush", "energy"] },
-  { id: "INFECTDISEMVTRACKD", name: "EMV: Infectious Disease (Daily)", tags: ["volatility"] },
   // Financial stress (weekly) - credit conditions, demand destruction risk
   // NOTE: STLFSI discontinued 2020, TEDRATE discontinued 2022 - using replacements
   { id: "STLFSI4", name: "St. Louis Financial Stress Index", tags: ["volatility", "fed"] },
@@ -305,27 +289,6 @@ const FRED_TRUMP_EFFECT_SERIES: FredSeriesConfig[] = [
   { id: "B235RC1Q027SBEA", name: "Customs Duties (Tariff Receipts)", tags: ["trump_effect", "tariff", "china"] },
   // China imports - trade war barometer
   { id: "IMPCH", name: "US Imports from China", tags: ["trump_effect", "tariff", "china"] },
-  // ── EPU categorical indices (release 279) ──
-  { id: "EPUMONETARY", name: "EPU: Monetary Policy", tags: ["trump_effect", "volatility", "fed"] },
-  { id: "EPUFISCAL", name: "EPU: Fiscal Policy", tags: ["trump_effect", "volatility"] },
-  { id: "EPUFINREG", name: "EPU: Financial Regulation", tags: ["trump_effect", "volatility"] },
-  { id: "EPUNATSEC", name: "EPU: National Security", tags: ["trump_effect", "volatility"] },
-  { id: "EPUTAXES", name: "EPU: Taxes", tags: ["trump_effect", "volatility", "tariff"] },
-  { id: "EPUGOVTSPEND", name: "EPU: Government Spending", tags: ["trump_effect", "volatility"] },
-  { id: "EPUSOVDEBT", name: "EPU: Sovereign Debt/Currency", tags: ["trump_effect", "volatility", "fx"] },
-  // ── Global/regional EPU ──
-  { id: "GEPUCURRENT", name: "Global EPU Index (Current Price)", tags: ["trump_effect", "volatility", "china"] },
-  { id: "EUEPUINDXM", name: "Europe EPU Index", tags: ["trump_effect", "volatility"] },
-  { id: "CHNMAINLANDEPU", name: "China EPU Index (Mainland)", tags: ["trump_effect", "china", "tariff", "crush"] },
-  // ── EMV categorical trackers (release 279) — policy-focused ──
-  { id: "EMVELECTGOVRN", name: "EMV: Elections & Governance", tags: ["trump_effect", "volatility"] },
-  { id: "EMVIMMIGRATION", name: "EMV: Immigration", tags: ["trump_effect", "volatility"] },
-  { id: "EMVGOVTSPEND", name: "EMV: Govt Spending & Deficit", tags: ["trump_effect", "volatility"] },
-  { id: "EMVFISCALPOL", name: "EMV: Fiscal Policy", tags: ["trump_effect", "volatility"] },
-  { id: "EMVTAXESEMV", name: "EMV: Taxes", tags: ["trump_effect", "volatility", "tariff"] },
-  { id: "EMVAGRPOLICY", name: "EMV: Agricultural Policy", tags: ["trump_effect", "crush", "tariff"] },
-  { id: "EMVENRGYENVREG", name: "EMV: Energy & Environmental Regulation", tags: ["trump_effect", "energy", "biofuel"] },
-  { id: "EMVNATSEC", name: "EMV: National Security Policy", tags: ["trump_effect", "volatility"] },
 ];
 
 const FRED_CHINA_SERIES: FredSeriesConfig[] = [
@@ -446,39 +409,6 @@ const FRED_TABLE_MAP: Record<string, string> = {
   VXEEMCLS: "econ.vol_indices_1d",  // EM ETF Volatility
   VXFXICLS: "econ.vol_indices_1d",  // China ETF Volatility (discontinued)
   EVZCLS: "econ.vol_indices_1d",    // EuroCurrency Volatility (discontinued)
-  VXNCLS: "econ.vol_indices_1d",    // Nasdaq 100 VIX
-  RVXCLS: "econ.vol_indices_1d",    // Russell 2000 VIX
-  VXDCLS: "econ.vol_indices_1d",    // DJIA VIX
-  VXEWZCLS: "econ.vol_indices_1d",  // Brazil ETF VIX
-  // EMV/EPU trackers (release 279 — Economic Policy Uncertainty & EMV)
-  EMVOVERALLEMV: "econ.vol_indices_1d",
-  WLEMUINDXD: "econ.vol_indices_1d",
-  EMVMACROBUS: "econ.vol_indices_1d",
-  EMVMACROINFLATION: "econ.vol_indices_1d",
-  EMVMACROINTEREST: "econ.vol_indices_1d",
-  EMVEXRATES: "econ.vol_indices_1d",
-  EMVFINCRISES: "econ.vol_indices_1d",
-  EMVMONETARYPOL: "econ.vol_indices_1d",
-  EMVCOMMMKT: "econ.vol_indices_1d",
-  INFECTDISEMVTRACKD: "econ.vol_indices_1d",
-  EPUMONETARY: "econ.vol_indices_1d",
-  EPUFISCAL: "econ.vol_indices_1d",
-  EPUFINREG: "econ.vol_indices_1d",
-  EPUNATSEC: "econ.vol_indices_1d",
-  EPUTAXES: "econ.vol_indices_1d",
-  EPUGOVTSPEND: "econ.vol_indices_1d",
-  EPUSOVDEBT: "econ.vol_indices_1d",
-  GEPUCURRENT: "econ.vol_indices_1d",
-  EUEPUINDXM: "econ.vol_indices_1d",
-  CHNMAINLANDEPU: "econ.vol_indices_1d",
-  EMVELECTGOVRN: "econ.vol_indices_1d",
-  EMVIMMIGRATION: "econ.vol_indices_1d",
-  EMVGOVTSPEND: "econ.vol_indices_1d",
-  EMVFISCALPOL: "econ.vol_indices_1d",
-  EMVTAXESEMV: "econ.vol_indices_1d",
-  EMVAGRPOLICY: "econ.vol_indices_1d",
-  EMVENRGYENVREG: "econ.vol_indices_1d",
-  EMVNATSEC: "econ.vol_indices_1d",
   SP500: "econ.vol_indices_1d",
   NASDAQCOM: "econ.vol_indices_1d",
   USEPUINDXD: "econ.vol_indices_1d",
@@ -698,6 +628,8 @@ type FredFetchResult =
   | { status: "no_data" }
   | { status: "not_found" };
 
+type FredRetryDecision = { status: "retry"; delayMs: number };
+
 function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
 }
@@ -716,6 +648,75 @@ function getRetryDelayMs(retryAfter: string | null, attempt: number, baseBackoff
     : baseBackoffMs * Math.pow(2, attempt);
   const jitter = Math.floor(Math.random() * 250);
   return baseDelay + jitter;
+}
+
+function parseFredApiResponse(bodyText: string): FredApiResponse {
+  try {
+    return JSON.parse(bodyText) as FredApiResponse;
+  } catch (error) {
+    throw new Error(
+      `FRED API invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+function getFirstValidObservation(observations: FredObservation[]): FredObservation | null {
+  for (const obs of observations) {
+    if (obs.value !== "." && obs.value !== "") {
+      return obs;
+    }
+  }
+  return null;
+}
+
+function handleFredHttpFailure(
+  response: Response,
+  bodyText: string,
+  attempt: number,
+  options: FredFetchOptions
+): FredFetchResult | FredRetryDecision {
+  if (isNotFoundResponse(response.status, bodyText)) {
+    return { status: "not_found" };
+  }
+
+  if (isRetryableStatus(response.status) && attempt < options.retries) {
+    return {
+      status: "retry",
+      delayMs: getRetryDelayMs(
+        response.headers.get("retry-after"),
+        attempt,
+        options.backoffMs
+      ),
+    };
+  }
+
+  throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
+}
+
+function getTransportRetryDelay(
+  error: unknown,
+  attempt: number,
+  options: FredFetchOptions
+): number | null {
+  const isAbort = error instanceof Error && error.name === "AbortError";
+  const isTransientNetworkError = isAbort || error instanceof TypeError;
+  if (!isTransientNetworkError || attempt >= options.retries) {
+    return null;
+  }
+
+  return getRetryDelayMs(null, attempt, options.backoffMs);
+}
+
+function parseFetchBody(bodyText: string): FredFetchResult {
+  if (!bodyText) {
+    return { status: "no_data" };
+  }
+
+  const json = parseFredApiResponse(bodyText);
+  const observation = getFirstValidObservation(json.observations || []);
+  return observation
+    ? { status: "ok", observation }
+    : { status: "no_data" };
 }
 
 /**
@@ -738,51 +739,19 @@ async function fetchFredSeries(
       const bodyText = await response.text();
 
       if (!response.ok) {
-        if (isNotFoundResponse(response.status, bodyText)) {
-          return { status: "not_found" };
-        }
-
-        if (isRetryableStatus(response.status) && attempt < options.retries) {
-          const delayMs = getRetryDelayMs(
-            response.headers.get("retry-after"),
-            attempt,
-            options.backoffMs
-          );
+        const decision = handleFredHttpFailure(response, bodyText, attempt, options);
+        if (decision.status === "retry") {
           attempt += 1;
-          await sleep(delayMs);
+          await sleep(decision.delayMs);
           continue;
         }
-
-        throw new Error(`FRED API error: ${response.status} ${response.statusText}`);
+        return decision;
       }
 
-      if (!bodyText) {
-        return { status: "no_data" };
-      }
-
-      let json: FredApiResponse;
-      try {
-        json = JSON.parse(bodyText) as FredApiResponse;
-      } catch (error) {
-        throw new Error(
-          `FRED API invalid JSON: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
-
-      const observations = json.observations || [];
-
-      // Find first valid observation (skip "." values)
-      for (const obs of observations) {
-        if (obs.value !== "." && obs.value !== "") {
-          return { status: "ok", observation: obs };
-        }
-      }
-
-      return { status: "no_data" };
+      return parseFetchBody(bodyText);
     } catch (error) {
-      const isAbort = error instanceof Error && error.name === "AbortError";
-      if ((isAbort || error instanceof TypeError) && attempt < options.retries) {
-        const delayMs = getRetryDelayMs(null, attempt, options.backoffMs);
+      const delayMs = getTransportRetryDelay(error, attempt, options);
+      if (delayMs !== null) {
         attempt += 1;
         await sleep(delayMs);
         continue;
@@ -797,6 +766,149 @@ async function fetchFredSeries(
 // =============================================================================
 // SEGMENTED INGEST HELPERS
 // =============================================================================
+
+interface FredSeriesIngestOutcome {
+  result: FredIngestResult;
+  inserted: number;
+  skipped: number;
+  quarantined: number;
+}
+
+type DbClient = {
+  query: (text: string, params?: readonly unknown[]) => Promise<{ rows: readonly unknown[] }>;
+};
+
+interface QuarantineInsertParams {
+  client: DbClient;
+  runId: string;
+  sourceTable: string;
+  payload: Record<string, unknown>;
+  validationError: string;
+}
+
+interface FredSeriesProcessContext {
+  client: DbClient;
+  runId: string;
+  apiKey: string;
+  series: FredSeriesConfig;
+  options: FredFetchOptions;
+  targetTable: string;
+}
+
+async function insertQuarantineRecord(
+  params: QuarantineInsertParams
+): Promise<void> {
+  const { client, runId, sourceTable, payload, validationError } = params;
+  await client.query(
+    `INSERT INTO ops.quarantined_record
+       (ingest_run_id, source_table, raw_payload, validation_errors, severity)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [runId, sourceTable, JSON.stringify(payload), [validationError], "error"]
+  );
+}
+
+function buildSkippedOutcome(seriesId: string, status: "not_found" | "no_data" | "skipped_duplicate"): FredSeriesIngestOutcome {
+  return {
+    result: { series: seriesId, status },
+    inserted: 0,
+    skipped: 1,
+    quarantined: 0,
+  };
+}
+
+async function processObservation(
+  context: FredSeriesProcessContext,
+  observation: FredObservation
+): Promise<FredSeriesIngestOutcome> {
+  const value = parseFloat(observation.value);
+  if (isNaN(value)) {
+    await insertQuarantineRecord({
+      client: context.client,
+      runId: context.runId,
+      sourceTable: context.targetTable,
+      payload: { series_id: context.series.id, date: observation.date, raw_value: observation.value },
+      validationError: `Invalid numeric value: ${observation.value}`,
+    });
+    return {
+      result: { series: context.series.id, status: "quarantined_invalid_value" },
+      inserted: 0,
+      skipped: 0,
+      quarantined: 1,
+    };
+  }
+
+  const rowHash = computeRowHash(context.series.id, observation.date, value);
+  const existsResult = await context.client.query(
+    `SELECT 1 FROM ${context.targetTable} WHERE row_hash = $1 LIMIT 1`,
+    [rowHash]
+  );
+  if (existsResult.rows.length > 0) {
+    return buildSkippedOutcome(context.series.id, "skipped_duplicate");
+  }
+
+  await context.client.query(
+    `INSERT INTO ${context.targetTable} (
+       series_id,
+       value,
+       event_date,
+       knowledge_time,
+       source,
+       row_hash
+     ) VALUES ($1, $2, $3, NOW(), $4, $5)
+     ON CONFLICT (series_id, event_date) DO UPDATE SET
+       value = EXCLUDED.value,
+       knowledge_time = NOW(),
+       source = EXCLUDED.source`,
+    [context.series.id, value, observation.date, "fred_api", rowHash]
+  );
+
+  return {
+    result: {
+      series: context.series.id,
+      status: "inserted",
+      value,
+      tags: context.series.tags,
+    },
+    inserted: 1,
+    skipped: 0,
+    quarantined: 0,
+  };
+}
+
+async function processFetchResult(
+  context: FredSeriesProcessContext,
+  fetchResult: FredFetchResult
+): Promise<FredSeriesIngestOutcome> {
+  if (fetchResult.status === "not_found" || fetchResult.status === "no_data") {
+    return buildSkippedOutcome(context.series.id, fetchResult.status);
+  }
+
+  return processObservation(context, fetchResult.observation);
+}
+
+async function processFredSeries(context: FredSeriesProcessContext): Promise<FredSeriesIngestOutcome> {
+  const { client, runId, series, apiKey, options, targetTable } = context;
+
+  try {
+    const fetchResult = await fetchFredSeries(series.id, apiKey, options);
+    return await processFetchResult(context, fetchResult);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await insertQuarantineRecord({
+      client,
+      runId,
+      sourceTable: targetTable,
+      payload: { series_id: series.id, error: errorMsg },
+      validationError: `Fetch/insert error: ${errorMsg}`,
+    });
+    return {
+      result: { series: series.id, status: "error" },
+      inserted: 0,
+      skipped: 0,
+      quarantined: 1,
+    };
+  }
+}
 
 async function ingestFredSegment(
   runId: string,
@@ -814,93 +926,18 @@ async function ingestFredSegment(
   try {
     for (const series of seriesList) {
       attempted++;
-      const targetTable = getTargetTable(series.id);
-
-      try {
-        const fetchResult = await fetchFredSeries(series.id, apiKey, options);
-
-        if (fetchResult.status === "not_found") {
-          results.push({ series: series.id, status: "not_found" });
-          skipped++;
-          continue;
-        }
-
-        if (fetchResult.status === "no_data") {
-          results.push({ series: series.id, status: "no_data" });
-          skipped++;
-          continue;
-        }
-
-        const obs = fetchResult.observation;
-        const value = parseFloat(obs.value);
-
-        if (isNaN(value)) {
-          await client.query(
-            `INSERT INTO ops.quarantined_record
-               (ingest_run_id, source_table, raw_payload, validation_errors, severity)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [runId, targetTable, JSON.stringify({ series_id: series.id, date: obs.date, raw_value: obs.value }), ["Invalid numeric value: " + obs.value], "error"]
-          );
-          results.push({ series: series.id, status: "quarantined_invalid_value" });
-          quarantined++;
-          continue;
-        }
-
-        const rowHash = computeRowHash(series.id, obs.date, value);
-
-        const existsResult = await client.query(
-          `SELECT 1 FROM ${targetTable} WHERE row_hash = $1 LIMIT 1`,
-          [rowHash]
-        );
-        if (existsResult.rows.length > 0) {
-          results.push({ series: series.id, status: "skipped_duplicate" });
-          skipped++;
-          continue;
-        }
-
-        await client.query(
-          `INSERT INTO ${targetTable} (
-             series_id,
-             value,
-             event_date,
-             knowledge_time,
-             source,
-             row_hash
-           ) VALUES ($1, $2, $3, NOW(), $4, $5)
-           ON CONFLICT (series_id, event_date) DO UPDATE SET
-             value = EXCLUDED.value,
-             knowledge_time = NOW(),
-             source = EXCLUDED.source`,
-          [
-            series.id,
-            value,
-            obs.date,
-            "fred_api",
-            rowHash,
-          ]
-        );
-
-        results.push({
-          series: series.id,
-          status: "inserted",
-          value,
-          tags: series.tags,
-        });
-        inserted++;
-
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-
-        await client.query(
-          `INSERT INTO ops.quarantined_record
-             (ingest_run_id, source_table, raw_payload, validation_errors, severity)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [runId, targetTable, JSON.stringify({ series_id: series.id, error: errorMsg }), ["Fetch/insert error: " + errorMsg], "error"]
-        );
-
-        results.push({ series: series.id, status: "error" });
-        quarantined++;
-      }
+      const outcome = await processFredSeries({
+        client,
+        runId,
+        apiKey,
+        series,
+        options,
+        targetTable: getTargetTable(series.id),
+      });
+      results.push(outcome.result);
+      inserted += outcome.inserted;
+      skipped += outcome.skipped;
+      quarantined += outcome.quarantined;
 
       await sleep(options.rateLimitMs);
     }

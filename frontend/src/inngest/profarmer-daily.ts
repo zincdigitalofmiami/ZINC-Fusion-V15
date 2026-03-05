@@ -41,9 +41,9 @@ import { type Page } from "puppeteer-core";
 // by puppeteer-extra/stealth via dynamic require(), causing runtime crashes.
 import "is-plain-object";
 
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 const PROFARMER_BASE = "https://www.profarmer.com";
 const PROFARMER_LOGIN_URL = `${PROFARMER_BASE}/r/sign-in`;
@@ -231,6 +231,49 @@ function extractSubjects(title: string, content: string): string[] {
  *  - Tab between fields triggers blur → validation → focus cycle.
  *  - 8s post-login wait allows auth redirect + cookie settlement.
  */
+/**
+ * Resolve the Chrome/Chromium executable path.
+ * Priority: PUPPETEER_EXECUTABLE_PATH env → common system paths → @sparticuz/chromium (Vercel).
+ */
+async function resolveChromePath(): Promise<{
+  executablePath: string;
+  args: string[];
+}> {
+  // 1. Explicit override (Docker, CI, etc.)
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    console.log(
+      `[profarmer] using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`,
+    );
+    return { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, args: [] };
+  }
+
+  // 2. Not on Vercel — probe common system Chrome paths
+  if (!process.env.VERCEL) {
+    const { existsSync } = await import("fs");
+    const candidates = [
+      "/usr/bin/chromium-browser", // Debian/Ubuntu Docker
+      "/usr/bin/chromium", // Alpine Docker
+      "/usr/bin/google-chrome", // Linux (google-chrome-stable)
+      "/usr/bin/google-chrome-stable",
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", // macOS
+    ];
+    for (const p of candidates) {
+      if (existsSync(p)) {
+        console.log(`[profarmer] using system Chrome: ${p}`);
+        return { executablePath: p, args: [] };
+      }
+    }
+  }
+
+  // 3. Vercel / fallback — @sparticuz/chromium (serverless binary)
+  console.log("[profarmer] using @sparticuz/chromium (serverless)");
+  const chromium = await import("@sparticuz/chromium");
+  return {
+    executablePath: await chromium.default.executablePath(),
+    args: chromium.default.args,
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
   const user = process.env.PROFARMER_USERNAME;
@@ -244,13 +287,12 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
     throw new Error("PROFARMER_USERNAME and PROFARMER_PASSWORD required");
   }
 
-  // Dynamic import for serverless chromium path resolution.
-  const chromium = await import("@sparticuz/chromium");
+  const chrome = await resolveChromePath();
   const puppeteerExtra = await getPuppeteerExtra();
 
   const browser = await puppeteerExtra.launch({
     args: [
-      ...chromium.default.args,
+      ...chrome.args,
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
@@ -259,7 +301,7 @@ async function launchProFarmerBrowser(): Promise<{ browser: any; page: any }> {
       "--window-size=1920,1080",
     ],
     defaultViewport: { width: 1920, height: 1080 },
-    executablePath: await chromium.default.executablePath(),
+    executablePath: chrome.executablePath,
     headless: true,
   });
 

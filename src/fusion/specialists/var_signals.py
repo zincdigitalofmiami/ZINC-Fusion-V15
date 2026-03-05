@@ -10,13 +10,13 @@ PATCHED 2026-01-23: Implemented real VAR impulse response analysis
 - Spillover index from variance decomposition
 """
 
-from datetime import date
-from typing import List, Optional, Tuple, Dict
-from pathlib import Path
-import pandas as pd
-import numpy as np
 import logging
+from datetime import date
+from pathlib import Path
+
 import joblib
+import numpy as np
+import pandas as pd
 
 from fusion.specialists.base import (
     BaseSignalGenerator,
@@ -117,10 +117,6 @@ class EnergySignalGenerator(BaseSignalGenerator):
                 "bz_close",  # Brent Crude - Global benchmark
             ],
             secondary_features=[
-                # ENERGY ETFs
-                "xle_close",  # Energy sector ETF
-                "uso_close",  # US Oil ETF
-                "ung_close",  # Natural Gas ETF
                 # FRED BACKUP
                 "fred_dcoilwtico",  # FRED WTI
                 "fred_dcoilbrenteu",  # FRED Brent
@@ -142,7 +138,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
         self.last_fevd = None
         self.irf_horizon: int = 21
 
-    def validate_inputs(self, data: pd.DataFrame) -> List[str]:
+    def validate_inputs(self, data: pd.DataFrame) -> list[str]:
         """Require FULL petroleum complex for VAR estimation."""
         missing = []
         if "close" not in data.columns:
@@ -160,7 +156,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
     def _compute_elite_energy_indicators(
         self, data: pd.DataFrame
-    ) -> Dict[str, pd.Series]:
+    ) -> dict[str, pd.Series]:
         """Compute elite technical indicators for energy products."""
         elite = {}
 
@@ -210,7 +206,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
     def _compute_energy_spreads(
         self, data: pd.DataFrame
-    ) -> Tuple[pd.Series, pd.Series]:
+    ) -> tuple[pd.Series, pd.Series]:
         """
         Compute key energy spreads:
         - BOHO spread: ZL - HO (biofuel premium)
@@ -245,9 +241,9 @@ class EnergySignalGenerator(BaseSignalGenerator):
     def _fit_var_with_irf(
         self,
         data: pd.DataFrame,
-        columns: List[str],
+        columns: list[str],
         maxlags: int = 21,
-    ) -> Tuple[Optional[object], Optional[object], Optional[object]]:
+    ) -> tuple[object | None, object | None, object | None]:
         """
         Fit VAR model and compute REAL Impulse Response Functions.
 
@@ -338,11 +334,11 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
             # Verify we have lags (should always be true now)
             if result.k_ar < 1:
-                logger.warning(f"   VAR fitted with 0 lags, IRF not possible")
+                logger.warning("   VAR fitted with 0 lags, IRF not possible")
                 return result, None, None
 
             # Log model diagnostics
-            logger.info(f"   VAR residual correlation matrix:")
+            logger.info("   VAR residual correlation matrix:")
             for i, col in enumerate(columns):
                 corr_str = ", ".join([f"{c:.3f}" for c in result.resid_corr[i]])
                 logger.debug(f"      {col}: [{corr_str}]")
@@ -356,7 +352,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
 
             # Also compute orthogonalized IRF for cleaner causal interpretation
             result.irf(self.irf_horizon)
-            logger.info(f"   Orthogonalized IRF available")
+            logger.info("   Orthogonalized IRF available")
 
             # Step 5: Compute REAL Forecast Error Variance Decomposition
             fevd = result.fevd(self.irf_horizon)
@@ -384,8 +380,8 @@ class EnergySignalGenerator(BaseSignalGenerator):
     def _compute_spillover_index(
         self,
         fevd,
-        columns: List[str],
-    ) -> Dict[str, float]:
+        columns: list[str],
+    ) -> dict[str, float]:
         """
         Compute Diebold-Yilmaz spillover index from FEVD.
 
@@ -438,7 +434,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
     def _extract_irf_signal(
         self,
         irf,
-        columns: List[str],
+        columns: list[str],
         shock_var: str = "cl_close",
         response_var: str = "ho_close",
     ) -> float:
@@ -471,7 +467,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
             logger.warning(f"IRF signal extraction failed: {e}")
             return 0.0
 
-    def compute(self, data: pd.DataFrame, run_hash: str) -> List[SignalOutput]:
+    def compute(self, data: pd.DataFrame, run_hash: str) -> list[SignalOutput]:
         """
         Compute energy spillover signals with REAL VAR IRF and ALL elite indicators.
         """
@@ -577,7 +573,7 @@ class EnergySignalGenerator(BaseSignalGenerator):
             irf_zscore = irf_signal * IRF_ZSCORE_SCALE
             spillover_score += 0.20 * irf_zscore
             component_weights.append(("irf", 0.20))
-            logger.info(f"   Added IRF component to spillover score")
+            logger.info("   Added IRF component to spillover score")
 
         # Renormalize
         total_weight = sum(w for _, w in component_weights)

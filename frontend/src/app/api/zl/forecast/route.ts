@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=3600",
+};
+
 interface ForecastPoint {
   horizon_days: number;
   as_of_date: string;
@@ -68,7 +72,7 @@ export async function GET(_req: NextRequest) {
       current_price: currentPrice,
       horizons: [5, 21, 63, 126],
       forecasts,
-    });
+    }, { headers: CACHE_HEADERS });
   } catch (error) {
     console.error("ZL forecast API error:", error);
     return NextResponse.json(

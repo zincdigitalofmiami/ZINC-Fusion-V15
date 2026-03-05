@@ -26,7 +26,7 @@ const anthropic = new Anthropic({
 // =============================================================================
 
 export interface DriverIntelData {
-  driverName: "vix" | "crush" | "china" | "tariff";
+  driverName: "vix" | "crush" | "china" | "tariff" | "energy";
   score: number;
   level: string;
   regime: string;
@@ -140,6 +140,28 @@ OUTPUT: Valid JSON only, no markdown.
   "zlImplication": "Direct impact on ZL - export demand, basis, price risk"
 }`;
 
+const ENERGY_EXPERT_PROMPT = `You are an energy market specialist analyzing crude oil shocks and their impact on ZL (soybean oil) via the biofuel channel.
+
+KEY RELATIONSHIPS:
+- Crude oil (CL) spikes can raise renewable diesel economics and pull more soy oil into fuel demand
+- OVX is a stress thermometer for oil market uncertainty
+- 5-day and 20-day CL momentum help separate noise from true supply shocks
+- Geopolitical disruptions (Hormuz, OPEC cuts, sanctions) can quickly transmit into biofuel feedstock pressure
+
+You analyze how ENERGY STRESS changes near-term soybean oil risk.
+Focus on: crude momentum, volatility regime, shock persistence, and biofuel demand pass-through.
+
+OUTPUT: Valid JSON only, no markdown.
+{
+  "whatsHappening": "2-3 sentences on current energy stress conditions",
+  "macroContext": "Macro/energy factors (oil supply risk, rates, global demand)",
+  "supplyDemand": "How energy conditions influence biofuel pull on soy oil",
+  "geopolitical": "Energy geopolitics impacting supply risk",
+  "investorSentiment": "How markets are positioned for energy volatility",
+  "nearTermOutlook": "Next 5-10 day energy risk expectations",
+  "zlImplication": "Direct impact on ZL procurement risk and timing"
+}`;
+
 // =============================================================================
 // GENERATE DRIVER-SPECIFIC INTEL
 // =============================================================================
@@ -154,6 +176,7 @@ export async function generateDriverIntel(
     crush: CRUSH_EXPERT_PROMPT,
     china: CHINA_EXPERT_PROMPT,
     tariff: TARIFF_EXPERT_PROMPT,
+    energy: ENERGY_EXPERT_PROMPT,
   }[data.driverName];
 
   const componentsList = Object.entries(data.components)
@@ -228,9 +251,13 @@ export function generateFallbackDriverIntel(
     data.components.board_crush_value ?? data.components.board_crush;
   const oilShare = data.components.oil_share_value;
   const cnyRate = data.components.cny_rate;
-  const fxiChange20d = data.components.fxi_change_20d;
-  const bdryChange = data.components.bdry_change_20d;
+  const hgChange20d = data.components.hg_change_20d;
+  const bdiyChange = data.components.bdiy_change_20d;
   const tpuValue = data.components.tpu_value ?? data.components.tpu;
+  const clChange5d = data.components.cl_change_5d;
+  const clChange20d = data.components.cl_change_20d;
+  const ovxValue = data.components.ovx_value;
+  const energyNewsCount = data.components.energy_news_count;
 
   // PLAIN ENGLISH FOR VEGAS BUYERS - NO QUANT JARGON
   const templates = {
@@ -321,12 +348,12 @@ export function generateFallbackDriverIntel(
           ? `Trade war risk is real. Remember 2018-2019? China switched to Brazil overnight. Could happen again.`
           : `No immediate trade war threat, but the structural disadvantage is permanent. Don't count on China demand surprises.`,
       investorSentiment:
-        fxiChange20d !== null && fxiChange20d !== undefined && fxiChange20d < -5
-          ? `China's stock market is down ${Math.abs(fxiChange20d).toFixed(0)}% this month. Economic concerns are real.`
-          : `China markets are stable. No panic, but no boom either.`,
+        hgChange20d !== null && hgChange20d !== undefined && hgChange20d < -5
+          ? `Copper is down ${Math.abs(hgChange20d).toFixed(0)}% this month. China demand concerns are real.`
+          : `Copper is stable. No panic, but no boom either.`,
       nearTermOutlook:
-        bdryChange !== null && bdryChange !== undefined && bdryChange < -10
-          ? `Shipping rates are collapsing (${bdryChange.toFixed(0)}% down). That's a red flag for physical trade.`
+        bdiyChange !== null && bdiyChange !== undefined && bdiyChange < -10
+          ? `Shipping rates are collapsing (${bdiyChange.toFixed(0)}% down). That's a red flag for physical trade.`
           : `Shipping steady. Physical trade flowing normally.`,
       zlImplication:
         data.score >= 65
@@ -365,6 +392,40 @@ export function generateFallbackDriverIntel(
           : data.score >= 50
             ? `STAY ALERT but don't overreact. Political noise, not policy action yet. Normal buying with one eye on headlines.`
             : `TRADE POLICY IS SUPPORTIVE. No new tariffs, calm environment. Good window to cover your needs.`,
+    },
+    energy: {
+      whatsHappening:
+        data.score >= 65
+          ? `Energy stress is elevated. Crude is moving fast and volatility is high, which can tighten soy oil through the biofuel channel.`
+          : data.score >= 50
+            ? `Energy conditions are elevated but not crisis-level. Watch for spillover into renewable diesel feedstock demand.`
+            : `Energy markets are mostly stable. No major crude shock is currently forcing soybean oil repricing.`,
+      macroContext:
+        ovxValue && ovxValue >= 50
+          ? `Oil volatility is elevated (OVX ${ovxValue.toFixed(1)}), signaling fragile energy conditions with headline risk.`
+          : `Oil volatility is contained, reducing the chance of abrupt biofuel-driven ZL repricing.`,
+      supplyDemand:
+        clChange5d && clChange5d > 0.05
+          ? `Recent crude upside can improve renewable diesel pull and tighten soy oil balances at the margin.`
+          : `No significant crude-driven demand shock is evident in current soy oil balance dynamics.`,
+      geopolitical:
+        data.score >= 65
+          ? `Geopolitical energy risk is elevated; supply headlines can reprice crude and biofuel inputs quickly.`
+          : `No acute geopolitical energy disruption is currently dominating price action.`,
+      investorSentiment:
+        energyNewsCount && energyNewsCount >= 5
+          ? `Energy headline volume is elevated, and markets are pricing more near-term uncertainty.`
+          : `Energy sentiment is relatively steady with limited panic positioning.`,
+      nearTermOutlook:
+        clChange20d && clChange20d > 0.1
+          ? `Trend risk remains skewed higher in crude over the next week; maintain higher alert on feedstock-linked moves.`
+          : `Expect mixed-to-stable energy conditions unless a new supply shock appears.`,
+      zlImplication:
+        data.score >= 65
+          ? `HIGH ENERGY PASS-THROUGH RISK. Avoid waiting on full coverage if procurement windows are open.`
+          : data.score >= 50
+            ? `MODERATE ENERGY RISK. Stage purchases and monitor crude/OVX daily for escalation.`
+            : `LOW ENERGY RISK. Normal procurement cadence is reasonable from an energy-spillover perspective.`,
     },
   };
 

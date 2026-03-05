@@ -172,7 +172,7 @@ export default function VegasIntelPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
 
       {/* PAGE HEADER */}
       <div className="mb-8">
@@ -190,7 +190,7 @@ export default function VegasIntelPage() {
       </div>
 
       {/* SECTION 1: SEGMENT FILTER CARDS */}
-      <div style={{
+      <div className="vegas-segment-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '12px',
@@ -413,7 +413,7 @@ function EventRow({ event }: { event: VegasEvent }) {
     : 1
 
   return (
-    <div style={{
+    <div className="vegas-event-row" style={{
       background: 'rgba(255, 255, 255, 0.02)',
       border: '1px solid rgba(255, 255, 255, 0.08)',
       padding: '20px 24px',
@@ -470,7 +470,7 @@ function EventRow({ event }: { event: VegasEvent }) {
       </div>
 
       {/* Right: Attendance + Days Until + Duration */}
-      <div style={{
+      <div className="vegas-event-stats" style={{
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
@@ -561,7 +561,7 @@ function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
   const accentColor = isProspect ? STATUS_COLORS.prospect : STATUS_COLORS.customer
 
   return (
-    <div style={{
+    <div className="vegas-opp-row" style={{
       display: 'flex',
       alignItems: 'stretch',
       background: 'rgba(255, 255, 255, 0.02)',

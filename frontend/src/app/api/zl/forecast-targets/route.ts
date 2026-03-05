@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=3600",
+};
+
 /**
  * GET /api/zl/forecast-targets
  *
@@ -98,7 +102,10 @@ export async function GET() {
     `);
 
     if (forecastRows.length === 0) {
-      return NextResponse.json({ symbol: "ZL", targets: [] });
+      return NextResponse.json(
+        { symbol: "ZL", targets: [] },
+        { headers: CACHE_HEADERS }
+      );
     }
 
     // 2) Latest MAE per horizon from model_runs (best-effort — non-fatal)
@@ -167,7 +174,7 @@ export async function GET() {
       mixedVintage,
       currentPrice,
       targets,
-    });
+    }, { headers: CACHE_HEADERS });
   } catch (error) {
     console.error("ZL forecast-targets API error:", error);
     return NextResponse.json(

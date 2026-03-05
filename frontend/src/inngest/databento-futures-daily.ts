@@ -12,9 +12,9 @@
 import { inngest, DB_CONCURRENCY } from "./client";
 import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
 import { createHash } from "crypto";
-import dbPool from "@/lib/db";
+import { getIngestPool } from "@/lib/db";
 
-const pool = dbPool;
+const pool = getIngestPool();
 
 // All GLBX.MDP3 (CME Globex, CBOT, COMEX, NYMEX) symbols present in mkt.futures_1d.
 // Crush-relevant use .n.0 (OI-ranked), everything else uses .c.0 (calendar).
