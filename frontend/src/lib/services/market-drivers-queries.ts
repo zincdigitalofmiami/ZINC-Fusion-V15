@@ -32,9 +32,9 @@ export interface MarketDriversRawData {
   cnyRate: number | null;
   cnyDate: string | null;
   cnyChange20d: number | null;
-  fxiChange20d: number;
-  fxiChange5d: number;
-  bdryChange20d: number | null;
+  hgChange20d: number;
+  hgChange5d: number;
+  bdiyChange20d: number | null;
   soyChinaNews: number;
   totalNews: number;
   chinaSignal: number | null;
@@ -49,6 +49,12 @@ export interface MarketDriversRawData {
   zlPrice: number | null;
   zlChange5d: number | null;
   zlChange20d: number | null;
+  // Energy (CL crude oil)
+  clPrice: number | null;
+  clChange5d: number | null;
+  clChange20d: number | null;
+  clDate: string | null;
+  energyNewsCount: number;
   // News
   recentNews: string[];
 }
@@ -69,8 +75,8 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     oilShare5dRows,
     cnyRows,
     cnyChangeRows,
-    fxiRows,
-    bdryRows,
+    hgRows,
+    bdiyRows,
     soyChinaNewsRows,
     totalNewsRows,
     tpuRows,
@@ -81,6 +87,8 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     chinaSignalRows,
     tariffSignalRows,
     zlPriceRows,
+    clPriceRows,
+    energyNewsRows,
     recentNewsRows,
   ] = await Promise.all([
     // === VIX STRESS DATA ===
@@ -157,14 +165,37 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
       WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
       ORDER BY event_date DESC OFFSET 20 LIMIT 1
     `),
-    // TODO(data-quality): Re-enable FXI when reverse-split adjusted data available
-    // ETF corporate actions create false 50%+ price gaps in analytics pipeline.
-    // Disabled 2025-12 — revisit when mkt.etf_1d has a corporate-action adjustment column.
-    Promise.resolve([{ price: 0, change_20d: 0, change_5d: 0 }]),
-    // TODO(data-quality): Re-enable BDRY when stale-data detection is in place
-    // Breakwave Dry Bulk Shipping ETF has intermittent feed gaps causing phantom moves.
-    // Disabled 2025-12 — revisit when ingest pipeline validates continuity.
-    Promise.resolve([{ change_20d: 0 }]),
+    // HG Futures 20-day and 5-day change (China demand proxy)
+    query<{ close: number; change_20d: number; change_5d: number }>(`
+      WITH hg AS (
+        SELECT close::float8 as close, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+        FROM mkt.futures_1d
+        WHERE symbol = 'HG' AND close IS NOT NULL
+        LIMIT 21
+      )
+      SELECT
+        (SELECT close FROM hg WHERE rn = 1)::float8 as close,
+        CASE WHEN (SELECT close FROM hg WHERE rn = 21) > 0
+             THEN ((SELECT close FROM hg WHERE rn = 1) - (SELECT close FROM hg WHERE rn = 21)) / (SELECT close FROM hg WHERE rn = 21)
+             ELSE 0 END::float8 as change_20d,
+        CASE WHEN (SELECT close FROM hg WHERE rn = 6) > 0
+             THEN ((SELECT close FROM hg WHERE rn = 1) - (SELECT close FROM hg WHERE rn = 6)) / (SELECT close FROM hg WHERE rn = 6)
+             ELSE 0 END::float8 as change_5d
+    `),
+    // BDIY 20-day change (shipping demand proxy)
+    query<{ value: number; change_20d: number | null }>(`
+      WITH bdiy AS (
+        SELECT value::float8 as value, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+        FROM econ.commodities_1d
+        WHERE series_id = 'BDIY' AND value IS NOT NULL
+        LIMIT 21
+      )
+      SELECT
+        (SELECT value FROM bdiy WHERE rn = 1)::float8 as value,
+        CASE WHEN (SELECT value FROM bdiy WHERE rn = 21) > 0
+             THEN ((SELECT value FROM bdiy WHERE rn = 1) - (SELECT value FROM bdiy WHERE rn = 21)) / (SELECT value FROM bdiy WHERE rn = 21)
+             ELSE NULL END::float8 as change_20d
+    `),
     // Soy China News (ProFarmer)
     query<{ count: number }>(`
       SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
@@ -261,6 +292,34 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
              ELSE 0 END::float8 as change_20d
     `),
 
+    // === CL CRUDE OIL DATA (Energy Stress driver) ===
+    query<{ close: number; change_5d: number; change_20d: number; event_date: string }>(`
+      WITH cl AS (
+        SELECT close, event_date, ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+        FROM mkt.futures_1d WHERE symbol = 'CL' AND close IS NOT NULL LIMIT 21
+      )
+      SELECT
+        (SELECT close FROM cl WHERE rn = 1)::float8 as close,
+        (SELECT event_date::text FROM cl WHERE rn = 1) as event_date,
+        CASE WHEN (SELECT close FROM cl WHERE rn = 6) > 0
+             THEN ((SELECT close FROM cl WHERE rn = 1) - (SELECT close FROM cl WHERE rn = 6)) / (SELECT close FROM cl WHERE rn = 6)
+             ELSE 0 END::float8 as change_5d,
+        CASE WHEN (SELECT close FROM cl WHERE rn = 21) > 0
+             THEN ((SELECT close FROM cl WHERE rn = 1) - (SELECT close FROM cl WHERE rn = 21)) / (SELECT close FROM cl WHERE rn = 21)
+             ELSE 0 END::float8 as change_20d
+    `).catch(() => [] as { close: number; change_5d: number; change_20d: number; event_date: string }[]),
+
+    // Energy/Oil News (ProFarmer — 7 days)
+    query<{ count: number }>(`
+      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
+      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      AND (headline ILIKE '%crude%' OR headline ILIKE '%oil price%' OR headline ILIKE '%energy%'
+           OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%opec%'
+           OR headline ILIKE '%petroleum%' OR headline ILIKE '%biofuel%' OR headline ILIKE '%biodiesel%'
+           OR headline ILIKE '%renewable diesel%' OR headline ILIKE '%strait%'
+           OR content ILIKE '%crude oil%' OR content ILIKE '%oil spike%' OR content ILIKE '%energy crisis%')
+    `).catch(() => [{ count: 0 }]),
+
     // === RECENT NEWS HEADLINES (for comprehensive reports) ===
     query<{ headline: string }>(`
       SELECT headline FROM alt.profarmer_news_event
@@ -298,9 +357,9 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     cnyRate,
     cnyDate: cnyRows[0]?.event_date ?? null,
     cnyChange20d,
-    fxiChange20d: fxiRows[0]?.change_20d ?? 0,
-    fxiChange5d: fxiRows[0]?.change_5d ?? 0,
-    bdryChange20d: bdryRows[0]?.change_20d ?? null,
+    hgChange20d: hgRows[0]?.change_20d ?? 0,
+    hgChange5d: hgRows[0]?.change_5d ?? 0,
+    bdiyChange20d: bdiyRows[0]?.change_20d ?? null,
     soyChinaNews: soyChinaNewsRows[0]?.count ?? 0,
     totalNews: totalNewsRows[0]?.count ?? 1,
     chinaSignal: chinaSignalRows[0]?.signal ?? null,
@@ -315,6 +374,12 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     zlPrice: zlPriceRows[0]?.close ?? null,
     zlChange5d: zlPriceRows[0]?.change_5d ?? null,
     zlChange20d: zlPriceRows[0]?.change_20d ?? null,
+
+    clPrice: clPriceRows[0]?.close ?? null,
+    clChange5d: clPriceRows[0]?.change_5d ?? null,
+    clChange20d: clPriceRows[0]?.change_20d ?? null,
+    clDate: clPriceRows[0]?.event_date ?? null,
+    energyNewsCount: energyNewsRows[0]?.count ?? 0,
 
     recentNews: recentNewsRows?.map((r) => r.headline) ?? [],
   };
@@ -468,7 +533,7 @@ export function computeStalenessAwareness(
 /** Assembles MarketData for AI calls. */
 export function buildMarketData(
   data: MarketDriversRawData,
-  scores: { vix: number; crush: number; china: number; tariff: number },
+  scores: { vix: number; crush: number; china: number; tariff: number; energy: number },
   asOfDate: string,
 ): MarketData {
   return {
@@ -477,9 +542,13 @@ export function buildMarketData(
     boardCrush: data.crush!,
     oilShare: data.oilShare,
     cnyRate: data.cnyRate!,
-    fxiChange20d: data.fxiChange20d,
-    fxiChange5d: data.fxiChange5d,
-    bdryChange20d: data.bdryChange20d,
+    hgChange20d: data.hgChange20d,
+    hgChange5d: data.hgChange5d,
+    bdiyChange20d: data.bdiyChange20d,
+    // Backward-compatible aliases for any older consumers
+    fxiChange20d: data.hgChange20d,
+    fxiChange5d: data.hgChange5d,
+    bdryChange20d: data.bdiyChange20d,
     tpu: data.tpu!,
     emv: data.emv,
     scores,
