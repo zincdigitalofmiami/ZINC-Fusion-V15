@@ -73,7 +73,9 @@ def normalize_url(url: str) -> str:
     if not url:
         fail("No database URL resolved.")
     if url.startswith("prisma+postgres://"):
-        fail("Direct postgres:// URL required for identity guard (prisma+postgres:// is not supported).")
+        fail(
+            "Direct postgres:// URL required for identity guard (prisma+postgres:// is not supported)."
+        )
     if not (url.startswith("postgres://") or url.startswith("postgresql://")):
         fail("Unsupported URL scheme. Expected postgres:// or postgresql://")
 
@@ -115,12 +117,16 @@ def check_host_db_constraints(target: str, host: str | None, db_name: str) -> No
     expected_db = conf["expected_db"]
 
     if db_name != expected_db:
-        fail(f"Wrong database name for target '{target}'. Expected '{expected_db}', got '{db_name or '<empty>'}'.")
+        fail(
+            f"Wrong database name for target '{target}'. Expected '{expected_db}', got '{db_name or '<empty>'}'."
+        )
 
     if "expected_host_contains" in conf:
         needle = conf["expected_host_contains"]
         if not host or needle not in host:
-            fail(f"Wrong host for target '{target}'. Expected host containing '{needle}', got '{host}'.")
+            fail(
+                f"Wrong host for target '{target}'. Expected host containing '{needle}', got '{host}'."
+            )
 
     if "expected_host_exact" in conf:
         allowed = conf["expected_host_exact"]
@@ -200,7 +206,9 @@ def main() -> int:
                 f"Connected to wrong runtime DB. Expected '{expected_db}', got '{runtime_db}' as user '{runtime_user}'."
             )
 
-        should_validate_v15 = TARGETS[args.target]["validate_v15"] and not args.skip_v15_checks
+        should_validate_v15 = (
+            TARGETS[args.target]["validate_v15"] and not args.skip_v15_checks
+        )
         if should_validate_v15:
             check_required_schemas(conn)
             check_required_tables(conn)

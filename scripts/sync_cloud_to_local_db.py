@@ -71,11 +71,19 @@ def parse_host_db(url: str) -> tuple[str | None, str]:
 
 
 def resolve_urls(source_url: str | None, dest_url: str | None) -> tuple[str, str]:
-    source = source_url or os.getenv("CLOUD_DATABASE_URL") or os.getenv("DIRECT_DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+    source = (
+        source_url
+        or os.getenv("CLOUD_DATABASE_URL")
+        or os.getenv("DIRECT_DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("DATABASE_URL")
+    )
     dest = dest_url or os.getenv("LOCAL_DATABASE_URL")
 
     if not source:
-        fail("Could not resolve source URL. Set CLOUD_DATABASE_URL or DIRECT_DATABASE_URL or POSTGRES_URL or DATABASE_URL.")
+        fail(
+            "Could not resolve source URL. Set CLOUD_DATABASE_URL or DIRECT_DATABASE_URL or POSTGRES_URL or DATABASE_URL."
+        )
     if not dest:
         fail("Could not resolve destination URL. Set LOCAL_DATABASE_URL.")
 
@@ -93,7 +101,9 @@ def validate_urls(source: str, dest: str) -> None:
 
     allowed_local_hosts = {"localhost", "127.0.0.1", "::1"}
     if dest_host not in allowed_local_hosts:
-        fail(f"Destination host must be local ({sorted(allowed_local_hosts)}), got '{dest_host}'.")
+        fail(
+            f"Destination host must be local ({sorted(allowed_local_hosts)}), got '{dest_host}'."
+        )
     if dest_db != EXPECTED_LOCAL_DB:
         fail(f"Destination DB must be '{EXPECTED_LOCAL_DB}', got '{dest_db}'.")
 
@@ -128,8 +138,12 @@ def copy_table(source_conn, dest_conn, table_name: str, dry_run: bool) -> SyncRe
         with source_conn.cursor() as source_cur, dest_conn.cursor() as dest_cur:
             dest_cur.execute(f'TRUNCATE TABLE "{schema}"."{table}" CASCADE')
 
-            export_sql = f'COPY "{schema}"."{table}" TO STDOUT WITH (FORMAT CSV, HEADER TRUE)'
-            import_sql = f'COPY "{schema}"."{table}" FROM STDIN WITH (FORMAT CSV, HEADER TRUE)'
+            export_sql = (
+                f'COPY "{schema}"."{table}" TO STDOUT WITH (FORMAT CSV, HEADER TRUE)'
+            )
+            import_sql = (
+                f'COPY "{schema}"."{table}" FROM STDIN WITH (FORMAT CSV, HEADER TRUE)'
+            )
 
             # Use a temporary file to keep compatibility across psycopg2 versions.
             with tempfile.NamedTemporaryFile(mode="w+b") as tmp:
@@ -170,11 +184,17 @@ def parse_tables(requested: list[str]) -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Sync cloud Postgres tables to local V15 Postgres")
+    parser = argparse.ArgumentParser(
+        description="Sync cloud Postgres tables to local V15 Postgres"
+    )
     parser.add_argument("--source-url", help="Override cloud source URL")
     parser.add_argument("--dest-url", help="Override local destination URL")
-    parser.add_argument("--tables", nargs="+", default=["all"], help="Subset of tables to sync")
-    parser.add_argument("--dry-run", action="store_true", help="Only print source row counts")
+    parser.add_argument(
+        "--tables", nargs="+", default=["all"], help="Subset of tables to sync"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Only print source row counts"
+    )
     args = parser.parse_args()
 
     source_url, dest_url = resolve_urls(args.source_url, args.dest_url)
@@ -183,8 +203,12 @@ def main() -> int:
     tables = parse_tables(args.tables)
 
     print("[sync-cloud-to-local-db] start")
-    print(f"  source_host={parse_host_db(source_url)[0]} source_db={parse_host_db(source_url)[1]}")
-    print(f"  dest_host={parse_host_db(dest_url)[0]} dest_db={parse_host_db(dest_url)[1]}")
+    print(
+        f"  source_host={parse_host_db(source_url)[0]} source_db={parse_host_db(source_url)[1]}"
+    )
+    print(
+        f"  dest_host={parse_host_db(dest_url)[0]} dest_db={parse_host_db(dest_url)[1]}"
+    )
     print(f"  tables={len(tables)} dry_run={args.dry_run}")
 
     source_conn = psycopg2.connect(source_url)
@@ -196,7 +220,9 @@ def main() -> int:
             result = copy_table(source_conn, dest_conn, table, args.dry_run)
             results.append(result)
             if result.status == "dry_run":
-                print(f"  DRY-RUN {table}: source_rows={result.source_count} elapsed={result.elapsed_s:.2f}s")
+                print(
+                    f"  DRY-RUN {table}: source_rows={result.source_count} elapsed={result.elapsed_s:.2f}s"
+                )
             elif result.status == "ok":
                 print(
                     f"  OK {table}: source_rows={result.source_count} dest_rows={result.dest_count} elapsed={result.elapsed_s:.2f}s"
@@ -208,7 +234,9 @@ def main() -> int:
 
         failures = [r for r in results if r.status not in {"ok", "dry_run"}]
         if failures:
-            print(f"[sync-cloud-to-local-db] FAILED: {len(failures)} table(s) had errors")
+            print(
+                f"[sync-cloud-to-local-db] FAILED: {len(failures)} table(s) had errors"
+            )
             return 1
 
         print("[sync-cloud-to-local-db] PASS")

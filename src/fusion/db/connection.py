@@ -194,7 +194,9 @@ def get_write_connection(
         finally:
             conn.close()
     """
-    normalized = normalize_database_url(database_url) if database_url else get_database_url()
+    normalized = (
+        normalize_database_url(database_url) if database_url else get_database_url()
+    )
     _assert_expected_db_name(normalized)
     return psycopg2.connect(normalized)
 

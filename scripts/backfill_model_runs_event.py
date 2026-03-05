@@ -45,9 +45,16 @@ def fail(msg: str) -> None:
 
 
 def resolve_db_url(explicit: str | None) -> str:
-    url = explicit or os.getenv("DIRECT_DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+    url = (
+        explicit
+        or os.getenv("DIRECT_DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("DATABASE_URL")
+    )
     if not url:
-        fail("No DB URL found. Set DIRECT_DATABASE_URL or POSTGRES_URL or DATABASE_URL.")
+        fail(
+            "No DB URL found. Set DIRECT_DATABASE_URL or POSTGRES_URL or DATABASE_URL."
+        )
     if not (url.startswith("postgres://") or url.startswith("postgresql://")):
         fail("DB URL must be postgres:// or postgresql://")
     if "gssencmode" not in url:
@@ -97,7 +104,9 @@ def compute_metrics(conn, horizon: int, run_hash: str) -> BackfillMetrics:
         rows = cur.fetchall()
 
     if len(rows) < 10:
-        fail(f"Insufficient OOF rows for horizon={horizon}, run_hash={run_hash}: {len(rows)}")
+        fail(
+            f"Insufficient OOF rows for horizon={horizon}, run_hash={run_hash}: {len(rows)}"
+        )
 
     trade_dates = [str(r[0]) for r in rows]
     y_pred = np.array([float(r[1]) for r in rows], dtype=float)
@@ -174,7 +183,9 @@ def upsert_model_run(conn, m: BackfillMetrics, dry_run: bool) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Backfill model_runs_event from OOF data")
+    parser = argparse.ArgumentParser(
+        description="Backfill model_runs_event from OOF data"
+    )
     parser.add_argument("--db-url", help="Override DB URL")
     parser.add_argument("--horizons", nargs="+", type=int, default=HORIZONS)
     parser.add_argument("--dry-run", action="store_true")
