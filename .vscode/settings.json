@@ -4,8 +4,8 @@
   "python.languageServer": "Pylance",
   "python.analysis.diagnosticMode": "openFilesOnly",
   "python.analysis.typeCheckingMode": "basic",
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}/src"],
+  "python.defaultInterpreterPath": "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/bin/python",
+  "python.analysis.extraPaths": ["/Volumes/Satechi Hub/ZINC-FUSION-V15/src"],
   "python.analysis.autoImportCompletions": true,
 
   "editor.rulers": [88, 120],
