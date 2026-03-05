@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+};
 const INTRADAY_SOURCE_TABLES = [
   { table: "price_5m", interval: "5m" },
   { table: "price_15m", interval: "15m" },
@@ -226,7 +230,7 @@ export async function GET(req: NextRequest) {
         live_rollup_latest_intraday_ts: activeLatestTs,
         data: numericRows,
       },
-      { headers: { "Cache-Control": "no-store, max-age=0" } },
+      { headers: CACHE_HEADERS },
     );
   } catch (error) {
     console.error("ZL price-1d API error:", error);
