@@ -5,7 +5,7 @@
 # If it returns non-zero, you are BLOCKED.
 # ============================================================================
 
-.PHONY: check lint test verify install setup help git-integrity clean-worktrees clean-worktrees-auto
+.PHONY: check lint test verify install setup help git-integrity clean-worktrees clean-worktrees-auto db-guard-cloud db-guard-local db-guard-shadow db-parity-local
 
 # The ONE command. Run this. If it fails, you're blocked.
 check: verify
@@ -33,6 +33,22 @@ tsc:
 # Prisma validate only
 prisma-validate:
 	@npx --yes --prefix config prisma validate --schema prisma/schema.prisma
+
+# Database identity guard (cloud target)
+db-guard-cloud:
+	@.venv/bin/python scripts/db_identity_guard.py --mode cloud
+
+# Database identity guard (local runtime target)
+db-guard-local:
+	@.venv/bin/python scripts/db_identity_guard.py --mode local
+
+# Database identity guard (local shadow target)
+db-guard-shadow:
+	@.venv/bin/python scripts/db_identity_guard.py --mode shadow
+
+# Local schema/data parity checks for audit-critical tables
+db-parity-local:
+	@bash -lc 'if [ -z "$${LOCAL_DATABASE_URL:-}" ]; then echo "ERROR: LOCAL_DATABASE_URL is not set"; exit 1; fi; psql "$$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/check_local_v15_parity.sql'
 
 # Format (auto-fix)
 format:
@@ -71,6 +87,10 @@ help:
 	@echo "  make lint-frontend    ESLint frontend only"
 	@echo "  make tsc              TypeScript type-check only"
 	@echo "  make prisma-validate  Validate Prisma schema"
+	@echo "  make db-guard-cloud   Verify cloud DB identity/host"
+	@echo "  make db-guard-local   Verify local DB identity/host"
+	@echo "  make db-guard-shadow  Verify shadow DB identity/host"
+	@echo "  make db-parity-local  Run local parity SQL checks"
 	@echo "  make git-integrity    Check .git/info/exclude & untracked files"
 	@echo "  make clean-worktrees  Interactive worktree/branch cleanup"
 	@echo "  make format           Auto-format Python code"

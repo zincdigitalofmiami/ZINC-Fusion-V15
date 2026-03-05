@@ -1,9 +1,9 @@
-version: '3.8'
-
 # Inngest Dev Server — local development & debugging
 # Usage: docker compose -f docker-compose.inngest.yml up -d
 # UI: http://localhost:8288
-# Connects to Next.js dev server at host.docker.internal:3000
+# Target URL is configurable to prevent stale port drift:
+#   INNGEST_DEV_URL=http://host.docker.internal:3000/api/inngest
+#   docker compose -f docker-compose.inngest.yml up -d
 
 services:
   inngest:
@@ -13,5 +13,5 @@ services:
       - "8288:8288"
     command: >
       inngest dev
-      -u http://host.docker.internal:3000/api/inngest
+      -u ${INNGEST_DEV_URL:-http://host.docker.internal:3000/api/inngest}
     restart: unless-stopped

@@ -6,6 +6,7 @@ import {
   ExecutiveEvent,
   TariffDeadline,
   AgencyActivity,
+  TrumpEffectMetric,
 } from "@/components/policy/types";
 import { PolicyAiBriefing } from "@/components/policy/PolicyAiBriefing";
 import { PolicyNewsFeed } from "@/components/policy/PolicyNewsFeed";
@@ -24,6 +25,14 @@ import {
 } from "lucide-react";
 
 export const revalidate = 3600; // ISR: revalidate every 1 hour
+
+function hasPolicyDbConfig(): boolean {
+  const value =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.DIRECT_DATABASE_URL
+  return Boolean(value && value.trim().length > 0)
+}
 
 // ============================================================================
 // UI COMPONENTS
@@ -412,28 +421,42 @@ export default async function PolicyPage() {
     },
   };
 
-  // Fetch everything in parallel (including news)
-  const [
-    regime,
-    legislation,
-    executive,
-    deadlines,
-    agencies,
-    trumpMetrics,
-    shockwaves,
-    summaryCounts,
-    policyNews,
-  ] = await Promise.all([
-    withFallback("getRegimeStatus", () => PolicyService.getRegimeStatus(), defaultRegime),
-    withFallback("getLegislationEvents", () => PolicyService.getLegislationEvents(30), []),
-    withFallback("getExecutiveEvents", () => PolicyService.getExecutiveEvents(30), []),
-    withFallback("getTariffDeadlines", () => PolicyService.getTariffDeadlines(), []),
-    withFallback("getAgencyHeatmap", () => PolicyService.getAgencyHeatmap(), []),
-    withFallback("getTrumpEffectMetrics", () => PolicyService.getTrumpEffectMetrics(), []),
-    withFallback("getShockwaveEvents", () => PolicyService.getShockwaveEvents(), []),
-    withFallback("getSummaryCounts", () => PolicyService.getSummaryCounts(), { uniqueAgencies: 0, activeEvents: 0 }),
-    withFallback("getPolicyNews", () => PolicyService.getPolicyNews(50, 7), [] as PolicyNewsItem[]),
-  ]);
+  let regime: RegimeState = defaultRegime
+  let legislation: LegislationEvent[] = []
+  let executive: ExecutiveEvent[] = []
+  let deadlines: TariffDeadline[] = []
+  let agencies: AgencyActivity[] = []
+  let trumpMetrics: TrumpEffectMetric[] = []
+  let shockwaves: ExecutiveEvent[] = []
+  let summaryCounts = { uniqueAgencies: 0, activeEvents: 0 }
+  let policyNews: PolicyNewsItem[] = []
+
+  if (hasPolicyDbConfig()) {
+    // Fetch everything in parallel (including news)
+    ;[
+      regime,
+      legislation,
+      executive,
+      deadlines,
+      agencies,
+      trumpMetrics,
+      shockwaves,
+      summaryCounts,
+      policyNews,
+    ] = await Promise.all([
+      withFallback("getRegimeStatus", () => PolicyService.getRegimeStatus(), defaultRegime),
+      withFallback("getLegislationEvents", () => PolicyService.getLegislationEvents(30), []),
+      withFallback("getExecutiveEvents", () => PolicyService.getExecutiveEvents(30), []),
+      withFallback("getTariffDeadlines", () => PolicyService.getTariffDeadlines(), []),
+      withFallback("getAgencyHeatmap", () => PolicyService.getAgencyHeatmap(), []),
+      withFallback("getTrumpEffectMetrics", () => PolicyService.getTrumpEffectMetrics(), []),
+      withFallback("getShockwaveEvents", () => PolicyService.getShockwaveEvents(), []),
+      withFallback("getSummaryCounts", () => PolicyService.getSummaryCounts(), { uniqueAgencies: 0, activeEvents: 0 }),
+      withFallback("getPolicyNews", () => PolicyService.getPolicyNews(50, 7), [] as PolicyNewsItem[]),
+    ])
+  } else {
+    console.warn('[PolicyPage] DB not configured; rendering fallback policy data.')
+  }
 
   // Extract metric for Bureaucracy Velocity
   const currentMetric = trumpMetrics[0];

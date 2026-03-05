@@ -46,6 +46,7 @@ client/dist/
 .env.vercel
 .env.local
 .env.production
+.env.local.audit
 
 # Node modules
 node_modules/

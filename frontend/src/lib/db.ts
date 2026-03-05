@@ -25,11 +25,71 @@ type GlobalDbPool = {
 
 const globalDb = globalThis as unknown as GlobalDbPool
 
+const LOCAL_DB_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0.0.0.0',
+  'host.docker.internal',
+])
+
+type PgSslOption = false | { rejectUnauthorized: false }
+
+function resolveConnectionString(): string | undefined {
+  const raw =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.DIRECT_DATABASE_URL
+  if (!raw) return undefined
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function parseConnectionString(
+  connectionString: string
+): URL | undefined {
+  try {
+    return new URL(connectionString)
+  } catch {
+    return undefined
+  }
+}
+
+function shouldDisableSsl(
+  connectionString: string | undefined
+): boolean {
+  if ((process.env.PGSSLMODE ?? '').toLowerCase() === 'disable') {
+    return true
+  }
+  if (!connectionString) return false
+
+  const parsed = parseConnectionString(connectionString)
+  if (!parsed) {
+    return connectionString.toLowerCase().includes('sslmode=disable')
+  }
+
+  const sslMode = parsed.searchParams.get('sslmode')?.toLowerCase()
+  if (sslMode === 'disable') return true
+
+  const hostname = parsed.hostname.toLowerCase()
+  return LOCAL_DB_HOSTS.has(hostname)
+}
+
+function resolveSslOption(
+  connectionString: string | undefined
+): PgSslOption {
+  return shouldDisableSsl(connectionString)
+    ? false
+    : { rejectUnauthorized: false }
+}
+
+const resolvedConnectionString = resolveConnectionString()
+
 const pool =
   globalDb.__zincDbPool ??
   new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    connectionString: resolvedConnectionString,
+    ssl: resolveSslOption(resolvedConnectionString),
     max: Number(process.env.PGPOOL_MAX ?? 2),
     idleTimeoutMillis: Number(process.env.PGPOOL_IDLE_TIMEOUT_MS ?? 5_000),
     connectionTimeoutMillis: Number(
@@ -49,13 +109,59 @@ if (!globalDb.__zincDbPool) {
 const MAX_RETRIES = Number(process.env.PGPOOL_CONNECT_RETRIES ?? 3)
 const BASE_DELAY_MS = 500
 
+function assertDbConfigured(): void {
+  if (resolvedConnectionString) return
+  throw new Error(
+    'Database URL is not configured. Set DATABASE_URL, POSTGRES_URL, or DIRECT_DATABASE_URL.'
+  )
+}
+
+function isRetryableConnectionError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return true
+  const candidate = err as { code?: string; message?: string }
+  const code = candidate.code
+  if (code) {
+    if (
+      code === 'ECONNREFUSED' ||
+      code === 'ETIMEDOUT' ||
+      code === 'ECONNRESET' ||
+      code === 'EHOSTUNREACH' ||
+      code === 'ENETUNREACH'
+    ) {
+      return true
+    }
+    if (
+      code === '28P01' ||
+      code === '28000' ||
+      code === '3D000' ||
+      code === '3F000'
+    ) {
+      return false
+    }
+  }
+
+  const message = (candidate.message ?? '').toLowerCase()
+  if (message.includes('does not support ssl connections')) return false
+  if (message.includes('password authentication failed')) return false
+  if (message.includes('no pg_hba.conf entry')) return false
+  if (message.includes('database "') && message.includes('" does not exist')) {
+    return false
+  }
+
+  return true
+}
+
 async function connectWithRetry(): Promise<PoolClient> {
+  assertDbConfigured()
   let lastError: unknown
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await pool.connect()
     } catch (err) {
       lastError = err
+      if (!isRetryableConnectionError(err)) {
+        throw err
+      }
       if (attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * 2 ** (attempt - 1) // 500, 1000, 2000
         console.warn(
