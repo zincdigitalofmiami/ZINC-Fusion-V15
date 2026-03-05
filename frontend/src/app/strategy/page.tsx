@@ -7,7 +7,7 @@ import { ContractImpactCalculator } from '@/components/tools/ContractImpactCalcu
 import { FactorWaterfall } from '@/components/quant/FactorWaterfall';
 import { ProbabilityHeatmap } from '@/components/quant/ProbabilityHeatmap';
 import { WeatherRiskArray } from '@/components/viz/WeatherRiskArray';
-import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain, Radio } from 'lucide-react';
+import { Target, Shield, Zap, AlertTriangle, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react';
 
 // Brief API types
 interface PriceSummary {
@@ -261,8 +261,56 @@ export default function StrategyPage() {
     return { label, text: risk, colors };
   }) ?? [];
 
+  // Build real factor-attribution inputs from live driver scores.
+  // This avoids placeholder decomposition and keeps all values data-driven.
+  const waterfallFactors = brief
+    ? (() => {
+        const active = brief.drivers.filter((d) => d.source !== 'unavailable');
+        if (active.length === 0) return [];
+
+        const totalDelta = brief.price.current - brief.price.previousClose;
+        const centered = active.map((d) => (d.score - 50) / 50);
+        const centeredSum = centered.reduce((sum, value) => sum + value, 0);
+        const absCenteredSum = centered.reduce((sum, value) => sum + Math.abs(value), 0);
+
+        const inferCategory = (name: string): 'cell' | 'macro' | 'technical' | 'noise' => {
+          const normalized = name.toLowerCase();
+          if (normalized.includes('crush') || normalized.includes('energy')) return 'cell';
+          if (normalized.includes('china') || normalized.includes('tariff')) return 'macro';
+          if (normalized.includes('market') || normalized.includes('vix')) return 'technical';
+          return 'noise';
+        };
+
+        return active.map((driver, idx) => {
+          let contribution = 0;
+          if (Math.abs(totalDelta) > 0.0001) {
+            if (Math.abs(centeredSum) >= 0.05) {
+              contribution = totalDelta * (centered[idx] / centeredSum);
+            } else {
+              const magnitudeWeight =
+                absCenteredSum > 0
+                  ? Math.abs(centered[idx]) / absCenteredSum
+                  : 1 / active.length;
+              const sign = Math.sign(totalDelta) || 1;
+              contribution = sign * magnitudeWeight * Math.abs(totalDelta);
+            }
+          } else {
+            contribution = centered[idx] * 0.05;
+          }
+
+          return {
+            id: `${driver.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${idx}`,
+            label: driver.name,
+            value: Number(contribution.toFixed(4)),
+            type: contribution >= 0 ? ('positive' as const) : ('negative' as const),
+            category: inferCategory(driver.name),
+          };
+        });
+      })()
+    : [];
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-6 pt-36 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
 
       {/* Error banner */}
       {error && (
@@ -303,47 +351,6 @@ export default function StrategyPage() {
               <p className="text-sm text-red-300 leading-relaxed">{brief.overrideReason}</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Event Pulse Indicator */}
-      {brief?.eventPulse && brief.eventPulse.velocity.velocityRatio >= 1.5 && (
-        <div className={`mb-4 p-3 rounded-xl border flex items-center gap-3 ${
-          brief.eventPulse.velocity.velocityRatio > 3 ? 'bg-red-500/5 border-red-500/20' :
-          brief.eventPulse.velocity.velocityRatio > 2 ? 'bg-amber-500/5 border-amber-500/20' :
-          'bg-blue-500/5 border-blue-500/20'
-        }`}>
-          <div className={`relative flex h-2.5 w-2.5 ${
-            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
-            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
-            'text-blue-400'
-          }`}>
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-current" />
-          </div>
-          <Radio size={12} className={
-            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
-            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
-            'text-blue-400'
-          } />
-          <span className={`text-xs font-bold uppercase tracking-wider ${
-            brief.eventPulse.velocity.velocityRatio > 3 ? 'text-red-400' :
-            brief.eventPulse.velocity.velocityRatio > 2 ? 'text-amber-400' :
-            'text-blue-400'
-          }`}>
-            Event Pulse: {brief.eventPulse.velocity.velocityRatio}x normal
-          </span>
-          <span className="text-xs text-slate-500">
-            {brief.eventPulse.velocity.last24h} events in 24h
-          </span>
-          <span className="text-xs text-slate-600">|</span>
-          <span className={`text-xs font-mono font-bold ${
-            brief.eventPulse.netSentiment.signal.includes('BEARISH') ? 'text-red-400' :
-            brief.eventPulse.netSentiment.signal.includes('BULLISH') ? 'text-emerald-400' :
-            'text-slate-400'
-          }`}>
-            Net: {brief.eventPulse.netSentiment.signal.replace('_', ' ')}
-          </span>
         </div>
       )}
 
@@ -649,7 +656,7 @@ export default function StrategyPage() {
           </h3>
         </div>
 
-        <div className="relative w-full h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
+        <div className="relative w-full h-[300px] md:h-[500px] bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.02),transparent_70%)]" />
           <FusionBrain drivers={brief?.drivers} correlations={brief?.correlations} />
         </div>
@@ -666,6 +673,7 @@ export default function StrategyPage() {
             <FactorWaterfall
               prevPrice={brief?.price.previousClose ?? 0}
               currentPrice={brief?.price.current ?? 0}
+              factors={waterfallFactors}
             />
           </div>
           <ProbabilityHeatmap />
