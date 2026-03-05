@@ -8,7 +8,6 @@ on:
 
 jobs:
   guardrail-audit:
-    if: ${{ secrets.DATABASE_URL != '' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -54,6 +53,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts/guardrails
+
+          if [[ -z "${DATABASE_URL:-}" ]]; then
+            echo "DATABASE_URL secret is not set; guardrail cloud checks skipped." \
+              | tee artifacts/guardrails/guardrail_skip.log
+            exit 0
+          fi
 
           python scripts/db_identity_guard.py --target cloud \
             | tee artifacts/guardrails/db_guard_cloud.log
