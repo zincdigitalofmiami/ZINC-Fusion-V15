@@ -542,9 +542,6 @@ export function buildMarketData(
     boardCrush: data.crush!,
     oilShare: data.oilShare,
     cnyRate: data.cnyRate!,
-    hgChange20d: data.hgChange20d,
-    hgChange5d: data.hgChange5d,
-    bdiyChange20d: data.bdiyChange20d,
     // Backward-compatible aliases for any older consumers
     fxiChange20d: data.hgChange20d,
     fxiChange5d: data.hgChange5d,

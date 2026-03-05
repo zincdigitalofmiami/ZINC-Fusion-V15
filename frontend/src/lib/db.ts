@@ -86,4 +86,8 @@ export async function query<T = Record<string, unknown>>(
   }
 }
 
+export function getIngestPool(): Pool {
+  return pool
+}
+
 export default pool
