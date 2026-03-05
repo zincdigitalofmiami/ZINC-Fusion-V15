@@ -40,6 +40,11 @@ There is intentionally no root `package.json`.
 Prisma CLI dependencies live in `config/package.json`.
 All frontend npm commands use `--prefix frontend`; all Prisma CLI commands use `--prefix config` (or `scripts/prisma.sh`).
 
+## Data Sources
+
+Full catalog of all data source URLs (USDA, FRED, EIA, EPA, CFTC, BLS, NOAA, White House, foreign gov, commercial) with V15 integration status and priority fixes:
+[docs/data-source-catalog.md](docs/data-source-catalog.md)
+
 ## Database
 
 Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeScript) and psycopg2 (Python). Do not use PrismaClient for runtime queries.
@@ -193,6 +198,108 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 - The dry run used the OLD config (WQL metric, returns target, quantile outputs). All three are now fixed: MAE metric, price target, single predicted_price output.
 - Do not compare dry run numbers to the full system's expected performance.
 
+## Workspace Environment Notes
+
+- **Python interpreter**: `.vscode/settings.json` uses the absolute path `/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/bin/python` — NOT `${workspaceFolder}/.venv/bin/python`. The `${workspaceFolder}` variable fails to expand when the path contains spaces (`Satechi Hub`). Never revert to the variable form.
+
+## Inngest Hardening — 3-Layer Defense (2026-03-04)
+
+A rogue AI changed the RR Inngest `serveHost` to `https://rabid-raccoon.vercel.app`, causing all 25 RR cron jobs to 500 with `"Expected server kind cloud, got dev"`. This triggered cascading retries, 9 duplicate function versions, and an avalanche of queue failures. V15 functions on port 3000 were unaffected (correct sync URL). Three layers now prevent this from ever happening again.
+
+### Port Assignments (LOCKED — do not change)
+
+| Port | App | Purpose |
+|------|-----|---------|
+| 3000 | ZINC-FUSION-V15 (fusion-jobs) | Next.js dev + Inngest serve |
+| 3001 | rabid-raccoon | Next.js dev + Inngest serve |
+| 8288 | inngest-dev (Docker) | Inngest dev server |
+
+### Layer 1 — Config Lockdown
+
+Both apps hardened so `serveHost` is only set in actual Vercel production:
+
+- **RR** [`route.ts`] — `serveHost` only when `VERCEL === "1"` AND `VERCEL_ENV === "production"`. `VERCEL_URL` is **never** used. `INNGEST_SERVE_HOST` validated as `http://` or `https://` URL; invalid/missing values silently ignored (no throw).
+- **V15** [`frontend/src/app/api/inngest/route.ts`](frontend/src/app/api/inngest/route.ts) — same strict production-only gate with unsafe-host rejection.
+- **RR config tests** [`inngest-config.test.ts`] — regression tests covering serveHost logic, env leak scenarios.
+
+### Layer 2 — Guard ([`scripts/inngest_guard.sh`](scripts/inngest_guard.sh))
+
+Static analysis + runtime health checks. Runs before Inngest starts.
+
+| Flag | What it checks |
+|------|---------------|
+| `--static` | Blocks Vercel URLs in sync config, validates env files |
+| `--health` | Confirms correct processes on 3000/3001, `/api/inngest` endpoints return 200 |
+
+Integrated into: `make inngest-guard`, [`scripts/verify.sh`](scripts/verify.sh), [`docker-compose.inngest.yml`](docker-compose.inngest.yml) (comments).
+
+### Layer 3 — Self-Healing ([`scripts/inngest_heal.sh`](scripts/inngest_heal.sh))
+
+Active recovery — detects drift and fixes it automatically.
+
+| Flag | Behavior |
+|------|----------|
+| `--once` | Single heal pass with retries |
+| `--loop` | Continuous monitoring loop |
+
+Capabilities:
+- Detects wrong process on 3000/3001 and kills port squatters (`AUTO_KILL_PORT_SQUATTERS=1`)
+- Restarts V15/RR dev servers if down or unhealthy
+- Verifies inngest-dev container can reach both endpoints
+- Retries automatically until all checks pass
+
+### Make Targets
+
+| Target | Action |
+|--------|--------|
+| `make inngest-guard` | Run static + health guard checks |
+| `make inngest-health` | Health-only check |
+| `make inngest-up` | Start Inngest with guard pre-check |
+| `make inngest-heal` | Single heal pass |
+| `make inngest-heal-loop` | Continuous self-healing loop |
+
+### Rules (MANDATORY)
+
+1. **NEVER** let `VERCEL_URL` leak into Inngest serve host for local dev
+2. **NEVER** sync an app to a `*.vercel.app` URL from the dev server
+3. **NEVER** change port assignments (3000/3001/8288) — they are hardcoded across both projects
+4. Run `make inngest-guard` before any Inngest work
+5. If jobs start 500ing, run `make inngest-heal` before investigating code
+
+## Vercel Connection & Protected Preview Access (LOCKED — 2026-03-05)
+
+Canonical deployment connection for this repo:
+- Vercel project: `zinc-fusion-v15`
+- Root directory: `frontend`
+- Production source branch: `main`
+
+Use Vercel CLI for protected preview diagnostics (not localhost app ports):
+- Connectivity check: `vercel curl /api/auth/check --deployment <preview-url>`
+- API check pattern: `vercel curl /api/<route> --deployment <preview-url>`
+
+There are two independent gates on preview deployments:
+1. Vercel Deployment Protection
+2. App auth gate (`/api/auth/login`)
+
+Deployment Protection bypass contract:
+- Header/query key: `x-vercel-protection-bypass`
+- Value source: `VERCEL_AUTOMATION_BYPASS_SECRET`
+- Never commit or print raw bypass secret values in repo files
+
+If CLI requests fail with `No automation bypass token found in protection bypass settings`:
+1. Open Vercel project settings for `zinc-fusion-v15`
+2. Create/confirm "Protection Bypass for Automation"
+3. Confirm automation secret is available to the calling environment
+
+API endpoint method contract for smoke checks:
+- `GET`: `/api/zl/forecast-targets`, `/api/market-drivers`, `/api/zl/brief`, `/api/sentiment/*`, `/api/vegas`
+- `POST` only: `/api/policy/briefing`, `/api/policy/section-brief`
+
+Rules:
+1. **NEVER** use `localhost:3000` as a stand-in for Vercel preview validation
+2. **NEVER** commit bypass secrets or temporary auth passwords
+3. Always pass explicit `--deployment <preview-url>` to prevent cross-project confusion
+
 ## Core Rules
 
 1. No fabrication — never invent schemas, tables, files, or endpoints
@@ -203,11 +310,19 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 6. Minimal changes — fix root causes, avoid unrelated refactors
 7. Forward fill is OFF by default — requires explicit approval
 8. Say "I don't know" when uncertain
-9. Before pushing, open a PR to trigger cubic PR review — fix all P0/P1 issues before merging (cubic CLI requires paid plan; PR reviews work on free open source plan)
+9. Before pushing, open a PR and run the `run-review` skill (CodeScene) — fix any flagged issues before merging
 
 ## MCP Server Rules (Workspace-Only — `.vscode/mcp.json`)
 
-One MCP server is configured for this workspace: **memory**. All agents must follow these rules without exception.
+Three MCP servers run via Docker SSE (see `docker-compose.mcp.yml`), shared by all agents (Copilot, Roo, Claude):
+- **memory** → `http://localhost:18100/sse`
+- **sequential-thinking** → `http://localhost:18101/sse`
+- **context7** → `http://localhost:18102/sse`
+
+Start/stop with `make mcp-up` / `make mcp-down`. All agents must follow these rules without exception.
+
+### Banned MCP Servers
+- **Serena** (`serena start-mcp-server`, port 24282) — was auto-started by an AI agent on 2026-03-04 with no authorization. Killed. Not used. Not wired into any config. Do NOT reinstall, re-enable, or reference it.
 
 ### 8 Non-Negotiable Rules
 
