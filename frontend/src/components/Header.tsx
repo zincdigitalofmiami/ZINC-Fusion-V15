@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -14,6 +15,12 @@ const navItems = [
 
 export default function Header() {
   const pathname = usePathname()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   return (
     <header className="header">
@@ -27,7 +34,26 @@ export default function Header() {
             priority
           />
         </Link>
-        <ul className="nav-links">
+
+        {/* Hamburger — visible below 768px only */}
+        <button
+          className="md:hidden"
+          onClick={() => setMobileOpen((prev) => !prev)}
+          aria-label="Toggle navigation"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '4px 8px',
+            lineHeight: 1,
+          }}
+        >
+          {mobileOpen ? '✕' : '☰'}
+        </button>
+
+        <ul className={`nav-links${mobileOpen ? ' mobile-open' : ''}`}>
           {navItems.map((item) => (
             <li key={item.href}>
               <Link

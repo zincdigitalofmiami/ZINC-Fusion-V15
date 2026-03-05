@@ -228,7 +228,7 @@ export function RegimeAnalysisChart({
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries.length === 0) return
       const newRect = entries[0].contentRect
-      chart.applyOptions({ width: newRect.width })
+      chart.applyOptions({ width: newRect.width, height: newRect.height })
     })
     resizeObserver.observe(chartContainerRef.current)
 
