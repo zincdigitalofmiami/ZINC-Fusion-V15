@@ -228,7 +228,6 @@ export async function GET() {
         crush: crushResult.score,
         china: chinaResult.score,
         tariff: tariffResult.score,
-        energy: energyResult.score,
       },
       asOfDate,
     );
