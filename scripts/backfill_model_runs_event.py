@@ -100,6 +100,12 @@ def parse_endpoint(raw_url: str) -> Endpoint:
     return Endpoint(raw=raw_url, host=host, database=database)
 
 
+def expected_local_db_name() -> str | None:
+    return (
+        os.getenv("LOCAL_DB_EXPECTED_NAME") or os.getenv("EXPECTED_DB_NAME") or ""
+    ).strip() or None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Backfill training.model_runs_event from training.oof_core_1d"
@@ -135,6 +141,14 @@ def main() -> int:
     if not args.allow_remote_host and endpoint.host not in LOCAL_HOSTS:
         print(
             f"ERROR: refusing to write to non-local host {endpoint.host!r}; use --allow-remote-host if intentional"
+        )
+        return 1
+
+    expected_db = expected_local_db_name()
+    if expected_db and endpoint.database != expected_db:
+        print(
+            "ERROR: refusing to write to database "
+            f"{endpoint.database!r}; expected {expected_db!r}"
         )
         return 1
 

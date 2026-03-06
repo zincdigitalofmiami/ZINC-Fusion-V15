@@ -1,5 +1,6 @@
 import { PolicyService } from "@/lib/services/policy-service";
 import type { PolicyNewsItem } from "@/lib/services/policy-service";
+import { hasDatabaseConfig } from "@/lib/db-env";
 import {
   RegimeState,
   LegislationEvent,
@@ -25,14 +26,6 @@ import {
 } from "lucide-react";
 
 export const revalidate = 3600; // ISR: revalidate every 1 hour
-
-function hasPolicyDbConfig(): boolean {
-  const value =
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    process.env.DIRECT_DATABASE_URL
-  return Boolean(value && value.trim().length > 0)
-}
 
 // ============================================================================
 // UI COMPONENTS
@@ -431,7 +424,7 @@ export default async function PolicyPage() {
   let summaryCounts = { uniqueAgencies: 0, activeEvents: 0 }
   let policyNews: PolicyNewsItem[] = []
 
-  if (hasPolicyDbConfig()) {
+  if (hasDatabaseConfig()) {
     // Fetch everything in parallel (including news)
     ;[
       regime,

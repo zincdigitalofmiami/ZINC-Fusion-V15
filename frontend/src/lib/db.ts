@@ -14,6 +14,7 @@
  */
 import { Pool } from 'pg'
 import type { PoolClient } from 'pg'
+import { resolveConnectionStringFromEnv } from '@/lib/db-env'
 
 /* ------------------------------------------------------------------ */
 /*  Pool configuration                                                 */
@@ -33,17 +34,7 @@ const LOCAL_DB_HOSTS = new Set([
   'host.docker.internal',
 ])
 
-type PgSslOption = false | { rejectUnauthorized: false }
-
-function resolveConnectionString(): string | undefined {
-  const raw =
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    process.env.DIRECT_DATABASE_URL
-  if (!raw) return undefined
-  const trimmed = raw.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
+type PgSslOption = false | { rejectUnauthorized: boolean }
 
 function parseConnectionString(
   connectionString: string
@@ -75,15 +66,40 @@ function shouldDisableSsl(
   return LOCAL_DB_HOSTS.has(hostname)
 }
 
+function parseBoolEnv(value: string | undefined): boolean | undefined {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  return undefined
+}
+
+function shouldRejectUnauthorized(): boolean {
+  const explicitRejectUnauthorized = parseBoolEnv(
+    process.env.PGSSL_REJECT_UNAUTHORIZED
+  )
+  if (explicitRejectUnauthorized !== undefined) {
+    return explicitRejectUnauthorized
+  }
+
+  const allowInsecure = parseBoolEnv(process.env.PGSSL_ALLOW_INSECURE)
+  if (allowInsecure !== undefined) {
+    return !allowInsecure
+  }
+
+  // Default to strict TLS verification for non-local connections.
+  return true
+}
+
 function resolveSslOption(
   connectionString: string | undefined
 ): PgSslOption {
   return shouldDisableSsl(connectionString)
     ? false
-    : { rejectUnauthorized: false }
+    : { rejectUnauthorized: shouldRejectUnauthorized() }
 }
 
-const resolvedConnectionString = resolveConnectionString()
+const resolvedConnectionString = resolveConnectionStringFromEnv()
 
 const pool =
   globalDb.__zincDbPool ??

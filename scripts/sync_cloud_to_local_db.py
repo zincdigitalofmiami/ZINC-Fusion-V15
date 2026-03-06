@@ -108,6 +108,7 @@ def ensure_safe_routing(
     source: Endpoint,
     destination: Endpoint,
     expected_cloud_host: str,
+    expected_destination_db: str | None,
 ) -> None:
     if source.host == destination.host and source.database == destination.database:
         raise ValueError(
@@ -127,6 +128,12 @@ def ensure_safe_routing(
     if not is_local_host(destination.host):
         raise ValueError(
             f"destination endpoint must be localhost, got {destination.host!r}"
+        )
+
+    if expected_destination_db and destination.database != expected_destination_db:
+        raise ValueError(
+            "destination database mismatch: "
+            f"expected {expected_destination_db!r}, got {destination.database!r}"
         )
 
 
@@ -183,11 +190,17 @@ def run_sync(
     destination_url: str,
     tables: Iterable[tuple[str, str]],
     expected_cloud_host: str,
+    expected_destination_db: str | None,
     truncate: bool,
 ) -> int:
     source = parse_endpoint(source_url)
     destination = parse_endpoint(destination_url)
-    ensure_safe_routing(source, destination, expected_cloud_host)
+    ensure_safe_routing(
+        source,
+        destination,
+        expected_cloud_host,
+        expected_destination_db,
+    )
 
     print("Cloud to local sync")
     print(f"source      : {source.display}")
@@ -249,6 +262,14 @@ def main() -> int:
         help="required cloud host fragment (default: db.prisma.io)",
     )
     parser.add_argument(
+        "--expected-dest-db",
+        default=os.getenv("LOCAL_DB_EXPECTED_NAME") or os.getenv("EXPECTED_DB_NAME"),
+        help=(
+            "required destination database name "
+            "(default: LOCAL_DB_EXPECTED_NAME or EXPECTED_DB_NAME)"
+        ),
+    )
+    parser.add_argument(
         "--no-truncate",
         action="store_true",
         help="do not truncate destination tables before copy",
@@ -269,6 +290,7 @@ def main() -> int:
             destination_url=destination_url,
             tables=tables,
             expected_cloud_host=args.expected_cloud_host,
+            expected_destination_db=args.expected_dest_db,
             truncate=not args.no_truncate,
         )
     except ValueError as exc:

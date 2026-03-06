@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 const prismaDatasourceUrl =
@@ -16,6 +15,28 @@ if (prismaDatasourceUrl.startsWith("prisma+postgres://")) {
   );
 }
 
+const expectedShadowDbName =
+  process.env.SHADOW_DB_EXPECTED_NAME || "zinc_fusion_v15_shadow";
+const shadowDatabaseUrl =
+  process.env.SHADOW_DATABASE_URL ||
+  "postgresql://zincdigital@localhost:5432/zinc_fusion_v15_shadow";
+
+let resolvedShadowDbName = "";
+try {
+  const parsed = new URL(shadowDatabaseUrl);
+  resolvedShadowDbName = parsed.pathname.replace(/^\/+/, "");
+} catch {
+  throw new Error(
+    "SHADOW_DATABASE_URL is invalid. Provide a valid postgres:// URL for the Prisma shadow database.",
+  );
+}
+
+if (resolvedShadowDbName !== expectedShadowDbName) {
+  throw new Error(
+    `Shadow DB mismatch. Expected database '${expectedShadowDbName}', got '${resolvedShadowDbName}'. Update SHADOW_DATABASE_URL.`,
+  );
+}
+
 export default defineConfig({
   schema: "../prisma/schema.prisma",
   migrations: {
@@ -23,8 +44,6 @@ export default defineConfig({
   },
   datasource: {
     url: prismaDatasourceUrl,
-    shadowDatabaseUrl:
-      process.env.SHADOW_DATABASE_URL ||
-      "postgresql://zincdigital@localhost:5432/zinc_fusion_shadow",
+    shadowDatabaseUrl,
   },
 });
