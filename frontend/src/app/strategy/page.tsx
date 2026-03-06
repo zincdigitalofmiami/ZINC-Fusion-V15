@@ -414,12 +414,16 @@ export default function StrategyPage() {
             contribution = centered[idx] * 0.05;
           }
 
+          const safeContribution =
+            typeof contribution === "number" ? contribution : 0;
           return {
             id: `${driver.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${idx}`,
             label: driver.name,
-            value: Number(contribution.toFixed(4)),
+            value: Number(safeContribution.toFixed(4)),
             type:
-              contribution >= 0 ? ("positive" as const) : ("negative" as const),
+              safeContribution >= 0
+                ? ("positive" as const)
+                : ("negative" as const),
             category: inferCategory(driver.name),
           };
         });
@@ -802,7 +806,10 @@ export default function StrategyPage() {
                             : "text-red-400/60"
                         }`}
                       >
-                        {(event.confidence * 100).toFixed(0)}%
+                        {typeof event.confidence === "number"
+                          ? (event.confidence * 100).toFixed(0)
+                          : "--"}
+                        %
                       </span>
                     </div>
                   )}
@@ -845,7 +852,7 @@ export default function StrategyPage() {
                   <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-3">
                     {fc.label}
                   </div>
-                  {fc.source === "model" && fc.targetMid !== null ? (
+                  {fc.source === "model" && typeof fc.targetMid === "number" ? (
                     <>
                       <div className="text-2xl font-bold text-white font-mono mb-1">
                         ${fc.targetMid.toFixed(2)}
@@ -858,12 +865,13 @@ export default function StrategyPage() {
                           {fc.expectedChangePct}
                         </span>
                       </div>
-                      {fc.targetLow !== null && fc.targetHigh !== null && (
-                        <div className="text-[10px] text-slate-600 font-mono">
-                          Range: ${fc.targetLow.toFixed(2)} — $
-                          {fc.targetHigh.toFixed(2)}
-                        </div>
-                      )}
+                      {typeof fc.targetLow === "number" &&
+                        typeof fc.targetHigh === "number" && (
+                          <div className="text-[10px] text-slate-600 font-mono">
+                            Range: ${fc.targetLow.toFixed(2)} — $
+                            {fc.targetHigh.toFixed(2)}
+                          </div>
+                        )}
                     </>
                   ) : (
                     <div className="text-lg text-slate-600 font-mono">—</div>
