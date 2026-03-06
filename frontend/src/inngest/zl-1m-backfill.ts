@@ -52,45 +52,13 @@ async function insert1mBar(
   }
 }
 
-async function aggregate5mBars(
-  client: import("pg").PoolClient,
-  startTime: Date,
-  endTime: Date
-): Promise<number> {
-  const result = await client.query(
-    `INSERT INTO analytics.price_5m (timestamp, open, high, low, close, volume, source, created_at)
-     SELECT
-       date_trunc('hour', timestamp) + INTERVAL '5 min' * FLOOR(EXTRACT(MINUTE FROM timestamp) / 5) AS bar_time,
-       (ARRAY_AGG(open ORDER BY timestamp))[1] AS open,
-       MAX(high) AS high,
-       MIN(low) AS low,
-       (ARRAY_AGG(close ORDER BY timestamp DESC))[1] AS close,
-       SUM(COALESCE(volume, 0)) AS volume,
-       'aggregated_backfill' AS source,
-       NOW() AS created_at
-     FROM analytics.price_1m
-     WHERE timestamp >= $1 AND timestamp < $2
-     GROUP BY bar_time
-     HAVING COUNT(*) >= 3
-     ON CONFLICT (symbol, timestamp) DO UPDATE SET
-       open = EXCLUDED.open,
-       high = EXCLUDED.high,
-       low = EXCLUDED.low,
-       close = EXCLUDED.close,
-       volume = EXCLUDED.volume,
-       source = EXCLUDED.source`,
-    [startTime, endTime]
-  );
-  return result.rowCount ?? 0;
-}
-
 // ---------------------------------------------------------------------------
 //  Manual / event-driven backfill (kept for on-demand use)
 // ---------------------------------------------------------------------------
 export const zl1mBackfill = inngest.createFunction(
   {
     id: "zl-1m-backfill",
-    name: "ZL 1m/5m Historical Backfill",
+    name: "ZL 1m Historical Backfill",
     retries: 1,
     concurrency: [DB_CONCURRENCY, { limit: 1, scope: "fn" }], // one at a time globally
   },
@@ -164,21 +132,11 @@ export const zl1mBackfill = inngest.createFunction(
       return { total: bars.length, inserted, skipped };
     });
 
-    const aggregateResult = await step.run("aggregate-5m-bars", async () => {
-      const client = await pool.connect();
-      try {
-        return await aggregate5mBars(client, startDate, endDate);
-      } finally {
-        client.release();
-      }
-    });
-
-    logger.info(`Inserted ${insertResult.inserted} 1m bars, aggregated ${aggregateResult} 5m bars`);
+    logger.info(`Inserted ${insertResult.inserted} 1m bars`);
 
     return {
       status: "success",
       bars1m: insertResult,
-      bars5m: aggregateResult,
     };
   }
 );
@@ -189,7 +147,7 @@ export const zl1mBackfill = inngest.createFunction(
 export const zl1mScheduledBackfill = inngest.createFunction(
   {
     id: "zl-1m-scheduled-backfill",
-    name: "ZL 1m/5m Scheduled Gap Fill",
+    name: "ZL 1m Scheduled Gap Fill",
     retries: 0, // no retries — helper has its own gate; duplicate runs = wasted Databento calls
     concurrency: [DB_CONCURRENCY],
   },
@@ -207,11 +165,10 @@ export const zl1mScheduledBackfill = inngest.createFunction(
       return { status: "skipped" };
     }
 
-    logger.info(`Gap fill complete: ${result.upserted1m} 1m bars, ${result.upserted5m} 5m bars`);
+    logger.info(`Gap fill complete: ${result.upserted1m} 1m bars`);
     return {
       status: "success",
       upserted1m: result.upserted1m,
-      upserted5m: result.upserted5m,
     };
   }
 );

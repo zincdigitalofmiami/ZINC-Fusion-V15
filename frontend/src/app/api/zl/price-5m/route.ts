@@ -1,152 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { query } from "@/lib/db";
+import { NextResponse } from "next/server";
 
-type IntervalLabel = "5m" | "15m" | "1h";
-
-type SourceTable = {
-  table: "price_5m" | "price_15m" | "price_1h";
-  interval: IntervalLabel;
-  barsPerHour: number;
-};
-
-const SOURCE_TABLES: SourceTable[] = [
-  { table: "price_5m", interval: "5m", barsPerHour: 12 },
-  { table: "price_15m", interval: "15m", barsPerHour: 4 },
-  { table: "price_1h", interval: "1h", barsPerHour: 1 },
-];
-
-type QueryMode = "window" | "latest";
-
-function buildSelectSql(table: SourceTable["table"], whereClause: string) {
-  // Table name is interpolated from a fixed allowlist only.
-  return `
-    SELECT
-      timestamp,
-      open,
-      high,
-      low,
-      close,
-      volume,
-      previous_close,
-      change,
-      change_percent,
-      day_high,
-      day_low,
-      source,
-      created_at
-    FROM analytics.${table}
-    ${whereClause}
-  `;
-}
-
-async function queryBars(
-  source: SourceTable,
-  hours: number,
-): Promise<{ rows: unknown[]; mode: QueryMode }> {
-  const windowSql = buildSelectSql(
-    source.table,
-    "WHERE timestamp >= NOW() - ($1::int * INTERVAL '1 hour') ORDER BY timestamp ASC",
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: "This endpoint has been deprecated",
+      replacement: "/api/zl/price-1d",
+      detail:
+        "Use /api/zl/price-1d for the daily chart and /api/zl/live for the current price.",
+    },
+    {
+      status: 410,
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    },
   );
-  const windowRows = await query(windowSql, [hours]);
-  if (windowRows.length > 0) {
-    return { rows: windowRows, mode: "window" };
-  }
-
-  // Market-close safety: return latest bars if requested window is empty.
-  const fallbackLimit = Math.max(
-    24,
-    Math.min(5000, Math.ceil(hours * source.barsPerHour)),
-  );
-  const latestSql = buildSelectSql(
-    source.table,
-    "ORDER BY timestamp DESC LIMIT $1",
-  );
-  const latestRows = await query(latestSql, [fallbackLimit]);
-  return { rows: latestRows.reverse(), mode: "latest" };
-}
-
-/**
- * GET /api/zl/price-5m?hours=24
- * Fetch ZL intraday bars, preferring 5m and gracefully degrading to 15m/1h.
- *
- * Query params:
- * - hours: number of hours back (default 24 = 1 day)
- */
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const requestedHours = parseInt(searchParams.get("hours") || "24", 10);
-
-    // Clamp hours to reasonable range (1 hour to 30 days)
-    const clampedHours = Number.isFinite(requestedHours)
-      ? Math.max(1, Math.min(requestedHours, 720))
-      : 24;
-
-    const sourceErrors: string[] = [];
-
-    for (const source of SOURCE_TABLES) {
-      try {
-        const { rows, mode } = await queryBars(source, clampedHours);
-        if (rows.length === 0) {
-          continue;
-        }
-
-        // PostgreSQL DECIMAL columns come back as strings — coerce to numbers
-        const numericRows = rows.map((row) => {
-          const r = row as Record<string, unknown>;
-          return {
-            ...r,
-            open: parseFloat(String(r.open)),
-            high: parseFloat(String(r.high)),
-            low: parseFloat(String(r.low)),
-            close: parseFloat(String(r.close)),
-            volume: parseFloat(String(r.volume ?? 0)),
-          };
-        });
-
-        return NextResponse.json(
-          {
-            symbol: "ZL",
-            interval: source.interval,
-            requested_interval: "5m",
-            source_table: `analytics.${source.table}`,
-            window_mode: mode,
-            fallback_used: source.table !== "price_5m" || mode === "latest",
-            hours: clampedHours,
-            count: numericRows.length,
-            earliest: (numericRows[0] as { timestamp?: string })?.timestamp,
-            latest: (numericRows[numericRows.length - 1] as { timestamp?: string })?.timestamp,
-            data: numericRows,
-          },
-          { headers: { "Cache-Control": "no-store, max-age=0" } },
-        );
-      } catch (error) {
-        // Keep trying lower-frequency fallback tables.
-        const message =
-          error instanceof Error ? error.message : "unknown query error";
-        sourceErrors.push(`${source.table}: ${message}`);
-      }
-    }
-
-    console.error("No ZL intraday data available", {
-      requestedInterval: "5m",
-      checkedTables: SOURCE_TABLES.map((s) => `analytics.${s.table}`),
-      sourceErrors,
-    });
-
-    return NextResponse.json(
-      {
-        error: "No intraday data available",
-        requested_interval: "5m",
-        checked_tables: SOURCE_TABLES.map((s) => `analytics.${s.table}`),
-      },
-      { status: 404 },
-    );
-  } catch (error) {
-    console.error("Error fetching ZL 5m data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch ZL 5m data" },
-      { status: 500 },
-    );
-  }
 }

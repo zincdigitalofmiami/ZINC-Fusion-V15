@@ -4,11 +4,6 @@ import { query } from "@/lib/db";
 const CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
 };
-const INTRADAY_SOURCE_TABLES = [
-  { table: "price_5m", interval: "5m" },
-  { table: "price_15m", interval: "15m" },
-  { table: "price_1h", interval: "1h" },
-] as const;
 
 type DailyBarRow = {
   timestamp: string | Date;
@@ -41,10 +36,10 @@ function toDateKey(value: string | Date): string {
 }
 
 /**
- * Fallback: synthesize today's bar from analytics.latest_price when all intraday
- * tables are empty (live feed down, market pre-open, etc.). Prevents the chart
- * from showing yesterday's close as the rightmost bar when we have a more recent
- * price in the singleton latest_price row.
+ * Fallback: synthesize today's bar from analytics.latest_price when the 1m
+ * feed is empty (live feed down, market pre-open, etc.). Prevents the chart
+ * from showing yesterday's close as the rightmost bar when we have a more
+ * recent price in the singleton latest_price row.
  */
 async function getTodayFromLatestPrice(): Promise<{
   bar: DailyBarRow | null;
@@ -82,13 +77,12 @@ async function getTodayLiveDailyRollup(): Promise<{
   sourceTable: string | null;
   latestTs: string | null;
 }> {
-  for (const source of INTRADAY_SOURCE_TABLES) {
-    try {
-      // Table name is interpolated from a fixed allowlist only.
-      const sql = `
+  try {
+    const rows = await query<LiveDailyRollupRow>(
+      `
         WITH today AS (
           SELECT timestamp, open, high, low, close, COALESCE(volume, 0) AS volume
-          FROM analytics.${source.table}
+          FROM analytics.price_1m
           WHERE timestamp >= CURRENT_DATE::timestamptz
             AND timestamp < (CURRENT_DATE + INTERVAL '1 day')::timestamptz
             AND close IS NOT NULL
@@ -101,39 +95,33 @@ async function getTodayLiveDailyRollup(): Promise<{
           MIN(low) AS low,
           (ARRAY_AGG(close ORDER BY timestamp DESC))[1] AS close,
           SUM(volume)::bigint AS volume,
-          $1::text AS source,
+          'intraday_rollup_1m'::text AS source,
           MAX(timestamp) AS latest_ts,
           COUNT(*)::int AS bar_count
         FROM today
-      `;
-
-      const rows = await query<LiveDailyRollupRow>(sql, [
-        `intraday_rollup_${source.interval}`,
-      ]);
-      const row = rows[0];
-      if (!row || row.bar_count <= 0 || row.close == null) {
-        continue;
-      }
-
-      return {
-        bar: {
-          timestamp: row.timestamp,
-          open: row.open ?? row.close,
-          high: row.high ?? row.close,
-          low: row.low ?? row.close,
-          close: row.close,
-          volume: row.volume ?? 0,
-          source: row.source,
-        },
-        sourceTable: `analytics.${source.table}`,
-        latestTs: row.latest_ts ? new Date(row.latest_ts).toISOString() : null,
-      };
-    } catch {
-      // Continue to lower-frequency fallback table.
+      `,
+    );
+    const row = rows[0];
+    if (!row || row.bar_count <= 0 || row.close == null) {
+      return { bar: null, sourceTable: null, latestTs: null };
     }
-  }
 
-  return { bar: null, sourceTable: null, latestTs: null };
+    return {
+      bar: {
+        timestamp: row.timestamp,
+        open: row.open ?? row.close,
+        high: row.high ?? row.close,
+        low: row.low ?? row.close,
+        close: row.close,
+        volume: row.volume ?? 0,
+        source: row.source,
+      },
+      sourceTable: "analytics.price_1m",
+      latestTs: row.latest_ts ? new Date(row.latest_ts).toISOString() : null,
+    };
+  } catch {
+    return { bar: null, sourceTable: null, latestTs: null };
+  }
 }
 
 /**
@@ -174,7 +162,7 @@ export async function GET(req: NextRequest) {
       [`${clampedDays} days`],
     );
 
-    // Try intraday rollup first, then fall back to latest_price singleton
+    // Try 1m rollup first, then fall back to latest_price singleton
     const liveRollup = await getTodayLiveDailyRollup();
     let activeRollupBar    = liveRollup.bar;
     let activeSourceTable  = liveRollup.sourceTable;

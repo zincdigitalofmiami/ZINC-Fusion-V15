@@ -1,13 +1,13 @@
 /**
  * GET /api/zl/live
  *
- * Returns the FRESHEST ZL price available, cascading through all timeframes:
- *   1m → 15m → 1h → 1d
+ * Returns the freshest ZL price available from the slim serving contract:
+ *   1m -> latest_price -> 1d
  *
  * Response always includes:
  *   - price, change, change_pct
- *   - source: which table provided the price ("1m" | "15m" | "1h" | "1d")
- *   - live: true only if 1m data is < 5 min old (market is actively trading)
+ *   - source: which table provided the price ("1m" | "latest_price" | "1d")
+ *   - live: true only if the chosen non-daily source is < 5 min old
  *   - age_seconds: how old the price is
  */
 import { NextResponse } from "next/server";
@@ -50,6 +50,7 @@ async function getFrom1m(): Promise<PriceTier | null> {
     SELECT timestamp, close, open, high, low, volume,
            previous_close, change, change_percent, day_high, day_low
     FROM analytics.price_1m
+    WHERE timestamp >= CURRENT_DATE::timestamptz
     ORDER BY timestamp DESC LIMIT 1
   `);
   if (rows.length === 0) return null;
@@ -71,78 +72,54 @@ async function getFrom1m(): Promise<PriceTier | null> {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Tier 2: 15-minute bars
-// ---------------------------------------------------------------------------
-async function getFrom15m(): Promise<PriceTier | null> {
+async function getFromLatestPrice(): Promise<PriceTier | null> {
   const rows = await query<{
+    price: number;
     timestamp: string;
-    close: number;
-    open: number;
-    high: number;
-    low: number;
-    volume: number;
+    previous_close: number | null;
   }>(`
-    SELECT timestamp, close, open, high, low, volume
-    FROM analytics.price_15m
-    ORDER BY timestamp DESC LIMIT 1
+    SELECT
+      lp.price::float8 AS price,
+      COALESCE(lp.timestamp, lp.updated_at)::text AS timestamp,
+      prev.close::float8 AS previous_close
+    FROM analytics.latest_price lp
+    LEFT JOIN LATERAL (
+      SELECT close
+      FROM analytics.price_1d
+      WHERE close IS NOT NULL
+        AND event_date < CURRENT_DATE
+      ORDER BY event_date DESC
+      LIMIT 1
+    ) prev ON TRUE
+    WHERE lp.id = 1
+      AND lp.price IS NOT NULL
+      AND COALESCE(lp.timestamp, lp.updated_at) >= CURRENT_DATE::timestamptz
+    LIMIT 1
   `);
   if (rows.length === 0) return null;
   const r = rows[0];
+  const previousClose = r.previous_close;
+  const change = previousClose != null ? r.price - previousClose : null;
+  const changePct = previousClose != null ? (change! / previousClose) * 100 : null;
   return {
-    price: r.close,
-    open: r.open,
-    high: r.high,
-    low: r.low,
-    volume: r.volume,
+    price: r.price,
+    open: r.price,
+    high: r.price,
+    low: r.price,
+    volume: 0,
     timestamp: r.timestamp,
-    previous_close: null,
-    change: null,
-    change_pct: null,
+    previous_close: previousClose,
+    change,
+    change_pct: changePct,
     age_seconds: Math.round(
       (Date.now() - new Date(r.timestamp).getTime()) / 1000,
     ),
-    source: "15m",
+    source: "latest_price",
   };
 }
 
 // ---------------------------------------------------------------------------
-// Tier 3: 1-hour bars
-// ---------------------------------------------------------------------------
-async function getFrom1h(): Promise<PriceTier | null> {
-  const rows = await query<{
-    timestamp: string;
-    close: number;
-    open: number;
-    high: number;
-    low: number;
-    volume: number;
-  }>(`
-    SELECT timestamp, close, open, high, low, volume
-    FROM analytics.price_1h
-    ORDER BY timestamp DESC LIMIT 1
-  `);
-  if (rows.length === 0) return null;
-  const r = rows[0];
-  return {
-    price: r.close,
-    open: r.open,
-    high: r.high,
-    low: r.low,
-    volume: r.volume,
-    timestamp: r.timestamp,
-    previous_close: null,
-    change: null,
-    change_pct: null,
-    age_seconds: Math.round(
-      (Date.now() - new Date(r.timestamp).getTime()) / 1000,
-    ),
-    source: "1h",
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Tier 4: Daily bars (always exists, may be days old on weekends)
+// Tier 3: Daily bars (always exists, may be days old on weekends)
 // ---------------------------------------------------------------------------
 async function getFrom1d(): Promise<PriceTier | null> {
   const rows = await query<{
@@ -191,17 +168,17 @@ const LIVE_THRESHOLD_SECONDS = 5 * 60; // <5 min = market is trading right now
 
 export async function GET() {
   try {
-    // Fire all 4 queries in parallel — pick the freshest one
-    const [t1m, t15m, t1h, t1d] = await Promise.all([
+    // Query all sources in parallel, then apply the explicit serving-order
+    // waterfall rather than sorting by timestamp.
+    const [t1m, latestPrice, t1d] = await Promise.all([
       getFrom1m().catch(() => null),
-      getFrom15m().catch(() => null),
-      getFrom1h().catch(() => null),
+      getFromLatestPrice().catch(() => null),
       getFrom1d().catch(() => null),
     ]);
 
-    // Waterfall: use the freshest (lowest age_seconds) tier that returned data
-    const tiers = [t1m, t15m, t1h, t1d].filter(Boolean) as PriceTier[];
-    if (tiers.length === 0) {
+    const best = t1m ?? latestPrice ?? t1d;
+
+    if (!best) {
       return NextResponse.json(
         {
           symbol: "ZL",
@@ -210,17 +187,12 @@ export async function GET() {
           updated_at: new Date().toISOString(),
           source: "none",
           live: false,
-          error: "No ZL price data in any table",
+          error: "No ZL price data in the active serving tables",
         },
         { headers: { "Cache-Control": "no-store, max-age=0" } },
       );
     }
 
-    // Sort by freshness (lowest age wins)
-    tiers.sort((a, b) => a.age_seconds - b.age_seconds);
-    const best = tiers[0];
-
-    // If we have 1m data AND change/change_pct are null, fill from 1d
     if (best.source !== "1d" && best.change == null && t1d) {
       best.previous_close = t1d.previous_close;
       best.change = best.price - (t1d.previous_close ?? best.open);
@@ -230,7 +202,7 @@ export async function GET() {
     }
 
     const isLive =
-      best.source === "1m" && best.age_seconds < LIVE_THRESHOLD_SECONDS;
+      best.source !== "1d" && best.age_seconds < LIVE_THRESHOLD_SECONDS;
 
     return NextResponse.json(
       {

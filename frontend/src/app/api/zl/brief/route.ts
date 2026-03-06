@@ -143,42 +143,51 @@ interface VegasBrief {
 
 async function getCurrentPrice(): Promise<PriceSummary | null> {
   try {
-    // Waterfall: pick freshest price from 1m → 15m → 1h → 1d
-    // (analytics.latest_price is only updated by the live 1m feed which may be stale)
-    const freshest = await query<{price: number, timestamp: string, source: string}>(`
-      SELECT price, timestamp, source FROM (
-        SELECT close AS price, timestamp::text, '1m' AS source
-          FROM analytics.price_1m ORDER BY timestamp DESC LIMIT 1
-      ) t1m
-      UNION ALL
-      SELECT price, timestamp, source FROM (
-        SELECT close AS price, timestamp::text, '15m' AS source
-          FROM analytics.price_15m ORDER BY timestamp DESC LIMIT 1
-      ) t15m
-      UNION ALL
-      SELECT price, timestamp, source FROM (
-        SELECT close AS price, timestamp::text, '1h' AS source
-          FROM analytics.price_1h ORDER BY timestamp DESC LIMIT 1
-      ) t1h
-      UNION ALL
-      SELECT price, timestamp, source FROM (
-        SELECT close AS price, event_date::text AS timestamp, '1d' AS source
-          FROM analytics.price_1d WHERE close IS NOT NULL ORDER BY event_date DESC LIMIT 1
-      ) t1d
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `)
+    const [latest1m, latestPrice, dailyCloses] = await Promise.all([
+      query<{close: number, timestamp: string}>(`
+        SELECT close, timestamp::text AS timestamp
+        FROM analytics.price_1m
+        WHERE timestamp >= CURRENT_DATE::timestamptz
+        ORDER BY timestamp DESC
+        LIMIT 1
+      `),
+      query<{price: number, timestamp: string}>(`
+        SELECT price::float8 AS price, COALESCE(timestamp, updated_at)::text AS timestamp
+        FROM analytics.latest_price
+        WHERE id = 1
+          AND price IS NOT NULL
+          AND COALESCE(timestamp, updated_at) >= CURRENT_DATE::timestamptz
+        LIMIT 1
+      `),
+      query<{close: number, event_date: string}>(`
+        SELECT close, event_date::text AS event_date
+        FROM analytics.price_1d
+        WHERE close IS NOT NULL
+        ORDER BY event_date DESC
+        LIMIT 6
+      `),
+    ])
 
-    // Get recent daily closes for week range
-    const dailyCloses = await query<{close: number, event_date: string}>(`
-      SELECT close, event_date FROM analytics.price_1d
-      ORDER BY event_date DESC LIMIT 6
-    `)
+    if (!dailyCloses.length) return null
 
-    if (!freshest.length || !dailyCloses.length) return null
-
-    const current = freshest[0].price
-    const previousClose = dailyCloses[1]?.close ?? dailyCloses[0].close
+    const today = new Date().toISOString().slice(0, 10)
+    const latestDaily = dailyCloses[0]
+    const using1m = latest1m.length > 0
+    const usingLatestPrice = !using1m && latestPrice.length > 0
+    const current = using1m
+      ? latest1m[0].close
+      : usingLatestPrice
+        ? latestPrice[0].price
+        : latestDaily.close
+    const asOf = using1m
+      ? latest1m[0].timestamp
+      : usingLatestPrice
+        ? latestPrice[0].timestamp
+        : latestDaily.event_date
+    const latestDailyIsToday = latestDaily.event_date.slice(0, 10) === today
+    const previousClose = using1m || usingLatestPrice
+      ? (latestDailyIsToday ? (dailyCloses[1]?.close ?? latestDaily.close) : latestDaily.close)
+      : (dailyCloses[1]?.close ?? latestDaily.close)
     const weekPrices = dailyCloses.map(r => r.close)
 
     return {
@@ -188,7 +197,7 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
       changePct: ((current - previousClose) / previousClose) * 100,
       weekHigh: Math.max(...weekPrices, current),
       weekLow: Math.min(...weekPrices, current),
-      asOf: freshest[0].timestamp
+      asOf,
     }
   } catch (e) {
     console.error('Price fetch error:', e)

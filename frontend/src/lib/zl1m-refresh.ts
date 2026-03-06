@@ -1,7 +1,7 @@
 /**
- * ZL 1m/5m write-throttle refresh helper.
+ * ZL 1m write-throttle refresh helper.
  *
- * Mirrors zl1h-refresh.ts pattern (from RR/MES setup):
+ * Uses a per-worker refresh gate to avoid duplicate Databento pulls:
  *   force: true  → always fetch + upsert (used on SSE connect or manual trigger)
  *   force: false → respect 90s per-worker gate
  *
@@ -33,7 +33,6 @@ let lastRefreshAt = 0;
 export interface Zl1mRefreshResult {
   skipped: boolean;
   upserted1m: number;
-  upserted5m: number;
   bars: DatabentoOhlcvBar[];
 }
 
@@ -47,7 +46,7 @@ export async function refreshZl1mFromDatabento(opts: {
   const gate = opts.minRefreshIntervalMs ?? DEFAULT_MIN_REFRESH_INTERVAL_MS;
 
   if (!force && Date.now() - lastRefreshAt < gate) {
-    return { skipped: true, upserted1m: 0, upserted5m: 0, bars: [] };
+    return { skipped: true, upserted1m: 0, bars: [] };
   }
 
   const now = new Date();
@@ -76,7 +75,7 @@ export async function refreshZl1mFromDatabento(opts: {
 
   if (toUpsert.length === 0) {
     lastRefreshAt = Date.now();
-    return { skipped: false, upserted1m: 0, upserted5m: 0, bars: [] };
+    return { skipped: false, upserted1m: 0, bars: [] };
   }
 
   const client = await dbPool.connect();
@@ -94,38 +93,6 @@ export async function refreshZl1mFromDatabento(opts: {
       count1m++;
     }
 
-    // Aggregate to 5m bars for the upserted range
-    const rangeStart = toUpsert[0].tsEvent;
-    const rangeEnd = toUpsert[toUpsert.length - 1].tsEvent;
-
-    const agg = await client.query(
-      `INSERT INTO analytics.price_5m
-         (symbol, timestamp, open, high, low, close, volume, source, created_at)
-       SELECT
-         'ZL',
-         date_trunc('hour', timestamp) +
-           INTERVAL '5 min' * FLOOR(EXTRACT(MINUTE FROM timestamp) / 5) AS bar_time,
-         (ARRAY_AGG(open ORDER BY timestamp))[1],
-         MAX(high),
-         MIN(low),
-         (ARRAY_AGG(close ORDER BY timestamp DESC))[1],
-         SUM(COALESCE(volume, 0)),
-         'aggregated_backfill',
-         NOW()
-       FROM analytics.price_1m
-       WHERE symbol = 'ZL' AND timestamp >= $1 AND timestamp <= $2
-       GROUP BY bar_time
-       HAVING COUNT(*) >= 3
-       ON CONFLICT (symbol, timestamp) DO UPDATE SET
-         open = EXCLUDED.open,
-         high = EXCLUDED.high,
-         low = EXCLUDED.low,
-         close = EXCLUDED.close,
-         volume = EXCLUDED.volume,
-         source = EXCLUDED.source`,
-      [rangeStart, rangeEnd],
-    );
-
     // Keep latest_price current
     const newest = toUpsert[toUpsert.length - 1];
     await client.query(
@@ -139,7 +106,6 @@ export async function refreshZl1mFromDatabento(opts: {
     return {
       skipped: false,
       upserted1m: count1m,
-      upserted5m: agg.rowCount ?? 0,
       bars: toUpsert,
     };
   } finally {

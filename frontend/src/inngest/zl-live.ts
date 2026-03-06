@@ -16,42 +16,6 @@ type ZlBar1mEvent = {
   source?: string;
 };
 
-type ZlBar5mEvent = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  previousClose: number | null;
-  dayHigh: number | null;
-  dayLow: number | null;
-  source?: string;
-};
-
-type ZlBar15mEvent = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  previousClose: number | null;
-  dayHigh: number | null;
-  dayLow: number | null;
-  source?: string;
-};
-
-type ZlBar1hEvent = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  source?: string;
-};
-
 type ZlBar1dEvent = {
   eventDate: string;
   open: number;
@@ -105,39 +69,6 @@ function validateBar1m(bar: ZlBar1mEvent): void {
   }
 }
 
-function validateBar5m(bar: ZlBar5mEvent): void {
-  const ts = parseTimestamp(bar.timestamp);
-  validateOhlc(bar.open, bar.high, bar.low, bar.close);
-  validateRecent(ts, 48); // 48 hours max age for 5m bars
-  if (bar.volume < 0) {
-    throw new Error("Volume must be >= 0");
-  }
-  if (bar.previousClose != null && bar.previousClose <= 0) {
-    throw new Error("previousClose must be > 0 when provided");
-  }
-}
-
-function validateBar15m(bar: ZlBar15mEvent): void {
-  const ts = parseTimestamp(bar.timestamp);
-  validateOhlc(bar.open, bar.high, bar.low, bar.close);
-  validateRecent(ts, 72);
-  if (bar.volume < 0) {
-    throw new Error("Volume must be >= 0");
-  }
-  if (bar.previousClose != null && bar.previousClose <= 0) {
-    throw new Error("previousClose must be > 0 when provided");
-  }
-}
-
-function validateBar1h(bar: ZlBar1hEvent): void {
-  const ts = parseTimestamp(bar.timestamp);
-  validateOhlc(bar.open, bar.high, bar.low, bar.close);
-  validateRecent(ts, 168);
-  if (bar.volume < 0) {
-    throw new Error("Volume must be >= 0");
-  }
-}
-
 function validateBar1d(bar: ZlBar1dEvent): void {
   const ts = parseTimestamp(bar.eventDate);
   validateOhlc(bar.open, bar.high, bar.low, bar.close);
@@ -146,97 +77,6 @@ function validateBar1d(bar: ZlBar1dEvent): void {
     throw new Error("Volume must be >= 0");
   }
 }
-
-export const zlLive15m = inngest.createFunction(
-  { id: "zl-live-15m", name: "ZL Live 15m Bars", concurrency: [DB_CONCURRENCY] },
-  { event: "zl.bar.15m" },
-  async ({ event }) => {
-    const bar = event.data as ZlBar15mEvent;
-    validateBar15m(bar);
-    const previousClose = bar.previousClose ?? null;
-    const change = previousClose != null ? bar.close - previousClose : null;
-    const changePct = previousClose != null ? (change! / previousClose) * 100 : null;
-    const source = bar.source ?? "databento_live";
-
-    const client = await pool.connect();
-    try {
-      await client.query(
-        `INSERT INTO analytics.price_15m
-          (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-         ON CONFLICT (symbol, timestamp) DO UPDATE SET
-           open = EXCLUDED.open,
-           high = EXCLUDED.high,
-           low = EXCLUDED.low,
-           close = EXCLUDED.close,
-           volume = EXCLUDED.volume,
-           previous_close = EXCLUDED.previous_close,
-           change = EXCLUDED.change,
-           change_percent = EXCLUDED.change_percent,
-           day_high = EXCLUDED.day_high,
-           day_low = EXCLUDED.day_low,
-           source = EXCLUDED.source`,
-        [
-          bar.timestamp,
-          bar.open,
-          bar.high,
-          bar.low,
-          bar.close,
-          bar.volume,
-          previousClose,
-          change,
-          changePct,
-          bar.dayHigh,
-          bar.dayLow,
-          source,
-        ]
-      );
-    } finally {
-      client.release();
-    }
-
-    return { status: "ok", timestamp: bar.timestamp };
-  }
-);
-
-export const zlLive1h = inngest.createFunction(
-  { id: "zl-live-1h", name: "ZL Live 1h Bars", concurrency: [DB_CONCURRENCY] },
-  { event: "zl.bar.1h" },
-  async ({ event }) => {
-    const bar = event.data as ZlBar1hEvent;
-    validateBar1h(bar);
-    const source = bar.source ?? "databento_live";
-
-    const client = await pool.connect();
-    try {
-      await client.query(
-        `INSERT INTO analytics.price_1h
-          (timestamp, open, high, low, close, volume, source, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-         ON CONFLICT (symbol, timestamp) DO UPDATE SET
-           open = EXCLUDED.open,
-           high = EXCLUDED.high,
-           low = EXCLUDED.low,
-           close = EXCLUDED.close,
-           volume = EXCLUDED.volume,
-           source = EXCLUDED.source`,
-        [
-          bar.timestamp,
-          bar.open,
-          bar.high,
-          bar.low,
-          bar.close,
-          bar.volume,
-          source,
-        ]
-      );
-    } finally {
-      client.release();
-    }
-
-    return { status: "ok", timestamp: bar.timestamp };
-  }
-);
 
 export const zlLive1d = inngest.createFunction(
   { id: "zl-live-1d", name: "ZL Live 1d Bars", concurrency: [DB_CONCURRENCY] },
@@ -332,148 +172,26 @@ export const zlLive1m = inngest.createFunction(
       }
     });
 
-    // Step 2: Check if we should aggregate to 5m bar
-    // 5m bars close at :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55
-    const ts = new Date(bar.timestamp);
-    const minute = ts.getMinutes();
-    const is5mBoundary = minute % 5 === 4; // :04, :09, :14, etc. complete the 5m bar
-
-    if (is5mBoundary) {
-      await step.run("aggregate-5m-bar", async () => {
-        const client = await pool.connect();
-        try {
-          // Get the 5 most recent 1m bars ending at this timestamp
-          const fiveMinStart = new Date(ts);
-          fiveMinStart.setMinutes(Math.floor(minute / 5) * 5);
-          fiveMinStart.setSeconds(0);
-          fiveMinStart.setMilliseconds(0);
-
-          const barsResult = await client.query(
-            `SELECT open, high, low, close, volume, previous_close, day_high, day_low
-             FROM analytics.price_1m
-             WHERE timestamp >= $1 AND timestamp <= $2
-             ORDER BY timestamp ASC`,
-            [fiveMinStart.toISOString(), bar.timestamp]
-          );
-
-          if (barsResult.rows.length >= 3) { // Need at least 3 bars for meaningful aggregation
-            const bars = barsResult.rows;
-            const aggregated = {
-              open: bars[0].open,
-              high: Math.max(...bars.map((b: { high: number }) => b.high)),
-              low: Math.min(...bars.map((b: { low: number }) => b.low)),
-              close: bars[bars.length - 1].close,
-              volume: bars.reduce((sum: number, b: { volume: number }) => sum + (b.volume || 0), 0),
-              previousClose: bars[0].previous_close,
-              dayHigh: bars[bars.length - 1].day_high,
-              dayLow: bars[bars.length - 1].day_low,
-            };
-
-            const aggChange = aggregated.previousClose != null
-              ? aggregated.close - aggregated.previousClose
-              : null;
-            const aggChangePct = aggregated.previousClose != null
-              ? (aggChange! / aggregated.previousClose) * 100
-              : null;
-
-            await client.query(
-              `INSERT INTO analytics.price_5m
-                (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-               ON CONFLICT (symbol, timestamp) DO UPDATE SET
-                 open = EXCLUDED.open,
-                 high = EXCLUDED.high,
-                 low = EXCLUDED.low,
-                 close = EXCLUDED.close,
-                 volume = EXCLUDED.volume,
-                 previous_close = EXCLUDED.previous_close,
-                 change = EXCLUDED.change,
-                 change_percent = EXCLUDED.change_percent,
-                 day_high = EXCLUDED.day_high,
-                 day_low = EXCLUDED.day_low,
-                 source = EXCLUDED.source`,
-              [
-                fiveMinStart.toISOString(),
-                aggregated.open,
-                aggregated.high,
-                aggregated.low,
-                aggregated.close,
-                aggregated.volume,
-                aggregated.previousClose,
-                aggChange,
-                aggChangePct,
-                aggregated.dayHigh,
-                aggregated.dayLow,
-                "aggregated_1m",
-              ]
-            );
-          }
-        } finally {
-          client.release();
-        }
-      });
-    }
+    await step.run("update-latest-price", async () => {
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `UPDATE analytics.latest_price
+           SET price = $1,
+               timestamp = $2,
+               updated_at = NOW()
+           WHERE id = 1
+             AND (timestamp IS NULL OR timestamp <= $2)`,
+          [bar.close, bar.timestamp],
+        );
+      } finally {
+        client.release();
+      }
+    });
 
     return {
       status: "ok",
       timestamp: bar.timestamp,
-      aggregated5m: is5mBoundary
     };
-  }
-);
-
-// =============================================================================
-// ZL 5-MINUTE BARS (Direct ingestion, alternative to aggregation)
-// =============================================================================
-
-export const zlLive5m = inngest.createFunction(
-  { id: "zl-live-5m", name: "ZL Live 5m Bars", concurrency: [DB_CONCURRENCY] },
-  { event: "zl.bar.5m" },
-  async ({ event }) => {
-    const bar = event.data as ZlBar5mEvent;
-    validateBar5m(bar);
-    const previousClose = bar.previousClose ?? null;
-    const change = previousClose != null ? bar.close - previousClose : null;
-    const changePct = previousClose != null ? (change! / previousClose) * 100 : null;
-    const source = bar.source ?? "databento_live";
-
-    const client = await pool.connect();
-    try {
-      await client.query(
-        `INSERT INTO analytics.price_5m
-          (timestamp, open, high, low, close, volume, previous_close, change, change_percent, day_high, day_low, source, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-         ON CONFLICT (symbol, timestamp) DO UPDATE SET
-           open = EXCLUDED.open,
-           high = EXCLUDED.high,
-           low = EXCLUDED.low,
-           close = EXCLUDED.close,
-           volume = EXCLUDED.volume,
-           previous_close = EXCLUDED.previous_close,
-           change = EXCLUDED.change,
-           change_percent = EXCLUDED.change_percent,
-           day_high = EXCLUDED.day_high,
-           day_low = EXCLUDED.day_low,
-           source = EXCLUDED.source`,
-        [
-          bar.timestamp,
-          bar.open,
-          bar.high,
-          bar.low,
-          bar.close,
-          bar.volume,
-          previousClose,
-          change,
-          changePct,
-          bar.dayHigh,
-          bar.dayLow,
-          source,
-        ]
-      );
-    } finally {
-      client.release();
-    }
-
-    return { status: "ok", timestamp: bar.timestamp };
   }
 );

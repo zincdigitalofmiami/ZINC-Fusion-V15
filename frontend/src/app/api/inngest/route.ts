@@ -1,13 +1,8 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
 import {
-  zl15m,
-  zl1h,
   zlDaily,
   zlLive1m,
-  zlLive5m,
-  zlLive15m,
-  zlLive1h,
   zlLive1d,
   fredDailyFed,
   fredDailyFx,
@@ -66,6 +61,7 @@ import {
   zl1mBackfill,
   zl1mScheduledBackfill,
   cleanupStaleRuns,
+  price1mRetentionCleanup,
   lcfsCreditWeekly,
   specialistSignalsSync,
   specialistSignalsSyncManual,
@@ -145,13 +141,8 @@ export const { GET, POST, PUT } = serve({
   streaming: "allow",
   functions: [
     // Price data
-    zl15m,
-    zl1h,
     zlDaily,
     zlLive1m,
-    zlLive5m,
-    zlLive15m,
-    zlLive1h,
     zlLive1d,
     // FRED macro series
     fredDailyFed,
@@ -227,6 +218,7 @@ export const { GET, POST, PUT } = serve({
     zl1mScheduledBackfill,
     // Ops cleanup
     cleanupStaleRuns,
+    price1mRetentionCleanup,
     // Supply data (weekly)
     lcfsCreditWeekly,
     // Specialist signal synchronization (all 11 buckets)
