@@ -204,8 +204,11 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 7. Forward fill is OFF by default — requires explicit approval
 8. Say "I don't know" when uncertain
 9. Before pushing, open a PR to trigger cubic PR review — fix all P0/P1 issues before merging (cubic CLI requires paid plan; PR reviews work on free open source plan)
+10. Secret artifact hygiene — generated env artifacts (for example `frontend/.env.vercel.*`, env pulls, temporary token files) must be deleted immediately after use and covered by `.gitignore`; never leave them untracked in workspace, never commit them
 
 ## MCP Server Rules (npx MCP Stack)
+
+> Full setup, validation, and troubleshooting guide: [`Docs/MCP_SETUP_REFERENCE.md`](Docs/MCP_SETUP_REFERENCE.md)
 
 MCP configuration for this workspace is managed outside repo files:
 - Claude: `/Users/zincdigital/.claude.json`

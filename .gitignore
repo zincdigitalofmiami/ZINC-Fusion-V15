@@ -44,6 +44,7 @@ client/dist/
 
 # Environment files with secrets
 .env.vercel
+frontend/.env.vercel.*
 .env.local
 .env.production
 .env.local.audit

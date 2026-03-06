@@ -12,6 +12,8 @@ Full details in `AGENTS.md` → "Client Business Model" section.
 
 ## State Persistence (UPDATED 2026-03-06)
 
+> Full MCP setup, validation, and troubleshooting: [`Docs/MCP_SETUP_REFERENCE.md`](Docs/MCP_SETUP_REFERENCE.md)
+
 ### MCP Servers — FIX BEFORE WORKING
 
 **If memory MCP or any required MCP server is offline or returning empty, STOP and fix it before doing any work.**
@@ -22,6 +24,13 @@ How to fix:
 3. Memory file path is `/Users/zincdigital/.claude/memory/memory.jsonl` — if empty, seed immediately from `AGENTS.md` and current session facts
 4. Verify memory tools are graph API (`search_nodes`, `create_entities`, `add_observations`, `read_graph`); if only `search_memory/list_memories` appear, fix MCP config before coding
 5. Do NOT proceed with code changes until MCP tools respond correctly
+
+### Secret Artifact Hygiene (MANDATORY)
+
+1. Never leave generated env artifacts in workspace (examples: `frontend/.env.vercel.*`, temporary env pulls, token dump files).
+2. If such a file is created for diagnostics, delete it immediately after use.
+3. Ensure `.gitignore` covers the artifact pattern before continuing.
+4. Never commit `.env*` or token-bearing files.
 
 ### Dual-Track State (BOTH required)
 
