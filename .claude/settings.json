@@ -2,7 +2,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -14,11 +14,21 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "INPUT=$(cat) && filepath=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // empty') && if [ -n \"$filepath\" ]; then case \"$filepath\" in *.env|*.env.*|*/.env|*/.env.*) echo 'BLOCKED: Do not edit .env files directly. Use .envrc or ask the user.' >&2; exit 2;; */migration_lock.toml) echo 'BLOCKED: Do not edit Prisma migration lock directly.' >&2; exit 2;; esac; fi",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && cmd=$(echo \"$INPUT\" | jq -r '.tool_input.command // .tool_input.cmd // empty') && if [ -n \"$cmd\" ]; then case \"$cmd\" in *\"git reset --hard\"*|*\"git checkout --\"*|*\"git clean -fd\"*|*\"git push --force\"*|*\"git push -f\"*|*\"rm -rf /\"*|*\"rm -rf ~\"*|*\"docker compose down -v\"*|*\"prisma migrate reset\"*|*\"dropdb \"*) echo 'BLOCKED: Destructive command requires explicit user confirmation in chat.' >&2; exit 2;; esac; case \"$cmd\" in *\"ZINC-FUSION-V15-recovery-dirty\"*|*\"ZINC-FUSION-V15-deploy-fix\"*|*\"ZINC-FUSION-V15-integration-clean\"*|*\"ZINC-FUSION-V15-integration\"*|*\"ZINC-FUSION-V15_RECOVERED\"*) echo 'BLOCKED: Operate only in /Volumes/Satechi Hub/ZINC-FUSION-V15 unless user explicitly redirects.' >&2; exit 2;; esac; fi",
             "timeout": 5000
           }
         ]

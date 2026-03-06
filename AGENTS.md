@@ -205,9 +205,34 @@ Source of truth: `src/fusion/specialists/base.py` → `SPECIALIST_BUCKETS` list 
 8. Say "I don't know" when uncertain
 9. Before pushing, open a PR to trigger cubic PR review — fix all P0/P1 issues before merging (cubic CLI requires paid plan; PR reviews work on free open source plan)
 
-## MCP Server Rules (Workspace-Only — `.vscode/mcp.json`)
+## MCP Server Rules (npx MCP Stack)
 
-One MCP server is configured for this workspace: **memory**. All agents must follow these rules without exception.
+MCP configuration for this workspace is managed outside repo files:
+- Claude: `/Users/zincdigital/.claude.json`
+- Kilo Code: `/Users/zincdigital/Library/Application Support/Code/User/globalStorage/kilocode.kilo-code/settings/mcp_settings.json`
+
+Active servers for this workspace:
+- `memory`
+- `sequentialthinking`
+- `context7`
+- `puppeteer`
+
+### Memory API Contract (Do Not Drift)
+
+The active memory server is `@modelcontextprotocol/server-memory` (knowledge graph API).
+
+Valid memory tools:
+- `search_nodes`
+- `create_entities`
+- `create_relations`
+- `add_observations`
+- `read_graph`
+- `open_nodes`
+- `delete_entities`
+- `delete_relations`
+- `delete_observations`
+
+Do not use simple-memory tool names in this workspace (`search_memory`, `list_memories`, `add_memories`, `delete_all_memories`). If those show up, the session is on the wrong memory server.
 
 ### 8 Non-Negotiable Rules
 

@@ -10,17 +10,18 @@ Read and follow `AGENTS.md` at the repository root. It is the single source of t
 
 Full details in `AGENTS.md` → "Client Business Model" section.
 
-## State Persistence (UPDATED 2026-03-03)
+## State Persistence (UPDATED 2026-03-06)
 
 ### MCP Servers — FIX BEFORE WORKING
 
-**If memory MCP, sequential thinking, or any required MCP server is offline or returning empty, STOP and fix it before doing any work.**
+**If memory MCP or any required MCP server is offline or returning empty, STOP and fix it before doing any work.**
 
 How to fix:
-1. Open VS Code Command Palette → "MCP: List Servers" — verify `memory` and `sequentialthinking` show as connected
+1. Open VS Code Command Palette → "MCP: List Servers" — verify `memory`, `sequentialthinking`, `context7`, and `puppeteer` show as connected
 2. If offline: Command Palette → "MCP: Restart Server" for each offline server
-3. `memory.jsonl` lives at `.claude/memory.jsonl` — if empty, that explains empty search results; seed it by storing current session context immediately
-4. Do NOT proceed with code changes until MCP tools respond correctly
+3. Memory file path is `/Users/zincdigital/.claude/memory/memory.jsonl` — if empty, seed immediately from `AGENTS.md` and current session facts
+4. Verify memory tools are graph API (`search_nodes`, `create_entities`, `add_observations`, `read_graph`); if only `search_memory/list_memories` appear, fix MCP config before coding
+5. Do NOT proceed with code changes until MCP tools respond correctly
 
 ### Dual-Track State (BOTH required)
 
