@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { LightweightZlCandlestickChart } from '@/components/LightweightZlCandlestickChart';
-import { ChrisTop4Drivers } from '@/components/ChrisTop4Drivers';
+import React from "react";
+import { LightweightZlCandlestickChart } from "@/components/LightweightZlCandlestickChart";
+import { RegimeAnalysisChart } from "@/components/RegimeAnalysisChart";
+import { ProbabilityHeatmap } from "@/components/quant/ProbabilityHeatmap";
+import { ChrisTop4Drivers } from "@/components/ChrisTop4Drivers";
 
 export default function DashboardPage() {
   return (
@@ -12,7 +14,17 @@ export default function DashboardPage() {
         <LightweightZlCandlestickChart height="80vh" />
       </div>
 
-      {/* SECTION 2: Market Risk Factors */}
+      {/* SECTION 2: L3 Probability Surface - Full Width Row (directly under chart) */}
+      <div className="w-full">
+        <ProbabilityHeatmap />
+      </div>
+
+      {/* SECTION 3: Regime Analysis - Full Width Row */}
+      <div className="w-full">
+        <RegimeAnalysisChart height={350} timeRange="1Y" />
+      </div>
+
+      {/* SECTION 4: Market Risk Factors */}
       <ChrisTop4Drivers />
     </div>
   );
