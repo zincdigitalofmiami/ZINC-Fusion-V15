@@ -2,10 +2,8 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { FusionBrain } from "@/components/viz/FusionBrain";
-import { RegimeAnalysisChart } from "@/components/RegimeAnalysisChart";
 import { ContractImpactCalculator } from "@/components/tools/ContractImpactCalculator";
 import { FactorWaterfall } from "@/components/quant/FactorWaterfall";
-import { ProbabilityHeatmap } from "@/components/quant/ProbabilityHeatmap";
 import { WeatherRiskArray } from "@/components/viz/WeatherRiskArray";
 import {
   Target,
@@ -883,16 +881,6 @@ export default function StrategyPage() {
         </div>
       )}
 
-      {/* Regime Analysis Chart */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-purple-500">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-            Regime Analysis
-          </h3>
-        </div>
-        <RegimeAnalysisChart height={300} />
-      </div>
-
       {/* Driver Attribution - FusionBrain Bubbles */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4 pl-1 border-l-4 border-cyan-500">
@@ -912,7 +900,7 @@ export default function StrategyPage() {
 
       {/* Analysis Tools Grid */}
       <div className="grid grid-cols-12 gap-6 mb-8">
-        <div className="col-span-12 lg:col-span-8 space-y-6">
+        <div className="col-span-12 lg:col-span-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ContractImpactCalculator
               currentPrice={brief?.price.current}
@@ -924,7 +912,6 @@ export default function StrategyPage() {
               factors={waterfallFactors}
             />
           </div>
-          <ProbabilityHeatmap />
         </div>
 
         <div className="col-span-12 lg:col-span-4">
