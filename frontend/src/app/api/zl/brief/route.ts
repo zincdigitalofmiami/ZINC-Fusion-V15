@@ -142,10 +142,39 @@ interface VegasBrief {
 // =============================================================================
 
 async function getCurrentPrice(): Promise<PriceSummary | null> {
+  const buildFromDaily = (
+    dailyCloses: Array<{ close: number; event_date: string }>,
+    currentOverride?: { current: number; asOf: string }
+  ): PriceSummary | null => {
+    if (!dailyCloses.length) return null
+
+    const today = new Date().toISOString().slice(0, 10)
+    const latestDaily = dailyCloses[0]
+    const current = currentOverride?.current ?? latestDaily.close
+    const asOf = currentOverride?.asOf ?? latestDaily.event_date
+    const latestDailyIsToday = latestDaily.event_date.slice(0, 10) === today
+    const previousClose = currentOverride
+      ? (latestDailyIsToday
+          ? (dailyCloses[1]?.close ?? latestDaily.close)
+          : latestDaily.close)
+      : (dailyCloses[1]?.close ?? latestDaily.close)
+    const weekPrices = dailyCloses.map((r) => r.close)
+
+    return {
+      current,
+      previousClose,
+      change: current - previousClose,
+      changePct: ((current - previousClose) / previousClose) * 100,
+      weekHigh: Math.max(...weekPrices, current),
+      weekLow: Math.min(...weekPrices, current),
+      asOf,
+    }
+  }
+
   try {
     const [latest1m, latestPrice, dailyCloses] = await Promise.all([
       query<{close: number, timestamp: string}>(`
-        SELECT close, timestamp::text AS timestamp
+        SELECT close::float8 AS close, timestamp::text AS timestamp
         FROM analytics.price_1m
         WHERE timestamp >= CURRENT_DATE::timestamptz
         ORDER BY timestamp DESC
@@ -160,7 +189,7 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
         LIMIT 1
       `),
       query<{close: number, event_date: string}>(`
-        SELECT close, event_date::text AS event_date
+        SELECT close::float8 AS close, event_date::text AS event_date
         FROM analytics.price_1d
         WHERE close IS NOT NULL
         ORDER BY event_date DESC
@@ -168,39 +197,35 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
       `),
     ])
 
-    if (!dailyCloses.length) return null
-
-    const today = new Date().toISOString().slice(0, 10)
-    const latestDaily = dailyCloses[0]
     const using1m = latest1m.length > 0
     const usingLatestPrice = !using1m && latestPrice.length > 0
-    const current = using1m
-      ? latest1m[0].close
-      : usingLatestPrice
-        ? latestPrice[0].price
-        : latestDaily.close
-    const asOf = using1m
-      ? latest1m[0].timestamp
-      : usingLatestPrice
-        ? latestPrice[0].timestamp
-        : latestDaily.event_date
-    const latestDailyIsToday = latestDaily.event_date.slice(0, 10) === today
-    const previousClose = using1m || usingLatestPrice
-      ? (latestDailyIsToday ? (dailyCloses[1]?.close ?? latestDaily.close) : latestDaily.close)
-      : (dailyCloses[1]?.close ?? latestDaily.close)
-    const weekPrices = dailyCloses.map(r => r.close)
+    const override =
+      using1m
+        ? { current: latest1m[0].close, asOf: latest1m[0].timestamp }
+        : usingLatestPrice
+          ? { current: latestPrice[0].price, asOf: latestPrice[0].timestamp }
+          : undefined
 
-    return {
-      current,
-      previousClose,
-      change: current - previousClose,
-      changePct: ((current - previousClose) / previousClose) * 100,
-      weekHigh: Math.max(...weekPrices, current),
-      weekLow: Math.min(...weekPrices, current),
-      asOf,
-    }
+    const analyticsPrice = buildFromDaily(dailyCloses, override)
+    if (analyticsPrice) return analyticsPrice
   } catch (e) {
-    console.error('Price fetch error:', e)
+    console.error('Price fetch error from analytics tables:', e)
+  }
+
+  // Fallback path: use canonical futures table when analytics serving tables are
+  // unavailable or empty, so strategy remains operational.
+  try {
+    const futuresRows = await query<{ close: number; event_date: string }>(`
+      SELECT close::float8 AS close, event_date::text AS event_date
+      FROM mkt.futures_1d
+      WHERE symbol = 'ZL' AND close IS NOT NULL
+      ORDER BY event_date DESC
+      LIMIT 6
+    `)
+
+    return buildFromDaily(futuresRows)
+  } catch (fallbackError) {
+    console.error('Price fetch fallback error from mkt.futures_1d:', fallbackError)
     return null
   }
 }

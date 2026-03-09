@@ -192,6 +192,194 @@ const RISK_COLORS = [
   },
 ];
 
+function createFallbackBrief(reason?: string): BriefData {
+  const nowIso = new Date().toISOString();
+  const today = nowIso.slice(0, 10);
+
+  return {
+    generatedAt: nowIso,
+    asOfDate: today,
+    tldr: "Strategy data is temporarily unavailable. Showing fallback posture.",
+    recommendation: "CHECK DATA",
+    recommendationColor: "gray",
+    price: {
+      current: 0,
+      previousClose: 0,
+      change: 0,
+      changePct: 0,
+      weekHigh: 0,
+      weekLow: 0,
+      asOf: today,
+    },
+    forecasts: [
+      {
+        label: "1 Week",
+        days: 5,
+        targetLow: null,
+        targetMid: null,
+        targetHigh: null,
+        expectedChange: "--",
+        expectedChangePct: "--",
+        direction: "NO DATA",
+        source: "unavailable",
+      },
+      {
+        label: "1 Month",
+        days: 21,
+        targetLow: null,
+        targetMid: null,
+        targetHigh: null,
+        expectedChange: "--",
+        expectedChangePct: "--",
+        direction: "NO DATA",
+        source: "unavailable",
+      },
+      {
+        label: "1 Quarter",
+        days: 63,
+        targetLow: null,
+        targetMid: null,
+        targetHigh: null,
+        expectedChange: "--",
+        expectedChangePct: "--",
+        direction: "NO DATA",
+        source: "unavailable",
+      },
+      {
+        label: "6 Months",
+        days: 126,
+        targetLow: null,
+        targetMid: null,
+        targetHigh: null,
+        expectedChange: "--",
+        expectedChangePct: "--",
+        direction: "NO DATA",
+        source: "unavailable",
+      },
+    ],
+    forecastsAvailable: false,
+    drivers: [
+      {
+        name: "Markets",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "index",
+        asOfDate: null,
+        source: "unavailable",
+      },
+      {
+        name: "Crush",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "USD/bushel",
+        asOfDate: null,
+        source: "unavailable",
+      },
+      {
+        name: "China",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "CNY/USD",
+        asOfDate: null,
+        source: "unavailable",
+      },
+      {
+        name: "Tariffs",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "index",
+        asOfDate: null,
+        source: "unavailable",
+      },
+      {
+        name: "Trump Effect",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "action score",
+        asOfDate: null,
+        source: "unavailable",
+      },
+      {
+        name: "Energy",
+        score: 0,
+        status: "NO DATA",
+        impact: "Data source unavailable",
+        rawValue: null,
+        unit: "USD/barrel",
+        asOfDate: null,
+        source: "unavailable",
+      },
+    ],
+    driversSummary: reason ?? "Unable to load live strategy inputs.",
+    correlations: [
+      {
+        asset: "Soybean Meal (ZM)",
+        correlation: null,
+        direction: "No data",
+        implication: "Unable to calculate",
+        lookbackDays: 63,
+        source: "unavailable",
+      },
+      {
+        asset: "Soybeans (ZS)",
+        correlation: null,
+        direction: "No data",
+        implication: "Unable to calculate",
+        lookbackDays: 63,
+        source: "unavailable",
+      },
+      {
+        asset: "Crude Oil (CL)",
+        correlation: null,
+        direction: "No data",
+        implication: "Unable to calculate",
+        lookbackDays: 63,
+        source: "unavailable",
+      },
+      {
+        asset: "VIX",
+        correlation: null,
+        direction: "No data",
+        implication: "Unable to calculate",
+        lookbackDays: 63,
+        source: "unavailable",
+      },
+    ],
+    keyRisks: ["Live strategy feeds unavailable."],
+    keyPositives: ["Page remains operational with fallback mode."],
+    eventPulse: {
+      recentEvents: [],
+      velocity: {
+        last24h: 0,
+        last48h: 0,
+        last72h: 0,
+        baseline7d: 0,
+        velocityRatio: 0,
+      },
+      netSentiment: {
+        bullish: 0,
+        bearish: 0,
+        neutral: 0,
+        netScore: 0,
+        signal: "NEUTRAL",
+      },
+    },
+    dataIssues: [reason ?? "Brief API unavailable"],
+    stalenessWarnings: [],
+    dataQuality: "poor",
+  };
+}
+
 export default function StrategyPage() {
   const [brief, setBrief] = useState<BriefData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,11 +390,23 @@ export default function StrategyPage() {
     setError(null);
     try {
       const res = await fetch("/api/zl/brief");
-      if (!res.ok) throw new Error(`Brief API error: ${res.status}`);
+      if (!res.ok) {
+        let detail = `Brief API error: ${res.status}`;
+        try {
+          const payload = await res.json();
+          if (payload?.message) detail = String(payload.message);
+          else if (payload?.error) detail = String(payload.error);
+        } catch {
+          // Keep status fallback above.
+        }
+        throw new Error(detail);
+      }
       const data = await res.json();
       setBrief(data);
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      setBrief(createFallbackBrief(msg));
     } finally {
       setLoading(false);
     }
