@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import {
+  buildTrumpEffectPayload,
+  type ExecutiveActionRow,
+  type TrumpFeatureRow,
+} from "./trump-effect";
 
 export const dynamic = "force-dynamic";
 
@@ -297,30 +302,14 @@ export async function GET() {
       )),
 
       // 11. Trump Effect (latest row)
-      safe(query<{
-        weighted_action_score: number | null;
-        action_velocity: number | null;
-        action_acceleration: number | null;
-        total_actions_7d: number | null;
-        total_actions_30d: number | null;
-        eo_count_7d: number | null;
-        proclamation_count_7d: number | null;
-        memorandum_count_7d: number | null;
-        nomination_count_7d: number | null;
-        avg_sentiment_7d: number | null;
-        avg_sentiment_30d: number | null;
-      }>(
-        `SELECT (features->>'weighted_action_score')::float8 AS weighted_action_score,
+      safe(query<TrumpFeatureRow>(
+        `SELECT as_of_date::text                              AS as_of_date,
+                (features->>'weighted_action_score')::float8 AS weighted_action_score,
                 (features->>'action_velocity')::float8       AS action_velocity,
                 (features->>'action_acceleration')::float8   AS action_acceleration,
                 (features->>'total_actions_7d')::int         AS total_actions_7d,
                 (features->>'total_actions_30d')::int        AS total_actions_30d,
-                (features->>'eo_count_7d')::int              AS eo_count_7d,
-                (features->>'proclamation_count_7d')::int    AS proclamation_count_7d,
-                (features->>'memorandum_count_7d')::int      AS memorandum_count_7d,
-                (features->>'nomination_count_7d')::int      AS nomination_count_7d,
-                (features->>'avg_sentiment_7d')::float8      AS avg_sentiment_7d,
-                (features->>'avg_sentiment_30d')::float8     AS avg_sentiment_30d
+                (features->>'eo_count_7d')::int              AS eo_count_7d
          FROM training.specialist_features_trump_effect
          ORDER BY as_of_date DESC LIMIT 1`,
       )),
@@ -352,8 +341,25 @@ export async function GET() {
     const vixData = vixResult[0];
     const ovxData = ovxResult[0];
     const crush = crushResult[0];
-    const trump = trumpResult[0];
+    const trump = trumpResult[0] ?? null;
     const sentRatio = sentimentRatioResult[0];
+    const trumpActions = trump?.as_of_date
+      ? await safe(
+          query<ExecutiveActionRow>(
+            `SELECT event_date::text,
+                    document_type,
+                    zl_sentiment,
+                    headline,
+                    content
+             FROM alt.executive_actions_event
+             WHERE event_date >= ($1::date - INTERVAL '29 days')
+               AND event_date <= $1::date
+             ORDER BY event_date DESC`,
+            [trump.as_of_date],
+          ),
+        )
+      : [];
+    const trumpEffect = buildTrumpEffectPayload(trump, trumpActions);
 
     // Compute composite sentiment score from specialist signals
     const signals = signalsResult.filter((s) => !s.abstained);
@@ -470,21 +476,7 @@ export async function GET() {
 
       fearGreed,
 
-      trumpEffect: trump
-        ? {
-            weighted_action_score: trump.weighted_action_score,
-            action_velocity: trump.action_velocity,
-            action_acceleration: trump.action_acceleration,
-            total_actions_7d: trump.total_actions_7d,
-            total_actions_30d: trump.total_actions_30d,
-            eo_count_7d: trump.eo_count_7d,
-            proclamation_count_7d: trump.proclamation_count_7d,
-            memorandum_count_7d: trump.memorandum_count_7d,
-            nomination_count_7d: trump.nomination_count_7d,
-            avg_sentiment_7d: trump.avg_sentiment_7d,
-            avg_sentiment_30d: trump.avg_sentiment_30d,
-          }
-        : null,
+      trumpEffect,
     });
   } catch (err) {
     console.error("Metrics API error:", err);

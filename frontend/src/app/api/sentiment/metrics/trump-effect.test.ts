@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  buildTrumpEffectPayload,
+  type ExecutiveActionRow,
+  type TrumpFeatureRow,
+} from "./trump-effect";
+
+describe("buildTrumpEffectPayload", () => {
+  const featureRow: TrumpFeatureRow = {
+    as_of_date: "2026-03-10",
+    weighted_action_score: 1.75,
+    action_velocity: 1.14,
+    action_acceleration: 0.21,
+    total_actions_7d: 8,
+    total_actions_30d: 23,
+    eo_count_7d: 2,
+  };
+
+  it("derives 7d counts and 7d/30d sentiment from executive action rows without stale feature keys", () => {
+    const rows: ExecutiveActionRow[] = [
+      {
+        event_date: "2026-03-10",
+        document_type: "proclamation",
+        zl_sentiment: null,
+        headline: "Soybean oil prices surge on tight supply",
+        content: null,
+      },
+      {
+        event_date: "2026-03-09",
+        document_type: "presidential_memorandum",
+        zl_sentiment: "bearish",
+        headline: "Memorandum text",
+        content: null,
+      },
+      {
+        event_date: "2026-03-08",
+        document_type: "nomination_appointment",
+        zl_sentiment: "neutral",
+        headline: "Nomination text",
+        content: null,
+      },
+      {
+        event_date: "2026-02-20",
+        document_type: "proclamation",
+        zl_sentiment: "bullish",
+        headline: "Outside 7d but inside 30d",
+        content: null,
+      },
+    ];
+
+    const payload = buildTrumpEffectPayload(featureRow, rows);
+
+    expect(payload).not.toBeNull();
+    expect(payload?.eo_count_7d).toBe(2);
+    expect(payload?.proclamation_count_7d).toBe(1);
+    expect(payload?.memorandum_count_7d).toBe(1);
+    expect(payload?.nomination_count_7d).toBe(1);
+    expect(payload?.avg_sentiment_7d).toBeCloseTo(0, 6);
+    expect(payload?.avg_sentiment_30d).toBeCloseTo(0.25, 6);
+  });
+
+  it("returns null sentiment averages when no qualifying rows exist", () => {
+    const payload = buildTrumpEffectPayload(featureRow, []);
+    expect(payload).not.toBeNull();
+    expect(payload?.proclamation_count_7d).toBe(0);
+    expect(payload?.memorandum_count_7d).toBe(0);
+    expect(payload?.nomination_count_7d).toBe(0);
+    expect(payload?.avg_sentiment_7d).toBeNull();
+    expect(payload?.avg_sentiment_30d).toBeNull();
+  });
+
+  it("returns null when the latest feature row does not exist", () => {
+    expect(buildTrumpEffectPayload(null, [])).toBeNull();
+  });
+});
