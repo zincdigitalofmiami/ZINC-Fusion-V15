@@ -79,6 +79,17 @@ interface TrumpEffectData {
   avg_sentiment_30d: number | null;
 }
 
+interface TrumpEffectStatus {
+  selected_as_of: string;
+  latest_any_as_of: string;
+  selection_mode: "latest_valid" | "latest_fallback";
+  selected_age_days: number | null;
+  latest_any_age_days: number | null;
+  selected_is_stale: boolean;
+  latest_row_missing_score: boolean;
+  latest_row_missing_velocity: boolean;
+}
+
 interface MetricsData {
   as_of: string | null;
   price: {
@@ -144,6 +155,7 @@ interface MetricsData {
   };
   fearGreed?: FearGreedData | null;
   trumpEffect?: TrumpEffectData | null;
+  trumpEffectStatus?: TrumpEffectStatus | null;
 }
 
 /* ─── Helpers ─── */
@@ -362,6 +374,7 @@ export default function SentimentPage() {
 
   const fg = metrics?.fearGreed ?? null;
   const trump = metrics?.trumpEffect ?? null;
+  const trumpStatus = metrics?.trumpEffectStatus ?? null;
   const trendBadge = metrics ? getTrendBadge(metrics.technicals.trend) : null;
 
   return (
@@ -571,6 +584,14 @@ export default function SentimentPage() {
               <div className="text-xs text-slate-500 mt-1 pl-5">
                 Policy Impact on Soybean Oil Markets
               </div>
+              {trumpStatus && (
+                <div className="text-xs mt-2 pl-5 text-slate-500">
+                  Source row: {trumpStatus.selected_as_of}
+                  {trumpStatus.selected_age_days != null
+                    ? ` (${trumpStatus.selected_age_days}d old)`
+                    : ""}
+                </div>
+              )}
             </div>
             {trump?.weighted_action_score != null && (
               <div className="text-4xl font-bold text-white font-mono">
@@ -593,6 +614,19 @@ export default function SentimentPage() {
             </div>
           ) : trump ? (
             <>
+              {trumpStatus?.selection_mode === "latest_fallback" && (
+                <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                  Latest Trump feature row is incomplete. Card is using the most
+                  recent valid row to avoid null metrics.
+                </div>
+              )}
+              {trumpStatus?.selected_is_stale && (
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-200">
+                  Trump feature metrics are stale ({trumpStatus.selected_age_days}
+                  d old). Refresh/retraining is recommended before acting on this
+                  signal.
+                </div>
+              )}
               {/* Progress bar */}
               {trump.weighted_action_score != null && (
                 <div className="mb-6">

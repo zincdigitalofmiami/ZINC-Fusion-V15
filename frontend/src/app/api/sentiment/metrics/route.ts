@@ -7,6 +7,8 @@ import {
 } from "./trump-effect";
 
 export const dynamic = "force-dynamic";
+const TRUMP_FEATURE_STALE_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /* ── Fear & Greed composite ────────────────────────────────── */
 
@@ -303,15 +305,56 @@ export async function GET() {
 
       // 11. Trump Effect (latest row)
       safe(query<TrumpFeatureRow>(
-        `SELECT as_of_date::text                              AS as_of_date,
-                (features->>'weighted_action_score')::float8 AS weighted_action_score,
-                (features->>'action_velocity')::float8       AS action_velocity,
-                (features->>'action_acceleration')::float8   AS action_acceleration,
-                (features->>'total_actions_7d')::int         AS total_actions_7d,
-                (features->>'total_actions_30d')::int        AS total_actions_30d,
-                (features->>'eo_count_7d')::int              AS eo_count_7d
-         FROM training.specialist_features_trump_effect
-         ORDER BY as_of_date DESC LIMIT 1`,
+        `WITH latest_any AS (
+           SELECT as_of_date::text                              AS as_of_date,
+                  (features->>'weighted_action_score')::float8 AS weighted_action_score,
+                  (features->>'action_velocity')::float8       AS action_velocity,
+                  (features->>'action_acceleration')::float8   AS action_acceleration,
+                  (features->>'total_actions_7d')::int         AS total_actions_7d,
+                  (features->>'total_actions_30d')::int        AS total_actions_30d,
+                  (features->>'eo_count_7d')::int              AS eo_count_7d
+           FROM training.specialist_features_trump_effect
+           ORDER BY as_of_date DESC
+           LIMIT 1
+         ),
+         latest_valid AS (
+           SELECT as_of_date::text                              AS as_of_date,
+                  (features->>'weighted_action_score')::float8 AS weighted_action_score,
+                  (features->>'action_velocity')::float8       AS action_velocity,
+                  (features->>'action_acceleration')::float8   AS action_acceleration,
+                  (features->>'total_actions_7d')::int         AS total_actions_7d,
+                  (features->>'total_actions_30d')::int        AS total_actions_30d,
+                  (features->>'eo_count_7d')::int              AS eo_count_7d
+           FROM training.specialist_features_trump_effect
+           WHERE features->>'weighted_action_score' IS NOT NULL
+             AND features->>'action_velocity' IS NOT NULL
+           ORDER BY as_of_date DESC
+           LIMIT 1
+         )
+         SELECT lv.as_of_date,
+                la.as_of_date                                  AS latest_any_as_of,
+                'latest_valid'::text                          AS selection_mode,
+                lv.weighted_action_score,
+                lv.action_velocity,
+                lv.action_acceleration,
+                lv.total_actions_7d,
+                lv.total_actions_30d,
+                lv.eo_count_7d
+         FROM latest_valid lv
+         CROSS JOIN latest_any la
+         UNION ALL
+         SELECT la.as_of_date,
+                la.as_of_date                                  AS latest_any_as_of,
+                'latest_fallback'::text                       AS selection_mode,
+                la.weighted_action_score,
+                la.action_velocity,
+                la.action_acceleration,
+                la.total_actions_7d,
+                la.total_actions_30d,
+                la.eo_count_7d
+         FROM latest_any la
+         WHERE NOT EXISTS (SELECT 1 FROM latest_valid)
+         LIMIT 1`,
       )),
 
       // 12. News sentiment ratio (7d) — for Fear & Greed composite
@@ -360,6 +403,63 @@ export async function GET() {
         )
       : [];
     const trumpEffect = buildTrumpEffectPayload(trump, trumpActions);
+    const parseDateOnly = (value: string | null | undefined): Date | null => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return null;
+      return new Date(
+        Date.UTC(
+          parsed.getUTCFullYear(),
+          parsed.getUTCMonth(),
+          parsed.getUTCDate(),
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+    };
+    const nowUtc = new Date();
+    const todayUtc = new Date(
+      Date.UTC(
+        nowUtc.getUTCFullYear(),
+        nowUtc.getUTCMonth(),
+        nowUtc.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
+    const selectedAsOf = parseDateOnly(trump?.as_of_date);
+    const latestAnyAsOf = parseDateOnly(trump?.latest_any_as_of);
+    const selectedAgeDays =
+      selectedAsOf != null
+        ? Math.max(
+            0,
+            Math.floor((todayUtc.getTime() - selectedAsOf.getTime()) / DAY_MS),
+          )
+        : null;
+    const latestAnyAgeDays =
+      latestAnyAsOf != null
+        ? Math.max(
+            0,
+            Math.floor((todayUtc.getTime() - latestAnyAsOf.getTime()) / DAY_MS),
+          )
+        : null;
+    const trumpEffectStatus = trump
+      ? {
+          selected_as_of: trump.as_of_date,
+          latest_any_as_of: trump.latest_any_as_of,
+          selection_mode: trump.selection_mode,
+          selected_age_days: selectedAgeDays,
+          latest_any_age_days: latestAnyAgeDays,
+          selected_is_stale:
+            selectedAgeDays != null && selectedAgeDays > TRUMP_FEATURE_STALE_DAYS,
+          latest_row_missing_score: trump.weighted_action_score == null,
+          latest_row_missing_velocity: trump.action_velocity == null,
+        }
+      : null;
 
     // Compute composite sentiment score from specialist signals
     const signals = signalsResult.filter((s) => !s.abstained);
@@ -394,7 +494,7 @@ export async function GET() {
       sentRatio?.bearish_count ?? 0,
       crush ? Number(crush.crush_z) : null,
       rvol ? Number(rvol.rvol_21d) : null,
-      trump?.weighted_action_score ?? null,
+      trumpEffect?.weighted_action_score ?? null,
     );
 
     return NextResponse.json({
@@ -477,6 +577,7 @@ export async function GET() {
       fearGreed,
 
       trumpEffect,
+      trumpEffectStatus,
     });
   } catch (err) {
     console.error("Metrics API error:", err);

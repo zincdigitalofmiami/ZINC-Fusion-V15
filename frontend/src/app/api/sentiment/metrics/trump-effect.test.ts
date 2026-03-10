@@ -9,6 +9,8 @@ import {
 describe("buildTrumpEffectPayload", () => {
   const featureRow: TrumpFeatureRow = {
     as_of_date: "2026-03-10",
+    latest_any_as_of: "2026-03-10",
+    selection_mode: "latest_valid",
     weighted_action_score: 1.75,
     action_velocity: 1.14,
     action_acceleration: 0.21,
@@ -72,5 +74,59 @@ describe("buildTrumpEffectPayload", () => {
 
   it("returns null when the latest feature row does not exist", () => {
     expect(buildTrumpEffectPayload(null, [])).toBeNull();
+  });
+
+  it("derives score and dynamics from actions when selected feature row is partial", () => {
+    const partialRow: TrumpFeatureRow = {
+      as_of_date: "2026-03-10",
+      latest_any_as_of: "2026-03-10",
+      selection_mode: "latest_fallback",
+      weighted_action_score: null,
+      action_velocity: null,
+      action_acceleration: null,
+      total_actions_7d: null,
+      total_actions_30d: null,
+      eo_count_7d: null,
+    };
+    const rows: ExecutiveActionRow[] = [
+      {
+        event_date: "2026-03-10",
+        document_type: "executive_order",
+        zl_sentiment: "bullish",
+        headline: "Executive order announced",
+        content: null,
+      },
+      {
+        event_date: "2026-03-08",
+        document_type: "proclamation",
+        zl_sentiment: "neutral",
+        headline: "Proclamation update",
+        content: null,
+      },
+      {
+        event_date: "2026-03-05",
+        document_type: "presidential_memorandum",
+        zl_sentiment: "bearish",
+        headline: "Memo update",
+        content: null,
+      },
+      {
+        event_date: "2026-03-07",
+        document_type: "nomination_appointment",
+        zl_sentiment: "neutral",
+        headline: "Nomination update",
+        content: null,
+      },
+    ];
+
+    const payload = buildTrumpEffectPayload(partialRow, rows);
+
+    expect(payload).not.toBeNull();
+    expect(payload?.total_actions_7d).toBe(4);
+    expect(payload?.total_actions_30d).toBe(4);
+    expect(payload?.eo_count_7d).toBe(1);
+    expect(payload?.weighted_action_score).toBeCloseTo(0.8, 6); // (3 + 1.5 + 2.5 + 1)/10
+    expect(payload?.action_velocity).toBe(0.5714);
+    expect(payload?.action_acceleration).toBe(0.5714);
   });
 });

@@ -4,6 +4,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface TrumpFeatureRow {
   as_of_date: string;
+  latest_any_as_of: string;
+  selection_mode: "latest_valid" | "latest_fallback";
   weighted_action_score: number | null;
   action_velocity: number | null;
   action_acceleration: number | null;
@@ -66,6 +68,20 @@ function averageOrNull(sum: number, count: number): number | null {
   return count > 0 ? sum / count : null;
 }
 
+function toRounded(value: number, digits: number): number {
+  return Number(value.toFixed(digits));
+}
+
+function scoreWeightForDocType(documentType: string | null): number {
+  const key = documentType?.toLowerCase();
+  if (key === "executive_order") return 3.0;
+  if (key === "presidential_memorandum" || key === "memorandum") return 2.5;
+  if (key === "proclamation") return 1.5;
+  if (key === "nomination_appointment" || key === "nomination") return 1.0;
+  if (key === "presidential_document") return 2.0;
+  return 0;
+}
+
 export function buildTrumpEffectPayload(
   featureRow: TrumpFeatureRow | null,
   actions: ExecutiveActionRow[],
@@ -95,37 +111,64 @@ export function buildTrumpEffectPayload(
   let proclamationCount7d = 0;
   let memorandumCount7d = 0;
   let nominationCount7d = 0;
+  let eoCount7d = 0;
+  let totalActions7d = 0;
+  let totalActions30d = 0;
+  let weighted7d = 0;
+  let previousWeekActions = 0;
   let sentimentSum7d = 0;
   let sentimentCount7d = 0;
   let sentimentSum30d = 0;
   let sentimentCount30d = 0;
+  const previousWeekStart = new Date(anchorDate.getTime() - 13 * DAY_MS);
+  const previousWeekEnd = new Date(anchorDate.getTime() - 7 * DAY_MS);
 
   for (const row of actions) {
     const eventDate = parseDateOnly(row.event_date);
     if (!eventDate || eventDate < start30d || eventDate > anchorDate) continue;
+    totalActions30d += 1;
 
     const sentimentValue = sentimentToNumeric(row);
     sentimentSum30d += sentimentValue;
     sentimentCount30d += 1;
+    const docType = row.document_type?.toLowerCase();
 
     if (eventDate >= start7d) {
+      totalActions7d += 1;
       sentimentSum7d += sentimentValue;
       sentimentCount7d += 1;
+      weighted7d += scoreWeightForDocType(docType);
 
-      const docType = row.document_type?.toLowerCase();
+      if (docType === "executive_order") eoCount7d += 1;
       if (docType === "proclamation") proclamationCount7d += 1;
       if (docType === "presidential_memorandum") memorandumCount7d += 1;
       if (docType === "nomination_appointment") nominationCount7d += 1;
     }
+
+    if (eventDate >= previousWeekStart && eventDate <= previousWeekEnd) {
+      previousWeekActions += 1;
+    }
   }
 
+  const derivedVelocity = totalActions7d / 7;
+  const derivedPreviousVelocity = previousWeekActions / 7;
+  const derivedAcceleration = derivedVelocity - derivedPreviousVelocity;
+  const derivedWeightedScore = weighted7d / 10.0;
+  const selectedEoCount = featureRow.eo_count_7d ?? eoCount7d;
+  const selectedTotalActions7d = featureRow.total_actions_7d ?? totalActions7d;
+  const selectedTotalActions30d = featureRow.total_actions_30d ?? totalActions30d;
+  const selectedVelocity = featureRow.action_velocity ?? derivedVelocity;
+  const selectedAcceleration = featureRow.action_acceleration ?? derivedAcceleration;
+  const selectedWeightedScore =
+    featureRow.weighted_action_score ?? derivedWeightedScore;
+
   return {
-    weighted_action_score: featureRow.weighted_action_score,
-    action_velocity: featureRow.action_velocity,
-    action_acceleration: featureRow.action_acceleration,
-    total_actions_7d: featureRow.total_actions_7d,
-    total_actions_30d: featureRow.total_actions_30d,
-    eo_count_7d: featureRow.eo_count_7d,
+    weighted_action_score: toRounded(selectedWeightedScore, 4),
+    action_velocity: toRounded(selectedVelocity, 4),
+    action_acceleration: toRounded(selectedAcceleration, 4),
+    total_actions_7d: selectedTotalActions7d,
+    total_actions_30d: selectedTotalActions30d,
+    eo_count_7d: selectedEoCount,
     proclamation_count_7d: proclamationCount7d,
     memorandum_count_7d: memorandumCount7d,
     nomination_count_7d: nominationCount7d,
