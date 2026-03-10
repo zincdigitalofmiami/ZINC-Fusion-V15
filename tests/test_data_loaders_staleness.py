@@ -199,23 +199,13 @@ class TestLCFSExceptionHandling:
     def test_lcfs_exception_logs_warning(self, caplog):
         """Test that LCFS exception logs warning instead of silent pass."""
         import logging
-        from unittest.mock import patch
 
         logger = logging.getLogger("fusion.specialists.data_loaders")
-
-        # Mock database connection that raises exception
-        with patch("fusion.specialists.data_loaders.get_connection") as mock_conn:
-            mock_conn.return_value.__enter__.return_value.execute.side_effect = (
-                Exception("Table not found")
-            )
-
-            # This would normally be called in load_biofuel_data
-            # We're testing the exception handling pattern
-            try:
-                raise Exception("LCFS table not found")
-            except Exception as e:
-                logger.warning(f"LCFS data unavailable: {e}")
-                result_col = np.nan
+        try:
+            raise Exception("LCFS table not found")
+        except Exception as e:
+            logger.warning(f"LCFS data unavailable: {e}")
+            result_col = np.nan
 
         # Verify warning was logged
         assert "LCFS data unavailable" in caplog.text or result_col is np.nan
