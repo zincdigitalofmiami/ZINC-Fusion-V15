@@ -37,6 +37,40 @@ function getSourceColor(source: string): string {
   return "bg-slate-800 text-slate-400";
 }
 
+function toTitleCaseFromSnake(text: string): string {
+  return text
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+const GOOGLE_NEWS_LANE_SLUGS = new Set([
+  "ice_immigration",
+  "war_military",
+  "soybean_oil",
+  "soybean_agriculture",
+  "trump_actions",
+  "legislation",
+  "biofuel",
+]);
+
+function parseGoogleNewsSource(
+  source: string | null,
+): { lane: string | null; publication: string | null } {
+  if (!source || !source.startsWith("google_news/")) {
+    return { lane: null, publication: source };
+  }
+
+  const parts = source.split("/");
+  const laneSlug = parts[1] || null;
+  const hasKnownLane = laneSlug ? GOOGLE_NEWS_LANE_SLUGS.has(laneSlug) : false;
+  const lane = hasKnownLane && laneSlug ? toTitleCaseFromSnake(laneSlug) : null;
+  const publicationRaw = (hasKnownLane ? parts.slice(2) : parts.slice(1)).join("/").trim();
+  const publication = publicationRaw.length > 0 ? publicationRaw : "Google News";
+  return { lane, publication };
+}
+
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -69,7 +103,7 @@ export function PolicyNewsFeed({ articles }: PolicyNewsFeedProps) {
     return (
       <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 text-center">
         <Rss className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-        <p className="text-slate-500 text-sm">No recent news articles</p>
+        <p className="text-slate-500 text-sm">No recent lane-tagged news articles</p>
         <p className="text-slate-600 text-xs mt-1">
           Google News ingestion runs daily at 8 AM CT
         </p>
@@ -93,10 +127,10 @@ export function PolicyNewsFeed({ articles }: PolicyNewsFeedProps) {
       <div className="p-4 md:p-6 border-b border-white/5 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <Newspaper className="w-5 h-5" />
-          News Intelligence Feed
+          Segmented Policy News Lanes
         </h3>
         <span className="text-xs font-mono text-slate-500">
-          {articles.length} articles / 7 days
+          {articles.length} lane-tagged articles / 7 days
         </span>
       </div>
 
@@ -113,62 +147,70 @@ export function PolicyNewsFeed({ articles }: PolicyNewsFeedProps) {
 
             {/* Articles for this date */}
             <div className="divide-y divide-white/[0.03]">
-              {dayArticles.map((article) => (
-                <div
-                  key={article.id}
-                  className="group px-4 py-3 hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Source badge */}
-                    <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${getSourceColor(article.source || "")}`}
-                    >
-                      {getSourceIcon(article.source || "")}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {/* Headline */}
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-sm text-slate-300 leading-snug group-hover:text-white transition-colors line-clamp-2">
-                          {article.headline}
-                        </h4>
-                        {article.url && (
-                          <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
-                          </a>
-                        )}
+              {dayArticles.map((article) => {
+                const parsed = parseGoogleNewsSource(article.source);
+                return (
+                  <div
+                    key={article.id}
+                    className="group px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Source badge */}
+                      <div
+                        className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${getSourceColor(article.source || "")}`}
+                      >
+                        {getSourceIcon(article.source || "")}
                       </div>
 
-                      {/* Meta row: time + source + tags */}
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          {article.published_at
-                            ? timeAgo(article.published_at)
-                            : article.event_date}
-                        </span>
-                        {article.source && (
-                          <span className="text-[10px] text-slate-600">
-                            via {article.source.replace("google_news/", "")}
+                      <div className="flex-1 min-w-0">
+                        {/* Headline */}
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-sm text-slate-300 leading-snug group-hover:text-white transition-colors line-clamp-2">
+                            {article.headline}
+                          </h4>
+                          {article.url && (
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Meta row: time + lane + source + tags */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {article.published_at
+                              ? timeAgo(article.published_at)
+                              : article.event_date}
                           </span>
-                        )}
-                        {article.specialist_tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className={`text-[9px] px-1.5 py-0.5 rounded border ${getTagColor(tag)}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                          {parsed.lane && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                              {parsed.lane}
+                            </span>
+                          )}
+                          {parsed.publication && (
+                            <span className="text-[10px] text-slate-600">
+                              via {parsed.publication}
+                            </span>
+                          )}
+                          {article.specialist_tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className={`text-[9px] px-1.5 py-0.5 rounded border ${getTagColor(tag)}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

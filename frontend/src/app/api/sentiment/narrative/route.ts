@@ -22,13 +22,13 @@ type TrumpEffectPayload = {
   executive_orders_7d?: number | null;
   other_actions_7d?: number | null;
   action_velocity?: number | null;
-  confirmation_score?: number | null;
-  confirmation_band?: string | null;
-  independent_policy_items_7d?: number | null;
+  corroboration_score?: number | null;
+  corroboration_band?: string | null;
+  supporting_policy_items_7d?: number | null;
   market_news_items_7d?: number | null;
   regulatory_follow_through_7d?: number | null;
-  buyer_signal?: string | null;
-  buyer_label?: string | null;
+  procurement_signal?: string | null;
+  procurement_label?: string | null;
 };
 
 type VolatilityPayload = {
@@ -71,7 +71,7 @@ function buildFearGreedNarrative(input?: FearGreedPayload): string | null {
 function buildTrumpNarrative(input?: TrumpEffectPayload): string | null {
   if (!input) return null;
 
-  const title = input.title || "Policy Impact on ZL";
+  const title = input.title || "Impact on Soybean Oil Futures";
   const response7d = toNum(input.zl_return_7d_pct);
   const response1d = toNum(input.zl_response_1d_pct);
   const actions = toNum(input.total_actions_7d);
@@ -79,10 +79,13 @@ function buildTrumpNarrative(input?: TrumpEffectPayload): string | null {
   const otherActions = toNum(input.other_actions_7d);
   const velocity = toNum(input.action_velocity);
   const score = toNum(input.weighted_action_score);
-  const confirmationScore = toNum(input.confirmation_score);
-  const band = (input.confirmation_band || "").toLowerCase();
-  const buyerLabel = input.buyer_label;
+  const corroborationScore = toNum(input.corroboration_score);
+  const band = (input.corroboration_band || "").toLowerCase();
+  const procurementLabel = input.procurement_label;
   const responseSignal = input.response_signal;
+  const supportingItems = toNum(input.supporting_policy_items_7d);
+  const marketItems = toNum(input.market_news_items_7d);
+  const regulatoryItems = toNum(input.regulatory_follow_through_7d);
 
   const activityText =
     actions === null
@@ -92,18 +95,20 @@ function buildTrumpNarrative(input?: TrumpEffectPayload): string | null {
     score === null
       ? "weighted policy pressure is unavailable"
       : `weighted policy pressure is ${score.toFixed(1)}`;
-  const confirmationText =
-    confirmationScore === null
-      ? "independent confirmation is unavailable"
-      : `independent confirmation is ${confirmationScore}/100 (${band || "unknown"})`;
+  const corroborationText =
+    corroborationScore === null
+      ? "corroborating coverage is unavailable"
+      : `corroboration is ${corroborationScore}/100 (${band || "unknown"}) with policy=${Math.round(supportingItems ?? 0)}, market=${Math.round(marketItems ?? 0)}, regulatory=${Math.round(regulatoryItems ?? 0)}`;
   const responseText =
     response7d === null
       ? "ZL response is unavailable"
       : `ZL moved ${response7d > 0 ? "+" : ""}${response7d.toFixed(2)}% over the policy window${response1d == null ? "" : ` and ${response1d > 0 ? "+" : ""}${response1d.toFixed(2)}% over 1d`} (${responseSignal || "unknown"} response)`;
   const velocityText = velocity === null ? "" : ` velocity ${velocity.toFixed(1)}/day`;
-  const buyerText = buyerLabel ? ` Buyer meaning: ${buyerLabel}.` : "";
+  const procurementText = procurementLabel
+    ? ` Procurement outlook: ${procurementLabel}.`
+    : "";
 
-  return `${title}: ${activityText}${velocityText}; ${scoreText}; ${confirmationText}; ${responseText}.${buyerText}`;
+  return `${title}: ${activityText}${velocityText}; ${scoreText}; ${corroborationText}; ${responseText}.${procurementText}`;
 }
 
 function buildVolatilityNarrative(input?: VolatilityPayload): string | null {
@@ -158,16 +163,19 @@ async function generateAINarratives(payload: NarrativeRequest): Promise<{
   if (payload.trumpEffect) {
     const te = payload.trumpEffect;
     dataPoints.push(
-      `Policy Impact on ZL: weighted_action_score=${te.weighted_action_score ?? 'N/A'}, ` +
+      `Impact on Soybean Oil Futures: weighted_action_score=${te.weighted_action_score ?? 'N/A'}, ` +
       `actions_7d=${te.total_actions_7d ?? 'N/A'}, ` +
       `EOs_7d=${te.executive_orders_7d ?? 'N/A'}, ` +
       `other_actions_7d=${te.other_actions_7d ?? 'N/A'}, ` +
-      `confirmation_score=${te.confirmation_score ?? 'N/A'}, ` +
-      `confirmation_band=${te.confirmation_band ?? 'N/A'}, ` +
+      `corroboration_score=${te.corroboration_score ?? 'N/A'}, ` +
+      `corroboration_band=${te.corroboration_band ?? 'N/A'}, ` +
+      `supporting_policy_items_7d=${te.supporting_policy_items_7d ?? 'N/A'}, ` +
+      `market_news_items_7d=${te.market_news_items_7d ?? 'N/A'}, ` +
+      `regulatory_follow_through_7d=${te.regulatory_follow_through_7d ?? 'N/A'}, ` +
       `zl_return_7d_pct=${te.zl_return_7d_pct ?? 'N/A'}, ` +
       `zl_response_1d_pct=${te.zl_response_1d_pct ?? 'N/A'}, ` +
       `response_signal=${te.response_signal ?? 'N/A'}, ` +
-      `buyer_label=${te.buyer_label ?? 'N/A'}`
+      `procurement_label=${te.procurement_label ?? 'N/A'}`
     );
   }
 
@@ -188,7 +196,7 @@ async function generateAINarratives(payload: NarrativeRequest): Promise<{
 
 Return EXACTLY a JSON object with these keys (use null if no data for that section):
 - fearGreedNarrative: 1-2 sentences on market sentiment and what it means for timing
-- trumpEffectNarrative: 1-2 sentences that clearly separate policy activity, independent confirmation, and actual ZL response for procurement risk
+- trumpEffectNarrative: 1-2 sentences that clearly separate policy activity, corroborating coverage, and actual ZL response for procurement risk
 - volatilityNarrative: 1-2 sentences on vol regime and what it means for coverage decisions
 
 Be specific. Use the numbers. Tell them what to DO, not what might happen.`,

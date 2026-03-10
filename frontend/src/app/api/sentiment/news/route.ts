@@ -16,6 +16,36 @@ interface NewsRow {
   table_source: string;
 }
 
+const GOOGLE_NEWS_LANE_SLUGS = new Set([
+  "ice_immigration",
+  "war_military",
+  "soybean_oil",
+  "soybean_agriculture",
+  "trump_actions",
+  "legislation",
+  "biofuel",
+]);
+
+function laneSlugFromSource(source: string | null): string | null {
+  if (!source) return null;
+  if (!source.startsWith("google_news/")) return null;
+
+  const parts = source.split("/");
+  if (parts.length < 3) return null;
+  const lane = parts[1] || null;
+  if (!lane || !GOOGLE_NEWS_LANE_SLUGS.has(lane)) return null;
+  return lane;
+}
+
+function laneLabelFromSlug(slug: string | null): string | null {
+  if (!slug) return null;
+  return slug
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 /**
  * GET /api/sentiment/news
  * Aggregates recent headlines across all news tables (alt.profarmer_news_event,
@@ -138,6 +168,7 @@ export async function GET() {
         headline: r.headline,
         summary: r.summary || r.content || null,
         source: r.source || r.table_source,
+        lane: laneLabelFromSlug(laneSlugFromSource(r.source)),
         sentiment,
         tags: (r.specialist_tags || []).slice(0, 4),
       };

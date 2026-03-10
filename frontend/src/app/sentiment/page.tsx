@@ -11,6 +11,7 @@ interface Headline {
   headline: string;
   summary: string | null;
   source: string;
+  lane?: string | null;
   sentiment: "bullish" | "bearish" | "neutral";
   tags: string[];
 }
@@ -66,7 +67,7 @@ interface FearGreedData {
 }
 
 interface TrumpEffectData {
-  title: "Policy Impact on ZL";
+  title: "Impact on Soybean Oil Futures";
   policy_window: {
     anchor_date: string;
     start_date_7d: string | null;
@@ -92,21 +93,17 @@ interface TrumpEffectData {
     avg_sentiment_7d: number | null;
     avg_sentiment_30d: number | null;
   };
-  independent_confirmation: {
-    independent_policy_items_7d: number;
-    market_news_items_7d: number;
-    regulatory_follow_through_7d: number;
-    confirmation_score: number;
-    confirmation_band: "low" | "mixed" | "strong";
-  };
-  buyer_meaning: {
-    procurement_signal:
-      | "limited_confirmation"
-      | "watchlist"
-      | "rising_buyer_risk"
-      | "confirmed_pressure";
+  procurement_outlook: {
+    signal: "limited_impact" | "watch" | "elevated_risk" | "confirmed_pressure";
     label: string;
-    rationale: string;
+    summary: string;
+    corroboration: {
+      supporting_policy_items_7d: number;
+      market_news_items_7d: number;
+      regulatory_follow_through_7d: number;
+      corroboration_score: number;
+      corroboration_band: "low" | "mixed" | "strong";
+    };
   };
 
   // Legacy compatibility fields still returned by the API.
@@ -277,23 +274,23 @@ function volLabel(
   return { text: "Calm", color: "text-emerald-400" };
 }
 
-function confirmationBandStyle(
+function corroborationBandStyle(
   band: "low" | "mixed" | "strong",
 ): { text: string; chip: string } {
   if (band === "strong") {
     return {
-      text: "Strong confirmation",
+      text: "Strong corroboration",
       chip: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
     };
   }
   if (band === "mixed") {
     return {
-      text: "Mixed confirmation",
+      text: "Mixed corroboration",
       chip: "text-amber-300 bg-amber-500/10 border-amber-500/30",
     };
   }
   return {
-    text: "Low confirmation",
+    text: "Low corroboration",
     chip: "text-slate-300 bg-slate-500/10 border-slate-500/30",
   };
 }
@@ -422,18 +419,18 @@ export default function SentimentPage() {
               executive_orders_7d: te.policy_activity.executive_orders_7d,
               other_actions_7d: te.policy_activity.other_presidential_actions_7d,
               action_velocity: te.policy_activity.action_velocity,
-              confirmation_score:
-                te.independent_confirmation.confirmation_score,
-              confirmation_band:
-                te.independent_confirmation.confirmation_band,
-              independent_policy_items_7d:
-                te.independent_confirmation.independent_policy_items_7d,
+              corroboration_score:
+                te.procurement_outlook.corroboration.corroboration_score,
+              corroboration_band:
+                te.procurement_outlook.corroboration.corroboration_band,
+              supporting_policy_items_7d:
+                te.procurement_outlook.corroboration.supporting_policy_items_7d,
               market_news_items_7d:
-                te.independent_confirmation.market_news_items_7d,
+                te.procurement_outlook.corroboration.market_news_items_7d,
               regulatory_follow_through_7d:
-                te.independent_confirmation.regulatory_follow_through_7d,
-              buyer_signal: te.buyer_meaning.procurement_signal,
-              buyer_label: te.buyer_meaning.label,
+                te.procurement_outlook.corroboration.regulatory_follow_through_7d,
+              procurement_signal: te.procurement_outlook.signal,
+              procurement_label: te.procurement_outlook.label,
             }
           : undefined,
         volatility: {
@@ -673,16 +670,16 @@ export default function SentimentPage() {
         </div>
       </div>
 
-      {/* ═══════════ POLICY IMPACT ON ZL ═══════════ */}
+      {/* ═══════════ IMPACT ON SOYBEAN OIL FUTURES ═══════════ */}
       <div className="mb-8">
         <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest border-l-2 border-amber-500 pl-3">
-                {trump?.title ?? "Policy Impact on ZL"}
+                {trump?.title ?? "Impact on Soybean Oil Futures"}
               </div>
               <div className="text-xs text-slate-500 mt-1 pl-5">
-                ZL-anchored federal policy pressure
+                ZL-anchored policy pressure for soybean oil procurement
               </div>
               {trumpStatus && (
                 <div className="text-xs mt-2 pl-5 text-slate-500">
@@ -846,66 +843,59 @@ export default function SentimentPage() {
                 </div>
               </div>
 
-              {/* 3) Independent confirmation */}
-              <div className="mb-6 border border-white/5 rounded-xl p-4 bg-white/[0.02]">
+              {/* 3) Procurement outlook (includes corroboration context) */}
+              <div className="mb-6 border rounded-xl p-5 bg-white/[0.02] border-cyan-500/30">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                  <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
-                    3) Independent Confirmation
+                  <div className="text-xs text-cyan-300 uppercase tracking-widest font-bold">
+                    3) Procurement Outlook
                   </div>
                   <div
                     className={`text-xs px-2.5 py-1 rounded-full border ${
-                      confirmationBandStyle(
-                        trump.independent_confirmation.confirmation_band,
+                      corroborationBandStyle(
+                        trump.procurement_outlook.corroboration.corroboration_band,
                       ).chip
                     }`}
                   >
                     {
-                      confirmationBandStyle(
-                        trump.independent_confirmation.confirmation_band,
+                      corroborationBandStyle(
+                        trump.procurement_outlook.corroboration.corroboration_band,
                       ).text
                     }{" "}
-                    ({trump.independent_confirmation.confirmation_score}/100)
+                    ({trump.procurement_outlook.corroboration.corroboration_score}/100)
                   </div>
                 </div>
+                <div className="text-xl font-semibold text-white mb-2">
+                  {trump.procurement_outlook.label}
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                  {trump.procurement_outlook.summary}
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white/[0.02] rounded-xl p-4">
                     <div className="text-2xl font-bold text-white font-mono">
-                      {trump.independent_confirmation.independent_policy_items_7d}
+                      {trump.procurement_outlook.corroboration.supporting_policy_items_7d}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
-                      Independent Policy Coverage (7d)
+                      Supporting Policy Coverage (7d)
                     </div>
                   </div>
                   <div className="bg-white/[0.02] rounded-xl p-4">
                     <div className="text-2xl font-bold text-white font-mono">
-                      {trump.independent_confirmation.market_news_items_7d}
+                      {trump.procurement_outlook.corroboration.market_news_items_7d}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
-                      Market News Confirmation (7d)
+                      Market Coverage (7d)
                     </div>
                   </div>
                   <div className="bg-white/[0.02] rounded-xl p-4">
                     <div className="text-2xl font-bold text-white font-mono">
-                      {trump.independent_confirmation.regulatory_follow_through_7d}
+                      {trump.procurement_outlook.corroboration.regulatory_follow_through_7d}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       Regulatory Follow-through (7d)
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* 4) Buyer meaning */}
-              <div className="mb-6 border rounded-xl p-5 bg-white/[0.02] border-cyan-500/30">
-                <div className="text-xs text-cyan-300 uppercase tracking-widest font-bold mb-2">
-                  4) Buyer Meaning
-                </div>
-                <div className="text-xl font-semibold text-white mb-2">
-                  {trump.buyer_meaning.label}
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {trump.buyer_meaning.rationale}
-                </p>
               </div>
 
               {/* AI Narrative */}
@@ -1178,10 +1168,10 @@ export default function SentimentPage() {
       <div>
         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
           <Newspaper size={18} className="text-blue-400" />
-          Market Headlines
+          Segmented Policy News Lanes
           {news && (
             <span className="text-xs text-slate-500 font-normal ml-2">
-              {news.stats.total} articles (30d)
+              {news.stats.total} lane-tagged articles (30d)
             </span>
           )}
         </h3>
@@ -1251,6 +1241,7 @@ export default function SentimentPage() {
                 key={h.id}
                 sentiment={h.sentiment}
                 source={h.source}
+                lane={h.lane ?? null}
                 time={timeAgo(h.event_date)}
                 title={h.headline}
                 summary={h.summary || ""}
@@ -1428,6 +1419,7 @@ function ParticipantCard({
 interface HeadlineCardProps {
   sentiment: "bullish" | "bearish" | "neutral";
   source: string;
+  lane?: string | null;
   time: string;
   title: string;
   summary: string;
@@ -1437,6 +1429,7 @@ interface HeadlineCardProps {
 function HeadlineCard({
   sentiment,
   source,
+  lane,
   time,
   title,
   summary,
@@ -1458,6 +1451,11 @@ function HeadlineCard({
           >
             {sentiment}
           </span>
+          {lane && (
+            <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 text-xs border border-cyan-500/20">
+              {lane}
+            </span>
+          )}
           <span className="text-sm text-slate-500">{source}</span>
         </div>
         <span className="text-xs text-slate-600 font-mono">{time}</span>

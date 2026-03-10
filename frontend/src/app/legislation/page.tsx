@@ -661,14 +661,16 @@ export default async function PolicyPage() {
         <PolicySectionBrief section="executive" regime={briefRegime} data={execBriefData} />
         <ShockwaveList events={shockwaves} />
 
-        {/* ═══════════ NEWS INTELLIGENCE ═══════════ */}
+        {/* ═══════════ SEGMENTED POLICY NEWS LANES ═══════════ */}
         <PolicySectionBrief section="news" regime={briefRegime} data={newsBriefData} />
         <div className="mb-8">
           <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
             <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-emerald-500 pl-3 mb-8">
-              News Intelligence
+              Segmented Policy News Lanes
             </div>
-            <p className="text-xs text-slate-500 pl-5 -mt-6 mb-8">Google News + ProFarmer · Policy-relevant headlines</p>
+            <p className="text-xs text-slate-500 pl-5 -mt-6 mb-8">
+              Google News lanes + ProFarmer context: ICE/immigration, war/military, soybean oil, soybean agriculture, Trump actions, legislation, biofuel
+            </p>
             <PolicyNewsFeed articles={policyNews} />
           </div>
         </div>

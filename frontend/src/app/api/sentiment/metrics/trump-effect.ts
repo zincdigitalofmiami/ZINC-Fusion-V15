@@ -3,12 +3,12 @@ import { scoreZlSentiment } from "@/lib/sentiment-scorer";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SQRT_252 = Math.sqrt(252);
 
-type ConfirmationBand = "low" | "mixed" | "strong";
+type CorroborationBand = "low" | "mixed" | "strong";
 type ResponseSignal = "muted" | "active" | "elevated";
-type BuyerSignal =
-  | "limited_confirmation"
-  | "watchlist"
-  | "rising_buyer_risk"
+type ProcurementSignal =
+  | "limited_impact"
+  | "watch"
+  | "elevated_risk"
   | "confirmed_pressure";
 
 export interface TrumpFeatureRow {
@@ -68,22 +68,23 @@ interface TrumpPolicyActivity {
   avg_sentiment_30d: number | null;
 }
 
-interface TrumpConfirmation {
-  independent_policy_items_7d: number;
+interface TrumpCorroboration {
+  supporting_policy_items_7d: number;
   market_news_items_7d: number;
   regulatory_follow_through_7d: number;
-  confirmation_score: number;
-  confirmation_band: ConfirmationBand;
+  corroboration_score: number;
+  corroboration_band: CorroborationBand;
 }
 
-interface TrumpBuyerMeaning {
-  procurement_signal: BuyerSignal;
+interface TrumpProcurementOutlook {
+  signal: ProcurementSignal;
   label: string;
-  rationale: string;
+  summary: string;
+  corroboration: TrumpCorroboration;
 }
 
 export interface TrumpEffectPayload {
-  title: "Policy Impact on ZL";
+  title: "Impact on Soybean Oil Futures";
   policy_window: {
     anchor_date: string;
     start_date_7d: string | null;
@@ -91,8 +92,7 @@ export interface TrumpEffectPayload {
   };
   zl_response: TrumpZlResponse;
   policy_activity: TrumpPolicyActivity;
-  independent_confirmation: TrumpConfirmation;
-  buyer_meaning: TrumpBuyerMeaning;
+  procurement_outlook: TrumpProcurementOutlook;
 
   // Legacy fields retained for compatibility with existing consumers.
   weighted_action_score: number | null;
@@ -176,7 +176,7 @@ function scoreWeightForDocType(documentType: string | null): number {
   return 0;
 }
 
-function computeConfirmation(inputs: ConfirmationInputs | null): TrumpConfirmation {
+function computeCorroboration(inputs: ConfirmationInputs | null): TrumpCorroboration {
   const independentPolicy = Math.max(0, inputs?.independent_policy_items_7d ?? 0);
   const marketNews = Math.max(0, inputs?.market_news_items_7d ?? 0);
   const regulatoryFollowThrough = Math.max(
@@ -192,15 +192,15 @@ function computeConfirmation(inputs: ConfirmationInputs | null): TrumpConfirmati
     (policyNorm * 0.45 + marketNorm * 0.35 + regulatoryNorm * 0.20) * 100,
   );
 
-  const band: ConfirmationBand =
+  const band: CorroborationBand =
     score >= 70 ? "strong" : score >= 40 ? "mixed" : "low";
 
   return {
-    independent_policy_items_7d: independentPolicy,
+    supporting_policy_items_7d: independentPolicy,
     market_news_items_7d: marketNews,
     regulatory_follow_through_7d: regulatoryFollowThrough,
-    confirmation_score: score,
-    confirmation_band: band,
+    corroboration_score: score,
+    corroboration_band: band,
   };
 }
 
@@ -221,67 +221,72 @@ function computeResponseSignal(
   return "muted";
 }
 
-function deriveBuyerMeaning(
+function buildProcurementOutlook(
   activity: TrumpPolicyActivity,
-  confirmation: TrumpConfirmation,
+  corroboration: TrumpCorroboration,
   response: TrumpZlResponse,
-): TrumpBuyerMeaning {
+): TrumpProcurementOutlook {
   const totalActions = activity.total_presidential_actions_7d ?? 0;
   const absReturn7d = Math.abs(response.zl_return_7d_pct ?? 0);
   const responseSignal = response.response_signal;
 
   if (
-    confirmation.confirmation_band === "strong" &&
+    corroboration.corroboration_band === "strong" &&
     (responseSignal === "elevated" || absReturn7d >= 1.0)
   ) {
     return {
-      procurement_signal: "confirmed_pressure",
+      signal: "confirmed_pressure",
       label: "Confirmed pressure on ZL",
-      rationale:
-        "Independent coverage is strong and ZL is reacting. Treat near-term procurement risk as rising and consider advancing coverage.",
+      summary:
+        "Corroborating policy/news flow is strong and ZL is reacting. Treat near-term soybean oil procurement risk as elevated and consider bringing coverage forward.",
+      corroboration,
     };
   }
 
   if (
-    confirmation.confirmation_band === "strong" &&
+    corroboration.corroboration_band === "strong" &&
     totalActions >= 6 &&
     (responseSignal === "active" || absReturn7d >= 0.6)
   ) {
     return {
-      procurement_signal: "rising_buyer_risk",
+      signal: "elevated_risk",
       label: "Rising buyer risk",
-      rationale:
-        "Policy flow is active and independently corroborated. Pressure is building even if the move is not yet extreme.",
+      summary:
+        "Policy flow is active and corroborated by broader coverage. Pressure is building even before a full shock move appears in ZL.",
+      corroboration,
     };
   }
 
   if (
-    confirmation.confirmation_band === "low" &&
+    corroboration.corroboration_band === "low" &&
     (responseSignal === "muted" || responseSignal == null) &&
     absReturn7d < 0.8
   ) {
     return {
-      procurement_signal: "limited_confirmation",
-      label: "Limited confirmation / likely noise",
-      rationale:
-        "Headline activity is not being corroborated and ZL response is muted. Avoid chasing policy headlines without price confirmation.",
+      signal: "limited_impact",
+      label: "Limited current impact",
+      summary:
+        "Current policy headlines show weak corroboration and muted ZL response. Avoid overreacting to policy noise without market follow-through.",
+      corroboration,
     };
   }
 
-  if (totalActions <= 1 && confirmation.confirmation_band === "low") {
+  if (totalActions <= 1 && corroboration.corroboration_band === "low") {
     return {
-      procurement_signal: "limited_confirmation",
+      signal: "limited_impact",
       label: "Low immediate policy pressure",
-      rationale:
-        "Federal action volume is light and confirmation is weak. Use broader supply-demand signals for timing decisions.",
+      summary:
+        "Primary action volume is light and corroboration is weak. Use broader supply-demand signals for timing decisions.",
+      corroboration,
     };
   }
 
   return {
-    procurement_signal: "watchlist",
-    label: "Watchlist: mixed confirmation",
-    rationale:
-      "Policy activity exists, but confirmation and ZL response are mixed. Keep layered coverage and reassess as new confirmation arrives.",
+    signal: "watch",
+    label: "Watchlist: mixed signal",
+    summary:
+      "Policy activity is present, but corroboration and ZL response are mixed. Keep monitoring before committing to aggressive timing shifts.",
+    corroboration,
   };
 }
 
@@ -399,15 +404,15 @@ export function buildTrumpEffectPayload(
     avg_sentiment_30d: averageOrNull(sentimentSum30d, sentimentCount30d),
   };
 
-  const independentConfirmation = computeConfirmation(confirmationInputs);
-  const buyerMeaning = deriveBuyerMeaning(
+  const corroboration = computeCorroboration(confirmationInputs);
+  const procurementOutlook = buildProcurementOutlook(
     policyActivity,
-    independentConfirmation,
+    corroboration,
     zlResponse,
   );
 
   return {
-    title: "Policy Impact on ZL",
+    title: "Impact on Soybean Oil Futures",
     policy_window: {
       anchor_date: featureRow.as_of_date,
       start_date_7d: formatDateOnly(start7d),
@@ -415,8 +420,7 @@ export function buildTrumpEffectPayload(
     },
     zl_response: zlResponse,
     policy_activity: policyActivity,
-    independent_confirmation: independentConfirmation,
-    buyer_meaning: buyerMeaning,
+    procurement_outlook: procurementOutlook,
 
     weighted_action_score: policyActivity.weighted_action_score,
     action_velocity: policyActivity.action_velocity,

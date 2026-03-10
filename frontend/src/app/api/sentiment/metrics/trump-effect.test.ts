@@ -107,7 +107,7 @@ describe("buildTrumpEffectPayload", () => {
     );
 
     expect(payload).not.toBeNull();
-    expect(payload?.title).toBe("Policy Impact on ZL");
+    expect(payload?.title).toBe("Impact on Soybean Oil Futures");
 
     expect(payload?.policy_activity.executive_orders_7d).toBe(1);
     expect(payload?.policy_activity.total_presidential_actions_7d).toBe(5);
@@ -124,11 +124,11 @@ describe("buildTrumpEffectPayload", () => {
     expect(payload?.zl_response.realized_vol_21d_pct).toBe(22);
     expect(payload?.zl_response.response_signal).toBe("active");
 
-    expect(payload?.independent_confirmation.independent_policy_items_7d).toBe(6);
-    expect(payload?.independent_confirmation.market_news_items_7d).toBe(5);
-    expect(payload?.independent_confirmation.regulatory_follow_through_7d).toBe(2);
-    expect(payload?.independent_confirmation.confirmation_score).toBe(66);
-    expect(payload?.independent_confirmation.confirmation_band).toBe("mixed");
+    expect(payload?.procurement_outlook.corroboration.supporting_policy_items_7d).toBe(6);
+    expect(payload?.procurement_outlook.corroboration.market_news_items_7d).toBe(5);
+    expect(payload?.procurement_outlook.corroboration.regulatory_follow_through_7d).toBe(2);
+    expect(payload?.procurement_outlook.corroboration.corroboration_score).toBe(66);
+    expect(payload?.procurement_outlook.corroboration.corroboration_band).toBe("mixed");
 
     // Legacy compatibility fields remain populated.
     expect(payload?.total_actions_7d).toBe(5);
@@ -184,10 +184,10 @@ describe("buildTrumpEffectPayload", () => {
     );
 
     expect(payload).not.toBeNull();
-    expect(payload?.independent_confirmation.confirmation_band).toBe("strong");
+    expect(payload?.procurement_outlook.corroboration.corroboration_band).toBe("strong");
     expect(payload?.zl_response.response_signal).toBe("elevated");
-    expect(payload?.buyer_meaning.procurement_signal).toBe("confirmed_pressure");
-    expect(payload?.buyer_meaning.label).toContain("Confirmed pressure");
+    expect(payload?.procurement_outlook.signal).toBe("confirmed_pressure");
+    expect(payload?.procurement_outlook.label).toContain("Confirmed pressure");
   });
 
   it("does not invent sentiment averages when action rows are absent", () => {
@@ -215,7 +215,7 @@ describe("buildTrumpEffectPayload", () => {
     expect(payload?.policy_activity.other_presidential_actions_7d).toBe(0);
     expect(payload?.policy_activity.avg_sentiment_7d).toBeNull();
     expect(payload?.policy_activity.avg_sentiment_30d).toBeNull();
-    expect(payload?.independent_confirmation.confirmation_band).toBe("low");
+    expect(payload?.procurement_outlook.corroboration.corroboration_band).toBe("low");
   });
 
   it("returns null when feature row is missing", () => {
