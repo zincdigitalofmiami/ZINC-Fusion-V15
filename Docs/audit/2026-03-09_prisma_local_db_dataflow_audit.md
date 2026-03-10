@@ -107,7 +107,7 @@ Audit of current data movement across Prisma schema/migrations, runtime database
 ## D) API serving layer
 
 - Most Next.js routes under `frontend/src/app/api/**/route.ts` are read paths against analytics/forecast/domain tables.
-- `/api/refresh-drivers` is a trigger route (event fanout), not a direct writer.
+- `/api/refresh-drivers` is a trigger route (event fanout) and a direct writer to `ops.ingest_run` for gate + run-finalization metadata.
 
 ## Prisma Model/Table Coverage
 

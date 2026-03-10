@@ -21,16 +21,21 @@ const MIN_REFRESH_INTERVAL_MS = 60_000 // 1 minute
 const ALLOW_MEMORY_GATE_FALLBACK =
   process.env.REFRESH_DRIVERS_ALLOW_MEMORY_GATE_FALLBACK === 'true'
 // Process-local fallback is opt-in only and disabled by default in production.
+// DB gate path uses an advisory transaction lock for a single-winner cooldown check.
 let lastRefreshAt = 0
 
 async function acquireRefreshGate(): Promise<{
   allowed: boolean
   runId: string | null
   mode: 'db' | 'memory' | 'unavailable'
+  reason: 'cooldown' | 'busy' | 'unavailable' | null
 }> {
-  const dbRows = await query<{ id: string }>(
+  const dbRows = await query<{ id: string | null; lock_acquired: boolean }>(
     `
-      WITH latest AS (
+      WITH lock_attempt AS (
+        SELECT pg_try_advisory_xact_lock(31010, 1) AS lock_acquired
+      ),
+      latest AS (
         SELECT started_at
         FROM ops.ingest_run
         WHERE job_name = $1
@@ -57,32 +62,45 @@ async function acquireRefreshGate(): Promise<{
           0,
           0,
           jsonb_build_object('trigger', 'api.refresh-drivers')
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM latest
-          WHERE started_at > NOW() - INTERVAL '60 seconds'
-        )
+        FROM lock_attempt
+        WHERE lock_acquired
+          AND NOT EXISTS (
+            SELECT 1
+            FROM latest
+            WHERE started_at > NOW() - INTERVAL '60 seconds'
+          )
         RETURNING id
       )
-      SELECT id FROM inserted
+      SELECT
+        COALESCE((SELECT lock_acquired FROM lock_attempt), false) AS lock_acquired,
+        (SELECT id::text FROM inserted LIMIT 1) AS id
     `,
     [REFRESH_GATE_JOB_NAME],
   ).catch(() => null)
 
   if (dbRows !== null) {
-    return { allowed: Boolean(dbRows[0]?.id), runId: dbRows[0]?.id ?? null, mode: 'db' }
+    const row = dbRows[0] ?? { id: null, lock_acquired: false }
+    if (row.id) {
+      return { allowed: true, runId: row.id, mode: 'db', reason: null }
+    }
+    return {
+      allowed: false,
+      runId: null,
+      mode: 'db',
+      reason: row.lock_acquired ? 'cooldown' : 'busy',
+    }
   }
 
   if (!ALLOW_MEMORY_GATE_FALLBACK) {
-    return { allowed: false, runId: null, mode: 'unavailable' }
+    return { allowed: false, runId: null, mode: 'unavailable', reason: 'unavailable' }
   }
 
   const now = Date.now()
   if (now - lastRefreshAt < MIN_REFRESH_INTERVAL_MS) {
-    return { allowed: false, runId: null, mode: 'memory' }
+    return { allowed: false, runId: null, mode: 'memory', reason: 'cooldown' }
   }
   lastRefreshAt = now
-  return { allowed: true, runId: null, mode: 'memory' }
+  return { allowed: true, runId: null, mode: 'memory', reason: null }
 }
 
 async function finalizeRefreshGate({
@@ -133,13 +151,19 @@ export async function POST() {
           status: 'gate_unavailable',
           message: 'Refresh gate unavailable: ops.ingest_run check failed',
           gateMode: gate.mode,
+          reason: gate.reason,
         },
         { status: 503 },
       )
     }
 
     return NextResponse.json(
-      { status: 'rate_limited', message: 'Please wait 60s between refreshes' },
+      {
+        status: 'rate_limited',
+        message: 'Please wait 60s between refreshes',
+        gateMode: gate.mode,
+        reason: gate.reason,
+      },
       { status: 429 },
     )
   }

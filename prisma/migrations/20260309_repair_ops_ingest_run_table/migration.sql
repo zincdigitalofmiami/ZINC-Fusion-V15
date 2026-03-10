@@ -20,3 +20,6 @@ CREATE INDEX IF NOT EXISTS idx_ingest_run_job_started
 
 CREATE INDEX IF NOT EXISTS idx_ingest_run_job_status_completed
   ON ops.ingest_run (job_name, status, completed_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_ingest_run_manual_refresh_gate
+  ON ops.ingest_run (job_name, started_at DESC, status);

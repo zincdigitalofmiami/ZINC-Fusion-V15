@@ -68,7 +68,7 @@
 - `glide_row_id` unique constraints missing in Prisma models
 - PredictHQ expansion columns missing from `vegas_events` model
 - Public sync endpoint performs unguarded `TRUNCATE`
-- Missing `check_local_v15_parity.sql` script
+- `check_local_v15_parity.sql` was missing at audit time; script now exists in `scripts/`
 
 ---
 
@@ -140,9 +140,9 @@ These are code-level issues discovered during audit searches, not audit document
 
 ## Audit Infrastructure Gaps
 
-### Missing Scripts
+### Script Status
 
-- `scripts/check_local_v15_parity.sql` — Referenced in `plans/LOCAL_DB_SETUP_FOR_AUDIT.md:24` but does not exist
+- `scripts/check_local_v15_parity.sql` exists and is tracked in this repository state.
 
 ### Documentation Drift
 
@@ -156,5 +156,5 @@ These are code-level issues discovered during audit searches, not audit document
 1. **Complete Phase 1A Training** — Prerequisite for Phase 4B/4C audits
 2. **Execute Specialist Audit Remediation Plan** — Phases A-E from 2026-02-14 audit
 3. **Resolve Vegas Schema Split** — Follow remediation steps in Vegas audit
-4. **Create Missing Scripts** — `check_local_v15_parity.sql`
+4. **Run Local Parity Script** — execute `scripts/check_local_v15_parity.sql` against the target local DB
 5. **Clean Up Audit Copies** — Consolidate Pre-Rebuild Forecast Audit references
