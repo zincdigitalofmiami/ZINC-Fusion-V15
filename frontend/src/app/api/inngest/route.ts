@@ -65,6 +65,7 @@ import {
   lcfsCreditWeekly,
   specialistSignalsSync,
   specialistSignalsSyncManual,
+  trumpEffectRefreshAndSync,
   globalFailureMonitor,
   freshnessMonitor,
   yahooIndicesDaily,
@@ -224,6 +225,7 @@ export const { GET, POST, PUT } = serve({
     // Specialist signal synchronization (all 11 buckets)
     specialistSignalsSync,
     specialistSignalsSyncManual,
+    trumpEffectRefreshAndSync,
     // Global failure monitor (catches all function failures)
     globalFailureMonitor,
     // Freshness SLAs for critical tables

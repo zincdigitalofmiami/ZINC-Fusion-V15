@@ -49,7 +49,7 @@ interface DriverSummary {
   rawValue: number | null;
   unit: string;
   asOfDate: string | null;
-  source: "live" | "stale" | "unavailable";
+  source: "live" | "stale" | "proxy" | "unavailable";
 }
 
 interface CorrelationSummary {
@@ -485,9 +485,9 @@ export default function StrategyPage() {
 
   // Derive confidence from driver data quality — percentage of drivers with live data
   const confidence = brief
-    ? (() => {
+      ? (() => {
         const liveDrivers = brief.drivers.filter(
-          (d) => d.source === "live",
+          (d) => d.source === "live" || d.source === "proxy",
         ).length;
         const totalDrivers = brief.drivers.length;
         const driverPct =
@@ -887,20 +887,42 @@ export default function StrategyPage() {
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
                     {driver.name}
                   </span>
+                  {(() => {
+                    const sourceLabel =
+                      driver.source === "live"
+                        ? "LIVE"
+                        : driver.source === "stale"
+                          ? "LAST KNOWN"
+                          : driver.source === "proxy"
+                            ? "PROXY"
+                            : "UNAVAILABLE";
+                    const sourceClass =
+                      driver.source === "live"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : driver.source === "stale"
+                          ? "bg-amber-500/10 text-amber-400"
+                          : driver.source === "proxy"
+                            ? "bg-cyan-500/10 text-cyan-400"
+                            : "bg-slate-500/10 text-slate-500";
+
+                    return (
+                      <span
+                        className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${sourceClass}`}
+                      >
+                        {sourceLabel}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center justify-between mb-2">
                   <span
-                    className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${
-                      driver.source === "stale"
-                        ? "bg-amber-500/10 text-amber-400"
-                        : driver.source === "unavailable"
-                          ? "bg-slate-500/10 text-slate-500"
-                          : "bg-white/5 text-slate-400"
+                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                      driver.source === "unavailable"
+                        ? "bg-slate-500/10 text-slate-500"
+                        : "bg-white/5 text-slate-400"
                     }`}
                   >
-                    {driver.source === "stale"
-                      ? "STALE"
-                      : driver.source === "unavailable"
-                        ? "N/A"
-                        : driver.status}
+                    {driver.source === "unavailable" ? "N/A" : driver.status}
                   </span>
                 </div>
                 <div

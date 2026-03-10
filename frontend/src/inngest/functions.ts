@@ -55,7 +55,11 @@ export { argentinaCrushMonthly } from "./argentina-crush-monthly";
 export { cleanupStaleRuns } from "./cleanup-stale-runs";
 export { price1mRetentionCleanup } from "./price-1m-retention";
 export { lcfsCreditWeekly } from "./lcfs-credit-weekly";
-export { specialistSignalsSync, specialistSignalsSyncManual } from "./specialist-signals-sync";
+export {
+  specialistSignalsSync,
+  specialistSignalsSyncManual,
+  trumpEffectRefreshAndSync,
+} from "./specialist-signals-sync";
 export { globalFailureMonitor } from "./global-failure-monitor";
 export { freshnessMonitor } from "./freshness-monitor";
 export { yahooIndicesDaily, yahooIndicesBackfill } from "./yahoo-indices-daily";

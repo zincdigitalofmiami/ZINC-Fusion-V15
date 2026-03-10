@@ -36,7 +36,7 @@ interface DriverSummary {
   rawValue: number | null;
   unit: string;
   asOfDate: string | null;
-  source: 'live' | 'stale' | 'unavailable';
+  source: 'live' | 'stale' | 'proxy' | 'unavailable';
 }
 
 interface CorrelationSummary {
@@ -223,7 +223,7 @@ export function ZlBrief() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {brief.drivers.map((d) => (
             <div key={d.name} className={`flex items-center gap-2 bg-slate-800/50 rounded-lg p-2 ${
-              d.source === 'unavailable' ? 'opacity-50' : d.source === 'stale' ? 'opacity-75' : ''
+              d.source === 'unavailable' ? 'opacity-50' : d.source === 'stale' || d.source === 'proxy' ? 'opacity-75' : ''
             }`}>
               <div
                 className="w-2 h-2 rounded-full"
@@ -236,7 +236,17 @@ export function ZlBrief() {
               />
               <div>
                 <div className="text-xs font-semibold text-white">{d.name}</div>
-                <div className="text-[10px] text-slate-400">{d.status}</div>
+                <div className="text-[10px] text-slate-400">
+                  {d.source === 'live'
+                    ? 'LIVE'
+                    : d.source === 'stale'
+                      ? 'LAST KNOWN'
+                      : d.source === 'proxy'
+                        ? 'PROXY'
+                        : 'UNAVAILABLE'}
+                  {' · '}
+                  {d.status}
+                </div>
                 {d.rawValue !== null && (
                   <div className="text-[9px] text-slate-500">{d.rawValue.toFixed(2)} {d.unit}</div>
                 )}

@@ -79,6 +79,20 @@ interface TrumpEffectData {
   avg_sentiment_30d: number | null;
 }
 
+interface TrumpEffectMeta {
+  source: "feature_payload" | "last_known" | "signal_proxy" | "unavailable";
+  asOf: string | null;
+  staleDays: number | null;
+  ttlDays: number;
+  reasonCode:
+    | "MISSING_TABLE"
+    | "NO_ROWS"
+    | "MISSING_KEYS"
+    | "NON_NUMERIC_KEYS"
+    | "STALE_EXPIRED"
+    | null;
+}
+
 interface MetricsData {
   as_of: string | null;
   price: {
@@ -144,6 +158,7 @@ interface MetricsData {
   };
   fearGreed?: FearGreedData | null;
   trumpEffect?: TrumpEffectData | null;
+  trumpEffectMeta?: TrumpEffectMeta | null;
 }
 
 /* ─── Helpers ─── */
@@ -221,6 +236,39 @@ function volLabel(
   if (value > thresholds[0])
     return { text: "Moderate", color: "text-amber-400" };
   return { text: "Calm", color: "text-emerald-400" };
+}
+
+function formatTrumpSourceBadge(meta?: TrumpEffectMeta | null): {
+  label: string;
+  className: string;
+} {
+  if (!meta || meta.source === "unavailable") {
+    return {
+      label: "Unavailable",
+      className: "bg-slate-500/10 text-slate-400 border border-slate-500/20",
+    };
+  }
+  if (meta.source === "feature_payload") {
+    return {
+      label: "Live",
+      className:
+        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    };
+  }
+  if (meta.source === "last_known") {
+    const staleText =
+      meta.staleDays !== null && meta.staleDays !== undefined
+        ? ` (${meta.staleDays}d old)`
+        : "";
+    return {
+      label: `Last Known${staleText}`,
+      className: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    };
+  }
+  return {
+    label: "Proxy",
+    className: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+  };
 }
 
 /* ─── Page ─── */
@@ -362,6 +410,7 @@ export default function SentimentPage() {
 
   const fg = metrics?.fearGreed ?? null;
   const trump = metrics?.trumpEffect ?? null;
+  const trumpMeta = metrics?.trumpEffectMeta ?? null;
   const trendBadge = metrics ? getTrendBadge(metrics.technicals.trend) : null;
 
   return (
@@ -572,12 +621,24 @@ export default function SentimentPage() {
                 Policy Impact on Soybean Oil Markets
               </div>
             </div>
-            {trump?.weighted_action_score != null && (
-              <div className="text-4xl font-bold text-white font-mono">
-                {trump.weighted_action_score.toFixed(1)}
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-[11px] font-mono px-2 py-1 rounded ${formatTrumpSourceBadge(trumpMeta).className}`}
+              >
+                {formatTrumpSourceBadge(trumpMeta).label}
+              </span>
+              {trump?.weighted_action_score != null && (
+                <div className="text-4xl font-bold text-white font-mono">
+                  {trump.weighted_action_score.toFixed(1)}
+                </div>
+              )}
+            </div>
           </div>
+          {trumpMeta?.reasonCode && trumpMeta.source !== "feature_payload" && (
+            <div className="mb-4 text-xs text-slate-500">
+              Fallback reason: {trumpMeta.reasonCode}
+            </div>
+          )}
 
           {loading && !metrics ? (
             <div className="space-y-4">
@@ -685,6 +746,7 @@ export default function SentimentPage() {
           ) : (
             <div className="text-center text-slate-500 py-6">
               Trump Effect data unavailable
+              {trumpMeta?.reasonCode ? ` (${trumpMeta.reasonCode})` : ""}
             </div>
           )}
         </div>

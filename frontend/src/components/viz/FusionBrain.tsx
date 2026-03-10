@@ -34,7 +34,7 @@ interface DriverInput {
   score: number;
   status: string;
   impact: string;
-  source: 'live' | 'stale' | 'unavailable';
+  source: 'live' | 'stale' | 'proxy' | 'unavailable';
   rawValue?: number | null;
   unit?: string;
 }

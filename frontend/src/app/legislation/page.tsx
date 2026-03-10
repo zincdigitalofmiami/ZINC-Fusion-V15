@@ -464,6 +464,14 @@ export default async function PolicyPage() {
             100,
         )
       : null;
+  const trumpMetricSourceLabel =
+    currentMetric?.source === "feature_payload"
+      ? "Live"
+      : currentMetric?.source === "last_known"
+        ? `Last Known${currentMetric.staleDays != null ? ` (${currentMetric.staleDays}d old)` : ""}`
+        : currentMetric?.source === "signal_proxy"
+          ? "Proxy"
+          : "Unavailable";
 
   // News pulse: how active is the news feed?
   const now = new Date();
@@ -600,9 +608,9 @@ export default async function PolicyPage() {
             }
             subtext={
               currentMetric?.neural_signal != null
-                ? `Signal: ${currentMetric.neural_signal.toFixed(3)} | Conf: ${((currentMetric.neural_confidence ?? 0) * 100).toFixed(0)}%`
+                ? `Signal: ${currentMetric.neural_signal.toFixed(3)} | Conf: ${((currentMetric.neural_confidence ?? 0) * 100).toFixed(0)}% · ${trumpMetricSourceLabel}`
                 : currentMetric?.velocity != null
-                  ? `Actions/Week · as of ${currentMetric.date}`
+                  ? `Actions/Week · as of ${currentMetric.date} · ${trumpMetricSourceLabel}`
                   : regime.components.legis_velocity > 0
                     ? `${regime.components.legis_velocity} filings/14d from Federal Register`
                     : "No specialist data"

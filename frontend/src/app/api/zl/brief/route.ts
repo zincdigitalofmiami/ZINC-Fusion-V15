@@ -15,6 +15,7 @@ import { calculateChinaTension } from '@/lib/services/china-service'
 import { calculateTariffThreat } from '@/lib/services/policy-service'
 import { calculateEnergyStress } from '@/lib/services/energy-service'
 import { fetchMarketDriversData } from '@/lib/services/market-drivers-queries'
+import { resolveTrumpEffectSnapshot } from '@/lib/services/trump-effect-source'
 import { scoreZlSentiment, type Sentiment } from '@/lib/sentiment-scorer'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +54,7 @@ interface DriverSummary {
   rawValue: number | null  // The actual underlying value (VIX level, crush margin, etc.)
   unit: string             // e.g., 'VIX points', 'USD/bu', 'CNY/USD', 'index'
   asOfDate: string | null  // When this data was last updated
-  source: 'live' | 'stale' | 'unavailable'
+  source: 'live' | 'stale' | 'proxy' | 'unavailable'
 }
 
 interface CorrelationSummary {
@@ -298,21 +299,10 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
   const stalenessWarnings: string[] = [] // Data exists but past SLA freshness
 
   try {
-    // Fetch ALL market driver data via the shared data layer (23 parallel queries)
-    // Plus Trump Effect data (specialist signal + action score)
-    const [rawData, trumpSignalData, trumpActionData] = await Promise.all([
+    // Fetch all primary market drivers plus canonical Trump Effect snapshot.
+    const [rawData, trumpSnapshot] = await Promise.all([
       fetchMarketDriversData(),
-      query<{signal: number, as_of_date: string}>(`
-        SELECT signal_1::float8 as signal, as_of_date::text
-        FROM training.specialist_signals_1d
-        WHERE bucket = 'trump_effect' AND as_of_date >= CURRENT_DATE - INTERVAL '45 days' AND abstained = false
-        ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => [] as {signal: number, as_of_date: string}[]),
-      query<{score: number, as_of_date: string}>(`
-        SELECT (features->>'weighted_action_score')::float8 as score, as_of_date::text
-        FROM training.specialist_features_trump_effect
-        ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => [] as {score: number, as_of_date: string}[])
+      resolveTrumpEffectSnapshot(query, { ttlDays: 14 }),
     ])
 
     // Extract values from rawData
@@ -325,16 +315,29 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     const tpu = rawData.tpu
     const tpuDate = rawData.tpuDate
 
-    // Trump Effect data
-    const trumpAction = trumpActionData[0]?.score ?? null
-    const trumpDate = trumpActionData[0]?.as_of_date ?? trumpSignalData[0]?.as_of_date ?? null
+    // Trump Effect snapshot: feature payload (preferred) -> last-known -> signal proxy.
+    const trumpAction = trumpSnapshot.values.weighted_action_score
+    const trumpDate = trumpSnapshot.meta.asOf
+    const trumpSource =
+      trumpSnapshot.meta.source === 'feature_payload'
+        ? 'live'
+        : trumpSnapshot.meta.source === 'last_known'
+          ? 'stale'
+          : trumpSnapshot.meta.source === 'signal_proxy'
+            ? 'proxy'
+            : 'unavailable'
 
     // Track truly MISSING data (no value at all) — these are critical
     if (!vix) dataIssues.push('VIX data unavailable')
     if (!crush) dataIssues.push('Crush margin data unavailable')
     if (!cny) dataIssues.push('CNY/USD rate unavailable')
     if (!tpu) dataIssues.push('Trade policy index unavailable')
-    if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
+    if (trumpSource === 'unavailable') dataIssues.push('Trump Effect data unavailable')
+    if (trumpSource === 'stale' && trumpSnapshot.meta.staleDays !== null) {
+      stalenessWarnings.push(
+        `Trump Effect data is ${trumpSnapshot.meta.staleDays} days old (TTL: ${trumpSnapshot.meta.ttlDays}d)`,
+      )
+    }
 
     // Check data freshness with per-source SLA thresholds
     // Stale data is a WARNING, not a critical issue — the data still has value
@@ -436,15 +439,30 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       {
         name: 'Trump Effect',
         score: trumpScore ?? 0,
-        status: trumpScore === null ? 'NO DATA' : trumpScore >= 65 ? 'HIGH IMPACT' : trumpScore >= 40 ? 'ELEVATED' : 'LOW',
-        impact: trumpScore === null ? 'Trump Effect data unavailable — score excluded from average' :
-                trumpScore >= 65 ? `Action velocity high (${trumpAction!.toFixed(2)}) - executive actions disrupting markets` :
-                trumpScore >= 40 ? `Moderate activity (${trumpAction!.toFixed(2)}) - watch for escalation` :
-                `Low action velocity (${trumpAction!.toFixed(2)}) - policy stable`,
+        status:
+          trumpSource === 'proxy'
+            ? 'PROXY'
+            : trumpScore === null
+              ? 'NO DATA'
+              : trumpScore >= 65
+                ? 'HIGH IMPACT'
+                : trumpScore >= 40
+                  ? 'ELEVATED'
+                  : 'LOW',
+        impact:
+          trumpSource === 'proxy'
+            ? `Using specialist signal proxy (reason: ${trumpSnapshot.meta.reasonCode ?? 'fallback'})`
+            : trumpScore === null
+              ? 'Trump Effect data unavailable — score excluded from average'
+              : trumpScore >= 65
+                ? `Action velocity high (${trumpAction!.toFixed(2)}) - executive actions disrupting markets`
+                : trumpScore >= 40
+                  ? `Moderate activity (${trumpAction!.toFixed(2)}) - watch for escalation`
+                  : `Low action velocity (${trumpAction!.toFixed(2)}) - policy stable`,
         rawValue: trumpAction,
         unit: 'action score',
         asOfDate: trumpDate,
-        source: checkFreshness(trumpDate, 'Trump Effect', 7)
+        source: trumpSource
       },
       {
         name: 'Energy',
@@ -1142,11 +1160,12 @@ export async function GET() {
     // Only truly unavailable sources count as "poor" — stale data is "partial"
     const unavailableDrivers = driverData.drivers.filter(d => d.source === 'unavailable').length
     const staleDrivers = driverData.drivers.filter(d => d.source === 'stale').length
+    const proxyDrivers = driverData.drivers.filter(d => d.source === 'proxy').length
     const unavailableCorrs = correlations.filter(c => c.source === 'unavailable').length
     let dataQuality: 'good' | 'partial' | 'poor'
     if (unavailableDrivers >= 3 || unavailableCorrs >= 4) {
       dataQuality = 'poor'
-    } else if (unavailableDrivers >= 1 || staleDrivers >= 2 || unavailableCorrs >= 2 || !forecastsAvailable) {
+    } else if (unavailableDrivers >= 1 || staleDrivers >= 2 || proxyDrivers >= 1 || unavailableCorrs >= 2 || !forecastsAvailable) {
       dataQuality = 'partial'
     } else {
       dataQuality = 'good'
@@ -1202,7 +1221,7 @@ export async function GET() {
     console.error('Vegas brief generation failed:', error)
     return NextResponse.json({
       error: 'Brief generation failed',
-      details: String(error)
+      details: 'Internal server error'
     }, { status: 500 })
   }
 }

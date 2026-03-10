@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { resolveTrumpEffectSnapshot } from "@/lib/services/trump-effect-source";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,6 @@ export async function GET() {
       ovxResult,
       crushResult,
       signalsResult,
-      trumpResult,
       sentimentRatioResult,
     ] = await Promise.all([
       // 1. Latest ZL price + volume + OI
@@ -296,36 +296,7 @@ export async function GET() {
          ORDER BY bucket, as_of_date DESC`,
       )),
 
-      // 11. Trump Effect (latest row)
-      safe(query<{
-        weighted_action_score: number | null;
-        action_velocity: number | null;
-        action_acceleration: number | null;
-        total_actions_7d: number | null;
-        total_actions_30d: number | null;
-        eo_count_7d: number | null;
-        proclamation_count_7d: number | null;
-        memorandum_count_7d: number | null;
-        nomination_count_7d: number | null;
-        avg_sentiment_7d: number | null;
-        avg_sentiment_30d: number | null;
-      }>(
-        `SELECT (features->>'weighted_action_score')::float8 AS weighted_action_score,
-                (features->>'action_velocity')::float8       AS action_velocity,
-                (features->>'action_acceleration')::float8   AS action_acceleration,
-                (features->>'total_actions_7d')::int         AS total_actions_7d,
-                (features->>'total_actions_30d')::int        AS total_actions_30d,
-                (features->>'eo_count_7d')::int              AS eo_count_7d,
-                (features->>'proclamation_count_7d')::int    AS proclamation_count_7d,
-                (features->>'memorandum_count_7d')::int      AS memorandum_count_7d,
-                (features->>'nomination_count_7d')::int      AS nomination_count_7d,
-                (features->>'avg_sentiment_7d')::float8      AS avg_sentiment_7d,
-                (features->>'avg_sentiment_30d')::float8     AS avg_sentiment_30d
-         FROM training.specialist_features_trump_effect
-         ORDER BY as_of_date DESC LIMIT 1`,
-      )),
-
-      // 12. News sentiment ratio (7d) — for Fear & Greed composite
+      // 11. News sentiment ratio (7d) — for Fear & Greed composite
       safe(query<{ bullish_count: number; bearish_count: number }>(
         `SELECT
            COUNT(*) FILTER (WHERE zl_sentiment = 'bullish')::int  AS bullish_count,
@@ -352,8 +323,9 @@ export async function GET() {
     const vixData = vixResult[0];
     const ovxData = ovxResult[0];
     const crush = crushResult[0];
-    const trump = trumpResult[0];
     const sentRatio = sentimentRatioResult[0];
+    const trumpSnapshot = await resolveTrumpEffectSnapshot(query, { ttlDays: 14 });
+    const trump = trumpSnapshot.values;
 
     // Compute composite sentiment score from specialist signals
     const signals = signalsResult.filter((s) => !s.abstained);
@@ -388,7 +360,7 @@ export async function GET() {
       sentRatio?.bearish_count ?? 0,
       crush ? Number(crush.crush_z) : null,
       rvol ? Number(rvol.rvol_21d) : null,
-      trump?.weighted_action_score ?? null,
+      trump.weighted_action_score ?? null,
     );
 
     return NextResponse.json({
@@ -470,7 +442,7 @@ export async function GET() {
 
       fearGreed,
 
-      trumpEffect: trump
+      trumpEffect: trumpSnapshot.meta.source !== "unavailable"
         ? {
             weighted_action_score: trump.weighted_action_score,
             action_velocity: trump.action_velocity,
@@ -485,6 +457,13 @@ export async function GET() {
             avg_sentiment_30d: trump.avg_sentiment_30d,
           }
         : null,
+      trumpEffectMeta: {
+        source: trumpSnapshot.meta.source,
+        asOf: trumpSnapshot.meta.asOf,
+        staleDays: trumpSnapshot.meta.staleDays,
+        ttlDays: trumpSnapshot.meta.ttlDays,
+        reasonCode: trumpSnapshot.meta.reasonCode,
+      },
     });
   } catch (err) {
     console.error("Metrics API error:", err);

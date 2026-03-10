@@ -22,7 +22,7 @@ interface ContextRequest {
     name: string;
     score: number;
     status: string;
-    source: "live" | "stale" | "unavailable";
+    source: "live" | "stale" | "proxy" | "unavailable";
     rawValue: number | null;
     unit: string;
   }>;
@@ -65,6 +65,7 @@ export async function POST(request: Request) {
   if (payload.drivers) {
     const live = payload.drivers.filter((d) => d.source === "live");
     const stale = payload.drivers.filter((d) => d.source === "stale");
+    const proxy = payload.drivers.filter((d) => d.source === "proxy");
     const missing = payload.drivers.filter((d) => d.source === "unavailable");
 
     for (const d of live) {
@@ -75,6 +76,11 @@ export async function POST(request: Request) {
     for (const d of stale) {
       lines.push(
         `${d.name}: score ${d.score}/100 (${d.status}), raw ${d.rawValue} ${d.unit} [STALE]`,
+      );
+    }
+    for (const d of proxy) {
+      lines.push(
+        `${d.name}: score ${d.score}/100 (${d.status}), raw ${d.rawValue} ${d.unit} [PROXY]`,
       );
     }
     if (missing.length > 0) {

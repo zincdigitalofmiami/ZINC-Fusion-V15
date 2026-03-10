@@ -30,6 +30,20 @@ interface SlaCheck {
 	maxStaleDays: number;
 }
 
+const SPECIALIST_BUCKET_SLAS: Array<{ bucket: string; maxStaleDays: number }> = [
+	{ bucket: "crush", maxStaleDays: 3 },
+	{ bucket: "china", maxStaleDays: 3 },
+	{ bucket: "fx", maxStaleDays: 3 },
+	{ bucket: "fed", maxStaleDays: 3 },
+	{ bucket: "tariff", maxStaleDays: 3 },
+	{ bucket: "energy", maxStaleDays: 3 },
+	{ bucket: "biofuel", maxStaleDays: 3 },
+	{ bucket: "palm", maxStaleDays: 3 },
+	{ bucket: "volatility", maxStaleDays: 3 },
+	{ bucket: "substitutes", maxStaleDays: 3 },
+	{ bucket: "trump_effect", maxStaleDays: 7 },
+];
+
 // SLA thresholds — how many calendar days behind is acceptable.
 const SLA_CHECKS: SlaCheck[] = [
 	// Dashboard price tables (most critical — directly visible to users)
@@ -56,6 +70,13 @@ const SLA_CHECKS: SlaCheck[] = [
 		        FROM training.specialist_signals_1d`,
 		maxStaleDays: 3,
 	},
+	...SPECIALIST_BUCKET_SLAS.map(({ bucket, maxStaleDays }) => ({
+		name: `specialist_signal_${bucket}`,
+		query: `SELECT CURRENT_DATE - MAX(as_of_date)::date AS days_stale
+		        FROM training.specialist_signals_1d
+		        WHERE bucket = '${bucket}'`,
+		maxStaleDays,
+	})),
 	{
 		name: "futures_zl_daily",
 		query: `SELECT CURRENT_DATE - MAX(event_date)::date AS days_stale
@@ -72,6 +93,41 @@ const SLA_CHECKS: SlaCheck[] = [
 		        FROM ops.ingest_run
 		        WHERE status = 'success'`,
 		maxStaleDays: 2,
+	},
+	{
+		name: "trump_effect_producer_recent_success",
+		query: `SELECT CASE
+		          WHEN NOT EXISTS (
+		            SELECT 1
+		            FROM ops.ingest_run
+		            WHERE job_name = 'trump_effect_feature_refresh'
+		              AND status = 'success'
+		              AND completed_at IS NOT NULL
+		          ) THEN 999
+		          WHEN (
+		            EXTRACT(
+		              epoch FROM (
+		                NOW() - (
+		                  SELECT MAX(completed_at)
+		                  FROM ops.ingest_run
+		                  WHERE job_name = 'trump_effect_feature_refresh'
+		                    AND status = 'success'
+		                    AND completed_at IS NOT NULL
+		                )
+		              )
+		            ) > (
+		              (
+		                36 +
+		                CASE
+		                  WHEN EXTRACT(DOW FROM NOW())::int IN (0, 1) THEN 48
+		                  ELSE 0
+		                END
+		              ) * 3600
+		            )
+		          ) THEN 999
+		          ELSE 0
+		        END::int AS days_stale`,
+		maxStaleDays: 0,
 	},
 	// ── Driver-specific freshness checks (added 2026-02-23) ──
 	// Trade Policy Uncertainty — MONTHLY FRED series (USEPUINDXM)
@@ -116,12 +172,140 @@ const SLA_CHECKS: SlaCheck[] = [
 	},
 	// Trump Effect specialist features (populated by Python pipeline)
 	{
+		name: "trump_effect_features_table_exists",
+		query: `SELECT CASE
+		          WHEN to_regclass('training.specialist_features_trump_effect') IS NULL THEN 999
+		          ELSE 0
+		        END::int AS days_stale`,
+		maxStaleDays: 0,
+	},
+	{
 		name: "trump_effect_features",
 		query: `SELECT CURRENT_DATE - MAX(as_of_date)::date AS days_stale
 		        FROM training.specialist_features_trump_effect
 		        WHERE features IS NOT NULL
 		          AND features->>'weighted_action_score' IS NOT NULL`,
 		maxStaleDays: 7, // Python pipeline should run at least weekly
+	},
+	{
+		name: "trump_effect_features_contract",
+		query: `SELECT CASE
+		          WHEN to_regclass('training.specialist_features_trump_effect') IS NULL THEN 999
+		          WHEN EXISTS (
+		            SELECT 1
+		            FROM training.specialist_features_trump_effect
+		            WHERE NOT (
+		              features ? 'weighted_action_score'
+		              AND features ? 'action_velocity'
+		              AND features ? 'action_acceleration'
+		              AND features ? 'total_actions_7d'
+		              AND features ? 'total_actions_30d'
+		              AND features ? 'eo_count_7d'
+		              AND features ? 'proclamation_count_7d'
+		              AND features ? 'memorandum_count_7d'
+		              AND features ? 'nomination_count_7d'
+		              AND features ? 'avg_sentiment_7d'
+		              AND features ? 'avg_sentiment_30d'
+		              AND features ? 'neural_signal'
+		              AND features ? 'neural_confidence'
+		              AND features ? 'epu_7d'
+		            )
+		            OR (
+		              features ? 'weighted_action_score'
+		              AND COALESCE(NULLIF(features->>'weighted_action_score', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'action_velocity'
+		              AND COALESCE(NULLIF(features->>'action_velocity', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'action_acceleration'
+		              AND COALESCE(NULLIF(features->>'action_acceleration', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'total_actions_7d'
+		              AND COALESCE(NULLIF(features->>'total_actions_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'total_actions_30d'
+		              AND COALESCE(NULLIF(features->>'total_actions_30d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'eo_count_7d'
+		              AND COALESCE(NULLIF(features->>'eo_count_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'proclamation_count_7d'
+		              AND COALESCE(NULLIF(features->>'proclamation_count_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'memorandum_count_7d'
+		              AND COALESCE(NULLIF(features->>'memorandum_count_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'nomination_count_7d'
+		              AND COALESCE(NULLIF(features->>'nomination_count_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'avg_sentiment_7d'
+		              AND COALESCE(NULLIF(features->>'avg_sentiment_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'avg_sentiment_30d'
+		              AND COALESCE(NULLIF(features->>'avg_sentiment_30d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'neural_signal'
+		              AND COALESCE(NULLIF(features->>'neural_signal', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'neural_confidence'
+		              AND COALESCE(NULLIF(features->>'neural_confidence', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		            OR (
+		              features ? 'epu_7d'
+		              AND COALESCE(NULLIF(features->>'epu_7d', ''), '__EMPTY__') !~ '^-?[0-9]+(\\.[0-9]+)?$'
+		            )
+		          ) THEN 999
+		          ELSE 0
+		        END::int AS days_stale`,
+		maxStaleDays: 0,
+	},
+	{
+		name: "trump_effect_unavailable_persistent",
+		query: `SELECT CASE
+		          WHEN to_regclass('training.specialist_features_trump_effect') IS NULL THEN 999
+		          WHEN (
+		            NOT EXISTS (
+		              SELECT 1
+		              FROM training.specialist_features_trump_effect
+		              WHERE as_of_date >= CURRENT_DATE - INTERVAL '14 days'
+		                AND features ? 'weighted_action_score'
+		                AND features ? 'action_velocity'
+		                AND features ? 'action_acceleration'
+		                AND features ? 'total_actions_7d'
+		                AND features ? 'total_actions_30d'
+		                AND features ? 'eo_count_7d'
+		                AND features ? 'proclamation_count_7d'
+		                AND features ? 'memorandum_count_7d'
+		                AND features ? 'nomination_count_7d'
+		                AND features ? 'avg_sentiment_7d'
+		                AND features ? 'avg_sentiment_30d'
+		                AND features ? 'neural_signal'
+		                AND features ? 'neural_confidence'
+		                AND features ? 'epu_7d'
+		            )
+		            AND NOT EXISTS (
+		              SELECT 1
+		              FROM training.specialist_signals_1d
+		              WHERE bucket = 'trump_effect'
+		                AND abstained = false
+		                AND as_of_date >= CURRENT_DATE - INTERVAL '14 days'
+		            )
+		          ) THEN 999
+		          ELSE 0
+		        END::int AS days_stale`,
+		maxStaleDays: 0,
 	},
 ];
 
