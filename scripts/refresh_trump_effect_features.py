@@ -36,14 +36,43 @@ Calculates:
 
 import os
 import json
+import hashlib
 import psycopg2
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
 TRUMP_FEATURE_TABLE = "training.specialist_features_trump_effect"
+TRUMP_INGEST_JOB_NAME = "trump_effect_feature_refresh"
+TRUMP_SOURCE_STALE_LIMIT_DAYS = 7
+
+REASON_SOURCE_MISSING = "SOURCE_MISSING"
+REASON_SOURCE_STALE = "SOURCE_STALE"
+REASON_CONTRACT_FAIL = "CONTRACT_FAIL"
+REASON_UNKNOWN_ERROR = "UNKNOWN_ERROR"
+
+DB_URL_KEYS = ("DATABASE_URL", "POSTGRES_URL", "DIRECT_DATABASE_URL")
+
+CURRENT_RUN_ID = None
+CURRENT_DB_FINGERPRINT = None
+
+REQUIRED_TRUMP_PAYLOAD_KEYS = [
+    "weighted_action_score",
+    "action_velocity",
+    "action_acceleration",
+    "total_actions_7d",
+    "total_actions_30d",
+    "eo_count_7d",
+    "proclamation_count_7d",
+    "memorandum_count_7d",
+    "nomination_count_7d",
+    "avg_sentiment_7d",
+    "avg_sentiment_30d",
+    "neural_signal",
+    "neural_confidence",
+    "epu_7d",
+]
 
 # =============================================================================
 # NEURAL SIGNAL CONFIGURATION
@@ -84,7 +113,209 @@ ERA_MULTIPLIERS = {
 
 
 def get_connection():
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(resolve_database_url())
+
+
+class ProducerError(Exception):
+    def __init__(self, reason_code: str, message: str):
+        super().__init__(message)
+        self.reason_code = reason_code
+
+
+def resolve_database_url() -> str:
+    """
+    Resolve DB URL using the same precedence as TS runtime DB_URL_KEYS:
+    DATABASE_URL -> POSTGRES_URL -> DIRECT_DATABASE_URL.
+    """
+    for key in DB_URL_KEYS:
+        raw = os.getenv(key)
+        if raw and raw.strip():
+            return raw.strip()
+    raise ProducerError(
+        REASON_SOURCE_MISSING,
+        "Missing DB URL. Set DATABASE_URL, POSTGRES_URL, or DIRECT_DATABASE_URL.",
+    )
+
+
+def create_ingest_run(cur):
+    cur.execute(
+        """
+        INSERT INTO ops.ingest_run (job_name, status, started_at, rows_attempted, rows_inserted, rows_skipped, rows_quarantined)
+        VALUES (%s, 'running', NOW(), 0, 0, 0, 0)
+        RETURNING id
+        """,
+        (TRUMP_INGEST_JOB_NAME,),
+    )
+    return cur.fetchone()[0]
+
+
+def finish_ingest_run(
+    conn,
+    run_id,
+    status,
+    rows_attempted=0,
+    rows_inserted=0,
+    rows_skipped=0,
+    rows_quarantined=0,
+    reason_code=None,
+    error_message=None,
+    run_hash=None,
+    db_fingerprint=None,
+):
+    payload = {
+        "reason_code": reason_code,
+        "run_hash": run_hash,
+        "db_fingerprint": db_fingerprint,
+    }
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE ops.ingest_run
+            SET status = %s,
+                completed_at = NOW(),
+                rows_attempted = %s,
+                rows_inserted = %s,
+                rows_skipped = %s,
+                rows_quarantined = %s,
+                error_message = %s,
+                cursor_position = %s::jsonb
+            WHERE id = %s
+            """,
+            (
+                status,
+                rows_attempted,
+                rows_inserted,
+                rows_skipped,
+                rows_quarantined,
+                error_message,
+                json.dumps(payload),
+                run_id,
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
+
+
+def get_db_fingerprint(cur):
+    cur.execute(
+        """
+        SELECT current_database()::text,
+               current_schema()::text,
+               inet_server_addr()::text,
+               inet_server_port()::int
+        """
+    )
+    row = cur.fetchone()
+    return {
+        "database": row[0] if row else None,
+        "schema": row[1] if row else None,
+        "host": row[2] if row else None,
+        "port": row[3] if row else None,
+    }
+
+
+def assert_required_source_tables(cur):
+    required = [
+        "alt.executive_actions_event",
+        "alt.legislation_1d",
+        "alt.policy_news_event",
+        "alt.econ_news_event",
+        "alt.profarmer_news_event",
+        "econ.vol_indices_1d",
+        "mkt.futures_1d",
+    ]
+    for table_name in required:
+        cur.execute("SELECT to_regclass(%s)::text", (table_name,))
+        table_ref = cur.fetchone()[0]
+        if not table_ref:
+            raise ProducerError(
+                REASON_SOURCE_MISSING,
+                f"Required source table missing: {table_name}",
+            )
+
+
+def assert_source_freshness(cur):
+    checks = [
+        (
+            "mkt.futures_1d (symbol=ZL)",
+            """
+            SELECT CURRENT_DATE - MAX(event_date)::date
+            FROM mkt.futures_1d
+            WHERE symbol = 'ZL'
+            """,
+        ),
+        (
+            "econ.vol_indices_1d (series_id=VIXCLS)",
+            """
+            SELECT CURRENT_DATE - MAX(event_date)::date
+            FROM econ.vol_indices_1d
+            WHERE series_id = 'VIXCLS'
+            """,
+        ),
+    ]
+    for source_name, sql in checks:
+        cur.execute(sql)
+        stale_days = cur.fetchone()[0]
+        if stale_days is None:
+            raise ProducerError(
+                REASON_SOURCE_STALE,
+                f"Source freshness check has no data: {source_name}",
+            )
+        if stale_days > TRUMP_SOURCE_STALE_LIMIT_DAYS:
+            raise ProducerError(
+                REASON_SOURCE_STALE,
+                f"Source stale: {source_name} is {stale_days}d old (limit {TRUMP_SOURCE_STALE_LIMIT_DAYS}d).",
+            )
+
+
+def assert_ingest_run_tracking_table(cur):
+    cur.execute("SELECT to_regclass('ops.ingest_run')::text")
+    tracking_table = cur.fetchone()[0]
+    if not tracking_table:
+        raise ProducerError(
+            REASON_SOURCE_MISSING,
+            "Required tracking table missing: ops.ingest_run",
+        )
+
+
+def mark_current_run_failed(reason_code: str, message: str):
+    global CURRENT_RUN_ID, CURRENT_DB_FINGERPRINT
+    if not CURRENT_RUN_ID:
+        return
+    conn = None
+    try:
+        conn = psycopg2.connect(resolve_database_url())
+        finish_ingest_run(
+            conn=conn,
+            run_id=CURRENT_RUN_ID,
+            status="error",
+            reason_code=reason_code,
+            error_message=f"[{reason_code}] {message}",
+            db_fingerprint=CURRENT_DB_FINGERPRINT,
+        )
+    except Exception:
+        # Avoid masking the original failure with ingest-run finalize errors.
+        pass
+    finally:
+        if conn:
+            conn.close()
+
+
+def validate_trump_payload_contract(payload):
+    """Enforce canonical key contract for training.specialist_features_trump_effect."""
+    missing = [k for k in REQUIRED_TRUMP_PAYLOAD_KEYS if k not in payload]
+    if missing:
+        raise ValueError(f"Missing required Trump payload keys: {missing}")
+
+    bad_numeric = [
+        key
+        for key in REQUIRED_TRUMP_PAYLOAD_KEYS
+        if not isinstance(payload[key], (int, float))
+    ]
+    if bad_numeric:
+        raise ValueError(f"Non-numeric Trump payload values for keys: {bad_numeric}")
 
 
 # =============================================================================
@@ -247,6 +478,8 @@ def calculate_neural_signal(
 
 
 def main():
+    global CURRENT_RUN_ID, CURRENT_DB_FINGERPRINT
+
     print("\n" + "=" * 70)
     print("ZINC-FUSION-V15: REFRESH TRUMP EFFECT WITH NEURAL-ENHANCED SCORING")
     print("=" * 70)
@@ -254,6 +487,24 @@ def main():
     conn = get_connection()
     cur = conn.cursor()
     print("✅ Connected to database")
+
+    assert_ingest_run_tracking_table(cur)
+    CURRENT_RUN_ID = create_ingest_run(cur)
+    conn.commit()
+
+    CURRENT_DB_FINGERPRINT = get_db_fingerprint(cur)
+    print(
+        "✅ DB fingerprint:",
+        f"db={CURRENT_DB_FINGERPRINT['database']},",
+        f"schema={CURRENT_DB_FINGERPRINT['schema']},",
+        f"host={CURRENT_DB_FINGERPRINT['host']},",
+        f"port={CURRENT_DB_FINGERPRINT['port']}",
+    )
+
+    # Fail loud on missing/stale dependencies before any payload writes.
+    assert_required_source_tables(cur)
+    assert_source_freshness(cur)
+    print("✅ Producer source preflight checks passed")
 
     # =========================================================================
     # STEP 1: Load all WhiteHouse actions
@@ -609,17 +860,24 @@ def main():
     print("=" * 60)
 
     # Keep one canonical storage path: specialist_features_trump_effect + specialist_signals_1d
-    cur.execute(f"DELETE FROM {TRUMP_FEATURE_TABLE}")
-    conn.commit()
-    print("  Cleared existing trump_effect payload rows")
+    # Upsert in place (no pre-delete) so a failed run never leaves the table empty.
+    print("  Upserting trump_effect payload rows (durable in-place update)")
 
     sync_count = 0
     for row in features_rows:
         as_of_date = row[0]
         eo_count_7d = row[1]
         eo_count_30d = row[2]
+        proclamation_count_7d = row[3]
+        proclamation_count_30d = row[4]
+        nomination_count_7d = row[5]
+        nomination_count_30d = row[6]
+        memorandum_count_7d = row[7]
+        memorandum_count_30d = row[8]
         total_actions_7d = row[9]
         total_actions_30d = row[10]
+        avg_sentiment_7d = row[11]
+        avg_sentiment_30d = row[12]
         action_velocity = row[13]
         action_acceleration = row[14]
         weighted_score = row[15]
@@ -640,42 +898,49 @@ def main():
         neural_confidence = nf.get("neural_confidence", 0.3)
 
         # Build comprehensive features JSON with all neural components
-        features_json = json.dumps(
-            {
-                # Era and basic counts
-                "era": era,
-                "eo_count_7d": eo_count_7d,
-                "eo_count_30d": eo_count_30d,
-                "total_actions_7d": total_actions_7d,
-                "total_actions_30d": total_actions_30d,
-                # Action dynamics
-                "action_velocity": round(action_velocity, 4) if action_velocity else 0,
-                "action_acceleration": round(action_acceleration, 4)
-                if action_acceleration
-                else 0,
-                "weighted_action_score": round(weighted_score, 4)
-                if weighted_score
-                else 0,
-                # Neural enhancers
-                "epu_7d": nf.get("epu_7d"),
-                "epu_30d": nf.get("epu_30d"),
-                "china_tpu_7d": nf.get("china_tpu_7d"),
-                "vix_7d": nf.get("vix_7d"),
-                "vix_30d": nf.get("vix_30d"),
-                "zl_momentum_7d": nf.get("zl_momentum_7d"),
-                # Neural factors
-                "epu_factor": nf.get("epu_factor", 1.0),
-                "vix_factor": nf.get("vix_factor", 1.0),
-                "momentum_factor": nf.get("momentum_factor", 1.0),
-                "era_multiplier": nf.get("era_multiplier", 1.0),
-                # Signal components
-                "base_signal": nf.get("base_signal", 0.0),
-                "neural_signal": neural_signal,
-                "neural_confidence": neural_confidence,
-                # Metadata
-                "scoring_version": "neural-v2",
-            }
-        )
+        payload = {
+            # Era and basic counts
+            "era": era,
+            "eo_count_7d": int(eo_count_7d or 0),
+            "eo_count_30d": int(eo_count_30d or 0),
+            "proclamation_count_7d": int(proclamation_count_7d or 0),
+            "proclamation_count_30d": int(proclamation_count_30d or 0),
+            "memorandum_count_7d": int(memorandum_count_7d or 0),
+            "memorandum_count_30d": int(memorandum_count_30d or 0),
+            "nomination_count_7d": int(nomination_count_7d or 0),
+            "nomination_count_30d": int(nomination_count_30d or 0),
+            "total_actions_7d": int(total_actions_7d or 0),
+            "total_actions_30d": int(total_actions_30d or 0),
+            "avg_sentiment_7d": float(avg_sentiment_7d or 0),
+            "avg_sentiment_30d": float(avg_sentiment_30d or 0),
+            # Action dynamics
+            "action_velocity": round(float(action_velocity or 0), 4),
+            "action_acceleration": round(float(action_acceleration or 0), 4),
+            "weighted_action_score": round(float(weighted_score or 0), 4),
+            # Neural enhancers
+            "epu_7d": float(nf.get("epu_7d") or 0),
+            "epu_30d": float(nf.get("epu_30d") or 0),
+            "china_tpu_7d": float(nf.get("china_tpu_7d") or 0),
+            "vix_7d": float(nf.get("vix_7d") or 0),
+            "vix_30d": float(nf.get("vix_30d") or 0),
+            "zl_momentum_7d": float(nf.get("zl_momentum_7d") or 0),
+            # Neural factors
+            "epu_factor": float(nf.get("epu_factor") or 1.0),
+            "vix_factor": float(nf.get("vix_factor") or 1.0),
+            "momentum_factor": float(nf.get("momentum_factor") or 1.0),
+            "era_multiplier": float(nf.get("era_multiplier") or 1.0),
+            # Signal components
+            "base_signal": float(nf.get("base_signal") or 0.0),
+            "neural_signal": float(neural_signal or 0),
+            "neural_confidence": float(neural_confidence or 0),
+            # Metadata
+            "scoring_version": "neural-v2",
+        }
+        try:
+            validate_trump_payload_contract(payload)
+        except ValueError as exc:
+            raise ProducerError(REASON_CONTRACT_FAIL, str(exc)) from exc
+        features_json = json.dumps(payload)
 
         cur.execute(
             """
@@ -811,6 +1076,26 @@ def main():
             f"era={row[3]}, actions_7d={row[4]}"
         )
 
+    run_hash_seed = (
+        f"{features_rows[0][0] if features_rows else 'NA'}|"
+        f"{features_rows[-1][0] if features_rows else 'NA'}|"
+        f"{sync_count}|neural-v2"
+    )
+    run_hash = hashlib.sha256(run_hash_seed.encode("utf-8")).hexdigest()[:16]
+    finish_ingest_run(
+        conn=conn,
+        run_id=CURRENT_RUN_ID,
+        status="success",
+        rows_attempted=len(features_rows),
+        rows_inserted=sync_count,
+        rows_skipped=max(0, len(features_rows) - sync_count),
+        rows_quarantined=0,
+        reason_code=None,
+        error_message=None,
+        run_hash=run_hash,
+        db_fingerprint=CURRENT_DB_FINGERPRINT,
+    )
+
     cur.close()
     conn.close()
 
@@ -831,4 +1116,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ProducerError as exc:
+        print(f"[{exc.reason_code}] {exc}")
+        mark_current_run_failed(exc.reason_code, str(exc))
+        raise
+    except Exception as exc:
+        print(f"[{REASON_UNKNOWN_ERROR}] {exc}")
+        mark_current_run_failed(REASON_UNKNOWN_ERROR, str(exc))
+        raise

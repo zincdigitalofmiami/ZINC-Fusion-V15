@@ -2565,6 +2565,17 @@ def main():
                 logger.warning(f"Unknown bucket: {bucket_name}")
                 continue
 
+            # Canonical producer guard:
+            # trump_effect payload contract is owned by scripts/refresh_trump_effect_features.py.
+            # This script must never overwrite training.specialist_features_trump_effect
+            # with an incompatible JSON shape (e.g., trump_bucket_signal-only payloads).
+            if bucket_name == "trump_effect":
+                logger.error(
+                    "Skipping trump_effect write in generate_specialist_features.py. "
+                    "Use scripts/refresh_trump_effect_features.py for canonical payload."
+                )
+                continue
+
             bucket_config = SPECIALIST_BUCKETS[bucket_name]
 
             # Option B: Load FRED data per-bucket (queries only 1-2 tables, not all 7)

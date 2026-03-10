@@ -10,6 +10,11 @@ import {
   TrumpEffectMetric,
   RegimeState,
 } from "@/components/policy/types";
+import {
+  resolveTrumpEffectSnapshot,
+  TRUMP_EFFECT_DEFAULT_TTL_DAYS,
+  TRUMP_EFFECT_LIVE_MAX_AGE_DAYS,
+} from "@/lib/services/trump-effect-source";
 
 // ===========================================
 // SCORING CONSTANTS (Matched to Python Logic)
@@ -23,6 +28,21 @@ const EPU_THRESHOLDS = {
   ELEVATED: 175,
   HIGH: 250,
 };
+
+function isFiniteMetricValue(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function hasValidTrumpMetricContract(row: TrumpEffectMetric): boolean {
+  return [
+    row.velocity,
+    row.acceleration,
+    row.score,
+    row.neural_signal,
+    row.neural_confidence,
+    row.epu_7d,
+  ].every(isFiniteMetricValue);
+}
 
 export interface PolicyNewsItem {
   id: number;
@@ -174,21 +194,78 @@ export class PolicyService {
     const sql = `
       SELECT
         as_of_date as date,
-        (features->>'action_velocity')::float8 as velocity,
-        (features->>'action_acceleration')::float8 as acceleration,
-        (features->>'weighted_action_score')::float8 as score,
-        (features->>'neural_signal')::float8 as neural_signal,
-        (features->>'neural_confidence')::float8 as neural_confidence,
-        (features->>'epu_7d')::float8 as epu_7d
+        NULLIF(features->>'action_velocity', '')::float8 as velocity,
+        NULLIF(features->>'action_acceleration', '')::float8 as acceleration,
+        NULLIF(features->>'weighted_action_score', '')::float8 as score,
+        NULLIF(features->>'neural_signal', '')::float8 as neural_signal,
+        NULLIF(features->>'neural_confidence', '')::float8 as neural_confidence,
+        NULLIF(features->>'epu_7d', '')::float8 as epu_7d
       FROM training.specialist_features_trump_effect
       ORDER BY as_of_date DESC
       LIMIT $1
     `;
-    const rows = await query<TrumpEffectMetric>(sql, [days]);
-    return rows.map((row) => ({
-      ...row,
-      date: new Date(row.date).toISOString().split("T")[0],
-    }));
+    const rows = await query<TrumpEffectMetric>(sql, [days]).catch(() => []);
+    const now = Date.now();
+
+    const withinTtl = rows
+      .map((row) => {
+        const date = new Date(row.date);
+        const parsedMs = date.getTime();
+        const staleDays = Number.isFinite(parsedMs)
+          ? Math.max(0, Math.floor((now - parsedMs) / 86_400_000))
+          : TRUMP_EFFECT_DEFAULT_TTL_DAYS + 1;
+        const dateIso = Number.isFinite(parsedMs)
+          ? date.toISOString().split("T")[0]
+          : new Date(now).toISOString().split("T")[0];
+        return {
+          ...row,
+          date: dateIso,
+          staleDays,
+          source:
+            staleDays <= TRUMP_EFFECT_LIVE_MAX_AGE_DAYS
+              ? ("feature_payload" as const)
+              : staleDays <= TRUMP_EFFECT_DEFAULT_TTL_DAYS
+                ? ("last_known" as const)
+                : ("unavailable" as const),
+          reasonCode:
+            staleDays > TRUMP_EFFECT_DEFAULT_TTL_DAYS
+              ? ("STALE_EXPIRED" as const)
+              : undefined,
+        };
+      })
+      // Contract guard: malformed feature rows must not bypass snapshot fallback.
+      .filter(
+        (row) =>
+          row.source !== "unavailable" && hasValidTrumpMetricContract(row),
+      );
+
+    if (withinTtl.length > 0) {
+      return withinTtl;
+    }
+
+    const snapshot = await resolveTrumpEffectSnapshot(query, {
+      ttlDays: TRUMP_EFFECT_DEFAULT_TTL_DAYS,
+    });
+    if (snapshot.meta.source === "unavailable") {
+      return [];
+    }
+
+    return [
+      {
+        date:
+          snapshot.meta.asOf ??
+          new Date().toISOString().split("T")[0],
+        velocity: snapshot.values.action_velocity,
+        acceleration: snapshot.values.action_acceleration,
+        score: snapshot.values.weighted_action_score,
+        neural_signal: snapshot.values.neural_signal,
+        neural_confidence: snapshot.values.neural_confidence,
+        epu_7d: snapshot.values.epu_7d,
+        source: snapshot.meta.source,
+        staleDays: snapshot.meta.staleDays,
+        reasonCode: snapshot.meta.reasonCode ?? undefined,
+      },
+    ];
   }
 
   /**
@@ -298,9 +375,9 @@ export class PolicyService {
         ORDER BY event_date DESC LIMIT 1
       `),
       query<{ signal: number; dt: string }>(`
-        SELECT (features->>'neural_signal')::float8 as signal, as_of_date::text as dt
+        SELECT NULLIF(features->>'neural_signal', '')::float8 as signal, as_of_date::text as dt
         FROM training.specialist_features_trump_effect
-        WHERE (features->>'neural_signal') IS NOT NULL
+        WHERE NULLIF(features->>'neural_signal', '') ~ '^-?[0-9]+(\\.[0-9]+)?$'
         ORDER BY as_of_date DESC LIMIT 1
       `),
       // Legislation velocity: trade/tariff + biofuel/EPA/energy policy

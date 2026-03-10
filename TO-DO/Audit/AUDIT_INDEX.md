@@ -57,8 +57,8 @@
 
 ### 3. Vegas Domain Migration & Schema Drift Audit (2026-03-05)
 
-**Status:** ✅ COMPLETE  
-**Location:** `TO-DO/Audit/2026-03-05_vegas_migration_drift_audit.md`  
+**Status:** ✅ COMPLETE
+**Location:** `TO-DO/Audit/2026-03-05_vegas_migration_drift_audit.md`
 **Backup Copy:** `Audits To BE DONE/2026-03-05_vegas_migration_drift_audit.md`
 
 **Summary:**
@@ -68,7 +68,30 @@
 - `glide_row_id` unique constraints missing in Prisma models
 - PredictHQ expansion columns missing from `vegas_events` model
 - Public sync endpoint performs unguarded `TRUNCATE`
-- Local DB tooling drift was identified and remediated (`db_identity_guard.py`, `sync_cloud_to_local_db.py`, `backfill_model_runs_event.py`, `check_local_v15_parity.sql`)
+- `check_local_v15_parity.sql` was missing at audit time; script now exists in `scripts/`
+
+---
+
+### 4. Specialist Domain Audit (2026-03-05)
+
+**Status:** ✅ COMPLETE
+**Location:** `TO-DO/Audit/2026-03-05_specialist_domain_audit.md`
+
+**Summary:**
+
+- P0 Critical: 5/11 specialists missing model artifacts (fed, tariff, biofuel, volatility, trump_effect)
+- P1 High: Staleness age computed at sync time, not data generation time
+- P1 High: Palm model_type mismatch (Python: `ecm_ridge`, Inngest: `ridge`)
+- P2 Medium: trump_effect has no confidence key (always fallback 0.5)
+- P2 Medium: Per-bucket freshness monitoring missing (only aggregate check)
+- P2 Medium: Prior audit remediation status unknown
+
+**Verified Correct:**
+
+- All 11 buckets present in Python, Inngest, migrations, Prisma
+- Signal column naming: `sig_{bucket}_1`, `sig_{bucket}_2`, `sig_{bucket}_conf`
+- Schema-to-database parity confirmed
+- Cron schedules appropriate (sync at 7AM UTC, monitor at 8AM CT)
 
 ---
 
@@ -117,17 +140,9 @@ These are code-level issues discovered during audit searches, not audit document
 
 ## Audit Infrastructure Gaps
 
-### Resolved Script Gaps
+### Script Status
 
-- `scripts/check_local_v15_parity.sql` created
-- `scripts/sync_cloud_to_local_db.py` created
-- `scripts/backfill_model_runs_event.py` created
-- `scripts/db_identity_guard.py` created
-- `Makefile` targets added: `db-guard-cloud`, `db-guard-local`, `db-guard-shadow`, `db-parity-local`
-
-### Remaining Blocker
-
-- `db-guard-cloud` requires `CLOUD_DATABASE_URL` (or direct cloud DB env vars) in the active shell; currently unset in this workspace session
+- `scripts/check_local_v15_parity.sql` exists and is tracked in this repository state.
 
 ### Documentation Drift
 
@@ -141,5 +156,5 @@ These are code-level issues discovered during audit searches, not audit document
 1. **Complete Phase 1A Training** — Prerequisite for Phase 4B/4C audits
 2. **Execute Specialist Audit Remediation Plan** — Phases A-E from 2026-02-14 audit
 3. **Resolve Vegas Schema Split** — Follow remediation steps in Vegas audit
-4. **Run Cloud Guard With Real Env** — Set `CLOUD_DATABASE_URL` and execute `make db-guard-cloud`
+4. **Run Local Parity Script** — execute `scripts/check_local_v15_parity.sql` against the target local DB
 5. **Clean Up Audit Copies** — Consolidate Pre-Rebuild Forecast Audit references

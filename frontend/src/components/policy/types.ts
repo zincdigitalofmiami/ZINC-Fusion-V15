@@ -53,6 +53,14 @@ export interface TrumpEffectMetric {
   neural_signal?: number | null;
   neural_confidence?: number | null;
   epu_7d?: number | null;
+  source?: "feature_payload" | "last_known" | "signal_proxy" | "unavailable";
+  staleDays?: number | null;
+  reasonCode?:
+    | "MISSING_TABLE"
+    | "NO_ROWS"
+    | "MISSING_KEYS"
+    | "NON_NUMERIC_KEYS"
+    | "STALE_EXPIRED";
 }
 
 export interface PolicyUncertaintyIndex {
