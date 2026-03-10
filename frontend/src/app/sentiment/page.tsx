@@ -1096,26 +1096,6 @@ function FearGreedGauge({ score }: { score: number }) {
         strokeLinecap="round"
       />
       <circle cx="150" cy="150" r="8" fill="white" />
-      <text
-        x="15"
-        y="165"
-        fill="#64748b"
-        fontSize="11"
-        fontWeight="bold"
-        fontFamily="monospace"
-      >
-        FEAR
-      </text>
-      <text
-        x="240"
-        y="165"
-        fill="#64748b"
-        fontSize="11"
-        fontWeight="bold"
-        fontFamily="monospace"
-      >
-        GREED
-      </text>
     </svg>
   );
 }
