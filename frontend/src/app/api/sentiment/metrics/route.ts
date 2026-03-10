@@ -389,14 +389,36 @@ export async function GET() {
     const trumpActions = trump?.as_of_date
       ? await safe(
           query<ExecutiveActionRow>(
-            `SELECT event_date::text,
-                    document_type,
-                    zl_sentiment,
-                    headline,
-                    content
-             FROM alt.executive_actions_event
-             WHERE event_date >= ($1::date - INTERVAL '29 days')
-               AND event_date <= $1::date
+            `WITH action_events AS (
+               SELECT event_date::text AS event_date,
+                      document_type,
+                      zl_sentiment,
+                      headline,
+                      content
+               FROM alt.executive_actions_event
+               WHERE event_date >= ($1::date - INTERVAL '29 days')
+                 AND event_date <= $1::date
+
+               UNION ALL
+
+               SELECT event_date::text AS event_date,
+                      CASE
+                        WHEN title ILIKE '%executive order%' THEN 'executive_order'
+                        WHEN title ILIKE '%proclamation%' THEN 'proclamation'
+                        WHEN title ILIKE '%memorandum%' THEN 'memorandum'
+                        WHEN title ILIKE '%nomination%' OR title ILIKE '%appoint%' THEN 'nomination'
+                        ELSE 'presidential_document'
+                      END AS document_type,
+                      NULL::text AS zl_sentiment,
+                      title AS headline,
+                      NULL::text AS content
+               FROM alt.legislation_1d
+               WHERE document_type = 'Presidential Document'
+                 AND event_date >= ($1::date - INTERVAL '29 days')
+                 AND event_date <= $1::date
+             )
+             SELECT event_date, document_type, zl_sentiment, headline, content
+             FROM action_events
              ORDER BY event_date DESC`,
             [trump.as_of_date],
           ),

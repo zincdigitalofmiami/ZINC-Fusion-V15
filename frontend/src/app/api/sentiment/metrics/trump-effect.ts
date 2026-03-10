@@ -72,8 +72,18 @@ function toRounded(value: number, digits: number): number {
   return Number(value.toFixed(digits));
 }
 
+function normalizeActionType(documentType: string | null): string | null {
+  const key = documentType?.toLowerCase().trim();
+  if (!key) return null;
+  if (key === "executive order") return "executive_order";
+  if (key === "presidential memorandum") return "presidential_memorandum";
+  if (key === "nomination appointment") return "nomination_appointment";
+  if (key === "presidential document") return "presidential_document";
+  return key;
+}
+
 function scoreWeightForDocType(documentType: string | null): number {
-  const key = documentType?.toLowerCase();
+  const key = normalizeActionType(documentType);
   if (key === "executive_order") return 3.0;
   if (key === "presidential_memorandum" || key === "memorandum") return 2.5;
   if (key === "proclamation") return 1.5;
@@ -131,7 +141,7 @@ export function buildTrumpEffectPayload(
     const sentimentValue = sentimentToNumeric(row);
     sentimentSum30d += sentimentValue;
     sentimentCount30d += 1;
-    const docType = row.document_type?.toLowerCase() ?? null;
+    const docType = normalizeActionType(row.document_type);
 
     if (eventDate >= start7d) {
       totalActions7d += 1;
@@ -141,8 +151,12 @@ export function buildTrumpEffectPayload(
 
       if (docType === "executive_order") eoCount7d += 1;
       if (docType === "proclamation") proclamationCount7d += 1;
-      if (docType === "presidential_memorandum") memorandumCount7d += 1;
-      if (docType === "nomination_appointment") nominationCount7d += 1;
+      if (docType === "presidential_memorandum" || docType === "memorandum") {
+        memorandumCount7d += 1;
+      }
+      if (docType === "nomination_appointment" || docType === "nomination") {
+        nominationCount7d += 1;
+      }
     }
 
     if (eventDate >= previousWeekStart && eventDate <= previousWeekEnd) {
