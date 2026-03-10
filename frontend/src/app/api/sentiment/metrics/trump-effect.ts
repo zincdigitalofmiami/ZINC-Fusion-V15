@@ -131,7 +131,7 @@ export function buildTrumpEffectPayload(
     const sentimentValue = sentimentToNumeric(row);
     sentimentSum30d += sentimentValue;
     sentimentCount30d += 1;
-    const docType = row.document_type?.toLowerCase();
+    const docType = row.document_type?.toLowerCase() ?? null;
 
     if (eventDate >= start7d) {
       totalActions7d += 1;
