@@ -7,7 +7,7 @@
  * - China: fredDailyFx (DEXCHUS)
  * - Tariff: fredDailyTrumpEffect (USEPUINDXM, EMVTRADEPOLEMV)
  * - Trump orchestration gate: trumpEffectRefreshAndSync
- * - Specialist Signals: triggered by orchestration only after producer SLA passes
+ * - Specialist Signals: dispatched by orchestration only after producer SLA passes
  */
 
 import { NextResponse } from 'next/server'
@@ -18,13 +18,15 @@ export const dynamic = 'force-dynamic'
 
 const REFRESH_GATE_JOB_NAME = 'manual_refresh_drivers'
 const MIN_REFRESH_INTERVAL_MS = 60_000 // 1 minute
-// Process-local fallback only used when DB gate is unavailable.
+const ALLOW_MEMORY_GATE_FALLBACK =
+  process.env.REFRESH_DRIVERS_ALLOW_MEMORY_GATE_FALLBACK === 'true'
+// Process-local fallback is opt-in only and disabled by default in production.
 let lastRefreshAt = 0
 
 async function acquireRefreshGate(): Promise<{
   allowed: boolean
   runId: string | null
-  mode: 'db' | 'memory'
+  mode: 'db' | 'memory' | 'unavailable'
 }> {
   const dbRows = await query<{ id: string }>(
     `
@@ -69,6 +71,10 @@ async function acquireRefreshGate(): Promise<{
 
   if (dbRows !== null) {
     return { allowed: Boolean(dbRows[0]?.id), runId: dbRows[0]?.id ?? null, mode: 'db' }
+  }
+
+  if (!ALLOW_MEMORY_GATE_FALLBACK) {
+    return { allowed: false, runId: null, mode: 'unavailable' }
   }
 
   const now = Date.now()
@@ -121,6 +127,17 @@ async function finalizeRefreshGate({
 export async function POST() {
   const gate = await acquireRefreshGate()
   if (!gate.allowed) {
+    if (gate.mode === 'unavailable') {
+      return NextResponse.json(
+        {
+          status: 'gate_unavailable',
+          message: 'Refresh gate unavailable: ops.ingest_run check failed',
+          gateMode: gate.mode,
+        },
+        { status: 503 },
+      )
+    }
+
     return NextResponse.json(
       { status: 'rate_limited', message: 'Please wait 60s between refreshes' },
       { status: 429 },
@@ -213,7 +230,9 @@ export async function GET() {
     available: true,
     method: 'POST',
     description: 'Triggers manual refresh of driver data (VIX, Crush, China, Tariff)',
-    rateLimit: '60s cooldown (DB-backed, process-local fallback)',
+    rateLimit: ALLOW_MEMORY_GATE_FALLBACK
+      ? '60s cooldown (DB-backed, memory fallback enabled)'
+      : '60s cooldown (DB-backed only; fail-closed if gate unavailable)',
     functions: [
       'fred-daily-volatility (VIX, VIX3M, OVX)',
       'board-crush-daily (Board Crush, Oil Share)',

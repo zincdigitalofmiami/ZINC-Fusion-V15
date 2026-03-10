@@ -1271,6 +1271,7 @@ model ingest_run {
   quarantined_record quarantined_record[]
 
   @@index([job_name, started_at], map: "idx_ingest_run_job_started")
+  @@index([job_name, status, completed_at(sort: Desc)], map: "idx_ingest_run_job_status_completed")
   @@schema("ops")
 }
 

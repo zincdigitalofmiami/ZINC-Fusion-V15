@@ -29,6 +29,21 @@ const EPU_THRESHOLDS = {
   HIGH: 250,
 };
 
+function isFiniteMetricValue(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function hasValidTrumpMetricContract(row: TrumpEffectMetric): boolean {
+  return [
+    row.velocity,
+    row.acceleration,
+    row.score,
+    row.neural_signal,
+    row.neural_confidence,
+    row.epu_7d,
+  ].every(isFiniteMetricValue);
+}
+
 export interface PolicyNewsItem {
   id: number;
   event_date: string;
@@ -195,13 +210,16 @@ export class PolicyService {
     const withinTtl = rows
       .map((row) => {
         const date = new Date(row.date);
-        const staleDays = Math.max(
-          0,
-          Math.floor((now - date.getTime()) / 86_400_000),
-        );
+        const parsedMs = date.getTime();
+        const staleDays = Number.isFinite(parsedMs)
+          ? Math.max(0, Math.floor((now - parsedMs) / 86_400_000))
+          : TRUMP_EFFECT_DEFAULT_TTL_DAYS + 1;
+        const dateIso = Number.isFinite(parsedMs)
+          ? date.toISOString().split("T")[0]
+          : new Date(now).toISOString().split("T")[0];
         return {
           ...row,
-          date: date.toISOString().split("T")[0],
+          date: dateIso,
           staleDays,
           source:
             staleDays <= TRUMP_EFFECT_LIVE_MAX_AGE_DAYS
@@ -215,7 +233,11 @@ export class PolicyService {
               : undefined,
         };
       })
-      .filter((row) => row.source !== "unavailable");
+      // Contract guard: malformed feature rows must not bypass snapshot fallback.
+      .filter(
+        (row) =>
+          row.source !== "unavailable" && hasValidTrumpMetricContract(row),
+      );
 
     if (withinTtl.length > 0) {
       return withinTtl;

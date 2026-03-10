@@ -757,19 +757,39 @@ export const trumpEffectRefreshAndSync = inngest.createFunction(
 					producerRun,
 					dbFingerprint: producerGuardPost.dbFingerprint,
 				},
-				"Trump producer SLA not satisfied after orchestration; dispatching specialist sync with trump bucket guard",
+				"Trump producer SLA not satisfied after orchestration; specialist sync NOT dispatched",
 			);
-		} else {
-			logger.info(
-				{
-					precheck: producerGuardPre.guard,
-					postcheck: producerGuardPost.guard,
-					producerRun,
-					dbFingerprint: producerGuardPost.dbFingerprint,
-				},
-				"Trump producer orchestration succeeded; dispatching specialist sync",
-			);
+
+			return {
+				status: "blocked_by_producer_sla",
+				reason_code:
+					producerGuardPost.guard.reason_code ?? producerRun.reason_code,
+				reason: producerGuardPost.guard.reason,
+				producer_completed_at: producerGuardPost.guard.producer_completed_at,
+				producer_age_hours: producerGuardPost.guard.producer_age_hours,
+				max_age_hours: producerGuardPost.guard.max_age_hours,
+				producer_last_status: producerGuardPost.guard.producer_last_status,
+				producer_last_reason_code:
+					producerGuardPost.guard.producer_last_reason_code,
+				producer_last_completed_at:
+					producerGuardPost.guard.producer_last_completed_at,
+				precheck: producerGuardPre.guard,
+				producerRun,
+				postcheck: producerGuardPost.guard,
+				dbFingerprint: producerGuardPost.dbFingerprint,
+				dispatchResult: null,
+			};
 		}
+
+		logger.info(
+			{
+				precheck: producerGuardPre.guard,
+				postcheck: producerGuardPost.guard,
+				producerRun,
+				dbFingerprint: producerGuardPost.dbFingerprint,
+			},
+			"Trump producer orchestration succeeded; dispatching specialist sync",
+		);
 
 		const dispatchResult = await step.run("trigger-specialist-sync", async () =>
 			inngest.send({
@@ -789,9 +809,7 @@ export const trumpEffectRefreshAndSync = inngest.createFunction(
 		);
 
 		return {
-			status: producerGuardPost.guard.ok
-				? "triggered"
-				: "triggered_with_trump_guard",
+			status: "triggered",
 			reason_code: producerGuardPost.guard.reason_code ?? producerRun.reason_code,
 			reason: producerGuardPost.guard.reason,
 			producer_completed_at: producerGuardPost.guard.producer_completed_at,
