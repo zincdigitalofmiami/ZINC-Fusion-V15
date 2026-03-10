@@ -179,6 +179,9 @@ export async function GET() {
       rawData.oilShare,
       rawData.oilShare5dAgo,
       rawData.crushSignal,
+      rawData.crushNewsCount,
+      rawData.soybeanMealNewsCount,
+      rawData.cornNewsCount,
     );
     const chinaResult = calculateChinaTension(
       rawData.hgChange20d,

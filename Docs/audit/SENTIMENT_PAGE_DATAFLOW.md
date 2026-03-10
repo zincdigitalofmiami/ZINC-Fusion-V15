@@ -23,7 +23,8 @@ Source tables:
 
 Derived:
 - `sentiment` via route classifier
-- lane label from `alt.policy_news_event.source` when source matches `google_news/<lane>/<publication>`
+- lane labels from canonical Google News lane tags (`specialist_tags` entries like `lane_<slug>`)
+- legacy fallback lane parsing from `source` when old rows follow `google_news/<lane>/<publication>`
 
 ### `GET /api/sentiment/cot`
 Source table:
@@ -138,8 +139,10 @@ Ingestion lanes (from `googleNewsDaily`):
 - `biofuel`
 
 Stored lane identity:
-- `source = google_news/<lane>/<publication>`
-- specialist tags include lane tag `lane_<lane>`
+- Canonical row model: one dated row per article (`row_hash` article-level, not lane-level)
+- `source = google_news/<publication>` for canonical rows
+- lane attribution in `specialist_tags` via `lane_<lane>`
+- legacy rows may still exist as `google_news/<lane>/<publication>`; consumers parse both forms
 
 Date integrity rules:
 - Missing `pubDate` rows are rejected.
@@ -147,6 +150,7 @@ Date integrity rules:
 - Stale rows older than `MAX_NEWS_ITEM_AGE_DAYS` are rejected.
 - Excessive future-skew rows are rejected.
 - Inserted rows keep usable `event_date` and `published_at` for downstream ZL alignment.
+- Same article matching multiple lanes is stored once with multiple lane tags (no per-lane row multiplication).
 
 ## Trump/Policy Card Math
 
@@ -240,14 +244,15 @@ Band:
 - ZL response magnitude/signal
 
 ## What Was Wrong
-- Google News context was active but not explicitly lane-segmented for UI/consumer visibility.
+- Google News context previously multiplied rows across lanes when one article matched multiple lanes.
+- That inflated raw daily `news_count` features in training because `build_matrix.py` counts rows by `event_date` across news tables.
 - Google News date acceptance was too loose for training-sensitive `event_date` downstream use.
 - Card copy split corroboration and buyer text as separate blocks; product direction moved this into a single procurement outlook section.
 
 ## Current Correct Flow
 - Exact tables drive primary policy counters.
 - Context/news tables drive corroboration only.
-- Google News rows are lane-tagged and date-gated before insertion.
+- Google News rows are canonicalized (one row/article), lane-tagged, and date-gated before insertion.
 - Card stays ZL-anchored with procurement outlook that includes corroboration context.
 
 ## Known Caveats

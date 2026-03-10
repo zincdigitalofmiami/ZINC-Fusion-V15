@@ -357,7 +357,8 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       : null
     const crushScore = crush !== null
       ? calculateCrushPressure(crush, rawData.oilShare, rawData.oilShare5dAgo,
-          rawData.crushSignal).score
+          rawData.crushSignal, rawData.crushNewsCount, rawData.soybeanMealNewsCount,
+          rawData.cornNewsCount).score
       : null
     const chinaScore = cny !== null
       ? calculateChinaTension(rawData.hgChange20d, rawData.hgChange5d, cny,
@@ -401,9 +402,9 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         score: crushScore ?? 0,
         status: crushScore === null ? 'NO DATA' : crushScore >= 65 ? 'TIGHT' : crushScore <= 35 ? 'FLUSH' : 'NORMAL',
         impact: crushScore === null ? 'Crush data unavailable — score excluded from average' :
-                crushScore >= 65 ? `Plants slowing at USD ${crush!.toFixed(2)}/bu - supply tightening` :
-                crushScore <= 35 ? `Plants running full at USD ${crush!.toFixed(2)}/bu - plenty of oil` :
-                `Normal margins at USD ${crush!.toFixed(2)}/bu`,
+                crushScore >= 65 ? `Plants slowing at USD ${crush!.toFixed(2)}/bu - supply tightening | News pulse C/M/C: ${rawData.crushNewsCount}/${rawData.soybeanMealNewsCount}/${rawData.cornNewsCount}` :
+                crushScore <= 35 ? `Plants running full at USD ${crush!.toFixed(2)}/bu - plenty of oil | News pulse C/M/C: ${rawData.crushNewsCount}/${rawData.soybeanMealNewsCount}/${rawData.cornNewsCount}` :
+                `Normal margins at USD ${crush!.toFixed(2)}/bu | News pulse C/M/C: ${rawData.crushNewsCount}/${rawData.soybeanMealNewsCount}/${rawData.cornNewsCount}`,
         rawValue: crush,
         unit: 'USD/bushel',
         asOfDate: crushDate,

@@ -28,6 +28,9 @@ export interface MarketDriversRawData {
   oilShare: number | null;
   oilShare5dAgo: number | null;
   crushSignal: number | null;
+  crushNewsCount: number;
+  soybeanMealNewsCount: number;
+  cornNewsCount: number;
   // China
   cnyRate: number | null;
   cnyDate: string | null;
@@ -73,6 +76,9 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     hedgeNewsRows,
     crushRows,
     oilShare5dRows,
+    crushNewsRows,
+    soybeanMealNewsRows,
+    cornNewsRows,
     cnyRows,
     cnyChangeRows,
     hgRows,
@@ -133,12 +139,33 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
       FROM vix_changes v JOIN zl_changes z ON v.event_date = z.event_date
       WHERE v.vix_change IS NOT NULL AND z.zl_ret IS NOT NULL
     `),
-    // ProFarmer Hedge Sentiment (7 days)
+    // Hedge/volatility news signal (7 days) across policy/econ/alt sources
     query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND (content ILIKE '%hedge%' OR content ILIKE '%hedging%' OR content ILIKE '%volatility%'
-           OR content ILIKE '%options%' OR content ILIKE '%protection%' OR content ILIKE '%risk management%')
+      WITH candidate_news AS (
+        SELECT headline, content, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        content ILIKE '%hedge%' OR content ILIKE '%hedging%' OR content ILIKE '%volatility%'
+        OR content ILIKE '%options%' OR content ILIKE '%protection%' OR content ILIKE '%risk management%'
+        OR headline ILIKE '%volatility%' OR headline ILIKE '%risk-off%'
+        OR specialist_tags && ARRAY['volatility']::text[]
+      )
     `),
 
     // === CRUSH PRESSURE DATA ===
@@ -151,6 +178,96 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     query<{ oil_share_5d: number }>(`
       SELECT oil_share::float8 as oil_share_5d FROM analytics.board_crush_1d
       WHERE oil_share IS NOT NULL ORDER BY trade_date DESC OFFSET 5 LIMIT 1
+    `),
+
+    // Crush-focused news (7 days) tied to ZL crush economics
+    query<{ count: number }>(`
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%crush margin%' OR headline ILIKE '%crusher%' OR headline ILIKE '%soy crush%'
+        OR headline ILIKE '%processing margin%' OR content ILIKE '%board crush%'
+        OR content ILIKE '%soybean crush%' OR content ILIKE '%soy oil share%'
+        OR specialist_tags && ARRAY['crush', 'lane_soybean_agriculture']::text[]
+        OR source LIKE 'google_news/soybean_agriculture/%'
+      )
+    `),
+
+    // Soybean meal news (7 days) tied to ZL spread/crush context
+    query<{ count: number }>(`
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%soybean meal%' OR headline ILIKE '%soy meal%' OR headline ILIKE '%meal export%'
+        OR content ILIKE '%soybean meal%' OR content ILIKE '%soy meal demand%'
+        OR content ILIKE '%meal basis%' OR content ILIKE '%meal spread%'
+        OR specialist_tags && ARRAY['crush', 'lane_soybean_agriculture']::text[]
+        OR source LIKE 'google_news/soybean_agriculture/%'
+      )
+    `),
+
+    // Corn news (7 days) tied to ZL/biofuel feedstock competition
+    query<{ count: number }>(`
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%corn%' OR headline ILIKE '%maize%' OR headline ILIKE '%ethanol%'
+        OR content ILIKE '%corn feedstock%' OR content ILIKE '%corn ethanol%'
+        OR content ILIKE '%biofuel blend%' OR content ILIKE '%renewable fuel%'
+        OR specialist_tags && ARRAY['biofuel', 'energy', 'lane_biofuel']::text[]
+        OR source LIKE 'google_news/biofuel/%'
+      )
     `),
 
     // === CHINA TENSION DATA ===
@@ -196,18 +313,66 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
              THEN ((SELECT value FROM bdiy WHERE rn = 1) - (SELECT value FROM bdiy WHERE rn = 21)) / (SELECT value FROM bdiy WHERE rn = 21)
              ELSE NULL END::float8 as change_20d
     `),
-    // Soy China News (ProFarmer)
+    // China demand/news feed (7 days) — intentionally separated from tariff and energy feeds
     query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND ((headline ILIKE '%china%' AND (headline ILIKE '%soy%' OR headline ILIKE '%bean%' OR headline ILIKE '%export%'))
-           OR headline ILIKE '%trade war%' OR headline ILIKE '%tariff%' OR headline ILIKE '%export sales%'
-           OR content ILIKE '%china soy%' OR content ILIKE '%soybean export%' OR content ILIKE '%chinese import%')
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        ((headline ILIKE '%china%' OR headline ILIKE '%chinese%' OR headline ILIKE '%beijing%')
+          AND (headline ILIKE '%soy%' OR headline ILIKE '%bean%' OR headline ILIKE '%export%' OR headline ILIKE '%import%'))
+        OR content ILIKE '%china soy%' OR content ILIKE '%soybean export%' OR content ILIKE '%chinese import%'
+        OR specialist_tags && ARRAY[
+          'china',
+          'lane_soybean_agriculture'
+        ]::text[]
+        OR source LIKE 'google_news/soybean_agriculture/%'
+      )
+      AND NOT (
+        specialist_tags && ARRAY['tariff', 'lane_legislation', 'lane_trump_actions', 'lane_ice_immigration']::text[]
+        OR source LIKE 'google_news/legislation/%'
+        OR source LIKE 'google_news/trump_actions/%'
+        OR source LIKE 'google_news/ice_immigration/%'
+      )
     `),
-    // Total ProFarmer News (for concentration)
+    // Total deduped policy/econ/ag news pool (for concentration)
     query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      WITH candidate_news AS (
+        SELECT headline, content
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE headline IS NOT NULL OR content IS NOT NULL
     `),
 
     // === TARIFF THREAT DATA ===
@@ -224,14 +389,47 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
       WHERE event_date >= CURRENT_DATE - INTERVAL '14 days'
       AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%')
     `).catch(() => [{ count: 0 }]), // Table might not exist
-    // Soy Tariff News (ProFarmer)
+    // Tariff/trade policy feed (7 days) — intentionally separated from China and Energy feeds
     query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
-           OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
-           OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%')
-           OR content ILIKE '%soy tariff%' OR content ILIKE '%soybean tariff%' OR content ILIKE '%25 percent%')
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
+        OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
+        OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%')
+        OR content ILIKE '%soy tariff%' OR content ILIKE '%soybean tariff%' OR content ILIKE '%25 percent%'
+        OR specialist_tags && ARRAY[
+          'tariff',
+          'lane_legislation',
+          'lane_trump_actions',
+          'lane_ice_immigration'
+        ]::text[]
+        OR source LIKE 'google_news/legislation/%'
+        OR source LIKE 'google_news/trump_actions/%'
+        OR source LIKE 'google_news/ice_immigration/%'
+      )
+      AND NOT (
+        specialist_tags && ARRAY['energy', 'biofuel', 'lane_biofuel', 'lane_war_military']::text[]
+        OR source LIKE 'google_news/biofuel/%'
+        OR source LIKE 'google_news/war_military/%'
+      )
     `),
 
     // === SPECIALIST SIGNALS ===
@@ -309,23 +507,80 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
              ELSE 0 END::float8 as change_20d
     `).catch(() => [] as { close: number; change_5d: number; change_20d: number; event_date: string }[]),
 
-    // Energy/Oil News (ProFarmer — 7 days)
+    // Energy/oil feed (7 days) — intentionally separated from China and Tariff feeds
     query<{ count: number }>(`
-      SELECT COUNT(*)::int as count FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND (headline ILIKE '%crude%' OR headline ILIKE '%oil price%' OR headline ILIKE '%energy%'
-           OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%opec%'
-           OR headline ILIKE '%petroleum%' OR headline ILIKE '%biofuel%' OR headline ILIKE '%biodiesel%'
-           OR headline ILIKE '%renewable diesel%' OR headline ILIKE '%strait%'
-           OR content ILIKE '%crude oil%' OR content ILIKE '%oil spike%' OR content ILIKE '%energy crisis%')
+      WITH candidate_news AS (
+        SELECT headline, content, source, specialist_tags
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content, source, specialist_tags
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%crude%' OR headline ILIKE '%oil price%' OR headline ILIKE '%energy%'
+        OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%opec%'
+        OR headline ILIKE '%petroleum%' OR headline ILIKE '%biofuel%' OR headline ILIKE '%biodiesel%'
+        OR headline ILIKE '%renewable diesel%' OR headline ILIKE '%strait%'
+        OR content ILIKE '%crude oil%' OR content ILIKE '%oil spike%' OR content ILIKE '%energy crisis%'
+        OR specialist_tags && ARRAY[
+          'energy',
+          'biofuel',
+          'lane_biofuel',
+          'lane_war_military',
+          'lane_soybean_oil'
+        ]::text[]
+        OR source LIKE 'google_news/biofuel/%'
+        OR source LIKE 'google_news/war_military/%'
+        OR source LIKE 'google_news/soybean_oil/%'
+      )
+      AND NOT (
+        specialist_tags && ARRAY['tariff', 'lane_legislation', 'lane_trump_actions', 'lane_ice_immigration']::text[]
+        OR source LIKE 'google_news/legislation/%'
+        OR source LIKE 'google_news/trump_actions/%'
+        OR source LIKE 'google_news/ice_immigration/%'
+      )
     `).catch(() => [{ count: 0 }]),
 
     // === RECENT NEWS HEADLINES (for comprehensive reports) ===
     query<{ headline: string }>(`
-      SELECT headline FROM alt.profarmer_news_event
-      WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-      AND headline IS NOT NULL
-      ORDER BY event_date DESC
+      WITH combined AS (
+        SELECT event_date, headline
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT event_date, headline
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT event_date, headline
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      ),
+      dedup AS (
+        SELECT headline, MAX(event_date) AS latest_date
+        FROM combined
+        WHERE headline IS NOT NULL
+        GROUP BY headline
+      )
+      SELECT headline
+      FROM dedup
+      ORDER BY latest_date DESC
       LIMIT 10
     `).catch(() => [] as { headline: string }[]),
   ]);
@@ -353,6 +608,9 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     oilShare: crushRows[0]?.oil_share ?? null,
     oilShare5dAgo: oilShare5dRows[0]?.oil_share_5d ?? null,
     crushSignal: crushSignalRows[0]?.signal ?? null,
+    crushNewsCount: crushNewsRows[0]?.count ?? 0,
+    soybeanMealNewsCount: soybeanMealNewsRows[0]?.count ?? 0,
+    cornNewsCount: cornNewsRows[0]?.count ?? 0,
 
     cnyRate,
     cnyDate: cnyRows[0]?.event_date ?? null,

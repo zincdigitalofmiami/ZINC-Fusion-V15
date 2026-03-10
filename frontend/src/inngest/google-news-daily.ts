@@ -8,6 +8,7 @@
  * - This remains confirmation/context enrichment only (not primary presidential action counters).
  * - Strict date policy: rows with missing/invalid pubDate are rejected.
  * - Freshness gate: stale historical rows are rejected before insert.
+ * - Canonical-row model: one stored row per article, with lane identity in tags.
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
@@ -39,7 +40,7 @@ export interface GoogleNewsLane {
 
 /**
  * Explicit Google News lanes required by product contract.
- * Lane identity is preserved in `source` and specialist tags.
+ * Lane identity is preserved via specialist tags on canonical rows.
  */
 export const GOOGLE_NEWS_LANES: GoogleNewsLane[] = [
   {
@@ -163,12 +164,27 @@ interface PreparedRow {
   rowHash: string;
 }
 
-interface LanePreparationStats {
+interface CanonicalPreparationStats {
   attempted: number;
   stale: number;
   invalidDate: number;
   deduped: number;
   prepared: number;
+}
+
+interface LaneBatch {
+  lane: GoogleNewsLane;
+  rawItems: ParsedGoogleNewsItem[];
+}
+
+interface CanonicalAccumulator {
+  eventDate: string;
+  publishedAt: string;
+  headline: string;
+  url: string | null;
+  pubSource: string;
+  specialistTags: Set<string>;
+  rowHash: string;
 }
 
 function laneTag(slug: string): string {
@@ -181,10 +197,9 @@ function sanitizePublicationSource(pubSource: string): string {
   return noSlash.length > 0 ? noSlash : "unknown";
 }
 
-export function buildLaneSourceValue(laneSlug: string, pubSource: string): string {
-  const lanePart = laneSlug.trim();
+export function buildCanonicalSourceValue(pubSource: string): string {
   const sourcePart = sanitizePublicationSource(pubSource);
-  const raw = `${SOURCE_NAME}/${lanePart}/${sourcePart}`;
+  const raw = `${SOURCE_NAME}/${sourcePart}`;
   if (raw.length <= SOURCE_MAX_LENGTH) return raw;
   return raw.slice(0, SOURCE_MAX_LENGTH);
 }
@@ -277,53 +292,96 @@ export function computeSpecialistTags(
   return Array.from(tags).sort();
 }
 
-export function prepareLaneRows(
-  lane: GoogleNewsLane,
-  rawItems: ParsedGoogleNewsItem[],
+function normalizeHeadlineForHash(headline: string): string {
+  return headline.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeUrlForHash(url: string | null): string {
+  if (!url) return "";
+  return url.trim().toLowerCase();
+}
+
+function canonicalArticleHash(item: ParsedGoogleNewsItem): string {
+  return hashFields(
+    normalizeHeadlineForHash(item.headline),
+    item.eventDate,
+    sanitizePublicationSource(item.pubSource),
+    normalizeUrlForHash(item.url),
+  );
+}
+
+export function prepareCanonicalRows(
+  laneBatches: LaneBatch[],
   now: Date = new Date(),
-): { rows: PreparedRow[]; stats: LanePreparationStats } {
-  const seenHashes = new Set<string>();
+): { rows: PreparedRow[]; stats: CanonicalPreparationStats } {
+  const canonicalByHash = new Map<string, CanonicalAccumulator>();
   const rows: PreparedRow[] = [];
-  const stats: LanePreparationStats = {
-    attempted: rawItems.length,
+  const stats: CanonicalPreparationStats = {
+    attempted: 0,
     stale: 0,
     invalidDate: 0,
     deduped: 0,
     prepared: 0,
   };
 
-  for (const item of rawItems) {
-    if (!item.eventDate || !item.publishedAt || Number.isNaN(Date.parse(item.publishedAt))) {
-      stats.invalidDate += 1;
-      continue;
-    }
+  for (const batch of laneBatches) {
+    const { lane, rawItems } = batch;
+    stats.attempted += rawItems.length;
 
-    if (!isPublishedAtFresh(item.publishedAt, now)) {
-      stats.stale += 1;
-      continue;
-    }
+    for (const item of rawItems) {
+      if (!item.eventDate || !item.publishedAt || Number.isNaN(Date.parse(item.publishedAt))) {
+        stats.invalidDate += 1;
+        continue;
+      }
 
-    const rowHash = hashFields(
-      item.headline,
-      item.eventDate,
-      lane.slug,
-      item.pubSource,
-    );
+      if (!isPublishedAtFresh(item.publishedAt, now)) {
+        stats.stale += 1;
+        continue;
+      }
 
-    if (seenHashes.has(rowHash)) {
+      const canonicalHash = canonicalArticleHash(item);
+      const tags = computeSpecialistTags(item.headline, lane);
+      const existing = canonicalByHash.get(canonicalHash);
+
+      if (!existing) {
+        canonicalByHash.set(canonicalHash, {
+          eventDate: item.eventDate,
+          publishedAt: item.publishedAt,
+          headline: item.headline,
+          url: item.url,
+          pubSource: item.pubSource,
+          specialistTags: new Set(tags),
+          rowHash: canonicalHash,
+        });
+        continue;
+      }
+
       stats.deduped += 1;
-      continue;
-    }
 
-    seenHashes.add(rowHash);
+      const existingTs = Date.parse(existing.publishedAt);
+      const nextTs = Date.parse(item.publishedAt);
+      if (!Number.isNaN(existingTs) && !Number.isNaN(nextTs) && nextTs < existingTs) {
+        existing.publishedAt = item.publishedAt;
+        existing.eventDate = item.eventDate;
+      }
+      if (!existing.url && item.url) {
+        existing.url = item.url;
+      }
+      for (const tag of tags) {
+        existing.specialistTags.add(tag);
+      }
+    }
+  }
+
+  for (const article of canonicalByHash.values()) {
     rows.push({
-      eventDate: item.eventDate,
-      publishedAt: item.publishedAt,
-      headline: item.headline,
-      url: item.url,
-      source: buildLaneSourceValue(lane.slug, item.pubSource),
-      specialistTags: computeSpecialistTags(item.headline, lane),
-      rowHash,
+      eventDate: article.eventDate,
+      publishedAt: article.publishedAt,
+      headline: article.headline,
+      url: article.url,
+      source: buildCanonicalSourceValue(article.pubSource),
+      specialistTags: Array.from(article.specialistTags).sort(),
+      rowHash: article.rowHash,
     });
   }
 
@@ -367,6 +425,9 @@ export const googleNewsDaily = inngest.createFunction(
       let totalSkipped = 0;
       let totalStale = 0;
       let totalInvalidDate = 0;
+      let totalDeduped = 0;
+
+      const laneBatches: LaneBatch[] = [];
 
       for (const lane of GOOGLE_NEWS_LANES) {
         const fetchedItems = await step.run(`fetch-${lane.slug}`, async () => {
@@ -382,20 +443,17 @@ export const googleNewsDaily = inngest.createFunction(
         });
 
         totalFetched += fetchedItems.length;
+        laneBatches.push({ lane, rawItems: fetchedItems });
+      }
 
-        const { rows, stats } = prepareLaneRows(lane, fetchedItems, new Date());
-        totalPrepared += stats.prepared;
-        totalStale += stats.stale;
-        totalInvalidDate += stats.invalidDate;
+      const { rows, stats } = prepareCanonicalRows(laneBatches, new Date());
+      totalPrepared = stats.prepared;
+      totalStale = stats.stale;
+      totalInvalidDate = stats.invalidDate;
+      totalDeduped = stats.deduped;
 
-        if (rows.length === 0) {
-          logger.info(
-            `${lane.slug}: prepared 0 rows (stale=${stats.stale}, invalid_date=${stats.invalidDate}, deduped=${stats.deduped})`,
-          );
-          continue;
-        }
-
-        const result = await step.run(`insert-${lane.slug}`, async () => {
+      if (rows.length > 0) {
+        const result = await step.run("insert-canonical-google-news", async () => {
           const client = await pool.connect();
           let inserted = 0;
           let skipped = 0;
@@ -440,13 +498,8 @@ export const googleNewsDaily = inngest.createFunction(
 
           return { inserted, skipped };
         });
-
-        totalInserted += result.inserted;
-        totalSkipped += result.skipped;
-
-        logger.info(
-          `${lane.slug}: prepared=${stats.prepared}, stale=${stats.stale}, invalid_date=${stats.invalidDate}, deduped=${stats.deduped}, inserted=${result.inserted}, skipped=${result.skipped}`,
-        );
+        totalInserted = result.inserted;
+        totalSkipped = result.skipped;
       }
 
       await step.run("finalize-ingest-run", async () => {
@@ -454,12 +507,12 @@ export const googleNewsDaily = inngest.createFunction(
           status: "success",
           rowsAttempted: totalFetched,
           rowsInserted: totalInserted,
-          rowsSkipped: totalSkipped + totalStale + totalInvalidDate,
+          rowsSkipped: totalSkipped + totalStale + totalInvalidDate + totalDeduped,
         });
       });
 
       logger.info(
-        `Google News Daily complete: fetched=${totalFetched}, prepared=${totalPrepared}, inserted=${totalInserted}, skipped=${totalSkipped}, stale_rejected=${totalStale}, invalid_date_rejected=${totalInvalidDate}`,
+        `Google News Daily complete: fetched=${totalFetched}, prepared_canonical=${totalPrepared}, inserted=${totalInserted}, skipped_db_conflict=${totalSkipped}, stale_rejected=${totalStale}, invalid_date_rejected=${totalInvalidDate}, lane_deduped=${totalDeduped}`,
       );
 
       return {
@@ -470,6 +523,7 @@ export const googleNewsDaily = inngest.createFunction(
         skipped: totalSkipped,
         staleRejected: totalStale,
         invalidDateRejected: totalInvalidDate,
+        laneDeduped: totalDeduped,
       };
     } catch (err) {
       await step.run("fail-ingest-run", async () => {

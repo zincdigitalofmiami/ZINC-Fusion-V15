@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3-force';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Zap, TrendingUp, AlertTriangle, Shield, Globe, DollarSign, Activity, Wheat, Landmark } from 'lucide-react';
+import { Zap, TrendingUp, AlertTriangle, Shield, Globe, DollarSign, Activity, Wheat, Landmark, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface Node extends d3.SimulationNodeDatum {
@@ -58,6 +58,16 @@ const DRIVER_ICONS: Record<string, LucideIcon> = {
   China: Globe,
   Tariffs: Shield,
   'Trump Effect': Landmark,
+  Energy: Flame,
+};
+
+const DRIVER_VISUAL_MULTIPLIER: Record<string, number> = {
+  Markets: 1.45, // VIX anchor
+  Energy: 1.35,  // Crude oil anchor
+  Crush: 1.0,
+  China: 1.0,
+  Tariffs: 1.0,
+  'Trump Effect': 1.0,
 };
 
 const CORR_ICONS: Record<string, LucideIcon> = {
@@ -90,8 +100,7 @@ const CORR_HOVER_TITLES: Record<string, string> = {
 function driverStatus(score: number, source: string): 'calm' | 'active' | 'critical' {
   if (source === 'unavailable') return 'calm';
   if (score >= 65) return 'critical';
-  if (score >= 40) return 'active';
-  return 'calm';
+  return 'active';
 }
 
 export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProps) {
@@ -125,7 +134,10 @@ export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProp
     // Driver nodes
     for (const d of drivers) {
       const icon = DRIVER_ICONS[d.name] ?? Activity;
-      const val = 20 + (d.score / 100) * 15;
+      const baseVal = 20 + (d.score / 100) * 15;
+      const visualBoost = DRIVER_VISUAL_MULTIPLIER[d.name] ?? 1.0;
+      const val = baseVal * visualBoost;
+      const linkValue = Math.min(1, Math.max(0.2, (d.score / 100) * visualBoost));
       builtNodes.push({
         id: `driver-${d.name}`,
         group: 'driver',
@@ -141,7 +153,7 @@ export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProp
       builtLinks.push({
         source: 'ZL',
         target: `driver-${d.name}`,
-        value: Math.max(0.2, d.score / 100),
+        value: linkValue,
       });
     }
 

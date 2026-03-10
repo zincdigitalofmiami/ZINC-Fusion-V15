@@ -71,6 +71,41 @@ function parseGoogleNewsSource(
   return { lane, publication };
 }
 
+function laneSlugsFromTags(tags: string[] | null | undefined): string[] {
+  if (!tags || tags.length === 0) return [];
+  const seen = new Set<string>();
+  const slugs: string[] = [];
+  for (const tag of tags) {
+    if (!tag.startsWith("lane_")) continue;
+    const lane = tag.slice(5);
+    if (!GOOGLE_NEWS_LANE_SLUGS.has(lane) || seen.has(lane)) continue;
+    seen.add(lane);
+    slugs.push(lane);
+  }
+  return slugs;
+}
+
+function laneLabelsFromArticle(source: string | null, tags: string[] | null | undefined): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+
+  for (const slug of laneSlugsFromTags(tags)) {
+    const label = toTitleCaseFromSnake(slug);
+    if (!seen.has(label)) {
+      seen.add(label);
+      labels.push(label);
+    }
+  }
+
+  const parsed = parseGoogleNewsSource(source);
+  if (parsed.lane && !seen.has(parsed.lane)) {
+    seen.add(parsed.lane);
+    labels.push(parsed.lane);
+  }
+
+  return labels;
+}
+
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -149,6 +184,13 @@ export function PolicyNewsFeed({ articles }: PolicyNewsFeedProps) {
             <div className="divide-y divide-white/[0.03]">
               {dayArticles.map((article) => {
                 const parsed = parseGoogleNewsSource(article.source);
+                const laneLabels = laneLabelsFromArticle(
+                  article.source,
+                  article.specialist_tags,
+                );
+                const nonLaneTags = article.specialist_tags.filter(
+                  (tag) => !tag.startsWith("lane_"),
+                );
                 return (
                   <div
                     key={article.id}
@@ -187,17 +229,20 @@ export function PolicyNewsFeed({ articles }: PolicyNewsFeedProps) {
                               ? timeAgo(article.published_at)
                               : article.event_date}
                           </span>
-                          {parsed.lane && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
-                              {parsed.lane}
+                          {laneLabels.map((laneLabel) => (
+                            <span
+                              key={`${article.id}-${laneLabel}`}
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-300"
+                            >
+                              {laneLabel}
                             </span>
-                          )}
+                          ))}
                           {parsed.publication && (
                             <span className="text-[10px] text-slate-600">
                               via {parsed.publication}
                             </span>
                           )}
-                          {article.specialist_tags.map((tag) => (
+                          {nonLaneTags.map((tag) => (
                             <span
                               key={tag}
                               className={`text-[9px] px-1.5 py-0.5 rounded border ${getTagColor(tag)}`}

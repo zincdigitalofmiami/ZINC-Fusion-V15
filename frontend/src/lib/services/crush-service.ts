@@ -43,6 +43,11 @@ export interface CrushComponents {
   oil_share_trend_adj: number;
   specialist_signal: number | null;
   specialist_adj: number;
+  crush_news_count: number;
+  soybean_meal_news_count: number;
+  corn_news_count: number;
+  news_intensity: number;
+  news_adj: number;
 }
 
 // =============================================================================
@@ -113,6 +118,12 @@ function scoreOilShareTrend(change5d: number | null): {
   return { adj: 0, desc: "Oil share stable" };
 }
 
+function saturatingIntensity(count: number, halfLife: number): number {
+  if (count <= 0) return 0;
+  // Maps count -> [0, 100) with diminishing returns.
+  return 100 * (1 - Math.exp(-count / Math.max(1, halfLife)));
+}
+
 // =============================================================================
 // MAIN CALCULATOR
 // =============================================================================
@@ -122,6 +133,9 @@ export function calculateCrushPressure(
   oilShare: number | null,
   oilShare5dAgo: number | null,
   specialistSignal: number | null,
+  crushNewsCount = 0,
+  soybeanMealNewsCount = 0,
+  cornNewsCount = 0,
 ): {
   score: number;
   level: string;
@@ -148,11 +162,24 @@ export function calculateCrushPressure(
     specialistAdj = -specialistSignal * 20 * 0.5; // Negative signal = bearish = more pressure
   }
 
+  // Component 5: News intensity (10%) across crush/meal/corn signals relevant to ZL.
+  // Weighted by explanatory power for soybean oil pricing pressure:
+  // crush > soybean meal > corn.
+  const crushNewsIntensity = saturatingIntensity(crushNewsCount, 6);
+  const mealNewsIntensity = saturatingIntensity(soybeanMealNewsCount, 5);
+  const cornNewsIntensity = saturatingIntensity(cornNewsCount, 8);
+  const newsIntensity =
+    crushNewsIntensity * 0.5 +
+    mealNewsIntensity * 0.35 +
+    cornNewsIntensity * 0.15;
+  const newsAdj = (newsIntensity / 100) * 10;
+
   // Composite Score
   let score = crushScore;
   score += (oilShareAdj * 0.2) / 0.45;
   score += (trendAdj * 0.2) / 0.45;
   score += (specialistAdj * 0.15) / 0.45;
+  score += newsAdj;
   score = Math.max(0, Math.min(100, score));
 
   // Level classification - ACTIONABLE LABELS
@@ -192,6 +219,11 @@ export function calculateCrushPressure(
       oil_share_trend_adj: Math.round(trendAdj * 10) / 10,
       specialist_signal: specialistSignal,
       specialist_adj: Math.round(specialistAdj * 10) / 10,
+      crush_news_count: Math.max(0, Math.round(crushNewsCount)),
+      soybean_meal_news_count: Math.max(0, Math.round(soybeanMealNewsCount)),
+      corn_news_count: Math.max(0, Math.round(cornNewsCount)),
+      news_intensity: Math.round(newsIntensity * 10) / 10,
+      news_adj: Math.round(newsAdj * 10) / 10,
     },
   };
 }

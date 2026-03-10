@@ -37,6 +37,47 @@ function laneSlugFromSource(source: string | null): string | null {
   return lane;
 }
 
+function laneSlugsFromTags(tags: string[] | null | undefined): string[] {
+  if (!tags || tags.length === 0) return [];
+  const seen = new Set<string>();
+  const slugs: string[] = [];
+  for (const tag of tags) {
+    if (!tag.startsWith("lane_")) continue;
+    const lane = tag.slice(5);
+    if (!GOOGLE_NEWS_LANE_SLUGS.has(lane) || seen.has(lane)) continue;
+    seen.add(lane);
+    slugs.push(lane);
+  }
+  return slugs;
+}
+
+export function laneLabelsFromRow(
+  source: string | null,
+  specialistTags: string[] | null | undefined,
+): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+
+  for (const lane of laneSlugsFromTags(specialistTags)) {
+    const label = laneLabelFromSlug(lane);
+    if (label && !seen.has(label)) {
+      labels.push(label);
+      seen.add(label);
+    }
+  }
+
+  const sourceLane = laneSlugFromSource(source);
+  if (sourceLane) {
+    const label = laneLabelFromSlug(sourceLane);
+    if (label && !seen.has(label)) {
+      labels.push(label);
+      seen.add(label);
+    }
+  }
+
+  return labels;
+}
+
 function laneLabelFromSlug(slug: string | null): string | null {
   if (!slug) return null;
   return slug
@@ -162,13 +203,15 @@ export async function GET() {
         r.headline,
         r.summary || r.content,
       );
+      const laneLabels = laneLabelsFromRow(r.source, r.specialist_tags);
       return {
         id: `${r.table_source}-${r.id}`,
         event_date: r.event_date,
         headline: r.headline,
         summary: r.summary || r.content || null,
         source: r.source || r.table_source,
-        lane: laneLabelFromSlug(laneSlugFromSource(r.source)),
+        lane: laneLabels[0] ?? null,
+        lanes: laneLabels,
         sentiment,
         tags: (r.specialist_tags || []).slice(0, 4),
       };
