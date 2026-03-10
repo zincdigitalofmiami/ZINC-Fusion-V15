@@ -318,45 +318,22 @@ export async function GET() {
            FROM training.specialist_features_trump_effect
            ORDER BY as_of_date DESC
            LIMIT 1
-         ),
-         latest_valid AS (
-           SELECT as_of_date::text                              AS as_of_date,
-                  (features->>'weighted_action_score')::float8 AS weighted_action_score,
-                  (features->>'action_velocity')::float8       AS action_velocity,
-                  (features->>'action_acceleration')::float8   AS action_acceleration,
-                  (features->>'total_actions_7d')::int         AS total_actions_7d,
-                  (features->>'total_actions_30d')::int        AS total_actions_30d,
-                  (features->>'eo_count_7d')::int              AS eo_count_7d
-           FROM training.specialist_features_trump_effect
-           WHERE features->>'weighted_action_score' IS NOT NULL
-             AND features->>'action_velocity' IS NOT NULL
-           ORDER BY as_of_date DESC
-           LIMIT 1
          )
-         SELECT lv.as_of_date,
-                la.as_of_date                                  AS latest_any_as_of,
-                'latest_valid'::text                          AS selection_mode,
-                lv.weighted_action_score,
-                lv.action_velocity,
-                lv.action_acceleration,
-                lv.total_actions_7d,
-                lv.total_actions_30d,
-                lv.eo_count_7d
-         FROM latest_valid lv
-         CROSS JOIN latest_any la
-         UNION ALL
          SELECT la.as_of_date,
                 la.as_of_date                                  AS latest_any_as_of,
-                'latest_fallback'::text                       AS selection_mode,
+                CASE
+                  WHEN la.weighted_action_score IS NOT NULL
+                   AND la.action_velocity IS NOT NULL
+                  THEN 'latest_valid'
+                  ELSE 'latest_fallback'
+                END::text                                      AS selection_mode,
                 la.weighted_action_score,
                 la.action_velocity,
                 la.action_acceleration,
                 la.total_actions_7d,
                 la.total_actions_30d,
                 la.eo_count_7d
-         FROM latest_any la
-         WHERE NOT EXISTS (SELECT 1 FROM latest_valid)
-         LIMIT 1`,
+         FROM latest_any la`,
       )),
 
       // 12. News sentiment ratio (7d) — for Fear & Greed composite

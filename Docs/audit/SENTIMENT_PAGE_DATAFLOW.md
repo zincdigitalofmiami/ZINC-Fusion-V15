@@ -129,9 +129,10 @@ These tables drive:
 ## 1) Feature-row selection
 From `training.specialist_features_trump_effect`:
 - `latest_any` = latest by `as_of_date`
-- `latest_valid` = latest with non-null `weighted_action_score` and `action_velocity`
-- if `latest_valid` exists, select it
-- else select `latest_any` and mark fallback mode
+- select `latest_any` unconditionally as the policy anchor row
+- set `selection_mode` from `latest_any` completeness:
+- `latest_valid` when both `weighted_action_score` and `action_velocity` are present
+- `latest_fallback` when either field is missing (helper backfills from source action tables)
 
 `policy_window.anchor_date` uses selected row `as_of_date`.
 
