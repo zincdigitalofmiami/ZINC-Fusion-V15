@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import {
   buildTrumpEffectPayload,
+  type ConfirmationInputs,
   type ExecutiveActionRow,
   type TrumpFeatureRow,
+  type ZlResponseInputs,
 } from "./trump-effect";
 
 export const dynamic = "force-dynamic";
@@ -386,45 +388,189 @@ export async function GET() {
     const crush = crushResult[0];
     const trump = trumpResult[0] ?? null;
     const sentRatio = sentimentRatioResult[0];
-    const trumpActions = trump?.as_of_date
-      ? await safe(
-          query<ExecutiveActionRow>(
-            `WITH action_events AS (
-               SELECT event_date::text AS event_date,
-                      document_type,
-                      zl_sentiment,
-                      headline,
-                      content
-               FROM alt.executive_actions_event
-               WHERE event_date >= ($1::date - INTERVAL '29 days')
-                 AND event_date <= $1::date
+    const [trumpActions, trumpConfirmationRows, trumpZlResponseRows]: [
+      ExecutiveActionRow[],
+      ConfirmationInputs[],
+      ZlResponseInputs[],
+    ] =
+      trump?.as_of_date
+        ? await Promise.all([
+            safe(
+              query<ExecutiveActionRow>(
+                `WITH action_events AS (
+                   SELECT event_date::text AS event_date,
+                          document_type,
+                          zl_sentiment,
+                          headline,
+                          content
+                   FROM alt.executive_actions_event
+                   WHERE event_date >= ($1::date - INTERVAL '29 days')
+                     AND event_date <= $1::date
 
-               UNION ALL
+                   UNION ALL
 
-               SELECT event_date::text AS event_date,
-                      CASE
-                        WHEN title ILIKE '%executive order%' THEN 'executive_order'
-                        WHEN title ILIKE '%proclamation%' THEN 'proclamation'
-                        WHEN title ILIKE '%memorandum%' THEN 'memorandum'
-                        WHEN title ILIKE '%nomination%' OR title ILIKE '%appoint%' THEN 'nomination'
-                        ELSE 'presidential_document'
-                      END AS document_type,
-                      NULL::text AS zl_sentiment,
-                      title AS headline,
-                      NULL::text AS content
-               FROM alt.legislation_1d
-               WHERE document_type = 'Presidential Document'
-                 AND event_date >= ($1::date - INTERVAL '29 days')
-                 AND event_date <= $1::date
-             )
-             SELECT event_date, document_type, zl_sentiment, headline, content
-             FROM action_events
-             ORDER BY event_date DESC`,
-            [trump.as_of_date],
-          ),
-        )
-      : [];
-    const trumpEffect = buildTrumpEffectPayload(trump, trumpActions);
+                   SELECT event_date::text AS event_date,
+                          CASE
+                            WHEN title ILIKE '%executive order%' THEN 'executive_order'
+                            WHEN title ILIKE '%proclamation%' THEN 'proclamation'
+                            WHEN title ILIKE '%memorandum%' THEN 'memorandum'
+                            WHEN title ILIKE '%nomination%' OR title ILIKE '%appoint%' THEN 'nomination'
+                            ELSE 'presidential_document'
+                          END AS document_type,
+                          NULL::text AS zl_sentiment,
+                          title AS headline,
+                          NULL::text AS content
+                   FROM alt.legislation_1d
+                   WHERE document_type = 'Presidential Document'
+                     AND event_date >= ($1::date - INTERVAL '29 days')
+                     AND event_date <= $1::date
+                 )
+                 SELECT event_date, document_type, zl_sentiment, headline, content
+                 FROM action_events
+                 ORDER BY event_date DESC`,
+                [trump.as_of_date],
+              ),
+            ),
+            safe(
+              query<ConfirmationInputs>(
+                `WITH window AS (
+                   SELECT ($1::date - INTERVAL '6 days')::date AS start_date,
+                          $1::date AS end_date
+                 ),
+                 policy_rows AS (
+                   SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
+                          COALESCE(headline, '')                     AS headline,
+                          ''::text                                   AS summary,
+                          COALESCE(content, '')                      AS content
+                   FROM alt.policy_news_event, window w
+                   WHERE event_date >= w.start_date AND event_date <= w.end_date
+
+                   UNION ALL
+
+                   SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
+                          COALESCE(headline, '')                     AS headline,
+                          COALESCE(summary, '')                      AS summary,
+                          COALESCE(content, '')                      AS content
+                   FROM alt.econ_news_event, window w
+                   WHERE event_date >= w.start_date AND event_date <= w.end_date
+                 ),
+                 market_rows AS (
+                   SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
+                          COALESCE(headline, '')                     AS headline,
+                          COALESCE(content, '')                      AS content
+                   FROM econ.news_event, window w
+                   WHERE event_date >= w.start_date AND event_date <= w.end_date
+                 ),
+                 regulatory_rows AS (
+                   SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
+                          COALESCE(title, '')                        AS title
+                   FROM alt.legislation_1d, window w
+                   WHERE event_date >= w.start_date
+                     AND event_date <= w.end_date
+                     AND document_type <> 'Presidential Document'
+                 )
+                 SELECT
+                   (
+                     SELECT COUNT(*)::int
+                     FROM policy_rows p
+                     WHERE (
+                       p.specialist_tags && ARRAY['tariff','trump_effect','china','biofuel','fed','energy','crush']::text[]
+                       OR (p.headline || ' ' || p.summary || ' ' || p.content) ~* '(tariff|trade|executive order|presidential|soybean oil|biofuel|renewable fuel|sanction|regulation)'
+                     )
+                   ) AS independent_policy_items_7d,
+                   (
+                     SELECT COUNT(*)::int
+                     FROM market_rows m
+                     WHERE (
+                       m.specialist_tags && ARRAY['tariff','trump_effect','china','biofuel','fed','energy','crush']::text[]
+                       OR (m.headline || ' ' || m.content) ~* '(tariff|trade|executive order|presidential|soybean oil|biofuel|renewable fuel|sanction|regulation)'
+                     )
+                   ) AS market_news_items_7d,
+                   (
+                     SELECT COUNT(*)::int
+                     FROM regulatory_rows r
+                     WHERE (
+                       r.specialist_tags && ARRAY['tariff','trump_effect','china','biofuel','fed','energy','crush']::text[]
+                       OR r.title ~* '(soybean|soy oil|biofuel|renewable fuel|tariff|trade|energy|commodity|regulation)'
+                     )
+                   ) AS regulatory_follow_through_7d`,
+                [trump.as_of_date],
+              ),
+            ),
+            safe(
+              query<ZlResponseInputs>(
+                `WITH anchor_close AS (
+                   SELECT close::float8 AS close, event_date
+                   FROM mkt.futures_1d
+                   WHERE symbol = 'ZL'
+                     AND close IS NOT NULL
+                     AND event_date <= $1::date
+                   ORDER BY event_date DESC
+                   LIMIT 1
+                 ),
+                 prev_1d AS (
+                   SELECT close::float8 AS close
+                   FROM mkt.futures_1d
+                   WHERE symbol = 'ZL'
+                     AND close IS NOT NULL
+                     AND event_date <= ($1::date - INTERVAL '1 day')
+                   ORDER BY event_date DESC
+                   LIMIT 1
+                 ),
+                 prev_5d AS (
+                   SELECT close::float8 AS close
+                   FROM mkt.futures_1d
+                   WHERE symbol = 'ZL'
+                     AND close IS NOT NULL
+                     AND event_date <= ($1::date - INTERVAL '5 days')
+                   ORDER BY event_date DESC
+                   LIMIT 1
+                 ),
+                 start_7d AS (
+                   SELECT close::float8 AS close
+                   FROM mkt.futures_1d
+                   WHERE symbol = 'ZL'
+                     AND close IS NOT NULL
+                     AND event_date <= ($1::date - INTERVAL '6 days')
+                   ORDER BY event_date DESC
+                   LIMIT 1
+                 ),
+                 rvol AS (
+                   WITH lr AS (
+                     SELECT LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) AS r
+                     FROM mkt.futures_1d
+                     WHERE symbol = 'ZL'
+                       AND close IS NOT NULL
+                       AND event_date <= $1::date
+                     ORDER BY event_date DESC
+                     LIMIT 30
+                   )
+                   SELECT (STDDEV(r) * SQRT(252) * 100)::float8 AS realized_vol_21d
+                   FROM lr
+                   WHERE r IS NOT NULL
+                 )
+                 SELECT ac.close                                            AS close_anchor,
+                        p1.close                                            AS close_prev_1d,
+                        p5.close                                            AS close_prev_5d,
+                        s7.close                                            AS close_start_7d,
+                        r.realized_vol_21d                                  AS realized_vol_21d,
+                        ac.event_date::text                                 AS anchor_price_date
+                 FROM anchor_close ac
+                 LEFT JOIN prev_1d p1 ON TRUE
+                 LEFT JOIN prev_5d p5 ON TRUE
+                 LEFT JOIN start_7d s7 ON TRUE
+                 LEFT JOIN rvol r ON TRUE`,
+                [trump.as_of_date],
+              ),
+            ),
+          ])
+        : [[], [], []];
+    const trumpEffect = buildTrumpEffectPayload(
+      trump,
+      trumpActions,
+      trumpConfirmationRows[0] ?? null,
+      trumpZlResponseRows[0] ?? null,
+    );
     const parseDateOnly = (value: string | null | undefined): Date | null => {
       if (!value) return null;
       const parsed = new Date(value);

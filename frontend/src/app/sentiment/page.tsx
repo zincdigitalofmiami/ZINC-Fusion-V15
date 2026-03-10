@@ -66,15 +66,57 @@ interface FearGreedData {
 }
 
 interface TrumpEffectData {
+  title: "Policy Impact on ZL";
+  policy_window: {
+    anchor_date: string;
+    start_date_7d: string | null;
+    selected_feature_mode: "latest_valid" | "latest_fallback";
+  };
+  zl_response: {
+    anchor_price_date: string | null;
+    anchor_window_start_date: string | null;
+    zl_return_7d_pct: number | null;
+    zl_response_1d_pct: number | null;
+    zl_response_5d_pct: number | null;
+    realized_vol_21d_pct: number | null;
+    response_signal: "muted" | "active" | "elevated" | null;
+    abnormal_move_ratio: number | null;
+  };
+  policy_activity: {
+    executive_orders_7d: number | null;
+    total_presidential_actions_7d: number | null;
+    other_presidential_actions_7d: number | null;
+    action_velocity: number | null;
+    action_acceleration: number | null;
+    weighted_action_score: number | null;
+    avg_sentiment_7d: number | null;
+    avg_sentiment_30d: number | null;
+  };
+  independent_confirmation: {
+    independent_policy_items_7d: number;
+    market_news_items_7d: number;
+    regulatory_follow_through_7d: number;
+    confirmation_score: number;
+    confirmation_band: "low" | "mixed" | "strong";
+  };
+  buyer_meaning: {
+    procurement_signal:
+      | "limited_confirmation"
+      | "watchlist"
+      | "rising_buyer_risk"
+      | "confirmed_pressure";
+    label: string;
+    rationale: string;
+  };
+
+  // Legacy compatibility fields still returned by the API.
   weighted_action_score: number | null;
   action_velocity: number | null;
   action_acceleration: number | null;
   total_actions_7d: number | null;
   total_actions_30d: number | null;
   eo_count_7d: number | null;
-  proclamation_count_7d: number | null;
-  memorandum_count_7d: number | null;
-  nomination_count_7d: number | null;
+  other_actions_7d: number | null;
   avg_sentiment_7d: number | null;
   avg_sentiment_30d: number | null;
 }
@@ -235,6 +277,48 @@ function volLabel(
   return { text: "Calm", color: "text-emerald-400" };
 }
 
+function confirmationBandStyle(
+  band: "low" | "mixed" | "strong",
+): { text: string; chip: string } {
+  if (band === "strong") {
+    return {
+      text: "Strong confirmation",
+      chip: "text-emerald-300 bg-emerald-500/10 border-emerald-500/30",
+    };
+  }
+  if (band === "mixed") {
+    return {
+      text: "Mixed confirmation",
+      chip: "text-amber-300 bg-amber-500/10 border-amber-500/30",
+    };
+  }
+  return {
+    text: "Low confirmation",
+    chip: "text-slate-300 bg-slate-500/10 border-slate-500/30",
+  };
+}
+
+function responseSignalStyle(
+  signal: "muted" | "active" | "elevated" | null,
+): { text: string; chip: string } {
+  if (signal === "elevated") {
+    return {
+      text: "Elevated ZL response",
+      chip: "text-red-300 bg-red-500/10 border-red-500/30",
+    };
+  }
+  if (signal === "active") {
+    return {
+      text: "Active ZL response",
+      chip: "text-amber-300 bg-amber-500/10 border-amber-500/30",
+    };
+  }
+  return {
+    text: "Muted ZL response",
+    chip: "text-slate-300 bg-slate-500/10 border-slate-500/30",
+  };
+}
+
 /* ─── Page ─── */
 
 interface Narratives {
@@ -328,12 +412,28 @@ export default function SentimentPage() {
           : undefined,
         trumpEffect: te
           ? {
-              weighted_action_score: te.weighted_action_score,
-              total_actions_7d: te.total_actions_7d,
-              eo_count_7d: te.eo_count_7d,
-              proclamation_count_7d: te.proclamation_count_7d,
-              avg_sentiment_7d: te.avg_sentiment_7d,
-              action_velocity: te.action_velocity,
+              title: te.title,
+              zl_return_7d_pct: te.zl_response.zl_return_7d_pct,
+              zl_response_1d_pct: te.zl_response.zl_response_1d_pct,
+              zl_response_5d_pct: te.zl_response.zl_response_5d_pct,
+              response_signal: te.zl_response.response_signal,
+              weighted_action_score: te.policy_activity.weighted_action_score,
+              total_actions_7d: te.policy_activity.total_presidential_actions_7d,
+              executive_orders_7d: te.policy_activity.executive_orders_7d,
+              other_actions_7d: te.policy_activity.other_presidential_actions_7d,
+              action_velocity: te.policy_activity.action_velocity,
+              confirmation_score:
+                te.independent_confirmation.confirmation_score,
+              confirmation_band:
+                te.independent_confirmation.confirmation_band,
+              independent_policy_items_7d:
+                te.independent_confirmation.independent_policy_items_7d,
+              market_news_items_7d:
+                te.independent_confirmation.market_news_items_7d,
+              regulatory_follow_through_7d:
+                te.independent_confirmation.regulatory_follow_through_7d,
+              buyer_signal: te.buyer_meaning.procurement_signal,
+              buyer_label: te.buyer_meaning.label,
             }
           : undefined,
         volatility: {
@@ -573,29 +673,32 @@ export default function SentimentPage() {
         </div>
       </div>
 
-      {/* ═══════════ TRUMP EFFECT ═══════════ */}
+      {/* ═══════════ POLICY IMPACT ON ZL ═══════════ */}
       <div className="mb-8">
         <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest border-l-2 border-amber-500 pl-3">
-                Trump Effect
+                {trump?.title ?? "Policy Impact on ZL"}
               </div>
               <div className="text-xs text-slate-500 mt-1 pl-5">
-                Policy Impact on Soybean Oil Markets
+                ZL-anchored federal policy pressure
               </div>
               {trumpStatus && (
                 <div className="text-xs mt-2 pl-5 text-slate-500">
-                  Source row: {trumpStatus.selected_as_of}
+                  Feature row: {trumpStatus.selected_as_of}
                   {trumpStatus.selected_age_days != null
                     ? ` (${trumpStatus.selected_age_days}d old)`
+                    : ""}
+                  {trump?.policy_window.start_date_7d
+                    ? ` • policy window starts ${trump.policy_window.start_date_7d}`
                     : ""}
                 </div>
               )}
             </div>
-            {trump?.weighted_action_score != null && (
+            {trump?.policy_activity.weighted_action_score != null && (
               <div className="text-4xl font-bold text-white font-mono">
-                {trump.weighted_action_score.toFixed(1)}
+                {trump.policy_activity.weighted_action_score.toFixed(1)}
               </div>
             )}
           </div>
@@ -616,92 +719,193 @@ export default function SentimentPage() {
             <>
               {trumpStatus?.selection_mode === "latest_fallback" && (
                 <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
-                  Latest Trump feature row is incomplete. Card is using the most
-                  recent valid row to avoid null metrics.
+                  Latest feature row is incomplete. Card is using source-backed
+                  fallback math so policy-to-ZL coverage stays non-null.
                 </div>
               )}
               {trumpStatus?.selected_is_stale && (
                 <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-200">
-                  Trump feature metrics are stale ({trumpStatus.selected_age_days}
-                  d old). Refresh/retraining is recommended before acting on this
-                  signal.
-                </div>
-              )}
-              {/* Progress bar */}
-              {trump.weighted_action_score != null && (
-                <div className="mb-6">
-                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-700"
-                      style={{
-                        width: `${Math.min(100, (trump.weighted_action_score / 4) * 100)}%`,
-                      }}
-                    />
-                  </div>
+                  Feature row is stale ({trumpStatus.selected_age_days}d old).
+                  Treat this card as directional context, not a standalone timing
+                  trigger.
                 </div>
               )}
 
-              {/* Action counts */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white/[0.02] rounded-xl p-4">
-                  <div className="text-2xl font-bold text-white font-mono">
-                    {trump.eo_count_7d ?? 0}
+              {/* 1) ZL response */}
+              <div className="mb-6 border border-white/5 rounded-xl p-4 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+                    1) ZL Response
                   </div>
-                  <div className="text-xs text-slate-500 uppercase">
-                    Executive Orders (7d)
-                  </div>
-                </div>
-                <div className="bg-white/[0.02] rounded-xl p-4">
-                  <div className="text-2xl font-bold text-white font-mono">
-                    {trump.proclamation_count_7d ?? 0}
-                  </div>
-                  <div className="text-xs text-slate-500 uppercase">
-                    Proclamations (7d)
+                  <div
+                    className={`text-xs px-2.5 py-1 rounded-full border ${
+                      responseSignalStyle(trump.zl_response.response_signal).chip
+                    }`}
+                  >
+                    {responseSignalStyle(trump.zl_response.response_signal).text}
                   </div>
                 </div>
-                <div className="bg-white/[0.02] rounded-xl p-4">
-                  <div className="text-2xl font-bold text-white font-mono">
-                    {trump.memorandum_count_7d ?? 0}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.zl_response.zl_return_7d_pct != null
+                        ? `${trump.zl_response.zl_return_7d_pct > 0 ? "+" : ""}${trump.zl_response.zl_return_7d_pct.toFixed(2)}%`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      ZL Return (7d window)
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500 uppercase">
-                    Memorandums (7d)
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.zl_response.zl_response_1d_pct != null
+                        ? `${trump.zl_response.zl_response_1d_pct > 0 ? "+" : ""}${trump.zl_response.zl_response_1d_pct.toFixed(2)}%`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      ZL Response (1d)
+                    </div>
                   </div>
-                </div>
-                <div className="bg-white/[0.02] rounded-xl p-4">
-                  <div className="text-2xl font-bold text-white font-mono">
-                    {trump.action_velocity?.toFixed(1) ?? "—"}
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.zl_response.zl_response_5d_pct != null
+                        ? `${trump.zl_response.zl_response_5d_pct > 0 ? "+" : ""}${trump.zl_response.zl_response_5d_pct.toFixed(2)}%`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      ZL Response (5d)
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500 uppercase">
-                    Action Velocity
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.zl_response.realized_vol_21d_pct != null
+                        ? `${trump.zl_response.realized_vol_21d_pct.toFixed(1)}%`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Realized Vol (21d)
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Sentiment row */}
-              <div className="flex items-center gap-4 flex-wrap mb-6">
-                <span className="text-sm text-slate-400">
-                  Policy Sentiment:
-                </span>
-                <span
-                  className={`text-base font-bold font-mono ${
-                    (trump.avg_sentiment_7d ?? 0) > 0.1
-                      ? "text-emerald-400"
-                      : (trump.avg_sentiment_7d ?? 0) < -0.1
-                        ? "text-red-400"
-                        : "text-slate-400"
-                  }`}
-                >
-                  {trump.avg_sentiment_7d != null
-                    ? `${trump.avg_sentiment_7d > 0 ? "+" : ""}${trump.avg_sentiment_7d.toFixed(2)}`
-                    : "—"}
-                </span>
-                <span className="text-sm text-slate-500">
-                  {(trump.avg_sentiment_7d ?? 0) > 0.1
-                    ? "(Supportive this week)"
-                    : (trump.avg_sentiment_7d ?? 0) < -0.1
-                      ? "(Headwinds this week)"
-                      : "(Neutral this week)"}
-                </span>
+              {/* 2) Policy activity */}
+              <div className="mb-6 border border-white/5 rounded-xl p-4 bg-white/[0.02]">
+                <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-4">
+                  2) Policy Activity
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.policy_activity.executive_orders_7d ?? 0}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Executive Orders (7d)
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.policy_activity.total_presidential_actions_7d ?? 0}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Total Presidential Actions (7d)
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.policy_activity.other_presidential_actions_7d ?? 0}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Other Presidential Actions (7d)
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.policy_activity.action_velocity != null
+                        ? trump.policy_activity.action_velocity.toFixed(1)
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Action Velocity (/day)
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-slate-400">
+                  Weighted policy pressure:{" "}
+                  <span className="font-mono text-white">
+                    {trump.policy_activity.weighted_action_score != null
+                      ? trump.policy_activity.weighted_action_score.toFixed(2)
+                      : "—"}
+                  </span>{" "}
+                  | Acceleration:{" "}
+                  <span className="font-mono text-white">
+                    {trump.policy_activity.action_acceleration != null
+                      ? `${trump.policy_activity.action_acceleration > 0 ? "+" : ""}${trump.policy_activity.action_acceleration.toFixed(2)}`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3) Independent confirmation */}
+              <div className="mb-6 border border-white/5 rounded-xl p-4 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="text-xs text-slate-500 uppercase tracking-widest font-bold">
+                    3) Independent Confirmation
+                  </div>
+                  <div
+                    className={`text-xs px-2.5 py-1 rounded-full border ${
+                      confirmationBandStyle(
+                        trump.independent_confirmation.confirmation_band,
+                      ).chip
+                    }`}
+                  >
+                    {
+                      confirmationBandStyle(
+                        trump.independent_confirmation.confirmation_band,
+                      ).text
+                    }{" "}
+                    ({trump.independent_confirmation.confirmation_score}/100)
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.independent_confirmation.independent_policy_items_7d}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Independent Policy Coverage (7d)
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.independent_confirmation.market_news_items_7d}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Market News Confirmation (7d)
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.02] rounded-xl p-4">
+                    <div className="text-2xl font-bold text-white font-mono">
+                      {trump.independent_confirmation.regulatory_follow_through_7d}
+                    </div>
+                    <div className="text-xs text-slate-500 uppercase">
+                      Regulatory Follow-through (7d)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4) Buyer meaning */}
+              <div className="mb-6 border rounded-xl p-5 bg-white/[0.02] border-cyan-500/30">
+                <div className="text-xs text-cyan-300 uppercase tracking-widest font-bold mb-2">
+                  4) Buyer Meaning
+                </div>
+                <div className="text-xl font-semibold text-white mb-2">
+                  {trump.buyer_meaning.label}
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  {trump.buyer_meaning.rationale}
+                </p>
               </div>
 
               {/* AI Narrative */}
@@ -718,7 +922,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Trump Effect data unavailable
+              Policy impact data unavailable
             </div>
           )}
         </div>

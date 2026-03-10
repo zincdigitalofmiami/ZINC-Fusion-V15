@@ -2,153 +2,48 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTrumpEffectPayload,
+  type ConfirmationInputs,
   type ExecutiveActionRow,
   type TrumpFeatureRow,
+  type ZlResponseInputs,
 } from "./trump-effect";
 
+const BASE_FEATURE_ROW: TrumpFeatureRow = {
+  as_of_date: "2026-03-10",
+  latest_any_as_of: "2026-03-10",
+  selection_mode: "latest_fallback",
+  weighted_action_score: null,
+  action_velocity: null,
+  action_acceleration: null,
+  total_actions_7d: null,
+  total_actions_30d: null,
+  eo_count_7d: null,
+};
+
+const BASE_CONFIRMATION: ConfirmationInputs = {
+  independent_policy_items_7d: 6,
+  market_news_items_7d: 5,
+  regulatory_follow_through_7d: 2,
+};
+
+const BASE_ZL_RESPONSE: ZlResponseInputs = {
+  close_anchor: 50,
+  close_prev_1d: 49,
+  close_prev_5d: 48,
+  close_start_7d: 47,
+  realized_vol_21d: 22,
+  anchor_price_date: "2026-03-10",
+};
+
 describe("buildTrumpEffectPayload", () => {
-  const featureRow: TrumpFeatureRow = {
-    as_of_date: "2026-03-10",
-    latest_any_as_of: "2026-03-10",
-    selection_mode: "latest_valid",
-    weighted_action_score: 1.75,
-    action_velocity: 1.14,
-    action_acceleration: 0.21,
-    total_actions_7d: 8,
-    total_actions_30d: 23,
-    eo_count_7d: 2,
-  };
-
-  it("derives 7d counts and 7d/30d sentiment from executive action rows without stale feature keys", () => {
+  it("builds a ZL-anchored policy card with canonical weights, windows, and confirmation", () => {
     const rows: ExecutiveActionRow[] = [
-      {
-        event_date: "2026-03-10",
-        document_type: "proclamation",
-        zl_sentiment: null,
-        headline: "Soybean oil prices surge on tight supply",
-        content: null,
-      },
-      {
-        event_date: "2026-03-09",
-        document_type: "presidential_memorandum",
-        zl_sentiment: "bearish",
-        headline: "Memorandum text",
-        content: null,
-      },
-      {
-        event_date: "2026-03-08",
-        document_type: "nomination_appointment",
-        zl_sentiment: "neutral",
-        headline: "Nomination text",
-        content: null,
-      },
-      {
-        event_date: "2026-02-20",
-        document_type: "proclamation",
-        zl_sentiment: "bullish",
-        headline: "Outside 7d but inside 30d",
-        content: null,
-      },
-    ];
-
-    const payload = buildTrumpEffectPayload(featureRow, rows);
-
-    expect(payload).not.toBeNull();
-    expect(payload?.eo_count_7d).toBe(2);
-    expect(payload?.proclamation_count_7d).toBe(1);
-    expect(payload?.memorandum_count_7d).toBe(1);
-    expect(payload?.nomination_count_7d).toBe(1);
-    expect(payload?.avg_sentiment_7d).toBeCloseTo(0, 6);
-    expect(payload?.avg_sentiment_30d).toBeCloseTo(0.25, 6);
-  });
-
-  it("returns null sentiment averages when no qualifying rows exist", () => {
-    const payload = buildTrumpEffectPayload(featureRow, []);
-    expect(payload).not.toBeNull();
-    expect(payload?.proclamation_count_7d).toBe(0);
-    expect(payload?.memorandum_count_7d).toBe(0);
-    expect(payload?.nomination_count_7d).toBe(0);
-    expect(payload?.avg_sentiment_7d).toBeNull();
-    expect(payload?.avg_sentiment_30d).toBeNull();
-  });
-
-  it("returns null when the latest feature row does not exist", () => {
-    expect(buildTrumpEffectPayload(null, [])).toBeNull();
-  });
-
-  it("derives score and dynamics from actions when selected feature row is partial", () => {
-    const partialRow: TrumpFeatureRow = {
-      as_of_date: "2026-03-10",
-      latest_any_as_of: "2026-03-10",
-      selection_mode: "latest_fallback",
-      weighted_action_score: null,
-      action_velocity: null,
-      action_acceleration: null,
-      total_actions_7d: null,
-      total_actions_30d: null,
-      eo_count_7d: null,
-    };
-    const rows: ExecutiveActionRow[] = [
+      // Current 7-day window (anchor-6 through anchor inclusive)
       {
         event_date: "2026-03-10",
         document_type: "executive_order",
         zl_sentiment: "bullish",
-        headline: "Executive order announced",
-        content: null,
-      },
-      {
-        event_date: "2026-03-08",
-        document_type: "proclamation",
-        zl_sentiment: "neutral",
-        headline: "Proclamation update",
-        content: null,
-      },
-      {
-        event_date: "2026-03-05",
-        document_type: "presidential_memorandum",
-        zl_sentiment: "bearish",
-        headline: "Memo update",
-        content: null,
-      },
-      {
-        event_date: "2026-03-07",
-        document_type: "nomination_appointment",
-        zl_sentiment: "neutral",
-        headline: "Nomination update",
-        content: null,
-      },
-    ];
-
-    const payload = buildTrumpEffectPayload(partialRow, rows);
-
-    expect(payload).not.toBeNull();
-    expect(payload?.total_actions_7d).toBe(4);
-    expect(payload?.total_actions_30d).toBe(4);
-    expect(payload?.eo_count_7d).toBe(1);
-    expect(payload?.weighted_action_score).toBeCloseTo(0.8, 6); // (3 + 1.5 + 2.5 + 1)/10
-    expect(payload?.action_velocity).toBe(0.5714);
-    expect(payload?.action_acceleration).toBe(0.5714);
-  });
-
-  it("uses canonical weights and inclusive windows for legislation-mapped action types", () => {
-    const partialRow: TrumpFeatureRow = {
-      as_of_date: "2026-03-10",
-      latest_any_as_of: "2026-03-10",
-      selection_mode: "latest_fallback",
-      weighted_action_score: null,
-      action_velocity: null,
-      action_acceleration: null,
-      total_actions_7d: null,
-      total_actions_30d: null,
-      eo_count_7d: null,
-    };
-    const rows: ExecutiveActionRow[] = [
-      // Current 7-day window: anchor-6 through anchor (inclusive)
-      {
-        event_date: "2026-03-10",
-        document_type: "executive_order",
-        zl_sentiment: "bullish",
-        headline: "EO",
+        headline: "Executive order",
         content: null,
       },
       {
@@ -176,25 +71,25 @@ describe("buildTrumpEffectPayload", () => {
         event_date: "2026-03-06",
         document_type: "presidential_document",
         zl_sentiment: "bullish",
-        headline: "Federal Register presidential document",
+        headline: "Presidential document",
         content: null,
       },
-      // Previous-week velocity window: anchor-13 through anchor-7 (inclusive)
+      // Previous-week velocity window (anchor-13 through anchor-7 inclusive)
       {
         event_date: "2026-03-02",
         document_type: "executive_order",
         zl_sentiment: "bearish",
-        headline: "Previous-week EO",
+        headline: "Previous week EO",
         content: null,
       },
       {
         event_date: "2026-02-28",
         document_type: "presidential_document",
         zl_sentiment: "neutral",
-        headline: "Previous-week presidential document",
+        headline: "Previous week presidential document",
         content: null,
       },
-      // Outside 30-day window; must be excluded
+      // Outside 30-day window and excluded
       {
         event_date: "2026-02-08",
         document_type: "executive_order",
@@ -204,45 +99,128 @@ describe("buildTrumpEffectPayload", () => {
       },
     ];
 
-    const payload = buildTrumpEffectPayload(partialRow, rows);
+    const payload = buildTrumpEffectPayload(
+      BASE_FEATURE_ROW,
+      rows,
+      BASE_CONFIRMATION,
+      BASE_ZL_RESPONSE,
+    );
 
     expect(payload).not.toBeNull();
+    expect(payload?.title).toBe("Policy Impact on ZL");
+
+    expect(payload?.policy_activity.executive_orders_7d).toBe(1);
+    expect(payload?.policy_activity.total_presidential_actions_7d).toBe(5);
+    expect(payload?.policy_activity.other_presidential_actions_7d).toBe(4);
+    expect(payload?.policy_activity.weighted_action_score).toBe(1); // (3 + 1.5 + 2.5 + 1 + 2) / 10
+    expect(payload?.policy_activity.action_velocity).toBe(0.7143); // 5 / 7
+    expect(payload?.policy_activity.action_acceleration).toBe(0.4286); // (5 / 7) - (2 / 7)
+    expect(payload?.policy_activity.avg_sentiment_7d).toBeCloseTo(0.2, 6);
+    expect(payload?.policy_activity.avg_sentiment_30d).toBe(0);
+
+    expect(payload?.zl_response.zl_return_7d_pct).toBe(6.38);
+    expect(payload?.zl_response.zl_response_1d_pct).toBe(2.04);
+    expect(payload?.zl_response.zl_response_5d_pct).toBe(4.17);
+    expect(payload?.zl_response.realized_vol_21d_pct).toBe(22);
+    expect(payload?.zl_response.response_signal).toBe("active");
+
+    expect(payload?.independent_confirmation.independent_policy_items_7d).toBe(6);
+    expect(payload?.independent_confirmation.market_news_items_7d).toBe(5);
+    expect(payload?.independent_confirmation.regulatory_follow_through_7d).toBe(2);
+    expect(payload?.independent_confirmation.confirmation_score).toBe(66);
+    expect(payload?.independent_confirmation.confirmation_band).toBe("mixed");
+
+    // Legacy compatibility fields remain populated.
     expect(payload?.total_actions_7d).toBe(5);
-    expect(payload?.total_actions_30d).toBe(7);
     expect(payload?.eo_count_7d).toBe(1);
-    expect(payload?.proclamation_count_7d).toBe(1);
-    expect(payload?.memorandum_count_7d).toBe(1);
-    expect(payload?.nomination_count_7d).toBe(1);
-    expect(payload?.weighted_action_score).toBe(1.0); // (3 + 1.5 + 2.5 + 1 + 2) / 10
-    expect(payload?.action_velocity).toBe(0.7143); // 5 / 7
-    expect(payload?.action_acceleration).toBe(0.4286); // (5 / 7) - (2 / 7)
-    expect(payload?.avg_sentiment_7d).toBeCloseTo(0.2, 6); // (1 + 0 - 1 + 0 + 1) / 5
-    expect(payload?.avg_sentiment_30d).toBe(0); // (+1 + 0 -1 +0 +1 -1 +0) / 7
+    expect(payload?.other_actions_7d).toBe(4);
   });
 
-  it("does not invent non-null sentiment averages when source rows are absent", () => {
-    const partialRow: TrumpFeatureRow = {
-      as_of_date: "2026-03-10",
-      latest_any_as_of: "2026-03-10",
-      selection_mode: "latest_fallback",
-      weighted_action_score: null,
-      action_velocity: null,
-      action_acceleration: null,
-      total_actions_7d: null,
-      total_actions_30d: null,
-      eo_count_7d: null,
+  it("classifies confirmed pressure when confirmation is strong and ZL move is elevated", () => {
+    const rows: ExecutiveActionRow[] = [
+      {
+        event_date: "2026-03-10",
+        document_type: "executive_order",
+        zl_sentiment: "bullish",
+        headline: "EO",
+        content: null,
+      },
+      {
+        event_date: "2026-03-09",
+        document_type: "presidential_document",
+        zl_sentiment: "bullish",
+        headline: "PD",
+        content: null,
+      },
+      {
+        event_date: "2026-03-08",
+        document_type: "executive_order",
+        zl_sentiment: "bullish",
+        headline: "EO 2",
+        content: null,
+      },
+    ];
+
+    const strongConfirmation: ConfirmationInputs = {
+      independent_policy_items_7d: 8,
+      market_news_items_7d: 8,
+      regulatory_follow_through_7d: 4,
     };
 
-    const payload = buildTrumpEffectPayload(partialRow, []);
+    const elevatedMove: ZlResponseInputs = {
+      close_anchor: 52,
+      close_prev_1d: 49,
+      close_prev_5d: 47,
+      close_start_7d: 46,
+      realized_vol_21d: 20,
+      anchor_price_date: "2026-03-10",
+    };
+
+    const payload = buildTrumpEffectPayload(
+      BASE_FEATURE_ROW,
+      rows,
+      strongConfirmation,
+      elevatedMove,
+    );
 
     expect(payload).not.toBeNull();
-    expect(payload?.total_actions_7d).toBe(0);
-    expect(payload?.total_actions_30d).toBe(0);
-    expect(payload?.eo_count_7d).toBe(0);
-    expect(payload?.weighted_action_score).toBe(0);
-    expect(payload?.action_velocity).toBe(0);
-    expect(payload?.action_acceleration).toBe(0);
-    expect(payload?.avg_sentiment_7d).toBeNull();
-    expect(payload?.avg_sentiment_30d).toBeNull();
+    expect(payload?.independent_confirmation.confirmation_band).toBe("strong");
+    expect(payload?.zl_response.response_signal).toBe("elevated");
+    expect(payload?.buyer_meaning.procurement_signal).toBe("confirmed_pressure");
+    expect(payload?.buyer_meaning.label).toContain("Confirmed pressure");
+  });
+
+  it("does not invent sentiment averages when action rows are absent", () => {
+    const payload = buildTrumpEffectPayload(
+      BASE_FEATURE_ROW,
+      [],
+      {
+        independent_policy_items_7d: 0,
+        market_news_items_7d: 0,
+        regulatory_follow_through_7d: 0,
+      },
+      {
+        close_anchor: 50,
+        close_prev_1d: 50,
+        close_prev_5d: 50,
+        close_start_7d: 50,
+        realized_vol_21d: 18,
+        anchor_price_date: "2026-03-10",
+      },
+    );
+
+    expect(payload).not.toBeNull();
+    expect(payload?.policy_activity.total_presidential_actions_7d).toBe(0);
+    expect(payload?.policy_activity.executive_orders_7d).toBe(0);
+    expect(payload?.policy_activity.other_presidential_actions_7d).toBe(0);
+    expect(payload?.policy_activity.avg_sentiment_7d).toBeNull();
+    expect(payload?.policy_activity.avg_sentiment_30d).toBeNull();
+    expect(payload?.independent_confirmation.confirmation_band).toBe("low");
+  });
+
+  it("returns null when feature row is missing", () => {
+    expect(
+      buildTrumpEffectPayload(null, [], BASE_CONFIRMATION, BASE_ZL_RESPONSE),
+    ).toBeNull();
   });
 });
