@@ -22,6 +22,7 @@ import {
   farmdocRinsDaily,
   aeiTradeDaily,
   conabNewsDaily,
+  googleNewsDaily,
   whitehouseDaily,
   usdaDaily,
   eiaDaily,
@@ -170,6 +171,7 @@ export const { GET, POST, PUT } = serve({
     // News/press
     farmdocRinsDaily,
     conabNewsDaily,
+    googleNewsDaily,
     whitehouseDaily,
     usdaDaily,
     nassWeekly,
