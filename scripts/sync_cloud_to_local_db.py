@@ -2,7 +2,7 @@
 """Sync audit-critical tables from cloud Postgres to local Postgres.
 
 Usage:
-  CLOUD_DATABASE_URL='postgresql://...' \
+  DATABASE_URL='postgresql://...' \
   LOCAL_DATABASE_URL='postgresql://...' \
   .venv/bin/python scripts/sync_cloud_to_local_db.py
 
@@ -243,8 +243,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--source-env",
-        default="CLOUD_DATABASE_URL",
-        help="environment variable containing cloud DB URL (default: CLOUD_DATABASE_URL)",
+        default="DATABASE_URL",
+        help="environment variable containing cloud DB URL (default: DATABASE_URL)",
     )
     parser.add_argument(
         "--dest-env",

@@ -2,9 +2,8 @@
 # Shared DB env loader for local tooling (Prisma status/build gates).
 # Precedence:
 #   1) caller-provided environment (always wins)
-#   2) .env.local.audit
-#   3) .env.local
-#   4) .env
+#   2) .env.local
+#   3) .env
 
 set -euo pipefail
 
@@ -20,7 +19,7 @@ load_db_env() {
 
   if [ "$missing" -eq 1 ]; then
     local env_file
-    for env_file in .env.local.audit .env.local .env; do
+    for env_file in .env.local .env; do
       if [ -f "$env_file" ]; then
         set -a
         # shellcheck source=/dev/null

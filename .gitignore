@@ -47,7 +47,6 @@ client/dist/
 frontend/.env.vercel.*
 .env.local
 .env.production
-.env.local.audit
 
 # Node modules
 node_modules/

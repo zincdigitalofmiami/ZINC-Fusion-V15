@@ -12,7 +12,7 @@ source scripts/load_db_env.sh
 load_db_env
 
 if [ -z "${POSTGRES_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
-  echo "ERROR: set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in env, .env.local.audit, .env.local, or .env" >&2
+  echo "ERROR: set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in env, .env.local, or .env" >&2
   exit 1
 fi
 

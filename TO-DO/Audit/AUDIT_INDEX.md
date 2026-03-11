@@ -1,6 +1,6 @@
 # ZINC-FUSION-V15 Audit Index
 
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-11
 **Purpose:** Track all audit reports, their status, and locations
 
 ---
@@ -72,6 +72,29 @@
 
 ---
 
+### 6. Vercel Environment & Cloud DB Audit (2026-03-11)
+
+**Status:** ✅ COMPLETE
+**Location:** `TO-DO/Audit/2026-03-11_vercel_env_cloud_db_audit.md`
+**Related:** `reports/stale_review_2026-03-11.md` (Section 3)
+
+**Summary:**
+
+- Local workspace linked to wrong Vercel project (`frontend` with 0 env vars instead of `zinc-fusion-v15` with 44 entries)
+- Cloud DB URL exists on Vercel production: `DATABASE_URL` and `POSTGRES_URL` both point to `db.prisma.io:5432/postgres`
+- `CLOUD_DATABASE_URL` does not exist on Vercel — local audit convention only
+- `DIRECT_DATABASE_URL` missing from Vercel (needed for migration bypass of Accelerate proxy)
+- 7 env vars have trailing `\n` — potential auth failure risk
+- Cloud guard passes with explicit URL injection; direct `psql` blocks on redacted credentials
+- `npx vercel env pull` from workspace returns no DB keys due to project mismatch
+
+**Blockers for Section 3 completion:**
+
+1. Full non-redacted cloud connection string for direct SQL execution
+2. Or: add `CLOUD_DATABASE_URL` to Vercel production env + re-link workspace to `zinc-fusion-v15`
+
+---
+
 ## Pending Audits (Require Training Runs / Live DB)
 
 ### 4. Phase 4B: Feature Coverage Audit
@@ -120,14 +143,21 @@ These are code-level issues discovered during audit searches, not audit document
 ### Resolved Script Gaps
 
 - `scripts/check_local_v15_parity.sql` created
-- `scripts/sync_cloud_to_local_db.py` created
+- `scripts/sync_cloud_to_local_db.py` created (default source changed from `CLOUD_DATABASE_URL` to `DATABASE_URL`)
 - `scripts/backfill_model_runs_event.py` created
-- `scripts/db_identity_guard.py` created
-- `Makefile` targets added: `db-guard-cloud`, `db-guard-local`, `db-guard-shadow`, `db-parity-local`
+- `Makefile` target: `db-parity-local`
 
-### Remaining Blocker
+### Removed (2026-03-11 cleanup)
 
-- `db-guard-cloud` requires `CLOUD_DATABASE_URL` (or direct cloud DB env vars) in the active shell; currently unset in this workspace session
+- `scripts/db_identity_guard.py` — deleted (rogue AI artifact from ~Mar 5 recovery)
+- `.env.local.audit` / `.env.local.audit.example` — deleted
+- Makefile targets `db-guard-cloud`, `db-guard-local`, `db-guard-shadow` — removed
+- `CLOUD_DATABASE_URL` concept eliminated — cloud queries use `DATABASE_URL` directly
+- Orphan Vercel project `frontend` deleted; workspace re-linked to `zinc-fusion-v15`
+
+### Remaining Blockers
+
+- None for Vercel/DB infrastructure (resolved 2026-03-11)
 
 ### Documentation Drift
 
@@ -141,5 +171,6 @@ These are code-level issues discovered during audit searches, not audit document
 1. **Complete Phase 1A Training** — Prerequisite for Phase 4B/4C audits
 2. **Execute Specialist Audit Remediation Plan** — Phases A-E from 2026-02-14 audit
 3. **Resolve Vegas Schema Split** — Follow remediation steps in Vegas audit
-4. **Run Cloud Guard With Real Env** — Set `CLOUD_DATABASE_URL` and execute `make db-guard-cloud`
+4. **Clean Trailing `\n`** — 7 Vercel env vars have literal `\n` suffixes (see Vercel audit)
 5. **Clean Up Audit Copies** — Consolidate Pre-Rebuild Forecast Audit references
+6. **Consolidate Prisma configs** — Two `prisma.config.ts` files exist (`config/` and `prisma/`); merge into one
