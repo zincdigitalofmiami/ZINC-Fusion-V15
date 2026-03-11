@@ -13,16 +13,12 @@
  * NO GUESSWORK - All data is verified before passing to AI
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import {
   MODEL_BALANCED_CONDITIONS,
   TOKENS_BALANCED_CONDITIONS,
 } from "./ai-config";
+import { hasOpenRouterApiKey, openRouterCompleteText } from "./openrouter";
 import { parseAIJson } from "./parse-ai-json";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 // =============================================================================
 // TYPES
@@ -92,7 +88,11 @@ export interface AIIntelligence {
 // SYSTEM PROMPT - DOMAIN EXPERT
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You produce institutional-grade market intelligence reports for professional traders and investors.
+const SYSTEM_PROMPT = `CARD LOCATION: Comprehensive Market Intelligence panel on the Dashboard Strategy page. The user sees this as the primary deep-analysis report alongside the driver score cards and Target Zones. This is NOT a quick explainer — it is the institutional-grade synthesis report. Write with full depth and specificity.
+
+ZL FOCUS: Every section of this report must trace back to ZL (CBOT soybean oil futures) price direction. The user is a soybean oil BUYER — ZL up = higher procurement costs. Analyze all drivers through the lens of ZL supply, demand, and price risk.
+
+You are a senior soybean oil (ZL) market analyst at a major commodity trading house. You produce institutional-grade market intelligence reports for professional traders and investors.
 
 CRITICAL CONTEXT:
 - ZL = CBOT Soybean Oil Futures (your primary focus)
@@ -142,6 +142,8 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
 export async function generateAIIntelligence(
   data: MarketData,
 ): Promise<AIIntelligence | null> {
+  if (!hasOpenRouterApiKey()) return null;
+
   // Validate we have real data (NO GUESSWORK)
   if (
     data.vix === undefined ||
@@ -207,24 +209,22 @@ CRITICAL INSTRUCTIONS:
 Produce your comprehensive ZL market intelligence as JSON.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: MODEL_BALANCED_CONDITIONS, // LOCKED: Opus 4.5 for comprehensive synthesis
-      max_tokens: TOKENS_BALANCED_CONDITIONS,
-      messages: [{ role: "user", content: userPrompt }],
-      system: SYSTEM_PROMPT,
+    const text = await openRouterCompleteText({
+      model: MODEL_BALANCED_CONDITIONS,
+      maxTokens: TOKENS_BALANCED_CONDITIONS,
+      temperature: 0.0,
+      reasoning: { effort: "high" },
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    const content = response.content[0];
-    if (content.type !== "text") {
-      console.error("AI Intelligence: Unexpected response type");
-      return null;
-    }
-
-    const parsed = parseAIJson<AIIntelligence>(content.text);
+    const parsed = parseAIJson<AIIntelligence>(text);
     if (!parsed) {
       console.error(
         "AI Intelligence: Invalid JSON response",
-        content.text.slice(0, 160),
+        text.slice(0, 160),
       );
       return null;
     }

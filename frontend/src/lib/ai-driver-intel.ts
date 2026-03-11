@@ -13,13 +13,9 @@
  * Uses CURRENT data (yesterday's values) - no guesswork
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import { MODEL_DRIVER_INTEL, TOKENS_DRIVER_INTEL } from "./ai-config";
+import { hasOpenRouterApiKey, openRouterCompleteText } from "./openrouter";
 import { parseAIJson } from "./parse-ai-json";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 // =============================================================================
 // TYPES
@@ -52,7 +48,9 @@ export interface DriverIntel {
 // SYSTEM PROMPTS - DRIVER-SPECIFIC EXPERTS
 // =============================================================================
 
-const VIX_EXPERT_PROMPT = `You are a volatility specialist analyzing VIX and its transmission to soybean oil (ZL) futures.
+const VIX_EXPERT_PROMPT = `CARD LOCATION: VIX Stress driver card on the Dashboard. The user sees a score gauge (0-100), raw VIX value, OVX value, VIX3M ratio, and a sparkline trend.
+
+ZL FOCUS: Explain how equity and oil volatility transmit to ZL (CBOT soybean oil futures). Every JSON field must connect back to ZL price impact.
 
 KEY RELATIONSHIPS:
 - VIX spike → Risk-off → Fund liquidation → ZL selling pressure
@@ -60,65 +58,61 @@ KEY RELATIONSHIPS:
 - VIX term structure (VIX/VIX3M) → Near-term panic indicator
 - VIX levels: <15 calm, 15-20 normal, 20-25 elevated, 25-30 high, 30-40 fear, >40 panic
 
-You analyze how EQUITY VOLATILITY transmits to commodity markets, specifically ZL.
-Focus on: fund flows, risk-off behavior, liquidity conditions, energy/biodiesel linkage.
-
-OUTPUT: Valid JSON only, no markdown.
+OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "2-3 sentences on current volatility conditions",
-  "macroContext": "Economic factors driving volatility (Fed policy, earnings, geopolitics)",
-  "supplyDemand": "How volatility is affecting commodity fund positioning",
-  "geopolitical": "Geopolitical drivers of current vol regime",
-  "investorSentiment": "How traders are positioned for volatility",
-  "nearTermOutlook": "Next 5-10 day volatility expectations",
-  "zlImplication": "Direct impact on ZL trading - spreads, gaps, liquidity"
+  "whatsHappening": "1-2 sentences on current vol conditions and what they mean for ZL",
+  "macroContext": "Economic factors driving vol and their ZL transmission",
+  "supplyDemand": "How vol is affecting commodity fund positioning in ZL",
+  "geopolitical": "Geopolitical drivers of current vol regime and ZL impact",
+  "investorSentiment": "How traders are positioned and what it means for ZL flows",
+  "nearTermOutlook": "Next 5-10 day vol expectations and ZL implications",
+  "zlImplication": "Direct impact on ZL trading - selling pressure, spreads, liquidity"
 }`;
 
-const CRUSH_EXPERT_PROMPT = `You are a soybean crush margin specialist analyzing processor economics and their impact on ZL (soybean oil).
+const CRUSH_EXPERT_PROMPT = `CARD LOCATION: Crush Pressure driver card on the Dashboard. The user sees a score gauge (0-100), board crush value ($/bu), oil share %, and a sparkline.
+
+ZL FOCUS: Explain how processor crush economics affect ZL (CBOT soybean oil futures) supply. When margins are strong, processors run hard and flood the market with soybean oil. When margins collapse, run rates drop and ZL supply tightens. Oil share rising = oil demand pulling crush decisions = bullish ZL. Every JSON field must trace to ZL supply/price.
 
 KEY RELATIONSHIPS:
-- Board crush = (11 × ZM) + (ZL/100) - ZS  (simplified)
+- Board crush = (11 × ZM) + (ZL/100) - ZS (simplified)
 - <USD 1.00/bu = crisis, USD 1.00-1.25 = stressed, USD 1.25-1.50 = tight, USD 1.50-1.75 = neutral, USD 1.75-2.00 = healthy, >USD 2.00 = strong
 - Oil share = ZL value / total product value (typically 42-48%)
 - Falling oil share = meal driving crush decisions, rising = oil demand strong
 
-You analyze how CRUSH ECONOMICS affect ZL supply through processor run rates.
-Focus on: processor margins, capacity utilization, biofuel mandates, renewable diesel demand.
-
-OUTPUT: Valid JSON only, no markdown.
+OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "2-3 sentences on current crush economics",
-  "macroContext": "Economic factors affecting crush margins (bean prices, oil/meal demand)",
-  "supplyDemand": "Processor capacity utilization and ZL supply implications",
-  "geopolitical": "Policy factors (RIN prices, RVO mandates, biofuel credits)",
-  "investorSentiment": "Crusher hedging activity and positioning",
-  "nearTermOutlook": "Next 5-10 day crush margin expectations",
+  "whatsHappening": "1-2 sentences on crush economics and ZL supply impact",
+  "macroContext": "Economic factors affecting crush margins and ZL supply",
+  "supplyDemand": "Processor run rates and ZL supply pressure",
+  "geopolitical": "Policy factors (RIN prices, RVO mandates, biofuel credits) and ZL demand",
+  "investorSentiment": "Crusher hedging activity and ZL positioning",
+  "nearTermOutlook": "Next 5-10 day crush margin expectations and ZL direction",
   "zlImplication": "Direct impact on ZL - supply pressure, basis, spreads"
 }`;
 
-const CHINA_EXPERT_PROMPT = `You are a China soy trade specialist analyzing export demand dynamics and their impact on ZL (soybean oil).
+const CHINA_EXPERT_PROMPT = `CARD LOCATION: China Tension driver card on the Dashboard. The user sees a score gauge (0-100), CNY/USD exchange rate, FXI ETF 5d/20d changes, and a sparkline.
+
+ZL FOCUS: Explain how China trade dynamics affect ZL (CBOT soybean oil futures) demand and price. China buys ~60% of globally traded soybeans. Weak CNY = Brazil gains competitive advantage over US Gulf = bearish for ZL. Trade war tariffs = China pivots to Brazil within 48h = US export demand cliff = ZL down. Every JSON field must trace to ZL demand/price.
 
 KEY RELATIONSHIPS:
-- China buys ~60% of globally traded soybeans
 - CNY/USD: 7.0 psychological, 7.2 PBOC defense, 7.3+ competitive disadvantage for US soy
 - Weak CNY = Brazil more competitive vs US Gulf
 - Focus on FX rates and specialist signals (ETF data disabled due to quality issues)
 
-You analyze how CHINA TRADE DYNAMICS affect US soy exports and ZL demand.
-Focus on: export sales, trade tensions, shipping, Brazil competition, CNY dynamics.
-
-OUTPUT: Valid JSON only, no markdown.
+OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "2-3 sentences on current China trade conditions",
-  "macroContext": "Economic factors in China (PMI, demand, currency policy)",
-  "supplyDemand": "Export sales pace, Brazil competition, shipping rates",
-  "geopolitical": "US-China relations, tariff risks, trade negotiations",
-  "investorSentiment": "How market is pricing China demand risk",
-  "nearTermOutlook": "Next 5-10 day China buying expectations",
-  "zlImplication": "Direct impact on ZL - export demand, basis, price direction"
+  "whatsHappening": "1-2 sentences on China trade conditions and ZL demand impact",
+  "macroContext": "Economic factors in China affecting ZL demand (PMI, currency, policy)",
+  "supplyDemand": "Export sales pace vs Brazil competition and ZL implications",
+  "geopolitical": "US-China relations, tariff risks, and ZL export demand",
+  "investorSentiment": "How market is pricing China demand risk for ZL",
+  "nearTermOutlook": "Next 5-10 day China buying expectations and ZL direction",
+  "zlImplication": "Direct impact on ZL - export demand, Gulf basis, price direction"
 }`;
 
-const TARIFF_EXPERT_PROMPT = `You are a trade policy specialist analyzing tariff risk and its impact on US soybean/ZL (soybean oil) exports.
+const TARIFF_EXPERT_PROMPT = `CARD LOCATION: Tariff Threat driver card on the Dashboard. The user sees a score gauge (0-100), TPU index value, EMV trade value, and a sparkline.
+
+ZL FOCUS: Explain how trade policy uncertainty threatens ZL (CBOT soybean oil futures) export demand and price. Retaliatory tariffs cause China to pivot to Brazil within 48h, collapsing Gulf basis and ZL price. TPU is lagging (newspaper coverage), bureaucracy velocity is leading (actual government action). Every JSON field must trace to ZL export demand and price risk.
 
 KEY RELATIONSHIPS:
 - TPU (Trade Policy Uncertainty) from Baker-Bloom-Davis: <100 calm, 100-200 normal, 200-400 elevated, >400 high
@@ -126,18 +120,15 @@ KEY RELATIONSHIPS:
 - Retaliatory tariffs on US soy = export demand cliff (see 2018-2019)
 - 25%+ tariffs = China switches to Brazil, Gulf basis collapses
 
-You analyze how TRADE POLICY UNCERTAINTY affects soy export demand and ZL pricing.
-Focus on: tariff proposals, retaliatory risk, export sales disruption, Gulf basis.
-
-OUTPUT: Valid JSON only, no markdown.
+OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "2-3 sentences on current trade policy environment",
-  "macroContext": "Policy factors (administration stance, legislation, trade talks)",
-  "supplyDemand": "How policy uncertainty is affecting export commitments",
-  "geopolitical": "US-China trade war status, other retaliatory risks",
-  "investorSentiment": "How traders are hedging trade policy risk",
-  "nearTermOutlook": "Next 5-10 day policy event calendar",
-  "zlImplication": "Direct impact on ZL - export demand, basis, price risk"
+  "whatsHappening": "1-2 sentences on trade policy environment and ZL risk",
+  "macroContext": "Policy factors affecting ZL export competitiveness",
+  "supplyDemand": "How policy uncertainty is affecting ZL export commitments",
+  "geopolitical": "Trade war status and retaliatory risks to ZL demand",
+  "investorSentiment": "How traders are hedging ZL trade policy risk",
+  "nearTermOutlook": "Next 5-10 day policy events and ZL implications",
+  "zlImplication": "Direct impact on ZL - export demand, Gulf basis, price risk"
 }`;
 
 // =============================================================================
@@ -146,33 +137,33 @@ OUTPUT: Valid JSON only, no markdown.
 
 // JSON parsing delegated to shared parseAIJson<T> in parse-ai-json.ts
 
-const ENERGY_EXPERT_PROMPT = `You are an energy markets specialist analyzing crude oil (CL) and its transmission to soybean oil (ZL) via the biofuel channel.
+const ENERGY_EXPERT_PROMPT = `CARD LOCATION: Energy Stress driver card on the Dashboard. The user sees a score gauge (0-100), crude oil price data, and a sparkline.
+
+ZL FOCUS: Explain the crude oil → biofuel → ZL (CBOT soybean oil futures) transmission chain. 50%+ of US soybean oil goes to biodiesel/renewable diesel — the energy-ZL link is STRUCTURAL. Crude up = more soy oil diverted to fuel = ZL up = bad for the buyer. Hormuz/OPEC/Iran disruptions → crude supply shock → ZL pulled higher. Every JSON field must trace the energy→biofuel→ZL chain.
 
 KEY RELATIONSHIPS:
-- Crude oil UP → energy costs up → biofuel economics shift → more soy oil diverted to renewable diesel → ZL UP → BAD for buyer
-- Crude oil DOWN → energy costs ease → less biofuel demand for soy oil → ZL DOWN → GOOD for buyer
+- Crude oil UP → biofuel economics shift → more soy oil to renewable diesel → ZL UP
+- Crude oil DOWN → less biofuel demand for soy oil → ZL DOWN
 - OVX (oil volatility) → energy market uncertainty
 - Hormuz/OPEC/Iran → supply disruption → crude spike → ZL pressure
-- >50% of US soybean oil now goes to biodiesel/renewable diesel - the energy-ZL link is STRUCTURAL
 - CL 5d change thresholds: 2% normal, 4% notable, 7% supply shock, 12%+ crisis
 
-You analyze how ENERGY MARKETS transmit to soybean oil pricing via the biofuel channel.
-Focus on: crude oil price action, supply disruptions, OPEC policy, biofuel mandate economics, renewable diesel capacity.
-
-OUTPUT: Valid JSON only, no markdown.
+OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "2-3 sentences on current energy conditions and ZL impact",
-  "macroContext": "Global energy market drivers (geopolitics, OPEC, sanctions)",
-  "supplyDemand": "How energy prices affect biofuel demand for soy oil",
-  "geopolitical": "Geopolitical risk to energy supply (Iran, Hormuz, Russia)",
-  "investorSentiment": "Energy trader positioning and speculative flows",
-  "nearTermOutlook": "Next 5-10 day energy market expectations",
+  "whatsHappening": "1-2 sentences on energy conditions and ZL impact via biofuel channel",
+  "macroContext": "Global energy drivers and their transmission to ZL",
+  "supplyDemand": "How energy prices are affecting biofuel demand for soy oil",
+  "geopolitical": "Geopolitical risk to energy supply and ZL implications",
+  "investorSentiment": "Energy trader positioning and ZL flow impact",
+  "nearTermOutlook": "Next 5-10 day energy expectations and ZL direction",
   "zlImplication": "Direct impact on ZL via biofuel economics and renewable diesel"
 }`;
 
 export async function generateDriverIntel(
   data: DriverIntelData,
 ): Promise<DriverIntel | null> {
+  if (!hasOpenRouterApiKey()) return null;
+
   const systemPrompt = {
     vix: VIX_EXPERT_PROMPT,
     crush: CRUSH_EXPERT_PROMPT,
@@ -212,21 +203,22 @@ Keep each JSON field concise (1-2 sentences max) and keep the full response unde
 Provide your expert analysis as JSON.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: MODEL_DRIVER_INTEL, // LOCKED: Sonnet 4.5 for per-card intel
-      max_tokens: TOKENS_DRIVER_INTEL,
-      messages: [{ role: "user", content: userPrompt }],
-      system: systemPrompt,
+    const text = await openRouterCompleteText({
+      model: MODEL_DRIVER_INTEL,
+      maxTokens: TOKENS_DRIVER_INTEL,
+      temperature: 0.0,
+      reasoning: { effort: "high" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    const content = response.content[0];
-    if (content.type !== "text") return null;
-
-    const parsed = parseAIJson<DriverIntel>(content.text);
+    const parsed = parseAIJson<DriverIntel>(text);
     if (!parsed) {
       console.error(
         `AI Intel invalid JSON for ${data.driverName}`,
-        content.text.slice(0, 160),
+        text.slice(0, 160),
       );
       return null;
     }

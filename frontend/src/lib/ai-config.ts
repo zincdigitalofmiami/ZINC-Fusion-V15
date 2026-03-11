@@ -2,8 +2,9 @@
  * AI Model Configuration - SINGLE SOURCE OF TRUTH
  *
  * HARD-LOCKED MODEL ROUTING:
- * - Driver cards (4x): Sonnet 4.5 for fast, domain-focused analysis
- * - Combined narrative: Opus 4.5 for comprehensive cross-driver synthesis
+ * - OpenRouter provider for all market-context AI surfaces
+ * - Model: openai/gpt-oss-120b:free (120B-param, high reasoning capability)
+ * - Temperature: 0.0 (deterministic), Reasoning effort: high
  *
  * DO NOT CHANGE THESE WITHOUT EXPLICIT APPROVAL
  */
@@ -13,16 +14,16 @@
 // =============================================================================
 
 /**
- * Sonnet 4.5 for individual driver "What's Happening?" intel
- * Fast, cost-effective, domain-focused
+ * GPT-OSS-120B via OpenRouter free tier — per-card driver intel and streamed page briefs.
+ * 120B-param model with extended reasoning support for deep ZL analysis.
  */
-export const MODEL_DRIVER_INTEL = 'claude-sonnet-4-5-20250929'
+export const MODEL_DRIVER_INTEL = 'openai/gpt-oss-120b:free'
 
 /**
- * Opus 4.5 for combined "Balanced Conditions" market narrative
- * Comprehensive synthesis across all 4 drivers
+ * GPT-OSS-120B via OpenRouter free tier — comprehensive market synthesis.
+ * Same model as driver intel; strongest free reasoning model available.
  */
-export const MODEL_BALANCED_CONDITIONS = 'claude-opus-4-5-20251101'
+export const MODEL_BALANCED_CONDITIONS = 'openai/gpt-oss-120b:free'
 
 // =============================================================================
 // TOKEN LIMITS

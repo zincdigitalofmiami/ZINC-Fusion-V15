@@ -1,18 +1,17 @@
 /**
  * ZL Market Context — AI-powered "What's Happening" summary
  *
- * Streams a 2-3 sentence market context using the brief data.
- * Uses Vercel AI SDK with Claude Sonnet 4.5 for fast, actionable intel.
+ * 1-2 sentence market context using driver scores and event headlines.
+ * Uses OpenRouter GPT-OSS-120B with high reasoning for deep ZL analysis.
  * Works even when some drivers are stale — tells the buyer what we know
  * and what we're missing.
  *
- * NEW: Also receives recent event headlines from the Event Pulse system.
+ * Also receives recent event headlines from the Event Pulse system.
  * When events contradict lagging driver scores, the AI leads with events.
  */
 
-import { streamText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +47,7 @@ export async function POST(request: Request) {
     return new Response("Invalid request", { status: 400 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!hasOpenRouterApiKey()) {
     return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
   }
 
@@ -127,31 +126,46 @@ DOMAIN KNOWLEDGE (use this to connect the dots):
 - EU, Japan, Korea energy dependence means their response to Hormuz disruption amplifies the shock.
 `.trim();
 
+  const CARD_PREAMBLE = `CARD LOCATION: This renders as the AI Market Context card on the Strategy page. The user sees the ZL price chart with horizontal Target Zones, 4 driver score gauges (VIX Stress, Crush Pressure, China Tension, Tariff Threat), forecast horizon confidence bars, and an Event Pulse timeline.
+
+ZL FOCUS: Tell a soybean oil procurement buyer what matters RIGHT NOW for ZL price direction. Connect driver scores and event headlines to ZL through specific mechanisms: VIX spike → fund liquidation → ZL selling. Crush margin squeeze → processor slowdowns → less oil supply → ZL up. China tariff → export diversion → Gulf basis collapse → ZL down. Crude surge → biofuel economics → ZL pulled up.`;
+
   const systemPrompt = hasEvents
-    ? `You are a senior procurement intelligence analyst for a US soybean oil buyer. Write 3-5 sentences of actionable market context.
+    ? `${CARD_PREAMBLE}
 
 ${DOMAIN_CONTEXT}
 
 INSTRUCTIONS:
 ${isElevated ? "CRITICAL: Event velocity is extremely elevated. LEAD with what is happening in the world RIGHT NOW. The driver scores lag — they reflect last week, not today." : "Weigh both the quantitative driver scores AND the recent event headlines."}
-- When you see war, military action, sanctions, or strait closures: IMMEDIATELY explain the CAUSAL CHAIN to soybean oil prices (conflict → crude supply → energy prices → biofuel economics → ZL demand → price).
-- Name the specific countries affected and how they will react (India cutting imports, EU scrambling for LNG, China redirecting soybean trade).
-- If crude oil is surging, quantify the ZL impact: "Crude +X% typically pulls soybean oil 30-50% of that move via biofuel substitution."
-- If there's a disconnect between calm driver scores and alarming headlines, say so explicitly: "Scores show calm but the world has changed — [explain why]."
-- If tariffs/sanctions are in play, explain who gets hurt and who benefits in soybean trade flows.
-- Be direct and specific. No generic statements. Name countries, name commodities, name percentages. Write like a Bloomberg terminal flash from someone who understands the full supply chain.`
-    : `You are a senior procurement intelligence analyst for a US soybean oil buyer. Write 2-3 sentences of actionable market context.
+- When you see war, military action, sanctions, or strait closures: trace the CAUSAL CHAIN to ZL (conflict → crude supply → energy prices → biofuel economics → ZL demand → price).
+- Name the specific countries, commodities, and percentages. No generic statements.
+- If there's a disconnect between calm driver scores and alarming headlines, say so explicitly.
+
+OUTPUT: 1-2 sentences MAX. No bullet points, no preamble. Write like a Bloomberg terminal flash.`
+    : `${CARD_PREAMBLE}
 
 ${DOMAIN_CONTEXT}
 
-Be direct — tell the buyer what matters RIGHT NOW. If data is stale, acknowledge it briefly but still give useful guidance from what's available. If drivers are missing, say what we're blind to. No preamble, no bullet points, no hedging. Write like a Bloomberg terminal flash.`;
+OUTPUT: 1-2 sentences MAX. Be direct — tell the buyer what matters RIGHT NOW for ZL. If data is stale, acknowledge it briefly. If drivers are missing, say what we're blind to. No preamble, no bullet points, no hedging.`;
 
-  const result = streamText({
-    model: anthropic(MODEL_DRIVER_INTEL),
-    maxOutputTokens: 500,
-    system: systemPrompt,
-    prompt: lines.join("\n"),
-  });
+  try {
+    const text = await openRouterCompleteText({
+      model: MODEL_DRIVER_INTEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: lines.join("\n") },
+      ],
+      maxTokens: 250,
+      temperature: 0.0,
+      reasoning: { effort: "high" },
+    });
 
-  return result.toTextStreamResponse();
+    return new Response(text, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  } catch (error) {
+    console.error("[zl/context] OpenRouter generation failed:", error);
+    return new Response("AI briefing unavailable.", { status: 200 });
+  }
 }

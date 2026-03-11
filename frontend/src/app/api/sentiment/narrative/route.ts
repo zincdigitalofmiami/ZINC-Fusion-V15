@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 
 export const dynamic = "force-dynamic";
 
@@ -150,7 +149,7 @@ async function generateAINarratives(payload: NarrativeRequest): Promise<{
   trumpEffectNarrative: string | null;
   volatilityNarrative: string | null;
 } | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!hasOpenRouterApiKey()) return null;
 
   // Build context from available data
   const dataPoints: string[] = [];
@@ -189,18 +188,36 @@ async function generateAINarratives(payload: NarrativeRequest): Promise<{
   if (dataPoints.length === 0) return null;
 
   try {
-    const { text } = await generateText({
-      model: anthropic(MODEL_DRIVER_INTEL),
-      maxOutputTokens: 600,
-      system: `You are a commodity procurement analyst for a US soybean oil buyer. Write concise, actionable intelligence narratives. No preamble, no hedging. Speak directly to a procurement buyer who needs to decide when to buy.
+    const text = await openRouterCompleteText({
+      model: MODEL_DRIVER_INTEL,
+      maxTokens: 600,
+      temperature: 0.0,
+      reasoning: { effort: "high" },
+      messages: [
+        {
+          role: "system",
+          content: `CARD LOCATION: Your output renders as three separate narrative cards on the Sentiment page of a ZL procurement intelligence dashboard.
+- Card 1 (fearGreedNarrative): Displays next to the composite Fear & Greed gauge (0-100 score with zone label). The user sees the numeric score and zone while reading your narrative.
+- Card 2 (trumpEffectNarrative): Displays next to the policy activity tracker showing weekly executive actions, corroboration score/band, and ZL 7-day return. The user sees these metrics while reading your narrative.
+- Card 3 (volatilityNarrative): Displays next to VIX and OVX gauges and 21-day realized volatility readout. The user sees these vol numbers while reading your narrative.
+
+ZL FOCUS: You are a commodity procurement analyst for a US soybean oil buyer. Every narrative must connect its signal to ZL (CBOT soybean oil futures) price action and procurement timing.
+- Fear & Greed → sentiment extremes signal ZL reversal points (extreme fear = buying opportunity, extreme greed = defer purchases)
+- Trump Effect → policy activity hits ZL through biofuel mandates (RVO/45Z/SRE → soybean oil demand) and trade policy (tariffs → China soy diversion → Gulf basis)
+- Volatility → VIX spike = fund liquidation = ZL selling pressure. High OVX = biodiesel margin uncertainty. Vol regime determines whether to lock in coverage now or wait.
 
 Return EXACTLY a JSON object with these keys (use null if no data for that section):
-- fearGreedNarrative: 1-2 sentences on market sentiment and what it means for timing
-- trumpEffectNarrative: 1-2 sentences that clearly separate policy activity, corroborating coverage, and actual ZL response for procurement risk
-- volatilityNarrative: 1-2 sentences on vol regime and what it means for coverage decisions
+- fearGreedNarrative: 1-2 sentences connecting the sentiment score to ZL procurement timing
+- trumpEffectNarrative: 1-2 sentences separating policy noise from confirmed ZL price impact
+- volatilityNarrative: 1-2 sentences on what the vol regime means for ZL coverage decisions
 
-Be specific. Use the numbers. Tell them what to DO, not what might happen.`,
-      prompt: `Current market data:\n${dataPoints.join('\n')}\n\nGenerate procurement intelligence narratives.`,
+Use the exact numbers from the data. No hedging. Tell them what to DO.`,
+        },
+        {
+          role: "user",
+          content: `Current market data:\n${dataPoints.join('\n')}\n\nGenerate procurement intelligence narratives.`,
+        },
+      ],
     });
 
     // Parse JSON response

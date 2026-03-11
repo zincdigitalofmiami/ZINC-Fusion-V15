@@ -5,9 +5,8 @@
  * tailored prompt. Returns streamed text, not JSON.
  */
 
-import { streamText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +17,15 @@ interface SectionRequest {
 }
 
 const SECTION_PROMPTS: Record<string, string> = {
-  agency: `You analyze which US government agencies are filing ZL-relevant regulations. Given agency filing counts (trade, biofuel, energy, agriculture), write ONE sentence: name the most active agency, what they're doing, and what it means for soybean oil. No hedging.`,
-  executive: `You analyze presidential executive actions for ZL (soybean oil futures) impact. Given recent executive orders/memoranda with price impact data, write ONE sentence: name the most impactful action, its causal chain to ZL, and directional call. No hedging.`,
-  news: `You analyze policy news headlines for ZL (soybean oil futures). Given recent headlines from Google News and trade publications, write ONE sentence: identify the dominant narrative theme and state whether it's bullish or bearish for ZL and why. No hedging.`,
+  agency: `CARD LOCATION: Federal Register Agency Activity section on the Legislation page. The user sees a ranked list of agencies with filing counts and a 90-day activity chart.
+
+ZL FOCUS: Identify which agency's filings most directly affect ZL (CBOT soybean oil futures) — EPA (biofuel mandates, RVO, 45Z, SRE waivers → RIN prices → soybean oil demand), USTR (tariffs → China soy diversion → Gulf basis), or USDA (export programs, crop reports). ONE sentence only: name the agency, what they filed, and the specific ZL price implication. No hedging.`,
+  executive: `CARD LOCATION: Executive Actions section on the Legislation page. The user sees presidential executive orders and memoranda with dates and ZL impact scores.
+
+ZL FOCUS: Executive orders hit ZL (CBOT soybean oil futures) through biofuel policy (RVO mandates, 45Z credits, SRE waivers → RIN prices → soybean oil demand), trade policy (Section 301, retaliatory tariffs → China pivots to Brazil → Gulf basis collapse), or energy policy (SPR releases, drilling orders → crude price → biofuel economics → ZL). ONE sentence only: name the most impactful action, trace its causal chain to ZL price, and give a directional call. No hedging.`,
+  news: `CARD LOCATION: Policy News Intelligence section on the Legislation page. The user sees Google News headlines with source attribution and category tags.
+
+ZL FOCUS: Filter for headlines that move ZL (CBOT soybean oil futures) — biofuel legislation affecting soybean oil demand, China trade actions affecting US soy exports, EPA regulation affecting RIN/RVO, tariff escalation affecting Gulf basis. ONE sentence only: state the dominant narrative theme and whether it is bullish or bearish for ZL with the specific causal mechanism. No hedging.`,
 };
 
 export async function POST(request: Request) {
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
     return new Response("Invalid request", { status: 400 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!hasOpenRouterApiKey()) {
     return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
   }
 
@@ -46,12 +51,27 @@ export async function POST(request: Request) {
     lines.push(`- ${parts}`);
   }
 
-  const result = streamText({
-    model: anthropic(MODEL_DRIVER_INTEL),
-    maxOutputTokens: 120,
-    system: SECTION_PROMPTS[payload.section] ?? SECTION_PROMPTS.agency,
-    prompt: lines.join("\n"),
-  });
+  try {
+    const text = await openRouterCompleteText({
+      model: MODEL_DRIVER_INTEL,
+      messages: [
+        {
+          role: "system",
+          content: SECTION_PROMPTS[payload.section] ?? SECTION_PROMPTS.agency,
+        },
+        { role: "user", content: lines.join("\n") },
+      ],
+      maxTokens: 120,
+      temperature: 0.0,
+      reasoning: { effort: "high" },
+    });
 
-  return result.toTextStreamResponse();
+    return new Response(text, {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  } catch (error) {
+    console.error("[policy/section-brief] OpenRouter generation failed:", error);
+    return new Response("", { status: 200 });
+  }
 }
