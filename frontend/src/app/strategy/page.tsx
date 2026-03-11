@@ -639,7 +639,7 @@ export default function StrategyPage() {
     }) ?? [];
 
   // Build real factor-attribution inputs from live driver scores.
-  // This avoids placeholder decomposition and keeps all values data-driven.
+  // Keep decomposition strictly data-driven.
   const waterfallFactors = brief
     ? (() => {
         const active = brief.drivers.filter((d) => d.source !== "unavailable");

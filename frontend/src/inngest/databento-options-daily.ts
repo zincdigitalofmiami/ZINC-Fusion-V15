@@ -21,7 +21,7 @@ const pool = dbPool;
 // OPTIONS SYMBOL REGISTRY
 // =============================================================================
 // Standard options (.OPT parent symbology) + weekly options (product codes).
-// NO FAKE DATA — all data from Databento API only.
+// All records come directly from Databento API.
 //
 //   dumpDefs  — historical definitions available in the Databento Data Dump
 //               (GLBX-20260202-WH33638BK6, definition schema, 2010-06 → 2026-02)

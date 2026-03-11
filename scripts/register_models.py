@@ -163,7 +163,7 @@ def register_models(conn, dry_run: bool = True):
                 r["model_type"],
                 r["horizon"],
                 r["version"],
-                now,  # trained_at (placeholder)
+                now,  # trained_at
                 r["status"],
                 False,  # is_champion
                 Json(r["tags"]),

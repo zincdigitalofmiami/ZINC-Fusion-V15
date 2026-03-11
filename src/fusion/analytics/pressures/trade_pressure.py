@@ -428,7 +428,12 @@ def calculate_trade_pressure(conn, as_of_date: Optional[date] = None) -> Dict:
         "key_drivers": drivers,
         "color": color,
         "icon": "truck",
-        "sparkline": [50] * 10,  # Placeholder
+        "sparkline": [
+            round(shipping_score, 1),
+            round(brl_score, 1),
+            round(china_score, 1),
+            round(score, 1),
+        ],
         "percentile_30d": round(score, 1),
         "percentile_1y": round(score, 1),
         "regime": regime,

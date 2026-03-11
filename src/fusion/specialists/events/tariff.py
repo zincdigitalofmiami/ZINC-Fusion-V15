@@ -367,7 +367,7 @@ class TariffSignalGenerator(BaseSignalGenerator):
 
         if not epu_components:
             # P0-2 FIX: Emit abstain signals instead of returning empty list
-            # Empty list causes downstream to fill with -1.0 placeholder
+            # Empty list can trigger invalid downstream defaults
             logger.warning(
                 "TariffSignalGenerator: No EPU data - emitting abstain signals"
             )

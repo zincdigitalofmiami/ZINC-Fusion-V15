@@ -147,7 +147,7 @@ class PulseEngine:
         """
         domain_prompt = self.domain_prompts.get(domain, "")
 
-        # Fill in placeholders
+        # Fill prompt template fields
         prompt = domain_prompt.replace("{{AS_OF_TS}}", as_of_ts)
         prompt = prompt.replace(
             "{{SIGNAL_SNAPSHOT_JSON}}", json.dumps(signal_snapshot, indent=2)

@@ -18,7 +18,7 @@ interface WaterfallProps {
   factors?: AttributionFactor[];
 }
 
-function WaterfallPlaceholder() {
+function WaterfallUnavailable() {
   return (
     <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
@@ -28,9 +28,9 @@ function WaterfallPlaceholder() {
         </div>
       </div>
       <div className="flex flex-col items-center justify-center h-48 text-center">
-        <div className="text-slate-500 text-sm mb-2">Awaiting L2 Attribution Engine</div>
+        <div className="text-slate-500 text-sm mb-2">No attribution signal available</div>
         <div className="text-slate-600 text-xs max-w-xs">
-          Factor decomposition will appear here once the L2 attribution pipeline is connected.
+          Factor decomposition will render when attribution data is published.
         </div>
       </div>
     </div>
@@ -49,7 +49,7 @@ export function FactorWaterfall({ prevPrice, currentPrice, factors }: WaterfallP
     });
   }, [factors, prevPrice]);
 
-  if (steps.length === 0) return <WaterfallPlaceholder />;
+  if (steps.length === 0) return <WaterfallUnavailable />;
 
   const maxVal = Math.max(prevPrice, currentPrice, ...steps.map(s => Math.max(s.start, s.end)));
   const minVal = Math.min(prevPrice, currentPrice, ...steps.map(s => Math.min(s.start, s.end)));

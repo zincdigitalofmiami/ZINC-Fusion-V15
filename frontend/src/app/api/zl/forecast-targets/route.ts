@@ -11,7 +11,7 @@ const CACHE_HEADERS = {
  * Returns the latest Core Model probabilistic zones shaped for the
  * ForecastTargetsPrimitive chart overlay.
  *
- * Data sources (all real — no placeholders):
+ * Data sources (all real, direct):
  *   - forecasts.production_1d        → Monte Carlo quantile zones (price_p30/p50/p70)
  *   - training.model_runs_event      → MAE per horizon (error envelope language)
  */

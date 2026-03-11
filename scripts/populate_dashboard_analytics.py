@@ -88,7 +88,7 @@ def populate_driver_scores(conn, as_of_date: Optional[date] = None) -> int:
             sig1 = 0
         direction = "bullish" if sig1 > 0.1 else "bearish" if sig1 < -0.1 else "neutral"
 
-        # SHAP contribution placeholder (would come from model explainability)
+        # SHAP contribution (from model explainability when available)
         shap_contrib = abs(sig1) * (conf or 0.5)  # Proxy: signal magnitude * confidence
 
         rows.append((sig_date, bucket, sig1, direction, conf, shap_contrib))

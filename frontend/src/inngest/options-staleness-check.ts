@@ -4,7 +4,7 @@
  * Daily check that alerts if any options data is stale (>3 days old).
  * Runs at 7am CT on weekdays to catch issues before market open.
  *
- * NO FAKE DATA - This monitors real Databento-sourced data only.
+ * Monitors Databento-sourced options data only.
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";

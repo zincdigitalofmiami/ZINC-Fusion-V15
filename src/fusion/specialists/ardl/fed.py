@@ -303,7 +303,7 @@ class FedSignalGenerator(BaseSignalGenerator):
 
         # Weighted composite - NO FILLNA
         # For each date, compute weighted average of available components only
-        # This handles weekly NFCI gracefully without fake data
+        # This handles weekly NFCI gracefully without synthetic fills
         regime_score = pd.Series(np.nan, index=data.index)
 
         for idx in data.index:

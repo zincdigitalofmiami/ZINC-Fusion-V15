@@ -247,7 +247,7 @@ async function getForecasts(currentPrice: number): Promise<ForecastHorizon[]> {
       return fcRows.map(f => formatForecast(f, currentPrice))
     }
 
-    // No model forecasts available - return empty (NO FAKE DATA)
+    // No model forecasts available - return unavailable values.
     return getEmptyForecasts()
   } catch (e) {
     console.error('Forecast fetch error:', e)
@@ -279,7 +279,7 @@ function formatForecast(f: {horizon_days: number, price_p30: number, price_p50: 
   }
 }
 
-// NO FAKE FORECASTS - return placeholders that clearly indicate no model data
+// Return unavailable values when model forecasts are missing.
 function getEmptyForecasts(): ForecastHorizon[] {
   return [
     { label: '1 Week', days: 5, targetLow: null, targetMid: null, targetHigh: null,
@@ -646,7 +646,7 @@ async function getCorrelations(): Promise<CorrelationSummary[]> {
     ]
   } catch (e) {
     console.error('Correlation calculation error:', e)
-    // Return empty correlations - NO FAKE DATA
+    // Return unavailable correlations when source data is missing.
     return [
       { asset: 'Soybean Meal (ZM)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
       { asset: 'Soybeans (ZS)', correlation: null, direction: 'Data unavailable', implication: 'Unable to calculate', lookbackDays: LOOKBACK, source: 'unavailable' },
@@ -1136,7 +1136,7 @@ export async function GET() {
       fc1m?.direction, fc1mChangePct,
     )
 
-    // Check if forecasts are available (not all placeholders)
+    // Check if forecasts are available (not all unavailable values)
     const forecastsAvailable = fcHorizons.some(f => f.source === 'model')
 
     // Determine overall data quality
