@@ -209,7 +209,7 @@ function createFallbackBrief(reason?: string): BriefData {
   return {
     generatedAt: nowIso,
     asOfDate: today,
-    tldr: "Awaiting update.",
+    tldr: "No current signal.",
     recommendation: "CHECK DATA",
     recommendationColor: "gray",
     price: {
@@ -273,7 +273,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Markets",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "index",
         asOfDate: null,
@@ -283,7 +283,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Crush",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "USD/bushel",
         asOfDate: null,
@@ -293,7 +293,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "China",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "CNY/USD",
         asOfDate: null,
@@ -303,7 +303,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Tariffs",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "index",
         asOfDate: null,
@@ -313,7 +313,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Trump Effect",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "action score",
         asOfDate: null,
@@ -323,14 +323,14 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Energy",
         score: 0,
         status: "NO DATA",
-        impact: "Awaiting update",
+        impact: "No current signal",
         rawValue: null,
         unit: "USD/barrel",
         asOfDate: null,
         source: "unavailable",
       },
     ],
-    driversSummary: reason ?? "Awaiting update.",
+    driversSummary: reason ?? "No current signal.",
     correlations: [
       {
         asset: "Soybean Meal (ZM)",
@@ -365,8 +365,8 @@ function createFallbackBrief(reason?: string): BriefData {
         source: "unavailable",
       },
     ],
-    keyRisks: ["Awaiting update."],
-    keyPositives: ["Awaiting update."],
+    keyRisks: ["No current signal."],
+    keyPositives: ["No current signal."],
     eventPulse: {
       recentEvents: [],
       velocity: {
@@ -384,7 +384,7 @@ function createFallbackBrief(reason?: string): BriefData {
         signal: "NEUTRAL",
       },
     },
-    dataIssues: [reason ?? "Awaiting update"],
+    dataIssues: [reason ?? "No current signal"],
     stalenessWarnings: [],
     dataQuality: "poor",
   };
@@ -606,7 +606,7 @@ export default function StrategyPage() {
         } else {
           items.push({
             title: "Verify Data",
-            detail: "Awaiting update",
+            detail: "No current signal",
             primary: true,
           });
         }
@@ -704,7 +704,7 @@ export default function StrategyPage() {
       {/* Data quality banner — only show for truly poor data (most drivers missing) */}
       {brief?.dataQuality === "poor" && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-          Awaiting update — {brief.dataIssues.join(", ")}
+          No current signal — {brief.dataIssues.join(", ")}
         </div>
       )}
       {/* Staleness notice — informational, not blocking */}
@@ -712,7 +712,7 @@ export default function StrategyPage() {
         brief.stalenessWarnings?.length > 0 && (
           <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
             <AlertTriangle size={12} />
-            <span>Awaiting update</span>
+            <span>No current signal</span>
           </div>
         )}
 
@@ -797,12 +797,12 @@ export default function StrategyPage() {
                 {brief.dataQuality === "partial" && (
                   <div className="mt-2 text-[10px] text-amber-500/60 uppercase tracking-wider">
                     {brief.dataIssues.length > 0 &&
-                      "Awaiting update"}
+                      "No current signal"}
                     {brief.dataIssues.length > 0 &&
                       brief.stalenessWarnings?.length > 0 &&
                       " · "}
                     {brief.stalenessWarnings?.length > 0 &&
-                      "Awaiting update"}
+                      "No current signal"}
                   </div>
                 )}
               </div>
@@ -842,7 +842,7 @@ export default function StrategyPage() {
                         --
                       </div>
                       <div className="text-[9px] text-slate-500 uppercase tracking-widest">
-                        Awaiting update
+                        No current signal
                       </div>
                     </>
                   )}
@@ -943,9 +943,9 @@ export default function StrategyPage() {
                     }`}
                   >
                     {driver.source === "stale"
-                      ? "AWAITING UPDATE"
+                      ? "NO CURRENT SIGNAL"
                       : driver.source === "unavailable"
-                        ? "AWAITING UPDATE"
+                        ? "NO CURRENT SIGNAL"
                         : driver.status}
                   </span>
                 </div>

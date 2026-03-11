@@ -20,7 +20,6 @@ interface StatusBarProps {
 export default function StatusBar({ regime, confidence }: StatusBarProps) {
   const [displayTime, setDisplayTime] = useState<string>("");
   const [zlData, setZlData] = useState<ZlLiveData | null>(null);
-  const [isStale, setIsStale] = useState(false);
 
   // Fetch live ZL price
   useEffect(() => {
@@ -42,8 +41,6 @@ export default function StatusBar({ regime, confidence }: StatusBarProps) {
           source: json.source ?? "unknown",
           age_seconds: json.age_seconds ?? null,
         });
-        // Stale = not live (market closed, no 1m data)
-        setIsStale(!json.live);
       } catch (err) {
         console.error("Failed to fetch ZL live:", err);
       }
@@ -119,11 +116,6 @@ export default function StatusBar({ regime, confidence }: StatusBarProps) {
         )}
       </div>
       <div className="status-right">
-        {isStale && (
-          <div className="stale-banner">
-            Awaiting update
-          </div>
-        )}
         <div className="last-update">{displayTime}</div>
         <div className="fast-actions">
           <button className="action-btn">↻</button>

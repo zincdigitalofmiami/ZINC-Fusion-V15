@@ -68,7 +68,7 @@ function buildSectionDeterministic(payload: SectionRequest): string {
     return `${headline}${source ? ` (${source})` : ""} is the dominant policy-news narrative and is setting near-term ZL direction through regulation and trade expectations.`;
   }
 
-  return "Awaiting update.";
+  return "No current signal.";
 }
 
 export async function POST(request: Request) {

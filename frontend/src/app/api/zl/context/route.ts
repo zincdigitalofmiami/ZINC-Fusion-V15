@@ -61,7 +61,7 @@ interface ContextRequest {
 function buildContextDeterministic(payload: ContextRequest): string {
   const priceLine = payload.price
     ? `ZL is ${payload.price.changePct >= 0 ? "up" : "down"} ${Math.abs(payload.price.changePct).toFixed(1)}% at $${payload.price.current.toFixed(2)}.`
-    : "Awaiting update.";
+    : "No current signal.";
 
   const availableDrivers = (payload.drivers ?? []).filter((d) => d.source !== "unavailable");
   const topDriver =
@@ -71,12 +71,12 @@ function buildContextDeterministic(payload: ContextRequest): string {
 
   const driverLine = topDriver
     ? `${topDriver.name} is the dominant pressure at ${topDriver.score}/100 (${topDriver.status}).`
-    : "Awaiting update.";
+    : "No current signal.";
 
   const missing = (payload.drivers ?? []).filter((d) => d.source === "unavailable");
   const coverageLine =
     missing.length > 0
-      ? `Awaiting update for: ${missing.map((d) => d.name).join(", ")}.`
+      ? `Pending fresh data for: ${missing.map((d) => d.name).join(", ")}.`
       : "";
 
   if (payload.recentEvents && payload.recentEvents.length > 0) {

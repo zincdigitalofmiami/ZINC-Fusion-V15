@@ -498,7 +498,7 @@ export function ChrisTop4Drivers() {
           res.status === 504
             ? "Request timed out - AI analysis takes longer on first load"
             : res.status === 500
-              ? "Awaiting update"
+              ? "Service temporarily unavailable"
               : `HTTP ${res.status}`;
         throw new Error(errorText);
       }

@@ -135,7 +135,7 @@ export function OrganicTopicCloud({
       {!loading && activeTopics.length === 0 && (
         <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-sm text-slate-500 font-mono tracking-wide">
-              Awaiting update
+              No current signal
             </div>
         </div>
       )}

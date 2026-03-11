@@ -249,17 +249,6 @@ html, body {
   opacity: 0.7;
 }
 
-.stale-banner {
-  background: rgba(255, 150, 0, 0.2);
-  border: 1px solid rgba(255, 150, 0, 0.4);
-  color: #ffcc88;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
 .fast-actions {
   display: flex;
   gap: 8px;

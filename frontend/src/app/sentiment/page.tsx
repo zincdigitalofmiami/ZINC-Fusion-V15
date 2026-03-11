@@ -666,7 +666,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-12">
-              Awaiting update
+              No current signal
             </div>
           )}
         </div>
@@ -725,7 +725,7 @@ export default function SentimentPage() {
             </div>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Awaiting update
+              No current signal
             </div>
           )}
         </div>
@@ -948,7 +948,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Awaiting update
+              No current signal
             </div>
           )}
         </div>
@@ -1111,7 +1111,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Awaiting update
+              No current signal
             </div>
           )}
         </div>
