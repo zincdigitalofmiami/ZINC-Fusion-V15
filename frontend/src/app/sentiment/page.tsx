@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { RefreshCw, Newspaper, TrendingUp, Activity } from "lucide-react";
+import { Newspaper, TrendingUp, Activity } from "lucide-react";
+
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
 /* ─── Types ─── */
 
@@ -395,6 +397,29 @@ export default function SentimentPage() {
     const te = metrics.trumpEffect;
     const vol = metrics.volatility;
 
+    const cacheKey = "sentiment-ai-narrative:v1";
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as {
+            narratives?: Narratives;
+            ts?: number;
+          };
+          if (
+            cached?.narratives &&
+            typeof cached?.ts === "number" &&
+            Date.now() - cached.ts < FOUR_HOURS_MS
+          ) {
+            setNarratives(cached.narratives);
+            return;
+          }
+        }
+      } catch {
+        // Ignore cache parse issues and fetch fresh.
+      }
+    }
+
     fetch("/api/sentiment/narrative", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -442,7 +467,15 @@ export default function SentimentPage() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data) setNarratives(data);
+        if (data) {
+          setNarratives(data);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(
+              cacheKey,
+              JSON.stringify({ narratives: data, ts: Date.now() }),
+            );
+          }
+        }
       })
       .catch(() => {
         /* narrative fetch is non-critical */
@@ -487,14 +520,6 @@ export default function SentimentPage() {
           </p>
         </div>
         <div className="flex items-center gap-6">
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="p-2 rounded-lg border border-white/10 hover:border-white/20 text-slate-400 hover:text-white transition-colors disabled:opacity-30"
-            title="Refresh data"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          </button>
           {biasLabel && (
             <div className="text-right">
               <div className={`text-2xl font-bold ${biasLabel.color}`}>

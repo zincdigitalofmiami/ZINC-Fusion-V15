@@ -10,13 +10,14 @@ import {
   Shield,
   Zap,
   AlertTriangle,
-  RefreshCw,
   Loader2,
   TrendingUp,
   TrendingDown,
   Minus,
   Brain,
 } from "lucide-react";
+
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
 // Brief API types
 interface PriceSummary {
@@ -428,27 +429,51 @@ export default function StrategyPage() {
     aiContextFetched.current = true;
     setAiContextLoading(true);
 
+    const contextPayload = {
+      price: brief.price
+        ? { current: brief.price.current, changePct: brief.price.changePct }
+        : undefined,
+      drivers: brief.drivers,
+      forecastsAvailable: brief.forecastsAvailable,
+      dataIssues: brief.dataIssues,
+      stalenessWarnings: brief.stalenessWarnings,
+      recentEvents: brief.eventPulse?.recentEvents?.map((e) => ({
+        headline: e.headline,
+        source: e.source,
+        hoursAgo: e.hoursAgo,
+        sentiment: e.sentiment,
+        confidence: e.confidence,
+      })),
+      eventVelocity: brief.eventPulse?.velocity?.velocityRatio,
+      overrideReason: brief.overrideReason,
+    };
+
+    const cacheKey = "strategy-ai-context:v1";
+
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as { text?: string; ts?: number };
+          if (
+            typeof cached?.text === "string" &&
+            typeof cached?.ts === "number" &&
+            Date.now() - cached.ts < FOUR_HOURS_MS
+          ) {
+            setAiContext(cached.text);
+            setAiContextLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Ignore cache errors and continue with network request.
+      }
+    }
+
     fetch("/api/zl/context", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        price: brief.price
-          ? { current: brief.price.current, changePct: brief.price.changePct }
-          : undefined,
-        drivers: brief.drivers,
-        forecastsAvailable: brief.forecastsAvailable,
-        dataIssues: brief.dataIssues,
-        stalenessWarnings: brief.stalenessWarnings,
-        recentEvents: brief.eventPulse?.recentEvents?.map((e) => ({
-          headline: e.headline,
-          source: e.source,
-          hoursAgo: e.hoursAgo,
-          sentiment: e.sentiment,
-          confidence: e.confidence,
-        })),
-        eventVelocity: brief.eventPulse?.velocity?.velocityRatio,
-        overrideReason: brief.overrideReason,
-      }),
+      body: JSON.stringify(contextPayload),
     })
       .then(async (res) => {
         if (!res.ok || !res.body) {
@@ -464,6 +489,14 @@ export default function StrategyPage() {
           text += decoder.decode(value, { stream: true });
           setAiContext(text);
         }
+
+        if (typeof window !== "undefined" && text.trim().length > 0) {
+          localStorage.setItem(
+            cacheKey,
+            JSON.stringify({ text, ts: Date.now() }),
+          );
+        }
+
         setAiContextLoading(false);
       })
       .catch(() => setAiContextLoading(false));
@@ -632,14 +665,8 @@ export default function StrategyPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
       {/* Error banner */}
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center justify-between">
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
           <span>Failed to load strategy brief: {error}</span>
-          <button
-            onClick={fetchBrief}
-            className="text-red-300 hover:text-white"
-          >
-            <RefreshCw size={14} />
-          </button>
         </div>
       )}
 
@@ -807,14 +834,6 @@ export default function StrategyPage() {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Primary Directive
             </h3>
-            <button
-              onClick={fetchBrief}
-              disabled={loading}
-              className="p-1.5 rounded border border-white/10 hover:border-white/20 text-slate-500 hover:text-white transition-colors disabled:opacity-30"
-              title="Refresh brief"
-            >
-              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-            </button>
           </div>
           {loading && !brief ? (
             <div className="space-y-2">

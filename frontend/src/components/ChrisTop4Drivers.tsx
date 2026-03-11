@@ -448,8 +448,6 @@ export function ChrisTop4Drivers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
   const fetchDrivers = useCallback(async () => {
     try {
@@ -483,28 +481,8 @@ export function ChrisTop4Drivers() {
     }
   }, []);
 
-  const triggerRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setRefreshMessage(null);
-    try {
-      const res = await fetch("/api/refresh-drivers", { method: "POST" });
-      const json = await res.json();
-      setRefreshMessage(json.message || "Refresh triggered");
-      setTimeout(() => {
-        fetchDrivers();
-        setRefreshMessage(null);
-      }, 3000);
-    } catch {
-      setRefreshMessage("Refresh failed");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [fetchDrivers]);
-
   useEffect(() => {
     fetchDrivers();
-    const interval = setInterval(fetchDrivers, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [fetchDrivers]);
 
   const d = data?.drivers;
@@ -533,25 +511,9 @@ export function ChrisTop4Drivers() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {refreshMessage && (
-            <span className="text-xs text-cyan-400">
-              {refreshMessage}
-            </span>
-          )}
           {lastUpdate && (
             <span className="text-xs text-slate-600">Updated {lastUpdate}</span>
           )}
-          <button
-            onClick={triggerRefresh}
-            disabled={refreshing}
-            className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${
-              refreshing
-                ? "bg-slate-800/50 text-slate-500 border-slate-700/50 cursor-wait"
-                : "bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 border-slate-700/50"
-            }`}
-          >
-            {refreshing ? "⟳ Refreshing..." : "⟳ Refresh Data"}
-          </button>
         </div>
       </div>
 

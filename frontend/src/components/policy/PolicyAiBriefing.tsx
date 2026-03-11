@@ -9,7 +9,9 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, RefreshCw, AlertTriangle } from "lucide-react";
+import { Sparkles, AlertTriangle } from "lucide-react";
+
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
 interface PolicyAiBriefingProps {
   regime: {
@@ -37,9 +39,35 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const cacheKey = `policy-ai-briefing:v1:${props.regime.score}:${props.regime.label}`;
+
   const fetchBriefing = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as {
+            text?: string;
+            ts?: number;
+          };
+          if (
+            typeof cached?.text === "string" &&
+            typeof cached?.ts === "number" &&
+            Date.now() - cached.ts < FOUR_HOURS_MS
+          ) {
+            setBriefing(cached.text);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Ignore cache parse errors and fall through to network fetch.
+      }
+    }
+
     setBriefing("");
 
     try {
@@ -77,12 +105,19 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
         setBriefing(fullText);
       }
 
+      if (typeof window !== "undefined" && fullText.trim().length > 0) {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ text: fullText, ts: Date.now() }),
+        );
+      }
+
       setIsLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
       setIsLoading(false);
     }
-  }, [props]);
+  }, [cacheKey, props]);
 
   useEffect(() => {
     fetchBriefing();
@@ -112,7 +147,7 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
       className={`relative bg-[#0a0a0a] border ${borderColor} rounded-2xl p-6 md:p-8 shadow-lg ${glowColor} overflow-hidden`}
     >
       {/* AI badge */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-cyan-400" />
           <span className="text-xs font-mono uppercase tracking-widest text-cyan-400/80">
@@ -122,14 +157,6 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
             Anthropic
           </span>
         </div>
-        <button
-          onClick={fetchBriefing}
-          disabled={isLoading}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all disabled:opacity-30"
-          title="Regenerate briefing"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-        </button>
       </div>
 
       {/* Content */}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+
 interface Props {
   section: "agency" | "executive" | "news";
   regime: { score: number; label: string };
@@ -24,7 +26,24 @@ export function PolicySectionBrief({ section, regime, data }: Props) {
     started.current = true;
 
     (async () => {
+      const cacheKey = `policy-section-brief:v1:${section}:${regime.score}:${regime.label}`;
       try {
+        if (typeof window !== "undefined") {
+          const cachedRaw = localStorage.getItem(cacheKey);
+          if (cachedRaw) {
+            const cached = JSON.parse(cachedRaw) as { text?: string; ts?: number };
+            if (
+              typeof cached?.text === "string" &&
+              typeof cached?.ts === "number" &&
+              Date.now() - cached.ts < FOUR_HOURS_MS
+            ) {
+              setText(cached.text);
+              setDone(true);
+              return;
+            }
+          }
+        }
+
         const res = await fetch("/api/policy/section-brief", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -44,6 +63,13 @@ export function PolicySectionBrief({ section, regime, data }: Props) {
           setText(buf);
         }
         setText(buf);
+
+        if (typeof window !== "undefined" && buf.trim().length > 0) {
+          localStorage.setItem(
+            cacheKey,
+            JSON.stringify({ text: buf, ts: Date.now() }),
+          );
+        }
       } catch {
         /* silent */
       } finally {
