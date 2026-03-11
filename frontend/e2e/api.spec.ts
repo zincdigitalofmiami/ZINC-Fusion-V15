@@ -287,7 +287,7 @@ test.describe("Vegas", () => {
     const { body } = await getJson(request, "/api/vegas/sync", [200]);
     expectKeys(body, [
       ["endpoint", "/api/vegas/sync"],
-      ["method", "POST to queue a manual sync event"],
+      ["method", "POST to sync data from Glide"],
       "tables",
     ]);
     expectArray(body, "tables");

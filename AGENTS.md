@@ -48,13 +48,6 @@ Prisma manages schema and migrations only. Runtime queries use `pg` Pool (TypeSc
 
 **Banned schemas:** `raw`, `gold`, `silver`, `bronze`, `monitoring`, `specialist`, `weather`, `archive`
 
-### Vegas Guardrail
-
-- Vegas is a separate sales domain and is **cloud-only operationally**.
-- Do not run local migrations, local syncs, or local schema moves against Vegas.
-- Do not change Vegas schema placement, writer topology, or Glide App ID without explicit architect approval.
-- `POST /api/vegas/sync` must stay blocked in local/dev runtimes and only queue work from the cloud runtime.
-
 ## Model Architecture
 
 - **L0 Core = PRICE PREDICTOR:** 4 AutoGluon TimeSeriesPredictor ensembles (5d/21d/63d/126d), each training a 19-model zoo. Core predicts ONE number: the future ZL futures contract price. No quantile outputs from core.

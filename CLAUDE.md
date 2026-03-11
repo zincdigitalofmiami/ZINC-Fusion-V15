@@ -2,12 +2,6 @@
 
 Read and follow `AGENTS.md` at the repository root. It is the single source of truth for all AI agents.
 
-## Vegas Guardrail (UPDATED 2026-03-11)
-
-- Vegas is cloud-only operationally.
-- Do not run local Vegas syncs or local Vegas migrations.
-- Do not change Vegas schema placement or Glide App ID without explicit approval.
-
 ## Client Business Model (ADDED 2026-03-03)
 
 **Chris** (owner, US Oil Solutions) **BUYS raw soybean oil by the trainload** — millions of gallons. He delivers fresh cooking oil to 100+ Las Vegas restaurant kitchens (Caesars, Boyd, Resorts World). When he services restaurants, he collects used cooking oil (UCO) and sells it (likely to biodiesel). Primary exposure = BUYER (ZL up = bad for his costs). Secondary revenue = UCO sales (ZL up = good, but smaller). Net: he's a buyer. Strategy posture language is correct for him.
