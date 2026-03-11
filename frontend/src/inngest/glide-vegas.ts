@@ -1,7 +1,9 @@
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest, DB_CONCURRENCY, RETRIES, HTTP_TIMEOUT_MS } from "./client";
 import dbPool from "@/lib/db";
+import { isVegasSyncBlocked } from "@/lib/vegas-sync-guard";
 
 const pool = dbPool;
+export const GLIDE_VEGAS_SYNC_EVENT = "vegas/glide-sync.requested";
 
 // Glide API Configuration
 const GLIDE_API_ENDPOINT = "https://api.glideapp.io/api/function/queryTables";
@@ -21,22 +23,35 @@ interface GlideRow {
   [key: string]: unknown;
 }
 
+interface StepRunner {
+  run(id: string, fn: () => Promise<unknown>): Promise<unknown>;
+}
+
 async function fetchGlideTable(tableId: string): Promise<GlideRow[]> {
   if (!GLIDE_BEARER_TOKEN) {
     throw new Error("GLIDE_BEARER_TOKEN not configured");
   }
 
-  const response = await fetch(GLIDE_API_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${GLIDE_BEARER_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      appID: GLIDE_APP_ID,
-      queries: [{ tableName: tableId, utc: true }],
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(GLIDE_API_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${GLIDE_BEARER_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        appID: GLIDE_APP_ID,
+        queries: [{ tableName: tableId, utc: true }],
+      }),
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS.LONG),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Glide API timeout after ${HTTP_TIMEOUT_MS.LONG}ms for table ${tableId}`);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(`Glide API error: ${response.status}`);
@@ -98,38 +113,74 @@ async function syncTableToPostgres(
   }
 }
 
+async function runGlideVegasSync(step: StepRunner): Promise<{
+  status: string;
+  synced_at: string;
+  results: { table: string; status: string; count?: number }[];
+  totalRows: number;
+}> {
+  if (isVegasSyncBlocked()) {
+    return {
+      status: "disabled_local",
+      synced_at: new Date().toISOString(),
+      results: [],
+      totalRows: 0,
+    };
+  }
+
+  const results: { table: string; status: string; count?: number }[] = [];
+
+  for (const [tableName, tableId] of Object.entries(GLIDE_TABLES)) {
+    await step.run(`sync-${tableName}`, async () => {
+      try {
+        const rows = await fetchGlideTable(tableId);
+        const count = await syncTableToPostgres(tableName, rows);
+        results.push({ table: tableName, status: "success", count });
+      } catch (error) {
+        results.push({
+          table: tableName,
+          status: "error",
+          count: 0,
+        });
+        console.error(`Failed to sync ${tableName}:`, error);
+      }
+    });
+  }
+
+  return {
+    status: "complete",
+    synced_at: new Date().toISOString(),
+    results,
+    totalRows: results.reduce((sum, r) => sum + (r.count || 0), 0),
+  };
+}
+
 /**
  * Sync Vegas customer data from Glide API
  * Runs every 6 hours to keep data fresh
  */
 export const glideVegasSync = inngest.createFunction(
-  { id: "glide-vegas-sync", name: "Glide Vegas Sync", concurrency: [DB_CONCURRENCY] },
+  {
+    id: "glide-vegas-sync",
+    name: "Glide Vegas Sync",
+    retries: RETRIES.CRON_INGEST,
+    concurrency: [DB_CONCURRENCY],
+  },
   { cron: "0 */6 * * *" }, // Every 6 hours
   async ({ step }) => {
-    const results: { table: string; status: string; count?: number }[] = [];
+    return runGlideVegasSync(step);
+  }
+);
 
-    for (const [tableName, tableId] of Object.entries(GLIDE_TABLES)) {
-      await step.run(`sync-${tableName}`, async () => {
-        try {
-          const rows = await fetchGlideTable(tableId);
-          const count = await syncTableToPostgres(tableName, rows);
-          results.push({ table: tableName, status: "success", count });
-        } catch (error) {
-          results.push({
-            table: tableName,
-            status: "error",
-            count: 0,
-          });
-          console.error(`Failed to sync ${tableName}:`, error);
-        }
-      });
-    }
-
-    return {
-      status: "complete",
-      synced_at: new Date().toISOString(),
-      results,
-      totalRows: results.reduce((sum, r) => sum + (r.count || 0), 0),
-    };
+export const glideVegasSyncManual = inngest.createFunction(
+  {
+    id: "glide-vegas-sync-manual",
+    name: "Glide Vegas Sync Manual",
+    retries: RETRIES.MANUAL,
+    concurrency: [DB_CONCURRENCY],
+  },
+  { event: GLIDE_VEGAS_SYNC_EVENT },
+  async ({ step }) => {
+    return runGlideVegasSync(step);
   }
 );

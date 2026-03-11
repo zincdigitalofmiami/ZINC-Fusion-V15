@@ -1,166 +1,73 @@
 /**
  * Vegas Glide Sync API
- * POST /api/vegas/sync - Sync data from Glide to PostgreSQL
+ * POST /api/vegas/sync - Queue a manual Inngest sync
  *
- * Data Flow: Glide API (READ ONLY) → vegas.vegas_* tables
+ * Data Flow: Glide API (READ ONLY) → Inngest writer → vegas.vegas_* tables
+ * Guardrail: local/dev runtimes must not trigger Vegas syncs.
  */
 import { NextResponse } from 'next/server'
-import dbPool from '@/lib/db'
-import type { Pool } from 'pg'
+import { inngest } from '@/inngest/client'
+import { GLIDE_VEGAS_SYNC_EVENT } from '@/inngest/glide-vegas'
+import { isVegasSyncBlocked } from '@/lib/vegas-sync-guard'
 
-// =============================================================================
-// Glide API Configuration
-// =============================================================================
-
-const GLIDE_API_ENDPOINT = 'https://api.glideapp.io/api/function/queryTables'
-const GLIDE_APP_ID = '6nvONp42nj5tLQmMcqF3'
-const GLIDE_BEARER_TOKEN = process.env.GLIDE_BEARER_TOKEN
-
-// Table IDs from Glide
-const GLIDE_TABLES: Record<string, string> = {
-  restaurants: 'native-table-ojIjQjDcDAEOpdtZG5Ao',
-  casinos: 'native-table-Gy2xHsC7urEttrz80hS7',
-  fryers: 'native-table-r2BIqSLhezVbOKGeRJj8',
-  export_list: 'native-table-PLujVF4tbbiIi9fzrWg8',
-  shifts: 'native-table-K53E3SQsgOUB4wdCJdAN',
-}
-
-// =============================================================================
-// Glide API Client
-// =============================================================================
-
-interface GlideRow {
-  [key: string]: unknown
-}
-
-async function fetchGlideTable(tableId: string): Promise<GlideRow[]> {
-  if (!GLIDE_BEARER_TOKEN) {
-    throw new Error('GLIDE_BEARER_TOKEN not configured')
-  }
-
-  const response = await fetch(GLIDE_API_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GLIDE_BEARER_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      appID: GLIDE_APP_ID,
-      queries: [{ tableName: tableId, utc: true }],
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Glide API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  if (Array.isArray(data) && data.length > 0 && data[0].rows) {
-    return data[0].rows
-  }
-  return []
-}
-
-// =============================================================================
-// Database Operations
-// =============================================================================
-
-async function syncTableToPostgres(
-  pool: Pool,
-  tableName: string,
-  rows: GlideRow[]
-): Promise<number> {
-  if (rows.length === 0) return 0
-
-  const client = await pool.connect()
-  const fullTable = `vegas.vegas_${tableName}`
-  const shortTable = `vegas_${tableName}`
-
-  try {
-    await client.query('BEGIN')
-
-    // Fail loudly if the expected table doesn't exist (no silent DDL in prod).
-    const exists = await client.query(
-      `SELECT 1
-       FROM information_schema.tables
-       WHERE table_schema='vegas' AND table_name=$1
-       LIMIT 1`,
-      [shortTable]
-    )
-    if (exists.rows.length === 0) {
-      throw new Error(
-        `Missing table ${fullTable}. Create vegas.vegas_* tables via explicit migration; this endpoint will not auto-create schemas/tables.`
-      )
-    }
-
-    // Truncate for full refresh
-    await client.query(`TRUNCATE TABLE ${fullTable}`)
-
-    // Insert rows
-    for (const row of rows) {
-      const glideRowId = row['$rowID'] as string || null
-      await client.query(
-        `INSERT INTO ${fullTable} (glide_row_id, data, ingested_at) VALUES ($1, $2, NOW())`,
-        [glideRowId, JSON.stringify(row)]
-      )
-    }
-
-    await client.query('COMMIT')
-    return rows.length
-  } catch (error) {
-    await client.query('ROLLBACK')
-    throw error
-  } finally {
-    client.release()
-  }
-}
-
-// =============================================================================
-// POST /api/vegas/sync
-// =============================================================================
-
-const ALLOWED_TABLES = new Set(Object.keys(GLIDE_TABLES))
+const VEGAS_GLIDE_TABLES = [
+  'restaurants',
+  'casinos',
+  'fryers',
+  'export_list',
+  'shifts',
+]
 
 export async function POST() {
-  const results: Record<string, number | string> = {}
+  if (isVegasSyncBlocked()) {
+    return NextResponse.json(
+      {
+        success: false,
+        status: 'disabled_local',
+        error: 'Vegas sync is cloud-only and disabled in local/dev runtime',
+      },
+      { status: 403 }
+    )
+  }
 
   try {
-    for (const [tableName, tableId] of Object.entries(GLIDE_TABLES)) {
-      if (!ALLOWED_TABLES.has(tableName)) {
-        results[tableName] = 'error: table not in allowlist'
-        continue
-      }
-      try {
-        console.log(`Syncing ${tableName}...`)
-        const rows = await fetchGlideTable(tableId)
-        const count = await syncTableToPostgres(dbPool, tableName, rows)
-        results[tableName] = count
-        console.log(`✅ ${tableName}: ${count} rows`)
-      } catch (error) {
-        console.error(`❌ ${tableName}:`, error)
-        results[tableName] = 'error: sync failed'
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      synced_at: new Date().toISOString(),
-      results,
+    await inngest.send({
+      name: GLIDE_VEGAS_SYNC_EVENT,
+      data: {
+        trigger: 'manual_api',
+        requested_at: new Date().toISOString(),
+      },
     })
-  } catch (error) {
-    console.error('Vegas sync error:', error)
+
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      {
+        success: true,
+        status: 'queued',
+        event: GLIDE_VEGAS_SYNC_EVENT,
+        message: 'Vegas sync queued in Inngest',
+        tables: VEGAS_GLIDE_TABLES,
+      },
+      { status: 202 }
+    )
+  } catch (error) {
+    console.error('Vegas sync trigger error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to queue vegas sync' },
       { status: 500 }
     )
   }
 }
 
-// GET just returns status
 export async function GET() {
+  const blocked = isVegasSyncBlocked()
   return NextResponse.json({
     endpoint: '/api/vegas/sync',
-    method: 'POST to sync data from Glide',
-    tables: Object.keys(GLIDE_TABLES),
+    method: 'POST to queue a manual sync event',
+    event: GLIDE_VEGAS_SYNC_EVENT,
+    tables: VEGAS_GLIDE_TABLES,
+    scope: 'cloud_only',
+    enabled: !blocked,
+    status: blocked ? 'disabled_local' : 'enabled',
+    note: 'Local/dev runtimes must not trigger Vegas syncs.',
   })
 }

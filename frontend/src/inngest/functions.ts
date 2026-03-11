@@ -3,12 +3,15 @@ export { zlLive1m, zlLive1d } from "./zl-live";
 export {
   fredDailyFed,
   fredDailyFx,
+  fredDailyFxManual,
   fredDailyEnergy,
   fredDailyBiofuel,
   fredDailyCrush,
   fredDailyPalm,
   fredDailyVolatility,
+  fredDailyVolatilityManual,
   fredDailyTrumpEffect,
+  fredDailyTrumpEffectManual,
   fredDailyChina,
   fredDailyGeneral,
 } from "./fred-daily";
@@ -33,7 +36,7 @@ export { fxDatabentoSpotDaily } from "./fx-databento-spot-daily";
 export { epaRinPricesDaily } from "./epa-rin-prices-daily";
 export { usdaWasdeMonthly } from "./usda-wasde-monthly";
 export { usdaExportSalesWeekly } from "./usda-export-sales-weekly";
-export { glideVegasSync } from "./glide-vegas";
+export { glideVegasSync, glideVegasSyncManual } from "./glide-vegas";
 export { cpoPalmOilDaily, cpoTradingEconomics } from "./cpo-daily";
 export { profarmerDaily, profarmerBackfill, profarmerWeeklyBackfill } from "./profarmer-daily";
 export { databentoFuturesDailyShards } from "./databento-futures-daily";
@@ -42,7 +45,7 @@ export { databentoStatisticsDailyShards } from "./databento-statistics-daily";
 export { databentoFxDaily } from "./databento-fx-daily";
 export { databentoOptionsDailyShards } from "./databento-options-daily";
 export { optionsStalenessCheck } from "./options-staleness-check";
-export { boardCrushDaily, boardCrushBackfill } from "./board-crush-daily";
+export { boardCrushDaily, boardCrushDailyManual, boardCrushBackfill } from "./board-crush-daily";
 export { eiaBiodieselMonthly, eiaBiodieselBackfill } from "./eia-biodiesel-monthly";
 export { eiaBiodieselWeekly, eiaBiodieselWeeklyBackfill } from "./eia-biodiesel-weekly";
 export { mpobPalmMonthly } from "./mpob-palm-monthly";

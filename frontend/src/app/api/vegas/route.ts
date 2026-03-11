@@ -3,6 +3,7 @@
  * Serves data from Glide sync (vegas.vegas_* tables)
  *
  * Data Flow: Glide API (READ ONLY) → vegas.vegas_* → This API → Frontend
+ * Syncing is cloud-only. Do not use local/dev runtimes to mutate Vegas data.
  */
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
@@ -248,7 +249,7 @@ async function getStats(): Promise<NextResponse> {
       total_customers: 0,
       last_sync: null,
       status: 'not_synced',
-      message: 'Run python -m fusion.ingestion.glide_vegas to sync data'
+      message: 'Vegas sync is cloud-only; queue it from the Vercel runtime via POST /api/vegas/sync'
     })
   }
 }

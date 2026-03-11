@@ -6,12 +6,15 @@ import {
   zlLive1d,
   fredDailyFed,
   fredDailyFx,
+  fredDailyFxManual,
   fredDailyEnergy,
   fredDailyBiofuel,
   fredDailyCrush,
   fredDailyPalm,
   fredDailyVolatility,
+  fredDailyVolatilityManual,
   fredDailyTrumpEffect,
+  fredDailyTrumpEffectManual,
   fredDailyChina,
   fredDailyGeneral,
   cftcWeekly,
@@ -35,6 +38,7 @@ import {
   usdaWasdeMonthly,
   usdaExportSalesWeekly,
   glideVegasSync,
+  glideVegasSyncManual,
   cpoPalmOilDaily,
   cpoTradingEconomics,
   profarmerDaily,
@@ -50,6 +54,7 @@ import {
   databentoEtfVwapBackfill,
   futuresLegacySymbolsNightly,
   boardCrushDaily,
+  boardCrushDailyManual,
   boardCrushBackfill,
   eiaBiodieselMonthly,
   eiaBiodieselBackfill,
@@ -148,12 +153,15 @@ export const { GET, POST, PUT } = serve({
     // FRED macro series
     fredDailyFed,
     fredDailyFx,
+    fredDailyFxManual,
     fredDailyEnergy,
     fredDailyBiofuel,
     fredDailyCrush,
     fredDailyPalm,
     fredDailyVolatility,
+    fredDailyVolatilityManual,
     fredDailyTrumpEffect,
+    fredDailyTrumpEffectManual,
     fredDailyChina,
     fredDailyGeneral,
     // Government/regulatory
@@ -185,6 +193,7 @@ export const { GET, POST, PUT } = serve({
     cpoTradingEconomics,
     // Other
     glideVegasSync,
+    glideVegasSyncManual,
     // Premium subscriptions
     profarmerDaily,
     profarmerBackfill,
@@ -203,6 +212,7 @@ export const { GET, POST, PUT } = serve({
     fxDatabentoSpotDaily,
     // Analytics calculations
     boardCrushDaily,
+    boardCrushDailyManual,
     boardCrushBackfill,
     // EIA biofuel data
     eiaBiodieselMonthly,

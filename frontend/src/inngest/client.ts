@@ -30,3 +30,26 @@ export const DB_CONCURRENCY = {
 	key: '"db-pool"',
 	limit: 5,
 };
+
+/**
+ * Shared retry policy tiers for Inngest functions.
+ *
+ * - CRON_INGEST: recurring ingestion jobs pulling external/data sources
+ * - EVENT_INGEST: event-driven ingestion/writers with idempotent upserts
+ * - MANUAL: operator-triggered jobs (avoid excessive duplicate retries)
+ * - MAINTENANCE: housekeeping/monitoring jobs
+ */
+export const RETRIES = {
+	CRON_INGEST: 3,
+	EVENT_INGEST: 2,
+	MANUAL: 1,
+	MAINTENANCE: 1,
+} as const;
+
+/**
+ * Shared HTTP timeout policy for external calls in Inngest jobs.
+ */
+export const HTTP_TIMEOUT_MS = {
+	STANDARD: 20_000,
+	LONG: 30_000,
+} as const;
