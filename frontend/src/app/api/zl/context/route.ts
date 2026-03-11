@@ -39,6 +39,27 @@ interface ContextRequest {
   overrideReason?: string;
 }
 
+function buildContextFallback(payload: ContextRequest): string {
+  const priceLine = payload.price
+    ? `ZL is ${payload.price.changePct >= 0 ? "up" : "down"} ${Math.abs(payload.price.changePct).toFixed(1)}% at $${payload.price.current.toFixed(2)}.`
+    : "ZL price is unavailable in this snapshot.";
+
+  const topDriver = payload.drivers && payload.drivers.length > 0
+    ? payload.drivers.reduce((a, b) => (a.score >= b.score ? a : b))
+    : null;
+  const driverLine = topDriver
+    ? `${topDriver.name} is the dominant pressure at ${topDriver.score}/100 (${topDriver.status}).`
+    : "Driver detail is incomplete, so keep posture conservative.";
+
+  const staleCount = (payload.stalenessWarnings ?? []).length;
+  const staleLine =
+    staleCount > 0
+      ? `Data freshness warning: ${staleCount} stale feed${staleCount > 1 ? "s" : ""}, so prioritize live event flow over lagging indicators.`
+      : "No major freshness warning in this payload.";
+
+  return `${priceLine} ${driverLine} ${staleLine}`;
+}
+
 export async function POST(request: Request) {
   let payload: ContextRequest = {};
   try {
@@ -48,7 +69,10 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
+    return new Response(buildContextFallback(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
   // Build context string from available data
@@ -166,6 +190,9 @@ OUTPUT: 1-2 sentences MAX. Be direct — tell the buyer what matters RIGHT NOW f
     });
   } catch (error) {
     console.error("[zl/context] OpenRouter generation failed:", error);
-    return new Response("AI briefing unavailable.", { status: 200 });
+    return new Response(buildContextFallback(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 }

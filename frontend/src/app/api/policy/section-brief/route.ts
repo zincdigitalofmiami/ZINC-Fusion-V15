@@ -28,6 +28,19 @@ ZL FOCUS: Executive orders hit ZL (CBOT soybean oil futures) through biofuel pol
 ZL FOCUS: Filter for headlines that move ZL (CBOT soybean oil futures) — biofuel legislation affecting soybean oil demand, China trade actions affecting US soy exports, EPA regulation affecting RIN/RVO, tariff escalation affecting Gulf basis. ONE sentence only: state the dominant narrative theme and whether it is bullish or bearish for ZL with the specific causal mechanism. No hedging.`,
 };
 
+function buildSectionFallback(payload: SectionRequest): string {
+  const first = payload.data[0] ?? {};
+  if (payload.section === "agency") {
+    const agency = typeof first.agency === "string" ? first.agency : "EPA/USTR/USDA";
+    return `${agency} is the key filing source right now, and that policy flow matters for ZL through biofuel mandate signals (RVO/45Z/SRE) and export competitiveness expectations.`;
+  }
+  if (payload.section === "executive") {
+    const headline = typeof first.headline === "string" ? first.headline : "Executive policy flow";
+    return `${headline} is the main executive signal on screen, and the ZL impact channel is policy-driven demand and trade posture rather than intraday noise.`;
+  }
+  return `Policy news flow is elevated, and the dominant ZL transmission path remains regulation/trade headlines changing soybean oil demand expectations and Gulf basis risk.`;
+}
+
 export async function POST(request: Request) {
   let payload: SectionRequest;
   try {
@@ -37,7 +50,10 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
+    return new Response(buildSectionFallback(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
   const lines: string[] = [];
@@ -72,6 +88,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[policy/section-brief] OpenRouter generation failed:", error);
-    return new Response("", { status: 200 });
+    return new Response(buildSectionFallback(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 }

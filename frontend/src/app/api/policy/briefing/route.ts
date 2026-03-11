@@ -33,6 +33,32 @@ interface PolicyBriefingRequest {
   recentNews: Array<{ headline: string; source: string; date: string; tags: string[] }>;
 }
 
+function buildFallbackBriefing(payload: PolicyBriefingRequest): string {
+  const score = payload.regime.score;
+  const indicator =
+    score >= 70
+      ? "🔴 CRITICAL"
+      : score >= 55
+        ? "🟠 ELEVATED"
+        : score >= 35
+          ? "🟡 WATCH"
+          : "🟢 CLEAR";
+
+  const topAgency = payload.topAgencies[0]?.agency ?? "policy agencies";
+  const velocity = payload.metrics.velocity;
+  const velocityText =
+    velocity !== null
+      ? `Velocity is ${velocity.toFixed(1)} actions/week, which confirms active policy flow.`
+      : "Velocity data is unavailable, so use filing count and agency concentration as the lead signal.";
+
+  const directional =
+    score >= 55
+      ? "Policy pressure is currently a ZL risk-up regime through biofuel and trade channels."
+      : "Policy pressure is contained, so ZL direction is currently driven more by energy and crush than new federal action.";
+
+  return `${indicator} — ${payload.regime.label}: ${topAgency} is the main policy driver on screen. ${directional} ${velocityText}`;
+}
+
 export async function POST(request: Request) {
   let payload: PolicyBriefingRequest;
   try {
@@ -42,7 +68,10 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response("AI briefing unavailable — no API key configured.", { status: 200 });
+    return new Response(buildFallbackBriefing(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 
   // Build context from policy data
@@ -135,6 +164,9 @@ Follow with 1-2 sentences MAX: name the single most important policy action, tra
     });
   } catch (error) {
     console.error("[policy/briefing] OpenRouter generation failed:", error);
-    return new Response("AI briefing unavailable.", { status: 200 });
+    return new Response(buildFallbackBriefing(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 }
