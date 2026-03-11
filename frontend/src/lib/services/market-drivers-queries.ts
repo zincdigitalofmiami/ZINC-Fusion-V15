@@ -183,7 +183,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // Crush-focused news (7 days) tied to ZL crush economics
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
@@ -213,7 +213,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // Soybean meal news (7 days) tied to ZL spread/crush context
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
@@ -243,7 +243,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // Corn news (7 days) tied to ZL/biofuel feedstock competition
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
@@ -316,7 +316,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // China demand/news feed (7 days) — intentionally separated from tariff and energy feeds
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
@@ -392,7 +392,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // Tariff/trade policy feed (7 days) — intentionally separated from China and Energy feeds
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
@@ -510,7 +510,7 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     // Energy/oil feed (7 days) — intentionally separated from China and Tariff feeds
     query<{ count: number }>(`
       WITH candidate_news AS (
-        SELECT headline, content, source, specialist_tags
+        SELECT headline, content, NULL::text AS source, specialist_tags
         FROM alt.profarmer_news_event
         WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
 
