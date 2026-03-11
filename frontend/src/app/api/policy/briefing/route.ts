@@ -9,8 +9,27 @@
 
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
+import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
+
+const AI_REFRESH_UTC_HOUR = 10;
+const policyBriefingCache = new Map<string, string>();
+
+function getAiDayKey(now = new Date()): string {
+  const d = new Date(now);
+  if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function getCacheKey(payload: unknown): string {
+  const payloadHash = createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+  return `${getAiDayKey()}:${payloadHash}`;
+}
 
 interface PolicyBriefingRequest {
   regime: {
@@ -33,7 +52,7 @@ interface PolicyBriefingRequest {
   recentNews: Array<{ headline: string; source: string; date: string; tags: string[] }>;
 }
 
-function buildFallbackBriefing(payload: PolicyBriefingRequest): string {
+function buildDeterministicBriefing(payload: PolicyBriefingRequest): string {
   const score = payload.regime.score;
   const indicator =
     score >= 70
@@ -44,19 +63,18 @@ function buildFallbackBriefing(payload: PolicyBriefingRequest): string {
           ? "🟡 WATCH"
           : "🟢 CLEAR";
 
-  const topAgency = payload.topAgencies[0]?.agency ?? "policy agencies";
-  const velocity = payload.metrics.velocity;
+  const topAgency = payload.topAgencies[0]?.agency ?? "agency flow";
+  const topCount = payload.topAgencies[0]?.count ?? 0;
   const velocityText =
-    velocity !== null
-      ? `Velocity is ${velocity.toFixed(1)} actions/week, which confirms active policy flow.`
-      : "Velocity data is unavailable, so use filing count and agency concentration as the lead signal.";
-
+    payload.metrics.velocity !== null
+      ? `${payload.metrics.velocity.toFixed(1)} actions/week`
+      : `${payload.metrics.activeEvents} active policy events`;
   const directional =
     score >= 55
-      ? "Policy pressure is currently a ZL risk-up regime through biofuel and trade channels."
-      : "Policy pressure is contained, so ZL direction is currently driven more by energy and crush than new federal action.";
+      ? "Policy pressure is skewed risk-up for ZL through biofuel and trade channels."
+      : "Policy pressure is contained, so ZL direction is currently more tied to energy and crush flow.";
 
-  return `${indicator} — ${payload.regime.label}: ${topAgency} is the main policy driver on screen. ${directional} ${velocityText}`;
+  return `${indicator} — ${payload.regime.label}: ${topAgency} leads with ${topCount} recent actions and ${velocityText}. ${directional}`;
 }
 
 export async function POST(request: Request) {
@@ -68,7 +86,16 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response(buildFallbackBriefing(payload), {
+    return new Response(buildDeterministicBriefing(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const cacheKey = getCacheKey(payload);
+  const cached = policyBriefingCache.get(cacheKey);
+  if (cached) {
+    return new Response(cached, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
@@ -158,13 +185,15 @@ Follow with 1-2 sentences MAX: name the single most important policy action, tra
       reasoning: { effort: "high" },
     });
 
+    policyBriefingCache.set(cacheKey, text);
+
     return new Response(text, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
     console.error("[policy/briefing] OpenRouter generation failed:", error);
-    return new Response(buildFallbackBriefing(payload), {
+    return new Response(buildDeterministicBriefing(payload), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

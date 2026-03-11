@@ -121,7 +121,7 @@ export default function StatusBar({ regime, confidence }: StatusBarProps) {
       <div className="status-right">
         {isStale && (
           <div className="stale-banner">
-            {zlData?.source === "1d" ? "Last Close" : "Market Closed"}
+            Awaiting update
           </div>
         )}
         <div className="last-update">{displayTime}</div>

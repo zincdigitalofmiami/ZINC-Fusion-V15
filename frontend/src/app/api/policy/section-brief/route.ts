@@ -7,8 +7,27 @@
 
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
+import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
+
+const AI_REFRESH_UTC_HOUR = 10;
+const policySectionBriefCache = new Map<string, string>();
+
+function getAiDayKey(now = new Date()): string {
+  const d = new Date(now);
+  if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function getCacheKey(payload: unknown): string {
+  const payloadHash = createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+  return `${getAiDayKey()}:${payloadHash}`;
+}
 
 interface SectionRequest {
   section: "agency" | "executive" | "news";
@@ -28,17 +47,28 @@ ZL FOCUS: Executive orders hit ZL (CBOT soybean oil futures) through biofuel pol
 ZL FOCUS: Filter for headlines that move ZL (CBOT soybean oil futures) — biofuel legislation affecting soybean oil demand, China trade actions affecting US soy exports, EPA regulation affecting RIN/RVO, tariff escalation affecting Gulf basis. ONE sentence only: state the dominant narrative theme and whether it is bullish or bearish for ZL with the specific causal mechanism. No hedging.`,
 };
 
-function buildSectionFallback(payload: SectionRequest): string {
+function buildSectionDeterministic(payload: SectionRequest): string {
   const first = payload.data[0] ?? {};
+
   if (payload.section === "agency") {
     const agency = typeof first.agency === "string" ? first.agency : "EPA/USTR/USDA";
-    return `${agency} is the key filing source right now, and that policy flow matters for ZL through biofuel mandate signals (RVO/45Z/SRE) and export competitiveness expectations.`;
+    const count = typeof first.count === "number" ? first.count : null;
+    return `${agency}${count !== null ? ` (${count} actions)` : ""} is the dominant filing lane right now and remains the clearest policy transmission path into ZL pricing.`;
   }
+
   if (payload.section === "executive") {
-    const headline = typeof first.headline === "string" ? first.headline : "Executive policy flow";
-    return `${headline} is the main executive signal on screen, and the ZL impact channel is policy-driven demand and trade posture rather than intraday noise.`;
+    const headline =
+      typeof first.headline === "string" ? first.headline : "Executive policy flow remains the active signal";
+    return `${headline} is the highest-impact executive signal currently on screen and maps directly into ZL through trade posture and biofuel-demand expectations.`;
   }
-  return `Policy news flow is elevated, and the dominant ZL transmission path remains regulation/trade headlines changing soybean oil demand expectations and Gulf basis risk.`;
+
+  const headline = typeof first.headline === "string" ? first.headline : null;
+  const source = typeof first.source === "string" ? first.source : null;
+  if (headline) {
+    return `${headline}${source ? ` (${source})` : ""} is the dominant policy-news narrative and is setting near-term ZL direction through regulation and trade expectations.`;
+  }
+
+  return "Awaiting update.";
 }
 
 export async function POST(request: Request) {
@@ -50,7 +80,16 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response(buildSectionFallback(payload), {
+    return new Response(buildSectionDeterministic(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const cacheKey = getCacheKey(payload);
+  const cached = policySectionBriefCache.get(cacheKey);
+  if (cached) {
+    return new Response(cached, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
@@ -82,13 +121,15 @@ export async function POST(request: Request) {
       reasoning: { effort: "high" },
     });
 
+    policySectionBriefCache.set(cacheKey, text);
+
     return new Response(text, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
     console.error("[policy/section-brief] OpenRouter generation failed:", error);
-    return new Response(buildSectionFallback(payload), {
+    return new Response(buildSectionDeterministic(payload), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

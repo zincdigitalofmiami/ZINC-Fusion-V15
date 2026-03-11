@@ -2,6 +2,18 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 
+const MARKET_DRIVERS_CACHE_KEY = "market-drivers-ai:v1";
+const MORNING_REFRESH_HOUR = 7;
+
+function getMorningRefreshBoundary(now = new Date()): number {
+  const boundary = new Date(now);
+  if (boundary.getHours() < MORNING_REFRESH_HOUR) {
+    boundary.setDate(boundary.getDate() - 1);
+  }
+  boundary.setHours(MORNING_REFRESH_HOUR, 0, 0, 0);
+  return boundary.getTime();
+}
+
 // =============================================================================
 // MARKET RISK FACTORS
 // 4 key pressure indicators for soybean oil procurement
@@ -446,8 +458,37 @@ function ReportSection({
 export function ChrisTop4Drivers() {
   const [data, setData] = useState<MarketDriversResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  const [cacheIsFreshToday, setCacheIsFreshToday] = useState(false);
+
+  const loadLastDelivered = useCallback((): MarketDriversResponse | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(MARKET_DRIVERS_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        payload?: MarketDriversResponse;
+        ts?: number;
+      };
+      if (!parsed?.payload || typeof parsed.ts !== "number") return null;
+      return parsed.payload;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const isCacheFreshToday = useCallback((): boolean => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = localStorage.getItem(MARKET_DRIVERS_CACHE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as { ts?: number };
+      if (typeof parsed?.ts !== "number") return false;
+      return parsed.ts >= getMorningRefreshBoundary();
+    } catch {
+      return false;
+    }
+  }, []);
 
   const fetchDrivers = useCallback(async () => {
     try {
@@ -457,7 +498,7 @@ export function ChrisTop4Drivers() {
           res.status === 504
             ? "Request timed out - AI analysis takes longer on first load"
             : res.status === 500
-              ? "Server error - using fallback data"
+              ? "Awaiting update"
               : `HTTP ${res.status}`;
         throw new Error(errorText);
       }
@@ -471,19 +512,42 @@ export function ChrisTop4Drivers() {
       }
       if (json.error) throw new Error(json.error);
       setData(json);
-      setError(null);
       setLastUpdate(new Date().toLocaleTimeString());
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          MARKET_DRIVERS_CACHE_KEY,
+          JSON.stringify({ payload: json, ts: Date.now() }),
+        );
+      }
     } catch (e) {
       console.error("Failed to fetch market drivers:", e);
-      setError(e instanceof Error ? e.message : "Failed to load");
+      const lastDelivered = loadLastDelivered();
+      if (lastDelivered) {
+        setData(lastDelivered);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadLastDelivered]);
 
   useEffect(() => {
-    fetchDrivers();
-  }, [fetchDrivers]);
+    const lastDelivered = loadLastDelivered();
+    if (lastDelivered) {
+      setData(lastDelivered);
+      setLoading(false);
+    }
+    const freshToday = isCacheFreshToday();
+    setCacheIsFreshToday(freshToday);
+    if (!freshToday) {
+      fetchDrivers();
+    }
+  }, [fetchDrivers, isCacheFreshToday, loadLastDelivered]);
+
+  useEffect(() => {
+    if (cacheIsFreshToday && data) {
+      setLastUpdate("Daily morning refresh");
+    }
+  }, [cacheIsFreshToday, data]);
 
   const d = data?.drivers;
 
@@ -498,11 +562,6 @@ export function ChrisTop4Drivers() {
           <span className="px-2 py-0.5 rounded text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
             KEY DRIVERS
           </span>
-          {error && (
-            <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-              ERROR
-            </span>
-          )}
           {data?.summary?.alert_count && data.summary.alert_count > 0 && (
             <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
               {data.summary.alert_count} ALERT

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FusionBrain } from "@/components/viz/FusionBrain";
 import { ContractImpactCalculator } from "@/components/tools/ContractImpactCalculator";
 import { FactorWaterfall } from "@/components/quant/FactorWaterfall";
@@ -17,7 +17,16 @@ import {
   Brain,
 } from "lucide-react";
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const MORNING_REFRESH_UTC_HOUR = 10;
+
+function getMorningRefreshBoundary(now = new Date()): number {
+  const boundary = new Date(now);
+  if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
+    boundary.setDate(boundary.getDate() - 1);
+  }
+  boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
+  return boundary.getTime();
+}
 
 // Brief API types
 interface PriceSummary {
@@ -66,7 +75,7 @@ interface EventPulseEvent {
   headline: string;
   source: string;
   event_date: string;
-  sentiment: "bullish" | "bearish" | "neutral";
+  sentiment: string;
   confidence: number;
   tags: string[];
   hoursAgo: number;
@@ -200,7 +209,7 @@ function createFallbackBrief(reason?: string): BriefData {
   return {
     generatedAt: nowIso,
     asOfDate: today,
-    tldr: "Strategy data is temporarily unavailable. Showing fallback posture.",
+    tldr: "Awaiting update.",
     recommendation: "CHECK DATA",
     recommendationColor: "gray",
     price: {
@@ -264,7 +273,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Markets",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "index",
         asOfDate: null,
@@ -274,7 +283,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Crush",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "USD/bushel",
         asOfDate: null,
@@ -284,7 +293,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "China",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "CNY/USD",
         asOfDate: null,
@@ -294,7 +303,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Tariffs",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "index",
         asOfDate: null,
@@ -304,7 +313,7 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Trump Effect",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "action score",
         asOfDate: null,
@@ -314,14 +323,14 @@ function createFallbackBrief(reason?: string): BriefData {
         name: "Energy",
         score: 0,
         status: "NO DATA",
-        impact: "Data source unavailable",
+        impact: "Awaiting update",
         rawValue: null,
         unit: "USD/barrel",
         asOfDate: null,
         source: "unavailable",
       },
     ],
-    driversSummary: reason ?? "Unable to load live strategy inputs.",
+    driversSummary: reason ?? "Awaiting update.",
     correlations: [
       {
         asset: "Soybean Meal (ZM)",
@@ -356,8 +365,8 @@ function createFallbackBrief(reason?: string): BriefData {
         source: "unavailable",
       },
     ],
-    keyRisks: ["Live strategy feeds unavailable."],
-    keyPositives: ["Page remains operational with fallback mode."],
+    keyRisks: ["Awaiting update."],
+    keyPositives: ["Awaiting update."],
     eventPulse: {
       recentEvents: [],
       velocity: {
@@ -375,7 +384,7 @@ function createFallbackBrief(reason?: string): BriefData {
         signal: "NEUTRAL",
       },
     },
-    dataIssues: [reason ?? "Brief API unavailable"],
+    dataIssues: [reason ?? "Awaiting update"],
     stalenessWarnings: [],
     dataQuality: "poor",
   };
@@ -384,11 +393,9 @@ function createFallbackBrief(reason?: string): BriefData {
 export default function StrategyPage() {
   const [brief, setBrief] = useState<BriefData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchBrief = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/zl/brief");
       if (!res.ok) {
@@ -406,7 +413,6 @@ export default function StrategyPage() {
       setBrief(data);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
       setBrief(createFallbackBrief(msg));
     } finally {
       setLoading(false);
@@ -415,18 +421,14 @@ export default function StrategyPage() {
 
   useEffect(() => {
     fetchBrief();
-    const interval = setInterval(fetchBrief, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [fetchBrief]);
 
   const [aiContext, setAiContext] = useState<string>("");
   const [aiContextLoading, setAiContextLoading] = useState(false);
-  const aiContextFetched = useRef(false);
 
   // Stream AI context when brief data loads
   useEffect(() => {
-    if (!brief || aiContextFetched.current) return;
-    aiContextFetched.current = true;
+    if (!brief) return;
     setAiContextLoading(true);
 
     const contextPayload = {
@@ -448,22 +450,58 @@ export default function StrategyPage() {
       overrideReason: brief.overrideReason,
     };
 
-    const cacheKey = "strategy-ai-context:v1";
+    const cacheKey = [
+      "strategy-ai-context:v2",
+      brief.asOfDate,
+      brief.generatedAt,
+      brief.dataQuality,
+      brief.dataStaleness?.staleSources
+        ?.map((s) => `${s.driver}:${s.daysStale ?? "na"}`)
+        .join(",") ?? "none",
+      brief.eventPulse?.recentEvents?.[0]?.event_date ?? "na",
+    ].join("|");
+
+    const getLastDeliveredContext = (): string | null => {
+      if (typeof window === "undefined") return null;
+      let best: { text: string; ts: number } | null = null;
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("strategy-ai-context:v2|")) continue;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw) as { text?: string; ts?: number };
+          if (typeof parsed.text !== "string" || typeof parsed.ts !== "number") continue;
+          if (!best || parsed.ts > best.ts) {
+            best = { text: parsed.text, ts: parsed.ts };
+          }
+        } catch {
+          // Ignore malformed cache rows.
+        }
+      }
+      return best?.text ?? null;
+    };
 
     if (typeof window !== "undefined") {
       try {
         const cachedRaw = localStorage.getItem(cacheKey);
         if (cachedRaw) {
           const cached = JSON.parse(cachedRaw) as { text?: string; ts?: number };
-          if (
-            typeof cached?.text === "string" &&
-            typeof cached?.ts === "number" &&
-            Date.now() - cached.ts < FOUR_HOURS_MS
-          ) {
+          if (typeof cached?.text === "string") {
             setAiContext(cached.text);
-            setAiContextLoading(false);
-            return;
+            if (
+              typeof cached?.ts === "number" &&
+              cached.ts >= getMorningRefreshBoundary()
+            ) {
+              setAiContextLoading(false);
+              return;
+            }
           }
+        }
+
+        const lastDelivered = getLastDeliveredContext();
+        if (lastDelivered) {
+          setAiContext((prev) => prev || lastDelivered);
         }
       } catch {
         // Ignore cache errors and continue with network request.
@@ -568,7 +606,7 @@ export default function StrategyPage() {
         } else {
           items.push({
             title: "Verify Data",
-            detail: "Some indicators unavailable",
+            detail: "Awaiting update",
             primary: true,
           });
         }
@@ -663,17 +701,10 @@ export default function StrategyPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 p-3 pt-24 md:p-6 md:pt-36 pb-20">
-      {/* Error banner */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-          <span>Failed to load strategy brief: {error}</span>
-        </div>
-      )}
-
       {/* Data quality banner — only show for truly poor data (most drivers missing) */}
       {brief?.dataQuality === "poor" && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-          Multiple data sources offline — {brief.dataIssues.join(", ")}
+          Awaiting update — {brief.dataIssues.join(", ")}
         </div>
       )}
       {/* Staleness notice — informational, not blocking */}
@@ -681,11 +712,7 @@ export default function StrategyPage() {
         brief.stalenessWarnings?.length > 0 && (
           <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
             <AlertTriangle size={12} />
-            <span>
-              {brief.stalenessWarnings.length} source
-              {brief.stalenessWarnings.length > 1 ? "s" : ""} past freshness SLA
-              — scores still usable
-            </span>
+            <span>Awaiting update</span>
           </div>
         )}
 
@@ -770,12 +797,12 @@ export default function StrategyPage() {
                 {brief.dataQuality === "partial" && (
                   <div className="mt-2 text-[10px] text-amber-500/60 uppercase tracking-wider">
                     {brief.dataIssues.length > 0 &&
-                      `${brief.dataIssues.length} source${brief.dataIssues.length !== 1 ? "s" : ""} offline`}
+                      "Awaiting update"}
                     {brief.dataIssues.length > 0 &&
                       brief.stalenessWarnings?.length > 0 &&
                       " · "}
                     {brief.stalenessWarnings?.length > 0 &&
-                      `${brief.stalenessWarnings.length} past SLA`}
+                      "Awaiting update"}
                   </div>
                 )}
               </div>
@@ -815,7 +842,7 @@ export default function StrategyPage() {
                         --
                       </div>
                       <div className="text-[9px] text-slate-500 uppercase tracking-widest">
-                        No Forecast
+                        Awaiting update
                       </div>
                     </>
                   )}
@@ -916,9 +943,9 @@ export default function StrategyPage() {
                     }`}
                   >
                     {driver.source === "stale"
-                      ? "STALE"
+                      ? "AWAITING UPDATE"
                       : driver.source === "unavailable"
-                        ? "N/A"
+                        ? "AWAITING UPDATE"
                         : driver.status}
                   </span>
                 </div>

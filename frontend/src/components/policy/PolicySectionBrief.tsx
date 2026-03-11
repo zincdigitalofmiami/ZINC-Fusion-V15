@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const MORNING_REFRESH_UTC_HOUR = 10;
+
+function getMorningRefreshBoundary(now = new Date()): number {
+  const boundary = new Date(now);
+  if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
+    boundary.setDate(boundary.getDate() - 1);
+  }
+  boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
+  return boundary.getTime();
+}
 
 interface Props {
   section: "agency" | "executive" | "news";
   regime: { score: number; label: string };
   data: Array<Record<string, unknown>>;
+  dataVersion?: string;
 }
 
 const SECTION_TITLES: Record<string, string> = {
@@ -16,31 +26,57 @@ const SECTION_TITLES: Record<string, string> = {
   news: "AI News Intel Synthesis",
 };
 
-export function PolicySectionBrief({ section, regime, data }: Props) {
+export function PolicySectionBrief({ section, regime, data, dataVersion }: Props) {
   const [text, setText] = useState("");
   const [done, setDone] = useState(false);
-  const started = useRef(false);
+
+  const getLastDeliveredSection = (prefix: string): string | null => {
+    if (typeof window === "undefined") return null;
+    let best: { text: string; ts: number } | null = null;
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(prefix)) continue;
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw) as { text?: string; ts?: number };
+        if (typeof parsed.text !== "string" || typeof parsed.ts !== "number") continue;
+        if (!best || parsed.ts > best.ts) {
+          best = { text: parsed.text, ts: parsed.ts };
+        }
+      } catch {
+        // Ignore malformed cache rows.
+      }
+    }
+    return best?.text ?? null;
+  };
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    setDone(false);
 
     (async () => {
-      const cacheKey = `policy-section-brief:v1:${section}:${regime.score}:${regime.label}`;
+      const cacheKey = `policy-section-brief:v2:${section}:${regime.score}:${regime.label}:${dataVersion ?? "na"}`;
+      const cachePrefix = `policy-section-brief:v2:${section}:`;
       try {
         if (typeof window !== "undefined") {
           const cachedRaw = localStorage.getItem(cacheKey);
           if (cachedRaw) {
             const cached = JSON.parse(cachedRaw) as { text?: string; ts?: number };
-            if (
-              typeof cached?.text === "string" &&
-              typeof cached?.ts === "number" &&
-              Date.now() - cached.ts < FOUR_HOURS_MS
-            ) {
+            if (typeof cached?.text === "string") {
               setText(cached.text);
-              setDone(true);
-              return;
+              if (
+                typeof cached?.ts === "number" &&
+                cached.ts >= getMorningRefreshBoundary()
+              ) {
+                setDone(true);
+                return;
+              }
             }
+          }
+
+          const lastDelivered = getLastDeliveredSection(cachePrefix);
+          if (lastDelivered) {
+            setText(lastDelivered);
           }
         }
 
@@ -76,7 +112,7 @@ export function PolicySectionBrief({ section, regime, data }: Props) {
         setDone(true);
       }
     })();
-  }, [section, regime, data]);
+  }, [section, regime, data, dataVersion]);
 
   if (!text && !done) {
     return (

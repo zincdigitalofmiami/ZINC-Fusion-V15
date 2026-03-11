@@ -18,57 +18,6 @@ interface OrganicTopicCloudProps {
   loading?: boolean;
 }
 
-/* Fallback topics when no data is available — keeps the viz alive */
-const FALLBACK_TOPICS: TopicNode[] = [
-  { id: "fb-1", topic: "Tariffs", volume: 88, sentiment: -0.75, mentions: 34 },
-  { id: "fb-2", topic: "RVO Rule", volume: 95, sentiment: 0.85, mentions: 41 },
-  {
-    id: "fb-3",
-    topic: "China Demand",
-    volume: 72,
-    sentiment: 0.4,
-    mentions: 28,
-  },
-  { id: "fb-4", topic: "Drought", volume: 58, sentiment: -0.6, mentions: 19 },
-  { id: "fb-5", topic: "Biofuel", volume: 65, sentiment: 0.7, mentions: 22 },
-  {
-    id: "fb-6",
-    topic: "Export Sales",
-    volume: 50,
-    sentiment: 0.5,
-    mentions: 16,
-  },
-  {
-    id: "fb-7",
-    topic: "Crush Margins",
-    volume: 78,
-    sentiment: 0.3,
-    mentions: 25,
-  },
-  { id: "fb-8", topic: "Palm Oil", volume: 45, sentiment: -0.35, mentions: 12 },
-  {
-    id: "fb-9",
-    topic: "Fed Policy",
-    volume: 55,
-    sentiment: -0.2,
-    mentions: 18,
-  },
-  {
-    id: "fb-10",
-    topic: "USDA WASDE",
-    volume: 68,
-    sentiment: 0.15,
-    mentions: 21,
-  },
-  {
-    id: "fb-11",
-    topic: "Inflation",
-    volume: 38,
-    sentiment: -0.45,
-    mentions: 11,
-  },
-];
-
 /* ─── Sentiment → color helpers ─── */
 
 function getSentimentColor(sentiment: number): {
@@ -113,13 +62,8 @@ export function OrganicTopicCloud({
   const simulationRef = useRef<d3.Simulation<TopicNode, undefined> | null>(
     null,
   );
-  const isFallback = topics.length === 0 && !loading;
 
-  // Use real data or fallback
-  const activeTopics = useMemo(
-    () => (topics.length > 0 ? topics : isFallback ? FALLBACK_TOPICS : []),
-    [topics, isFallback],
-  );
+  const activeTopics = useMemo(() => topics, [topics]);
 
   useEffect(() => {
     if (!containerRef.current || activeTopics.length === 0) {
@@ -188,12 +132,11 @@ export function OrganicTopicCloud({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.02),transparent_60%)]" />
       </div>
 
-      {/* Fallback watermark */}
-      {isFallback && (
-        <div className="absolute top-3 right-4 z-20">
-          <span className="text-[9px] font-mono text-slate-600 bg-slate-900/60 px-2 py-0.5 rounded border border-white/5">
-            DEMO · Awaiting live data
-          </span>
+      {!loading && activeTopics.length === 0 && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="text-sm text-slate-500 font-mono tracking-wide">
+              Awaiting update
+            </div>
         </div>
       )}
 

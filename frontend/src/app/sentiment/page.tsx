@@ -1,9 +1,18 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Newspaper, TrendingUp, Activity } from "lucide-react";
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const MORNING_REFRESH_UTC_HOUR = 10;
+
+function getMorningRefreshBoundary(now = new Date()): number {
+  const boundary = new Date(now);
+  if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
+    boundary.setDate(boundary.getDate() - 1);
+  }
+  boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
+  return boundary.getTime();
+}
 
 /* ─── Types ─── */
 
@@ -332,11 +341,14 @@ export default function SentimentPage() {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [narratives, setNarratives] = useState<Narratives | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const narrativesRef = useRef<Narratives | null>(null);
+
+  useEffect(() => {
+    narrativesRef.current = narratives;
+  }, [narratives]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const [newsRes, cotRes, metricsRes] = await Promise.all([
         fetch("/api/sentiment/news"),
@@ -374,11 +386,9 @@ export default function SentimentPage() {
         cotResult.error,
         metricsResult.error,
       ].filter(Boolean);
-      if (endpointErrors.length > 0) {
-        setError(`Some data failed to load: ${endpointErrors.join(", ")}`);
-      }
+      void endpointErrors;
     } catch (e) {
-      setError(String(e));
+      void e;
     } finally {
       setLoading(false);
     }
@@ -386,8 +396,6 @@ export default function SentimentPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [fetchData]);
 
   // Fetch AI narratives once metrics are available
@@ -397,7 +405,35 @@ export default function SentimentPage() {
     const te = metrics.trumpEffect;
     const vol = metrics.volatility;
 
-    const cacheKey = "sentiment-ai-narrative:v1";
+    const cacheKey = [
+      "sentiment-ai-narrative:v2",
+      metrics.as_of ?? "na",
+      metrics.trumpEffectStatus?.selected_as_of ?? "na",
+      metrics.trumpEffectStatus?.selection_mode ?? "na",
+      String(metrics.fearGreed?.score ?? "na"),
+    ].join("|");
+
+    const getLastDeliveredNarratives = (): Narratives | null => {
+      if (typeof window === "undefined") return null;
+      let best: { narratives: Narratives; ts: number } | null = null;
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("sentiment-ai-narrative:v2|")) continue;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw) as { narratives?: Narratives; ts?: number };
+          if (!parsed.narratives || typeof parsed.ts !== "number") continue;
+          if (!best || parsed.ts > best.ts) {
+            best = { narratives: parsed.narratives, ts: parsed.ts };
+          }
+        } catch {
+          // Ignore malformed cache rows.
+        }
+      }
+      return best?.narratives ?? null;
+    };
+
     if (typeof window !== "undefined") {
       try {
         const cachedRaw = localStorage.getItem(cacheKey);
@@ -406,13 +442,21 @@ export default function SentimentPage() {
             narratives?: Narratives;
             ts?: number;
           };
-          if (
-            cached?.narratives &&
-            typeof cached?.ts === "number" &&
-            Date.now() - cached.ts < FOUR_HOURS_MS
-          ) {
+          if (cached?.narratives) {
             setNarratives(cached.narratives);
-            return;
+            if (
+              typeof cached?.ts === "number" &&
+              cached.ts >= getMorningRefreshBoundary()
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (!narrativesRef.current) {
+          const lastDelivered = getLastDeliveredNarratives();
+          if (lastDelivered) {
+            setNarratives(lastDelivered);
           }
         }
       } catch {
@@ -504,7 +548,6 @@ export default function SentimentPage() {
 
   const fg = metrics?.fearGreed ?? null;
   const trump = metrics?.trumpEffect ?? null;
-  const trumpStatus = metrics?.trumpEffectStatus ?? null;
   const trendBadge = metrics ? getTrendBadge(metrics.technicals.trend) : null;
 
   return (
@@ -532,13 +575,6 @@ export default function SentimentPage() {
           )}
         </div>
       </div>
-
-      {/* Error banner */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-          Failed to load data: {error}
-        </div>
-      )}
 
       {/* ═══════════ FEAR & GREED INDEX ═══════════ */}
       <div className="mb-8">
@@ -630,7 +666,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-12">
-              Fear &amp; Greed data unavailable
+              Awaiting update
             </div>
           )}
         </div>
@@ -689,7 +725,7 @@ export default function SentimentPage() {
             </div>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Price data unavailable
+              Awaiting update
             </div>
           )}
         </div>
@@ -706,17 +742,6 @@ export default function SentimentPage() {
               <div className="text-xs text-slate-500 mt-1 pl-5">
                 ZL-anchored policy pressure for soybean oil procurement
               </div>
-              {trumpStatus && (
-                <div className="text-xs mt-2 pl-5 text-slate-500">
-                  Feature row: {trumpStatus.selected_as_of}
-                  {trumpStatus.selected_age_days != null
-                    ? ` (${trumpStatus.selected_age_days}d old)`
-                    : ""}
-                  {trump?.policy_window.start_date_7d
-                    ? ` • policy window starts ${trump.policy_window.start_date_7d}`
-                    : ""}
-                </div>
-              )}
             </div>
             {trump?.policy_activity.weighted_action_score != null && (
               <div className="text-4xl font-bold text-white font-mono">
@@ -739,20 +764,6 @@ export default function SentimentPage() {
             </div>
           ) : trump ? (
             <>
-              {trumpStatus?.selection_mode === "latest_fallback" && (
-                <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
-                  Latest feature row is incomplete. Card is using source-backed
-                  fallback math so policy-to-ZL coverage stays non-null.
-                </div>
-              )}
-              {trumpStatus?.selected_is_stale && (
-                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-200">
-                  Feature row is stale ({trumpStatus.selected_age_days}d old).
-                  Treat this card as directional context, not a standalone timing
-                  trigger.
-                </div>
-              )}
-
               {/* 1) ZL response */}
               <div className="mb-6 border border-white/5 rounded-xl p-4 bg-white/[0.02]">
                 <div className="flex items-center justify-between gap-4 mb-4">
@@ -937,7 +948,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Policy impact data unavailable
+              Awaiting update
             </div>
           )}
         </div>
@@ -1100,7 +1111,7 @@ export default function SentimentPage() {
             </>
           ) : (
             <div className="text-center text-slate-500 py-6">
-              Volatility data unavailable
+              Awaiting update
             </div>
           )}
         </div>

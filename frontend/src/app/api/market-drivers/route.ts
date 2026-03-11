@@ -29,14 +29,14 @@ export const maxDuration = 300;
 
 const CACHE_STALE_WHILE_REVALIDATE_SECONDS = 60 * 60;
 
-// Must match frontend/vercel.json daily cron (3 AM UTC).
-const DAILY_REFRESH_UTC_HOUR = 3;
+// Must match frontend/vercel.json daily cron (10 AM UTC = 5 AM EST).
+const DAILY_REFRESH_UTC_HOUR = 10;
 const DAILY_REFRESH_UTC_MINUTE = 0;
 
 // =============================================================================
-// DAILY AI CACHE — Anthropic runs ONCE at 3 AM UTC, cached until next 3 AM
+// DAILY AI CACHE — Anthropic runs ONCE at 10 AM UTC (5 AM EST), cached until next refresh
 // =============================================================================
-const AI_REFRESH_UTC_HOUR = 3; // Reset AI cache at 3 AM UTC each day
+const AI_REFRESH_UTC_HOUR = 10; // Reset AI cache at 10 AM UTC (5 AM EST) each day
 
 interface AiCacheEntry {
   dayKey: string;

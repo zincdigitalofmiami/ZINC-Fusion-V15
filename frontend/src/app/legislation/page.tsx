@@ -25,7 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const revalidate = 3600; // ISR: revalidate every 1 hour
+export const dynamic = "force-dynamic";
 
 // ============================================================================
 // UI COMPONENTS
@@ -530,6 +530,18 @@ export default async function PolicyPage() {
     date: n.event_date,
   }));
 
+  const briefingVersion = [
+    regime.freshness?.tpu_date ?? "na",
+    currentMetric?.date ?? "na",
+    legislation[0]?.event_date ?? "na",
+    executive[0]?.event_date ?? "na",
+    policyNews[0]?.event_date ?? "na",
+  ].join("|");
+
+  const agencyVersion = `${agencies[0]?.agency ?? "na"}|${agencies[0]?.count ?? "na"}`;
+  const executiveVersion = shockwaves[0]?.event_date ?? "na";
+  const newsVersion = policyNews[0]?.event_date ?? "na";
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-200 pt-24 md:pt-36 pb-20">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -552,7 +564,7 @@ export default async function PolicyPage() {
         </header>
 
         {/* AI BRIEFING — Claude-powered policy analysis */}
-        <PolicyAiBriefing {...briefingProps} />
+        <PolicyAiBriefing {...briefingProps} dataVersion={briefingVersion} />
 
         {/* EVENT PULSE INDICATOR — shows when news velocity is elevated */}
         {newsVelocityRatio >= 1.5 && (
@@ -654,15 +666,15 @@ export default async function PolicyPage() {
         </div>
 
         {/* ═══════════ AGENCY ACTIVITY ═══════════ */}
-        <PolicySectionBrief section="agency" regime={briefRegime} data={agencyBriefData} />
+        <PolicySectionBrief section="agency" regime={briefRegime} data={agencyBriefData} dataVersion={agencyVersion} />
         <AgencyHeatmap agencies={agencies} />
 
         {/* ═══════════ EXECUTIVE ACTIONS ═══════════ */}
-        <PolicySectionBrief section="executive" regime={briefRegime} data={execBriefData} />
+        <PolicySectionBrief section="executive" regime={briefRegime} data={execBriefData} dataVersion={executiveVersion} />
         <ShockwaveList events={shockwaves} />
 
         {/* ═══════════ SEGMENTED POLICY NEWS LANES ═══════════ */}
-        <PolicySectionBrief section="news" regime={briefRegime} data={newsBriefData} />
+        <PolicySectionBrief section="news" regime={briefRegime} data={newsBriefData} dataVersion={newsVersion} />
         <div className="mb-8">
           <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
             <div className="text-sm font-semibold text-white uppercase tracking-widest border-l-2 border-emerald-500 pl-3 mb-8">

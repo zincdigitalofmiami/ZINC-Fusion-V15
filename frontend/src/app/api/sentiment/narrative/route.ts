@@ -1,8 +1,31 @@
 import { NextResponse } from "next/server";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
+import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
+
+const AI_REFRESH_UTC_HOUR = 10;
+const sentimentNarrativeCache = new Map<string, {
+  fearGreedNarrative: string | null;
+  trumpEffectNarrative: string | null;
+  volatilityNarrative: string | null;
+}>();
+
+function getAiDayKey(now = new Date()): string {
+  const d = new Date(now);
+  if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function getCacheKey(payload: unknown): string {
+  const payloadHash = createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+  return `${getAiDayKey()}:${payloadHash}`;
+}
 
 type FearGreedPayload = {
   score?: number | null;
@@ -88,26 +111,27 @@ function buildTrumpNarrative(input?: TrumpEffectPayload): string | null {
 
   const activityText =
     actions === null
-      ? "Policy activity is unavailable"
-      : `${Math.round(actions)} presidential actions this week (${Math.round(eos ?? 0)} executive orders, ${Math.round(otherActions ?? Math.max(0, actions - (eos ?? 0)))} other actions)`;
+      ? "policy activity unavailable"
+      : `${Math.round(actions)} actions this week (${Math.round(eos ?? 0)} executive, ${Math.round(otherActions ?? Math.max(0, actions - (eos ?? 0)))} other)`;
   const scoreText =
     score === null
-      ? "weighted policy pressure is unavailable"
-      : `weighted policy pressure is ${score.toFixed(1)}`;
+      ? "policy pressure unavailable"
+      : `weighted pressure ${score.toFixed(1)}`;
   const corroborationText =
     corroborationScore === null
-      ? "corroborating coverage is unavailable"
-      : `corroboration is ${corroborationScore}/100 (${band || "unknown"}) with policy=${Math.round(supportingItems ?? 0)}, market=${Math.round(marketItems ?? 0)}, regulatory=${Math.round(regulatoryItems ?? 0)}`;
+      ? "corroboration unavailable"
+      : `corroboration ${corroborationScore}/100 (${band || "unknown"})`;
   const responseText =
     response7d === null
-      ? "ZL response is unavailable"
-      : `ZL moved ${response7d > 0 ? "+" : ""}${response7d.toFixed(2)}% over the policy window${response1d == null ? "" : ` and ${response1d > 0 ? "+" : ""}${response1d.toFixed(2)}% over 1d`} (${responseSignal || "unknown"} response)`;
-  const velocityText = velocity === null ? "" : ` velocity ${velocity.toFixed(1)}/day`;
-  const procurementText = procurementLabel
-    ? ` Procurement outlook: ${procurementLabel}.`
-    : "";
+      ? "ZL response unavailable"
+      : `ZL ${response7d > 0 ? "rose" : "fell"} ${Math.abs(response7d).toFixed(2)}% in the 7d policy window${response1d == null ? "" : ` and ${response1d > 0 ? "rose" : "fell"} ${Math.abs(response1d).toFixed(2)}% in 1d`} (${responseSignal || "unknown"})`;
+  const velocityText = velocity === null ? "" : `, velocity ${velocity.toFixed(1)}/day`;
+  const detailTail =
+    corroborationScore === null
+      ? ""
+      : ` with policy=${Math.round(supportingItems ?? 0)}, market=${Math.round(marketItems ?? 0)}, regulatory=${Math.round(regulatoryItems ?? 0)}`;
 
-  return `${title}: ${activityText}${velocityText}; ${scoreText}; ${corroborationText}; ${responseText}.${procurementText}`;
+  return `You are looking at ${title}: ${activityText}${velocityText}; ${scoreText}; ${corroborationText}${detailTail}; ${responseText}. Use this with price and positioning to confirm whether policy flow is real enough to change procurement timing${procurementLabel ? ` (${procurementLabel})` : ""}, not as a standalone trigger.`;
 }
 
 function buildVolatilityNarrative(input?: VolatilityPayload): string | null {
@@ -137,7 +161,7 @@ function buildVolatilityNarrative(input?: VolatilityPayload): string | null {
       ? "realized volatility unavailable"
       : `21d realized ${realized.toFixed(1)}%`;
 
-  return `${vixState}; ${ovxState}; ${realizedState}. Expect wider intraday ranges when all three remain elevated together.`;
+  return `You are looking at the volatility stack: ${vixState}; ${ovxState}; ${realizedState}. Use this with price action and positioning to size urgency and coverage pace, not as a standalone timing signal.`;
 }
 
 // =============================================================================
@@ -207,9 +231,14 @@ ZL FOCUS: You are a commodity procurement analyst for a US soybean oil buyer. Ev
 - Volatility → VIX spike = fund liquidation = ZL selling pressure. High OVX = biodiesel margin uncertainty. Vol regime determines whether to lock in coverage now or wait.
 
 Return EXACTLY a JSON object with these keys (use null if no data for that section):
-- fearGreedNarrative: 1-2 sentences connecting the sentiment score to ZL procurement timing
-- trumpEffectNarrative: 1-2 sentences separating policy noise from confirmed ZL price impact
-- volatilityNarrative: 1-2 sentences on what the vol regime means for ZL coverage decisions
+- fearGreedNarrative: EXACTLY 2 sentences
+- trumpEffectNarrative: EXACTLY 2 sentences
+- volatilityNarrative: EXACTLY 2 sentences
+
+For EACH narrative:
+- Sentence 1: Tell the user what they are looking at and the numeric read.
+- Sentence 2: Explain what it means and how to use it with price + positioning.
+- Must include: "not a standalone timing signal" or "not a standalone trigger".
 
 Use the exact numbers from the data. No hedging. Tell them what to DO.`,
         },
@@ -247,10 +276,22 @@ export async function POST(request: Request) {
     // Keep empty payload; return null narratives instead of failing the page.
   }
 
+  const cacheKey = getCacheKey(payload);
+  const cached = sentimentNarrativeCache.get(cacheKey);
+  if (cached) {
+    return NextResponse.json({
+      fearGreedNarrative: cached.fearGreedNarrative,
+      trumpEffectNarrative: cached.trumpEffectNarrative,
+      volatilityNarrative: cached.volatilityNarrative,
+      source: "ai",
+    });
+  }
+
   // Try AI narratives first, fall back to static templates
   const aiNarratives = await generateAINarratives(payload);
 
   if (aiNarratives) {
+    sentimentNarrativeCache.set(cacheKey, aiNarratives);
     return NextResponse.json({
       fearGreedNarrative: aiNarratives.fearGreedNarrative ?? buildFearGreedNarrative(payload.fearGreed),
       trumpEffectNarrative: aiNarratives.trumpEffectNarrative ?? buildTrumpNarrative(payload.trumpEffect),
@@ -259,11 +300,10 @@ export async function POST(request: Request) {
     });
   }
 
-  // Static fallback
   return NextResponse.json({
     fearGreedNarrative: buildFearGreedNarrative(payload.fearGreed),
     trumpEffectNarrative: buildTrumpNarrative(payload.trumpEffect),
     volatilityNarrative: buildVolatilityNarrative(payload.volatility),
-    source: 'static',
+    source: "deterministic",
   });
 }

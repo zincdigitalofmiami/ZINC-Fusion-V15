@@ -12,8 +12,27 @@
 
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
+import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
+
+const AI_REFRESH_UTC_HOUR = 10;
+const zlContextCache = new Map<string, string>();
+
+function getAiDayKey(now = new Date()): string {
+  const d = new Date(now);
+  if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
+    d.setUTCDate(d.getUTCDate() - 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function getCacheKey(payload: unknown): string {
+  const payloadHash = createHash("sha256")
+    .update(JSON.stringify(payload))
+    .digest("hex");
+  return `${getAiDayKey()}:${payloadHash}`;
+}
 
 interface ContextRequest {
   price?: { current: number; changePct: number };
@@ -39,25 +58,34 @@ interface ContextRequest {
   overrideReason?: string;
 }
 
-function buildContextFallback(payload: ContextRequest): string {
+function buildContextDeterministic(payload: ContextRequest): string {
   const priceLine = payload.price
     ? `ZL is ${payload.price.changePct >= 0 ? "up" : "down"} ${Math.abs(payload.price.changePct).toFixed(1)}% at $${payload.price.current.toFixed(2)}.`
-    : "ZL price is unavailable in this snapshot.";
+    : "Awaiting update.";
 
-  const topDriver = payload.drivers && payload.drivers.length > 0
-    ? payload.drivers.reduce((a, b) => (a.score >= b.score ? a : b))
-    : null;
+  const availableDrivers = (payload.drivers ?? []).filter((d) => d.source !== "unavailable");
+  const topDriver =
+    availableDrivers.length > 0
+      ? availableDrivers.reduce((a, b) => (a.score >= b.score ? a : b))
+      : null;
+
   const driverLine = topDriver
     ? `${topDriver.name} is the dominant pressure at ${topDriver.score}/100 (${topDriver.status}).`
-    : "Driver detail is incomplete, so keep posture conservative.";
+    : "Awaiting update.";
 
-  const staleCount = (payload.stalenessWarnings ?? []).length;
-  const staleLine =
-    staleCount > 0
-      ? `Data freshness warning: ${staleCount} stale feed${staleCount > 1 ? "s" : ""}, so prioritize live event flow over lagging indicators.`
-      : "No major freshness warning in this payload.";
+  const missing = (payload.drivers ?? []).filter((d) => d.source === "unavailable");
+  const coverageLine =
+    missing.length > 0
+      ? `Awaiting update for: ${missing.map((d) => d.name).join(", ")}.`
+      : "";
 
-  return `${priceLine} ${driverLine} ${staleLine}`;
+  if (payload.recentEvents && payload.recentEvents.length > 0) {
+    const event = payload.recentEvents[0];
+    const eventLine = `Top event flow: ${event.headline} (${event.source}, ${event.hoursAgo}h ago).`;
+    return [priceLine, driverLine, eventLine, coverageLine].filter(Boolean).join(" ");
+  }
+
+  return [priceLine, driverLine, coverageLine].filter(Boolean).join(" ");
 }
 
 export async function POST(request: Request) {
@@ -69,7 +97,16 @@ export async function POST(request: Request) {
   }
 
   if (!hasOpenRouterApiKey()) {
-    return new Response(buildContextFallback(payload), {
+    return new Response(buildContextDeterministic(payload), {
+      status: 200,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const cacheKey = getCacheKey(payload);
+  const cached = zlContextCache.get(cacheKey);
+  if (cached) {
+    return new Response(cached, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
@@ -184,13 +221,15 @@ OUTPUT: 1-2 sentences MAX. Be direct — tell the buyer what matters RIGHT NOW f
       reasoning: { effort: "high" },
     });
 
+    zlContextCache.set(cacheKey, text);
+
     return new Response(text, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
     console.error("[zl/context] OpenRouter generation failed:", error);
-    return new Response(buildContextFallback(payload), {
+    return new Response(buildContextDeterministic(payload), {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });

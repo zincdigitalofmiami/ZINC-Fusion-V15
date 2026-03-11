@@ -9,9 +9,18 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, AlertTriangle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const MORNING_REFRESH_UTC_HOUR = 10;
+
+function getMorningRefreshBoundary(now = new Date()): number {
+  const boundary = new Date(now);
+  if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
+    boundary.setDate(boundary.getDate() - 1);
+  }
+  boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
+  return boundary.getTime();
+}
 
 interface PolicyAiBriefingProps {
   regime: {
@@ -32,18 +41,38 @@ interface PolicyAiBriefingProps {
   recentLegislation: Array<{ title: string; agency: string; date: string }>;
   recentExecutive: Array<{ headline: string; date: string; impact: number | null }>;
   recentNews: Array<{ headline: string; source: string; date: string; tags: string[] }>;
+  dataVersion?: string;
 }
 
 export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
   const [briefing, setBriefing] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const cacheKey = `policy-ai-briefing:v1:${props.regime.score}:${props.regime.label}`;
+  const cacheKey = `policy-ai-briefing:v2:${props.regime.score}:${props.regime.label}:${props.dataVersion ?? "na"}`;
+
+  const getLastDeliveredBriefing = useCallback((): string | null => {
+    if (typeof window === "undefined") return null;
+    let best: { text: string; ts: number } | null = null;
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith("policy-ai-briefing:v2:")) continue;
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw) as { text?: string; ts?: number };
+        if (typeof parsed.text !== "string" || typeof parsed.ts !== "number") continue;
+        if (!best || parsed.ts > best.ts) {
+          best = { text: parsed.text, ts: parsed.ts };
+        }
+      } catch {
+        // Ignore malformed cache rows.
+      }
+    }
+    return best?.text ?? null;
+  }, []);
 
   const fetchBriefing = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
 
     if (typeof window !== "undefined") {
       try {
@@ -53,14 +82,15 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
             text?: string;
             ts?: number;
           };
-          if (
-            typeof cached?.text === "string" &&
-            typeof cached?.ts === "number" &&
-            Date.now() - cached.ts < FOUR_HOURS_MS
-          ) {
+          if (typeof cached?.text === "string") {
             setBriefing(cached.text);
-            setIsLoading(false);
-            return;
+            if (
+              typeof cached?.ts === "number" &&
+              cached.ts >= getMorningRefreshBoundary()
+            ) {
+              setIsLoading(false);
+              return;
+            }
           }
         }
       } catch {
@@ -68,7 +98,10 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
       }
     }
 
-    setBriefing("");
+    if (!briefing) {
+      const lastDelivered = getLastDeliveredBriefing();
+      if (lastDelivered) setBriefing(lastDelivered);
+    }
 
     try {
       const res = await fetch("/api/policy/briefing", {
@@ -78,18 +111,12 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
       });
 
       if (!res.ok) {
-        if (res.status === 503) {
-          setError("AI service unavailable");
-        } else {
-          setError(`Error ${res.status}`);
-        }
         setIsLoading(false);
         return;
       }
 
       const reader = res.body?.getReader();
       if (!reader) {
-        setError("No stream available");
         setIsLoading(false);
         return;
       }
@@ -114,10 +141,10 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
 
       setIsLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      void err;
       setIsLoading(false);
     }
-  }, [cacheKey, props]);
+  }, [briefing, cacheKey, getLastDeliveredBriefing, props]);
 
   useEffect(() => {
     fetchBriefing();
@@ -160,12 +187,7 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
       </div>
 
       {/* Content */}
-      {error ? (
-        <div className="flex items-center gap-2 text-amber-400/80 text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      ) : isLoading && !briefing ? (
+      {isLoading && !briefing ? (
         <div className="space-y-2">
           <div className="h-4 bg-slate-800 rounded animate-pulse w-full" />
           <div className="h-4 bg-slate-800 rounded animate-pulse w-5/6" />
