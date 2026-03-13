@@ -51,6 +51,9 @@ const DAILY_REFRESH_INTERVAL_MS = 300_000; // refresh daily bars every 5m
 const LIVE_TICKER_INTERVAL_MS  = 10_000;  // refresh live price ticker every 10s
 const INITIAL_VISIBLE_BARS = 150;
 const RIGHT_PADDING_BARS = 16;
+// Temporary kill-switch for Target Zones on the candlestick chart.
+// Re-enable by flipping this back to true after the forecast freshness issues are fixed.
+const ENABLE_FORECAST_OVERLAY = false;
 
 export function LightweightZlCandlestickChart({
   height = "70vh",
@@ -218,6 +221,11 @@ export function LightweightZlCandlestickChart({
 
   // Fetch forecast targets (separate from price data — non-blocking, fail-safe)
   useEffect(() => {
+    if (!ENABLE_FORECAST_OVERLAY) {
+      setForecastTargets([]);
+      return;
+    }
+
     let cancelled = false;
     async function fetchTargets() {
       try {
@@ -394,7 +402,7 @@ export function LightweightZlCandlestickChart({
     let seriesData: Array<
       CandlestickData<UTCTimestamp> | WhitespaceData<UTCTimestamp>
     > = candleData;
-    if (forecastTargets.length > 0) {
+    if (ENABLE_FORECAST_OVERLAY && forecastTargets.length > 0) {
       const maxEndTime = Math.max(
         ...forecastTargets.map((t) => t.endTime as number),
       ) as UTCTimestamp;
@@ -405,7 +413,7 @@ export function LightweightZlCandlestickChart({
     candleSeriesRef.current = candleSeries;
 
     // Attach forecast target zones as a series primitive overlay
-    if (forecastTargets.length > 0) {
+    if (ENABLE_FORECAST_OVERLAY && forecastTargets.length > 0) {
       const primitive = new ForecastTargetsPrimitive(forecastTargets);
       candleSeries.attachPrimitive(primitive);
       forecastPrimitiveRef.current = primitive;
