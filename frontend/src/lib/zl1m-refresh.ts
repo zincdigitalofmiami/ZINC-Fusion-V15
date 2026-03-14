@@ -9,7 +9,7 @@
  * the source of duplicate zl.backfill.1m events when the cron retried.
  */
 import {
-  fetchDatabentoCsv,
+  fetchDatabentoCsvWithAvailableEndRetry,
   parseDatabentoOhlcvCsv,
   type DatabentoOhlcvBar,
 } from "./databento";
@@ -51,11 +51,13 @@ export async function refreshZl1mFromDatabento(opts: {
 
   const now = new Date();
   const start = new Date(now.getTime() - lookback * 60_000);
-  // Databento GLBX.MDP3 data has a processing lag (~10-30 min).
-  // Clamp end to 30 min before now to avoid 422 "end after available range".
+  // Databento GLBX.MDP3 data can lag enough that a simple wall-clock offset
+  // still overshoots the published range around UTC day boundaries.
+  // Start with a 30-minute offset, then retry against the vendor-reported
+  // available_end if Databento returns a 422 range error.
   const end = new Date(now.getTime() - 30 * 60_000);
 
-  const csv = await fetchDatabentoCsv(
+  const { csv } = await fetchDatabentoCsvWithAvailableEndRetry(
     {
       dataset: "GLBX.MDP3",
       schema: "ohlcv-1m",

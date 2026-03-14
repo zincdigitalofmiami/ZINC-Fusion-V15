@@ -1,272 +1,59 @@
 import { NextResponse } from "next/server";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
-import { createHash } from "crypto";
+import { parseAIJson } from "@/lib/parse-ai-json";
+import {
+  buildSentimentNarratives,
+  type FearGreedNarrativePayload,
+  type TrumpEffectNarrativePayload,
+  type VolatilityNarrativePayload,
+} from "@/lib/sentiment-narratives";
 
 export const dynamic = "force-dynamic";
 
-const AI_REFRESH_UTC_HOUR = 10;
-const sentimentNarrativeCache = new Map<string, {
-  fearGreedNarrative: string | null;
-  trumpEffectNarrative: string | null;
-  volatilityNarrative: string | null;
-}>();
-
-function getAiDayKey(now = new Date()): string {
-  const d = new Date(now);
-  if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
-    d.setUTCDate(d.getUTCDate() - 1);
-  }
-  return d.toISOString().slice(0, 10);
-}
-
-function getCacheKey(payload: unknown): string {
-  const payloadHash = createHash("sha256")
-    .update(JSON.stringify(payload))
-    .digest("hex");
-  return `${getAiDayKey()}:${payloadHash}`;
-}
-
-type FearGreedPayload = {
-  score?: number | null;
-  zone?: string | null;
-  label?: string | null;
-};
-
-type TrumpEffectPayload = {
-  title?: string | null;
-  zl_return_7d_pct?: number | null;
-  zl_response_1d_pct?: number | null;
-  zl_response_5d_pct?: number | null;
-  response_signal?: string | null;
-  weighted_action_score?: number | null;
-  total_actions_7d?: number | null;
-  executive_orders_7d?: number | null;
-  other_actions_7d?: number | null;
-  action_velocity?: number | null;
-  corroboration_score?: number | null;
-  corroboration_band?: string | null;
-  supporting_policy_items_7d?: number | null;
-  market_news_items_7d?: number | null;
-  regulatory_follow_through_7d?: number | null;
-  procurement_signal?: string | null;
-  procurement_label?: string | null;
-};
-
-type VolatilityPayload = {
-  vix?: number | null;
-  ovx?: number | null;
-  realized_21d?: number | null;
-};
-
 type NarrativeRequest = {
-  fearGreed?: FearGreedPayload;
-  trumpEffect?: TrumpEffectPayload;
-  volatility?: VolatilityPayload;
+  fearGreed?: FearGreedNarrativePayload;
+  trumpEffect?: TrumpEffectNarrativePayload;
+  volatility?: VolatilityNarrativePayload;
 };
 
-function toNum(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  return null;
-}
-
-// =============================================================================
-// STATIC FALLBACK TEMPLATES (used when AI is unavailable)
-// =============================================================================
-
-function buildFearGreedNarrative(input?: FearGreedPayload): string | null {
-  if (!input) return null;
-  const score = toNum(input.score);
-  if (score === null) return null;
-
-  const bias =
-    score >= 70
-      ? "risk appetite is elevated"
-      : score <= 35
-        ? "the market is trading defensively"
-        : "positioning is balanced";
-
-  const zoneLabel = input.label || input.zone || "current zone";
-  return `Fear & Greed is ${Math.round(score)} (${zoneLabel}); ${bias}. Use this as context with price and positioning, not as a standalone timing signal.`;
-}
-
-function buildTrumpNarrative(input?: TrumpEffectPayload): string | null {
-  if (!input) return null;
-
-  const title = input.title || "Impact on Soybean Oil Futures";
-  const response7d = toNum(input.zl_return_7d_pct);
-  const response1d = toNum(input.zl_response_1d_pct);
-  const actions = toNum(input.total_actions_7d);
-  const eos = toNum(input.executive_orders_7d);
-  const otherActions = toNum(input.other_actions_7d);
-  const velocity = toNum(input.action_velocity);
-  const score = toNum(input.weighted_action_score);
-  const corroborationScore = toNum(input.corroboration_score);
-  const band = (input.corroboration_band || "").toLowerCase();
-  const procurementLabel = input.procurement_label;
-  const responseSignal = input.response_signal;
-  const supportingItems = toNum(input.supporting_policy_items_7d);
-  const marketItems = toNum(input.market_news_items_7d);
-  const regulatoryItems = toNum(input.regulatory_follow_through_7d);
-
-  const activityText =
-    actions === null
-      ? "policy activity unavailable"
-      : `${Math.round(actions)} actions this week (${Math.round(eos ?? 0)} executive, ${Math.round(otherActions ?? Math.max(0, actions - (eos ?? 0)))} other)`;
-  const scoreText =
-    score === null
-      ? "policy pressure unavailable"
-      : `weighted pressure ${score.toFixed(1)}`;
-  const corroborationText =
-    corroborationScore === null
-      ? "corroboration unavailable"
-      : `corroboration ${corroborationScore}/100 (${band || "unknown"})`;
-  const responseText =
-    response7d === null
-      ? "ZL response unavailable"
-      : `ZL ${response7d > 0 ? "rose" : "fell"} ${Math.abs(response7d).toFixed(2)}% in the 7d policy window${response1d == null ? "" : ` and ${response1d > 0 ? "rose" : "fell"} ${Math.abs(response1d).toFixed(2)}% in 1d`} (${responseSignal || "unknown"})`;
-  const velocityText = velocity === null ? "" : `, velocity ${velocity.toFixed(1)}/day`;
-  const detailTail =
-    corroborationScore === null
-      ? ""
-      : ` with policy=${Math.round(supportingItems ?? 0)}, market=${Math.round(marketItems ?? 0)}, regulatory=${Math.round(regulatoryItems ?? 0)}`;
-
-  return `You are looking at ${title}: ${activityText}${velocityText}; ${scoreText}; ${corroborationText}${detailTail}; ${responseText}. Use this with price and positioning to confirm whether policy flow is real enough to change procurement timing${procurementLabel ? ` (${procurementLabel})` : ""}, not as a standalone trigger.`;
-}
-
-function buildVolatilityNarrative(input?: VolatilityPayload): string | null {
-  if (!input) return null;
-  const vix = toNum(input.vix);
-  const ovx = toNum(input.ovx);
-  const realized = toNum(input.realized_21d);
-
-  if (vix === null && ovx === null && realized === null) return null;
-
-  const vixState =
-    vix === null
-      ? "VIX unavailable"
-      : vix >= 30
-        ? `VIX ${vix.toFixed(1)} (high stress)`
-        : vix >= 20
-          ? `VIX ${vix.toFixed(1)} (elevated)`
-          : `VIX ${vix.toFixed(1)} (contained)`;
-  const ovxState =
-    ovx === null
-      ? "OVX unavailable"
-      : ovx >= 45
-        ? `OVX ${ovx.toFixed(1)} (energy risk elevated)`
-        : `OVX ${ovx.toFixed(1)} (energy risk moderate)`;
-  const realizedState =
-    realized === null
-      ? "realized volatility unavailable"
-      : `21d realized ${realized.toFixed(1)}%`;
-
-  return `You are looking at the volatility stack: ${vixState}; ${ovxState}; ${realizedState}. Use this with price action and positioning to size urgency and coverage pace, not as a standalone timing signal.`;
-}
-
-// =============================================================================
-// AI NARRATIVE GENERATION (Vercel AI SDK + Claude Sonnet 4.5)
-// =============================================================================
-
-async function generateAINarratives(payload: NarrativeRequest): Promise<{
+type NarrativeResponse = {
   fearGreedNarrative: string | null;
   trumpEffectNarrative: string | null;
   volatilityNarrative: string | null;
-} | null> {
-  if (!hasOpenRouterApiKey()) return null;
+  source: "ai" | "deterministic";
+  model: string | null;
+};
 
-  // Build context from available data
-  const dataPoints: string[] = [];
+const SYSTEM_PROMPT = `You write soybean oil sentiment card summaries for a commercial buyer.
 
-  if (payload.fearGreed) {
-    const fg = payload.fearGreed;
-    dataPoints.push(`Fear & Greed Index: ${fg.score ?? 'N/A'} (Zone: ${fg.label || fg.zone || 'unknown'})`);
-  }
-
-  if (payload.trumpEffect) {
-    const te = payload.trumpEffect;
-    dataPoints.push(
-      `Impact on Soybean Oil Futures: weighted_action_score=${te.weighted_action_score ?? 'N/A'}, ` +
-      `actions_7d=${te.total_actions_7d ?? 'N/A'}, ` +
-      `EOs_7d=${te.executive_orders_7d ?? 'N/A'}, ` +
-      `other_actions_7d=${te.other_actions_7d ?? 'N/A'}, ` +
-      `corroboration_score=${te.corroboration_score ?? 'N/A'}, ` +
-      `corroboration_band=${te.corroboration_band ?? 'N/A'}, ` +
-      `supporting_policy_items_7d=${te.supporting_policy_items_7d ?? 'N/A'}, ` +
-      `market_news_items_7d=${te.market_news_items_7d ?? 'N/A'}, ` +
-      `regulatory_follow_through_7d=${te.regulatory_follow_through_7d ?? 'N/A'}, ` +
-      `zl_return_7d_pct=${te.zl_return_7d_pct ?? 'N/A'}, ` +
-      `zl_response_1d_pct=${te.zl_response_1d_pct ?? 'N/A'}, ` +
-      `response_signal=${te.response_signal ?? 'N/A'}, ` +
-      `procurement_label=${te.procurement_label ?? 'N/A'}`
-    );
-  }
-
-  if (payload.volatility) {
-    const vol = payload.volatility;
-    dataPoints.push(
-      `Volatility: VIX=${vol.vix ?? 'N/A'}, OVX=${vol.ovx ?? 'N/A'}, realized_21d=${vol.realized_21d ?? 'N/A'}%`
-    );
-  }
-
-  if (dataPoints.length === 0) return null;
-
-  try {
-    const text = await openRouterCompleteText({
-      model: MODEL_DRIVER_INTEL,
-      maxTokens: 600,
-      temperature: 0.0,
-      reasoning: { effort: "high" },
-      messages: [
-        {
-          role: "system",
-          content: `CARD LOCATION: Your output renders as three separate narrative cards on the Sentiment page of a ZL procurement intelligence dashboard.
-- Card 1 (fearGreedNarrative): Displays next to the composite Fear & Greed gauge (0-100 score with zone label). The user sees the numeric score and zone while reading your narrative.
-- Card 2 (trumpEffectNarrative): Displays next to the policy activity tracker showing weekly executive actions, corroboration score/band, and ZL 7-day return. The user sees these metrics while reading your narrative.
-- Card 3 (volatilityNarrative): Displays next to VIX and OVX gauges and 21-day realized volatility readout. The user sees these vol numbers while reading your narrative.
-
-ZL FOCUS: You are a commodity procurement analyst for a US soybean oil buyer. Every narrative must connect its signal to ZL (CBOT soybean oil futures) price action and procurement timing.
-- Fear & Greed → sentiment extremes signal ZL reversal points (extreme fear = buying opportunity, extreme greed = defer purchases)
-- Trump Effect → policy activity hits ZL through biofuel mandates (RVO/45Z/SRE → soybean oil demand) and trade policy (tariffs → China soy diversion → Gulf basis)
-- Volatility → VIX spike = fund liquidation = ZL selling pressure. High OVX = biodiesel margin uncertainty. Vol regime determines whether to lock in coverage now or wait.
-
-Return EXACTLY a JSON object with these keys (use null if no data for that section):
-- fearGreedNarrative: EXACTLY 2 sentences
-- trumpEffectNarrative: EXACTLY 2 sentences
-- volatilityNarrative: EXACTLY 2 sentences
-
-For EACH narrative:
-- Sentence 1: Tell the user what they are looking at and the numeric read.
-- Sentence 2: Explain what it means and how to use it with price + positioning.
-- Must include: "not a standalone timing signal" or "not a standalone trigger".
-
-Use the exact numbers from the data. No hedging. Tell them what to DO.`,
-        },
-        {
-          role: "user",
-          content: `Current market data:\n${dataPoints.join('\n')}\n\nGenerate procurement intelligence narratives.`,
-        },
-      ],
-    });
-
-    // Parse JSON response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]);
-    return {
-      fearGreedNarrative: parsed.fearGreedNarrative || null,
-      trumpEffectNarrative: parsed.trumpEffectNarrative || null,
-      volatilityNarrative: parsed.volatilityNarrative || null,
-    };
-  } catch (e) {
-    console.error("[narrative] AI generation failed, using static fallback:", e);
-    return null;
-  }
+Return valid JSON only with exactly this shape:
+{
+  "fearGreedNarrative": "string or null",
+  "trumpEffectNarrative": "string or null",
+  "volatilityNarrative": "string or null"
 }
 
-// =============================================================================
-// HANDLER
-// =============================================================================
+Rules:
+- Base every sentence only on the payload provided.
+- Do not invent numbers, dates, or market facts.
+- Keep each narrative to at most 2 short sentences.
+- Keep the tone direct and analytical.
+- If a section has no usable data, return null for that field.`;
+
+function trimToTwoSentences(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (!compact) return null;
+
+  const matches = compact.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
+  if (!matches || matches.length === 0) return compact;
+
+  return matches
+    .slice(0, 2)
+    .map((part) => part.trim())
+    .join(" ");
+}
 
 export async function POST(request: Request) {
   let payload: NarrativeRequest = {};
@@ -276,34 +63,58 @@ export async function POST(request: Request) {
     // Keep empty payload; return null narratives instead of failing the page.
   }
 
-  const cacheKey = getCacheKey(payload);
-  const cached = sentimentNarrativeCache.get(cacheKey);
-  if (cached) {
-    return NextResponse.json({
-      fearGreedNarrative: cached.fearGreedNarrative,
-      trumpEffectNarrative: cached.trumpEffectNarrative,
-      volatilityNarrative: cached.volatilityNarrative,
-      source: "ai",
-    });
-  }
-
-  // Try AI narratives first, fall back to static templates
-  const aiNarratives = await generateAINarratives(payload);
-
-  if (aiNarratives) {
-    sentimentNarrativeCache.set(cacheKey, aiNarratives);
-    return NextResponse.json({
-      fearGreedNarrative: aiNarratives.fearGreedNarrative ?? buildFearGreedNarrative(payload.fearGreed),
-      trumpEffectNarrative: aiNarratives.trumpEffectNarrative ?? buildTrumpNarrative(payload.trumpEffect),
-      volatilityNarrative: aiNarratives.volatilityNarrative ?? buildVolatilityNarrative(payload.volatility),
-      source: 'ai',
-    });
-  }
-
-  return NextResponse.json({
-    fearGreedNarrative: buildFearGreedNarrative(payload.fearGreed),
-    trumpEffectNarrative: buildTrumpNarrative(payload.trumpEffect),
-    volatilityNarrative: buildVolatilityNarrative(payload.volatility),
+  const fallback = buildSentimentNarratives(payload);
+  let response: NarrativeResponse = {
+    ...fallback,
     source: "deterministic",
-  });
+    model: null,
+  };
+
+  if (hasOpenRouterApiKey()) {
+    try {
+      const text = await openRouterCompleteText({
+        model: MODEL_DRIVER_INTEL,
+        maxTokens: 220,
+        temperature: 0.0,
+        reasoning: { effort: "low" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `Summarize this verified payload for the sentiment page cards:\n${JSON.stringify(payload, null, 2)}`,
+          },
+        ],
+      });
+
+      const parsed = parseAIJson<{
+        fearGreedNarrative?: string | null;
+        trumpEffectNarrative?: string | null;
+        volatilityNarrative?: string | null;
+      }>(text);
+
+      if (parsed) {
+        response = {
+          fearGreedNarrative:
+            trimToTwoSentences(parsed.fearGreedNarrative) ?? fallback.fearGreedNarrative,
+          trumpEffectNarrative:
+            trimToTwoSentences(parsed.trumpEffectNarrative) ?? fallback.trumpEffectNarrative,
+          volatilityNarrative:
+            trimToTwoSentences(parsed.volatilityNarrative) ?? fallback.volatilityNarrative,
+          source: "ai",
+          model: MODEL_DRIVER_INTEL,
+        };
+      }
+    } catch (error) {
+      console.error("[/api/sentiment/narrative] AI generation failed:", error);
+    }
+  }
+
+  return NextResponse.json(
+    response,
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }

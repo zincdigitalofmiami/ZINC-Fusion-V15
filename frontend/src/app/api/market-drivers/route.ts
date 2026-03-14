@@ -162,7 +162,26 @@ export async function GET() {
     const crush = rawData.crush as number;
     const cny = rawData.cnyRate as number;
     const tpu = rawData.tpu as number;
-    const asOfDate = new Date().toISOString().split("T")[0];
+
+    // Derive freshness from actual source dates, not server clock.
+    // Use the oldest source date as the conservative floor and surface ranges
+    // explicitly when the inputs are mixed-vintage.
+    const sourceDates = [
+      rawData.vixDate,
+      rawData.crushDate,
+      rawData.cnyDate,
+      rawData.tpuDate,
+      rawData.clDate,
+    ].filter((d): d is string => typeof d === "string" && d.length > 0);
+    const fallbackDate = new Date().toISOString().split("T")[0];
+    const sortedSourceDates = [...sourceDates].sort();
+    const asOfDateMin = sortedSourceDates[0] ?? fallbackDate;
+    const asOfDateMax =
+      sortedSourceDates[sortedSourceDates.length - 1] ?? fallbackDate;
+    const mixedVintage =
+      sortedSourceDates.length > 1 && asOfDateMin !== asOfDateMax;
+
+    const asOfDate = asOfDateMin;
 
     // 3. Score all 4 drivers
     const vixResult = calculateVixStress(
@@ -255,89 +274,95 @@ export async function GET() {
       energyIntel = cached.energyIntel;
     } else {
       // Cache miss — call AI with timeout, then cache for the rest of the day
-      [aiIntelligence, vixIntel, crushIntel, chinaIntel, tariffIntel, energyIntel] =
-        await Promise.all([
-          withTimeout(
-            generateAIIntelligence(marketData).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-          withTimeout(
-            generateDriverIntel({
-              driverName: "vix",
-              score: vixResult.score,
-              level: vixResult.level,
-              regime: vixResult.regime,
-              components: vixResult.components as unknown as Record<
-                string,
-                number | null
-              >,
-              asOfDate,
-            }).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-          withTimeout(
-            generateDriverIntel({
-              driverName: "crush",
-              score: crushResult.score,
-              level: crushResult.level,
-              regime: crushResult.regime,
-              components: crushResult.components as unknown as Record<
-                string,
-                number | null
-              >,
-              asOfDate,
-            }).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-          withTimeout(
-            generateDriverIntel({
-              driverName: "china",
-              score: chinaResult.score,
-              level: chinaResult.level,
-              regime: chinaResult.regime,
-              components: chinaResult.components as unknown as Record<
-                string,
-                number | null
-              >,
-              asOfDate,
-            }).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-          withTimeout(
-            generateDriverIntel({
-              driverName: "tariff",
-              score: tariffResult.score,
-              level: tariffResult.level,
-              regime: tariffResult.regime,
-              components: tariffResult.components as unknown as Record<
-                string,
-                number | null
-              >,
-              asOfDate,
-            }).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-          withTimeout(
-            generateDriverIntel({
-              driverName: "energy",
-              score: energyResult.score,
-              level: energyResult.level,
-              regime: energyResult.regime,
-              components: energyResult.components as unknown as Record<
-                string,
-                number | null
-              >,
-              asOfDate,
-            }).catch(() => null),
-            AI_TIMEOUT_MS,
-            null,
-          ),
-        ]);
+      [
+        aiIntelligence,
+        vixIntel,
+        crushIntel,
+        chinaIntel,
+        tariffIntel,
+        energyIntel,
+      ] = await Promise.all([
+        withTimeout(
+          generateAIIntelligence(marketData).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+        withTimeout(
+          generateDriverIntel({
+            driverName: "vix",
+            score: vixResult.score,
+            level: vixResult.level,
+            regime: vixResult.regime,
+            components: vixResult.components as unknown as Record<
+              string,
+              number | null
+            >,
+            asOfDate,
+          }).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+        withTimeout(
+          generateDriverIntel({
+            driverName: "crush",
+            score: crushResult.score,
+            level: crushResult.level,
+            regime: crushResult.regime,
+            components: crushResult.components as unknown as Record<
+              string,
+              number | null
+            >,
+            asOfDate,
+          }).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+        withTimeout(
+          generateDriverIntel({
+            driverName: "china",
+            score: chinaResult.score,
+            level: chinaResult.level,
+            regime: chinaResult.regime,
+            components: chinaResult.components as unknown as Record<
+              string,
+              number | null
+            >,
+            asOfDate,
+          }).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+        withTimeout(
+          generateDriverIntel({
+            driverName: "tariff",
+            score: tariffResult.score,
+            level: tariffResult.level,
+            regime: tariffResult.regime,
+            components: tariffResult.components as unknown as Record<
+              string,
+              number | null
+            >,
+            asOfDate,
+          }).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+        withTimeout(
+          generateDriverIntel({
+            driverName: "energy",
+            score: energyResult.score,
+            level: energyResult.level,
+            regime: energyResult.regime,
+            components: energyResult.components as unknown as Record<
+              string,
+              number | null
+            >,
+            asOfDate,
+          }).catch(() => null),
+          AI_TIMEOUT_MS,
+          null,
+        ),
+      ]);
 
       // Persist to cache — all subsequent requests today skip AI entirely
       setAiCache({
@@ -457,6 +482,9 @@ export async function GET() {
     return NextResponse.json(
       {
         as_of_date: asOfDate,
+        as_of_date_min: asOfDateMin,
+        as_of_date_max: asOfDateMax,
+        mixed_vintage: mixedVintage,
         narrative_refresh: {
           cadence: "daily",
           next_refresh_utc: refreshMeta.nextRefreshUtc,

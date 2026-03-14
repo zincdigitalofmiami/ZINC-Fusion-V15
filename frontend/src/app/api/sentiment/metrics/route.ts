@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { getZlLiveSnapshot } from "@/lib/zl-live-snapshot";
+import { resolveZlSentiment } from "@/lib/sentiment-news";
 import {
   buildTrumpEffectPayload,
   type ConfirmationInputs,
@@ -12,6 +13,77 @@ import {
 export const dynamic = "force-dynamic";
 const TRUMP_FEATURE_STALE_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CORRELATION_LOOKBACK = 64;
+
+interface CotMetricsRow {
+  event_date: string;
+  open_interest: string | null;
+  managed_money_long: string | null;
+  managed_money_short: string | null;
+  managed_money_net: string | null;
+  managed_money_net_pct_oi: number | null;
+  prod_merc_long: string | null;
+  prod_merc_short: string | null;
+  prod_merc_net: string | null;
+  prod_merc_net_pct_oi: number | null;
+  swap_long: string | null;
+  swap_short: string | null;
+  swap_net: string | null;
+  mu: string | null;
+  sd: string | null;
+  n: string | null;
+  zscore: string | null;
+  percentile: string | null;
+}
+
+interface CotHistoryRow {
+  event_date: string;
+  managed_money_net: string | null;
+  prod_merc_net: string | null;
+  swap_net: string | null;
+}
+
+interface CrudeLatestRow {
+  event_date: string;
+  close: number;
+  ret_5d: string | null;
+}
+
+interface CrudeCorrRow {
+  corr: number | null;
+}
+
+function toNumber(value: number | string | null | undefined, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function formatCorrelationDirection(corr: number): string {
+  if (corr >= 0.7) return "Strong positive";
+  if (corr >= 0.4) return "Moderate positive";
+  if (corr >= 0.1) return "Weak positive";
+  if (corr > -0.1) return "Flat";
+  if (corr > -0.4) return "Weak negative";
+  if (corr > -0.7) return "Moderate negative";
+  return "Strong negative";
+}
+
+function crudeImplicationFromCorrelation(corr: number): string {
+  if (corr >= 0.4) {
+    return "Energy-biofuel linkage is active. Crude rallies are likely to keep pressuring soybean oil.";
+  }
+  if (corr >= 0.1) {
+    return "Crude is leaning supportive. Watch energy headlines because spillover into soybean oil is still present.";
+  }
+  if (corr > -0.1) {
+    return "The crude link is muted right now. Soybean oil is trading more on its own fundamentals.";
+  }
+  return "Crude and soybean oil are moving apart. Treat energy shocks as a secondary input until the link tightens again.";
+}
 
 /* ── Fear & Greed composite ────────────────────────────────── */
 
@@ -37,24 +109,59 @@ function computeFearGreed(
   realizedVol: number | null,
   trumpScore: number | null,
 ) {
-  // Each component maps its input to a 0-100 scale (0 = extreme fear, 100 = extreme greed)
+  const total = bullish + bearish;
+  const sentimentRaw = total > 0 ? bullish / total : 0.5;
   const vixScore = vix != null ? mapVixToFearGreed(vix) : 50;
   const posScore = mmPercentile ?? 50;
-  const total = bullish + bearish;
-  const sentScore = total > 0 ? (bullish / total) * 100 : 50;
-  const crushScore = crushZscore != null ? clamp(50 + crushZscore * 25, 0, 100) : 50;
-  const volScore = realizedVol != null ? clamp(100 - ((realizedVol - 15) / 25) * 100, 0, 100) : 50;
+  const crushScore =
+    crushZscore != null ? clamp(50 + crushZscore * 25, 0, 100) : 50;
+  const volScore =
+    realizedVol != null
+      ? clamp(100 - ((realizedVol - 15) / 25) * 100, 0, 100)
+      : 50;
+  const sentScore = sentimentRaw * 100;
   // weighted_action_score typically ranges 0-2, can spike to ~4 during intense periods
-  const trumpFear = trumpScore != null ? clamp(100 - trumpScore * 25, 0, 100) : 50;
+  const trumpFear =
+    trumpScore != null ? clamp(100 - trumpScore * 25, 0, 100) : 50;
 
-  const composite = Math.round(
-    vixScore * 0.20 +
-    posScore * 0.20 +
-    sentScore * 0.15 +
-    crushScore * 0.15 +
-    volScore * 0.15 +
-    trumpFear * 0.15,
+  const components = {
+    vix: { score: Math.round(vixScore), weight: 0.20, raw: vix ?? 0 },
+    positioning: {
+      score: Math.round(posScore),
+      weight: 0.20,
+      raw: mmPercentile ?? 50,
+    },
+    sentiment: {
+      score: Math.round(sentScore),
+      weight: 0.15,
+      raw: sentimentRaw,
+    },
+    crush: {
+      score: Math.round(crushScore),
+      weight: 0.15,
+      raw: crushZscore ?? 0,
+    },
+    volatility: {
+      score: Math.round(volScore),
+      weight: 0.15,
+      raw: realizedVol ?? 0,
+    },
+    trumpEffect: {
+      score: Math.round(trumpFear),
+      weight: 0.15,
+      raw: trumpScore ?? 0,
+    },
+  };
+
+  const totalWeight = Object.values(components).reduce(
+    (sum, component) => sum + component.weight,
+    0,
   );
+  const weightedScore = Object.values(components).reduce(
+    (sum, component) => sum + component.score * component.weight,
+    0,
+  );
+  const composite = Math.round(weightedScore / totalWeight);
 
   const score = clamp(composite, 0, 100);
 
@@ -73,25 +180,22 @@ function computeFearGreed(
     : "Extreme Greed";
 
   const interpretation =
-    score <= 20 ? "Strong Buying Opportunity — markets are oversold"
-    : score <= 40 ? "Favorable Buying Window"
-    : score <= 60 ? "Market is Balanced"
-    : score <= 80 ? "Consider Waiting — prices may be elevated"
-    : "Exercise Caution — market may be overheated";
+    score <= 20
+      ? "Risk aversion is extreme; wait for price confirmation before treating it as exhaustion."
+      : score <= 40
+        ? "Risk tone is defensive; use price and positioning to confirm any buying window."
+        : score <= 60
+          ? "Signals are balanced; lean on price structure and positioning for timing."
+          : score <= 80
+            ? "Risk appetite is elevated; prices may be getting extended."
+            : "Risk appetite looks stretched; avoid treating this alone as a timing trigger.";
 
   return {
     score,
     zone,
     label,
     interpretation,
-    components: {
-      vix: { score: Math.round(vixScore), weight: 0.20, raw: vix },
-      positioning: { score: Math.round(posScore), weight: 0.20, raw: mmPercentile },
-      sentiment: { score: Math.round(sentScore), weight: 0.15, raw: total > 0 ? bullish / total : null },
-      crush: { score: Math.round(crushScore), weight: 0.15, raw: crushZscore },
-      volatility: { score: Math.round(volScore), weight: 0.15, raw: realizedVol },
-      trumpEffect: { score: Math.round(trumpFear), weight: 0.15, raw: trumpScore },
-    },
+    components,
   };
 }
 
@@ -113,6 +217,9 @@ export async function GET() {
       returnsResult,
       rvolResult,
       cotResult,
+      cotHistoryResult,
+      crudeLatestResult,
+      crudeCorrelationResult,
       maResult,
       rsiResult,
       vixResult,
@@ -148,19 +255,22 @@ export async function GET() {
         ret_21d: string;
         ret_63d: string;
       }>(
-        `WITH p AS (
-           SELECT close,
+        `WITH ordered AS (
+           SELECT event_date,
+                  close,
                   LAG(close,  5) OVER (ORDER BY event_date) as c5,
                   LAG(close, 21) OVER (ORDER BY event_date) as c21,
                   LAG(close, 63) OVER (ORDER BY event_date) as c63
-           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
-           ORDER BY event_date DESC LIMIT 70
+           FROM mkt.futures_1d
+           WHERE symbol = 'ZL' AND close IS NOT NULL
          )
          SELECT close,
                 ROUND(((close - c5)  / NULLIF(c5, 0)  * 100)::numeric, 2) as ret_5d,
                 ROUND(((close - c21) / NULLIF(c21, 0) * 100)::numeric, 2) as ret_21d,
                 ROUND(((close - c63) / NULLIF(c63, 0) * 100)::numeric, 2) as ret_63d
-         FROM p LIMIT 1`,
+         FROM ordered
+         ORDER BY event_date DESC
+         LIMIT 1`,
       )),
 
       // 4. 21-day realized volatility (annualized)
@@ -174,41 +284,135 @@ export async function GET() {
          FROM lr WHERE r IS NOT NULL`,
       )),
 
-      // 5. COT z-score + percentile
-      safe(query<{
-        mu: string;
-        sd: string;
-        n: string;
-        mm: string;
-        pct: number;
-        zscore: string;
-        percentile: string;
-        prod_net: string;
-        swap_net: string;
-      }>(
+      // 5. Latest COT snapshot + positioning statistics.
+      safe(query<CotMetricsRow>(
         `WITH stats AS (
-           SELECT AVG(managed_money_net) as mu, STDDEV(managed_money_net) as sd,
-                  COUNT(*) as n
-           FROM pos.cftc_1w WHERE symbol = 'ZL'
+           SELECT AVG(managed_money_net) AS mu,
+                  STDDEV(managed_money_net) AS sd,
+                  COUNT(*) AS n
+           FROM pos.cftc_1w
+           WHERE symbol = 'ZL'
          ),
          latest AS (
-           SELECT managed_money_net as mm, managed_money_net_pct_oi as pct,
-                  prod_merc_net, swap_net
-           FROM pos.cftc_1w WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT 1
+           SELECT event_date::text AS event_date,
+                  open_interest::text AS open_interest,
+                  managed_money_long::text AS managed_money_long,
+                  managed_money_short::text AS managed_money_short,
+                  managed_money_net::text AS managed_money_net,
+                  managed_money_net_pct_oi::float8 AS managed_money_net_pct_oi,
+                  prod_merc_long::text AS prod_merc_long,
+                  prod_merc_short::text AS prod_merc_short,
+                  prod_merc_net::text AS prod_merc_net,
+                  prod_merc_net_pct_oi::float8 AS prod_merc_net_pct_oi,
+                  swap_long::text AS swap_long,
+                  swap_short::text AS swap_short,
+                  swap_net::text AS swap_net
+           FROM pos.cftc_1w
+           WHERE symbol = 'ZL'
+           ORDER BY event_date DESC
+           LIMIT 1
          ),
          prank AS (
-           SELECT COUNT(*)::float / (SELECT COUNT(*) FROM pos.cftc_1w WHERE symbol = 'ZL') as pctile
-           FROM pos.cftc_1w WHERE symbol = 'ZL'
-           AND managed_money_net < (SELECT managed_money_net FROM pos.cftc_1w WHERE symbol = 'ZL' ORDER BY event_date DESC LIMIT 1)
+           SELECT COUNT(*)::float
+                    / NULLIF(
+                        (SELECT COUNT(*) FROM pos.cftc_1w WHERE symbol = 'ZL'),
+                        0
+                      ) AS pctile
+           FROM pos.cftc_1w
+           WHERE symbol = 'ZL'
+             AND managed_money_net < (
+               SELECT managed_money_net
+               FROM pos.cftc_1w
+               WHERE symbol = 'ZL'
+               ORDER BY event_date DESC
+               LIMIT 1
+             )
          )
-         SELECT ROUND(s.mu::numeric, 0) as mu, ROUND(s.sd::numeric, 0) as sd, s.n,
-                l.mm, l.pct, l.prod_merc_net as prod_net, l.swap_net,
-                ROUND(((l.mm - s.mu) / NULLIF(s.sd, 0))::numeric, 3) as zscore,
-                ROUND((p.pctile * 100)::numeric, 1) as percentile
-         FROM stats s, latest l, prank p`,
+         SELECT l.event_date,
+                l.open_interest,
+                l.managed_money_long,
+                l.managed_money_short,
+                l.managed_money_net,
+                l.managed_money_net_pct_oi,
+                l.prod_merc_long,
+                l.prod_merc_short,
+                l.prod_merc_net,
+                l.prod_merc_net_pct_oi,
+                l.swap_long,
+                l.swap_short,
+                l.swap_net,
+                ROUND(s.mu::numeric, 0)::text AS mu,
+                ROUND(s.sd::numeric, 0)::text AS sd,
+                s.n::text AS n,
+                ROUND(
+                  (
+                    NULLIF(l.managed_money_net, '')::numeric - s.mu::numeric
+                  ) / NULLIF(s.sd, 0)::numeric,
+                  3
+                )::text AS zscore,
+                ROUND((COALESCE(p.pctile, 0) * 100)::numeric, 1)::text AS percentile
+         FROM latest l
+         CROSS JOIN stats s
+         LEFT JOIN prank p ON TRUE`,
       )),
 
-      // 6. Moving averages
+      // 6. Recent COT history for the participant cards.
+      safe(query<CotHistoryRow>(
+        `SELECT event_date::text AS event_date,
+                managed_money_net::text AS managed_money_net,
+                prod_merc_net::text AS prod_merc_net,
+                swap_net::text AS swap_net
+         FROM pos.cftc_1w
+         WHERE symbol = 'ZL'
+         ORDER BY event_date DESC
+         LIMIT 12`,
+      )),
+
+      // 7. Latest crude oil daily snapshot for the biofuel cross-card.
+      safe(query<CrudeLatestRow>(
+        `WITH ordered AS (
+           SELECT event_date,
+                  close,
+                  LAG(close, 5) OVER (ORDER BY event_date) AS close_5d_ago
+           FROM mkt.futures_1d
+           WHERE symbol = 'CL' AND close IS NOT NULL
+         )
+         SELECT event_date::text AS event_date,
+                close::float8 AS close,
+                ROUND(
+                  ((close - close_5d_ago) / NULLIF(close_5d_ago, 0) * 100)::numeric,
+                  2
+                )::text AS ret_5d
+         FROM ordered
+         ORDER BY event_date DESC
+         LIMIT 1`,
+      )),
+
+      // 8. 63-trading-day rolling correlation on log returns: ZL vs CL.
+      safe(query<CrudeCorrRow>(
+        `WITH zl AS (
+           SELECT event_date,
+                  LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) AS ret
+           FROM mkt.futures_1d
+           WHERE symbol = 'ZL'
+           ORDER BY event_date DESC
+           LIMIT ${CORRELATION_LOOKBACK}
+         ),
+         cl AS (
+           SELECT event_date,
+                  LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) AS ret
+           FROM mkt.futures_1d
+           WHERE symbol = 'CL'
+           ORDER BY event_date DESC
+           LIMIT ${CORRELATION_LOOKBACK}
+         )
+         SELECT CORR(zl.ret, cl.ret)::float8 AS corr
+         FROM zl
+         JOIN cl ON zl.event_date = cl.event_date
+         WHERE zl.ret IS NOT NULL AND cl.ret IS NOT NULL`,
+      )),
+
+      // 9. Moving averages
       safe(query<{
         close: string;
         sma20: string;
@@ -216,21 +420,24 @@ export async function GET() {
         sma200: string;
       }>(
         `WITH ordered AS (
-           SELECT close,
+           SELECT event_date,
+                  close,
                   AVG(close) OVER (ORDER BY event_date ROWS BETWEEN  19 PRECEDING AND CURRENT ROW) as sma20,
                   AVG(close) OVER (ORDER BY event_date ROWS BETWEEN  49 PRECEDING AND CURRENT ROW) as sma50,
                   AVG(close) OVER (ORDER BY event_date ROWS BETWEEN 199 PRECEDING AND CURRENT ROW) as sma200
-           FROM mkt.futures_1d WHERE symbol = 'ZL' AND close IS NOT NULL
-           ORDER BY event_date DESC LIMIT 5
+           FROM mkt.futures_1d
+           WHERE symbol = 'ZL' AND close IS NOT NULL
          )
          SELECT ROUND(close::numeric, 2) as close,
                 ROUND(sma20::numeric, 2) as sma20,
                 ROUND(sma50::numeric, 2) as sma50,
                 ROUND(sma200::numeric, 2) as sma200
-         FROM ordered LIMIT 1`,
+         FROM ordered
+         ORDER BY event_date DESC
+         LIMIT 1`,
       )),
 
-      // 7. Compute RSI-14
+      // 10. Compute RSI-14
       safe(query<{ rsi_14: string }>(
         `WITH changes AS (
            SELECT close - LAG(close) OVER (ORDER BY event_date) as chg
@@ -246,7 +453,7 @@ export async function GET() {
          FROM gl`,
       )),
 
-      // 8. VIX + z-score (1y)
+      // 11. VIX + z-score (1y)
       safe(query<{ vix: string; vix_avg_1y: string; vix_z: string }>(
         `WITH stats AS (
            SELECT AVG(value) as mu, STDDEV(value) as sd
@@ -263,14 +470,14 @@ export async function GET() {
          FROM stats s, latest l`,
       )),
 
-      // 9. OVX (oil volatility)
+      // 12. OVX (oil volatility)
       safe(query<{ ovx: string }>(
         `SELECT ROUND(value::numeric, 2) as ovx
          FROM econ.vol_indices_1d WHERE series_id = 'OVXCLS'
          ORDER BY event_date DESC LIMIT 1`,
       )),
 
-      // 10. Board crush + oil share z-scores
+      // 13. Board crush + oil share z-scores
       safe(query<{
         crush_now: string;
         crush_z: string;
@@ -296,7 +503,7 @@ export async function GET() {
          FROM stats s, latest l`,
       )),
 
-      // 11. Specialist signals (latest per bucket)
+      // 14. Specialist signals (latest per bucket)
       safe(query<{
         bucket: string;
         signal_1: number;
@@ -313,7 +520,7 @@ export async function GET() {
          ORDER BY bucket, as_of_date DESC`,
       )),
 
-      // 12. Trump Effect (latest row)
+      // 15. Trump Effect (latest row)
       safe(query<TrumpFeatureRow>(
         `WITH latest_any AS (
            SELECT as_of_date::text                              AS as_of_date,
@@ -344,21 +551,52 @@ export async function GET() {
          FROM latest_any la`,
       )),
 
-      // 13. News sentiment ratio (7d) — for Fear & Greed composite
-      safe(query<{ bullish_count: number; bearish_count: number }>(
-        `SELECT
-           COUNT(*) FILTER (WHERE zl_sentiment = 'bullish')::int  AS bullish_count,
-           COUNT(*) FILTER (WHERE zl_sentiment = 'bearish')::int  AS bearish_count
+      // 16. News sentiment rows (7d) — scored with the same rules as the page headlines.
+      safe(query<{
+        headline: string | null;
+        summary: string | null;
+        content: string | null;
+        zl_sentiment: string | null;
+      }>(
+        `SELECT headline, summary, content, zl_sentiment
          FROM (
-           SELECT zl_sentiment FROM alt.policy_news_event
-             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
+           SELECT headline, summary, content, zl_sentiment
+           FROM alt.profarmer_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
            UNION ALL
-           SELECT zl_sentiment FROM alt.executive_actions_event
-             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
+
+           SELECT title AS headline,
+                  CONCAT(document_type, ' — ', agency) AS summary,
+                  NULL::text AS content,
+                  NULL::text AS zl_sentiment
+           FROM alt.legislation_1d
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
            UNION ALL
-           SELECT zl_sentiment FROM econ.news_event
-             WHERE event_date >= NOW() - INTERVAL '7 days' AND zl_sentiment IS NOT NULL
-         ) sub`,
+
+           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           FROM alt.policy_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           FROM alt.executive_actions_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, summary, content, NULL::text AS zl_sentiment
+           FROM alt.econ_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           FROM econ.news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+         ) sentiment_rows`,
       )),
     ]);
 
@@ -400,14 +638,29 @@ export async function GET() {
         : null;
     const returns = returnsResult[0];
     const rvol = rvolResult[0];
-    const cot = cotResult[0];
+    const cot = cotResult[0] ?? null;
+    const cotHistory = cotHistoryResult;
+    const crudeLatest = crudeLatestResult[0] ?? null;
+    const crudeCorrelation = crudeCorrelationResult[0] ?? null;
     const ma = maResult[0];
     const rsi = rsiResult[0];
     const vixData = vixResult[0];
     const ovxData = ovxResult[0];
     const crush = crushResult[0];
     const trump = trumpResult[0] ?? null;
-    const sentRatio = sentimentRatioResult[0];
+    const sentimentCounts = sentimentRatioResult.reduce(
+      (counts, row) => {
+        const sentiment = resolveZlSentiment(
+          row.zl_sentiment,
+          row.headline,
+          row.summary || row.content,
+        );
+        if (sentiment === "bullish") counts.bullish += 1;
+        else if (sentiment === "bearish") counts.bearish += 1;
+        return counts;
+      },
+      { bullish: 0, bearish: 0 },
+    );
     const [trumpActions, trumpConfirmationRows, trumpZlResponseRows]: [
       ExecutiveActionRow[],
       ConfirmationInputs[],
@@ -659,31 +912,96 @@ export async function GET() {
     const compositeSignal = totalConf > 0 ? weightedSum / totalConf : 0;
 
     // Trend status from MAs
-    const priceNum = price?.close ?? 0;
-    const aboveSma20 = priceNum > Number(ma?.sma20 ?? 0);
-    const aboveSma50 = priceNum > Number(ma?.sma50 ?? 0);
-    const aboveSma200 = priceNum > Number(ma?.sma200 ?? 0);
+    const priceNum = price?.close ?? null;
+    const sma20 = ma ? Number(ma.sma20) : null;
+    const sma50 = ma ? Number(ma.sma50) : null;
+    const sma200 = ma ? Number(ma.sma200) : null;
+    const aboveSma20 = priceNum != null && sma20 != null ? priceNum > sma20 : false;
+    const aboveSma50 = priceNum != null && sma50 != null ? priceNum > sma50 : false;
+    const aboveSma200 =
+      priceNum != null && sma200 != null ? priceNum > sma200 : false;
     const trendScore =
       (aboveSma20 ? 1 : 0) + (aboveSma50 ? 1 : 0) + (aboveSma200 ? 1 : 0);
     const trend =
-      trendScore === 3
-        ? "strong_uptrend"
-        : trendScore === 2
-          ? "uptrend"
-          : trendScore === 1
-            ? "mixed"
-            : "downtrend";
+      priceNum == null || sma20 == null || sma50 == null || sma200 == null
+        ? "unknown"
+        : trendScore === 3
+          ? "strong_uptrend"
+          : trendScore === 2
+            ? "uptrend"
+            : trendScore === 1
+              ? "mixed"
+              : "downtrend";
 
     // Compute Fear & Greed composite
     const fearGreed = computeFearGreed(
       vixData ? Number(vixData.vix) : null,
-      cot ? Number(cot.percentile) : null,
-      sentRatio?.bullish_count ?? 0,
-      sentRatio?.bearish_count ?? 0,
+      cot ? toNumber(cot.percentile, 50) : null,
+      sentimentCounts.bullish,
+      sentimentCounts.bearish,
       crush ? Number(crush.crush_z) : null,
       rvol ? Number(rvol.rvol_21d) : null,
       trumpEffect?.weighted_action_score ?? null,
     );
+
+    const cotOpenInterest = cot ? toNumber(cot.open_interest) : 0;
+    const managedMoneyNet = cot ? toNumber(cot.managed_money_net) : 0;
+    const producersNet = cot ? toNumber(cot.prod_merc_net) : 0;
+    const swapsNet = cot ? toNumber(cot.swap_net) : 0;
+
+    const cotPayload = cot
+      ? {
+          as_of_date: cot.event_date,
+          symbol: "ZL",
+          latest: {
+            open_interest: cotOpenInterest,
+            managed_money: {
+              long: toNumber(cot.managed_money_long),
+              short: toNumber(cot.managed_money_short),
+              net: managedMoneyNet,
+              net_pct_oi:
+                cot.managed_money_net_pct_oi != null
+                  ? toNumber(cot.managed_money_net_pct_oi)
+                  : cotOpenInterest > 0
+                    ? Number(((managedMoneyNet / cotOpenInterest) * 100).toFixed(2))
+                    : 0,
+            },
+            producers: {
+              long: toNumber(cot.prod_merc_long),
+              short: toNumber(cot.prod_merc_short),
+              net: producersNet,
+              net_pct_oi:
+                cot.prod_merc_net_pct_oi != null
+                  ? toNumber(cot.prod_merc_net_pct_oi)
+                  : cotOpenInterest > 0
+                    ? Number(((producersNet / cotOpenInterest) * 100).toFixed(2))
+                    : 0,
+            },
+            swaps: {
+              long: toNumber(cot.swap_long),
+              short: toNumber(cot.swap_short),
+              net: swapsNet,
+              net_pct_oi:
+                cotOpenInterest > 0
+                  ? Number(((swapsNet / cotOpenInterest) * 100).toFixed(2))
+                  : 0,
+            },
+          },
+          history: cotHistory
+            .map((row) => ({
+              event_date: row.event_date,
+              managed_money_net: toNumber(row.managed_money_net),
+              prod_merc_net: toNumber(row.prod_merc_net),
+              swap_net: toNumber(row.swap_net),
+            }))
+            .reverse(),
+        }
+      : null;
+
+    const crudeCorrValue =
+      crudeCorrelation?.corr != null && Number.isFinite(crudeCorrelation.corr)
+        ? Number(crudeCorrelation.corr.toFixed(3))
+        : null;
 
     return NextResponse.json({
       as_of: price?.as_of ?? latestDailyPrice?.event_date ?? null,
@@ -715,9 +1033,9 @@ export async function GET() {
 
       technicals: {
         rsi_14: rsi ? Number(rsi.rsi_14) : null,
-        sma20: ma ? Number(ma.sma20) : null,
-        sma50: ma ? Number(ma.sma50) : null,
-        sma200: ma ? Number(ma.sma200) : null,
+        sma20,
+        sma50,
+        sma200,
         trend,
         above_sma20: aboveSma20,
         above_sma50: aboveSma50,
@@ -725,16 +1043,43 @@ export async function GET() {
       },
 
       positioning: {
-        mm_net: cot ? Number(cot.mm) : null,
-        mm_avg: cot ? Number(cot.mu) : null,
-        mm_std: cot ? Number(cot.sd) : null,
-        mm_zscore: cot ? Number(cot.zscore) : null,
-        mm_percentile: cot ? Number(cot.percentile) : null,
-        mm_pct_oi: cot ? Number(cot.pct) : null,
-        prod_net: cot ? Number(cot.prod_net) : null,
-        swap_net: cot ? Number(cot.swap_net) : null,
-        history_weeks: cot ? Number(cot.n) : null,
+        mm_net: cot ? toNumber(cot.managed_money_net) : null,
+        mm_avg: cot ? toNumber(cot.mu) : null,
+        mm_std: cot ? toNumber(cot.sd) : null,
+        mm_zscore: cot ? toNumber(cot.zscore) : null,
+        mm_percentile: cot ? toNumber(cot.percentile) : null,
+        mm_pct_oi:
+          cot
+            ? cot.managed_money_net_pct_oi != null
+              ? toNumber(cot.managed_money_net_pct_oi)
+              : cotOpenInterest > 0
+                ? Number(((managedMoneyNet / cotOpenInterest) * 100).toFixed(2))
+                : 0
+            : null,
+        prod_net: cot ? producersNet : null,
+        swap_net: cot ? swapsNet : null,
+        history_weeks: cot ? toNumber(cot.n) : null,
       },
+
+      cot: cotPayload,
+
+      crudeCross: crudeLatest
+        ? {
+            as_of: crudeLatest.event_date,
+            close: toNumber(crudeLatest.close),
+            ret_5d: toNumber(crudeLatest.ret_5d),
+            correlation_63d: crudeCorrValue,
+            direction:
+              crudeCorrValue != null
+                ? formatCorrelationDirection(crudeCorrValue)
+                : "Data pending",
+            implication:
+              crudeCorrValue != null
+                ? crudeImplicationFromCorrelation(crudeCorrValue)
+                : "Need synchronized ZL and crude daily history to calculate the live biofuel correlation.",
+            lookback_days: CORRELATION_LOOKBACK - 1,
+          }
+        : null,
 
       crush: {
         board_crush: crush ? Number(crush.crush_now) : null,
@@ -747,7 +1092,8 @@ export async function GET() {
       specialists: signals.map((s) => ({
         bucket: s.bucket,
         signal: Number(s.signal_1.toFixed(3)),
-        signal_2: s.signal_2 ? Number(s.signal_2.toFixed(3)) : null,
+        signal_2:
+          s.signal_2 == null ? null : Number(s.signal_2.toFixed(3)),
         confidence: Number(s.confidence.toFixed(2)),
         model_type: s.model_type,
         as_of: s.as_of_date,
@@ -768,12 +1114,16 @@ export async function GET() {
 
       trumpEffect,
       trumpEffectStatus,
+    }, {
+      headers: {
+        "Cache-Control": "no-store",
+      },
     });
   } catch (err) {
     console.error("Metrics API error:", err);
     return NextResponse.json(
       { error: "Failed to compute metrics" },
-      { status: 500 },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

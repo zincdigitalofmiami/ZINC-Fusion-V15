@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { classifySentiment } from "@/lib/sentiment-scorer";
+import { resolveZlSentiment, summarizeSentiments } from "@/lib/sentiment-news";
 
 export const dynamic = "force-dynamic";
 
@@ -197,9 +197,10 @@ export async function GET() {
       LIMIT 50
     `);
 
-    // Compute sentiment classification — keyword-based when zl_sentiment is NULL
+    // Prefer stored sentiment labels and only fall back to keyword scoring when needed.
     const headlines = rows.map((r) => {
-      const sentiment = classifySentiment(
+      const sentiment = resolveZlSentiment(
+        r.zl_sentiment,
         r.headline,
         r.summary || r.content,
       );
@@ -217,19 +218,16 @@ export async function GET() {
       };
     });
 
-    // Summary stats
-    const bullish = headlines.filter((h) => h.sentiment === "bullish").length;
-    const bearish = headlines.filter((h) => h.sentiment === "bearish").length;
-    const total = headlines.length;
+    const stats = summarizeSentiments(headlines.map((headline) => headline.sentiment));
 
     return NextResponse.json(
       {
         headlines,
-        stats: { total, bullish, bearish, neutral: total - bullish - bearish },
+        stats,
       },
       {
         headers: {
-          "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": "s-maxage=3600, stale-while-revalidate=3600",
         },
       },
     );

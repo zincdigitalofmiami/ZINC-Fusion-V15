@@ -1,18 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Newspaper, TrendingUp, Activity } from "lucide-react";
-
-const MORNING_REFRESH_UTC_HOUR = 10;
-
-function getMorningRefreshBoundary(now = new Date()): number {
-  const boundary = new Date(now);
-  if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
-    boundary.setDate(boundary.getDate() - 1);
-  }
-  boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
-  return boundary.getTime();
-}
+import { computeNetSentimentScore } from "@/lib/sentiment-news";
 
 /* ─── Types ─── */
 
@@ -56,8 +46,18 @@ interface CotData {
   }[];
 }
 
+interface CrudeCrossData {
+  as_of: string | null;
+  close: number | null;
+  ret_5d: number | null;
+  correlation_63d: number | null;
+  direction: string;
+  implication: string;
+  lookback_days: number;
+}
+
 interface FearGreedComponent {
-  score: number;
+  score: number | null;
   weight: number;
   raw: number | null;
 }
@@ -206,6 +206,16 @@ interface MetricsData {
   fearGreed?: FearGreedData | null;
   trumpEffect?: TrumpEffectData | null;
   trumpEffectStatus?: TrumpEffectStatus | null;
+  cot: CotData | null;
+  crudeCross: CrudeCrossData | null;
+}
+
+interface AnalysisData {
+  fearGreedNarrative: string | null;
+  trumpEffectNarrative: string | null;
+  volatilityNarrative: string | null;
+  source: "ai" | "deterministic";
+  model: string | null;
 }
 
 /* ─── Helpers ─── */
@@ -233,8 +243,21 @@ function formatAsOf(dateStr: string | null): string {
   return `${chicagoTimestampFormatter.format(parsed)} CT`;
 }
 
+function parseDisplayDate(dateStr: string): Date | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  }
+
+  const parsed = new Date(dateStr);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const parsed = parseDisplayDate(dateStr);
+  if (!parsed) return "";
+
+  const diff = Date.now() - parsed.getTime();
   const hours = Math.floor(diff / 3600000);
   if (hours < 1) return "Just now";
   if (hours < 24) return `${hours}h ago`;
@@ -247,7 +270,7 @@ function getTrendBadge(trend: string): {
   text: string;
   color: string;
   bg: string;
-} {
+} | null {
   switch (trend) {
     case "strong_uptrend":
       return {
@@ -267,6 +290,8 @@ function getTrendBadge(trend: string): {
         color: "text-amber-400",
         bg: "bg-amber-500/10 border-amber-500/20",
       };
+    case "unknown":
+      return null;
     default:
       return {
         text: "▼ Prices Trending Down",
@@ -345,220 +370,141 @@ function responseSignalStyle(
   };
 }
 
-/* ─── Page ─── */
-
-interface Narratives {
-  fearGreedNarrative: string | null;
-  trumpEffectNarrative: string | null;
-  volatilityNarrative: string | null;
+function buildNarrativePayload(metrics: MetricsData) {
+  return {
+    fearGreed: metrics.fearGreed
+      ? {
+          score: metrics.fearGreed.score,
+          zone: metrics.fearGreed.zone,
+          label: metrics.fearGreed.label,
+        }
+      : undefined,
+    trumpEffect: metrics.trumpEffect
+      ? {
+          title: metrics.trumpEffect.title,
+          zl_return_7d_pct: metrics.trumpEffect.zl_response.zl_return_7d_pct,
+          zl_response_1d_pct: metrics.trumpEffect.zl_response.zl_response_1d_pct,
+          zl_response_5d_pct: metrics.trumpEffect.zl_response.zl_response_5d_pct,
+          response_signal: metrics.trumpEffect.zl_response.response_signal,
+          weighted_action_score:
+            metrics.trumpEffect.policy_activity.weighted_action_score,
+          total_actions_7d:
+            metrics.trumpEffect.policy_activity.total_presidential_actions_7d,
+          executive_orders_7d:
+            metrics.trumpEffect.policy_activity.executive_orders_7d,
+          other_actions_7d:
+            metrics.trumpEffect.policy_activity.other_presidential_actions_7d,
+          action_velocity: metrics.trumpEffect.policy_activity.action_velocity,
+          corroboration_score:
+            metrics.trumpEffect.procurement_outlook.corroboration.corroboration_score,
+          corroboration_band:
+            metrics.trumpEffect.procurement_outlook.corroboration.corroboration_band,
+          supporting_policy_items_7d:
+            metrics.trumpEffect.procurement_outlook.corroboration.supporting_policy_items_7d,
+          market_news_items_7d:
+            metrics.trumpEffect.procurement_outlook.corroboration.market_news_items_7d,
+          regulatory_follow_through_7d:
+            metrics.trumpEffect.procurement_outlook.corroboration.regulatory_follow_through_7d,
+          procurement_signal: metrics.trumpEffect.procurement_outlook.signal,
+          procurement_label: metrics.trumpEffect.procurement_outlook.label,
+        }
+      : undefined,
+    volatility: {
+      vix: metrics.volatility.vix,
+      ovx: metrics.volatility.ovx,
+      realized_21d: metrics.volatility.realized_21d,
+    },
+  };
 }
+
+/* ─── Page ─── */
 
 export default function SentimentPage() {
   const [news, setNews] = useState<NewsData | null>(null);
-  const [cot, setCot] = useState<CotData | null>(null);
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
-  const [narratives, setNarratives] = useState<Narratives | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
-  const narrativesRef = useRef<Narratives | null>(null);
 
-  useEffect(() => {
-    narrativesRef.current = narratives;
-  }, [narratives]);
+  const parseEndpoint = useCallback(async <T,>(
+    res: Response,
+    label: string,
+  ): Promise<T | null> => {
+    if (!res.ok) {
+      console.error(`[sentiment] ${label} failed (${res.status})`);
+      return null;
+    }
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
-      const [newsRes, cotRes, metricsRes] = await Promise.all([
-        fetch("/api/sentiment/news"),
-        fetch("/api/sentiment/cot"),
-        fetch("/api/sentiment/metrics"),
-      ]);
-
-      const parseEndpoint = async <T,>(
-        res: Response,
-        label: string,
-      ): Promise<{ data: T | null; error: string | null }> => {
-        if (!res.ok) {
-          return { data: null, error: `${label} (${res.status})` };
-        }
-        try {
-          return { data: (await res.json()) as T, error: null };
-        } catch {
-          return { data: null, error: `${label} (invalid JSON)` };
-        }
-      };
-
-      const [newsResult, cotResult, metricsResult] = await Promise.all([
-        parseEndpoint<NewsData>(newsRes, "news"),
-        parseEndpoint<CotData>(cotRes, "cot"),
-        parseEndpoint<MetricsData>(metricsRes, "metrics"),
-      ]);
-
-      // Preserve last good payload if one endpoint has a transient failure.
-      if (newsResult.data) setNews(newsResult.data);
-      if (cotResult.data) setCot(cotResult.data);
-      if (metricsResult.data) setMetrics(metricsResult.data);
-
-      const endpointErrors = [
-        newsResult.error,
-        cotResult.error,
-        metricsResult.error,
-      ].filter(Boolean);
-      void endpointErrors;
+      return (await res.json()) as T;
     } catch (e) {
-      void e;
-    } finally {
-      setLoading(false);
+      console.error(`[sentiment] ${label} returned invalid JSON`, e);
+      return null;
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Fetch AI narratives once metrics are available
-  useEffect(() => {
-    if (!metrics) return;
-    const fg = metrics.fearGreed;
-    const te = metrics.trumpEffect;
-    const vol = metrics.volatility;
-
-    const cacheKey = [
-      "sentiment-ai-narrative:v2",
-      metrics.as_of ?? "na",
-      metrics.trumpEffectStatus?.selected_as_of ?? "na",
-      metrics.trumpEffectStatus?.selection_mode ?? "na",
-      String(metrics.fearGreed?.score ?? "na"),
-    ].join("|");
-
-    const getLastDeliveredNarratives = (): Narratives | null => {
-      if (typeof window === "undefined") return null;
-      let best: { narratives: Narratives; ts: number } | null = null;
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (!key || !key.startsWith("sentiment-ai-narrative:v2|")) continue;
-        try {
-          const raw = localStorage.getItem(key);
-          if (!raw) continue;
-          const parsed = JSON.parse(raw) as { narratives?: Narratives; ts?: number };
-          if (!parsed.narratives || typeof parsed.ts !== "number") continue;
-          if (!best || parsed.ts > best.ts) {
-            best = { narratives: parsed.narratives, ts: parsed.ts };
-          }
-        } catch {
-          // Ignore malformed cache rows.
-        }
-      }
-      return best?.narratives ?? null;
-    };
-
-    if (typeof window !== "undefined") {
-      try {
-        const cachedRaw = localStorage.getItem(cacheKey);
-        if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw) as {
-            narratives?: Narratives;
-            ts?: number;
-          };
-          if (cached?.narratives) {
-            setNarratives(cached.narratives);
-            if (
-              typeof cached?.ts === "number" &&
-              cached.ts >= getMorningRefreshBoundary()
-            ) {
-              return;
-            }
-          }
-        }
-
-        if (!narrativesRef.current) {
-          const lastDelivered = getLastDeliveredNarratives();
-          if (lastDelivered) {
-            setNarratives(lastDelivered);
-          }
-        }
-      } catch {
-        // Ignore cache parse issues and fetch fresh.
-      }
-    }
-
-    fetch("/api/sentiment/narrative", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fearGreed: fg
-          ? {
-              score: fg.score,
-              zone: fg.zone,
-              label: fg.label,
-              components: fg.components,
-            }
-          : undefined,
-        trumpEffect: te
-          ? {
-              title: te.title,
-              zl_return_7d_pct: te.zl_response.zl_return_7d_pct,
-              zl_response_1d_pct: te.zl_response.zl_response_1d_pct,
-              zl_response_5d_pct: te.zl_response.zl_response_5d_pct,
-              response_signal: te.zl_response.response_signal,
-              weighted_action_score: te.policy_activity.weighted_action_score,
-              total_actions_7d: te.policy_activity.total_presidential_actions_7d,
-              executive_orders_7d: te.policy_activity.executive_orders_7d,
-              other_actions_7d: te.policy_activity.other_presidential_actions_7d,
-              action_velocity: te.policy_activity.action_velocity,
-              corroboration_score:
-                te.procurement_outlook.corroboration.corroboration_score,
-              corroboration_band:
-                te.procurement_outlook.corroboration.corroboration_band,
-              supporting_policy_items_7d:
-                te.procurement_outlook.corroboration.supporting_policy_items_7d,
-              market_news_items_7d:
-                te.procurement_outlook.corroboration.market_news_items_7d,
-              regulatory_follow_through_7d:
-                te.procurement_outlook.corroboration.regulatory_follow_through_7d,
-              procurement_signal: te.procurement_outlook.signal,
-              procurement_label: te.procurement_outlook.label,
-            }
-          : undefined,
-        volatility: {
-          vix: vol.vix,
-          ovx: vol.ovx,
-          realized_21d: vol.realized_21d,
+  const fetchAnalysis = useCallback(async (metricsData: MetricsData) => {
+    try {
+      const analysisRes = await fetch("/api/sentiment/narrative", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) {
-          setNarratives(data);
-          if (typeof window !== "undefined") {
-            localStorage.setItem(
-              cacheKey,
-              JSON.stringify({ narratives: data, ts: Date.now() }),
-            );
-          }
-        }
-      })
-      .catch(() => {
-        /* narrative fetch is non-critical */
+        cache: "no-store",
+        body: JSON.stringify(buildNarrativePayload(metricsData)),
       });
-  }, [metrics]);
+      const analysisData = await parseEndpoint<AnalysisData>(
+        analysisRes,
+        "narrative",
+      );
+      if (analysisData) setAnalysis(analysisData);
+    } catch (e) {
+      console.error("[sentiment] narrative refresh failed", e);
+    }
+  }, [parseEndpoint]);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    setAnalysis(null);
+    try {
+      const [metricsRes, newsRes] = await Promise.all([
+        fetch("/api/sentiment/metrics", { cache: "no-store" }),
+        fetch("/api/sentiment/news"),
+      ]);
+      const [metricsData, newsData] = await Promise.all([
+        parseEndpoint<MetricsData>(metricsRes, "metrics"),
+        parseEndpoint<NewsData>(newsRes, "news"),
+      ]);
+
+      if (metricsData) {
+        setMetrics(metricsData);
+        await fetchAnalysis(metricsData);
+      }
+      if (newsData) {
+        setNews(newsData);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchAnalysis, parseEndpoint]);
+
+  useEffect(() => {
+    void fetchAll();
+  }, [fetchAll]);
 
   // Sentiment bias for header
   const biasLabel = (() => {
     if (!news?.stats) return null;
-    const { bullish, bearish, total } = news.stats;
-    if (total === 0) return null;
-    const ratio = (bullish - bearish) / total;
-    const sigma = (ratio * 2).toFixed(2);
-    const direction = ratio > 0 ? "Bullish" : ratio < 0 ? "Bearish" : "Neutral";
+    const netScore = computeNetSentimentScore(news.stats);
+    if (netScore == null) return null;
+    const direction =
+      netScore > 0 ? "Bullish" : netScore < 0 ? "Bearish" : "Neutral";
     return {
-      sigma: `${ratio > 0 ? "+" : ""}${sigma}σ`,
+      score: `${netScore > 0 ? "+" : ""}${netScore}`,
       direction,
       color:
-        ratio > 0
+        netScore > 0
           ? "text-emerald-400"
-          : ratio < 0
+          : netScore < 0
             ? "text-red-400"
             : "text-slate-400",
     };
@@ -566,6 +512,8 @@ export default function SentimentPage() {
 
   const fg = metrics?.fearGreed ?? null;
   const trump = metrics?.trumpEffect ?? null;
+  const cot = metrics?.cot ?? null;
+  const crudeCross = metrics?.crudeCross ?? null;
   const trendBadge = metrics ? getTrendBadge(metrics.technicals.trend) : null;
 
   return (
@@ -581,16 +529,16 @@ export default function SentimentPage() {
           </p>
         </div>
         <div className="flex items-center gap-6">
-          {biasLabel && (
-            <div className="text-right">
-              <div className={`text-2xl font-bold ${biasLabel.color}`}>
-                {biasLabel.sigma}
-              </div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-widest">
-                {biasLabel.direction} Bias
-              </div>
-            </div>
-          )}
+              {biasLabel && (
+                <div className="text-right">
+                  <div className={`text-2xl font-bold ${biasLabel.color}`}>
+                    {biasLabel.score}
+                  </div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-widest">
+                    {biasLabel.direction} News Bias
+                  </div>
+                </div>
+              )}
         </div>
       </div>
 
@@ -598,7 +546,7 @@ export default function SentimentPage() {
       <div className="mb-8">
         <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-8 md:p-10 hover:border-white/20 transition-all duration-300">
           <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest border-l-2 border-blue-500 pl-3 mb-8">
-            Fear &amp; Greed Index
+            Fear &amp; Greed Composite
           </div>
 
           {loading && !metrics ? (
@@ -625,13 +573,13 @@ export default function SentimentPage() {
               </div>
 
               {/* AI Narrative */}
-              {narratives?.fearGreedNarrative && (
+              {analysis?.fearGreedNarrative && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 mb-8">
                   <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-2">
-                    AI Analysis
+                    Analysis
                   </div>
                   <p className="text-base text-slate-300 leading-relaxed">
-                    {narratives.fearGreedNarrative}
+                    {analysis.fearGreedNarrative}
                   </p>
                 </div>
               )}
@@ -670,12 +618,16 @@ export default function SentimentPage() {
                       </div>
                       <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 transition-all duration-700"
-                          style={{ width: `${c.data.score}%` }}
+                          className={`h-full rounded-full transition-all duration-700 ${
+                            c.data.score == null
+                              ? "bg-slate-700"
+                              : "bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500"
+                          }`}
+                          style={{ width: `${c.data.score ?? 0}%` }}
                         />
                       </div>
                       <div className="text-sm font-mono text-slate-300 w-8 text-right">
-                        {c.data.score}
+                        {c.data.score ?? "Pending"}
                       </div>
                     </div>
                   ))}
@@ -719,7 +671,7 @@ export default function SentimentPage() {
                 {metrics.price.high != null && metrics.price.low != null && (
                   <div>
                     <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">
-                      Day Range
+                      Session Range
                     </div>
                     <div className="text-lg font-mono text-slate-300">
                       ${metrics.price.low.toFixed(2)} — $
@@ -801,7 +753,7 @@ export default function SentimentPage() {
                     <div className="text-2xl font-bold text-white font-mono">
                       {trump.zl_response.zl_return_7d_pct != null
                         ? `${trump.zl_response.zl_return_7d_pct > 0 ? "+" : ""}${trump.zl_response.zl_return_7d_pct.toFixed(2)}%`
-                        : "—"}
+                        : "Pending"}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       ZL Return (7d window)
@@ -811,7 +763,7 @@ export default function SentimentPage() {
                     <div className="text-2xl font-bold text-white font-mono">
                       {trump.zl_response.zl_response_1d_pct != null
                         ? `${trump.zl_response.zl_response_1d_pct > 0 ? "+" : ""}${trump.zl_response.zl_response_1d_pct.toFixed(2)}%`
-                        : "—"}
+                        : "Pending"}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       ZL Response (1d)
@@ -821,7 +773,7 @@ export default function SentimentPage() {
                     <div className="text-2xl font-bold text-white font-mono">
                       {trump.zl_response.zl_response_5d_pct != null
                         ? `${trump.zl_response.zl_response_5d_pct > 0 ? "+" : ""}${trump.zl_response.zl_response_5d_pct.toFixed(2)}%`
-                        : "—"}
+                        : "Pending"}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       ZL Response (5d)
@@ -831,7 +783,7 @@ export default function SentimentPage() {
                     <div className="text-2xl font-bold text-white font-mono">
                       {trump.zl_response.realized_vol_21d_pct != null
                         ? `${trump.zl_response.realized_vol_21d_pct.toFixed(1)}%`
-                        : "—"}
+                        : "Pending"}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       Realized Vol (21d)
@@ -874,7 +826,7 @@ export default function SentimentPage() {
                     <div className="text-2xl font-bold text-white font-mono">
                       {trump.policy_activity.action_velocity != null
                         ? trump.policy_activity.action_velocity.toFixed(1)
-                        : "—"}
+                        : "Pending"}
                     </div>
                     <div className="text-xs text-slate-500 uppercase">
                       Action Velocity (/day)
@@ -886,13 +838,13 @@ export default function SentimentPage() {
                   <span className="font-mono text-white">
                     {trump.policy_activity.weighted_action_score != null
                       ? trump.policy_activity.weighted_action_score.toFixed(2)
-                      : "—"}
+                      : "Pending"}
                   </span>{" "}
                   | Acceleration:{" "}
                   <span className="font-mono text-white">
                     {trump.policy_activity.action_acceleration != null
                       ? `${trump.policy_activity.action_acceleration > 0 ? "+" : ""}${trump.policy_activity.action_acceleration.toFixed(2)}`
-                      : "—"}
+                      : "Pending"}
                   </span>
                 </div>
               </div>
@@ -953,13 +905,13 @@ export default function SentimentPage() {
               </div>
 
               {/* AI Narrative */}
-              {narratives?.trumpEffectNarrative && (
+              {analysis?.trumpEffectNarrative && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5">
                   <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-2">
-                    AI Analysis
+                    Analysis
                   </div>
                   <p className="text-base text-slate-300 leading-relaxed">
-                    {narratives.trumpEffectNarrative}
+                    {analysis.trumpEffectNarrative}
                   </p>
                 </div>
               )}
@@ -985,11 +937,11 @@ export default function SentimentPage() {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <SnapshotCard
-            label="This Week"
+            label="5 Trading Days"
             value={
               metrics?.returns.ret_5d != null
                 ? `${metrics.returns.ret_5d > 0 ? "+" : ""}${metrics.returns.ret_5d}%`
-                : "—"
+                : "Pending"
             }
             color={
               metrics?.returns.ret_5d != null
@@ -1001,11 +953,11 @@ export default function SentimentPage() {
             loading={loading && !metrics}
           />
           <SnapshotCard
-            label="This Month"
+            label="21 Trading Days"
             value={
               metrics?.returns.ret_21d != null
                 ? `${metrics.returns.ret_21d > 0 ? "+" : ""}${metrics.returns.ret_21d}%`
-                : "—"
+                : "Pending"
             }
             color={
               metrics?.returns.ret_21d != null
@@ -1017,11 +969,11 @@ export default function SentimentPage() {
             loading={loading && !metrics}
           />
           <SnapshotCard
-            label="This Quarter"
+            label="63 Trading Days"
             value={
               metrics?.returns.ret_63d != null
                 ? `${metrics.returns.ret_63d > 0 ? "+" : ""}${metrics.returns.ret_63d}%`
-                : "—"
+                : "Pending"
             }
             color={
               metrics?.returns.ret_63d != null
@@ -1037,7 +989,7 @@ export default function SentimentPage() {
             value={
               metrics?.crush.board_crush != null
                 ? `$${metrics.crush.board_crush.toFixed(2)}/bu`
-                : "—"
+                : "Pending"
             }
             loading={loading && !metrics}
           />
@@ -1046,7 +998,7 @@ export default function SentimentPage() {
             value={
               metrics?.crush.oil_share != null
                 ? `${(metrics.crush.oil_share * 100).toFixed(1)}%`
-                : "—"
+                : "Pending"
             }
             loading={loading && !metrics}
           />
@@ -1055,12 +1007,71 @@ export default function SentimentPage() {
             value={
               metrics?.volatility.realized_21d != null
                 ? `${metrics.volatility.realized_21d}%`
-                : "—"
+                : "Pending"
             }
             sub="21d annualized"
             loading={loading && !metrics}
           />
         </div>
+
+        {crudeCross && (
+          <div className="mt-6 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+              <div>
+                <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest border-l-2 border-amber-500 pl-3">
+                  Crude Oil / Soybean Oil Cross
+                </div>
+                <div className="text-xs text-slate-500 mt-1 pl-5">
+                  Real 63-trading-day log-return correlation for the biofuel channel
+                </div>
+              </div>
+              {crudeCross.as_of && (
+                <div className="text-xs text-slate-500">
+                  crude as of {formatAsOf(crudeCross.as_of)}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <SnapshotCard
+                label="CL Front Month"
+                value={
+                  crudeCross.close != null
+                    ? `$${crudeCross.close.toFixed(2)}`
+                    : "Pending"
+                }
+              />
+              <SnapshotCard
+                label="CL 5 Trading Days"
+                value={
+                  crudeCross.ret_5d != null
+                    ? `${crudeCross.ret_5d > 0 ? "+" : ""}${crudeCross.ret_5d}%`
+                    : "Pending"
+                }
+                color={
+                  crudeCross.ret_5d != null
+                    ? crudeCross.ret_5d > 0
+                      ? "text-red-400"
+                      : "text-emerald-400"
+                    : undefined
+                }
+              />
+              <SnapshotCard
+                label={`${crudeCross.lookback_days}d Corr`}
+                value={
+                  crudeCross.correlation_63d != null
+                    ? crudeCross.correlation_63d.toFixed(3)
+                    : "Pending"
+                }
+                sub={crudeCross.direction}
+              />
+            </div>
+
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {crudeCross.implication}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ═══════════ VOLATILITY ═══════════ */}
@@ -1116,13 +1127,13 @@ export default function SentimentPage() {
               </div>
 
               {/* AI Narrative */}
-              {narratives?.volatilityNarrative && (
+              {analysis?.volatilityNarrative && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-5 mt-6">
                   <div className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-2">
-                    AI Analysis
+                    Analysis
                   </div>
                   <p className="text-base text-slate-300 leading-relaxed">
-                    {narratives.volatilityNarrative}
+                    {analysis.volatilityNarrative}
                   </p>
                 </div>
               )}
@@ -1225,7 +1236,7 @@ export default function SentimentPage() {
           Segmented Policy News Lanes
           {news && (
             <span className="text-xs text-slate-500 font-normal ml-2">
-              {news.stats.total} lane-tagged articles (30d)
+              {news.stats.total} recent articles
             </span>
           )}
         </h3>
@@ -1400,7 +1411,7 @@ function VolGauge({
     <div className="text-center">
       <div className="text-sm text-slate-400 font-bold mb-2">{label}</div>
       <div className="text-3xl font-bold font-mono text-white mb-2">
-        {value != null ? `${value.toFixed(1)}${suffix ?? ""}` : "—"}
+        {value != null ? `${value.toFixed(1)}${suffix ?? ""}` : "Pending"}
       </div>
       {value != null && (
         <>

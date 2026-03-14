@@ -3,14 +3,16 @@
 import React, { useEffect, useState, useCallback } from "react";
 
 const MARKET_DRIVERS_CACHE_KEY = "market-drivers-ai:v1";
-const MORNING_REFRESH_HOUR = 7;
+// Align with server refresh boundary: 10 AM UTC (see market-drivers/route.ts DAILY_REFRESH_UTC_HOUR)
+const REFRESH_UTC_HOUR = 10;
 
-function getMorningRefreshBoundary(now = new Date()): number {
+function getUtcRefreshBoundary(now = new Date()): number {
+  // Use UTC-based boundary matching server refresh schedule
   const boundary = new Date(now);
-  if (boundary.getHours() < MORNING_REFRESH_HOUR) {
-    boundary.setDate(boundary.getDate() - 1);
+  if (boundary.getUTCHours() < REFRESH_UTC_HOUR) {
+    boundary.setUTCDate(boundary.getUTCDate() - 1);
   }
-  boundary.setHours(MORNING_REFRESH_HOUR, 0, 0, 0);
+  boundary.setUTCHours(REFRESH_UTC_HOUR, 0, 0, 0);
   return boundary.getTime();
 }
 
@@ -63,6 +65,9 @@ interface IntelligenceData {
 
 interface MarketDriversResponse {
   as_of_date: string;
+  as_of_date_min?: string;
+  as_of_date_max?: string;
+  mixed_vintage?: boolean;
   drivers: {
     vix_stress: DriverData;
     crush_pressure: DriverData;
@@ -76,6 +81,40 @@ interface MarketDriversResponse {
     alert_count: number;
   };
   intelligence: IntelligenceData;
+}
+
+function formatFreshnessLabel(
+  payload: Pick<
+    MarketDriversResponse,
+    "as_of_date" | "as_of_date_min" | "as_of_date_max" | "mixed_vintage"
+  > | null | undefined,
+): string | null {
+  if (!payload) return null;
+  if (
+    payload.mixed_vintage &&
+    payload.as_of_date_min &&
+    payload.as_of_date_max
+  ) {
+    return `Mixed vintage ${payload.as_of_date_min} to ${payload.as_of_date_max}`;
+  }
+  return payload.as_of_date ? `Data as of ${payload.as_of_date}` : null;
+}
+
+function formatFreshnessSummary(
+  payload: Pick<
+    MarketDriversResponse,
+    "as_of_date" | "as_of_date_min" | "as_of_date_max" | "mixed_vintage"
+  > | null | undefined,
+): string {
+  if (!payload) return "–";
+  if (
+    payload.mixed_vintage &&
+    payload.as_of_date_min &&
+    payload.as_of_date_max
+  ) {
+    return `${payload.as_of_date_min} to ${payload.as_of_date_max}`;
+  }
+  return payload.as_of_date ?? "–";
 }
 
 // =============================================================================
@@ -484,7 +523,7 @@ export function ChrisTop4Drivers() {
       if (!raw) return false;
       const parsed = JSON.parse(raw) as { ts?: number };
       if (typeof parsed?.ts !== "number") return false;
-      return parsed.ts >= getMorningRefreshBoundary();
+      return parsed.ts >= getUtcRefreshBoundary();
     } catch {
       return false;
     }
@@ -512,7 +551,7 @@ export function ChrisTop4Drivers() {
       }
       if (json.error) throw new Error(json.error);
       setData(json);
-      setLastUpdate(new Date().toLocaleTimeString());
+      setLastUpdate(formatFreshnessLabel(json));
       if (typeof window !== "undefined") {
         localStorage.setItem(
           MARKET_DRIVERS_CACHE_KEY,
@@ -545,7 +584,7 @@ export function ChrisTop4Drivers() {
 
   useEffect(() => {
     if (cacheIsFreshToday && data) {
-      setLastUpdate("Daily morning refresh");
+      setLastUpdate(formatFreshnessLabel(data));
     }
   }, [cacheIsFreshToday, data]);
 
@@ -570,9 +609,7 @@ export function ChrisTop4Drivers() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {lastUpdate && (
-            <span className="text-xs text-slate-600">Updated {lastUpdate}</span>
-          )}
+          {lastUpdate && <span className="text-xs text-slate-600">{lastUpdate}</span>}
         </div>
       </div>
 
@@ -672,7 +709,7 @@ export function ChrisTop4Drivers() {
                 label: "5-Day Change",
                 format: (v) =>
                   v !== null
-                    ? `${(v! * 100) >= 0 ? "+" : ""}${(v! * 100).toFixed(1)}%`
+                    ? `${v! * 100 >= 0 ? "+" : ""}${(v! * 100).toFixed(1)}%`
                     : "--",
               },
               {
@@ -723,7 +760,10 @@ export function ChrisTop4Drivers() {
             )
           </div>
           <div>
-            As of: <span className="text-slate-400">{data.as_of_date}</span>
+            Freshness:{" "}
+            <span className="text-slate-400">
+              {formatFreshnessSummary(data)}
+            </span>
           </div>
         </div>
       )}

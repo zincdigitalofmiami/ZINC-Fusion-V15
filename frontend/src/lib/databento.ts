@@ -54,6 +54,52 @@ export async function fetchDatabentoCsv(
   }
 }
 
+function extractAvailableEndFromDatabentoError(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+
+  const match = error.message.match(/^Databento API error 422: (.+)$/s);
+  if (!match) return null;
+
+  try {
+    const payload = JSON.parse(match[1]) as {
+      detail?: { payload?: { available_end?: string } };
+    };
+    const availableEnd = payload.detail?.payload?.available_end?.trim();
+    if (!availableEnd) return null;
+    return availableEnd.replace(" ", "T");
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchDatabentoCsvWithAvailableEndRetry(
+  params: Record<string, string>,
+  timeoutMs = 5000,
+): Promise<{ csv: string; effectiveEnd: string | null }> {
+  try {
+    return {
+      csv: await fetchDatabentoCsv(params, timeoutMs),
+      effectiveEnd: params.end ?? null,
+    };
+  } catch (error) {
+    const availableEnd = extractAvailableEndFromDatabentoError(error);
+    if (!availableEnd || !params.end) {
+      throw error;
+    }
+
+    return {
+      csv: await fetchDatabentoCsv(
+        {
+          ...params,
+          end: availableEnd,
+        },
+        timeoutMs,
+      ),
+      effectiveEnd: availableEnd,
+    };
+  }
+}
+
 function parseTimestamp(value: string): Date | null {
   if (!value) return null;
   const trimmed = value.trim();
