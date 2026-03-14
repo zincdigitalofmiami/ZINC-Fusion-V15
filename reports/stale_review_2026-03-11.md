@@ -1,5 +1,9 @@
 # Stale Data Audit - 2026-03-11
 
+> Superseded note (2026-03-11): This report is preserved as a historical snapshot.
+> The old `db-guard-*` workflow and `CLOUD_DATABASE_URL` convention were removed later the same day.
+> For current operational status, use `TO-DO/Audit/2026-03-11_forensic_db_inngest_operational_audit.md` and `TO-DO/Audit/AUDIT_INDEX.md`.
+
 ## Section 1 - Frontend Page-by-Page Stale Review
 
 ### Coverage checklist
@@ -114,7 +118,7 @@
 ## Section 2 - Local DB Stale Review
 
 ### Executed checks
-1. `make db-guard-local`
+1. Historical check: `make db-guard-local` (command removed on 2026-03-11)
 - Result: PASS
 - Evidence: `[PASS] mode=local endpoint=localhost:5432/zinc_fusion_v15_local db=zinc_fusion_v15_local message=ok`
 
@@ -198,16 +202,12 @@ Interpretation:
 - Result: PASS
 - Evidence: schema at `prisma/schema.prisma` is valid.
 
-2. `make db-guard-cloud`
-- Result: PASS (with explicit override URL provided in-session)
-- Evidence:
-	- `[PASS] mode=cloud endpoint=db.prisma.io:5432/postgres db=postgres message=ok`
-- Note:
-	- Default `.env.local.audit` still lacks `CLOUD_DATABASE_URL`; pass required one-off override during command execution.
+2. Historical check: `make db-guard-cloud` (command removed on 2026-03-11)
+- Result at time of run: PASS with explicit cloud URL override
+- Current status: superseded by direct `DATABASE_URL`-based parity tooling
 
-3. `make db-guard-shadow`
-- Result: PASS
-- Evidence: `[PASS] mode=shadow endpoint=localhost:5432/zinc_fusion_v15_shadow db=zinc_fusion_v15_shadow message=ok`
+3. Historical check: `make db-guard-shadow` (command removed on 2026-03-11)
+- Result at time of run: PASS
 
 ### Prisma stale findings
 - Schema-level: no Prisma schema validation errors.
@@ -237,14 +237,12 @@ Interpretation:
 - Global header: status ticker
 
 ### Execution blockers
-- Missing persisted `CLOUD_DATABASE_URL` in `.env.local.audit` for repeatable cloud-mode checks.
+- Historical blocker removed: `CLOUD_DATABASE_URL` / `.env.local.audit` workflow was deleted.
 - Redacted/incomplete cloud credential prevents direct `psql` query execution.
-- Vercel production env currently does not expose DB URL variables to this project context.
+- Historical blocker removed: workspace is now linked to `zinc-fusion-v15`, not orphan `frontend`.
 - Local validators/data gate failures due to local schema/table coverage mismatches and unimplemented validator components.
 
 ### Next executable commands once URLs are provided
-1. Set full non-redacted cloud URL in env (or export in-session): `CLOUD_DATABASE_URL=postgres://<user>:<password>@db.prisma.io:5432/postgres?sslmode=require&gssencmode=disable`.
-2. `set -a && source .env.local.audit && set +a && make db-guard-cloud`
-3. Run cloud-target stale SQL for matrix/forecasts/signals/oof/ingest tables.
-4. Compare cloud-vs-local stale deltas and append to this report.
-5. Optional hardening: add `CLOUD_DATABASE_URL` to Vercel production env (if policy allows) so `vercel env pull` can support repeatable cloud audits.
+1. Export a full non-redacted cloud `DATABASE_URL` in-session for direct SQL checks.
+2. Run cloud-target stale SQL for matrix/forecasts/signals/oof/ingest tables.
+3. Compare cloud-vs-local stale deltas and append to the working forensic audit.

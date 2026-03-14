@@ -8,7 +8,7 @@
 | Phase | Status | Notes |
 |-------|--------|-------|
 | **Phase 0** | COMPLETE | Baseline established. See `reports/phase0_baseline_2026-02-20.md` |
-| **Phase 1A** | CODE DONE, TRAINING PENDING | Seasonal features added to matrix (1,502 features). `known_covariates_names` wired. Matrix rebuilt. Need to train all 4 horizons. |
+| **Phase 1A** | COMPLETE (2026-02-20) | Seasonal features trained on all 4 horizons. Next need is refresh stale data and rerun training on the current matrix/signals, not first-time Phase 1A execution. |
 | **Phase 1B** | Pending | Price-level anchors (SMAs, percentiles) |
 | **Phase 1C** | Pending | ZL term structure features |
 | **Phase 1D** | Pending | WASDE surprise / export pace delta features |
@@ -87,7 +87,7 @@ No optimization until we have a clean baseline. The current system has never bee
 
 The switch from returns to price fundamentally changes which features matter. Returns strip out level information; price prediction rewards features that anchor to absolute levels.
 
-### 1A. Add Seasonal Calendar Features (COMPLETE — code done, training pending)
+### 1A. Add Seasonal Calendar Features (COMPLETE — trained 2026-02-20; rerun pending on fresher data)
 
 Soybean oil has strong seasonal patterns driven by planting (Apr-Jun), harvest (Sep-Nov), and crush demand (Oct-Mar). These are **known future values** — the only category we'd have.
 

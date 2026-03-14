@@ -1,5 +1,8 @@
 # Vercel Environment & Cloud DB Audit — 2026-03-11
 
+> Historical context note: Sections referencing `db-guard-*` and `CLOUD_DATABASE_URL` capture pre-remediation state from 2026-03-11.
+> Current workflow uses `DATABASE_URL` directly and the `db-guard-*` targets are removed.
+
 ## Context
 
 Section 3 of `reports/stale_review_2026-03-11.md` requires cloud DB access to run stale SQL metrics and compute cloud-vs-local drift deltas. This audit documents all findings from the Vercel environment investigation.
@@ -173,7 +176,7 @@ Standard Prisma setup uses `DIRECT_DATABASE_URL` for migrations (bypassing the A
 
 ### Remaining recommendations
 
-1. Clean up trailing `\n` from 7 affected Vercel env vars
+1. ~~Clean up trailing `\n` from 7 affected Vercel env vars~~ **DONE 2026-03-11** — All 7 vars (`APP_ORIGIN`, `EIA_API_KEY`, `GLIDE_BEARER_TOKEN`, `NOAA_API_TOKEN`, `PROFARMER_USERNAME`, `PROFARMER_PASSWORD`, `USDA_API_KEY`) removed and re-added with clean values across all affected environments (production, preview, development). Verified via fresh `vercel env pull`. **Note:** `PROFARMER_USERNAME` and `PROFARMER_PASSWORD` both had `\n` — this likely caused login failures on the ProFarmer scraper independent of the Puppeteer module fix.
 2. Consider deduplicating `NOAA_TOKEN`/`NOAA_API_TOKEN` and `INNGEST_SIGNING_KEY`/`WORKFLOW_INNGEST_SIGNING_KEY`
 3. Strengthen `AUTH_PASSWORD` or move to a proper auth provider
 4. Connect git repo to Vercel project for deployment traceability

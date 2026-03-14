@@ -1,6 +1,6 @@
 # ZINC-FUSION-V15 Audit Index
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-13
 **Purpose:** Track all audit reports, their status, and locations
 
 ---
@@ -86,12 +86,45 @@
 - `DIRECT_DATABASE_URL` missing from Vercel (needed for migration bypass of Accelerate proxy)
 - 7 env vars have trailing `\n` — potential auth failure risk
 - Cloud guard passes with explicit URL injection; direct `psql` blocks on redacted credentials
-- `npx vercel env pull` from workspace returns no DB keys due to project mismatch
+- Workspace/project mismatch was resolved the same day; env pull now targets `zinc-fusion-v15` after re-link.
 
 **Blockers for Section 3 completion:**
 
-1. Full non-redacted cloud connection string for direct SQL execution
-2. Or: add `CLOUD_DATABASE_URL` to Vercel production env + re-link workspace to `zinc-fusion-v15`
+- None. Historical blockers were cleared on 2026-03-11 (project relink + cloud guard removal).
+
+---
+
+### 7. Forensic DB + Inngest Operational Audit (Working) (2026-03-11)
+
+**Status:** 🟡 WORKING DOCUMENT
+**Location:** `TO-DO/Audit/2026-03-11_forensic_db_inngest_operational_audit.md`
+**Scope:** Database integrity + Inngest end-to-end wiring + operational drift register
+**Checklist Checkpoint (2026-03-11):** P0 x1 complete, P1 x3 complete, P2 x2 complete (checklist fully closed).
+
+**Summary:**
+
+- Confirms runtime architecture is mostly aligned (`pg`/`psycopg2` for runtime, Prisma tooling for schema/migrations)
+- Flags P0 migration governance gap (`raw` schema still present in canonical migration chain)
+- Maps Inngest trigger-to-handler-to-DB paths; identifies dead wiring, manual trigger mismatches, runtime DDL, timeout/retry/concurrency inconsistencies
+- README truth-lock approved and applied (`TO-DO/Audit/2026-03-11_readme_truth_lock_draft.md`) to align architecture/runtime wording
+- Scoped parity tightening applied: `training.model_runs_event` added to cloud→local default sync; Prisma status now prints/enforces resolved DB target
+- Separates resolved items (cloud-guard removal) from open risks and provides prioritized remediation sequence for items 1-6
+
+---
+
+### 8. Chart, Databento, and Schema Drift Audit (2026-03-13)
+
+**Status:** ✅ COMPLETE
+**Location:** `TO-DO/Audit/2026-03-13_chart_databento_operational_audit.md`
+**Scope:** Frontend chart freshness, Databento ingest path, production-vs-local drift, migration safety
+
+**Summary:**
+
+- Production chart-serving tables are stale: `analytics.price_1d` stopped at `2026-03-10`, `analytics.price_1m` and `analytics.latest_price` at `2026-03-11 05:30:00+00`, and 5m/15m/1h tables are older still
+- Production forecasts are stale upstream: `forecasts.production_1d` latest `as_of_date = 2026-03-04`, with training inputs stale on `2026-03-03` and OOF on `2026-02-20`
+- The production Vercel `DATABENTO_API_KEY` is currently broken (`401 Authentication failed` on 2026-03-13), while a separately tested working key returns valid ZL data the same day
+- Local DB is toxic for migration work: only legacy `analytics.zl_live` exists locally, serving tables are missing, and `prisma migrate status` gives a false-clean result against a heavily drifted schema
+- No migrations were run; report explicitly recommends production credential repair first and local schema rebuild/re-sync before any migration activity
 
 ---
 
@@ -154,6 +187,7 @@ These are code-level issues discovered during audit searches, not audit document
 - Makefile targets `db-guard-cloud`, `db-guard-local`, `db-guard-shadow` — removed
 - `CLOUD_DATABASE_URL` concept eliminated — cloud queries use `DATABASE_URL` directly
 - Orphan Vercel project `frontend` deleted; workspace re-linked to `zinc-fusion-v15`
+- 7 Vercel env vars with trailing `\n` cleaned (APP_ORIGIN, EIA_API_KEY, GLIDE_BEARER_TOKEN, NOAA_API_TOKEN, PROFARMER_USERNAME, PROFARMER_PASSWORD, USDA_API_KEY)
 
 ### Remaining Blockers
 
@@ -168,9 +202,9 @@ These are code-level issues discovered during audit searches, not audit document
 
 ## Recommended Next Steps
 
-1. **Complete Phase 1A Training** — Prerequisite for Phase 4B/4C audits
-2. **Execute Specialist Audit Remediation Plan** — Phases A-E from 2026-02-14 audit
-3. **Resolve Vegas Schema Split** — Follow remediation steps in Vegas audit
-4. **Clean Trailing `\n`** — 7 Vercel env vars have literal `\n` suffixes (see Vercel audit)
-5. **Clean Up Audit Copies** — Consolidate Pre-Rebuild Forecast Audit references
-6. **Consolidate Prisma configs** — Two `prisma.config.ts` files exist (`config/` and `prisma/`); merge into one
+1. **Refresh stale data and rerun core training** — `training.matrix_1d` and `training.specialist_signals_1d` are stale, so the next model pass should start with fresh data before retraining.
+2. **Run Phase 4B/4C audits on the refreshed training outputs** — feature coverage and specialist signal quality depend on the next clean training cycle.
+3. **Execute Specialist Audit Remediation Plan** — Phases A-E from the 2026-02-14 specialist audit remain the next structural follow-up.
+4. **Keep env hygiene checks recurring** — re-check Vercel env values for accidental formatting drift (`\n`, duplicates).
+5. **Clean up audit copies** — consolidate Pre-Rebuild Forecast Audit references.
+6. **Consolidate Prisma configs** — two `prisma.config.ts` files still exist (`config/` and `prisma/`); merge into one.
