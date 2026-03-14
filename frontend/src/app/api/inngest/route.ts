@@ -14,6 +14,9 @@ import {
   fredDailyTrumpEffect,
   fredDailyChina,
   fredDailyGeneral,
+  fredDailyFxManual,
+  fredDailyVolatilityManual,
+  fredDailyTrumpEffectManual,
   cftcWeekly,
   federalRegisterDaily,
   nyfedDaily,
@@ -38,6 +41,7 @@ import {
   cpoPalmOilDaily,
   cpoTradingEconomics,
   profarmerDaily,
+  profarmerScheduledReports,
   profarmerBackfill,
   databentoFuturesDailyShards,
   databentoFutures1h,
@@ -50,6 +54,7 @@ import {
   databentoEtfVwapBackfill,
   futuresLegacySymbolsNightly,
   boardCrushDaily,
+  boardCrushDailyManual,
   boardCrushBackfill,
   eiaBiodieselMonthly,
   eiaBiodieselBackfill,
@@ -133,9 +138,8 @@ function getServeHost(): string | undefined {
 
 const serveHost = getServeHost();
 
-// Extend Vercel Lambda timeout to maximum (Fluid Compute / streaming mode).
-// On Vercel Pro this allows steps up to ~800s instead of the default 300s.
-export const maxDuration = 300;
+// Match frontend/vercel.json so route-level and deploy-level limits stay aligned.
+export const maxDuration = 800;
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -156,6 +160,9 @@ export const { GET, POST, PUT } = serve({
     fredDailyTrumpEffect,
     fredDailyChina,
     fredDailyGeneral,
+    fredDailyFxManual,
+    fredDailyVolatilityManual,
+    fredDailyTrumpEffectManual,
     // Government/regulatory
     cftcWeekly,
     federalRegisterDaily,
@@ -187,6 +194,7 @@ export const { GET, POST, PUT } = serve({
     glideVegasSync,
     // Premium subscriptions
     profarmerDaily,
+    ...profarmerScheduledReports,
     profarmerBackfill,
     // Databento market data
     ...databentoFuturesDailyShards,
@@ -203,6 +211,7 @@ export const { GET, POST, PUT } = serve({
     fxDatabentoSpotDaily,
     // Analytics calculations
     boardCrushDaily,
+    boardCrushDailyManual,
     boardCrushBackfill,
     // EIA biofuel data
     eiaBiodieselMonthly,

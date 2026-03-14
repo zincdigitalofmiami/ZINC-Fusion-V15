@@ -5,13 +5,18 @@
  * Prevents zombie rows from accumulating in ops.ingest_run.
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY, RETRIES } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
 
 export const cleanupStaleRuns = inngest.createFunction(
-  { id: "cleanup-stale-runs", name: "Cleanup Stale Ingest Runs", retries: 1 },
+  {
+    id: "cleanup-stale-runs",
+    name: "Cleanup Stale Ingest Runs",
+    retries: RETRIES.MAINTENANCE,
+    concurrency: [DB_CONCURRENCY, { limit: 1 }],
+  },
   { cron: "0 6 * * *" }, // Daily at 06:00 UTC
   async ({ logger }) => {
     if (!process.env.DATABASE_URL) {

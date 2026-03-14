@@ -93,6 +93,28 @@ const REPORTS = [
   },
 ];
 
+type ProFarmerReport = (typeof REPORTS)[number];
+
+const REPORTS_BY_SLUG = new Map<string, ProFarmerReport>(
+  REPORTS.map((report) => [report.slug, report]),
+);
+
+const PROFARMER_SERIAL_CONCURRENCY = {
+  scope: "env" as const,
+  key: '"profarmer-premium"',
+  limit: 1,
+};
+
+const PROFARMER_SCHEDULED_REPORT_SPECS = [
+  { reportSlug: "first-thing-today", cron: "TZ=America/New_York 0 4 * * 1-5" },
+  { reportSlug: "ahead-of-the-open", cron: "TZ=America/New_York 10 4 * * 1-5" },
+  { reportSlug: "daily-advice-monitor", cron: "TZ=America/New_York 20 4 * * 1-5" },
+  { reportSlug: "washington-ag-policy", cron: "TZ=America/New_York 30 4 * * 1-5" },
+  { reportSlug: "pro-farmer-editors", cron: "TZ=America/New_York 40 4 * * 1-5" },
+  { reportSlug: "crop-tour", cron: "TZ=America/New_York 50 4 * * 1-5" },
+  { reportSlug: "after-the-bell", cron: "TZ=America/New_York 0 5 * * 1-5" },
+] as const;
+
 function computeRowHash(url: string, title: string, pubDate: string): string {
   return createHash("sha256")
     .update(`${url}|${title}|${pubDate}`)
@@ -110,6 +132,26 @@ interface ScrapedArticle {
   author: string | null;
   reportSlug: string;
   specialists: string[];
+}
+
+interface ProFarmerRunStats {
+  attempted: number;
+  inserted: number;
+  skipped: number;
+  quarantined: number;
+}
+
+interface ProFarmerJobResult extends ProFarmerRunStats {
+  status: "success" | "login_failed";
+  runId: string;
+  reports: string[];
+  error?: string;
+}
+
+interface ProFarmerLogger {
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
 }
 
 type PuppeteerExtra = typeof import("puppeteer-extra").default;
@@ -521,186 +563,241 @@ async function scrapeReportArticles(
   return articles;
 }
 
-export const profarmerDaily = inngest.createFunction(
-  {
-    id: "profarmer-daily",
-    name: "ProFarmer Premium Scraper",
-    retries: 2,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }],
-  },
-  [
-    { cron: "TZ=America/Chicago 0 7 * * 1-5" }, // Weekdays 7 AM CT
-    { event: "profarmer/daily" }, // Manual trigger
-  ],
-  async ({ logger }) => {
-    // ── Phase 1: create ingest run (quick DB touch, release immediately) ──
-    let runId: string;
-    {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
-          ["profarmer-daily"],
-        );
-        runId = result.rows[0].id as string;
-      } finally {
-        client.release();
+function reportJobName(report: ProFarmerReport): string {
+  return `profarmer-${report.slug}`;
+}
+
+async function createProFarmerRun(jobName: string): Promise<string> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `INSERT INTO ops.ingest_run (job_name, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
+      [jobName],
+    );
+    return result.rows[0].id as string;
+  } finally {
+    client.release();
+  }
+}
+
+async function finalizeProFarmerRun(
+  runId: string,
+  status: string,
+  stats: ProFarmerRunStats,
+  errorMessage?: string,
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(
+      `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
+       rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
+      [
+        runId,
+        status,
+        stats.attempted,
+        stats.inserted,
+        stats.skipped,
+        stats.quarantined,
+        errorMessage ?? null,
+      ],
+    );
+  } finally {
+    client.release();
+  }
+}
+
+async function persistScrapedArticles(
+  allArticles: ScrapedArticle[],
+  logger: ProFarmerLogger,
+): Promise<ProFarmerRunStats> {
+  const stats: ProFarmerRunStats = {
+    attempted: 0,
+    inserted: 0,
+    skipped: 0,
+    quarantined: 0,
+  };
+
+  const client = await pool.connect();
+  try {
+    for (const article of allArticles) {
+      stats.attempted += 1;
+      const rowHash = computeRowHash(article.url, article.title, article.pubDate);
+
+      const exists = await client.query(
+        `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 OR url = $2 LIMIT 1`,
+        [rowHash, article.url],
+      );
+
+      if (exists.rows.length > 0) {
+        stats.skipped += 1;
+        continue;
       }
-    }
-    logger.info(`ProFarmer ingest run: ${runId}`);
 
-    // ── Phase 2: browser scraping (NO DB connection held during this) ──
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let browser: any = null;
-    let allArticles: ScrapedArticle[] = [];
+      const report = REPORTS_BY_SLUG.get(article.reportSlug);
+      const topics = extractTopics(article.title, article.content, article.reportSlug);
+      const subjects = extractSubjects(article.title, article.content);
+      const summary = article.content.slice(0, 500);
+      const metaDescription = article.content.slice(0, 300);
 
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let page: any;
       try {
-        const result = await launchProFarmerBrowser();
-        browser = result.browser;
-        page = result.page;
-        logger.info("ProFarmer login successful");
+        await client.query(
+          `INSERT INTO alt.profarmer_news_event (
+             event_date, section, headline, content, url, author,
+             specialist_tags, summary, topics, subjects,
+             meta_description, raw_payload, row_hash
+           ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
+          [
+            article.pubDate,
+            report?.name ?? article.reportSlug,
+            article.title,
+            article.content,
+            article.url,
+            article.author,
+            article.specialists,
+            summary,
+            topics,
+            subjects,
+            metaDescription,
+            JSON.stringify({
+              report: report?.name ?? article.reportSlug,
+              slug: article.reportSlug,
+            }),
+            rowHash,
+          ],
+        );
+        stats.inserted += 1;
+        logger.info(`Inserted: ${article.title.slice(0, 50)}...`);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.error(
-          `[profarmer] login failed runId=${runId} node=${process.version} region=${process.env.VERCEL_REGION ?? "n/a"} msg=${msg}`,
-        );
-        // Update ingest run with fresh connection
-        const client = await pool.connect();
-        try {
-          await client.query(
-            `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-             rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-            [runId, "login_failed", 0, 0, 0, 0, msg],
-          );
-        } finally {
-          client.release();
-        }
-        return { status: "login_failed", error: msg };
+        stats.quarantined += 1;
+        logger.warn(`Insert failed: ${err}`);
       }
-
-      // Scrape each report (all browser work, no DB)
-      for (const report of REPORTS) {
-        try {
-          const articles = await scrapeReportArticles(
-            page,
-            report.url,
-            report.slug,
-            report.specialists,
-            50,
-          );
-          logger.info(`${report.name}: ${articles.length} articles found`);
-          allArticles.push(...articles);
-        } catch (err) {
-          logger.warn(`Report ${report.name} failed: ${err}`);
-        }
-      }
-    } finally {
-      if (browser) await browser.close();
     }
+  } finally {
+    client.release();
+  }
 
-    // ── Phase 3: DB inserts (fresh connection, browser is closed) ──
-    let attempted = 0;
-    let inserted = 0;
-    let skipped = 0;
-    let quarantined = 0;
+  return stats;
+}
 
-    const client = await pool.connect();
+async function runProFarmerReports(
+  reports: readonly ProFarmerReport[],
+  jobName: string,
+  logger: ProFarmerLogger,
+): Promise<ProFarmerJobResult> {
+  const runId = await createProFarmerRun(jobName);
+  logger.info(`ProFarmer ingest run: ${runId}`);
+
+  let browser: Awaited<ReturnType<typeof launchProFarmerBrowser>>["browser"] | null = null;
+  const allArticles: ScrapedArticle[] = [];
+
+  try {
+    let page: Awaited<ReturnType<typeof launchProFarmerBrowser>>["page"];
     try {
-      for (const article of allArticles) {
-        attempted++;
-        const rowHash = computeRowHash(
-          article.url,
-          article.title,
-          article.pubDate,
-        );
-
-        // Dedup by row_hash OR url (handles cross-scheme hashes from legacy scrapers)
-        const exists = await client.query(
-          `SELECT 1 FROM alt.profarmer_news_event WHERE row_hash = $1 OR url = $2 LIMIT 1`,
-          [rowHash, article.url],
-        );
-
-        if (exists.rows.length > 0) {
-          skipped++;
-          continue;
-        }
-
-        // Compute metadata
-        const report = REPORTS.find(r => r.slug === article.reportSlug);
-        const topics = extractTopics(
-          article.title,
-          article.content,
-          article.reportSlug,
-        );
-        const subjects = extractSubjects(article.title, article.content);
-        const summary = article.content.slice(0, 500);
-        const metaDescription = article.content.slice(0, 300);
-
-        try {
-          await client.query(
-            `INSERT INTO alt.profarmer_news_event (
-               event_date, section, headline, content, url, author,
-               specialist_tags, summary, topics, subjects,
-               meta_description, raw_payload, row_hash
-             ) VALUES ($1::date, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)`,
-            [
-              article.pubDate,
-              report?.name ?? article.reportSlug,
-              article.title,
-              article.content,
-              article.url,
-              article.author,
-              article.specialists,
-              summary,
-              topics,
-              subjects,
-              metaDescription,
-              JSON.stringify({ report: report?.name ?? article.reportSlug, slug: article.reportSlug }),
-              rowHash,
-            ],
-          );
-          inserted++;
-          logger.info(`Inserted: ${article.title.slice(0, 50)}...`);
-        } catch (err) {
-          quarantined++;
-          logger.warn(`Insert failed: ${err}`);
-        }
-      }
-
-      // Finalize ingest run
-      await client.query(
-        `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-         rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6 WHERE id=$1`,
-        [runId, "success", attempted, inserted, skipped, quarantined],
+      const result = await launchProFarmerBrowser();
+      browser = result.browser;
+      page = result.page;
+      logger.info("ProFarmer login successful");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(
+        `[profarmer] login failed runId=${runId} node=${process.version} region=${process.env.VERCEL_REGION ?? "n/a"} msg=${msg}`,
       );
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      await client.query(
-        `UPDATE ops.ingest_run SET status=$2, completed_at=NOW(),
-         rows_attempted=$3, rows_inserted=$4, rows_skipped=$5, rows_quarantined=$6, error_message=$7 WHERE id=$1`,
-        [runId, "failed", attempted, inserted, skipped, quarantined, msg],
+      await finalizeProFarmerRun(
+        runId,
+        "login_failed",
+        { attempted: 0, inserted: 0, skipped: 0, quarantined: 0 },
+        msg,
       );
-      throw error;
-    } finally {
-      client.release();
+      return {
+        status: "login_failed",
+        runId,
+        attempted: 0,
+        inserted: 0,
+        skipped: 0,
+        quarantined: 0,
+        reports: reports.map((report) => report.slug),
+        error: msg,
+      };
     }
 
+    for (const report of reports) {
+      try {
+        const articles = await scrapeReportArticles(
+          page,
+          report.url,
+          report.slug,
+          report.specialists,
+          50,
+        );
+        logger.info(`${report.name}: ${articles.length} articles found`);
+        allArticles.push(...articles);
+      } catch (err) {
+        logger.warn(`Report ${report.name} failed: ${err}`);
+      }
+    }
+  } finally {
+    if (browser) await browser.close();
+  }
+
+  try {
+    const stats = await persistScrapedArticles(allArticles, logger);
+    await finalizeProFarmerRun(runId, "success", stats);
     return {
       status: "success",
       runId,
-      attempted,
-      inserted,
-      skipped,
-      quarantined,
+      reports: reports.map((report) => report.slug),
+      ...stats,
     };
+  } catch (error) {
+    const stats: ProFarmerRunStats = {
+      attempted: allArticles.length,
+      inserted: 0,
+      skipped: 0,
+      quarantined: 0,
+    };
+    const msg = error instanceof Error ? error.message : String(error);
+    await finalizeProFarmerRun(runId, "failed", stats, msg);
+    throw error;
+  }
+}
+
+export const profarmerDaily = inngest.createFunction(
+  {
+    id: "profarmer-daily",
+    name: "ProFarmer Premium Scraper (Manual Whole Sweep)",
+    retries: 2,
+    concurrency: [DB_CONCURRENCY, PROFARMER_SERIAL_CONCURRENCY],
+  },
+  { event: "profarmer/daily" },
+  async ({ logger }) => {
+    return runProFarmerReports(REPORTS, "profarmer-daily", logger);
+  },
+);
+
+export const profarmerScheduledReports = PROFARMER_SCHEDULED_REPORT_SPECS.map(
+  ({ reportSlug, cron }) => {
+    const report = REPORTS_BY_SLUG.get(reportSlug);
+    if (!report) {
+      throw new Error(`Unknown ProFarmer report slug in schedule map: ${reportSlug}`);
+    }
+
+    return inngest.createFunction(
+      {
+        id: `profarmer-${report.slug}-scheduled`,
+        name: `ProFarmer ${report.name}`,
+        retries: 2,
+        concurrency: [DB_CONCURRENCY, PROFARMER_SERIAL_CONCURRENCY],
+      },
+      { cron },
+      async ({ logger }) => {
+        return runProFarmerReports([report], reportJobName(report), logger);
+      },
+    );
   },
 );
 
 export const profarmerBackfill = inngest.createFunction(
-  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1, concurrency: [DB_CONCURRENCY, { limit: 1 }] },
+  { id: "profarmer-backfill", name: "ProFarmer 6-Month Backfill", retries: 1, concurrency: [DB_CONCURRENCY, PROFARMER_SERIAL_CONCURRENCY] },
   { event: "profarmer/backfill" },
   async ({ logger }) => {
     // ── Phase 1: create ingest run ──
@@ -862,7 +959,7 @@ export const profarmerWeeklyBackfill = inngest.createFunction(
     id: "profarmer-weekly-backfill",
     name: "ProFarmer Weekly Auto-Backfill",
     retries: 1,
-    concurrency: [DB_CONCURRENCY, { limit: 1 }],
+    concurrency: [DB_CONCURRENCY, PROFARMER_SERIAL_CONCURRENCY],
   },
   { cron: "TZ=America/Chicago 0 2 * * 0" }, // Sunday 2 AM CT
   async ({ step }) => {

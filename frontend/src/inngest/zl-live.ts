@@ -1,4 +1,4 @@
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest, DB_CONCURRENCY, RETRIES } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
@@ -79,7 +79,12 @@ function validateBar1d(bar: ZlBar1dEvent): void {
 }
 
 export const zlLive1d = inngest.createFunction(
-  { id: "zl-live-1d", name: "ZL Live 1d Bars", concurrency: [DB_CONCURRENCY] },
+  {
+    id: "zl-live-1d",
+    name: "ZL Live 1d Bars",
+    retries: RETRIES.EVENT_INGEST,
+    concurrency: [DB_CONCURRENCY],
+  },
   { event: "zl.bar.1d" },
   async ({ event }) => {
     const bar = event.data as ZlBar1dEvent;
@@ -122,7 +127,12 @@ export const zlLive1d = inngest.createFunction(
 // =============================================================================
 
 export const zlLive1m = inngest.createFunction(
-  { id: "zl-live-1m", name: "ZL Live 1m Bars", concurrency: [DB_CONCURRENCY] },
+  {
+    id: "zl-live-1m",
+    name: "ZL Live 1m Bars",
+    retries: RETRIES.EVENT_INGEST,
+    concurrency: [DB_CONCURRENCY],
+  },
   { event: "zl.bar.1m" },
   async ({ event, step }) => {
     const bar = event.data as ZlBar1mEvent;

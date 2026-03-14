@@ -12,7 +12,10 @@
  */
 
 import { inngest, DB_CONCURRENCY } from "./client";
-import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "@/lib/databento";
+import {
+  fetchDatabentoCsvWithAvailableEndRetry,
+  parseDatabentoOhlcvCsv,
+} from "@/lib/databento";
 import { refreshZl1mFromDatabento } from "@/lib/zl1m-refresh";
 import dbPool from "@/lib/db";
 
@@ -84,10 +87,11 @@ export const zl1mBackfill = inngest.createFunction(
 
     logger.info(`Backfilling ZL 1m from ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-    const csvData = await step.run("fetch-databento-1m", async () => {
-      const startStr = startDate.toISOString().split("T")[0];
-      const endStr = endDate.toISOString().split("T")[0];
-      return await fetchDatabentoCsv(
+    const startStr = startDate.toISOString().split("T")[0];
+    const endStr = endDate.toISOString().split("T")[0];
+
+    const fetchResult = await step.run("fetch-databento-1m", async () => {
+      return await fetchDatabentoCsvWithAvailableEndRetry(
         {
           dataset: DATABENTO_DATASET,
           symbols: ZL_SYMBOL,
@@ -102,6 +106,12 @@ export const zl1mBackfill = inngest.createFunction(
         15_000
       );
     });
+
+    if (fetchResult.effectiveEnd && fetchResult.effectiveEnd !== endStr) {
+      logger.info(`Databento clamped manual ZL 1m backfill end to ${fetchResult.effectiveEnd}`);
+    }
+
+    const csvData = fetchResult.csv;
 
     if (!csvData || csvData.length === 0) {
       logger.warn("No data returned from Databento");

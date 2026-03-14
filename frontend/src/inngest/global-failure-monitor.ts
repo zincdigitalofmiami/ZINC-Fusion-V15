@@ -11,13 +11,18 @@
  *   ops.pipeline_alerts
  */
 
-import { inngest } from "./client";
+import { inngest, DB_CONCURRENCY, RETRIES } from "./client";
 import dbPool from "@/lib/db";
 
 const pool = dbPool;
 
 export const globalFailureMonitor = inngest.createFunction(
-	{ id: "global-failure-monitor", name: "Global Failure Monitor", retries: 1 },
+	{
+		id: "global-failure-monitor",
+		name: "Global Failure Monitor",
+		retries: RETRIES.MAINTENANCE,
+		concurrency: [DB_CONCURRENCY, { limit: 1 }],
+	},
 	{ event: "inngest/function.failed" },
 	async ({ event, step, logger }) => {
 		const { error, function_id, run_id } = event.data as {

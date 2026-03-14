@@ -921,6 +921,102 @@ async function ingestFredSegment(
 // MAIN INNGEST FUNCTIONS (SEGMENTED)
 // =============================================================================
 
+type FredStep = {
+  run(id: string, fn: () => Promise<unknown>): Promise<unknown>;
+};
+
+type FredLogger = {
+  info(message: string): void;
+};
+
+async function runFredSegment(
+  config: FredSegmentConfig,
+  step: FredStep,
+  logger: FredLogger
+) {
+  const apiKey = process.env.FRED_API_KEY;
+  if (!apiKey) {
+    return { status: "error", message: "FRED_API_KEY not configured" };
+  }
+
+  // ── Step 1: create ingest run (fresh connection) ──
+  const runId = await step.run("create-ingest-run", async () => {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `INSERT INTO ops.ingest_run (job_name, status, started_at)
+         VALUES ($1, 'running', NOW())
+         RETURNING id`,
+        [config.jobName]
+      );
+      return result.rows[0].id as string;
+    } finally {
+      client.release();
+    }
+  }) as string;
+
+  logger.info(`Started ingest run: ${runId} (${config.segment})`);
+
+  // ── Step 2: fetch FRED data + insert (fresh connection inside ingestFredSegment) ──
+  const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
+    const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
+    const timeoutMs = config.fetchTimeoutMs ?? DEFAULT_FRED_FETCH_TIMEOUT_MS;
+    const retries = config.fetchRetries ?? DEFAULT_FRED_FETCH_RETRIES;
+    const backoffMs = config.fetchBackoffMs ?? DEFAULT_FRED_FETCH_BACKOFF_MS;
+    return await ingestFredSegment(
+      runId,
+      apiKey,
+      config.series,
+      {
+        rateLimitMs,
+        timeoutMs,
+        retries,
+        backoffMs,
+      }
+    );
+  }) as Awaited<ReturnType<typeof ingestFredSegment>>;
+
+  // ── Step 3: finalize ingest run (fresh connection) ──
+  await step.run("complete-ingest-run", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query(
+        `UPDATE ops.ingest_run
+         SET status = $2,
+             completed_at = NOW(),
+             rows_attempted = $3,
+             rows_inserted = $4,
+             rows_skipped = $5,
+             rows_quarantined = $6
+         WHERE id = $1`,
+        [runId, "success", segmentSummary.attempted, segmentSummary.inserted, segmentSummary.skipped, segmentSummary.quarantined]
+      );
+    } finally {
+      client.release();
+    }
+  });
+
+  logger.info(`Completed ingest run: ${runId}`);
+  logger.info(`  Attempted: ${segmentSummary.attempted}`);
+  logger.info(`  Inserted: ${segmentSummary.inserted}`);
+  logger.info(`  Skipped: ${segmentSummary.skipped}`);
+  logger.info(`  Quarantined: ${segmentSummary.quarantined}`);
+
+  return {
+    status: "success",
+    runId,
+    segment: config.segment,
+    date: new Date().toISOString().split("T")[0],
+    summary: {
+      attempted: segmentSummary.attempted,
+      inserted: segmentSummary.inserted,
+      skipped: segmentSummary.skipped,
+      quarantined: segmentSummary.quarantined,
+    },
+    results: segmentSummary.results,
+  };
+}
+
 function createFredSegmentJob(config: FredSegmentConfig) {
   return inngest.createFunction(
     {
@@ -931,87 +1027,22 @@ function createFredSegmentJob(config: FredSegmentConfig) {
     },
     { cron: config.cron },
     async ({ step, logger }) => {
-      const apiKey = process.env.FRED_API_KEY;
-      if (!apiKey) {
-        return { status: "error", message: "FRED_API_KEY not configured" };
-      }
+      return runFredSegment(config, step, logger);
+    }
+  );
+}
 
-      // ── Step 1: create ingest run (fresh connection) ──
-      const runId = await step.run("create-ingest-run", async () => {
-        const client = await pool.connect();
-        try {
-          const result = await client.query(
-            `INSERT INTO ops.ingest_run (job_name, status, started_at)
-             VALUES ($1, 'running', NOW())
-             RETURNING id`,
-            [config.jobName]
-          );
-          return result.rows[0].id as string;
-        } finally {
-          client.release();
-        }
-      });
-
-      logger.info(`Started ingest run: ${runId} (${config.segment})`);
-
-      // ── Step 2: fetch FRED data + insert (fresh connection inside ingestFredSegment) ──
-      const segmentSummary = await step.run(`fetch-${config.segment}`, async () => {
-        const rateLimitMs = config.rateLimitMs ?? DEFAULT_FRED_RATE_LIMIT_MS;
-        const timeoutMs = config.fetchTimeoutMs ?? DEFAULT_FRED_FETCH_TIMEOUT_MS;
-        const retries = config.fetchRetries ?? DEFAULT_FRED_FETCH_RETRIES;
-        const backoffMs = config.fetchBackoffMs ?? DEFAULT_FRED_FETCH_BACKOFF_MS;
-        return await ingestFredSegment(
-          runId,
-          apiKey,
-          config.series,
-          {
-            rateLimitMs,
-            timeoutMs,
-            retries,
-            backoffMs,
-          }
-        );
-      });
-
-      // ── Step 3: finalize ingest run (fresh connection) ──
-      await step.run("complete-ingest-run", async () => {
-        const client = await pool.connect();
-        try {
-          await client.query(
-            `UPDATE ops.ingest_run
-             SET status = $2,
-                 completed_at = NOW(),
-                 rows_attempted = $3,
-                 rows_inserted = $4,
-                 rows_skipped = $5,
-                 rows_quarantined = $6
-             WHERE id = $1`,
-            [runId, "success", segmentSummary.attempted, segmentSummary.inserted, segmentSummary.skipped, segmentSummary.quarantined]
-          );
-        } finally {
-          client.release();
-        }
-      });
-
-      logger.info(`Completed ingest run: ${runId}`);
-      logger.info(`  Attempted: ${segmentSummary.attempted}`);
-      logger.info(`  Inserted: ${segmentSummary.inserted}`);
-      logger.info(`  Skipped: ${segmentSummary.skipped}`);
-      logger.info(`  Quarantined: ${segmentSummary.quarantined}`);
-
-      return {
-        status: "success",
-        runId,
-        segment: config.segment,
-        date: new Date().toISOString().split("T")[0],
-        summary: {
-          attempted: segmentSummary.attempted,
-          inserted: segmentSummary.inserted,
-          skipped: segmentSummary.skipped,
-          quarantined: segmentSummary.quarantined,
-        },
-        results: segmentSummary.results,
-      };
+function createFredSegmentManualJob(config: FredSegmentConfig) {
+  return inngest.createFunction(
+    {
+      id: `${config.id}-manual`,
+      name: `${config.displayName} (Manual)`,
+      retries: config.retries ?? DEFAULT_JOB_RETRIES,
+      concurrency: [DB_CONCURRENCY, { limit: 1 }],
+    },
+    { event: config.id },
+    async ({ step, logger }) => {
+      return runFredSegment(config, step, logger);
     }
   );
 }
@@ -1026,3 +1057,6 @@ export const fredDailyVolatility = createFredSegmentJob(FRED_SEGMENT_CONFIGS.vol
 export const fredDailyTrumpEffect = createFredSegmentJob(FRED_SEGMENT_CONFIGS.trump_effect);
 export const fredDailyChina = createFredSegmentJob(FRED_SEGMENT_CONFIGS.china);
 export const fredDailyGeneral = createFredSegmentJob(FRED_SEGMENT_CONFIGS.general);
+export const fredDailyFxManual = createFredSegmentManualJob(FRED_SEGMENT_CONFIGS.fx);
+export const fredDailyVolatilityManual = createFredSegmentManualJob(FRED_SEGMENT_CONFIGS.volatility);
+export const fredDailyTrumpEffectManual = createFredSegmentManualJob(FRED_SEGMENT_CONFIGS.trump_effect);

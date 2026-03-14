@@ -1,5 +1,8 @@
 import { inngest, DB_CONCURRENCY } from "./client";
-import { fetchDatabentoCsv, parseDatabentoOhlcvCsv } from "../lib/databento";
+import {
+  fetchDatabentoCsvWithAvailableEndRetry,
+  parseDatabentoOhlcvCsv,
+} from "../lib/databento";
 import dbPool from "@/lib/db";
 import { randomUUID } from "crypto";
 
@@ -20,7 +23,7 @@ async function fetchDatabentoDailyZl(): Promise<DatabentoDailyQuote | null> {
   end.setUTCHours(0, 0, 0, 0);
   const start = new Date(end.getTime() - 5 * 24 * 60 * 60 * 1000);
 
-  const csv = await fetchDatabentoCsv({
+  const { csv } = await fetchDatabentoCsvWithAvailableEndRetry({
     dataset: "GLBX.MDP3",
     schema: "ohlcv-1d",
     symbols: "ZL.n.0",

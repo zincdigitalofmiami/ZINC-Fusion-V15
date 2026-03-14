@@ -13,7 +13,12 @@
  * Table: supply.eia_biodiesel_1w
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import {
+  inngest,
+  DB_CONCURRENCY,
+  RETRIES,
+  HTTP_TIMEOUT_MS,
+} from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
@@ -25,19 +30,6 @@ const BIODIESEL_PRODUCT = "EPOORDB"; // Biofuels Plant Net Production of Biodies
 const RENEWABLE_DIESEL_PRODUCT = "EPOORDO"; // Biofuels Plant Net Production of Renewable Diesel
 const PRODUCTION_PROCESS = "YNP"; // Plant Net Production
 const NATIONAL_AREA = "NUS"; // United States total
-
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.eia_biodiesel_1w (
-  id SERIAL PRIMARY KEY,
-  week_ending DATE NOT NULL UNIQUE,
-  biodiesel_production_kbpd DOUBLE PRECISION,
-  renewable_diesel_production_kbpd DOUBLE PRECISION,
-  total_biofuel_production_kbpd DOUBLE PRECISION,
-  source VARCHAR(50) DEFAULT 'eia_weekly',
-  row_hash VARCHAR(64) NOT NULL UNIQUE,
-  ingested_at TIMESTAMPTZ DEFAULT NOW()
-);
-`;
 
 interface PetroleumDataPoint {
   period: string;
@@ -129,9 +121,6 @@ async function upsertWeeklyRecords(
   let skipped = 0;
 
   try {
-    // Ensure the table exists
-    await client.query(CREATE_TABLE_SQL);
-
     for (const record of records) {
       const rowHash = generateRowHash(
         record.weekEnding,
@@ -184,6 +173,29 @@ async function upsertWeeklyRecords(
   return { inserted, updated, skipped };
 }
 
+async function fetchPetroleumResponse(url: string): Promise<PetroleumResponse> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS.LONG),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        `EIA petroleum/sum/wkly API timeout after ${HTTP_TIMEOUT_MS.LONG}ms`,
+      );
+    }
+    throw error;
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`EIA petroleum/sum/wkly API error: ${response.status} - ${text}`);
+  }
+
+  return (await response.json()) as PetroleumResponse;
+}
+
 // ---------------------------------------------------------------------------
 // Scheduled weekly function (cron)
 // ---------------------------------------------------------------------------
@@ -192,7 +204,7 @@ export const eiaBiodieselWeekly = inngest.createFunction(
   {
     id: "eia-biodiesel-weekly",
     name: "EIA Biodiesel Production Weekly",
-    retries: 2,
+    retries: RETRIES.CRON_INGEST,
     concurrency: [DB_CONCURRENCY],
   },
   { cron: "0 16 * * 3" }, // 4 PM UTC on Wednesdays
@@ -220,13 +232,7 @@ export const eiaBiodieselWeekly = inngest.createFunction(
         `&sort[0][column]=period` +
         `&sort[0][direction]=desc`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`EIA petroleum/sum/wkly API error: ${response.status} - ${text}`);
-      }
-
-      const json: PetroleumResponse = await response.json();
+      const json = await fetchPetroleumResponse(url);
       return mergeByWeek(json.response.data);
     });
 
@@ -262,7 +268,7 @@ export const eiaBiodieselWeeklyBackfill = inngest.createFunction(
   {
     id: "eia-biodiesel-weekly-backfill",
     name: "EIA Biodiesel Weekly Historical Backfill",
-    retries: 2,
+    retries: RETRIES.EVENT_INGEST,
     concurrency: [DB_CONCURRENCY, { limit: 1 }],
   },
   { event: "eia.biodiesel.weekly.backfill" },
@@ -282,9 +288,6 @@ export const eiaBiodieselWeeklyBackfill = inngest.createFunction(
     const existingRange = await step.run("check-existing-weekly-data", async () => {
       const client = await pool.connect();
       try {
-        // Ensure the table exists before querying it
-        await client.query(CREATE_TABLE_SQL);
-
         const result = await client.query(`
           SELECT MIN(week_ending) as min_date, MAX(week_ending) as max_date, COUNT(*) as count
           FROM supply.eia_biodiesel_1w
@@ -317,13 +320,7 @@ export const eiaBiodieselWeeklyBackfill = inngest.createFunction(
         `&sort[0][column]=period` +
         `&sort[0][direction]=asc`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`EIA petroleum/sum/wkly API error: ${response.status} - ${text}`);
-      }
-
-      const json: PetroleumResponse = await response.json();
+      const json = await fetchPetroleumResponse(url);
       return mergeByWeek(json.response.data);
     });
 

@@ -61,31 +61,6 @@ interface GATSRecord {
 }
 
 // ---------------------------------------------------------------------------
-// Table DDL
-// ---------------------------------------------------------------------------
-
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.fas_gats_1m (
-  id SERIAL PRIMARY KEY,
-  report_month DATE NOT NULL,
-  commodity VARCHAR(50) NOT NULL,
-  symbol VARCHAR(30) NOT NULL,
-  partner_country VARCHAR(100) NOT NULL DEFAULT 'World',
-  value_usd DOUBLE PRECISION,
-  quantity_mt DOUBLE PRECISION,
-  flow VARCHAR(10) NOT NULL DEFAULT 'export',
-  source VARCHAR(30) DEFAULT 'fas_gats',
-  specialist_tags TEXT[] DEFAULT '{tariff,china,crush}',
-  row_hash VARCHAR(64) NOT NULL,
-  ingested_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(report_month, symbol, partner_country, flow)
-);
-CREATE INDEX IF NOT EXISTS idx_fas_gats_month ON supply.fas_gats_1m(report_month);
-CREATE INDEX IF NOT EXISTS idx_fas_gats_symbol ON supply.fas_gats_1m(symbol);
-CREATE INDEX IF NOT EXISTS idx_fas_gats_partner ON supply.fas_gats_1m(partner_country);
-`;
-
-// ---------------------------------------------------------------------------
 // Source 1: USDA FAS GATS Website Scrape
 // ---------------------------------------------------------------------------
 
@@ -266,19 +241,9 @@ export const fasGatsTradeMonthly = inngest.createFunction(
   async ({ step, logger }) => {
     logger.info("Fetching US soybean complex trade data (FAS GATS + Census)");
 
-    // Step 1: Ensure table
-    await step.run("ensure-table", async () => {
-      const client = await pool.connect();
-      try {
-        await client.query(CREATE_TABLE_SQL);
-      } finally {
-        client.release();
-      }
-    });
-
     const allRecords: GATSRecord[] = [];
 
-    // Step 2: Fetch each commodity
+    // Step 1: Fetch each commodity
     for (const hsCode of TRADE_HS_CODES) {
       const records = await step.run(`fetch-${hsCode.symbol}`, async () => {
         // Try GATS first
@@ -302,7 +267,7 @@ export const fasGatsTradeMonthly = inngest.createFunction(
       }
     }
 
-    // Step 3: Upsert
+    // Step 2: Upsert
     const result = await step.run("upsert-trade-data", async () => {
       const client = await pool.connect();
       let inserted = 0;

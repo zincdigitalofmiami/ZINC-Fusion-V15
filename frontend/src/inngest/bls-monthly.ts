@@ -100,23 +100,6 @@ function computeRowHash(seriesId: string, date: string, value: string): string {
     .digest("hex");
 }
 
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS econ.bls_1m (
-  id SERIAL PRIMARY KEY,
-  series_id VARCHAR(30) NOT NULL,
-  event_date DATE NOT NULL,
-  value DOUBLE PRECISION NOT NULL,
-  series_name VARCHAR(120),
-  specialist_tags TEXT[],
-  source VARCHAR(30) DEFAULT 'bls_api',
-  row_hash VARCHAR(64) NOT NULL,
-  ingested_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(series_id, event_date)
-);
-CREATE INDEX IF NOT EXISTS idx_bls_1m_date ON econ.bls_1m(event_date);
-CREATE INDEX IF NOT EXISTS idx_bls_1m_series ON econ.bls_1m(series_id);
-`;
-
 // ---------------------------------------------------------------------------
 // Fetch from BLS API
 // ---------------------------------------------------------------------------
@@ -182,17 +165,7 @@ export const blsMonthly = inngest.createFunction(
     // Fetch last 2 years to catch revisions
     const startYear = currentYear - 1;
 
-    // Step 1: Ensure table exists
-    await step.run("ensure-table", async () => {
-      const client = await pool.connect();
-      try {
-        await client.query(CREATE_TABLE_SQL);
-      } finally {
-        client.release();
-      }
-    });
-
-    // Step 2: Fetch from BLS API (split into batches of 10 for unregistered)
+    // Step 1: Fetch from BLS API (split into batches of 10 for unregistered)
     const batchSize = apiKey ? 25 : 10;
     const allSeries: BlsApiSeries[] = [];
 
@@ -215,7 +188,7 @@ export const blsMonthly = inngest.createFunction(
 
     logger.info(`Fetched ${allSeries.length} BLS series`);
 
-    // Step 3: Upsert into database
+    // Step 2: Upsert into database
     const result = await step.run("upsert-bls-data", async () => {
       const client = await pool.connect();
       let inserted = 0;

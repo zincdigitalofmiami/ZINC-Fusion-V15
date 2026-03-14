@@ -4,6 +4,7 @@ import {
   GOOGLE_NEWS_LANES,
   MAX_NEWS_ITEM_AGE_DAYS,
   buildCanonicalSourceValue,
+  evaluateLaneRelevance,
   parseRssXml,
   prepareCanonicalRows,
 } from "./google-news-daily";
@@ -27,6 +28,7 @@ describe("google-news-daily lane + date contracts", () => {
         <item>
           <title>Valid dated story</title>
           <link>https://example.com/valid</link>
+          <description><![CDATA[<div>Trade policy and soybean oil feedstock coverage</div>]]></description>
           <pubDate>Tue, 10 Mar 2026 14:00:00 GMT</pubDate>
           <source>Example Wire</source>
         </item>
@@ -48,6 +50,7 @@ describe("google-news-daily lane + date contracts", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0].headline).toBe("Valid dated story");
+    expect(rows[0].description).toBe("Trade policy and soybean oil feedstock coverage");
     expect(rows[0].eventDate).toBe("2026-03-10");
   });
 
@@ -61,6 +64,7 @@ describe("google-news-daily lane + date contracts", () => {
     const duplicatedAcrossLanes = {
       headline: "Fresh soybean oil biofuel policy article",
       url: "https://example.com/fresh",
+      description: "Renewable diesel feedstock demand keeps soybean oil in focus.",
       publishedAt: "2026-03-08T15:00:00.000Z",
       eventDate: "2026-03-08",
       pubSource: "Example News",
@@ -69,6 +73,7 @@ describe("google-news-daily lane + date contracts", () => {
     const stale = {
       headline: "Stale soybean oil policy article",
       url: "https://example.com/stale",
+      description: "Older soybean oil market coverage.",
       publishedAt: "2025-11-01T12:00:00.000Z",
       eventDate: "2025-11-01",
       pubSource: "Example News",
@@ -95,6 +100,50 @@ describe("google-news-daily lane + date contracts", () => {
     const maxAgeMs = MAX_NEWS_ITEM_AGE_DAYS * 24 * 60 * 60 * 1000;
     const acceptedAgeMs = now.getTime() - Date.parse(rows[0].publishedAt);
     expect(acceptedAgeMs).toBeLessThanOrEqual(maxAgeMs);
+  });
+
+  it("rejects lane noise and semantic misses before insert", () => {
+    const immigrationLane = GOOGLE_NEWS_LANES.find((entry) => entry.slug === "ice_immigration");
+    const legislationLane = GOOGLE_NEWS_LANES.find((entry) => entry.slug === "legislation");
+    if (!immigrationLane || !legislationLane) throw new Error("lane missing in test");
+
+    const weatherNoise = {
+      headline: "Ice storm closes schools across the Midwest",
+      url: "https://example.com/weather",
+      description: "Road conditions worsen after overnight snow storm warnings.",
+      publishedAt: "2026-03-10T12:00:00.000Z",
+      eventDate: "2026-03-10",
+      pubSource: "Example News",
+    };
+    const semanticMiss = {
+      headline: "Congress celebrates opening day ceremony",
+      url: "https://example.com/ceremony",
+      description: "Members gathered for a ceremonial photo and tribute.",
+      publishedAt: "2026-03-10T12:10:00.000Z",
+      eventDate: "2026-03-10",
+      pubSource: "Example News",
+    };
+
+    expect(evaluateLaneRelevance(weatherNoise, immigrationLane)).toEqual({
+      accepted: false,
+      reason: "noise",
+    });
+    expect(evaluateLaneRelevance(semanticMiss, legislationLane)).toEqual({
+      accepted: false,
+      reason: "semantic_miss",
+    });
+
+    const { rows, stats } = prepareCanonicalRows(
+      [
+        { lane: immigrationLane, rawItems: [weatherNoise] },
+        { lane: legislationLane, rawItems: [semanticMiss] },
+      ],
+      new Date("2026-03-10T18:00:00.000Z"),
+    );
+
+    expect(rows).toHaveLength(0);
+    expect(stats.noiseRejected).toBe(1);
+    expect(stats.semanticRejected).toBe(1);
   });
 
   it("caps source value length to fit schema field", () => {

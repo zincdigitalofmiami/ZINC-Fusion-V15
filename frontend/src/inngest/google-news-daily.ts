@@ -149,6 +149,7 @@ const CROSS_TAG_KEYWORDS: Record<string, string[]> = {
 export interface ParsedGoogleNewsItem {
   headline: string;
   url: string | null;
+  description: string | null;
   publishedAt: string; // ISO timestamp
   eventDate: string; // YYYY-MM-DD (UTC)
   pubSource: string;
@@ -168,9 +169,63 @@ interface CanonicalPreparationStats {
   attempted: number;
   stale: number;
   invalidDate: number;
+  noiseRejected: number;
+  semanticRejected: number;
   deduped: number;
   prepared: number;
 }
+
+interface LaneRelevanceResult {
+  accepted: boolean;
+  reason: "matched" | "noise" | "semantic_miss";
+}
+
+const GENERIC_NOISE_PATTERNS = [
+  /\b(nba|nfl|mlb|nhl|soccer|golf|tennis|march madness|playoff|coach|quarterback|goal|touchdown)\b/i,
+  /\b(movie|tv series|album|celebrity|red carpet|box office|streaming|fashion week)\b/i,
+  /\b(weather alert|ice storm|snow storm|road conditions|school closure)\b/i,
+  /\b(coupon|promo code|shopping deal|black friday|cyber monday)\b/i,
+  /\b(lottery|horoscope|crossword|sudoku)\b/i,
+];
+
+interface LaneSemanticRule {
+  primary: RegExp[];
+  context?: RegExp[];
+}
+
+const LANE_SEMANTIC_RULES: Record<string, LaneSemanticRule> = {
+  ice_immigration: {
+    primary: [
+      /\b(ice|immigration|deportation|detention|border security|border patrol|asylum|migrant|homeland security)\b/i,
+    ],
+    context: [/\b(enforcement|funding|hiring|operations?|contract|facility|raids?|shelter|policy)\b/i],
+  },
+  war_military: {
+    primary: [
+      /\b(war|military|defense|pentagon|airstrike|missile|troops?|drone strike|ceasefire|navy|army|marines?)\b/i,
+    ],
+    context: [/\b(middle east|iran|israel|gaza|ukraine|red sea|strait of hormuz|sanctions|oil supply|security aid|deployment|force posture)\b/i],
+  },
+  soybean_oil: {
+    primary: [/\b(soybean oil|soy oil|vegetable oil|palm oil|canola oil|edible oil|oilseed)\b/i],
+    context: [/\b(trade|export|import|market|feedstock|renewable diesel|biodiesel|biofuel|supply|mandate)\b/i],
+  },
+  soybean_agriculture: {
+    primary: [/\b(soybeans?|soy complex|soybean meal|soybean exports?)\b/i],
+    context: [/\b(usda|crop|acreage|yield|export sales|grain|harvest|planting|brazil|argentina|china|logistics)\b/i],
+  },
+  trump_actions: {
+    primary: [/\b(trump|white house|presidential|executive order|administration)\b/i],
+    context: [/\b(tariff|sanctions|trade|policy|executive action|foreign leaders?|lobbying|immigration|energy|deal)\b/i],
+  },
+  legislation: {
+    primary: [/\b(congress|senate|house|bill|legislation|rule|regulation|committee)\b/i],
+    context: [/\b(agriculture|trade|soybean oil|biofuel|tax credit|customs|fuel|epa|usda|farm bill|tariff)\b/i],
+  },
+  biofuel: {
+    primary: [/\b(biofuel|biodiesel|renewable diesel|renewable fuel standard|rfs|rin|45z|saf|feedstock)\b/i],
+  },
+};
 
 interface LaneBatch {
   lane: GoogleNewsLane;
@@ -202,6 +257,30 @@ export function buildCanonicalSourceValue(pubSource: string): string {
   const raw = `${SOURCE_NAME}/${sourcePart}`;
   if (raw.length <= SOURCE_MAX_LENGTH) return raw;
   return raw.slice(0, SOURCE_MAX_LENGTH);
+}
+
+function decodeBasicEntities(value: string): string {
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function stripHtmlTags(value: string): string {
+  return value.replace(/<[^>]+>/g, " ");
+}
+
+function normalizeArticleText(...parts: Array<string | null | undefined>): string {
+  return parts
+    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .map((part) => stripHtmlTags(decodeBasicEntities(part)))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -238,6 +317,7 @@ export function parseRssXml(xml: string): ParsedGoogleNewsItem[] {
 
     const titleMatch = /<title>([\s\S]*?)<\/title>/.exec(item);
     const linkMatch = /<link>([\s\S]*?)<\/link>/.exec(item);
+    const descriptionMatch = /<description>([\s\S]*?)<\/description>/.exec(item);
     const pubDateMatch = /<pubDate>([\s\S]*?)<\/pubDate>/.exec(item);
     const sourceMatch = /<source[^>]*>([\s\S]*?)<\/source>/.exec(item);
 
@@ -247,19 +327,19 @@ export function parseRssXml(xml: string): ParsedGoogleNewsItem[] {
     const parsedDate = new Date(pubDateMatch[1].trim());
     if (Number.isNaN(parsedDate.getTime())) continue;
 
-    const headline = titleMatch[1]
-      .trim()
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+    const headline = decodeBasicEntities(titleMatch[1].trim());
+    const description = descriptionMatch?.[1]
+      ? stripHtmlTags(decodeBasicEntities(descriptionMatch[1]))
+          .replace(/\s+/g, " ")
+          .trim() || null
+      : null;
 
     const publishedAt = parsedDate.toISOString();
 
     items.push({
       headline,
       url: linkMatch?.[1]?.trim() || null,
+      description,
       publishedAt,
       eventDate: publishedAt.slice(0, 10),
       pubSource: sourceMatch?.[1]?.trim() || "Google News",
@@ -274,15 +354,16 @@ export function parseRssXml(xml: string): ParsedGoogleNewsItem[] {
  */
 export function computeSpecialistTags(
   headline: string,
+  description: string | null,
   lane: GoogleNewsLane,
 ): string[] {
   const tags = new Set<string>([...lane.baseTags, laneTag(lane.slug)]);
-  const headlineLower = headline.toLowerCase();
+  const articleText = normalizeArticleText(headline, description);
 
   for (const [bucket, keywords] of Object.entries(CROSS_TAG_KEYWORDS)) {
     if (tags.has(bucket)) continue;
     for (const kw of keywords) {
-      if (headlineLower.includes(kw)) {
+      if (articleText.includes(kw)) {
         tags.add(bucket);
         break;
       }
@@ -290,6 +371,33 @@ export function computeSpecialistTags(
   }
 
   return Array.from(tags).sort();
+}
+
+export function evaluateLaneRelevance(
+  item: ParsedGoogleNewsItem,
+  lane: GoogleNewsLane,
+): LaneRelevanceResult {
+  const articleText = normalizeArticleText(item.headline, item.description);
+  if (!articleText) {
+    return { accepted: false, reason: "semantic_miss" };
+  }
+
+  const rule = LANE_SEMANTIC_RULES[lane.slug];
+  const primaryMatched = rule?.primary.some((pattern) => pattern.test(articleText)) ?? true;
+  const contextMatched =
+    !rule?.context?.length ||
+    rule.context.some((pattern) => pattern.test(articleText));
+  const noiseMatched = GENERIC_NOISE_PATTERNS.some((pattern) => pattern.test(articleText));
+
+  if (primaryMatched && contextMatched) {
+    return { accepted: true, reason: "matched" };
+  }
+
+  if (noiseMatched) {
+    return { accepted: false, reason: "noise" };
+  }
+
+  return { accepted: false, reason: "semantic_miss" };
 }
 
 function normalizeHeadlineForHash(headline: string): string {
@@ -320,6 +428,8 @@ export function prepareCanonicalRows(
     attempted: 0,
     stale: 0,
     invalidDate: 0,
+    noiseRejected: 0,
+    semanticRejected: 0,
     deduped: 0,
     prepared: 0,
   };
@@ -339,8 +449,18 @@ export function prepareCanonicalRows(
         continue;
       }
 
+      const relevance = evaluateLaneRelevance(item, lane);
+      if (!relevance.accepted) {
+        if (relevance.reason === "noise") {
+          stats.noiseRejected += 1;
+        } else {
+          stats.semanticRejected += 1;
+        }
+        continue;
+      }
+
       const canonicalHash = canonicalArticleHash(item);
-      const tags = computeSpecialistTags(item.headline, lane);
+      const tags = computeSpecialistTags(item.headline, item.description, lane);
       const existing = canonicalByHash.get(canonicalHash);
 
       if (!existing) {
@@ -412,7 +532,7 @@ export const googleNewsDaily = inngest.createFunction(
     retries: 2,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "0 13 * * *" }, // Daily at 13:00 UTC (8 AM CT)
+  { cron: "TZ=America/New_York 0 */2 * * *" },
   async ({ step, logger }) => {
     const runId = await step.run("create-ingest-run", async () => {
       return createIngestRun(pool, JOB_NAME);
@@ -425,6 +545,8 @@ export const googleNewsDaily = inngest.createFunction(
       let totalSkipped = 0;
       let totalStale = 0;
       let totalInvalidDate = 0;
+      let totalNoiseRejected = 0;
+      let totalSemanticRejected = 0;
       let totalDeduped = 0;
 
       const laneBatches: LaneBatch[] = [];
@@ -450,6 +572,8 @@ export const googleNewsDaily = inngest.createFunction(
       totalPrepared = stats.prepared;
       totalStale = stats.stale;
       totalInvalidDate = stats.invalidDate;
+      totalNoiseRejected = stats.noiseRejected;
+      totalSemanticRejected = stats.semanticRejected;
       totalDeduped = stats.deduped;
 
       if (rows.length > 0) {
@@ -507,12 +631,18 @@ export const googleNewsDaily = inngest.createFunction(
           status: "success",
           rowsAttempted: totalFetched,
           rowsInserted: totalInserted,
-          rowsSkipped: totalSkipped + totalStale + totalInvalidDate + totalDeduped,
+          rowsSkipped:
+            totalSkipped +
+            totalStale +
+            totalInvalidDate +
+            totalNoiseRejected +
+            totalSemanticRejected +
+            totalDeduped,
         });
       });
 
       logger.info(
-        `Google News Daily complete: fetched=${totalFetched}, prepared_canonical=${totalPrepared}, inserted=${totalInserted}, skipped_db_conflict=${totalSkipped}, stale_rejected=${totalStale}, invalid_date_rejected=${totalInvalidDate}, lane_deduped=${totalDeduped}`,
+        `Google News Daily complete: fetched=${totalFetched}, prepared_canonical=${totalPrepared}, inserted=${totalInserted}, skipped_db_conflict=${totalSkipped}, stale_rejected=${totalStale}, invalid_date_rejected=${totalInvalidDate}, noise_rejected=${totalNoiseRejected}, semantic_rejected=${totalSemanticRejected}, lane_deduped=${totalDeduped}`,
       );
 
       return {
@@ -523,6 +653,8 @@ export const googleNewsDaily = inngest.createFunction(
         skipped: totalSkipped,
         staleRejected: totalStale,
         invalidDateRejected: totalInvalidDate,
+        noiseRejected: totalNoiseRejected,
+        semanticRejected: totalSemanticRejected,
         laneDeduped: totalDeduped,
       };
     } catch (err) {

@@ -31,7 +31,12 @@
  * Table: alt.executive_actions_event
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import {
+  inngest,
+  DB_CONCURRENCY,
+  RETRIES,
+  HTTP_TIMEOUT_MS,
+} from "./client";
 import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 import dbPool from "@/lib/db";
@@ -239,12 +244,23 @@ function isExecuteAction(
 }
 
 async function fetchAndParseRSS(url: string): Promise<WhiteHouseItem[]> {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
-      Accept: "application/rss+xml, application/xml, text/xml",
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ZINC-FUSION/1.0)",
+        Accept: "application/rss+xml, application/xml, text/xml",
+      },
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS.LONG),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.log(`RSS fetch timeout after ${HTTP_TIMEOUT_MS.LONG}ms: ${url}`);
+      return [];
+    }
+    console.log(`RSS fetch error for ${url}:`, error);
+    return [];
+  }
 
   if (!response.ok) {
     console.log(`RSS fetch failed: ${response.status} for ${url}`);
@@ -290,6 +306,7 @@ async function scrapePage(
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         Accept: "text/html,application/xhtml+xml",
       },
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS.LONG),
     });
 
     if (!response.ok) {
@@ -399,9 +416,10 @@ export const whitehouseDaily = inngest.createFunction(
   {
     id: "whitehouse-comprehensive-daily",
     name: "White House Comprehensive (20+ URLs)",
+    retries: RETRIES.CRON_INGEST,
     concurrency: [DB_CONCURRENCY],
   },
-  { cron: "0 7,11,15,19 * * *" }, // 4x daily
+  { cron: "TZ=America/New_York 0 7 * * *" },
   async ({ step }) => {
     const allItems: WhiteHouseItem[] = [];
     const sourceCounts: Record<string, number> = {};

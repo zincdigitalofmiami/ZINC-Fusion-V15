@@ -78,29 +78,6 @@ interface ImportRecord {
 }
 
 // ---------------------------------------------------------------------------
-// Table DDL
-// ---------------------------------------------------------------------------
-
-const CREATE_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS supply.china_imports_1m (
-  id SERIAL PRIMARY KEY,
-  report_month DATE NOT NULL,
-  commodity VARCHAR(50) NOT NULL,
-  symbol VARCHAR(30) NOT NULL,
-  partner_country VARCHAR(100) DEFAULT 'World',
-  value_usd DOUBLE PRECISION,
-  quantity_mt DOUBLE PRECISION,
-  source VARCHAR(30) DEFAULT 'comtrade',
-  specialist_tags TEXT[] DEFAULT '{china,crush}',
-  row_hash VARCHAR(64) NOT NULL,
-  ingested_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(report_month, symbol, partner_country)
-);
-CREATE INDEX IF NOT EXISTS idx_china_imports_month ON supply.china_imports_1m(report_month);
-CREATE INDEX IF NOT EXISTS idx_china_imports_symbol ON supply.china_imports_1m(symbol);
-`;
-
-// ---------------------------------------------------------------------------
 // Fetch from UN Comtrade
 // ---------------------------------------------------------------------------
 
@@ -204,20 +181,10 @@ export const chinaSoyImportsMonthly = inngest.createFunction(
   async ({ step, logger }) => {
     logger.info("Fetching China soybean complex imports from UN Comtrade");
 
-    // Step 1: Ensure table
-    await step.run("ensure-table", async () => {
-      const client = await pool.connect();
-      try {
-        await client.query(CREATE_TABLE_SQL);
-      } finally {
-        client.release();
-      }
-    });
-
     const currentYear = new Date().getFullYear();
     const allRecords: ImportRecord[] = [];
 
-    // Step 2: Fetch each commodity (with rate limit delays)
+    // Step 1: Fetch each commodity (with rate limit delays)
     for (const commodity of HS_COMMODITIES) {
       const records = await step.run(`fetch-${commodity.symbol}`, async () => {
         // Fetch current year + previous year to catch late-reported data
@@ -245,7 +212,7 @@ export const chinaSoyImportsMonthly = inngest.createFunction(
       }
     }
 
-    // Step 3: Upsert into database
+    // Step 2: Upsert into database
     const result = await step.run("upsert-china-imports", async () => {
       const client = await pool.connect();
       let inserted = 0;
