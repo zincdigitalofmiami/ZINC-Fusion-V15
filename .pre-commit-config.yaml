@@ -36,8 +36,21 @@ repos:
         name: SQL table references exist in Prisma schema
         entry: python3 scripts/check_sql_table_references.py
         language: system
-        files: '^(src|scripts|frontend/src|tests|sql)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$'
+        files: '^(src|scripts|frontend/src|tests|sql|prisma/migrations)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$'
         exclude: "^scripts/exploration/"
+
+      - id: inngest-policy
+        name: Inngest retries/concurrency/timeout policy
+        entry: node scripts/check_inngest_policy.js
+        language: system
+        files: '^frontend/src/inngest/.*\.ts$'
+
+      - id: forbidden-tables
+        name: Forbidden table/schema guard
+        entry: bash scripts/check_forbidden_tables.sh
+        language: system
+        pass_filenames: false
+        always_run: true
 
       - id: eslint-frontend
         name: ESLint frontend

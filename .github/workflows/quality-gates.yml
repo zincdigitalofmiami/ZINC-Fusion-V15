@@ -86,7 +86,7 @@ jobs:
             fi
           fi
 
-          mapfile -t CODE_FILES < <(git diff --name-only --diff-filter=ACMRT "${RANGE}" | grep -E '^(src|scripts|frontend/src|tests|sql)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$' || true)
+          mapfile -t CODE_FILES < <(git diff --name-only --diff-filter=ACMRT "${RANGE}" | grep -E '^(src|scripts|frontend/src|tests|sql|prisma/migrations)/.*\.(py|pyi|ts|tsx|js|jsx|sql)$' || true)
           if (( ${#CODE_FILES[@]} == 0 )); then
             echo "No relevant code changes detected; skipping SQL table contract."
             exit 0
@@ -94,6 +94,36 @@ jobs:
 
           printf '%s\n' "${CODE_FILES[@]}"
           python scripts/check_sql_table_references.py "${CODE_FILES[@]}"
+
+      - name: Inngest policy (changed function files)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            git fetch --no-tags --depth=1 origin "${BASE_SHA}"
+            RANGE="${BASE_SHA}...HEAD"
+          else
+            BEFORE_SHA="${{ github.event.before }}"
+            if [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+              RANGE="${BEFORE_SHA}...${{ github.sha }}"
+            else
+              RANGE="HEAD~1...HEAD"
+            fi
+          fi
+
+          mapfile -t INNGEST_FILES < <(git diff --name-only --diff-filter=ACMRT "${RANGE}" | grep -E '^frontend/src/inngest/.*\.ts$' || true)
+          if (( ${#INNGEST_FILES[@]} == 0 )); then
+            echo "No Inngest function changes detected; skipping Inngest policy check."
+            exit 0
+          fi
+
+          printf '%s\n' "${INNGEST_FILES[@]}"
+          node scripts/check_inngest_policy.js "${INNGEST_FILES[@]}"
+
+      - name: Forbidden table/schema guard
+        run: bash scripts/check_forbidden_tables.sh
 
       - name: Pytest (unit)
         run: pytest -m "not integration and not training" --cov --cov-report=term-missing

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check Prisma migration status against PROD database
+# Check Prisma migration status against the resolved DB target.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,18 +8,130 @@ cd "$REPO_ROOT"
 source scripts/load_db_env.sh
 load_db_env
 
-if [ -z "${POSTGRES_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
+if [ -z "${DIRECT_DATABASE_URL:-}" ] && [ -z "${POSTGRES_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
   echo "FALLBACK FAILED: set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in env, .env.local, or .env"
   exit 1
 fi
 
-if printf "%s" "${POSTGRES_URL:-}" | grep -q '^prisma+postgres://'; then
-  echo "FALLBACK FAILED: POSTGRES_URL/DIRECT_DATABASE_URL must be direct postgres:// for migrate/status."
+ACTIVE_DB_URL=""
+ACTIVE_DB_SOURCE=""
+if [ -n "${DIRECT_DATABASE_URL:-}" ]; then
+  ACTIVE_DB_URL="${DIRECT_DATABASE_URL}"
+  ACTIVE_DB_SOURCE="DIRECT_DATABASE_URL"
+elif [ -n "${POSTGRES_URL:-}" ]; then
+  ACTIVE_DB_URL="${POSTGRES_URL}"
+  ACTIVE_DB_SOURCE="POSTGRES_URL"
+else
+  ACTIVE_DB_URL="${DATABASE_URL:-}"
+  ACTIVE_DB_SOURCE="DATABASE_URL"
+fi
+
+if printf "%s" "${ACTIVE_DB_URL}" | grep -q '^prisma+postgres://'; then
+  echo "FALLBACK FAILED: DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL must be direct postgres:// for migrate/status."
   echo "Set direct URL from Prisma Console; do not use prisma+postgres:// for this script."
   exit 1
 fi
 
-echo "=== Prisma Migrate Status (PROD) ==="
+export ACTIVE_DB_URL
+TARGET_INFO="$(
+  python3 - <<'PY'
+import os
+from urllib.parse import urlparse
+
+url = os.getenv("ACTIVE_DB_URL", "")
+parsed = urlparse(url)
+host = (parsed.hostname or "").lower()
+port = parsed.port or 5432
+database = (parsed.path or "").lstrip("/") or "(unknown)"
+local_hosts = {"localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal"}
+scope = "local" if host in local_hosts else "cloud"
+print(f"{host}|{port}|{database}|{scope}")
+PY
+)"
+IFS='|' read -r TARGET_HOST TARGET_PORT TARGET_DB TARGET_SCOPE <<< "${TARGET_INFO}"
+
+echo "Resolved DB target: ${TARGET_HOST}:${TARGET_PORT}/${TARGET_DB} (${TARGET_SCOPE}, source=${ACTIVE_DB_SOURCE})"
+
+REQUIRE_TARGET="${PRISMA_STATUS_REQUIRE_TARGET:-any}"
+case "${REQUIRE_TARGET}" in
+  ""|"any")
+    ;;
+  "local"|"cloud")
+    if [ "${TARGET_SCOPE}" != "${REQUIRE_TARGET}" ]; then
+      echo "FALLBACK FAILED: PRISMA_STATUS_REQUIRE_TARGET=${REQUIRE_TARGET} but resolved target is ${TARGET_SCOPE}"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "FALLBACK FAILED: PRISMA_STATUS_REQUIRE_TARGET must be one of: any, local, cloud"
+    exit 1
+    ;;
+esac
+
+TARGET_SCOPE_UPPER="$(printf '%s' "${TARGET_SCOPE}" | tr '[:lower:]' '[:upper:]')"
+echo "=== Prisma Migrate Status (${TARGET_SCOPE_UPPER}) ==="
+
+if [ "${TARGET_SCOPE}" = "local" ]; then
+  TOXIC_LOCAL_REPORT="$(
+    psql "${ACTIVE_DB_URL}" -X -q -A -t -F '|' -c "
+      WITH required_tables(schema_name, table_name) AS (
+        VALUES
+          ('analytics', 'price_1d'),
+          ('analytics', 'price_1m'),
+          ('analytics', 'latest_price'),
+          ('mkt', 'futures_1d')
+      ),
+      present_tables AS (
+        SELECT rt.schema_name, rt.table_name
+        FROM required_tables rt
+        JOIN information_schema.tables t
+          ON t.table_schema = rt.schema_name
+         AND t.table_name = rt.table_name
+      ),
+      duplicate_migration_names AS (
+        SELECT migration_name
+        FROM _prisma_migrations
+        GROUP BY migration_name
+        HAVING COUNT(*) > 1
+      )
+      SELECT
+        (SELECT COUNT(*) FROM required_tables),
+        (SELECT COUNT(*) FROM present_tables),
+        (
+          SELECT COUNT(*)
+          FROM _prisma_migrations
+          WHERE finished_at IS NULL
+            AND rolled_back_at IS NULL
+        ),
+        (
+          SELECT COUNT(*)
+          FROM _prisma_migrations
+          WHERE rolled_back_at IS NOT NULL
+        ),
+        (
+          SELECT COUNT(*)
+          FROM _prisma_migrations
+          WHERE migration_name IN (SELECT migration_name FROM duplicate_migration_names)
+        );
+    " 2>/dev/null || true
+  )"
+
+  if [ -n "${TOXIC_LOCAL_REPORT}" ]; then
+    IFS='|' read -r REQUIRED_TABLE_COUNT PRESENT_TABLE_COUNT UNFINISHED_COUNT ROLLED_BACK_COUNT DUPLICATE_NAME_ROWS <<< "${TOXIC_LOCAL_REPORT}"
+    MISSING_TABLE_COUNT=$((REQUIRED_TABLE_COUNT - PRESENT_TABLE_COUNT))
+
+    if [ "${MISSING_TABLE_COUNT}" -gt 0 ] || [ "${UNFINISHED_COUNT}" -gt 0 ] || [ "${ROLLED_BACK_COUNT}" -gt 0 ] || [ "${DUPLICATE_NAME_ROWS}" -gt 0 ]; then
+      echo "TOXIC LOCAL DB BLOCKED: local database is off-contract for migration safety."
+      echo "  Required serving tables missing: ${MISSING_TABLE_COUNT}"
+      echo "  Unfinished migration rows: ${UNFINISHED_COUNT}"
+      echo "  Rolled-back migration rows: ${ROLLED_BACK_COUNT}"
+      echo "  Duplicate-named migration rows: ${DUPLICATE_NAME_ROWS}"
+      echo "Local fix path: rebuild or re-sync local from a trusted source before any migration work."
+      exit 1
+    fi
+  fi
+fi
+
 STATUS_OUTPUT=""
 STATUS_EXIT=0
 set +e

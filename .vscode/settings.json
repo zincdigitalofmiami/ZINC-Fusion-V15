@@ -1,7 +1,7 @@
 {
   "notebook.experimental.remoteSave": false,
 
-  "python.languageServer": "Pylance",
+  "python.languageServer": "None",
   "python.analysis.diagnosticMode": "openFilesOnly",
   "python.analysis.typeCheckingMode": "basic",
   "python.defaultInterpreterPath": "/Volumes/Satechi Hub/ZINC-FUSION-V15/.venv/bin/python",
@@ -115,15 +115,9 @@
   "codescene.enableAutoRefactor": true,
   "codescene.enableReviewCodeLenses": true,
 
-  "github.copilot.chat.codeGeneration.instructions": [
-    { "file": "AGENTS.md" }
-  ],
-  "github.copilot.chat.reviewSelection.instructions": [
-    { "file": "AGENTS.md" }
-  ],
-  "github.copilot.chat.testGeneration.instructions": [
-    { "file": "AGENTS.md" }
-  ],
+  "github.copilot.chat.codeGeneration.instructions": [{ "file": "AGENTS.md" }],
+  "github.copilot.chat.reviewSelection.instructions": [{ "file": "AGENTS.md" }],
+  "github.copilot.chat.testGeneration.instructions": [{ "file": "AGENTS.md" }],
 
   "chat.instructions": [
     {

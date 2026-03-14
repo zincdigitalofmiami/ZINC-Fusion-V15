@@ -53,6 +53,7 @@ PATH_PREFIXES = (
     "frontend/src/",
     "tests/",
     "sql/",
+    "prisma/migrations/",
 )
 SKIP_SUBSTRINGS = (
     "/node_modules/",
@@ -80,7 +81,31 @@ SQL_TABLE_REF_RE = re.compile(
         | into
     )\s+
     (?:only\s+)?
-    ([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)
+    (?:
+      "([a-z][a-z0-9_]*)"|([a-z][a-z0-9_]*)
+    )
+    \.
+    (?:
+      "([a-z][a-z0-9_]*)"|([a-z][a-z0-9_]*)
+    )
+    """
+)
+SQL_SCHEMA_DDL_RE = re.compile(
+    r"""(?isx)
+    \b(?:create|alter|drop)\s+schema
+    (?:\s+if\s+(?:not\s+)?exists)?
+    \s+
+    (?:
+      "([a-z][a-z0-9_]*)"|([a-z][a-z0-9_]*)
+    )
+    """
+)
+SQL_SEARCH_PATH_RE = re.compile(
+    r"""(?isx)
+    \bset\s+search_path\s*(?:=|to)\s*
+    (?:
+      "([a-z][a-z0-9_]*)"|([a-z][a-z0-9_]*)
+    )
     """
 )
 
@@ -204,8 +229,9 @@ def scan_file(file_path: Path, known_tables: set[str]) -> list[str]:
     }
 
     for match in SQL_TABLE_REF_RE.finditer(text):
-        schema, table = match.group(1), match.group(2)
-        idx = text.count("\n", 0, match.start(1)) + 1
+        schema = (match.group(1) or match.group(2) or "").lower()
+        table = (match.group(3) or match.group(4) or "").lower()
+        idx = text.count("\n", 0, match.start()) + 1
         if idx in ignore_lines:
             continue
 
@@ -224,6 +250,20 @@ def scan_file(file_path: Path, known_tables: set[str]) -> list[str]:
             violations.append(
                 f"{file_path}:{idx}: unknown table reference `{full}` not found in prisma/schema.prisma{hint}"
             )
+
+    for regex, label in (
+        (SQL_SCHEMA_DDL_RE, "schema DDL"),
+        (SQL_SEARCH_PATH_RE, "search_path"),
+    ):
+        for match in regex.finditer(text):
+            schema = (match.group(1) or match.group(2) or "").lower()
+            idx = text.count("\n", 0, match.start()) + 1
+            if idx in ignore_lines:
+                continue
+            if schema in BANNED_SCHEMAS:
+                violations.append(
+                    f"{file_path}:{idx}: banned schema reference `{schema}` in {label} (policy violation)"
+                )
     return violations
 
 

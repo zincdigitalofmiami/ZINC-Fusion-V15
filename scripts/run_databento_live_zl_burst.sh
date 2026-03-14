@@ -3,12 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if [ -f "${ROOT_DIR}/.env" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "${ROOT_DIR}/.env"
-  set +a
-fi
+for env_file in "${ROOT_DIR}/.env" "${ROOT_DIR}/.env.local"; do
+  if [ -f "${env_file}" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "${env_file}"
+    set +a
+  fi
+done
 
 # Inngest event intake currently requires branch env routing.
 # Keep event forwarding off by default so live DB updates continue cleanly.

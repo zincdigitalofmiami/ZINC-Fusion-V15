@@ -19,7 +19,7 @@ load_db_env() {
 
   if [ "$missing" -eq 1 ]; then
     local env_file
-    for env_file in .env.local .env; do
+    for env_file in .env .env.local; do
       if [ -f "$env_file" ]; then
         set -a
         # shellcheck source=/dev/null
