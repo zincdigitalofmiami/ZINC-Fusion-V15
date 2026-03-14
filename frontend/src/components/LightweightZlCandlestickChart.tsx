@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   createChart,
@@ -16,6 +16,12 @@ import {
 } from "lightweight-charts";
 import { ensureFutureWhitespace } from "@/lib/charts/ensureFutureWhitespace";
 import { toChartDay } from "@/lib/charts/toChartDay";
+import {
+  buildPivotLines,
+  type PivotLine,
+  type PivotTimeframe,
+} from "@/lib/charts/pivots";
+import { PivotLinesPrimitive } from "@/lib/charts/PivotLinesPrimitive";
 import {
   ForecastTargetsPrimitive,
   type ForecastTarget,
@@ -81,8 +87,16 @@ const THEME = {
 };
 
 const DAILY_REFRESH_INTERVAL_MS = 300_000; // refresh daily bars every 5m
-const INITIAL_VISIBLE_BARS = 150;
+const INITIAL_VISIBLE_BARS = 120;
 const RIGHT_PADDING_BARS = 16;
+const DEFAULT_BAR_SPACING = 10;
+const MIN_BAR_SPACING = 8;
+const PIVOT_COLORS: Record<PivotTimeframe, string> = {
+  D: "#FFFFFF",
+  W: "#F23645",
+  M: "#F23645",
+  Y: "#F23645",
+};
 // Temporary kill-switch for Target Zones on the candlestick chart.
 // Re-enable by flipping this back to true after the forecast freshness issues are fixed.
 const ENABLE_FORECAST_OVERLAY = false;
@@ -97,6 +111,7 @@ export function LightweightZlCandlestickChart({
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const fitContentCalledRef = useRef(false);
   const forecastPrimitiveRef = useRef<ForecastTargetsPrimitive | null>(null);
+  const pivotPrimitiveRef = useRef<PivotLinesPrimitive | null>(null);
 
   // Keep a stable reference for change detection during 5-minute refreshes.
   const priceDataRef = useRef<PriceData[]>([]);
@@ -111,6 +126,18 @@ export function LightweightZlCandlestickChart({
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [forecastTargets, setForecastTargets] = useState<ForecastTarget[]>([]);
   const livePriceData = useZlLivePrice();
+  const pivotLines = useMemo<PivotLine[]>(
+    () =>
+      buildPivotLines(
+        priceData.map(({ timestamp, high, low, close }) => ({
+          timestamp,
+          high,
+          low,
+          close,
+        })),
+      ),
+    [priceData],
+  );
 
   // Fetch historical data (daily bars)
   useEffect(() => {
@@ -316,6 +343,7 @@ export function LightweightZlCandlestickChart({
       chartRef.current = null;
       candleSeriesRef.current = null;
       forecastPrimitiveRef.current = null;
+      pivotPrimitiveRef.current = null;
       fitContentCalledRef.current = false;
     }
 
@@ -359,8 +387,9 @@ export function LightweightZlCandlestickChart({
         fixLeftEdge: false, // Allow scroll back past data start
         fixRightEdge: false, // Allow scroll forward past data end
         rightOffset: RIGHT_PADDING_BARS,
-        barSpacing: 8,
-        minBarSpacing: 4,
+        barSpacing: DEFAULT_BAR_SPACING,
+        minBarSpacing: MIN_BAR_SPACING,
+        lockVisibleTimeRangeOnResize: true,
       },
       // Interactions: axis drag to scroll, double-click to reset
       handleScroll: {
@@ -419,6 +448,15 @@ export function LightweightZlCandlestickChart({
 
     candleSeries.setData(seriesData);
     candleSeriesRef.current = candleSeries;
+    chart.timeScale().applyOptions({
+      barSpacing: DEFAULT_BAR_SPACING,
+      minBarSpacing: MIN_BAR_SPACING,
+    });
+
+    const pivotPrimitive = new PivotLinesPrimitive();
+    candleSeries.attachPrimitive(pivotPrimitive);
+    pivotPrimitive.setPivots(pivotLines, PIVOT_COLORS);
+    pivotPrimitiveRef.current = pivotPrimitive;
 
     // Attach forecast target zones as a series primitive overlay
     if (ENABLE_FORECAST_OVERLAY && forecastTargets.length > 0) {
@@ -427,10 +465,11 @@ export function LightweightZlCandlestickChart({
       forecastPrimitiveRef.current = primitive;
     }
 
-    // Set initial visible range to last 5 months (~150 bars) instead of all data
+    // Show a tighter recent window so candles breathe without losing the
+    // right-side padding.
     if (!fitContentCalledRef.current && candleData.length > 0) {
       const totalBars = candleData.length;
-      const visibleBars = Math.min(INITIAL_VISIBLE_BARS, totalBars); // 5 months or all if less
+      const visibleBars = Math.min(INITIAL_VISIBLE_BARS, totalBars);
       const from = Math.max(0, totalBars - visibleBars);
       const to = Math.max(0, totalBars - 1) + RIGHT_PADDING_BARS;
       chart.timeScale().setVisibleLogicalRange({
@@ -456,13 +495,14 @@ export function LightweightZlCandlestickChart({
     return () => {
       disposed = true;
       resizeObserver.disconnect();
+      candleSeries.detachPrimitive(pivotPrimitive);
       try {
         chart.remove();
       } catch {
         /* already disposed */
       }
     };
-  }, [priceData, forecastTargets]);
+  }, [pivotLines, priceData, forecastTargets]);
 
   return (
     <div
