@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-interface ZlLiveData {
-  price: number;
-  change: number;
-  change_pct: number;
-  updated_at: string;
-  live: boolean;
-  source: string;
-  age_seconds: number | null;
-}
+import { useZlLivePrice } from "@/hooks/useZlLivePrice";
 
 interface StatusBarProps {
   regime?: "stable" | "rising" | "falling" | "volatile" | "crisis";
@@ -19,37 +10,7 @@ interface StatusBarProps {
 
 export default function StatusBar({ regime, confidence }: StatusBarProps) {
   const [displayTime, setDisplayTime] = useState<string>("");
-  const [zlData, setZlData] = useState<ZlLiveData | null>(null);
-
-  // Fetch live ZL price
-  useEffect(() => {
-    async function fetchZlLive() {
-      try {
-        const res = await fetch("/api/zl/live");
-        if (!res.ok) throw new Error("Failed to fetch ZL live");
-        const json = await res.json();
-        if (!json.price) {
-          setZlData(null);
-          return;
-        }
-        setZlData({
-          price: json.price,
-          change: json.change ?? 0,
-          change_pct: json.change_pct ?? 0,
-          updated_at: json.updated_at,
-          live: json.live ?? false,
-          source: json.source ?? "unknown",
-          age_seconds: json.age_seconds ?? null,
-        });
-      } catch (err) {
-        console.error("Failed to fetch ZL live:", err);
-      }
-    }
-    fetchZlLive();
-    // Refresh every 15 seconds when live
-    const interval = setInterval(fetchZlLive, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  const zlData = useZlLivePrice();
 
   useEffect(() => {
     const formatTime = () => {

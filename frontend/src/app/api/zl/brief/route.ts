@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { getZlTradeDateString, zlSessionContextCte } from '@/lib/zl-session'
 import { calculateVixStress } from '@/lib/services/vix-service'
 import { calculateCrushPressure } from '@/lib/services/crush-service'
 import { calculateChinaTension } from '@/lib/services/china-service'
@@ -148,11 +149,11 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
   ): PriceSummary | null => {
     if (!dailyCloses.length) return null
 
-    const today = new Date().toISOString().slice(0, 10)
+    const tradeDate = getZlTradeDateString()
     const latestDaily = dailyCloses[0]
     const current = currentOverride?.current ?? latestDaily.close
     const asOf = currentOverride?.asOf ?? latestDaily.event_date
-    const latestDailyIsToday = latestDaily.event_date.slice(0, 10) === today
+    const latestDailyIsToday = latestDaily.event_date.slice(0, 10) === tradeDate
     const previousClose = currentOverride
       ? (latestDailyIsToday
           ? (dailyCloses[1]?.close ?? latestDaily.close)
@@ -174,18 +175,24 @@ async function getCurrentPrice(): Promise<PriceSummary | null> {
   try {
     const [latest1m, latestPrice, dailyCloses] = await Promise.all([
       query<{close: number, timestamp: string}>(`
+        WITH ${zlSessionContextCte()}
         SELECT close::float8 AS close, timestamp::text AS timestamp
         FROM analytics.price_1m
-        WHERE timestamp >= CURRENT_DATE::timestamptz
+        CROSS JOIN session_bounds sb
+        WHERE timestamp >= sb.session_start_utc
+          AND timestamp <= sb.session_cutoff_utc
         ORDER BY timestamp DESC
         LIMIT 1
       `),
       query<{price: number, timestamp: string}>(`
+        WITH ${zlSessionContextCte()}
         SELECT price::float8 AS price, COALESCE(timestamp, updated_at)::text AS timestamp
         FROM analytics.latest_price
+        CROSS JOIN session_bounds sb
         WHERE id = 1
           AND price IS NOT NULL
-          AND COALESCE(timestamp, updated_at) >= CURRENT_DATE::timestamptz
+          AND COALESCE(timestamp, updated_at) >= sb.session_start_utc
+          AND COALESCE(timestamp, updated_at) <= sb.session_cutoff_utc
         LIMIT 1
       `),
       query<{close: number, event_date: string}>(`

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { zlSessionContextCte } from "@/lib/zl-session";
 
 const CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
@@ -41,64 +42,75 @@ function toDateKey(value: string | Date): string {
  * from showing yesterday's close as the rightmost bar when we have a more
  * recent price in the singleton latest_price row.
  */
-async function getTodayFromLatestPrice(): Promise<{
+async function getSessionFromLatestPrice(): Promise<{
   bar: DailyBarRow | null;
   latestTs: string | null;
 }> {
   try {
     const rows = await query<{
+      trade_date: string;
       price: number;
       timestamp: string | null;
       updated_at: string;
     }>(
-      `SELECT price, timestamp::text, updated_at::text
-       FROM analytics.latest_price
-       WHERE id = 1 AND price IS NOT NULL
-         AND updated_at > CURRENT_DATE::timestamptz`,
+      `WITH ${zlSessionContextCte()}
+       SELECT
+         sb.trade_date::text AS trade_date,
+         lp.price,
+         lp.timestamp::text,
+         lp.updated_at::text
+       FROM analytics.latest_price lp
+       CROSS JOIN session_bounds sb
+       WHERE lp.id = 1
+         AND lp.price IS NOT NULL
+         AND COALESCE(lp.timestamp, lp.updated_at) >= sb.session_start_utc
+         AND COALESCE(lp.timestamp, lp.updated_at) <= sb.session_cutoff_utc`,
     );
     if (!rows.length || !rows[0].price) return { bar: null, latestTs: null };
     const r = rows[0];
     const p = parseFloat(String(r.price));
     return {
       bar: {
-        timestamp: new Date().toISOString().slice(0, 10), // today's date
+        timestamp: r.trade_date,
         open: p, high: p, low: p, close: p, volume: 0,
         source: "latest_price_fallback",
       },
-      latestTs: r.updated_at ?? null,
+      latestTs: r.timestamp ?? r.updated_at ?? null,
     };
   } catch {
     return { bar: null, latestTs: null };
   }
 }
 
-async function getTodayLiveDailyRollup(): Promise<{
+async function getSessionLiveDailyRollup(): Promise<{
   bar: DailyBarRow | null;
   sourceTable: string | null;
   latestTs: string | null;
 }> {
   try {
     const rows = await query<LiveDailyRollupRow>(
-      `
-        WITH today AS (
+      `WITH ${zlSessionContextCte()}
+        , session_bars AS (
           SELECT timestamp, open, high, low, close, COALESCE(volume, 0) AS volume
           FROM analytics.price_1m
-          WHERE timestamp >= CURRENT_DATE::timestamptz
-            AND timestamp < (CURRENT_DATE + INTERVAL '1 day')::timestamptz
+          CROSS JOIN session_bounds sb
+          WHERE timestamp >= sb.session_start_utc
+            AND timestamp <= sb.session_cutoff_utc
             AND close IS NOT NULL
           ORDER BY timestamp ASC
         )
         SELECT
-          CURRENT_DATE AS timestamp,
-          (ARRAY_AGG(open ORDER BY timestamp ASC))[1] AS open,
-          MAX(high) AS high,
-          MIN(low) AS low,
-          (ARRAY_AGG(close ORDER BY timestamp DESC))[1] AS close,
-          SUM(volume)::bigint AS volume,
+          sb.trade_date AS timestamp,
+          (ARRAY_AGG(session_bars.open ORDER BY session_bars.timestamp ASC))[1] AS open,
+          MAX(session_bars.high) AS high,
+          MIN(session_bars.low) AS low,
+          (ARRAY_AGG(session_bars.close ORDER BY session_bars.timestamp DESC))[1] AS close,
+          SUM(session_bars.volume)::bigint AS volume,
           'intraday_rollup_1m'::text AS source,
-          MAX(timestamp) AS latest_ts,
-          COUNT(*)::int AS bar_count
-        FROM today
+          MAX(session_bars.timestamp) AS latest_ts,
+          COUNT(session_bars.timestamp)::int AS bar_count
+        FROM session_bars
+        CROSS JOIN session_bounds sb
       `,
     );
     const row = rows[0];
@@ -146,7 +158,8 @@ export async function GET(req: NextRequest) {
 
     // Query analytics.price_1d — ZL-specific, freshest daily data
     const historicalRows = await query<DailyBarRow>(
-      `SELECT
+      `WITH ${zlSessionContextCte()}
+       SELECT
         event_date as timestamp,
         open,
         high,
@@ -155,21 +168,22 @@ export async function GET(req: NextRequest) {
         volume,
         COALESCE(source, 'databento') as source
       FROM analytics.price_1d
-      WHERE event_date >= CURRENT_DATE - $1::interval
-        AND event_date <= CURRENT_DATE
+      CROSS JOIN session_bounds sb
+      WHERE event_date >= sb.trade_date - $1::interval
+        AND event_date <= sb.trade_date
         AND close IS NOT NULL
       ORDER BY event_date ASC`,
       [`${clampedDays} days`],
     );
 
-    // Try 1m rollup first, then fall back to latest_price singleton
-    const liveRollup = await getTodayLiveDailyRollup();
+    // Try current/last futures-session 1m rollup first, then fall back to latest_price.
+    const liveRollup = await getSessionLiveDailyRollup();
     let activeRollupBar    = liveRollup.bar;
     let activeSourceTable  = liveRollup.sourceTable;
     let activeLatestTs     = liveRollup.latestTs;
 
     if (!activeRollupBar) {
-      const lpFallback = await getTodayFromLatestPrice();
+      const lpFallback = await getSessionFromLatestPrice();
       if (lpFallback.bar) {
         activeRollupBar   = lpFallback.bar;
         activeSourceTable = "analytics.latest_price";
@@ -200,6 +214,7 @@ export async function GET(req: NextRequest) {
     // PostgreSQL DECIMAL columns come back as strings — coerce to numbers
     const numericRows = mergedRows.map((row) => ({
       ...row,
+      timestamp: toDateKey(row.timestamp),
       open: parseFloat(String(row.open)),
       high: parseFloat(String(row.high)),
       low: parseFloat(String(row.low)),

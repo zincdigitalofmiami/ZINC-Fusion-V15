@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { zlSessionContextCte } from "@/lib/zl-session";
 
 /**
  * GET /api/zl/price-1m?minutes=60
@@ -31,7 +32,8 @@ export async function GET(req: NextRequest) {
       source: string;
       created_at: string;
     }>(
-      `SELECT
+      `WITH ${zlSessionContextCte()}
+      SELECT
         timestamp,
         open,
         high,
@@ -46,7 +48,12 @@ export async function GET(req: NextRequest) {
         source,
         created_at
       FROM analytics.price_1m
-      WHERE timestamp >= NOW() - $1::interval
+      CROSS JOIN session_bounds sb
+      WHERE timestamp >= GREATEST(
+              sb.session_start_utc,
+              sb.session_cutoff_utc - $1::interval
+            )
+        AND timestamp <= sb.session_cutoff_utc
       ORDER BY timestamp ASC`,
       [`${clampedMinutes} minutes`],
     );

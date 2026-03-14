@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { getZlLiveSnapshot } from "@/lib/zl-live-snapshot";
 import {
   buildTrumpEffectPayload,
   type ConfirmationInputs,
@@ -102,8 +103,12 @@ export async function GET() {
     const safe = async <T,>(p: Promise<T[]>): Promise<T[]> => {
       try { return await p; } catch (e) { console.error('[metrics] query failed:', e); return []; }
     };
+    const safeValue = async <T,>(p: Promise<T>): Promise<T | null> => {
+      try { return await p; } catch (e) { console.error('[metrics] value fetch failed:', e); return null; }
+    };
 
     const [
+      livePriceSnapshot,
       priceResult,
       returnsResult,
       rvolResult,
@@ -117,7 +122,10 @@ export async function GET() {
       trumpResult,
       sentimentRatioResult,
     ] = await Promise.all([
-      // 1. Latest ZL price + volume + OI
+      // 1. Current ZL price from the serving contract.
+      safeValue(getZlLiveSnapshot()),
+
+      // 2. Latest ZL daily row for open interest and hard fallback.
       safe(query<{
         event_date: string;
         open: number;
@@ -133,7 +141,7 @@ export async function GET() {
          ORDER BY event_date DESC LIMIT 1`,
       )),
 
-      // 2. Returns (5d, 21d, 63d)
+      // 3. Returns (5d, 21d, 63d)
       safe(query<{
         close: number;
         ret_5d: string;
@@ -155,7 +163,7 @@ export async function GET() {
          FROM p LIMIT 1`,
       )),
 
-      // 3. 21-day realized volatility (annualized)
+      // 4. 21-day realized volatility (annualized)
       safe(query<{ rvol_21d: string }>(
         `WITH lr AS (
            SELECT LN(close / NULLIF(LAG(close) OVER (ORDER BY event_date), 0)) as r
@@ -166,7 +174,7 @@ export async function GET() {
          FROM lr WHERE r IS NOT NULL`,
       )),
 
-      // 4. COT z-score + percentile
+      // 5. COT z-score + percentile
       safe(query<{
         mu: string;
         sd: string;
@@ -200,7 +208,7 @@ export async function GET() {
          FROM stats s, latest l, prank p`,
       )),
 
-      // 5. Moving averages
+      // 6. Moving averages
       safe(query<{
         close: string;
         sma20: string;
@@ -222,7 +230,7 @@ export async function GET() {
          FROM ordered LIMIT 1`,
       )),
 
-      // 6. Compute RSI-14
+      // 7. Compute RSI-14
       safe(query<{ rsi_14: string }>(
         `WITH changes AS (
            SELECT close - LAG(close) OVER (ORDER BY event_date) as chg
@@ -238,7 +246,7 @@ export async function GET() {
          FROM gl`,
       )),
 
-      // 7. VIX + z-score (1y)
+      // 8. VIX + z-score (1y)
       safe(query<{ vix: string; vix_avg_1y: string; vix_z: string }>(
         `WITH stats AS (
            SELECT AVG(value) as mu, STDDEV(value) as sd
@@ -255,14 +263,14 @@ export async function GET() {
          FROM stats s, latest l`,
       )),
 
-      // 8. OVX (oil volatility)
+      // 9. OVX (oil volatility)
       safe(query<{ ovx: string }>(
         `SELECT ROUND(value::numeric, 2) as ovx
          FROM econ.vol_indices_1d WHERE series_id = 'OVXCLS'
          ORDER BY event_date DESC LIMIT 1`,
       )),
 
-      // 9. Board crush + oil share z-scores
+      // 10. Board crush + oil share z-scores
       safe(query<{
         crush_now: string;
         crush_z: string;
@@ -288,7 +296,7 @@ export async function GET() {
          FROM stats s, latest l`,
       )),
 
-      // 10. Specialist signals (latest per bucket)
+      // 11. Specialist signals (latest per bucket)
       safe(query<{
         bucket: string;
         signal_1: number;
@@ -305,7 +313,7 @@ export async function GET() {
          ORDER BY bucket, as_of_date DESC`,
       )),
 
-      // 11. Trump Effect (latest row)
+      // 12. Trump Effect (latest row)
       safe(query<TrumpFeatureRow>(
         `WITH latest_any AS (
            SELECT as_of_date::text                              AS as_of_date,
@@ -336,7 +344,7 @@ export async function GET() {
          FROM latest_any la`,
       )),
 
-      // 12. News sentiment ratio (7d) — for Fear & Greed composite
+      // 13. News sentiment ratio (7d) — for Fear & Greed composite
       safe(query<{ bullish_count: number; bearish_count: number }>(
         `SELECT
            COUNT(*) FILTER (WHERE zl_sentiment = 'bullish')::int  AS bullish_count,
@@ -354,7 +362,42 @@ export async function GET() {
       )),
     ]);
 
-    const price = priceResult[0];
+    const latestDailyPrice = priceResult[0];
+    const price = livePriceSnapshot
+      ? {
+          as_of: livePriceSnapshot.timestamp,
+          close: livePriceSnapshot.price,
+          open:
+            livePriceSnapshot.source === "latest_price"
+              ? null
+              : livePriceSnapshot.open,
+          high:
+            livePriceSnapshot.source === "latest_price"
+              ? null
+              : livePriceSnapshot.high,
+          low:
+            livePriceSnapshot.source === "latest_price"
+              ? null
+              : livePriceSnapshot.low,
+          volume:
+            livePriceSnapshot.source === "latest_price"
+              ? null
+              : livePriceSnapshot.volume,
+          source: livePriceSnapshot.source,
+          live: livePriceSnapshot.live,
+        }
+      : latestDailyPrice
+        ? {
+            as_of: latestDailyPrice.event_date,
+            close: latestDailyPrice.close,
+            open: latestDailyPrice.open,
+            high: latestDailyPrice.high,
+            low: latestDailyPrice.low,
+            volume: Number(latestDailyPrice.volume),
+            source: "mkt_futures_1d",
+            live: false,
+          }
+        : null;
     const returns = returnsResult[0];
     const rvol = rvolResult[0];
     const cot = cotResult[0];
@@ -643,15 +686,17 @@ export async function GET() {
     );
 
     return NextResponse.json({
-      as_of: price?.event_date ?? null,
+      as_of: price?.as_of ?? latestDailyPrice?.event_date ?? null,
 
       price: {
         close: price?.close ?? null,
         open: price?.open ?? null,
         high: price?.high ?? null,
         low: price?.low ?? null,
-        volume: price ? Number(price.volume) : null,
-        open_interest: price ? Number(price.open_interest) : null,
+        volume: price?.volume ?? null,
+        open_interest: latestDailyPrice ? Number(latestDailyPrice.open_interest) : null,
+        source: price?.source ?? null,
+        live: price?.live ?? false,
       },
 
       returns: {

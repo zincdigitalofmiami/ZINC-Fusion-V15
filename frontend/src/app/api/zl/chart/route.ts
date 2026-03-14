@@ -1,61 +1,56 @@
 /**
  * GET /api/zl/chart
- * Returns ZL daily OHLCV from analytics.price_1d
- * Query params: days (default 365)
- * Dashboard charts consume this endpoint
+ *
+ * Legacy chart contract kept for compatibility.
+ * Delegates to the canonical session-aware /api/zl/price-1d route so there is
+ * only one backend path for ZL daily chart bars.
  */
-import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { NextRequest, NextResponse } from "next/server";
+import { GET as getPrice1d } from "../price-1d/route";
 
-interface DailyRow {
-  event_date: string
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
+interface Price1dPayload {
+  symbol: string;
+  interval: string;
+  count: number;
+  data: Array<{
+    timestamp: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
+  live_rollup?: boolean;
+  live_rollup_source_table?: string | null;
+  live_rollup_latest_intraday_ts?: string | null;
 }
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const rawDays = parseInt(searchParams.get('days') || '365', 10)
-  const days = Number.isFinite(rawDays) ? Math.max(1, Math.min(rawDays, 3650)) : 365
-
-  try {
-    const rows = await query<DailyRow>(`
-      SELECT
-        event_date,
-        open,
-        high,
-        low,
-        close,
-        volume
-      FROM analytics.price_1d
-      ORDER BY event_date DESC
-      LIMIT $1
-    `, [days])
-
-    // Reverse to chronological order, coerce DECIMAL strings to numbers
-    const series = rows.reverse().map(row => ({
-      time: row.event_date,
-      open: parseFloat(String(row.open)),
-      high: parseFloat(String(row.high)),
-      low: parseFloat(String(row.low)),
-      close: parseFloat(String(row.close)),
-      volume: parseFloat(String(row.volume)),
-    }))
-
-    return NextResponse.json({
-      symbol: 'ZL',
-      interval: '1d',
-      count: series.length,
-      series,
-    })
-  } catch (error) {
-    console.error('Database error:', error)
-    return NextResponse.json(
-      { error: 'Database query failed' },
-      { status: 500 }
-    )
+  const response = await getPrice1d(request);
+  if (!response.ok) {
+    return response;
   }
+
+  const payload = (await response.json()) as Price1dPayload;
+  const series = (payload.data ?? []).map((row) => ({
+    time: row.timestamp,
+    open: row.open,
+    high: row.high,
+    low: row.low,
+    close: row.close,
+    volume: row.volume,
+  }));
+
+  return NextResponse.json(
+    {
+      symbol: payload.symbol ?? "ZL",
+      interval: "1d",
+      count: series.length,
+      live_rollup: payload.live_rollup ?? false,
+      live_rollup_source_table: payload.live_rollup_source_table ?? null,
+      live_rollup_latest_intraday_ts: payload.live_rollup_latest_intraday_ts ?? null,
+      series,
+    },
+    { headers: new Headers(response.headers) },
+  );
 }

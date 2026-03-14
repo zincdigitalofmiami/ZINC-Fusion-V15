@@ -8,16 +8,19 @@ import {
   ColorType,
   IChartApi,
   ISeriesApi,
+  Time,
   UTCTimestamp,
   LineStyle,
   CandlestickData,
   WhitespaceData,
 } from "lightweight-charts";
 import { ensureFutureWhitespace } from "@/lib/charts/ensureFutureWhitespace";
+import { toChartDay } from "@/lib/charts/toChartDay";
 import {
   ForecastTargetsPrimitive,
   type ForecastTarget,
 } from "@/lib/charts/ForecastTargetsPrimitive";
+import { useZlLivePrice } from "@/hooks/useZlLivePrice";
 
 interface PriceData {
   timestamp: string;
@@ -26,6 +29,36 @@ interface PriceData {
   low: number;
   close: number;
   volume: number;
+}
+
+function formatLastUpdate(value: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const dt = new Date(`${raw}T00:00:00Z`);
+    return Number.isNaN(dt.getTime())
+      ? raw
+      : dt.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+
+  const dt = new Date(raw);
+  if (Number.isNaN(dt.getTime())) return raw;
+
+  const now = new Date();
+  const sameLocalDay =
+    dt.getFullYear() === now.getFullYear() &&
+    dt.getMonth() === now.getMonth() &&
+    dt.getDate() === now.getDate();
+
+  return sameLocalDay
+    ? dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : dt.toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
 }
 
 // TradingView exact settings (from user screenshots)
@@ -48,7 +81,6 @@ const THEME = {
 };
 
 const DAILY_REFRESH_INTERVAL_MS = 300_000; // refresh daily bars every 5m
-const LIVE_TICKER_INTERVAL_MS  = 10_000;  // refresh live price ticker every 10s
 const INITIAL_VISIBLE_BARS = 150;
 const RIGHT_PADDING_BARS = 16;
 // Temporary kill-switch for Target Zones on the candlestick chart.
@@ -78,6 +110,7 @@ export function LightweightZlCandlestickChart({
   const [isLive, setIsLive] = useState<boolean>(false);
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [forecastTargets, setForecastTargets] = useState<ForecastTarget[]>([]);
+  const livePriceData = useZlLivePrice();
 
   // Fetch historical data (daily bars)
   useEffect(() => {
@@ -104,20 +137,15 @@ export function LightweightZlCandlestickChart({
           const changed =
             oldData.length !== parsed.length ||
             oldLast?.close !== newLast?.close ||
-            oldLast?.high  !== newLast?.high  ||
-            oldLast?.low   !== newLast?.low;
+            oldLast?.high !== newLast?.high ||
+            oldLast?.low !== newLast?.low;
           priceDataRef.current = parsed;
           if (changed) setPriceData(parsed);
           const latest = parsed[parsed.length - 1];
           const prev = parsed[parsed.length - 2];
           setLastPrice(latest.close);
-
-          const highs = parsed.map((d: PriceData) => d.high);
-          const lows = parsed.map((d: PriceData) => d.low);
-          const h = Math.max(...highs);
-          const l = Math.min(...lows);
-          setHighPrice(h);
-          setLowPrice(l);
+          setHighPrice(latest.high);
+          setLowPrice(latest.low);
 
           if (prev) {
             setPriceChange(((latest.close - prev.close) / prev.close) * 100);
@@ -125,14 +153,10 @@ export function LightweightZlCandlestickChart({
 
           setIsLive(Boolean(json.live_rollup));
           if (json.live_rollup_latest_intraday_ts) {
-            setLastUpdate(
-              new Date(
-                json.live_rollup_latest_intraday_ts,
-              ).toLocaleTimeString(),
-            );
-          } else {
-            setLastUpdate(new Date().toLocaleTimeString());
+            setLastUpdate(formatLastUpdate(json.live_rollup_latest_intraday_ts));
           }
+          // Do NOT set lastUpdate to local clock time when source timestamp is absent.
+          // This avoids implying false freshness; timestamp shows only when source provides it.
 
           // Calculate 20-day volatility
           const last20 = parsed.slice(-20);
@@ -163,61 +187,38 @@ export function LightweightZlCandlestickChart({
     return () => clearInterval(interval);
   }, []);
 
-  // Live price ticker — polls /api/zl/live every 10s to update the last candle and header
-  // in real-time without rebuilding the full chart from 730 daily bars.
+  // Shared live price stream backed by /api/zl/live.
   useEffect(() => {
-    const fetchLive = async () => {
-      try {
-        const res = await fetch("/api/zl/live");
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!json.price) return;
+    if (!livePriceData) return;
 
-        const livePrice: number = parseFloat(String(json.price));
-        const liveOpen: number  = parseFloat(String(json.open  ?? json.price));
-        const liveHigh: number  = parseFloat(String(json.high  ?? json.price));
-        const liveLow: number   = parseFloat(String(json.low   ?? json.price));
+    setLastPrice(livePriceData.price);
+    setIsLive(livePriceData.live);
+    if (livePriceData.timestamp) {
+      setLastUpdate(formatLastUpdate(livePriceData.timestamp));
+    }
+    if (livePriceData.change_pct != null) {
+      setPriceChange(livePriceData.change_pct);
+    }
+    if (
+      livePriceData.source !== "latest_price" &&
+      Number.isFinite(livePriceData.high) &&
+      Number.isFinite(livePriceData.low)
+    ) {
+      setHighPrice(livePriceData.high);
+      setLowPrice(livePriceData.low);
+    }
 
-        // Update header stats
-        setLastPrice(livePrice);
-        setIsLive(Boolean(json.live));
-        if (json.timestamp) {
-          setLastUpdate(new Date(json.timestamp).toLocaleTimeString());
-        }
-        if (json.change_pct != null) {
-          setPriceChange(parseFloat(String(json.change_pct)));
-        }
-        // Update today's high/low displayed in header
-        if (Number.isFinite(liveHigh) && Number.isFinite(liveLow)) {
-          setHighPrice(liveHigh);
-          setLowPrice(liveLow);
-        }
-
-        // Patch the last candle in-place — no full chart rebuild needed.
-        // This is the key to showing a live-updating rightmost bar.
-        if (candleSeriesRef.current && priceDataRef.current.length > 0) {
-          const lastBar = priceDataRef.current[priceDataRef.current.length - 1];
-          const barTime = Math.floor(
-            new Date(lastBar.timestamp).getTime() / 1000,
-          ) as UTCTimestamp;
-          candleSeriesRef.current.update({
-            time: barTime,
-            open:  liveOpen,
-            high:  Math.max(liveHigh, lastBar.high),
-            low:   Math.min(liveLow,  lastBar.low),
-            close: livePrice,
-          });
-        }
-      } catch {
-        // Live ticker errors are non-fatal — chart continues showing cached data
-      }
-    };
-
-    // Run immediately, then on interval
-    fetchLive();
-    const interval = setInterval(fetchLive, LIVE_TICKER_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, []);
+    if (candleSeriesRef.current && priceDataRef.current.length > 0) {
+      const lastBar = priceDataRef.current[priceDataRef.current.length - 1];
+      candleSeriesRef.current.update({
+        time: toChartDay(lastBar.timestamp),
+        open: livePriceData.open,
+        high: Math.max(livePriceData.high, lastBar.high),
+        low: Math.min(livePriceData.low, lastBar.low),
+        close: livePriceData.price,
+      });
+    }
+  }, [livePriceData]);
 
   // Fetch forecast targets (separate from price data — non-blocking, fail-safe)
   useEffect(() => {
@@ -307,7 +308,11 @@ export function LightweightZlCandlestickChart({
 
     // Clean up previous chart
     if (chartRef.current) {
-      try { chartRef.current.remove(); } catch { /* already disposed */ }
+      try {
+        chartRef.current.remove();
+      } catch {
+        /* already disposed */
+      }
       chartRef.current = null;
       candleSeriesRef.current = null;
       forecastPrimitiveRef.current = null;
@@ -375,8 +380,8 @@ export function LightweightZlCandlestickChart({
     chartRef.current = chart;
 
     // Transform price data to LWC format
-    const candleData: CandlestickData<UTCTimestamp>[] = priceData.map((d) => ({
-      time: Math.floor(new Date(d.timestamp).getTime() / 1000) as UTCTimestamp,
+    const candleData: CandlestickData<Time>[] = priceData.map((d) => ({
+      time: toChartDay(d.timestamp),
       open: d.open,
       high: d.high,
       low: d.low,
@@ -384,7 +389,7 @@ export function LightweightZlCandlestickChart({
     }));
 
     // Sort chronologically
-    candleData.sort((a, b) => (a.time as number) - (b.time as number));
+    candleData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
     // Add candlestick series (TradingView exact: transparent borders, white/gray wicks)
     const candleSeries = chart.addSeries(CandlestickSeries, {
@@ -400,13 +405,16 @@ export function LightweightZlCandlestickChart({
     // If forecast targets exist, extend the time scale with whitespace so
     // zones can render to the right of the last candle.
     let seriesData: Array<
-      CandlestickData<UTCTimestamp> | WhitespaceData<UTCTimestamp>
+      CandlestickData<Time> | WhitespaceData<Time>
     > = candleData;
     if (ENABLE_FORECAST_OVERLAY && forecastTargets.length > 0) {
       const maxEndTime = Math.max(
         ...forecastTargets.map((t) => t.endTime as number),
       ) as UTCTimestamp;
-      seriesData = ensureFutureWhitespace(candleData, maxEndTime);
+      seriesData = ensureFutureWhitespace(
+        candleData as Array<CandlestickData<UTCTimestamp> | WhitespaceData<UTCTimestamp>>,
+        maxEndTime,
+      ) as Array<CandlestickData<Time> | WhitespaceData<Time>>;
     }
 
     candleSeries.setData(seriesData);
@@ -439,14 +447,20 @@ export function LightweightZlCandlestickChart({
       const newRect = entries[0].contentRect;
       try {
         chart.applyOptions({ width: newRect.width, height: newRect.height });
-      } catch { /* chart already disposed */ }
+      } catch {
+        /* chart already disposed */
+      }
     });
     resizeObserver.observe(chartContainerRef.current);
 
     return () => {
       disposed = true;
       resizeObserver.disconnect();
-      try { chart.remove(); } catch { /* already disposed */ }
+      try {
+        chart.remove();
+      } catch {
+        /* already disposed */
+      }
     };
   }, [priceData, forecastTargets]);
 

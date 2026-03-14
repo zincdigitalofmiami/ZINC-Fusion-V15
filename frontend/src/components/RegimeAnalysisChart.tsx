@@ -6,17 +6,17 @@ import {
   LineSeries,
   ColorType,
   IChartApi,
-  UTCTimestamp,
   LineStyle,
   HistogramSeries,
 } from 'lightweight-charts'
+import { toChartDay } from '@/lib/charts/toChartDay'
 
 // Market Regime Types
 type MarketRegime = 'BULLISH' | 'BEARISH' | 'NEUTRAL' | 'SUPPLY_CRISIS' | 'DEMAND_SHOCK'
 
 interface RegimeZone {
-  start: UTCTimestamp
-  end: UTCTimestamp
+  start: string
+  end: string
   regime: MarketRegime
 }
 
@@ -111,9 +111,9 @@ export function RegimeAnalysisChart({
 
     // Transform price data
     const lineData = priceData.map(d => ({
-      time: Math.floor(new Date(d.timestamp).getTime() / 1000) as UTCTimestamp,
+      time: toChartDay(d.timestamp),
       value: parseFloat(String(d.close)),
-    })).sort((a, b) => (a.time as number) - (b.time as number))
+    })).sort((a, b) => String(a.time).localeCompare(String(b.time)))
 
     // SMA-based regime estimate — L1 meta-learner pending
     const regimeZones: RegimeZone[] = []

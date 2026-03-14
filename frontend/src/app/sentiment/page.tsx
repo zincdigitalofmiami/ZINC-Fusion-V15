@@ -215,6 +215,24 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
+const chicagoTimestampFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Chicago",
+});
+
+function formatAsOf(dateStr: string | null): string {
+  if (!dateStr) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+
+  return `${chicagoTimestampFormatter.format(parsed)} CT`;
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const hours = Math.floor(diff / 3600000);
@@ -692,7 +710,7 @@ export default function SentimentPage() {
                   </span>
                   {metrics.as_of && (
                     <span className="text-sm text-slate-500">
-                      as of {metrics.as_of}
+                      as of {formatAsOf(metrics.as_of)}
                     </span>
                   )}
                 </div>
@@ -961,7 +979,7 @@ export default function SentimentPage() {
           Market Snapshot
           {metrics?.as_of && (
             <span className="text-xs text-slate-500 font-normal ml-2">
-              as of {metrics.as_of}
+              as of {formatAsOf(metrics.as_of)}
             </span>
           )}
         </h3>
