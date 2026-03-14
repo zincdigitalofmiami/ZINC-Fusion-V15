@@ -741,6 +741,23 @@ model vol_indices_1d {
   @@schema("econ")
 }
 
+model bls_1m {
+  id              Int       @id @default(autoincrement())
+  series_id       String    @db.VarChar(30)
+  event_date      DateTime  @db.Date
+  value           Float
+  series_name     String?   @db.VarChar(120)
+  specialist_tags String[]  @default([])
+  source          String?   @default("bls_api") @db.VarChar(30)
+  row_hash        String    @db.VarChar(64)
+  ingested_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([series_id, event_date])
+  @@index([event_date], map: "idx_bls_1m_date")
+  @@index([series_id], map: "idx_bls_1m_series")
+  @@schema("econ")
+}
+
 model intel_drops {
   id             Int       @id @default(autoincrement())
   as_of_ts       DateTime  @db.Timestamp(6)
@@ -1532,6 +1549,64 @@ model eia_biodiesel_1w {
   row_hash                          String    @unique @db.VarChar(64)
   ingested_at                       DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@schema("supply")
+}
+
+model china_imports_1m {
+  id             Int       @id @default(autoincrement())
+  report_month   DateTime  @db.Date
+  commodity      String    @db.VarChar(50)
+  symbol         String    @db.VarChar(30)
+  partner_country String?  @default("World") @db.VarChar(100)
+  value_usd      Float?
+  quantity_mt    Float?
+  source         String?   @default("comtrade") @db.VarChar(30)
+  specialist_tags String[] @default(["china", "crush"])
+  row_hash       String    @db.VarChar(64)
+  ingested_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([report_month, symbol, partner_country])
+  @@index([report_month], map: "idx_china_imports_month")
+  @@index([symbol], map: "idx_china_imports_symbol")
+  @@schema("supply")
+}
+
+model fas_gats_1m {
+  id              Int       @id @default(autoincrement())
+  report_month    DateTime  @db.Date
+  commodity       String    @db.VarChar(50)
+  symbol          String    @db.VarChar(30)
+  partner_country String    @default("World") @db.VarChar(100)
+  value_usd       Float?
+  quantity_mt     Float?
+  flow            String    @default("export") @db.VarChar(10)
+  source          String?   @default("fas_gats") @db.VarChar(30)
+  specialist_tags String[]  @default(["tariff", "china", "crush"])
+  row_hash        String    @db.VarChar(64)
+  ingested_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([report_month, symbol, partner_country, flow])
+  @@index([report_month], map: "idx_fas_gats_month")
+  @@index([symbol], map: "idx_fas_gats_symbol")
+  @@index([partner_country], map: "idx_fas_gats_partner")
+  @@schema("supply")
+}
+
+model panama_canal_1d {
+  id                  Int       @id @default(autoincrement())
+  event_date          DateTime  @unique @db.Date
+  transits_panamax    Int?
+  transits_neopanamax Int?
+  transits_total      Int?
+  max_draft_ft        Float?
+  booking_slots       Int?
+  advisory_text       String?
+  source              String?   @default("pancanal") @db.VarChar(30)
+  specialist_tags     String[]  @default(["tariff", "crush", "china"])
+  row_hash            String    @db.VarChar(64)
+  ingested_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([event_date], map: "idx_panama_canal_date")
   @@schema("supply")
 }
 

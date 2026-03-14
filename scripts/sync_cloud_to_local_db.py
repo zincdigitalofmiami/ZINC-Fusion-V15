@@ -31,6 +31,7 @@ DEFAULT_TABLES = [
     "training.matrix_1d",
     "training.specialist_signals_1d",
     "training.oof_core_1d",
+    "training.model_runs_event",
 ]
 
 LOCAL_HOSTS = {
