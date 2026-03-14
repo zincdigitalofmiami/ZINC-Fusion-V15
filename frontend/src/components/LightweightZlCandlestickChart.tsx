@@ -94,7 +94,7 @@ const MIN_BAR_SPACING = 8;
 const PIVOT_COLORS: Record<PivotTimeframe, string> = {
   D: "#FFFFFF",
   W: "#F23645",
-  M: "#F23645",
+  M: "#FFFFFF",
   Y: "#F23645",
 };
 // Temporary kill-switch for Target Zones on the candlestick chart.

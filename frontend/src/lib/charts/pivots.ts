@@ -186,22 +186,6 @@ export function buildPivotLines(
   const sortedBars = [...bars].sort((a, b) =>
     toDateKey(a.timestamp).localeCompare(toDateKey(b.timestamp)),
   );
-  const currentBar = sortedBars[sortedBars.length - 1];
-  const previousDayBar = sortedBars[sortedBars.length - 2];
-
-  const daily = pivotLevelsToLines(
-    calculateTraditionalPivots(
-      previousDayBar.high,
-      previousDayBar.low,
-      previousDayBar.close,
-    ),
-    "D",
-    3,
-  ).map((line) => ({
-    ...line,
-    startTime: toDateKey(currentBar.timestamp),
-  }));
-
   const weekly = buildPeriodPivotLines(
     aggregatePeriods(sortedBars, (timestamp) => weekStartKey(timestamp)),
     "W",
@@ -218,5 +202,5 @@ export function buildPivotLines(
     1,
   );
 
-  return [...daily, ...weekly, ...monthly, ...yearly];
+  return [...weekly, ...monthly, ...yearly];
 }

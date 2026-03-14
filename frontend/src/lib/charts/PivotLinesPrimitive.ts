@@ -116,7 +116,7 @@ export class PivotLinesPrimitive implements ISeriesPrimitive<Time> {
   private colors: Record<PivotTimeframe, string> = {
     D: "#FFFFFF",
     W: "#F23645",
-    M: "#F23645",
+    M: "#FFFFFF",
     Y: "#F23645",
   };
   private paneView = new PivotLinesPaneView();
