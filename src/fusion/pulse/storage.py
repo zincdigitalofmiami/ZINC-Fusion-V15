@@ -16,12 +16,8 @@ import asyncpg
 from .extractors import ExtractedFeatures
 
 
-# Database connection settings (standardized fallback order)
-DATABASE_URL = (
-    os.environ.get("DIRECT_DATABASE_URL")
-    or os.environ.get("POSTGRES_URL")
-    or os.environ.get("DATABASE_URL")
-)
+# Database connection settings
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def _parse_json(value: Any, default: Any) -> Any:
@@ -41,9 +37,7 @@ def _parse_json(value: Any, default: Any) -> Any:
 async def get_connection() -> asyncpg.Connection:
     """Get database connection from pool."""
     if not DATABASE_URL:
-        raise ValueError(
-            "Database URL not set (DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL)"
-        )
+        raise ValueError("Database URL not set (DATABASE_URL)")
     return await asyncpg.connect(DATABASE_URL)
 
 

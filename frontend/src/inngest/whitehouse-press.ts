@@ -41,7 +41,7 @@ import { createHash } from "crypto";
 import { classifySpecialists as classifyByKeywords } from "../lib/specialist-classifier";
 import dbPool from "@/lib/db";
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 interface WhiteHouseItem {
   title: string;

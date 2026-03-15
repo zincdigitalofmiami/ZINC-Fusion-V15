@@ -18,6 +18,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pandas as pd
 import psycopg2
@@ -35,14 +36,31 @@ load_dotenv()
 
 # Local results directory
 LOCAL_RESULTS_DIR = Path(__file__).parent.parent / "data" / "results"
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal"}
+
+
+def validate_cloud_database_url(database_url: str) -> str:
+    if database_url.startswith("prisma+postgres://"):
+        raise ValueError(
+            "CLOUD_DATABASE_URL must be direct postgres:// or postgresql:// for psycopg2"
+        )
+    parsed = urlparse(database_url)
+    host = (parsed.hostname or "").strip().lower()
+    if not host:
+        raise ValueError("CLOUD_DATABASE_URL must include a host")
+    if host in LOCAL_HOSTS:
+        raise ValueError(
+            f"CLOUD_DATABASE_URL must point to cloud for this push, got local host {host!r}"
+        )
+    return database_url
 
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
-    database_url = os.getenv("DATABASE_URL")
+    database_url = os.getenv("CLOUD_DATABASE_URL")
     if not database_url:
-        raise ValueError("DATABASE_URL not found in environment")
-    return psycopg2.connect(database_url)
+        raise ValueError("CLOUD_DATABASE_URL not found in environment")
+    return psycopg2.connect(validate_cloud_database_url(database_url))
 
 
 def push_dataframe_to_table(

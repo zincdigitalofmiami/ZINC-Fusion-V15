@@ -75,11 +75,11 @@ def normalize_database_url(url: str) -> str:
     """
     if not url:
         raise ValueError(
-            "Database URL not set. Configure DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL)."
+            "Database URL not set. Configure DATABASE_URL."
         )
     if url.startswith("prisma+postgres://"):
         raise ValueError(
-            "Direct DB URL required for psycopg2/SQLAlchemy. Set DIRECT_DATABASE_URL or POSTGRES_URL to postgres://..."
+            "Direct DB URL required for psycopg2/SQLAlchemy. Set DATABASE_URL to postgres://..."
         )
     if not (url.startswith("postgres://") or url.startswith("postgresql://")):
         raise ValueError(
@@ -95,9 +95,7 @@ def get_database_url() -> str:
     Get Prisma Postgres connection URL from environment.
 
     Priority:
-      1) DIRECT_DATABASE_URL
-      2) POSTGRES_URL
-      3) DATABASE_URL
+      1) DATABASE_URL
 
     Returns:
         Normalized connection URL string
@@ -105,11 +103,7 @@ def get_database_url() -> str:
     Raises:
         ValueError: If no direct URL is configured or URL is incompatible
     """
-    url = (
-        os.getenv("DIRECT_DATABASE_URL")
-        or os.getenv("POSTGRES_URL")
-        or os.getenv("DATABASE_URL")
-    )
+    url = os.getenv("DATABASE_URL")
     return normalize_database_url(url)
 
 
@@ -158,7 +152,7 @@ def get_write_connection(
 
     Args:
         database_url: Optional explicit URL. If omitted, resolves using
-            DIRECT_DATABASE_URL -> POSTGRES_URL -> DATABASE_URL.
+            DATABASE_URL.
 
     Returns:
         psycopg2 connection object

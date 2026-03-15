@@ -37,9 +37,12 @@ from dotenv import load_dotenv
 load_dotenv()
 load_dotenv("frontend/.env.local")
 
-DATABASE_URL = os.getenv("DIRECT_DATABASE_URL") or os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     print("ERROR: No DATABASE_URL found")
+    sys.exit(1)
+if DATABASE_URL.startswith("prisma+postgres://"):
+    print("ERROR: DATABASE_URL must be a direct postgres:// or postgresql:// URL")
     sys.exit(1)
 
 

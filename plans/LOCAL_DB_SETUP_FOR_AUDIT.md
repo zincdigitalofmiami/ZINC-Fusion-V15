@@ -64,7 +64,7 @@
 
 ### Local Postgres (localhost:5432)
 
-- **Databases Found:** `fusion`, `postgres`, `rabid_raccoon`, `zinc_fusion_shadow`
+- **Databases Found:** `fusion`, `postgres`, `external_project_db`, `zinc_fusion_shadow`
 - **Problem:** None have current V15 schema
 - **`fusion` DB:** Old layout with deprecated schemas (raw/archive/reference) and outdated training.\* tables
 - **Status:** NOT suitable for V15 audit work

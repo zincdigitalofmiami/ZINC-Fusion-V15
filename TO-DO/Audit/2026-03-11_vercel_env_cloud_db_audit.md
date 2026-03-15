@@ -63,7 +63,7 @@ Not anywhere in this workspace. The cloud connection string is stored in Vercel'
 | Project | Production URL | Updated | Node |
 |---|---|---|---|
 | `zinc-fusion-v15` | https://zinc-fusion-v15.vercel.app | 4h ago | 22.x |
-| `rabid-raccoon` | https://rabid-raccoon.vercel.app | 3m ago | 24.x |
+| `external-project` | https://external-project.vercel.app | 3m ago | 24.x |
 | `frontend` | (none) | 24h ago | 24.x |
 
 ### Critical finding: Local workspace linked to wrong project

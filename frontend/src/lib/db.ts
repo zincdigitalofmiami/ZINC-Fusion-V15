@@ -128,7 +128,7 @@ const BASE_DELAY_MS = 500
 function assertDbConfigured(): void {
   if (resolvedConnectionString) return
   throw new Error(
-    'Database URL is not configured. Set DATABASE_URL, POSTGRES_URL, or DIRECT_DATABASE_URL.'
+    'Database URL is not configured. Set DATABASE_URL.'
   )
 }
 

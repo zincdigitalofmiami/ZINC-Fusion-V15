@@ -22,7 +22,7 @@ Additional servers (not part of Kilo stack):
 |--------|------|---------|
 | `Prisma-Local` | stdio | Local Prisma MCP via `scripts/prisma.sh mcp` |
 | `Prisma-Remote` | http | `https://mcp.prisma.io/mcp` |
-| `macbook-air-mes` | stdio | SSH tunnel to MacBook Air filesystem (rabid-raccoon) |
+| `macbook-air-mes` | stdio | SSH tunnel to MacBook Air filesystem (external project workspace) |
 
 ---
 

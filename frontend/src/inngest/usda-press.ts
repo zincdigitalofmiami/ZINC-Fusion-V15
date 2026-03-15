@@ -16,7 +16,7 @@ import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
 const USDA_API_KEY = process.env.USDA_API_KEY;
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 interface NASSDataPoint {
   commodity_desc: string;

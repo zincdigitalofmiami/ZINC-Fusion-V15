@@ -74,21 +74,16 @@ class Endpoint:
 
 def resolve_database_url(explicit_url: str | None) -> str:
     if explicit_url:
-        return explicit_url.strip()
-
-    for key in (
-        "LOCAL_DATABASE_URL",
-        "DIRECT_DATABASE_URL",
-        "POSTGRES_URL",
-        "DATABASE_URL",
-    ):
-        value = (os.getenv(key) or "").strip()
-        if value:
-            return value
-
-    raise ValueError(
-        "no database URL found; set LOCAL_DATABASE_URL (preferred) or DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL"
-    )
+        candidate = explicit_url.strip()
+    else:
+        candidate = (os.getenv("LOCAL_DATABASE_URL") or "").strip()
+    if not candidate:
+        raise ValueError("no database URL found; set LOCAL_DATABASE_URL")
+    if candidate.startswith("prisma+postgres://"):
+        raise ValueError(
+            "LOCAL_DATABASE_URL must be a direct postgres:// or postgresql:// URL"
+        )
+    return candidate
 
 
 def parse_endpoint(raw_url: str) -> Endpoint:

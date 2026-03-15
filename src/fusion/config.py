@@ -5,9 +5,7 @@ All training, inference, and operations use Prisma Postgres.
 Frontend deployed on Vercel (Next.js + Inngest).
 
 Environment Variables:
-    DIRECT_DATABASE_URL  - Direct Prisma Postgres connection string (preferred)
-    POSTGRES_URL         - Direct Prisma Postgres connection string
-    DATABASE_URL         - Backward-compatible direct Prisma Postgres URL
+    DATABASE_URL         - Direct Prisma Postgres connection string
     FUSION_MODEL_DIR     - Path to model directory (default: models)
     HISTORICAL_DATA_PATH - Path to historical parquet files (for initial ingestion)
 """
@@ -20,11 +18,7 @@ from pathlib import Path
 # =============================================================================
 
 # Prisma Postgres direct connection (REQUIRED for psycopg2/sqlalchemy paths)
-DATABASE_URL = (
-    os.environ.get("DIRECT_DATABASE_URL")
-    or os.environ.get("POSTGRES_URL")
-    or os.environ.get("DATABASE_URL")
-)
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # Model directory
 FUSION_MODEL_DIR = os.environ.get("FUSION_MODEL_DIR", "models")
@@ -53,22 +47,22 @@ def get_database_url() -> str:
                         continue
                     key, value = line.split("=", 1)
                     key = key.strip()
-                    if key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+                    if key == "DATABASE_URL":
                         candidates[key] = value.strip().strip('"').strip("'")
-            for key in ("DIRECT_DATABASE_URL", "POSTGRES_URL", "DATABASE_URL"):
+            for key in ("DATABASE_URL",):
                 if candidates.get(key):
                     url = candidates[key]
                     if url.startswith("prisma+postgres://"):
                         raise ValueError(
-                            "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+                            "Direct postgres:// URL required. Set DATABASE_URL."
                         )
                     return url
         raise ValueError(
-            "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in environment or .env file."
+            "Database URL not set. Set DATABASE_URL in environment or .env file."
         )
     if DATABASE_URL.startswith("prisma+postgres://"):
         raise ValueError(
-            "Direct postgres:// URL required. Set DIRECT_DATABASE_URL or POSTGRES_URL."
+            "Direct postgres:// URL required. Set DATABASE_URL."
         )
     return DATABASE_URL
 

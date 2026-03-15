@@ -25,11 +25,7 @@ load_dotenv()
 # DATABASE
 # =============================================================================
 
-DATABASE_URL = (
-    os.getenv("DIRECT_DATABASE_URL")
-    or os.getenv("POSTGRES_URL")
-    or os.getenv("DATABASE_URL")
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # =============================================================================
 # SYMBOLS & HORIZONS
@@ -460,7 +456,7 @@ def validate_config():
     """Validate configuration on import."""
     if not DATABASE_URL:
         raise EnvironmentError(
-            "Database URL not set (DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL)"
+            "Database URL not set (DATABASE_URL)"
         )
 
     # Ensure model dirs exist

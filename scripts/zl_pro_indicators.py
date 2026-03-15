@@ -129,9 +129,13 @@ MIN_ROWS = 100  # Skip symbols with fewer rows
 
 def get_db_url() -> str:
     """Get DATABASE_URL with gssencmode=disable for Prisma Postgres."""
-    url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    url = os.getenv("DATABASE_URL")
     if not url:
         raise ValueError("DATABASE_URL not set. Check .env file.")
+    if url.startswith("prisma+postgres://"):
+        raise ValueError(
+            "DATABASE_URL must be a direct postgres:// or postgresql:// URL"
+        )
     if "gssencmode" not in url:
         url += "&gssencmode=disable" if "?" in url else "?gssencmode=disable"
     return url
