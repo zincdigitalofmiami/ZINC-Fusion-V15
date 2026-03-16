@@ -41,6 +41,7 @@ describe("api/zl/price-1d live rollup contract", () => {
         ];
       }
       if (sql.includes("FROM analytics.price_1m")) {
+        expect(sql).toContain("GROUP BY sb.trade_date");
         return [
           {
             timestamp: "2026-03-16",
@@ -78,6 +79,7 @@ describe("api/zl/price-1d live rollup contract", () => {
         return [];
       }
       if (sql.includes("FROM analytics.price_1m")) {
+        expect(sql).toContain("GROUP BY sb.trade_date");
         return [
           {
             timestamp: "2026-03-16",
@@ -114,6 +116,7 @@ describe("api/zl/price-1d live rollup contract", () => {
         return [];
       }
       if (sql.includes("FROM analytics.price_1m")) {
+        expect(sql).toContain("GROUP BY sb.trade_date");
         throw new Error("rollup exploded");
       }
       if (sql.includes("FROM analytics.latest_price")) {

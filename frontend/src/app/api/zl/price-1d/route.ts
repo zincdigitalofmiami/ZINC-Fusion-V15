@@ -131,6 +131,7 @@ async function getSessionLiveDailyRollup(): Promise<RollupAttempt> {
           COUNT(session_bars.timestamp)::int AS bar_count
         FROM session_bars
         CROSS JOIN session_bounds sb
+        GROUP BY sb.trade_date
       `,
     );
     const row = rows[0];
