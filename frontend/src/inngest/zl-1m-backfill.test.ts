@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   ZL_1M_INTRADAY_REFRESH_CRON,
+  ZL_1M_SCHEDULED_GAP_FILL_LOOKBACK_MINUTES,
+  ZL_1M_SCHEDULED_GAP_FILL_MAX_BARS,
   isWithinZlManagedSessionWindow,
+  runZl1mScheduledBackfill,
   runZl1mIntradayRefresh,
 } from "./zl-1m-backfill";
 
@@ -50,6 +53,27 @@ describe("zl-1m managed intraday refresh", () => {
       upserted1m: 42,
       latestBar: "2026-03-16T14:31:00.000Z",
       age_seconds: 120,
+    });
+  });
+
+  it("runs the scheduled gap fill across the full advertised 3-day window", async () => {
+    const refreshMock = vi.fn().mockResolvedValue({
+      skipped: false,
+      upserted1m: 1337,
+      bars: [],
+      effectiveEndIso: "2026-03-16T11:00:00.000Z",
+    });
+
+    const result = await runZl1mScheduledBackfill(refreshMock);
+
+    expect(refreshMock).toHaveBeenCalledWith({
+      force: true,
+      lookbackMinutes: ZL_1M_SCHEDULED_GAP_FILL_LOOKBACK_MINUTES,
+      maxBarsToUpsert: ZL_1M_SCHEDULED_GAP_FILL_MAX_BARS,
+    });
+    expect(result).toEqual({
+      status: "success",
+      upserted1m: 1337,
     });
   });
 

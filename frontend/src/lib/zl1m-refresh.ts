@@ -22,6 +22,7 @@ export const DEFAULT_LOOKBACK_MINUTES = 3 * 24 * 60; // 3 days
 export const DEFAULT_MIN_REFRESH_INTERVAL_MS = 90_000; // 90-second gate
 export const DEFAULT_END_LAG_MINUTES = 30;
 export const MAX_BARS_TO_UPSERT = 500; // 1m bars = ~8h of trading at a clip
+export const HARD_MAX_BARS_TO_UPSERT = 5_000;
 
 // ---------------------------------------------------------------------------
 //  Per-worker gate
@@ -54,7 +55,7 @@ export async function refreshZl1mFromDatabento(opts: {
   );
   const maxBars = Math.max(
     1,
-    Math.min(opts.maxBarsToUpsert ?? MAX_BARS_TO_UPSERT, 2_000),
+    Math.min(opts.maxBarsToUpsert ?? MAX_BARS_TO_UPSERT, HARD_MAX_BARS_TO_UPSERT),
   );
 
   if (!force && Date.now() - lastRefreshAt < gate) {
@@ -106,7 +107,13 @@ export async function refreshZl1mFromDatabento(opts: {
         `INSERT INTO analytics.price_1m
            (symbol, timestamp, open, high, low, close, volume, source, created_at)
          VALUES ('ZL', $1, $2, $3, $4, $5, $6, 'databento_backfill', NOW())
-         ON CONFLICT (symbol, timestamp) DO NOTHING`,
+         ON CONFLICT (symbol, timestamp) DO UPDATE SET
+           open = EXCLUDED.open,
+           high = EXCLUDED.high,
+           low = EXCLUDED.low,
+           close = EXCLUDED.close,
+           volume = EXCLUDED.volume,
+           source = EXCLUDED.source`,
         [bar.tsEvent, bar.open, bar.high, bar.low, bar.close, bar.volume ?? 0],
       );
       count1m++;

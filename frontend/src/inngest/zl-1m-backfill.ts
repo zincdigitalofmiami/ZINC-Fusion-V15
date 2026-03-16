@@ -31,6 +31,8 @@ const ZL_SESSION_OPEN_MINUTES = 19 * 60;
 const ZL_SESSION_CLOSE_MINUTES = 13 * 60 + 20;
 const STALE_THRESHOLD_SECONDS = 5 * 60;
 export const ZL_1M_INTRADAY_REFRESH_CRON = "TZ=America/Chicago */3 * * * *";
+export const ZL_1M_SCHEDULED_GAP_FILL_LOOKBACK_MINUTES = 3 * 24 * 60;
+export const ZL_1M_SCHEDULED_GAP_FILL_MAX_BARS = 3 * 24 * 60;
 
 interface BackfillParams {
   startDate?: string;
@@ -107,6 +109,28 @@ export async function runZl1mIntradayRefresh(
     upserted1m: result.upserted1m,
     latestBar: latestBarIso,
     age_seconds: ageSeconds,
+  };
+}
+
+export async function runZl1mScheduledBackfill(
+  refreshFn: typeof refreshZl1mFromDatabento = refreshZl1mFromDatabento,
+): Promise<{
+  status: "success" | "skipped";
+  upserted1m?: number;
+}> {
+  const result = await refreshFn({
+    force: true,
+    lookbackMinutes: ZL_1M_SCHEDULED_GAP_FILL_LOOKBACK_MINUTES,
+    maxBarsToUpsert: ZL_1M_SCHEDULED_GAP_FILL_MAX_BARS,
+  });
+
+  if (result.skipped) {
+    return { status: "skipped" };
+  }
+
+  return {
+    status: "success",
+    upserted1m: result.upserted1m,
   };
 }
 
@@ -245,21 +269,14 @@ export const zl1mScheduledBackfill = inngest.createFunction(
   async ({ logger }) => {
     logger.info("Running scheduled ZL 1m gap fill via refresh helper (3-day lookback)");
 
-    const result = await refreshZl1mFromDatabento({
-      force: true,
-      lookbackMinutes: 3 * 24 * 60,
-    });
-
-    if (result.skipped) {
+    const result = await runZl1mScheduledBackfill();
+    if (result.status === "skipped") {
       logger.info("Refresh gate blocked — already ran recently");
-      return { status: "skipped" };
+      return result;
     }
 
     logger.info(`Gap fill complete: ${result.upserted1m} 1m bars`);
-    return {
-      status: "success",
-      upserted1m: result.upserted1m,
-    };
+    return result;
   }
 );
 
