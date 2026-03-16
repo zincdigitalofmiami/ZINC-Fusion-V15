@@ -16,6 +16,9 @@ export interface ZlLivePrice {
   source: string;
   live: boolean;
   age_seconds: number | null;
+  degraded?: boolean;
+  freshness_state?: "live" | "stale" | "fallback";
+  degraded_reason?: string | null;
 }
 
 const POLL_INTERVAL_MS = 10_000;
@@ -62,6 +65,17 @@ function normalizePayload(payload: unknown): ZlLivePrice | null {
     live: Boolean(record.live),
     age_seconds:
       record.age_seconds == null ? null : Number(record.age_seconds),
+    degraded: Boolean(record.degraded),
+    freshness_state:
+      record.freshness_state === "live" ||
+      record.freshness_state === "stale" ||
+      record.freshness_state === "fallback"
+        ? record.freshness_state
+        : undefined,
+    degraded_reason:
+      typeof record.degraded_reason === "string"
+        ? record.degraded_reason
+        : null,
   };
 }
 

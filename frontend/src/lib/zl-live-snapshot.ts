@@ -2,6 +2,8 @@ import { query } from "@/lib/db";
 import { zlSessionContextCte } from "@/lib/zl-session";
 
 export type ZlLivePriceSource = "1m" | "latest_price" | "1d";
+export type ZlFreshnessState = "live" | "stale" | "fallback";
+export type ZlSourceHealth = "ok" | "empty" | "error";
 
 export interface ZlLiveSnapshot {
   price: number;
@@ -16,6 +18,19 @@ export interface ZlLiveSnapshot {
   age_seconds: number;
   source: ZlLivePriceSource;
   live: boolean;
+  degraded: boolean;
+  freshness_state: ZlFreshnessState;
+  degraded_reason: string | null;
+  source_health: {
+    one_minute: ZlSourceHealth;
+    latest_price: ZlSourceHealth;
+    daily: ZlSourceHealth;
+  };
+  source_errors: {
+    one_minute: string | null;
+    latest_price: string | null;
+    daily: string | null;
+  };
 }
 
 interface PriceTier {
@@ -32,7 +47,32 @@ interface PriceTier {
   source: ZlLivePriceSource;
 }
 
+interface SourceAttempt {
+  value: PriceTier | null;
+  status: ZlSourceHealth;
+  error: string | null;
+}
+
 const LIVE_THRESHOLD_SECONDS = 5 * 60;
+
+async function getSourceAttempt(
+  read: () => Promise<PriceTier | null>,
+): Promise<SourceAttempt> {
+  try {
+    const value = await read();
+    return {
+      value,
+      status: value ? "ok" : "empty",
+      error: null,
+    };
+  } catch (error) {
+    return {
+      value: null,
+      status: "error",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 async function getFrom1m(): Promise<PriceTier | null> {
   const rows = await query<{
@@ -212,24 +252,49 @@ async function getFrom1d(): Promise<PriceTier | null> {
 
 export async function getZlLiveSnapshot(): Promise<ZlLiveSnapshot | null> {
   const [from1m, fromLatestPrice, from1d] = await Promise.all([
-    getFrom1m().catch(() => null),
-    getFromLatestPrice().catch(() => null),
-    getFrom1d().catch(() => null),
+    getSourceAttempt(() => getFrom1m()),
+    getSourceAttempt(() => getFromLatestPrice()),
+    getSourceAttempt(() => getFrom1d()),
   ]);
 
-  const best = from1m ?? fromLatestPrice ?? from1d;
+  const best = from1m.value ?? fromLatestPrice.value ?? from1d.value;
   if (!best) return null;
 
   let previousClose = best.previous_close;
   let change = best.change;
   let changePct = best.change_pct;
 
-  if (best.source !== "1d" && best.change == null && from1d) {
-    previousClose = from1d.previous_close;
-    change = best.price - (from1d.previous_close ?? best.open);
-    changePct = from1d.previous_close
-      ? ((best.price - from1d.previous_close) / from1d.previous_close) * 100
+  if (best.source !== "1d" && best.change == null && from1d.value) {
+    previousClose = from1d.value.previous_close;
+    change = best.price - (from1d.value.previous_close ?? best.open);
+    changePct = from1d.value.previous_close
+      ? ((best.price - from1d.value.previous_close) / from1d.value.previous_close) * 100
       : null;
+  }
+
+  const freshnessState: ZlFreshnessState =
+    best.source === "1m"
+      ? best.age_seconds < LIVE_THRESHOLD_SECONDS
+        ? "live"
+        : "stale"
+      : "fallback";
+
+  const degraded = freshnessState !== "live";
+  let degradedReason: string | null = null;
+  if (freshnessState === "stale") {
+    degradedReason = "intraday_1m_stale";
+  } else if (best.source === "latest_price") {
+    degradedReason =
+      from1m.status === "error"
+        ? "fallback_after_1m_error"
+        : "fallback_latest_price";
+  } else if (best.source === "1d") {
+    degradedReason =
+      from1m.status === "error"
+        ? "fallback_daily_after_1m_error"
+        : fromLatestPrice.status === "error"
+          ? "fallback_daily_after_latest_price_error"
+          : "fallback_daily";
   }
 
   return {
@@ -237,6 +302,19 @@ export async function getZlLiveSnapshot(): Promise<ZlLiveSnapshot | null> {
     previous_close: previousClose,
     change,
     change_pct: changePct,
-    live: best.source !== "1d" && best.age_seconds < LIVE_THRESHOLD_SECONDS,
+    live: freshnessState === "live",
+    degraded,
+    freshness_state: freshnessState,
+    degraded_reason: degradedReason,
+    source_health: {
+      one_minute: from1m.status,
+      latest_price: fromLatestPrice.status,
+      daily: from1d.status,
+    },
+    source_errors: {
+      one_minute: from1m.error,
+      latest_price: fromLatestPrice.error,
+      daily: from1d.error,
+    },
   };
 }

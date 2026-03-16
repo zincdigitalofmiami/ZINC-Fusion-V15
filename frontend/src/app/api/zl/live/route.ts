@@ -48,6 +48,11 @@ export async function GET() {
         source: best.source,
         live: best.live,
         age_seconds: best.age_seconds,
+        degraded: best.degraded,
+        freshness_state: best.freshness_state,
+        degraded_reason: best.degraded_reason,
+        source_health: best.source_health,
+        source_errors: best.source_errors,
       },
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );

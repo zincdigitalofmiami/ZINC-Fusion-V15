@@ -66,6 +66,7 @@ import {
   fredBlogDaily,
   zl1mBackfill,
   zl1mScheduledBackfill,
+  zl1mIntradayRefresh,
   cleanupStaleRuns,
   price1mRetentionCleanup,
   lcfsCreditWeekly,
@@ -227,6 +228,7 @@ export const { GET, POST, PUT } = serve({
     // ZL 1m backfill
     zl1mBackfill,
     zl1mScheduledBackfill,
+    zl1mIntradayRefresh,
     // Ops cleanup
     cleanupStaleRuns,
     price1mRetentionCleanup,

@@ -20,6 +20,7 @@ import dbPool from "./db";
 // ---------------------------------------------------------------------------
 export const DEFAULT_LOOKBACK_MINUTES = 3 * 24 * 60; // 3 days
 export const DEFAULT_MIN_REFRESH_INTERVAL_MS = 90_000; // 90-second gate
+export const DEFAULT_END_LAG_MINUTES = 30;
 export const MAX_BARS_TO_UPSERT = 500; // 1m bars = ~8h of trading at a clip
 
 // ---------------------------------------------------------------------------
@@ -34,28 +35,39 @@ export interface Zl1mRefreshResult {
   skipped: boolean;
   upserted1m: number;
   bars: DatabentoOhlcvBar[];
+  effectiveEndIso: string | null;
 }
 
 export async function refreshZl1mFromDatabento(opts: {
   force?: boolean;
   lookbackMinutes?: number;
   minRefreshIntervalMs?: number;
+  endLagMinutes?: number;
+  maxBarsToUpsert?: number;
 }): Promise<Zl1mRefreshResult> {
   const force = opts.force ?? false;
   const lookback = opts.lookbackMinutes ?? DEFAULT_LOOKBACK_MINUTES;
   const gate = opts.minRefreshIntervalMs ?? DEFAULT_MIN_REFRESH_INTERVAL_MS;
+  const endLagMinutes = Math.max(
+    0,
+    opts.endLagMinutes ?? DEFAULT_END_LAG_MINUTES,
+  );
+  const maxBars = Math.max(
+    1,
+    Math.min(opts.maxBarsToUpsert ?? MAX_BARS_TO_UPSERT, 2_000),
+  );
 
   if (!force && Date.now() - lastRefreshAt < gate) {
-    return { skipped: true, upserted1m: 0, bars: [] };
+    return { skipped: true, upserted1m: 0, bars: [], effectiveEndIso: null };
   }
 
   const now = new Date();
   const start = new Date(now.getTime() - lookback * 60_000);
   // Databento GLBX.MDP3 data can lag enough that a simple wall-clock offset
   // still overshoots the published range around UTC day boundaries.
-  // Start with a 30-minute offset, then retry against the vendor-reported
+  // Start with a configurable offset, then retry against the vendor-reported
   // available_end if Databento returns a 422 range error.
-  const end = new Date(now.getTime() - 30 * 60_000);
+  const end = new Date(now.getTime() - endLagMinutes * 60_000);
 
   const { csv } = await fetchDatabentoCsvWithAvailableEndRetry(
     {
@@ -73,11 +85,16 @@ export async function refreshZl1mFromDatabento(opts: {
   );
 
   const allBars = parseDatabentoOhlcvCsv(csv);
-  const toUpsert = allBars.slice(-MAX_BARS_TO_UPSERT);
+  const toUpsert = allBars.slice(-maxBars);
 
   if (toUpsert.length === 0) {
     lastRefreshAt = Date.now();
-    return { skipped: false, upserted1m: 0, bars: [] };
+    return {
+      skipped: false,
+      upserted1m: 0,
+      bars: [],
+      effectiveEndIso: end.toISOString(),
+    };
   }
 
   const client = await dbPool.connect();
@@ -109,6 +126,7 @@ export async function refreshZl1mFromDatabento(opts: {
       skipped: false,
       upserted1m: count1m,
       bars: toUpsert,
+      effectiveEndIso: end.toISOString(),
     };
   } finally {
     client.release();

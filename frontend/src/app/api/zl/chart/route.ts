@@ -23,6 +23,10 @@ interface Price1dPayload {
   live_rollup?: boolean;
   live_rollup_source_table?: string | null;
   live_rollup_latest_intraday_ts?: string | null;
+  live_rollup_state?: "live" | "stale" | "fallback" | "none";
+  live_rollup_degraded?: boolean;
+  live_rollup_age_seconds?: number | null;
+  live_rollup_error?: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -49,6 +53,10 @@ export async function GET(request: NextRequest) {
       live_rollup: payload.live_rollup ?? false,
       live_rollup_source_table: payload.live_rollup_source_table ?? null,
       live_rollup_latest_intraday_ts: payload.live_rollup_latest_intraday_ts ?? null,
+      live_rollup_state: payload.live_rollup_state ?? "none",
+      live_rollup_degraded: payload.live_rollup_degraded ?? true,
+      live_rollup_age_seconds: payload.live_rollup_age_seconds ?? null,
+      live_rollup_error: payload.live_rollup_error ?? null,
       series,
     },
     { headers: new Headers(response.headers) },

@@ -178,7 +178,13 @@ export function LightweightZlCandlestickChart({
             setPriceChange(((latest.close - prev.close) / prev.close) * 100);
           }
 
-          setIsLive(Boolean(json.live_rollup));
+          const rollupState =
+            typeof json.live_rollup_state === "string"
+              ? json.live_rollup_state
+              : null;
+          setIsLive(
+            rollupState ? rollupState === "live" : Boolean(json.live_rollup),
+          );
           if (json.live_rollup_latest_intraday_ts) {
             setLastUpdate(formatLastUpdate(json.live_rollup_latest_intraday_ts));
           }

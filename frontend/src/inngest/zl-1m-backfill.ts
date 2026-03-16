@@ -1,7 +1,7 @@
 /**
  * ZL 1-Minute Historical Backfill via Databento
  *
- * Two functions:
+ * Three functions:
  *
  * zl1mBackfill      — event-driven (zl.backfill.1m), for manual or one-off triggers.
  *                     Accepts { startDate, endDate, daysBack } in event.data.
@@ -9,9 +9,13 @@
  * zl1mScheduledBackfill — cron (daily 06:00 UTC), calls the refresh helper directly.
  *                         NO step.sendEvent hop — that was the source of duplicate
  *                         zl.backfill.1m events on cron retries (RR pattern fix).
+ *
+ * zl1mIntradayRefresh — cron (every 3 minutes during futures session window),
+ *                       managed in-repo path that keeps chart-serving 1m/latest
+ *                       tables fresh in production.
  */
 
-import { inngest, DB_CONCURRENCY } from "./client";
+import { inngest, DB_CONCURRENCY, RETRIES } from "./client";
 import {
   fetchDatabentoCsvWithAvailableEndRetry,
   parseDatabentoOhlcvCsv,
@@ -23,11 +27,87 @@ const pool = dbPool;
 
 const ZL_SYMBOL = "ZL.n.0";
 const DATABENTO_DATASET = "GLBX.MDP3";
+const ZL_SESSION_OPEN_MINUTES = 19 * 60;
+const ZL_SESSION_CLOSE_MINUTES = 13 * 60 + 20;
+const STALE_THRESHOLD_SECONDS = 5 * 60;
+export const ZL_1M_INTRADAY_REFRESH_CRON = "TZ=America/Chicago */3 * * * *";
 
 interface BackfillParams {
   startDate?: string;
   endDate?: string;
   daysBack?: number;
+}
+
+export type Zl1mIntradayRefreshStatus =
+  | "success"
+  | "stale"
+  | "skipped_outside_session"
+  | "skipped_gate";
+
+export function isWithinZlManagedSessionWindow(now = new Date()): boolean {
+  const local = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Chicago" }),
+  );
+  const day = local.getDay(); // 0=Sun ... 6=Sat
+  const minutes = local.getHours() * 60 + local.getMinutes();
+
+  if (day === 6) return false; // Saturday
+  if (day === 0) return minutes >= ZL_SESSION_OPEN_MINUTES; // Sunday opens 19:00 CT
+  if (day >= 1 && day <= 4) {
+    // Monday-Thursday: open overnight until 13:20, then re-open at 19:00.
+    return minutes <= ZL_SESSION_CLOSE_MINUTES || minutes >= ZL_SESSION_OPEN_MINUTES;
+  }
+  // Friday: open only through 13:20 CT.
+  return minutes <= ZL_SESSION_CLOSE_MINUTES;
+}
+
+export async function runZl1mIntradayRefresh(
+  refreshFn: typeof refreshZl1mFromDatabento = refreshZl1mFromDatabento,
+  now = new Date(),
+): Promise<{
+  status: Zl1mIntradayRefreshStatus;
+  upserted1m: number;
+  latestBar: string | null;
+  age_seconds: number | null;
+}> {
+  if (!isWithinZlManagedSessionWindow(now)) {
+    return {
+      status: "skipped_outside_session",
+      upserted1m: 0,
+      latestBar: null,
+      age_seconds: null,
+    };
+  }
+
+  const result = await refreshFn({
+    force: true,
+    lookbackMinutes: 12 * 60,
+    endLagMinutes: 2,
+    maxBarsToUpsert: 720,
+  });
+
+  if (result.skipped) {
+    return {
+      status: "skipped_gate",
+      upserted1m: 0,
+      latestBar: null,
+      age_seconds: null,
+    };
+  }
+
+  const latestBarDate = result.bars[result.bars.length - 1]?.tsEvent ?? null;
+  const latestBarIso = latestBarDate ? latestBarDate.toISOString() : null;
+  const ageSeconds = latestBarDate
+    ? Math.max(0, Math.round((now.getTime() - latestBarDate.getTime()) / 1000))
+    : null;
+  const isStale = ageSeconds != null && ageSeconds > STALE_THRESHOLD_SECONDS;
+
+  return {
+    status: isStale ? "stale" : "success",
+    upserted1m: result.upserted1m,
+    latestBar: latestBarIso,
+    age_seconds: ageSeconds,
+  };
 }
 
 async function insert1mBar(
@@ -181,4 +261,44 @@ export const zl1mScheduledBackfill = inngest.createFunction(
       upserted1m: result.upserted1m,
     };
   }
+);
+
+// ---------------------------------------------------------------------------
+//  Managed intraday refresher (primary freshness path)
+// ---------------------------------------------------------------------------
+export const zl1mIntradayRefresh = inngest.createFunction(
+  {
+    id: "zl-1m-intraday-refresh",
+    name: "ZL 1m Managed Intraday Refresh",
+    retries: RETRIES.CRON_INGEST,
+    concurrency: [DB_CONCURRENCY],
+  },
+  { cron: ZL_1M_INTRADAY_REFRESH_CRON },
+  async ({ logger }) => {
+    const result = await runZl1mIntradayRefresh();
+
+    if (result.status === "success") {
+      logger.info(
+        {
+          upserted1m: result.upserted1m,
+          latestBar: result.latestBar,
+          age_seconds: result.age_seconds,
+        },
+        "Managed intraday refresh completed",
+      );
+    } else if (result.status === "stale") {
+      logger.warn(
+        {
+          upserted1m: result.upserted1m,
+          latestBar: result.latestBar,
+          age_seconds: result.age_seconds,
+        },
+        "Managed intraday refresh completed but latest 1m bar is stale",
+      );
+    } else {
+      logger.info({ status: result.status }, "Managed intraday refresh skipped");
+    }
+
+    return result;
+  },
 );

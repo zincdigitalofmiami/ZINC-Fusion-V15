@@ -5,6 +5,7 @@ import { zlSessionContextCte } from "@/lib/zl-session";
 const CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
 };
+const LIVE_THRESHOLD_SECONDS = 5 * 60;
 
 type DailyBarRow = {
   timestamp: string | Date;
@@ -28,6 +29,16 @@ type LiveDailyRollupRow = {
   bar_count: number;
 };
 
+type RollupAttempt = {
+  status: "ok" | "empty" | "error";
+  bar: DailyBarRow | null;
+  sourceTable: string | null;
+  latestTs: string | null;
+  error: string | null;
+};
+
+type LiveRollupState = "live" | "stale" | "fallback" | "none";
+
 function toDateKey(value: string | Date): string {
   const dt = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(dt.getTime())) {
@@ -43,8 +54,10 @@ function toDateKey(value: string | Date): string {
  * recent price in the singleton latest_price row.
  */
 async function getSessionFromLatestPrice(): Promise<{
+  status: "ok" | "empty" | "error";
   bar: DailyBarRow | null;
   latestTs: string | null;
+  error: string | null;
 }> {
   try {
     const rows = await query<{
@@ -66,7 +79,9 @@ async function getSessionFromLatestPrice(): Promise<{
          AND COALESCE(lp.timestamp, lp.updated_at) >= sb.session_start_utc
          AND COALESCE(lp.timestamp, lp.updated_at) <= sb.session_cutoff_utc`,
     );
-    if (!rows.length || !rows[0].price) return { bar: null, latestTs: null };
+    if (!rows.length || !rows[0].price) {
+      return { status: "empty", bar: null, latestTs: null, error: null };
+    }
     const r = rows[0];
     const p = parseFloat(String(r.price));
     return {
@@ -76,17 +91,22 @@ async function getSessionFromLatestPrice(): Promise<{
         source: "latest_price_fallback",
       },
       latestTs: r.timestamp ?? r.updated_at ?? null,
+      status: "ok",
+      error: null,
     };
-  } catch {
-    return { bar: null, latestTs: null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("ZL price-1d latest_price fallback failed:", message);
+    return {
+      status: "error",
+      bar: null,
+      latestTs: null,
+      error: message,
+    };
   }
 }
 
-async function getSessionLiveDailyRollup(): Promise<{
-  bar: DailyBarRow | null;
-  sourceTable: string | null;
-  latestTs: string | null;
-}> {
+async function getSessionLiveDailyRollup(): Promise<RollupAttempt> {
   try {
     const rows = await query<LiveDailyRollupRow>(
       `WITH ${zlSessionContextCte()}
@@ -115,10 +135,17 @@ async function getSessionLiveDailyRollup(): Promise<{
     );
     const row = rows[0];
     if (!row || row.bar_count <= 0 || row.close == null) {
-      return { bar: null, sourceTable: null, latestTs: null };
+      return {
+        status: "empty",
+        bar: null,
+        sourceTable: null,
+        latestTs: null,
+        error: null,
+      };
     }
 
     return {
+      status: "ok",
       bar: {
         timestamp: row.timestamp,
         open: row.open ?? row.close,
@@ -130,10 +157,50 @@ async function getSessionLiveDailyRollup(): Promise<{
       },
       sourceTable: "analytics.price_1m",
       latestTs: row.latest_ts ? new Date(row.latest_ts).toISOString() : null,
+      error: null,
     };
-  } catch {
-    return { bar: null, sourceTable: null, latestTs: null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("ZL price-1d intraday rollup failed:", message);
+    return {
+      status: "error",
+      bar: null,
+      sourceTable: null,
+      latestTs: null,
+      error: message,
+    };
   }
+}
+
+function computeAgeSeconds(value: string | null): number | null {
+  if (!value) return null;
+  const ts = new Date(value);
+  if (Number.isNaN(ts.getTime())) return null;
+  return Math.max(0, Math.round((Date.now() - ts.getTime()) / 1000));
+}
+
+function computeLiveRollupState(
+  sourceTable: string | null,
+  latestTs: string | null,
+): {
+  state: LiveRollupState;
+  degraded: boolean;
+  ageSeconds: number | null;
+} {
+  if (!sourceTable) {
+    return { state: "none", degraded: true, ageSeconds: null };
+  }
+
+  const ageSeconds = computeAgeSeconds(latestTs);
+  if (sourceTable !== "analytics.price_1m") {
+    return { state: "fallback", degraded: true, ageSeconds };
+  }
+
+  if (ageSeconds == null || ageSeconds > LIVE_THRESHOLD_SECONDS) {
+    return { state: "stale", degraded: true, ageSeconds };
+  }
+
+  return { state: "live", degraded: false, ageSeconds };
 }
 
 /**
@@ -177,17 +244,25 @@ export async function GET(req: NextRequest) {
     );
 
     // Try current/last futures-session 1m rollup first, then fall back to latest_price.
-    const liveRollup = await getSessionLiveDailyRollup();
-    let activeRollupBar    = liveRollup.bar;
-    let activeSourceTable  = liveRollup.sourceTable;
-    let activeLatestTs     = liveRollup.latestTs;
+    const intradayRollup = await getSessionLiveDailyRollup();
+    let activeRollupBar: DailyBarRow | null = null;
+    let activeSourceTable: string | null = null;
+    let activeLatestTs: string | null = null;
+    let liveRollupError: string | null = intradayRollup.error;
 
-    if (!activeRollupBar) {
+    if (intradayRollup.status === "ok") {
+      activeRollupBar = intradayRollup.bar;
+      activeSourceTable = intradayRollup.sourceTable;
+      activeLatestTs = intradayRollup.latestTs;
+    } else {
       const lpFallback = await getSessionFromLatestPrice();
-      if (lpFallback.bar) {
+      if (lpFallback.status === "ok" && lpFallback.bar) {
         activeRollupBar   = lpFallback.bar;
         activeSourceTable = "analytics.latest_price";
         activeLatestTs    = lpFallback.latestTs;
+      }
+      if (!liveRollupError && lpFallback.error) {
+        liveRollupError = lpFallback.error;
       }
     }
 
@@ -221,6 +296,7 @@ export async function GET(req: NextRequest) {
       close: parseFloat(String(row.close)),
       volume: parseFloat(String(row.volume)),
     }));
+    const rollupState = computeLiveRollupState(activeSourceTable, activeLatestTs);
 
     return NextResponse.json(
       {
@@ -231,6 +307,10 @@ export async function GET(req: NextRequest) {
         live_rollup: Boolean(activeRollupBar),
         live_rollup_source_table: activeSourceTable,
         live_rollup_latest_intraday_ts: activeLatestTs,
+        live_rollup_state: rollupState.state,
+        live_rollup_degraded: rollupState.degraded,
+        live_rollup_age_seconds: rollupState.ageSeconds,
+        live_rollup_error: liveRollupError,
         data: numericRows,
       },
       { headers: CACHE_HEADERS },
