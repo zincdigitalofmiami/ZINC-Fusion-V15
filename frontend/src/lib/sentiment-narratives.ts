@@ -41,6 +41,13 @@ function toNum(value: unknown): number | null {
   return null;
 }
 
+function formatMove(value: number, windowLabel: string): string {
+  const magnitude = `${Math.abs(value).toFixed(2)}%`;
+  if (value > 0) return `rose ${magnitude} in ${windowLabel}`;
+  if (value < 0) return `fell ${magnitude} in ${windowLabel}`;
+  return `was unchanged (${magnitude}) in ${windowLabel}`;
+}
+
 export function buildFearGreedNarrative(
   input?: FearGreedNarrativePayload,
 ): string | null {
@@ -95,7 +102,7 @@ export function buildTrumpNarrative(
   const responseText =
     response7d === null
       ? "ZL response unavailable"
-      : `ZL ${response7d > 0 ? "rose" : "fell"} ${Math.abs(response7d).toFixed(2)}% in the 7d policy window${response1d == null ? "" : ` and ${response1d > 0 ? "rose" : "fell"} ${Math.abs(response1d).toFixed(2)}% in 1d`} (${responseSignal || "unknown"})`;
+      : `ZL ${formatMove(response7d, "the 7d policy window")}${response1d == null ? "" : ` and ${formatMove(response1d, "1d")}`} (${responseSignal || "unknown"})`;
   const velocityText = velocity === null ? "" : `, velocity ${velocity.toFixed(1)}/day`;
   const detailTail =
     corroborationScore === null

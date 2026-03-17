@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeNetSentimentScore,
+  resolveZlSentimentForAggregation,
   resolveZlSentiment,
   summarizeSentiments,
 } from "./sentiment-news";
@@ -25,6 +26,71 @@ describe("resolveZlSentiment", () => {
     );
 
     expect(result).toBe("bullish");
+  });
+});
+
+describe("resolveZlSentimentForAggregation", () => {
+  it("preserves explicit stored sentiment labels", () => {
+    expect(
+      resolveZlSentimentForAggregation(
+        "bearish",
+        "Congress bill sparks a market rally",
+        null,
+        "google_news/trump_actions/Reuters",
+        ["lane_trump_actions", "trump_effect"],
+      ),
+    ).toEqual({
+      sentiment: "bearish",
+      includeInCounts: true,
+    });
+  });
+
+  it("keeps clearly soybean-oil headlines eligible for fallback classification", () => {
+    expect(
+      resolveZlSentimentForAggregation(
+        null,
+        "Soybean oil prices surge on tight supply",
+        null,
+        "Federal Register",
+        [],
+      ),
+    ).toEqual({
+      sentiment: "bullish",
+      includeInCounts: true,
+    });
+  });
+
+  it("keeps Google News soybean lanes eligible even when source is canonicalized", () => {
+    expect(
+      resolveZlSentimentForAggregation(
+        null,
+        "Biofuel demand surge supports soybean oil feedstock",
+        null,
+        "google_news/Reuters",
+        ["lane_soybean_agriculture", "china"],
+      ),
+    ).toEqual({
+      sentiment: "bullish",
+      includeInCounts: true,
+    });
+  });
+
+  it("excludes generic legislation/politics fallback rows from counts", () => {
+    const genericHeadline = "Congress vote triggers a broad market rally";
+    expect(resolveZlSentiment(null, genericHeadline, null)).toBe("bullish");
+
+    expect(
+      resolveZlSentimentForAggregation(
+        null,
+        genericHeadline,
+        null,
+        "google_news/legislation/Reuters",
+        ["lane_legislation", "tariff", "trump_effect"],
+      ),
+    ).toEqual({
+      sentiment: "neutral",
+      includeInCounts: false,
+    });
   });
 });
 

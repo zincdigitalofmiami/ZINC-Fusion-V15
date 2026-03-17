@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { resolveZlSentiment, summarizeSentiments } from "@/lib/sentiment-news";
+import {
+  resolveZlSentimentForAggregation,
+  summarizeSentiments,
+} from "@/lib/sentiment-news";
+import type { Sentiment } from "@/lib/sentiment-scorer";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +16,7 @@ interface NewsRow {
   content: string | null;
   source: string | null;
   zl_sentiment: string | null;
-  specialist_tags: string[];
+  specialist_tags: string[] | null;
   table_source: string;
 }
 
@@ -85,6 +89,41 @@ function laneLabelFromSlug(slug: string | null): string | null {
     .filter((part) => part.length > 0)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+export function buildSentimentNewsPayload(rows: readonly NewsRow[]) {
+  const countableSentiments: Sentiment[] = [];
+
+  const headlines = rows.map((row) => {
+    const resolved = resolveZlSentimentForAggregation(
+      row.zl_sentiment,
+      row.headline,
+      row.summary || row.content,
+      row.source,
+      row.specialist_tags,
+    );
+    if (resolved.includeInCounts) {
+      countableSentiments.push(resolved.sentiment);
+    }
+
+    const laneLabels = laneLabelsFromRow(row.source, row.specialist_tags);
+    return {
+      id: `${row.table_source}-${row.id}`,
+      event_date: row.event_date,
+      headline: row.headline,
+      summary: row.summary || row.content || null,
+      source: row.source || row.table_source,
+      lane: laneLabels[0] ?? null,
+      lanes: laneLabels,
+      sentiment: resolved.sentiment,
+      tags: (row.specialist_tags || []).slice(0, 4),
+    };
+  });
+
+  return {
+    headlines,
+    stats: summarizeSentiments(countableSentiments),
+  };
 }
 
 /**
@@ -197,28 +236,7 @@ export async function GET() {
       LIMIT 50
     `);
 
-    // Prefer stored sentiment labels and only fall back to keyword scoring when needed.
-    const headlines = rows.map((r) => {
-      const sentiment = resolveZlSentiment(
-        r.zl_sentiment,
-        r.headline,
-        r.summary || r.content,
-      );
-      const laneLabels = laneLabelsFromRow(r.source, r.specialist_tags);
-      return {
-        id: `${r.table_source}-${r.id}`,
-        event_date: r.event_date,
-        headline: r.headline,
-        summary: r.summary || r.content || null,
-        source: r.source || r.table_source,
-        lane: laneLabels[0] ?? null,
-        lanes: laneLabels,
-        sentiment,
-        tags: (r.specialist_tags || []).slice(0, 4),
-      };
-    });
-
-    const stats = summarizeSentiments(headlines.map((headline) => headline.sentiment));
+    const { headlines, stats } = buildSentimentNewsPayload(rows);
 
     return NextResponse.json(
       {

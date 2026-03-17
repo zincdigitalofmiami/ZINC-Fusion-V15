@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { getZlLiveSnapshot } from "@/lib/zl-live-snapshot";
-import { resolveZlSentiment } from "@/lib/sentiment-news";
+import { resolveZlSentimentForAggregation } from "@/lib/sentiment-news";
 import {
   buildTrumpEffectPayload,
   type ConfirmationInputs,
@@ -51,6 +51,37 @@ interface CrudeLatestRow {
 
 interface CrudeCorrRow {
   corr: number | null;
+}
+
+interface SentimentInputRow {
+  headline: string | null;
+  summary: string | null;
+  content: string | null;
+  source: string | null;
+  zl_sentiment: string | null;
+  specialist_tags: string[] | null;
+}
+
+export function countSentimentRows(rows: readonly SentimentInputRow[]) {
+  return rows.reduce(
+    (counts, row) => {
+      const resolved = resolveZlSentimentForAggregation(
+        row.zl_sentiment,
+        row.headline,
+        row.summary || row.content,
+        row.source,
+        row.specialist_tags,
+      );
+      if (!resolved.includeInCounts) {
+        return counts;
+      }
+
+      if (resolved.sentiment === "bullish") counts.bullish += 1;
+      else if (resolved.sentiment === "bearish") counts.bearish += 1;
+      return counts;
+    },
+    { bullish: 0, bearish: 0 },
+  );
 }
 
 function toNumber(value: number | string | null | undefined, fallback = 0): number {
@@ -552,15 +583,15 @@ export async function GET() {
       )),
 
       // 16. News sentiment rows (7d) — scored with the same rules as the page headlines.
-      safe(query<{
-        headline: string | null;
-        summary: string | null;
-        content: string | null;
-        zl_sentiment: string | null;
-      }>(
-        `SELECT headline, summary, content, zl_sentiment
+      safe(query<SentimentInputRow>(
+        `SELECT headline, summary, content, source, zl_sentiment, specialist_tags
          FROM (
-           SELECT headline, summary, content, zl_sentiment
+           SELECT headline,
+                  summary,
+                  content,
+                  'ProFarmer'::text AS source,
+                  NULL::text AS zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM alt.profarmer_news_event
            WHERE event_date >= NOW() - INTERVAL '7 days'
 
@@ -569,31 +600,53 @@ export async function GET() {
            SELECT title AS headline,
                   CONCAT(document_type, ' — ', agency) AS summary,
                   NULL::text AS content,
-                  NULL::text AS zl_sentiment
+                  COALESCE(source, 'Federal Register') AS source,
+                  NULL::text AS zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM alt.legislation_1d
            WHERE event_date >= NOW() - INTERVAL '7 days'
 
            UNION ALL
 
-           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           SELECT headline,
+                  NULL::text AS summary,
+                  content,
+                  source,
+                  zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM alt.policy_news_event
            WHERE event_date >= NOW() - INTERVAL '7 days'
 
            UNION ALL
 
-           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           SELECT headline,
+                  NULL::text AS summary,
+                  content,
+                  source,
+                  zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM alt.executive_actions_event
            WHERE event_date >= NOW() - INTERVAL '7 days'
 
            UNION ALL
 
-           SELECT headline, summary, content, NULL::text AS zl_sentiment
+           SELECT headline,
+                  summary,
+                  content,
+                  source,
+                  NULL::text AS zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM alt.econ_news_event
            WHERE event_date >= NOW() - INTERVAL '7 days'
 
            UNION ALL
 
-           SELECT headline, NULL::text AS summary, content, zl_sentiment
+           SELECT headline,
+                  NULL::text AS summary,
+                  content,
+                  source,
+                  zl_sentiment,
+                  COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags
            FROM econ.news_event
            WHERE event_date >= NOW() - INTERVAL '7 days'
          ) sentiment_rows`,
@@ -648,19 +701,7 @@ export async function GET() {
     const ovxData = ovxResult[0];
     const crush = crushResult[0];
     const trump = trumpResult[0] ?? null;
-    const sentimentCounts = sentimentRatioResult.reduce(
-      (counts, row) => {
-        const sentiment = resolveZlSentiment(
-          row.zl_sentiment,
-          row.headline,
-          row.summary || row.content,
-        );
-        if (sentiment === "bullish") counts.bullish += 1;
-        else if (sentiment === "bearish") counts.bearish += 1;
-        return counts;
-      },
-      { bullish: 0, bearish: 0 },
-    );
+    const sentimentCounts = countSentimentRows(sentimentRatioResult);
     const [trumpActions, trumpConfirmationRows, trumpZlResponseRows]: [
       ExecutiveActionRow[],
       ConfirmationInputs[],

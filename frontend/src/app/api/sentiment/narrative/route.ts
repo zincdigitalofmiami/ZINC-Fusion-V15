@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 import { parseAIJson } from "@/lib/parse-ai-json";
@@ -11,19 +12,36 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type NarrativeRequest = {
+export type NarrativeRequest = {
   fearGreed?: FearGreedNarrativePayload;
   trumpEffect?: TrumpEffectNarrativePayload;
   volatility?: VolatilityNarrativePayload;
 };
 
-type NarrativeResponse = {
+export type NarrativeResponse = {
   fearGreedNarrative: string | null;
   trumpEffectNarrative: string | null;
   volatilityNarrative: string | null;
   source: "ai" | "deterministic";
   model: string | null;
 };
+
+type ParseJsonFn = <T>(value: string) => T | null;
+
+interface NarrativeRuntimeDeps {
+  hasApiKey: () => boolean;
+  completeText: typeof openRouterCompleteText;
+  parseJson: ParseJsonFn;
+  buildFallback: typeof buildSentimentNarratives;
+  now: () => number;
+}
+
+const NARRATIVE_CACHE_TTL_MS = 10 * 60 * 1000;
+const NARRATIVE_CACHE_MAX_ENTRIES = 200;
+const NARRATIVE_CACHE = new Map<
+  string,
+  { expiresAtMs: number; response: NarrativeResponse }
+>();
 
 const SYSTEM_PROMPT = `You write soybean oil sentiment card summaries for a commercial buyer.
 
@@ -55,24 +73,86 @@ function trimToTwoSentences(value: string | null | undefined): string | null {
     .join(" ");
 }
 
-export async function POST(request: Request) {
-  let payload: NarrativeRequest = {};
-  try {
-    payload = (await request.json()) as NarrativeRequest;
-  } catch {
-    // Keep empty payload; return null narratives instead of failing the page.
+function normalizeForHash(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeForHash(item));
   }
+  if (value && typeof value === "object") {
+    const normalizedEntries = Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, nested]) => [key, normalizeForHash(nested)]);
+    return Object.fromEntries(normalizedEntries);
+  }
+  return value;
+}
 
-  const fallback = buildSentimentNarratives(payload);
+function payloadCacheKey(payload: NarrativeRequest, aiEnabled: boolean): string {
+  const normalized = normalizeForHash(payload);
+  const serialized = JSON.stringify(normalized);
+  return createHash("sha256")
+    .update(`${aiEnabled ? "ai" : "det"}:${serialized}`)
+    .digest("hex");
+}
+
+function cacheGet(key: string, nowMs: number): NarrativeResponse | null {
+  const hit = NARRATIVE_CACHE.get(key);
+  if (!hit) return null;
+  if (hit.expiresAtMs <= nowMs) {
+    NARRATIVE_CACHE.delete(key);
+    return null;
+  }
+  return hit.response;
+}
+
+function cacheSet(key: string, response: NarrativeResponse, nowMs: number): void {
+  if (NARRATIVE_CACHE.size >= NARRATIVE_CACHE_MAX_ENTRIES) {
+    const oldestKey = NARRATIVE_CACHE.keys().next().value;
+    if (oldestKey) {
+      NARRATIVE_CACHE.delete(oldestKey);
+    }
+  }
+  NARRATIVE_CACHE.set(key, {
+    expiresAtMs: nowMs + NARRATIVE_CACHE_TTL_MS,
+    response,
+  });
+}
+
+const DEFAULT_RUNTIME_DEPS: NarrativeRuntimeDeps = {
+  hasApiKey: hasOpenRouterApiKey,
+  completeText: openRouterCompleteText,
+  parseJson: parseAIJson,
+  buildFallback: buildSentimentNarratives,
+  now: () => Date.now(),
+};
+
+export function resetNarrativeCacheForTests() {
+  NARRATIVE_CACHE.clear();
+}
+
+export async function buildNarrativeResponse(
+  payload: NarrativeRequest,
+  overrides: Partial<NarrativeRuntimeDeps> = {},
+): Promise<NarrativeResponse> {
+  const deps = {
+    ...DEFAULT_RUNTIME_DEPS,
+    ...overrides,
+  };
+  const nowMs = deps.now();
+  const aiEnabled = deps.hasApiKey();
+  const key = payloadCacheKey(payload, aiEnabled);
+  const cached = cacheGet(key, nowMs);
+  if (cached) return cached;
+
+  const fallback = deps.buildFallback(payload);
   let response: NarrativeResponse = {
     ...fallback,
     source: "deterministic",
     model: null,
   };
 
-  if (hasOpenRouterApiKey()) {
+  if (aiEnabled) {
     try {
-      const text = await openRouterCompleteText({
+      const text = await deps.completeText({
         model: MODEL_DRIVER_INTEL,
         maxTokens: 220,
         temperature: 0.0,
@@ -86,28 +166,49 @@ export async function POST(request: Request) {
         ],
       });
 
-      const parsed = parseAIJson<{
+      const parsed = deps.parseJson<{
         fearGreedNarrative?: string | null;
         trumpEffectNarrative?: string | null;
         volatilityNarrative?: string | null;
       }>(text);
 
       if (parsed) {
-        response = {
-          fearGreedNarrative:
-            trimToTwoSentences(parsed.fearGreedNarrative) ?? fallback.fearGreedNarrative,
-          trumpEffectNarrative:
-            trimToTwoSentences(parsed.trumpEffectNarrative) ?? fallback.trumpEffectNarrative,
-          volatilityNarrative:
-            trimToTwoSentences(parsed.volatilityNarrative) ?? fallback.volatilityNarrative,
-          source: "ai",
-          model: MODEL_DRIVER_INTEL,
-        };
+        const aiFearGreed = trimToTwoSentences(parsed.fearGreedNarrative);
+        const aiTrumpEffect = trimToTwoSentences(parsed.trumpEffectNarrative);
+        const aiVolatility = trimToTwoSentences(parsed.volatilityNarrative);
+        const hasUsableAiNarrative =
+          aiFearGreed !== null || aiTrumpEffect !== null || aiVolatility !== null;
+
+        if (hasUsableAiNarrative) {
+          response = {
+            fearGreedNarrative: aiFearGreed ?? fallback.fearGreedNarrative,
+            trumpEffectNarrative: aiTrumpEffect ?? fallback.trumpEffectNarrative,
+            volatilityNarrative: aiVolatility ?? fallback.volatilityNarrative,
+            source: "ai",
+            model: MODEL_DRIVER_INTEL,
+          };
+        }
       }
     } catch (error) {
       console.error("[/api/sentiment/narrative] AI generation failed:", error);
     }
   }
+
+  if (response.source === "ai") {
+    cacheSet(key, response, nowMs);
+  }
+  return response;
+}
+
+export async function POST(request: Request) {
+  let payload: NarrativeRequest = {};
+  try {
+    payload = (await request.json()) as NarrativeRequest;
+  } catch {
+    // Keep empty payload; return null narratives instead of failing the page.
+  }
+
+  const response = await buildNarrativeResponse(payload);
 
   return NextResponse.json(
     response,
