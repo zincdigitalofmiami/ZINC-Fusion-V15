@@ -29,9 +29,13 @@ from src.fusion.db.fred_routing import get_fred_schema_table
 
 def get_postgres_connection():
     """Get PostgreSQL connection from environment."""
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL not found in environment")
+    if database_url.startswith("prisma+postgres://"):
+        raise ValueError(
+            "DATABASE_URL must be a direct postgres:// or postgresql:// URL"
+        )
     return psycopg2.connect(database_url)
 
 

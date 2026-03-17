@@ -8,26 +8,16 @@ cd "$REPO_ROOT"
 source scripts/load_db_env.sh
 load_db_env
 
-if [ -z "${DIRECT_DATABASE_URL:-}" ] && [ -z "${POSTGRES_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
-  echo "FALLBACK FAILED: set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in env, .env.local, or .env"
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "FALLBACK FAILED: set DATABASE_URL in env, .env.local, or .env"
   exit 1
 fi
 
-ACTIVE_DB_URL=""
-ACTIVE_DB_SOURCE=""
-if [ -n "${DIRECT_DATABASE_URL:-}" ]; then
-  ACTIVE_DB_URL="${DIRECT_DATABASE_URL}"
-  ACTIVE_DB_SOURCE="DIRECT_DATABASE_URL"
-elif [ -n "${POSTGRES_URL:-}" ]; then
-  ACTIVE_DB_URL="${POSTGRES_URL}"
-  ACTIVE_DB_SOURCE="POSTGRES_URL"
-else
-  ACTIVE_DB_URL="${DATABASE_URL:-}"
-  ACTIVE_DB_SOURCE="DATABASE_URL"
-fi
+ACTIVE_DB_URL="${DATABASE_URL}"
+ACTIVE_DB_SOURCE="DATABASE_URL"
 
 if printf "%s" "${ACTIVE_DB_URL}" | grep -q '^prisma+postgres://'; then
-  echo "FALLBACK FAILED: DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL must be direct postgres:// for migrate/status."
+  echo "FALLBACK FAILED: DATABASE_URL must be direct postgres:// for migrate/status."
   echo "Set direct URL from Prisma Console; do not use prisma+postgres:// for this script."
   exit 1
 fi
@@ -184,9 +174,9 @@ local = sorted(
     if p.is_dir() and (p / "migration.sql").exists()
 )
 
-url = os.getenv("DIRECT_DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+url = os.getenv("DATABASE_URL")
 if not url:
-    print("FALLBACK FAILED: DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL not set")
+    print("FALLBACK FAILED: DATABASE_URL not set")
     sys.exit(1)
 
 conn = None

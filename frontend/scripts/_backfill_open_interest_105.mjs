@@ -22,8 +22,8 @@ function parseDotEnvFile(filePath) {
 }
 
 function getDirectDbUrl() {
-  const url = process.env.DIRECT_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL;
-  if (!url) throw new Error('No DB URL found (DIRECT_DATABASE_URL/POSTGRES_URL/DATABASE_URL)');
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('No DB URL found (DATABASE_URL)');
   if (url.startsWith('prisma+postgres://')) {
     throw new Error('Invalid DB URL: prisma+postgres:// (Accelerate) is not compatible with pg client.');
   }

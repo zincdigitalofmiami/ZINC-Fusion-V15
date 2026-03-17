@@ -24,7 +24,7 @@ import { inngest, DB_CONCURRENCY } from "./client";
 import { createHash } from "crypto";
 import dbPool from "@/lib/db";
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // ALL ICE.gov URLs to scrape
 const ICE_URLS = {

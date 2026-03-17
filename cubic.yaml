@@ -55,7 +55,7 @@ reviews:
     SECURITY:
     - All secrets from process.env. Touches: Databento, FRED, EIA, USDA, NOAA, Scrapecreators,
       Profarmer, Glide, Inngest, OpenAI, Autonoma, 3 database URLs. Flag any hardcoded key/token.
-    - No Rabid Raccoon env var references. No cross-project contamination.
+    - No external-project env var references. No cross-project contamination.
     - No .env files committed to git.
 
     DO NOT WASTE TIME ON: style/formatting, missing docstrings, import ordering, variable naming
@@ -135,7 +135,7 @@ reviews:
         Flag as CRITICAL: (1) Hardcoded API keys, tokens, or connection strings — all must
         come from process.env. Services: Databento, FRED, EIA, USDA, NOAA, Scrapecreators,
         Profarmer, Glide, Inngest, OpenAI, Autonoma, 3 DB URLs. (2) .env files committed to
-        git. (3) Rabid Raccoon env var references in V15 code (cross-project contamination).
+        git. (3) External-project env var references in V15 code (cross-project contamination).
         (4) SQL injection via string formatting (f-strings, template literals without
         parameterized queries). (5) Missing input validation on API route params — parseInt
         of non-numeric returns NaN, propagates through SQL (e.g. LIMIT NaN).

@@ -332,7 +332,7 @@ Located in `frontend/src/inngest/functions.ts`:
 | Port | App             | Purpose                     |
 | ---- | --------------- | --------------------------- |
 | 3000 | ZINC-FUSION-V15 | Next.js dev + Inngest serve |
-| 3001 | rabid-raccoon   | Alternative Next.js dev     |
+| 3001 | external-project | Alternative Next.js dev    |
 | 8288 | inngest-dev     | Inngest dev server          |
 
 ### 7.3 Makefile Targets

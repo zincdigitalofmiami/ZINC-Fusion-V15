@@ -36,7 +36,7 @@ def get_backend() -> str:
     if not _get_postgres_url():
         raise RuntimeError(
             "Database URL not set. Prisma Postgres is required. "
-            "Set DIRECT_DATABASE_URL or POSTGRES_URL (or DATABASE_URL) in environment or .env file."
+            "Set DATABASE_URL in environment or .env file."
         )
     if not HAS_POSTGRES:
         raise RuntimeError("psycopg2 not installed. Run: pip install psycopg2-binary")
@@ -65,9 +65,7 @@ class DatabaseConnection:
         """Establish connection to Prisma Postgres."""
         url = _get_postgres_url()
         if not url:
-            raise RuntimeError(
-                "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
-            )
+            raise RuntimeError("Database URL not set. Set DATABASE_URL.")
         self._conn = get_write_connection(url)
         return self
 
@@ -122,9 +120,7 @@ def get_connection():
     """Get a raw psycopg2 connection to Prisma Postgres."""
     url = _get_postgres_url()
     if not url:
-        raise RuntimeError(
-            "Database URL not set. Set DIRECT_DATABASE_URL or POSTGRES_URL."
-        )
+        raise RuntimeError("Database URL not set. Set DATABASE_URL.")
     return get_write_connection(url)
 
 

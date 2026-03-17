@@ -2,7 +2,7 @@
 """Sync audit-critical tables from cloud Postgres to local Postgres.
 
 Usage:
-  DATABASE_URL='postgresql://...' \
+  CLOUD_DATABASE_URL='postgresql://...' \
   LOCAL_DATABASE_URL='postgresql://...' \
   .venv/bin/python scripts/sync_cloud_to_local_db.py
 
@@ -60,6 +60,14 @@ class Endpoint:
 
 def parse_endpoint(raw_url: str) -> Endpoint:
     parsed = urlparse(raw_url)
+    if parsed.scheme == "prisma+postgres":
+        raise ValueError(
+            "URL must be direct postgres:// or postgresql:// (prisma+postgres:// is not supported)"
+        )
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        raise ValueError(
+            "URL must use postgres:// or postgresql:// scheme"
+        )
     host = (parsed.hostname or "").strip().lower()
     database = (parsed.path or "").lstrip("/").strip()
     if not host or not database:
@@ -244,8 +252,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--source-env",
-        default="DATABASE_URL",
-        help="environment variable containing cloud DB URL (default: DATABASE_URL)",
+        default="CLOUD_DATABASE_URL",
+        help="environment variable containing cloud DB URL (default: CLOUD_DATABASE_URL)",
     )
     parser.add_argument(
         "--dest-env",
