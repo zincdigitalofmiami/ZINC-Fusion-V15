@@ -403,8 +403,29 @@ export class ForecastTargetsPrimitive implements ISeriesPrimitive<Time> {
   }
 
   private _rebuildAutoscaleCache() {
-    // Do NOT force autoscale — let zones clip naturally rather than
-    // squashing the candle chart to fit distant forecast prices.
-    this._cachedAutoscale = null;
+    // Include only the nearest (shortest-horizon) target zone in autoscale
+    // so the chart gently extends to show it without squashing candles
+    // to fit distant 126-day targets 15 points away.
+    if (this._targets.length === 0) {
+      this._cachedAutoscale = null;
+      return;
+    }
+    const nearest = [...this._targets].sort(
+      (a, b) => (a.horizonDays ?? Infinity) - (b.horizonDays ?? Infinity),
+    )[0];
+    if (
+      !nearest ||
+      !Number.isFinite(nearest.priceLow) ||
+      !Number.isFinite(nearest.priceHigh)
+    ) {
+      this._cachedAutoscale = null;
+      return;
+    }
+    this._cachedAutoscale = {
+      priceRange: {
+        minValue: nearest.priceLow,
+        maxValue: nearest.priceHigh,
+      },
+    };
   }
 }

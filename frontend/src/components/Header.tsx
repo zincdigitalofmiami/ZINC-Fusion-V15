@@ -29,8 +29,8 @@ export default function Header() {
           <Image
             src="/logo.svg"
             alt="USO Fusion"
-            width={250}
-            height={50}
+            width={400}
+            height={80}
             priority
           />
         </Link>
