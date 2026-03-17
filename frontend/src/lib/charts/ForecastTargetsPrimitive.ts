@@ -155,18 +155,13 @@ function staleAdjust(c: ReturnType<typeof colors>): typeof c {
 // ---------------------------------------------------------------------------
 
 function formatLabel(t: ForecastTarget): string {
-  // MAE from model_runs_event, or fall back to zone half-width
-  const errorVal = t.mae != null ? t.mae : (t.priceHigh - t.priceLow) / 2;
-  const likelihood = Number.isFinite(t.coveragePct)
-    ? `${t.coveragePct}% likely`
-    : "";
   const horizonText = t.horizonLabel
     ? `${t.horizonLabel.replace("d", "-Day")} Target`
     : t.label;
-  const accuracyText = `\u00b1$${errorVal.toFixed(2)} accuracy`;
-  let label = likelihood
-    ? `${horizonText} $${t.oofPrice.toFixed(2)}  \u00b7  ${likelihood}  \u00b7  ${accuracyText}`
-    : `${horizonText} $${t.oofPrice.toFixed(2)}  \u00b7  ${accuracyText}`;
+  let label = `${horizonText} $${t.oofPrice.toFixed(2)}`;
+  if (Number.isFinite(t.coveragePct)) {
+    label += `  \u00b7  ${t.coveragePct}% likely`;
+  }
   if (isStale(t)) {
     label += "  STALE";
   }
@@ -408,24 +403,8 @@ export class ForecastTargetsPrimitive implements ISeriesPrimitive<Time> {
   }
 
   private _rebuildAutoscaleCache() {
-    if (this._targets.length === 0) {
-      this._cachedAutoscale = null;
-      return;
-    }
-    const lows = this._targets
-      .map((t) => t.priceLow)
-      .filter((v) => Number.isFinite(v));
-    const highs = this._targets
-      .map((t) => t.priceHigh)
-      .filter((v) => Number.isFinite(v));
-    if (lows.length === 0 || highs.length === 0) {
-      this._cachedAutoscale = null;
-      return;
-    }
-
-    const minValue = Math.min(...lows);
-    const maxValue = Math.max(...highs);
-
-    this._cachedAutoscale = { priceRange: { minValue, maxValue } };
+    // Do NOT force autoscale — let zones clip naturally rather than
+    // squashing the candle chart to fit distant forecast prices.
+    this._cachedAutoscale = null;
   }
 }
